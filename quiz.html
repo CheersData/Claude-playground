@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Deep Blue Academy - Test di Idoneità</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ocean-dark: #0a1628;
+    --ocean-mid: #0d2847;
+    --ocean-light: #1a4a7a;
+    --teal: #00b4d8;
+    --teal-light: #90e0ef;
+    --coral: #ff6b6b;
+    --coral-light: #ffa8a8;
+    --sand: #ffd6a5;
+    --white: #ffffff;
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.15);
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(180deg, var(--ocean-dark) 0%, var(--ocean-mid) 40%, var(--ocean-light) 100%);
+    min-height: 100vh;
+    color: var(--white);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* === BUBBLES ANIMATION === */
+  .bubbles-container {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .bubble {
+    position: absolute;
+    bottom: -20px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
+    border-radius: 50%;
+    animation: rise linear infinite;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  @keyframes rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.6; }
+    50% { opacity: 0.3; }
+    100% { transform: translateY(-110vh) scale(0.5); opacity: 0; }
+  }
+
+  /* === WAVES === */
+  .waves {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wave {
+    position: absolute;
+    bottom: 0; left: -50%;
+    width: 200%;
+    height: 60px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(0, 180, 216, 0.05) 40px,
+      rgba(0, 180, 216, 0.05) 80px
+    );
+    border-radius: 50% 50% 0 0;
+    animation: wave-move 8s ease-in-out infinite;
+  }
+
+  .wave:nth-child(2) {
+    animation-delay: -3s;
+    opacity: 0.5;
+    height: 40px;
+  }
+
+  @keyframes wave-move {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(2%); }
+  }
+
+  /* === MAIN CONTAINER === */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* === CARDS === */
+  .card {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 32px 24px;
+    width: 100%;
+    text-align: center;
+    animation: fadeInUp 0.6s ease-out;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+  }
+
+  .card.fade-out {
+    animation: fadeOut 0.3s ease-in forwards;
+  }
+
+  .hidden { display: none !important; }
+
+  /* === SPLASH === */
+  .splash-icon {
+    font-size: 72px;
+    margin-bottom: 16px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .splash-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: var(--teal-light);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .splash-subtitle {
+    font-size: 15px;
+    color: var(--teal-light);
+    opacity: 0.7;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+
+  .splash-desc {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  .splash-warning {
+    display: inline-block;
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--coral-light);
+    margin-bottom: 24px;
+  }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-block;
+    padding: 14px 36px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--teal), #0096c7);
+    color: var(--white);
+    box-shadow: 0 4px 20px rgba(0, 180, 216, 0.4);
+  }
+
+  .btn-primary:hover, .btn-primary:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(0, 180, 216, 0.5);
+  }
+
+  .btn-coral {
+    background: linear-gradient(135deg, var(--coral), #ee5a5a);
+    color: var(--white);
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+  }
+
+  .btn-coral:hover, .btn-coral:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(255, 107, 107, 0.5);
+  }
+
+  /* === PROGRESS === */
+  .progress-section {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: var(--teal-light);
+    opacity: 0.7;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--teal-light));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .progress-level {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sand);
+  }
+
+  /* === QUESTION === */
+  .question-number {
+    font-size: 13px;
+    color: var(--teal-light);
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+
+  .question-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    line-height: 1.4;
+    margin-bottom: 24px;
+    color: var(--white);
+  }
+
+  .answers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .answer-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 14px 18px;
+    color: var(--white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: left;
+  }
+
+  .answer-btn:hover, .answer-btn:active {
+    background: rgba(0, 180, 216, 0.15);
+    border-color: var(--teal);
+    transform: translateX(4px);
+  }
+
+  .answer-btn.selected {
+    background: rgba(0, 180, 216, 0.25);
+    border-color: var(--teal);
+    box-shadow: 0 0 12px rgba(0, 180, 216, 0.2);
+  }
+
+  /* === APHORISM === */
+  .aphorism-card {
+    background: linear-gradient(135deg, rgba(255, 214, 165, 0.1), rgba(255, 107, 107, 0.08));
+    border: 1px solid rgba(255, 214, 165, 0.2);
+  }
+
+  .aphorism-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .aphorism-text {
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--sand);
+    margin-bottom: 12px;
+  }
+
+  .aphorism-author {
+    font-size: 13px;
+    color: var(--coral-light);
+    opacity: 0.7;
+  }
+
+  /* === FEEDBACK AFTER ANSWER === */
+  .feedback {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: fadeInUp 0.4s ease-out;
+  }
+
+  .feedback-funny {
+    background: rgba(255, 214, 165, 0.12);
+    border: 1px solid rgba(255, 214, 165, 0.2);
+    color: var(--sand);
+  }
+
+  .next-btn-wrap {
+    margin-top: 20px;
+  }
+
+  /* === LOADING / ANALYSIS === */
+  .loading-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--teal-light);
+    margin-bottom: 20px;
+  }
+
+  .loading-bar-container {
+    width: 80%;
+    margin: 0 auto 16px;
+    height: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .loading-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--coral), var(--sand));
+    border-radius: 5px;
+    width: 0%;
+    animation: loading 3s ease-in-out forwards;
+  }
+
+  @keyframes loading {
+    0% { width: 0%; }
+    30% { width: 45%; }
+    60% { width: 70%; }
+    85% { width: 88%; }
+    100% { width: 100%; }
+  }
+
+  .loading-details {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    min-height: 20px;
+  }
+
+  /* === RESULT === */
+  .result-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 64px;
+    color: var(--coral);
+    margin: 12px 0;
+  }
+
+  .result-label {
+    font-size: 14px;
+    color: var(--teal-light);
+    opacity: 0.7;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .result-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--sand);
+    margin-bottom: 16px;
+  }
+
+  .result-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 24px;
+  }
+
+  .result-badge {
+    display: inline-block;
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--coral-light);
+    margin-bottom: 20px;
+  }
+
+  /* === REVEAL === */
+  #reveal-screen .card {
+    background: linear-gradient(135deg, rgba(255, 214, 165, 0.12), rgba(255, 107, 107, 0.08));
+    border-color: rgba(255, 214, 165, 0.25);
+  }
+
+  .reveal-icon {
+    font-size: 80px;
+    margin-bottom: 16px;
+    animation: float 2.5s ease-in-out infinite;
+  }
+
+  .reveal-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 26px;
+    color: var(--sand);
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .reveal-text {
+    font-size: 16px;
+    line-height: 1.8;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 24px;
+  }
+
+  /* === FISH DECORATION === */
+  .fish {
+    position: fixed;
+    font-size: 28px;
+    animation: swim linear infinite;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  @keyframes swim {
+    0% { transform: translateX(-60px) scaleX(1); }
+    49% { transform: translateX(calc(100vw + 60px)) scaleX(1); }
+    50% { transform: translateX(calc(100vw + 60px)) scaleX(-1); }
+    100% { transform: translateX(-60px) scaleX(-1); }
+  }
+
+  /* === CONFETTI === */
+  .confetti-container {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 10;
+    overflow: hidden;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    top: -20px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: confetti-fall linear forwards;
+  }
+
+  @keyframes confetti-fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Responsive */
+  @media (max-width: 380px) {
+    .splash-title { font-size: 24px; }
+    .question-text { font-size: 18px; }
+    .card { padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Bubbles -->
+<div class="bubbles-container" id="bubbles"></div>
+
+<!-- Waves -->
+<div class="waves">
+  <div class="wave"></div>
+  <div class="wave"></div>
+</div>
+
+<!-- Fish -->
+<div id="fish-container"></div>
+
+<!-- ===================== SCREENS ===================== -->
+
+<div class="container">
+
+  <!-- SPLASH SCREEN -->
+  <div id="splash-screen">
+    <div class="card">
+      <div class="splash-icon">🤿</div>
+      <div class="splash-title">Deep Blue Academy</div>
+      <div class="splash-subtitle">Centro Internazionale di Addestramento Subacqueo</div>
+      <div class="splash-desc">
+        Benvenuta, aspirante subacquea!<br><br>
+        Prima di procedere con l'iscrizione al corso
+        <strong>"Tuffo Estremo per Principianti Coraggiosi"</strong>,
+        è necessario completare il seguente questionario
+        di idoneità psico-fisica-emotiva.
+      </div>
+      <div class="splash-warning">
+        ⚠️ Attenzione: il questionario è obbligatorio e vincolante. Forse.
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="startQuiz()">INIZIA IL TEST 🐠</button>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div id="question-screen" class="hidden">
+    <div class="progress-section">
+      <div class="progress-labels">
+        <span>Inizio</span>
+        <span id="progress-percent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-level" id="progress-level">🐟 Livello: Pesce Rosso</div>
+    </div>
+    <div class="card" id="question-card">
+      <div class="question-number" id="q-number"></div>
+      <div class="question-text" id="q-text"></div>
+      <div class="answers" id="q-answers"></div>
+      <div id="q-feedback" class="hidden"></div>
+      <div id="q-next" class="hidden next-btn-wrap">
+        <button class="btn btn-primary" onclick="nextStep()">AVANTI →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APHORISM SCREEN -->
+  <div id="aphorism-screen" class="hidden">
+    <div class="card aphorism-card" id="aphorism-card">
+      <div class="aphorism-icon" id="aph-icon"></div>
+      <div class="aphorism-text" id="aph-text"></div>
+      <div class="aphorism-author" id="aph-author"></div>
+      <br><br>
+      <button class="btn btn-primary" onclick="nextStep()">CONTINUA →</button>
+    </div>
+  </div>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen" class="hidden">
+    <div class="card">
+      <div class="splash-icon">🔬</div>
+      <div class="loading-text">Analisi in corso...</div>
+      <div class="loading-bar-container">
+        <div class="loading-bar-fill" id="loading-bar"></div>
+      </div>
+      <div class="loading-details" id="loading-details"></div>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="result-screen" class="hidden">
+    <div class="card">
+      <div class="splash-icon">📊</div>
+      <div class="result-label">Punteggio di idoneità</div>
+      <div class="result-score" id="result-score">47%</div>
+      <div class="result-badge" id="result-badge">LIVELLO: STELLA MARINA INDECISA</div>
+      <div class="result-title" id="result-title">Responso ufficiale</div>
+      <div class="result-text" id="result-text"></div>
+      <button class="btn btn-coral" onclick="showReveal()">MA ASPETTA... 🤔</button>
+    </div>
+  </div>
+
+  <!-- REVEAL SCREEN -->
+  <div id="reveal-screen" class="hidden">
+    <div class="card">
+      <div class="reveal-icon">💍</div>
+      <div class="reveal-title" id="reveal-title">Il vero motivo di tutto questo...</div>
+      <div class="reveal-text" id="reveal-text">
+        <!-- Questo testo lo personalizzeremo insieme -->
+        Non c'è nessun corso di sub.<br><br>
+        C'è solo una cosa che volevo chiederti da tanto tempo...<br><br>
+        <strong>Vuoi sposarmi?</strong>
+      </div>
+      <div style="font-size: 48px; margin-top: 12px;">❤️</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Confetti container -->
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const levels = [
+  "🐟 Livello: Pesce Rosso",
+  "🐠 Livello: Pesce Tropicale",
+  "🐡 Livello: Pesce Palla",
+  "🦈 Livello: Squalo Timido",
+  "🐬 Livello: Delfino Ansioso",
+  "🧜‍♀️ Livello: Sirena Principiante",
+  "🦑 Livello: Kraken Domestico",
+  "🐙 Livello: Polpo Filosofo",
+  "🌊 Livello: Onda Anomala",
+  "🏊‍♀️ Livello: Nuotatrice Estrema",
+  "👑 Livello: Regina degli Abissi"
+];
+
+const questions = [
+  {
+    question: "Qual è la prima cosa che fai quando vedi il mare?",
+    answers: [
+      "Corro verso le onde urlando",
+      "Stendo l'asciugamano e apro un libro",
+      "Controllo se ci sono meduse nel raggio di 3 km",
+      "Valuto la temperatura con un piede e poi torno al bar"
+    ],
+    feedbacks: [
+      "Spirito selvaggio! Sarai una subacquea... entusiasta.",
+      "Classico. Ma sotto quell'acqua ci sono cose più interessanti dei romanzi.",
+      "La prudenza è la madre della porcellana. O era un altro proverbio?",
+      "Strategia impeccabile. Il bar è sempre un piano B valido."
+    ]
+  },
+  {
+    question: "Il tuo compagno di immersione inizia a russare sott'acqua. Cosa fai?",
+    answers: [
+      "Impossibile, siamo sott'acqua!",
+      "Gli rubo le pinne come vendetta",
+      "Lo lascio lì, problema suo",
+      "Lo sveglio con un bacio... di una murena"
+    ],
+    feedbacks: [
+      "Tecnicamente hai ragione. Ma qui alla Deep Blue Academy tutto è possibile.",
+      "Furto di pinne: 10 anni di divieto di immersione. Ne è valsa la pena.",
+      "Darwinismo marino al suo massimo.",
+      "Il bacio della murena: romantico e leggermente doloroso."
+    ]
+  },
+  {
+    question: "Quanto è profonda una piscina olimpionica?",
+    answers: [
+      "2 metri",
+      "3 metri",
+      "Non mi importa, ci entro solo se c'è l'idromassaggio",
+      "Abbastanza da perderci le infradito"
+    ],
+    feedbacks: [
+      "Corretto! Ma ammettilo, hai googlato.",
+      "Nì. Ma apprezziamo la sicurezza con cui hai sbagliato.",
+      "Priorità chiare. Rispettiamo.",
+      "Le infradito perse: il vero dramma estivo."
+    ]
+  },
+  {
+    question: "Scegli il tuo animale marino spirituale:",
+    answers: [
+      "🦀 Granchio: cammino lateralmente ma arrivo sempre",
+      "🐢 Tartaruga: lenta ma determinata, e vivo 150 anni",
+      "🦑 Calamaro: elegante, misterioso, buono fritto",
+      "🐚 Conchiglia: tecnicamente non sono un animale ma ci sto bene"
+    ],
+    feedbacks: [
+      "Il granchio è il filosofo del mare. Andare lateralmente nella vita è sottovalutato.",
+      "La tartaruga vince ogni maratona... se ha abbastanza tempo. Tipo 3 settimane.",
+      "Elegante E buono fritto? Un curriculum perfetto.",
+      "La conchiglia è uno stato d'animo. Accettato."
+    ]
+  },
+  {
+    question: "Domanda tecnica: cos'è la 'decompressione'?",
+    answers: [
+      "Quando torni in superficie e i gas nel sangue fanno cose strane",
+      "Quella cosa che fai dopo una giornata di lavoro, sul divano",
+      "Un tipo di caffè molto rilassante",
+      "Non lo so ma suona pericoloso, posso uscire?"
+    ],
+    feedbacks: [
+      "Corretta! Iniziamo a preoccuparci che tu sia troppo preparata.",
+      "Questa è la definizione corretta per il 98% dell'umanità.",
+      "Il Decaffeinato Decompresso™ — lo brevetti e diventi ricca.",
+      "La porta è da quella parte. Ma dietro c'è uno squalo. Scherziamo. Forse."
+    ]
+  },
+  {
+    question: "Il tuo istruttore ti dice: 'oggi ci tuffiamo a 30 metri.' Tu rispondi:",
+    answers: [
+      "Perfetto, finalmente un po' di adrenalina!",
+      "Ok, ma prima devo mandare un vocale di 7 minuti",
+      "30 metri?! Io mi fermo al primo metro e aspetto lì",
+      "Faccio finta di svenire per evitare il tuffo"
+    ],
+    feedbacks: [
+      "Temeraria! A 30 metri l'adrenalina non mancherà, promesso.",
+      "Il vocale pre-immersione: un classico intramontabile.",
+      "Un metro è comunque un metro. Rispetto per i limiti personali.",
+      "Tecnica dello svenimento tattico: usata dal 73% degli studenti. Dato inventato."
+    ]
+  },
+  {
+    question: "Cosa porteresti in una grotta sottomarina?",
+    answers: [
+      "Una torcia, ovviamente",
+      "Uno snack, perché la fame non aspetta",
+      "Il telefono per fare le stories",
+      "Niente, perché NON ci entro"
+    ],
+    feedbacks: [
+      "Risposta sensata. Ci stai togliendo il divertimento.",
+      "Grotta + snack = picnic subacqueo. Brevettalo.",
+      "'Live dalla grotta sottomarina' — 3 like da tua mamma e una medusa.",
+      "La risposta più intelligente di tutto il questionario."
+    ]
+  },
+  {
+    question: "Completa la frase: 'L'amore è come il mare perché...'",
+    answers: [
+      "...è profondo e misterioso",
+      "...a volte ti viene da vomitare",
+      "...non sai mai cosa c'è sotto",
+      "...prima o poi ti bagna"
+    ],
+    feedbacks: [
+      "Poetica! Stai andando bene, futura sirena.",
+      "La versione realista. Onestà sopra ogni cosa.",
+      "Mistero e amore: il binomio perfetto per i paranoici.",
+      "Scientificamente ineccepibile."
+    ]
+  },
+  {
+    question: "Ultima domanda ufficiale: sei pronta a fare il grande tuffo?",
+    answers: [
+      "SÌÌÌÌ! 🏊‍♀️",
+      "Solo se c'è qualcuno che mi tiene la mano",
+      "Preferisco restare a guardare dal bordo",
+      "Aspetta... che tuffo stiamo parlando esattamente? 🤔"
+    ],
+    feedbacks: [
+      "Questo spirito! La Deep Blue Academy è orgogliosa di te!",
+      "Qualcuno c'è sempre. Anche quando non te lo aspetti. 💙",
+      "Dal bordo la vista è bella. Ma dalla profondità è magica.",
+      "Ottima domanda... forse il tuffo più importante della tua vita. 😉"
+    ]
+  }
+];
+
+const aphorisms = [
+  {
+    text: "\"Chi non si tuffa, non trova perle. Chi si tuffa, trova meduse. La vita è una medusa.\"",
+    author: "— Capitano Ignazio Salmone, 1847 (mai esistito)",
+    icon: "🦪"
+  },
+  {
+    text: "\"Il mare insegna agli uomini a nuotare. Il divano insegna a non dover nuotare.\"",
+    author: "— Proverbio anonimo delle Isole Poltrone",
+    icon: "🛋️"
+  },
+  {
+    text: "\"L'acqua è paziente: aspetta sempre che tu ci cada dentro.\"",
+    author: "— Maestro Zen delle Pozzanghere, III secolo",
+    icon: "🧘"
+  },
+  {
+    text: "\"Non contare i pesci prima di averli persi.\"",
+    author: "— Confucio marino (versione sott'acqua)",
+    icon: "🐟"
+  },
+  {
+    text: "\"Un sub saggio non discute col polpo. Il polpo ha otto argomenti.\"",
+    author: "— Antico detto della Scuola dei Molluschi Filosofi",
+    icon: "🐙"
+  },
+  {
+    text: "\"Se la vita ti dà limoni, facci un cocktail. Se ti dà acqua salata... sei già in mare.\"",
+    author: "— Barman della Barriera Corallina, data sconosciuta",
+    icon: "🍹"
+  }
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let currentStep = 0;
+let totalSteps = [];
+let score = 0;
+
+function buildSequence() {
+  // Build an interleaved sequence of questions and aphorisms
+  totalSteps = [];
+  let aphIdx = 0;
+  for (let i = 0; i < questions.length; i++) {
+    totalSteps.push({ type: 'question', index: i });
+    // Insert aphorism after every 2-3 questions
+    if ((i + 1) % 3 === 0 && aphIdx < aphorisms.length) {
+      totalSteps.push({ type: 'aphorism', index: aphIdx });
+      aphIdx++;
+    }
+  }
+  totalSteps.push({ type: 'loading' });
+  totalSteps.push({ type: 'result' });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function hideAllScreens() {
+  document.querySelectorAll('#splash-screen, #question-screen, #aphorism-screen, #loading-screen, #result-screen, #reveal-screen')
+    .forEach(el => el.classList.add('hidden'));
+}
+
+function showScreen(id) {
+  hideAllScreens();
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function startQuiz() {
+  buildSequence();
+  currentStep = 0;
+  score = 0;
+  showStep();
+}
+
+function showStep() {
+  if (currentStep >= totalSteps.length) return;
+  const step = totalSteps[currentStep];
+
+  if (step.type === 'question') {
+    showQuestion(step.index);
+  } else if (step.type === 'aphorism') {
+    showAphorism(step.index);
+  } else if (step.type === 'loading') {
+    showLoading();
+  } else if (step.type === 'result') {
+    showResult();
+  }
+}
+
+function nextStep() {
+  currentStep++;
+  showStep();
+}
+
+// ============================================================
+// QUESTIONS
+// ============================================================
+
+function showQuestion(qIdx) {
+  showScreen('question-screen');
+  const q = questions[qIdx];
+  const qNum = qIdx + 1;
+  const total = questions.length;
+
+  // Progress
+  const pct = Math.round((qIdx / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-percent').textContent = pct + '%';
+  const levelIdx = Math.min(Math.floor(qIdx / (total / levels.length) ), levels.length - 1);
+  document.getElementById('progress-level').textContent = levels[levelIdx];
+
+  // Question
+  document.getElementById('q-number').textContent = `Domanda ${qNum} di ${total}`;
+  document.getElementById('q-text').textContent = q.question;
+
+  // Answers
+  const answersDiv = document.getElementById('q-answers');
+  answersDiv.innerHTML = '';
+  q.answers.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = ans;
+    btn.onclick = () => selectAnswer(qIdx, i);
+    answersDiv.appendChild(btn);
+  });
+
+  // Reset feedback & next
+  document.getElementById('q-feedback').classList.add('hidden');
+  document.getElementById('q-next').classList.add('hidden');
+
+  // Animate card
+  const card = document.getElementById('question-card');
+  card.style.animation = 'none';
+  card.offsetHeight; // trigger reflow
+  card.style.animation = 'fadeInUp 0.5s ease-out';
+}
+
+function selectAnswer(qIdx, ansIdx) {
+  const q = questions[qIdx];
+
+  // Highlight selected
+  const btns = document.querySelectorAll('#q-answers .answer-btn');
+  btns.forEach((b, i) => {
+    b.classList.toggle('selected', i === ansIdx);
+    b.style.pointerEvents = 'none';
+  });
+
+  // Random score
+  score += Math.floor(Math.random() * 15) + 3;
+
+  // Show feedback
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'feedback feedback-funny';
+  fb.innerHTML = '😂 ' + q.feedbacks[ansIdx];
+  fb.classList.remove('hidden');
+
+  // Show next
+  document.getElementById('q-next').classList.remove('hidden');
+
+  // Scroll to feedback smoothly
+  setTimeout(() => fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+// ============================================================
+// APHORISMS
+// ============================================================
+
+function showAphorism(aphIdx) {
+  showScreen('aphorism-screen');
+  const aph = aphorisms[aphIdx];
+  document.getElementById('aph-icon').textContent = aph.icon;
+  document.getElementById('aph-text').textContent = aph.text;
+  document.getElementById('aph-author').textContent = aph.author;
+
+  const card = document.getElementById('aphorism-card');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeInUp 0.6s ease-out';
+}
+
+// ============================================================
+// LOADING
+// ============================================================
+
+function showLoading() {
+  showScreen('loading-screen');
+
+  // Reset animation
+  const bar = document.getElementById('loading-bar');
+  bar.style.animation = 'none';
+  bar.offsetHeight;
+  bar.style.animation = 'loading 3.5s ease-in-out forwards';
+
+  const details = document.getElementById('loading-details');
+  const messages = [
+    "Analisi livello di coraggio...",
+    "Calcolo resistenza al panico...",
+    "Verifica compatibilità con i pesci...",
+    "Misurazione ansia da profondità...",
+    "Consultazione oracolo marino...",
+    "Conteggio bolle di sapone...",
+    "Risultato quasi pronto..."
+  ];
+
+  let msgIdx = 0;
+  details.textContent = messages[0];
+  const interval = setInterval(() => {
+    msgIdx++;
+    if (msgIdx < messages.length) {
+      details.textContent = messages[msgIdx];
+    } else {
+      clearInterval(interval);
+      setTimeout(() => nextStep(), 800);
+    }
+  }, 500);
+}
+
+// ============================================================
+// RESULT
+// ============================================================
+
+function showResult() {
+  showScreen('result-screen');
+
+  // Cap score humorously
+  const displayScore = Math.min(score, 47);
+  document.getElementById('result-score').textContent = displayScore + '%';
+
+  document.getElementById('result-text').innerHTML = `
+    Cara aspirante subacquea,<br><br>
+    dopo un'attenta analisi delle tue risposte
+    (e una consultazione con tre delfini certificati),
+    il nostro verdetto è chiaro:<br><br>
+    <strong>Ti consigliamo di restare in superficie,
+    preferibilmente con un aperitivo in mano.</strong><br><br>
+    Tuttavia... c'è un'ultima cosa che devi sapere. 👇
+  `;
+
+  // Animate score counting
+  const scoreEl = document.getElementById('result-score');
+  let count = 0;
+  const target = displayScore;
+  const interval = setInterval(() => {
+    count += 1;
+    scoreEl.textContent = count + '%';
+    if (count >= target) clearInterval(interval);
+  }, 40);
+}
+
+// ============================================================
+// REVEAL
+// ============================================================
+
+function showReveal() {
+  showScreen('reveal-screen');
+  launchConfetti();
+
+  // Update progress to 100%
+  document.getElementById('progress-fill').style.width = '100%';
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#ff6b6b', '#ffd6a5', '#00b4d8', '#90e0ef', '#ffffff', '#ff85a1', '#ffc300'];
+
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (Math.random() * 8 + 5) + 'px';
+    piece.style.height = (Math.random() * 8 + 5) + 'px';
+    piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+    piece.style.animationDelay = (Math.random() * 1.5) + 's';
+    container.appendChild(piece);
+  }
+
+  // Second wave
+  setTimeout(() => {
+    for (let i = 0; i < 50; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.width = (Math.random() * 8 + 5) + 'px';
+      piece.style.height = (Math.random() * 8 + 5) + 'px';
+      piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      piece.style.animationDelay = (Math.random() * 1) + 's';
+      container.appendChild(piece);
+    }
+  }, 1500);
+}
+
+// ============================================================
+// DECORATIONS (Bubbles + Fish)
+// ============================================================
+
+function createBubbles() {
+  const container = document.getElementById('bubbles');
+  for (let i = 0; i < 20; i++) {
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    const size = Math.random() * 20 + 8;
+    bubble.style.width = size + 'px';
+    bubble.style.height = size + 'px';
+    bubble.style.left = Math.random() * 100 + '%';
+    bubble.style.animationDuration = (Math.random() * 8 + 6) + 's';
+    bubble.style.animationDelay = (Math.random() * 10) + 's';
+    container.appendChild(bubble);
+  }
+}
+
+function createFish() {
+  const container = document.getElementById('fish-container');
+  const fishEmojis = ['🐟', '🐠', '🐡', '🦐', '🦀'];
+  for (let i = 0; i < 4; i++) {
+    const fish = document.createElement('div');
+    fish.className = 'fish';
+    fish.textContent = fishEmojis[Math.floor(Math.random() * fishEmojis.length)];
+    fish.style.top = (Math.random() * 80 + 10) + '%';
+    fish.style.animationDuration = (Math.random() * 15 + 12) + 's';
+    fish.style.animationDelay = (Math.random() * 8) + 's';
+    fish.style.fontSize = (Math.random() * 16 + 18) + 'px';
+    container.appendChild(fish);
+  }
+}
+
+// Init
+createBubbles();
+createFish();
+</script>
+</body>
+</html>
