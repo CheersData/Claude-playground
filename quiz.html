@@ -5,32 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Deep Blue Academy - Test di Idoneità</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --ocean-dark: #0a1628;
-    --ocean-mid: #0d2847;
-    --ocean-light: #1a4a7a;
-    --teal: #00b4d8;
-    --teal-light: #90e0ef;
-    --coral: #ff6b6b;
-    --coral-light: #ffa8a8;
+    --ocean-dark: #000000;
+    --ocean-mid: #050510;
+    --ocean-light: #0a0a1a;
+    --teal: #00d4ff;
+    --teal-light: #7df3ff;
+    --coral: #ff6b8a;
+    --coral-light: #ffb4c4;
     --sand: #ffd6a5;
-    --gold: #ffc107;
-    --white: #ffffff;
-    --glass: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.15);
+    --gold: #ffc837;
+    --white: #f5f5f7;
+    --glass: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.06);
   }
 
   body {
-    font-family: 'Nunito', sans-serif;
-    background: linear-gradient(180deg, var(--ocean-dark) 0%, var(--ocean-mid) 40%, var(--ocean-light) 100%);
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #000000;
     min-height: 100vh;
     color: var(--white);
     overflow-x: hidden;
     position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ambient gradient mesh - Apple style */
+  body::before {
+    content: '';
+    position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background:
+      radial-gradient(circle at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255,107,138,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(255,200,55,0.025) 0%, transparent 50%);
+    animation: ambient 25s ease-in-out infinite;
+    z-index: 0; pointer-events: none;
+  }
+  @keyframes ambient {
+    0%, 100% { transform: translate(0,0) rotate(0deg); }
+    33% { transform: translate(3%,-2%) rotate(0.5deg); }
+    66% { transform: translate(-2%,3%) rotate(-0.5deg); }
   }
 
   /* === BUBBLES === */
@@ -378,11 +397,198 @@
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
   }
 
+  /* === MUSIC BUTTON === */
+  .music-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 50;
+    width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--teal);
+    background: rgba(0,180,216,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    color: var(--white); font-size: 24px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,180,216,0.3);
+    transition: all 0.3s ease;
+    animation: music-glow 2s ease-in-out infinite;
+  }
+  .music-btn:hover, .music-btn:active {
+    transform: scale(1.1);
+    box-shadow: 0 4px 28px rgba(0,180,216,0.5);
+  }
+  .music-btn.playing {
+    border-color: var(--sand);
+    animation: music-spin 3s linear infinite, music-glow 2s ease-in-out infinite;
+  }
+  @keyframes music-glow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(0,180,216,0.3); }
+    50% { box-shadow: 0 4px 28px rgba(0,180,216,0.5); }
+  }
+  @keyframes music-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .music-btn.hidden { display: none !important; }
+
+  /* === GOLDEN TICKET === */
+  #ticket-screen {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #1a0a00 0%, #000000 100%);
+    transition: opacity 1s ease;
+  }
+  #ticket-screen.fade-out { opacity: 0; pointer-events: none; }
+  .ticket-wrapper {
+    cursor: pointer; perspective: 1000px;
+    animation: ticket-entrance 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+    opacity: 0;
+  }
+  @keyframes ticket-entrance {
+    0% { opacity: 0; transform: translateY(-100vh) rotateZ(20deg) scale(0.3); }
+    55% { opacity: 1; transform: translateY(30px) rotateZ(-5deg) scale(1.08); }
+    75% { transform: translateY(-8px) rotateZ(2deg) scale(0.97); }
+    90% { transform: translateY(3px) rotateZ(-0.5deg) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) rotateZ(0deg) scale(1); }
+  }
+  .ticket {
+    width: 300px; position: relative;
+    background: linear-gradient(135deg, #ffd700, #ffec80, #daa520, #ffd700, #fff8dc, #daa520);
+    background-size: 400% 400%;
+    animation: ticket-shimmer 3s ease-in-out infinite;
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 0 60px rgba(255,215,0,0.5), 0 0 120px rgba(255,215,0,0.2),
+                0 20px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(255,255,255,0.3);
+  }
+  @keyframes ticket-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .ticket::before, .ticket::after {
+    content: ''; position: absolute; width: 24px; height: 24px;
+    background: radial-gradient(circle, #000 0%, #1a0a00 100%);
+    border-radius: 50%; top: 50%; transform: translateY(-50%);
+    z-index: 2;
+  }
+  .ticket::before { left: -12px; }
+  .ticket::after { right: -12px; }
+  .ticket-inner {
+    margin: 8px; padding: 28px 24px;
+    border: 2px dashed rgba(120,80,0,0.4); border-radius: 14px;
+    text-align: center; position: relative;
+  }
+  .ticket-stars { font-size: 16px; letter-spacing: 6px; margin-bottom: 4px; }
+  .ticket-header {
+    font-family: 'Fredoka One', cursive; font-size: 13px;
+    color: #5a3a00; letter-spacing: 4px; margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .ticket-main {
+    font-family: 'Fredoka One', cursive; font-size: 30px;
+    color: #6b4000; margin: 6px 0;
+    text-shadow: 0 2px 4px rgba(255,255,255,0.4);
+  }
+  .ticket-wave {
+    font-size: 14px; color: rgba(107,64,0,0.3); letter-spacing: 4px; margin: 8px 0;
+  }
+  .ticket-for {
+    font-family: 'Nunito', sans-serif; font-size: 14px;
+    color: #5a3a00; margin: 16px 0 2px;
+  }
+  .ticket-name {
+    font-family: 'Fredoka One', cursive; font-size: 22px;
+    color: #3a2000; margin-bottom: 4px;
+  }
+  .ticket-from {
+    font-family: 'Nunito', sans-serif; font-size: 12px;
+    color: #8b6914; line-height: 1.4; margin-bottom: 6px;
+  }
+  .ticket-occasion {
+    font-family: 'Nunito', sans-serif; font-size: 11px;
+    color: #a07830; font-style: italic;
+    background: rgba(255,255,255,0.3); border-radius: 20px;
+    padding: 4px 14px; display: inline-block; margin: 8px 0;
+  }
+  .ticket-serial {
+    font-family: monospace; font-size: 9px;
+    color: rgba(107,64,0,0.3); letter-spacing: 2px; margin-top: 12px;
+  }
+  .ticket-tap {
+    font-family: 'Fredoka One', cursive; font-size: 13px;
+    color: #5a3a00; letter-spacing: 3px; margin-top: 16px;
+    animation: tap-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes tap-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  .ticket-sparkle-bg {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; overflow: hidden;
+  }
+  .ticket-sparkle-bg span {
+    position: absolute; width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255,255,255,0.8); animation: ticket-twinkle 2s ease-in-out infinite;
+  }
+  @keyframes ticket-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  /* === SCRATCH CARD === */
+  .scratch-container {
+    position: relative; width: 100%; margin: 12px 0;
+    touch-action: none; min-height: 80px;
+  }
+  .scratch-content { padding: 8px 0; }
+  .scratch-canvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 12px; cursor: crosshair; touch-action: none;
+    transition: opacity 0.6s ease;
+  }
+  .scratch-hint {
+    font-family: 'Fredoka One', cursive; font-size: 14px;
+    color: var(--gold); margin-bottom: 8px; letter-spacing: 1px;
+    animation: tap-pulse 1.5s ease-in-out infinite;
+  }
+  .scratch-hint.scratched { display: none; }
+
+  /* === ANSWER BURST === */
+  .answer-burst {
+    position: fixed; pointer-events: none; z-index: 20;
+    border-radius: 50%;
+    animation: burst-fly 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  @keyframes burst-fly {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
+  /* === SCREEN FLASH === */
+  .screen-flash {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 15; pointer-events: none;
+    background: radial-gradient(circle, rgba(0,180,216,0.2) 0%, transparent 70%);
+    animation: flash-fx 0.4s ease-out forwards;
+  }
+  @keyframes flash-fx {
+    0% { opacity: 1; } 100% { opacity: 0; }
+  }
+
+  /* === GOLD SPARKLE EXPLOSION === */
+  .gold-spark {
+    position: fixed; pointer-events: none; z-index: 101;
+    border-radius: 50%;
+    animation: gold-explode 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  @keyframes gold-explode {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
   /* Responsive */
   @media (max-width: 380px) {
     .splash-title { font-size: 24px; }
     .question-text { font-size: 18px; }
     .card { padding: 24px 18px; }
+    .ticket { width: 280px; }
+    .ticket-main { font-size: 26px; }
   }
 </style>
 </head>
@@ -392,6 +598,28 @@
 <div class="particles" id="particles"></div>
 <div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
 <div id="fish-container"></div>
+
+<!-- GOLDEN TICKET -->
+<div id="ticket-screen">
+  <div class="ticket-wrapper" onclick="openTicket()">
+    <div class="ticket" id="golden-ticket">
+      <div class="ticket-sparkle-bg" id="ticket-sparkle-bg"></div>
+      <div class="ticket-inner">
+        <div class="ticket-stars">&#10031; &#10031; &#10031;</div>
+        <div class="ticket-header">Deep Blue Academy</div>
+        <div class="ticket-wave">~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~</div>
+        <div class="ticket-main">GOLDEN TICKET</div>
+        <div class="ticket-wave">~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~</div>
+        <div class="ticket-for">Invito esclusivo per:</div>
+        <div class="ticket-name">Martina Kraft</div>
+        <div class="ticket-from">Da: Chris Cristophori<br>Cavaliere della Divina Provvidenza</div>
+        <div class="ticket-occasion">34esimo Compleanno</div>
+        <div class="ticket-serial">N. 0034 — CLASSIFIED — DBA-2026</div>
+        <div class="ticket-tap">TOCCA PER APRIRE</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="container">
 
@@ -434,7 +662,7 @@
       <div class="splash-subtitle">Sede operativa: da qualche parte tra Sansepolcro e Padova</div>
 
       <div class="photo-frame">
-        <img id="photo-splash" src="images/splash_coppia_mare.jpg" alt="Marco e Martina">
+        <img id="photo-splash" src="20250426_174219.jpg" alt="Marco e Martina">
       </div>
       <div class="photo-caption">Candidata n. 34 — fascicolo riservato</div>
 
@@ -449,11 +677,11 @@
       </div>
 
       <div class="challenge-box">
-        <div class="challenge-title">HAI IL CORAGGIO DI ACCETTARE?</div>
+        <div class="challenge-title">HAI IL CORAGGIO DI ACCETTARE, AGENTE KRAFT?</div>
         <div class="challenge-text">
-          10 domande. Nessuna risposta giusta. Tanto giudizio.<br>
+          13 domande. Nessuna risposta giusta. Tanto giudizio.<br>
           Solo chi arriva in fondo scoprirà cosa ha in serbo Marco.<br>
-          <strong>La sfida ti aspetta. Non deludere i pesci.</strong>
+          <strong>Laura Kraft non si tira indietro. Non deludere i pesci.</strong>
         </div>
       </div>
 
@@ -492,18 +720,23 @@
     </div>
   </div>
 
-  <!-- APHORISM -->
+  <!-- APHORISM (SCRATCH CARD) -->
   <div id="aphorism-screen" class="hidden">
     <div class="card aphorism-card" id="aphorism-card">
       <div class="aphorism-icon" id="aph-icon"></div>
-      <!-- Photo slot inside aphorisms (shown conditionally) -->
       <div class="photo-frame hidden" id="aph-photo-frame">
         <img id="aph-photo" src="" alt="">
       </div>
-      <div class="aphorism-text" id="aph-text"></div>
-      <div class="aphorism-author" id="aph-author"></div>
-      <br><br>
-      <button class="btn btn-primary" onclick="nextStep()">CONTINUA →</button>
+      <div class="scratch-hint" id="scratch-hint">GRATTA PER SCOPRIRE!</div>
+      <div class="scratch-container" id="scratch-container">
+        <div class="scratch-content">
+          <div class="aphorism-text" id="aph-text"></div>
+          <div class="aphorism-author" id="aph-author"></div>
+        </div>
+        <canvas class="scratch-canvas" id="scratch-canvas"></canvas>
+      </div>
+      <br>
+      <button class="btn btn-primary hidden" id="aph-continue-btn" onclick="nextStep()">CONTINUA →</button>
     </div>
   </div>
 
@@ -529,7 +762,7 @@
 
       <!-- FOTO 4: foto divertente nel risultato -->
       <div class="photo-frame">
-        <img id="photo-result" src="images/risultato_gelato.jpg" alt="Martina">
+        <img id="photo-result" src="Screenshot_20250427_220012_WhatsApp.jpg" alt="Martina">
       </div>
       <div class="photo-caption">Il volto della candidata durante l'esame (ricostruzione fedele)</div>
 
@@ -605,6 +838,14 @@
 
 </div>
 
+<!-- MUSIC -->
+<audio id="bg-music" loop preload="auto">
+  <source src="0rCTkx3d2S7RHL56.mp3" type="audio/mpeg">
+</audio>
+<button class="music-btn hidden" id="music-btn" onclick="toggleMusic()" title="Musica on/off">
+  🎵
+</button>
+
 <div class="confetti-container" id="confetti"></div>
 
 <script>
@@ -614,11 +855,14 @@
 
 const levels = [
   "🐟 Livello: Pesce Rosso di Sansepolcro",
+  "🎒 Livello: Laura Kraft in Addestramento",
   "🐠 Livello: Pesce del Tevere",
   "🐡 Livello: Pesce Palla Padovano",
+  "🕷️ Livello: Cacciatrice di Ragni",
   "🦈 Livello: Squalo Timido",
   "🐬 Livello: Delfino Ansioso",
   "🧜‍♀️ Livello: Sirena del Brenta",
+  "🤫 Livello: Maestra del Silencio",
   "🦑 Livello: Kraken Domestico",
   "🐙 Livello: Polpo Filosofo",
   "🌊 Livello: Onda Anomala",
@@ -644,8 +888,24 @@ const questions = [
     ]
   },
   {
+    question: "L'agente Laura Kraft si prepara per una spedizione. Cosa NON manca MAI nel suo zaino?",
+    photo: "20240814_105937.jpg",
+    answers: [
+      "Gel disinfettante, salviette e lista Excel delle cose da fare",
+      "Una bussola, un coltellino e zero senso dell'orientamento",
+      "Marco, piegato con cura nel compartimento segreto",
+      "Niente: Laura Kraft improvvisa. Con ansia, ma improvvisa."
+    ],
+    feedbacks: [
+      "La lista Excel dello zaino: ordinata per colore, peso e livello di paranoia. Classica Laura Kraft.",
+      "Il senso dell'orientamento: l'unica cosa che Laura Kraft non ha mai trovato. Neanche col GPS.",
+      "Marco nel compartimento segreto: finalmente utile come portaoggetti.",
+      "Improvvisare con ansia: la specialità della casa Kraft. Ogni missione è un attacco di panico organizzato."
+    ]
+  },
+  {
     question: "Marco russa. Qual è la tua strategia di sopravvivenza notturna?",
-    photo: "images/q2_cagnolino.jpg",
+    photo: "20250209_114829.jpg",
     answers: [
       "Tappi per le orecchie, ormai sono professionista",
       "Lo spingo finché non si gira. Funziona 1 volta su 47",
@@ -661,7 +921,7 @@ const questions = [
   },
   {
     question: "Quanto è profonda una piscina olimpionica?",
-    photo: "images/q3_materassino.jpg",
+    photo: "20250813_153826.jpg",
     answers: [
       "2 metri",
       "3 metri",
@@ -676,8 +936,24 @@ const questions = [
     ]
   },
   {
+    question: "ALLARME ROSSO: c'è un ragno in bagno. Protocollo Kraft attivato:",
+    photo: "20251026_134920.jpg",
+    answers: [
+      "Urlo, salgo sul tavolo, chiamo Marco come rinforzo",
+      "Aspirapolvere a potenza massima. Nessuna pietà.",
+      "Negozio diplomatico: 'Tu stai lì, io sto qua. Rispettiamoci.'",
+      "Traslochiamo. Quella casa ora è del ragno."
+    ],
+    feedbacks: [
+      "Marco arriva, prende il ragno a mani nude, e lo butta fuori. L'eroe che non meritiamo.",
+      "La maniaca delle pulizie non negozia coi ragni. L'aspirapolvere: arma di distruzione di massa.",
+      "Diplomazia col ragno: una soft skill che non trovi su LinkedIn. Ancora.",
+      "Proposta immobiliare: 'Trilocale, luminoso, con ragno residente. Non trattabile.'"
+    ]
+  },
+  {
     question: "Scegli il tuo animale marino spirituale:",
-    photo: "images/q4_campagna_famiglia.jpg",
+    photo: "20251226_120547.jpg",
     answers: [
       "🦀 Granchio: cammino lateralmente ma arrivo sempre",
       "🐢 Tartaruga: lenta ma determinata, e vivo 150 anni",
@@ -693,7 +969,7 @@ const questions = [
   },
   {
     question: "In un colloquio, il candidato ti dice: 'Come hobby faccio il sub.' Tu pensi:",
-    photo: "images/q5_spa.jpg",
+    photo: "20250518_135452.jpg",
     answers: [
       "Interessante, denota spirito avventuroso!",
       "Bene, almeno sa trattenere il respiro sotto pressione",
@@ -709,7 +985,7 @@ const questions = [
   },
   {
     question: "Domanda tecnica: cos'è la 'decompressione'?",
-    photo: "images/q6_amiche.jpg",
+    photo: "20241228_173049.jpg",
     answers: [
       "Quando torni in superficie e i gas nel sangue fanno cose strane",
       "Quella cosa che fai dopo una giornata di lavoro in Zucchetti",
@@ -724,8 +1000,24 @@ const questions = [
     ]
   },
   {
+    question: "Sfida impossibile: Martina deve stare zitta per 24 ore. Quanto dura?",
+    photo: "20240822_130739.jpg",
+    answers: [
+      "24 ore? Facilissimo, sono una persona pacata",
+      "Forse 4 ore, poi DEVO commentare qualcosa",
+      "17 minuti. Record personale imbattuto dal 2019",
+      "Ho già perso rispondendo a questa domanda"
+    ],
+    feedbacks: [
+      "Pacata? Marco sta ridendo così forte che lo sentono a Sansepolcro.",
+      "4 ore senza commentare: come trattenere uno starnuto per un intero pomeriggio.",
+      "17 minuti: un risultato che la scienza ritiene ai limiti del possibile per una Kraft.",
+      "La risposta che si autodistrugge. Laura Kraft approva il paradosso."
+    ]
+  },
+  {
     question: "Completa la frase: 'Sansepolcro è famosa per...'",
-    photo: "images/q7_rovine.jpg",
+    photo: "20251026_114915.jpg",
     answers: [
       "Piero della Francesca, ovviamente",
       "La gente che se ne va a Padova",
@@ -741,7 +1033,7 @@ const questions = [
   },
   {
     question: "Il tuo istruttore ti dice: 'oggi ci tuffiamo a 30 metri.' Tu rispondi:",
-    photo: "images/q8_attrazione_acqua.jpg",
+    photo: "20250827_181809.jpg",
     answers: [
       "Perfetto, finalmente un po' di adrenalina!",
       "Ok, ma prima devo mandare un vocale di 7 minuti a Marco",
@@ -773,7 +1065,7 @@ const questions = [
   },
   {
     question: "Domanda definitiva: secondo te, perché Marco ti ha mandato questo quiz?",
-    photo: "images/q10_capodanno.jpg",
+    photo: "20250101_000700.jpg",
     answers: [
       "Perché è fatto così: complicato anche per farti gli auguri",
       "Per terrorizzarmi. Missione compiuta.",
@@ -794,55 +1086,55 @@ const aphorisms = [
     text: "\"Chi non si tuffa, non trova perle. Chi si tuffa, trova meduse. La vita è una medusa.\"",
     author: "— Capitano Ignazio Salmone, 1847 (mai esistito)",
     icon: "🦪",
-    photo: "images/aph1_statua_panorama.jpg"
+    photo: "20241012_105905.jpg"
   },
   {
     text: "\"Il mare insegna agli uomini a nuotare. Il divano insegna a non dover nuotare. Padova insegna a prendere lo spritz.\"",
     author: "— Proverbio anonimo delle Osterie Venete",
     icon: "🍹",
-    photo: "images/aph2_trekking_bosco.jpg"
+    photo: "20250802_105002.jpg"
   },
   {
     text: "\"Non contare i candidati prima di averli assunti, né i pesci prima di averli persi.\"",
     author: "— Confucio HR (versione Talent Acquisition)",
     icon: "🐟",
-    photo: "images/aph3_montagna.jpg"
+    photo: "20250802_111445.jpg"
   },
   {
-    text: "\"Un Project Manager saggio non discute col polpo. Il polpo ha otto tentacoli e zero deadline.\"",
-    author: "— Antico detto della Scuola Agile dei Molluschi",
-    icon: "🐙",
-    photo: null
+    text: "\"Laura Kraft non ha paura di niente. Tranne i ragni. E le barche. E l'altezza. E le cose sporche. Per il resto: impavida.\"",
+    author: "— Dal fascicolo segreto dell'Agente Kraft, classificato TOP SECRET",
+    icon: "🦸‍♀️",
+    photo: "20240822_185736.jpg"
   },
   {
-    text: "\"L'acqua è paziente: aspetta sempre che tu ci cada dentro. Come le scadenze di progetto.\"",
-    author: "— Maestro Zen delle Pozzanghere, III secolo",
-    icon: "🧘",
-    photo: null
+    text: "\"L'ordine è la prima legge dell'universo. Il disordine è la prima legge di Marco. Il compromesso è la prima legge del divano.\"",
+    author: "— Manuale di Convivenza Kraft-Cristophori, Cap. 47",
+    icon: "🧹",
+    photo: "20260111_132339.jpg"
   },
   {
     text: "\"Se Sansepolcro avesse il mare, non sareste mai andati a Padova. Ma il Tevere ce la mette tutta.\"",
     author: "— Anonimo toscano emigrato in Veneto, 2019",
     icon: "🏔️",
-    photo: null
+    photo: "20241102_103601.jpg"
   },
   {
-    text: "\"La vita è come un'immersione: se non respiri bene, risali. Se respiri troppo bene, sei sul divano.\"",
-    author: "— Guru Subacqueo di Abano Terme",
-    icon: "🫧",
-    photo: null
+    text: "\"Di notte Laura Kraft si trasforma: da maniaca dell'ordine a regina della pista. Marco la guarda e pensa: 'domani mi fa rifare il letto.'\"",
+    author: "— Diario segreto di Chris Cristophori, pagina 234",
+    icon: "🪩",
+    photo: "20250913_230622.jpg"
   },
   {
-    text: "\"Chi ha detto che il coraggio è non avere paura? Il coraggio è avere paura e salire comunque sul battello.\"",
+    text: "\"Chi ha detto che il coraggio è non avere paura? Il coraggio è avere paura e salire comunque sul battello. Con Marco che ti spinge.\"",
     author: "— Filosofo della Laguna, probabilmente dopo tre spritz",
     icon: "🚢",
-    photo: null
+    photo: "20250821_194202.jpg"
   },
   {
-    text: "\"Venezia non affonda. E nemmeno tu. Probabilmente.\"",
-    author: "— Gondoliere ottimista, Piazzale Roma, stamattina",
-    icon: "🏛️",
-    photo: null
+    text: "\"Venezia non affonda. E nemmeno l'amore, se regge a Marco che dimentica tutto e Martina che riordina anche il suo zaino.\"",
+    author: "— Gondoliere romantico, Piazzale Roma, stamattina",
+    icon: "💕",
+    photo: "20250214_210714.jpg"
   }
 ];
 
@@ -856,9 +1148,11 @@ let score = 0;
 function buildSequence() {
   totalSteps = [];
   let aphIdx = 0;
+  // 13 questions (0-12), 9 aphorisms spread after: Q1, Q3, Q4, Q6, Q7, Q8, Q9, Q10, Q11
+  const aphAfter = [1, 3, 4, 6, 7, 8, 9, 10, 11];
   for (let i = 0; i < questions.length; i++) {
     totalSteps.push({ type: 'question', index: i });
-    if ((i === 1 || i === 3 || i === 5 || i === 6 || i === 7 || i === 8) && aphIdx < aphorisms.length) {
+    if (aphAfter.includes(i) && aphIdx < aphorisms.length) {
       totalSteps.push({ type: 'aphorism', index: aphIdx });
       aphIdx++;
     }
@@ -886,7 +1180,45 @@ function startQuiz() {
   buildSequence();
   currentStep = 0;
   score = 0;
+  startMusic();
   showStep();
+}
+
+// ============================================================
+// MUSIC
+// ============================================================
+const bgMusic = document.getElementById('bg-music');
+const musicBtn = document.getElementById('music-btn');
+let musicPlaying = false;
+
+function startMusic() {
+  bgMusic.volume = 0.35;
+  bgMusic.play().then(() => {
+    musicPlaying = true;
+    musicBtn.classList.remove('hidden');
+    musicBtn.classList.add('playing');
+    musicBtn.textContent = '🎵';
+  }).catch(() => {
+    // autoplay blocked, show button anyway so user can start manually
+    musicBtn.classList.remove('hidden');
+    musicBtn.textContent = '🔇';
+  });
+}
+
+function toggleMusic() {
+  if (musicPlaying) {
+    bgMusic.pause();
+    musicPlaying = false;
+    musicBtn.classList.remove('playing');
+    musicBtn.textContent = '🔇';
+  } else {
+    bgMusic.volume = 0.35;
+    bgMusic.play().then(() => {
+      musicPlaying = true;
+      musicBtn.classList.add('playing');
+      musicBtn.textContent = '🎵';
+    });
+  }
 }
 
 function showStep() {
@@ -899,6 +1231,7 @@ function showStep() {
 }
 
 function nextStep() {
+  flashTransition();
   currentStep++;
   showStep();
 }
@@ -957,6 +1290,7 @@ function selectAnswer(qIdx, ansIdx) {
   btns.forEach((b, i) => {
     b.classList.toggle('selected', i === ansIdx);
     b.style.pointerEvents = 'none';
+    if (i === ansIdx) answerBurst(b);
   });
   score += Math.floor(Math.random() * 15) + 3;
   const fb = document.getElementById('q-feedback');
@@ -968,8 +1302,10 @@ function selectAnswer(qIdx, ansIdx) {
 }
 
 // ============================================================
-// APHORISMS
+// APHORISMS (SCRATCH CARD)
 // ============================================================
+
+let scratchState = { active: false, revealed: false, scratched: 0, total: 1 };
 
 function showAphorism(aphIdx) {
   showScreen('aphorism-screen');
@@ -978,7 +1314,6 @@ function showAphorism(aphIdx) {
   document.getElementById('aph-text').textContent = aph.text;
   document.getElementById('aph-author').textContent = aph.author;
 
-  // Photo inside aphorism
   const photoFrame = document.getElementById('aph-photo-frame');
   const photoImg = document.getElementById('aph-photo');
   if (aph.photo) {
@@ -988,10 +1323,119 @@ function showAphorism(aphIdx) {
     photoFrame.classList.add('hidden');
   }
 
+  document.getElementById('scratch-hint').classList.remove('scratched');
+  document.getElementById('aph-continue-btn').classList.add('hidden');
+
   const card = document.getElementById('aphorism-card');
   card.style.animation = 'none';
   card.offsetHeight;
   card.style.animation = 'fadeInUp 0.6s ease-out';
+
+  scratchState = { active: false, revealed: false, scratched: 0, total: 1 };
+  requestAnimationFrame(() => requestAnimationFrame(() => setupScratchCanvas()));
+}
+
+function setupScratchCanvas() {
+  const container = document.getElementById('scratch-container');
+  const canvas = document.getElementById('scratch-canvas');
+  const rect = container.getBoundingClientRect();
+
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  canvas.style.display = 'block';
+  canvas.style.opacity = '1';
+
+  const ctx = canvas.getContext('2d');
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Golden scratch surface
+  const grad = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+  grad.addColorStop(0, '#c8a84e');
+  grad.addColorStop(0.25, '#e8d48b');
+  grad.addColorStop(0.5, '#a08030');
+  grad.addColorStop(0.75, '#e8d48b');
+  grad.addColorStop(1, '#c8a84e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, rect.width, rect.height);
+
+  // Subtle noise texture
+  for (let i = 0; i < 200; i++) {
+    ctx.fillStyle = `rgba(${Math.random()>0.5?255:180}, ${Math.random()>0.5?220:160}, ${Math.random()>0.5?100:50}, ${Math.random()*0.15})`;
+    ctx.fillRect(Math.random()*rect.width, Math.random()*rect.height, 2, 2);
+  }
+
+  // "?" pattern
+  ctx.fillStyle = 'rgba(100, 70, 20, 0.25)';
+  ctx.font = 'bold 22px Fredoka One';
+  ctx.textAlign = 'center';
+  for (let x = 25; x < rect.width; x += 45) {
+    for (let y = 30; y < rect.height; y += 40) {
+      ctx.fillText('?', x + (Math.random()*8-4), y + (Math.random()*8-4));
+    }
+  }
+
+  // Center text
+  ctx.fillStyle = 'rgba(80, 50, 10, 0.5)';
+  ctx.font = 'bold 18px Fredoka One';
+  ctx.fillText('GRATTA QUI!', rect.width / 2, rect.height / 2 - 4);
+  ctx.font = '13px Nunito';
+  ctx.fillText('usa il dito per scoprire', rect.width / 2, rect.height / 2 + 16);
+
+  scratchState.total = rect.width * rect.height;
+
+  canvas.onmousedown = e => { scratchState.active = true; scratch(e, canvas); };
+  canvas.onmousemove = e => { if (scratchState.active) scratch(e, canvas); };
+  canvas.onmouseup = () => { scratchState.active = false; };
+  canvas.onmouseleave = () => { scratchState.active = false; };
+  canvas.ontouchstart = e => { e.preventDefault(); scratchState.active = true; scratch(e.touches[0], canvas); };
+  canvas.ontouchmove = e => { e.preventDefault(); if (scratchState.active) scratch(e.touches[0], canvas); };
+  canvas.ontouchend = () => { scratchState.active = false; };
+}
+
+function scratch(e, canvas) {
+  if (scratchState.revealed) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const ctx = canvas.getContext('2d');
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(x, y, 28, 0, Math.PI * 2);
+  ctx.fill();
+  // Broader strokes for finger
+  ctx.beginPath();
+  ctx.arc(x + 5, y - 3, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  scratchState.scratched += 2800;
+  if (scratchState.scratched / scratchState.total > 0.30) revealAphorism();
+}
+
+function revealAphorism() {
+  if (scratchState.revealed) return;
+  scratchState.revealed = true;
+  const canvas = document.getElementById('scratch-canvas');
+  canvas.style.opacity = '0';
+  document.getElementById('scratch-hint').classList.add('scratched');
+  document.getElementById('aph-continue-btn').classList.remove('hidden');
+  launchMiniSparkles();
+}
+
+function launchMiniSparkles() {
+  const colors = ['#ffd700', '#ffec80', '#ffa500', '#fff8dc', '#daa520', '#ff6b6b', '#90e0ef'];
+  for (let i = 0; i < 30; i++) {
+    const spark = document.createElement('div');
+    spark.style.cssText = `
+      position: fixed; pointer-events: none; z-index: 20;
+      width: ${Math.random()*6+3}px; height: ${Math.random()*6+3}px;
+      border-radius: 50%; background: ${colors[Math.floor(Math.random()*colors.length)]};
+      left: ${40 + Math.random()*20}%; top: ${40 + Math.random()*20}%;
+      --dx: ${(Math.random()-0.5)*200}px; --dy: ${(Math.random()-0.5)*200}px;
+      animation: burst-fly 0.8s cubic-bezier(0.25,0.46,0.45,0.94) ${Math.random()*0.2}s forwards;
+    `;
+    document.body.appendChild(spark);
+    setTimeout(() => spark.remove(), 1200);
+  }
 }
 
 // ============================================================
@@ -1007,13 +1451,15 @@ function showLoading() {
 
   const details = document.getElementById('loading-details');
   const messages = [
-    "Analisi livello di coraggio...",
+    "Consultazione del fascicolo Laura Kraft...",
+    "Analisi livello di coraggio... (spoiler: basso)...",
     "Calcolo resistenza al panico...",
-    "Verifica compatibilità con i pesci...",
+    "Verifica tolleranza al disordine di Marco...",
+    "Scansione anti-ragni in corso...",
     "Consultazione col Tevere di Sansepolcro...",
     "Interrogazione dei canali di Padova...",
     "Confronto con il CV LinkedIn di Martina...",
-    "Conteggio anni di sopravvivenza con Marco...",
+    "Conteggio anni di sopravvivenza con Chris Cristophori...",
     "Risultato quasi pronto..."
   ];
 
@@ -1040,15 +1486,17 @@ function showResult() {
   document.getElementById('result-score').textContent = displayScore + '%';
 
   document.getElementById('result-text').innerHTML = `
-    Cara Martina,<br><br>
+    Cara Agente Kraft,<br><br>
     dopo un'attenta analisi delle tue risposte,
-    una consultazione con tre delfini certificati
-    e un rapido check col Tevere,
+    una consultazione con tre delfini certificati,
+    un rapido check col Tevere
+    e la verifica che nessun ragno sia stato maltrattato,
     il nostro verdetto è chiaro:<br><br>
-    <strong>Non sei pronta. Ma nessuno lo è mai.
+    <strong>Non sei pronta. Ma Laura Kraft non lo è mai stata,
+    eppure ha sempre conquistato tutto.
     Ed è proprio per questo che si parte.</strong><br><br>
-    La Deep Blue Academy ha decodificato
-    le coordinate della tua prossima avventura... 👇
+    Chris Cristophori, Cavaliere della Divina Provvidenza,
+    ha decodificato le coordinate della tua prossima missione... 👇
   `;
 
   const scoreEl = document.getElementById('result-score');
@@ -1154,6 +1602,95 @@ function createParticles() {
 createBubbles();
 createParticles();
 createFish();
+
+// ============================================================
+// GOLDEN TICKET
+// ============================================================
+
+// Create sparkles on ticket
+(function() {
+  const bg = document.getElementById('ticket-sparkle-bg');
+  if (!bg) return;
+  for (let i = 0; i < 12; i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 3) + 's';
+    s.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    bg.appendChild(s);
+  }
+})();
+
+function openTicket() {
+  const screen = document.getElementById('ticket-screen');
+  const ticket = document.getElementById('golden-ticket');
+
+  // Gold explosion particles
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const colors = ['#ffd700', '#ffec80', '#daa520', '#ffa500', '#fff8dc', '#ff6b6b', '#ffffff'];
+  for (let i = 0; i < 50; i++) {
+    const p = document.createElement('div');
+    p.className = 'gold-spark';
+    const size = Math.random() * 10 + 4;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 100 + Math.random() * 250;
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px; left: ${cx}px; top: ${cy}px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --dx: ${Math.cos(angle)*dist}px; --dy: ${Math.sin(angle)*dist}px;
+      animation-delay: ${Math.random()*0.15}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1500);
+  }
+
+  // Ticket zoom + fade
+  ticket.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
+  ticket.style.transform = 'scale(1.5) rotateZ(5deg)';
+  ticket.style.opacity = '0';
+
+  setTimeout(() => {
+    screen.classList.add('fade-out');
+    setTimeout(() => { screen.style.display = 'none'; }, 1000);
+  }, 400);
+}
+
+// ============================================================
+// ANSWER BURST EFFECT
+// ============================================================
+
+function answerBurst(btn) {
+  const rect = btn.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const colors = ['#00b4d8', '#90e0ef', '#ffd6a5', '#ff6b6b', '#ffc107', '#ffffff'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'answer-burst';
+    const size = Math.random() * 8 + 4;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 80;
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px; left: ${cx}px; top: ${cy}px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --dx: ${Math.cos(angle)*dist}px; --dy: ${Math.sin(angle)*dist}px;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 900);
+  }
+}
+
+// ============================================================
+// SCREEN TRANSITION FLASH
+// ============================================================
+
+function flashTransition() {
+  const flash = document.createElement('div');
+  flash.className = 'screen-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 500);
+}
 </script>
 </body>
 </html>
