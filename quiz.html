@@ -5,32 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Deep Blue Academy - Test di Idoneità</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --ocean-dark: #0a1628;
-    --ocean-mid: #0d2847;
-    --ocean-light: #1a4a7a;
-    --teal: #00b4d8;
-    --teal-light: #90e0ef;
-    --coral: #ff6b6b;
-    --coral-light: #ffa8a8;
+    --ocean-dark: #000000;
+    --ocean-mid: #050510;
+    --ocean-light: #0a0a1a;
+    --teal: #00d4ff;
+    --teal-light: #7df3ff;
+    --coral: #ff6b8a;
+    --coral-light: #ffb4c4;
     --sand: #ffd6a5;
-    --gold: #ffc107;
-    --white: #ffffff;
-    --glass: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.15);
+    --gold: #ffc837;
+    --white: #f5f5f7;
+    --glass: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.06);
   }
 
   body {
-    font-family: 'Nunito', sans-serif;
-    background: linear-gradient(180deg, var(--ocean-dark) 0%, var(--ocean-mid) 40%, var(--ocean-light) 100%);
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #000000;
     min-height: 100vh;
     color: var(--white);
     overflow-x: hidden;
     position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ambient gradient mesh - Apple style */
+  body::before {
+    content: '';
+    position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background:
+      radial-gradient(circle at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255,107,138,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(255,200,55,0.025) 0%, transparent 50%);
+    animation: ambient 25s ease-in-out infinite;
+    z-index: 0; pointer-events: none;
+  }
+  @keyframes ambient {
+    0%, 100% { transform: translate(0,0) rotate(0deg); }
+    33% { transform: translate(3%,-2%) rotate(0.5deg); }
+    66% { transform: translate(-2%,3%) rotate(-0.5deg); }
   }
 
   /* === BUBBLES === */
