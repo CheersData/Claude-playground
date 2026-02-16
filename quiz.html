@@ -407,11 +407,169 @@
   }
   .music-btn.hidden { display: none !important; }
 
+  /* === GOLDEN TICKET === */
+  #ticket-screen {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #1a0a00 0%, #000000 100%);
+    transition: opacity 1s ease;
+  }
+  #ticket-screen.fade-out { opacity: 0; pointer-events: none; }
+  .ticket-wrapper {
+    cursor: pointer; perspective: 1000px;
+    animation: ticket-entrance 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+    opacity: 0;
+  }
+  @keyframes ticket-entrance {
+    0% { opacity: 0; transform: translateY(-100vh) rotateZ(20deg) scale(0.3); }
+    55% { opacity: 1; transform: translateY(30px) rotateZ(-5deg) scale(1.08); }
+    75% { transform: translateY(-8px) rotateZ(2deg) scale(0.97); }
+    90% { transform: translateY(3px) rotateZ(-0.5deg) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) rotateZ(0deg) scale(1); }
+  }
+  .ticket {
+    width: 300px; position: relative;
+    background: linear-gradient(135deg, #ffd700, #ffec80, #daa520, #ffd700, #fff8dc, #daa520);
+    background-size: 400% 400%;
+    animation: ticket-shimmer 3s ease-in-out infinite;
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 0 60px rgba(255,215,0,0.5), 0 0 120px rgba(255,215,0,0.2),
+                0 20px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(255,255,255,0.3);
+  }
+  @keyframes ticket-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .ticket::before, .ticket::after {
+    content: ''; position: absolute; width: 24px; height: 24px;
+    background: radial-gradient(circle, #000 0%, #1a0a00 100%);
+    border-radius: 50%; top: 50%; transform: translateY(-50%);
+    z-index: 2;
+  }
+  .ticket::before { left: -12px; }
+  .ticket::after { right: -12px; }
+  .ticket-inner {
+    margin: 8px; padding: 28px 24px;
+    border: 2px dashed rgba(120,80,0,0.4); border-radius: 14px;
+    text-align: center; position: relative;
+  }
+  .ticket-stars { font-size: 16px; letter-spacing: 6px; margin-bottom: 4px; }
+  .ticket-header {
+    font-family: 'Fredoka One', cursive; font-size: 13px;
+    color: #5a3a00; letter-spacing: 4px; margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .ticket-main {
+    font-family: 'Fredoka One', cursive; font-size: 30px;
+    color: #6b4000; margin: 6px 0;
+    text-shadow: 0 2px 4px rgba(255,255,255,0.4);
+  }
+  .ticket-wave {
+    font-size: 14px; color: rgba(107,64,0,0.3); letter-spacing: 4px; margin: 8px 0;
+  }
+  .ticket-for {
+    font-family: 'Nunito', sans-serif; font-size: 14px;
+    color: #5a3a00; margin: 16px 0 2px;
+  }
+  .ticket-name {
+    font-family: 'Fredoka One', cursive; font-size: 22px;
+    color: #3a2000; margin-bottom: 4px;
+  }
+  .ticket-from {
+    font-family: 'Nunito', sans-serif; font-size: 12px;
+    color: #8b6914; line-height: 1.4; margin-bottom: 6px;
+  }
+  .ticket-occasion {
+    font-family: 'Nunito', sans-serif; font-size: 11px;
+    color: #a07830; font-style: italic;
+    background: rgba(255,255,255,0.3); border-radius: 20px;
+    padding: 4px 14px; display: inline-block; margin: 8px 0;
+  }
+  .ticket-serial {
+    font-family: monospace; font-size: 9px;
+    color: rgba(107,64,0,0.3); letter-spacing: 2px; margin-top: 12px;
+  }
+  .ticket-tap {
+    font-family: 'Fredoka One', cursive; font-size: 13px;
+    color: #5a3a00; letter-spacing: 3px; margin-top: 16px;
+    animation: tap-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes tap-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  .ticket-sparkle-bg {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; overflow: hidden;
+  }
+  .ticket-sparkle-bg span {
+    position: absolute; width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255,255,255,0.8); animation: ticket-twinkle 2s ease-in-out infinite;
+  }
+  @keyframes ticket-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  /* === SCRATCH CARD === */
+  .scratch-container {
+    position: relative; width: 100%; margin: 12px 0;
+    touch-action: none; min-height: 80px;
+  }
+  .scratch-content { padding: 8px 0; }
+  .scratch-canvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 12px; cursor: crosshair; touch-action: none;
+    transition: opacity 0.6s ease;
+  }
+  .scratch-hint {
+    font-family: 'Fredoka One', cursive; font-size: 14px;
+    color: var(--gold); margin-bottom: 8px; letter-spacing: 1px;
+    animation: tap-pulse 1.5s ease-in-out infinite;
+  }
+  .scratch-hint.scratched { display: none; }
+
+  /* === ANSWER BURST === */
+  .answer-burst {
+    position: fixed; pointer-events: none; z-index: 20;
+    border-radius: 50%;
+    animation: burst-fly 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  @keyframes burst-fly {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
+  /* === SCREEN FLASH === */
+  .screen-flash {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 15; pointer-events: none;
+    background: radial-gradient(circle, rgba(0,180,216,0.2) 0%, transparent 70%);
+    animation: flash-fx 0.4s ease-out forwards;
+  }
+  @keyframes flash-fx {
+    0% { opacity: 1; } 100% { opacity: 0; }
+  }
+
+  /* === GOLD SPARKLE EXPLOSION === */
+  .gold-spark {
+    position: fixed; pointer-events: none; z-index: 101;
+    border-radius: 50%;
+    animation: gold-explode 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  @keyframes gold-explode {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
   /* Responsive */
   @media (max-width: 380px) {
     .splash-title { font-size: 24px; }
     .question-text { font-size: 18px; }
     .card { padding: 24px 18px; }
+    .ticket { width: 280px; }
+    .ticket-main { font-size: 26px; }
   }
 </style>
 </head>
@@ -421,6 +579,28 @@
 <div class="particles" id="particles"></div>
 <div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
 <div id="fish-container"></div>
+
+<!-- GOLDEN TICKET -->
+<div id="ticket-screen">
+  <div class="ticket-wrapper" onclick="openTicket()">
+    <div class="ticket" id="golden-ticket">
+      <div class="ticket-sparkle-bg" id="ticket-sparkle-bg"></div>
+      <div class="ticket-inner">
+        <div class="ticket-stars">&#10031; &#10031; &#10031;</div>
+        <div class="ticket-header">Deep Blue Academy</div>
+        <div class="ticket-wave">~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~</div>
+        <div class="ticket-main">GOLDEN TICKET</div>
+        <div class="ticket-wave">~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~</div>
+        <div class="ticket-for">Invito esclusivo per:</div>
+        <div class="ticket-name">Martina Kraft</div>
+        <div class="ticket-from">Da: Chris Cristophori<br>Cavaliere della Divina Provvidenza</div>
+        <div class="ticket-occasion">34esimo Compleanno</div>
+        <div class="ticket-serial">N. 0034 — CLASSIFIED — DBA-2026</div>
+        <div class="ticket-tap">TOCCA PER APRIRE</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="container">
 
@@ -521,18 +701,23 @@
     </div>
   </div>
 
-  <!-- APHORISM -->
+  <!-- APHORISM (SCRATCH CARD) -->
   <div id="aphorism-screen" class="hidden">
     <div class="card aphorism-card" id="aphorism-card">
       <div class="aphorism-icon" id="aph-icon"></div>
-      <!-- Photo slot inside aphorisms (shown conditionally) -->
       <div class="photo-frame hidden" id="aph-photo-frame">
         <img id="aph-photo" src="" alt="">
       </div>
-      <div class="aphorism-text" id="aph-text"></div>
-      <div class="aphorism-author" id="aph-author"></div>
-      <br><br>
-      <button class="btn btn-primary" onclick="nextStep()">CONTINUA →</button>
+      <div class="scratch-hint" id="scratch-hint">GRATTA PER SCOPRIRE!</div>
+      <div class="scratch-container" id="scratch-container">
+        <div class="scratch-content">
+          <div class="aphorism-text" id="aph-text"></div>
+          <div class="aphorism-author" id="aph-author"></div>
+        </div>
+        <canvas class="scratch-canvas" id="scratch-canvas"></canvas>
+      </div>
+      <br>
+      <button class="btn btn-primary hidden" id="aph-continue-btn" onclick="nextStep()">CONTINUA →</button>
     </div>
   </div>
 
@@ -1027,6 +1212,7 @@ function showStep() {
 }
 
 function nextStep() {
+  flashTransition();
   currentStep++;
   showStep();
 }
@@ -1085,6 +1271,7 @@ function selectAnswer(qIdx, ansIdx) {
   btns.forEach((b, i) => {
     b.classList.toggle('selected', i === ansIdx);
     b.style.pointerEvents = 'none';
+    if (i === ansIdx) answerBurst(b);
   });
   score += Math.floor(Math.random() * 15) + 3;
   const fb = document.getElementById('q-feedback');
@@ -1096,8 +1283,10 @@ function selectAnswer(qIdx, ansIdx) {
 }
 
 // ============================================================
-// APHORISMS
+// APHORISMS (SCRATCH CARD)
 // ============================================================
+
+let scratchState = { active: false, revealed: false, scratched: 0, total: 1 };
 
 function showAphorism(aphIdx) {
   showScreen('aphorism-screen');
@@ -1106,7 +1295,6 @@ function showAphorism(aphIdx) {
   document.getElementById('aph-text').textContent = aph.text;
   document.getElementById('aph-author').textContent = aph.author;
 
-  // Photo inside aphorism
   const photoFrame = document.getElementById('aph-photo-frame');
   const photoImg = document.getElementById('aph-photo');
   if (aph.photo) {
@@ -1116,10 +1304,119 @@ function showAphorism(aphIdx) {
     photoFrame.classList.add('hidden');
   }
 
+  document.getElementById('scratch-hint').classList.remove('scratched');
+  document.getElementById('aph-continue-btn').classList.add('hidden');
+
   const card = document.getElementById('aphorism-card');
   card.style.animation = 'none';
   card.offsetHeight;
   card.style.animation = 'fadeInUp 0.6s ease-out';
+
+  scratchState = { active: false, revealed: false, scratched: 0, total: 1 };
+  requestAnimationFrame(() => requestAnimationFrame(() => setupScratchCanvas()));
+}
+
+function setupScratchCanvas() {
+  const container = document.getElementById('scratch-container');
+  const canvas = document.getElementById('scratch-canvas');
+  const rect = container.getBoundingClientRect();
+
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  canvas.style.display = 'block';
+  canvas.style.opacity = '1';
+
+  const ctx = canvas.getContext('2d');
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Golden scratch surface
+  const grad = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+  grad.addColorStop(0, '#c8a84e');
+  grad.addColorStop(0.25, '#e8d48b');
+  grad.addColorStop(0.5, '#a08030');
+  grad.addColorStop(0.75, '#e8d48b');
+  grad.addColorStop(1, '#c8a84e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, rect.width, rect.height);
+
+  // Subtle noise texture
+  for (let i = 0; i < 200; i++) {
+    ctx.fillStyle = `rgba(${Math.random()>0.5?255:180}, ${Math.random()>0.5?220:160}, ${Math.random()>0.5?100:50}, ${Math.random()*0.15})`;
+    ctx.fillRect(Math.random()*rect.width, Math.random()*rect.height, 2, 2);
+  }
+
+  // "?" pattern
+  ctx.fillStyle = 'rgba(100, 70, 20, 0.25)';
+  ctx.font = 'bold 22px Fredoka One';
+  ctx.textAlign = 'center';
+  for (let x = 25; x < rect.width; x += 45) {
+    for (let y = 30; y < rect.height; y += 40) {
+      ctx.fillText('?', x + (Math.random()*8-4), y + (Math.random()*8-4));
+    }
+  }
+
+  // Center text
+  ctx.fillStyle = 'rgba(80, 50, 10, 0.5)';
+  ctx.font = 'bold 18px Fredoka One';
+  ctx.fillText('GRATTA QUI!', rect.width / 2, rect.height / 2 - 4);
+  ctx.font = '13px Nunito';
+  ctx.fillText('usa il dito per scoprire', rect.width / 2, rect.height / 2 + 16);
+
+  scratchState.total = rect.width * rect.height;
+
+  canvas.onmousedown = e => { scratchState.active = true; scratch(e, canvas); };
+  canvas.onmousemove = e => { if (scratchState.active) scratch(e, canvas); };
+  canvas.onmouseup = () => { scratchState.active = false; };
+  canvas.onmouseleave = () => { scratchState.active = false; };
+  canvas.ontouchstart = e => { e.preventDefault(); scratchState.active = true; scratch(e.touches[0], canvas); };
+  canvas.ontouchmove = e => { e.preventDefault(); if (scratchState.active) scratch(e.touches[0], canvas); };
+  canvas.ontouchend = () => { scratchState.active = false; };
+}
+
+function scratch(e, canvas) {
+  if (scratchState.revealed) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const ctx = canvas.getContext('2d');
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(x, y, 28, 0, Math.PI * 2);
+  ctx.fill();
+  // Broader strokes for finger
+  ctx.beginPath();
+  ctx.arc(x + 5, y - 3, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  scratchState.scratched += 2800;
+  if (scratchState.scratched / scratchState.total > 0.30) revealAphorism();
+}
+
+function revealAphorism() {
+  if (scratchState.revealed) return;
+  scratchState.revealed = true;
+  const canvas = document.getElementById('scratch-canvas');
+  canvas.style.opacity = '0';
+  document.getElementById('scratch-hint').classList.add('scratched');
+  document.getElementById('aph-continue-btn').classList.remove('hidden');
+  launchMiniSparkles();
+}
+
+function launchMiniSparkles() {
+  const colors = ['#ffd700', '#ffec80', '#ffa500', '#fff8dc', '#daa520', '#ff6b6b', '#90e0ef'];
+  for (let i = 0; i < 30; i++) {
+    const spark = document.createElement('div');
+    spark.style.cssText = `
+      position: fixed; pointer-events: none; z-index: 20;
+      width: ${Math.random()*6+3}px; height: ${Math.random()*6+3}px;
+      border-radius: 50%; background: ${colors[Math.floor(Math.random()*colors.length)]};
+      left: ${40 + Math.random()*20}%; top: ${40 + Math.random()*20}%;
+      --dx: ${(Math.random()-0.5)*200}px; --dy: ${(Math.random()-0.5)*200}px;
+      animation: burst-fly 0.8s cubic-bezier(0.25,0.46,0.45,0.94) ${Math.random()*0.2}s forwards;
+    `;
+    document.body.appendChild(spark);
+    setTimeout(() => spark.remove(), 1200);
+  }
 }
 
 // ============================================================
@@ -1286,6 +1583,95 @@ function createParticles() {
 createBubbles();
 createParticles();
 createFish();
+
+// ============================================================
+// GOLDEN TICKET
+// ============================================================
+
+// Create sparkles on ticket
+(function() {
+  const bg = document.getElementById('ticket-sparkle-bg');
+  if (!bg) return;
+  for (let i = 0; i < 12; i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 3) + 's';
+    s.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    bg.appendChild(s);
+  }
+})();
+
+function openTicket() {
+  const screen = document.getElementById('ticket-screen');
+  const ticket = document.getElementById('golden-ticket');
+
+  // Gold explosion particles
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const colors = ['#ffd700', '#ffec80', '#daa520', '#ffa500', '#fff8dc', '#ff6b6b', '#ffffff'];
+  for (let i = 0; i < 50; i++) {
+    const p = document.createElement('div');
+    p.className = 'gold-spark';
+    const size = Math.random() * 10 + 4;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 100 + Math.random() * 250;
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px; left: ${cx}px; top: ${cy}px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --dx: ${Math.cos(angle)*dist}px; --dy: ${Math.sin(angle)*dist}px;
+      animation-delay: ${Math.random()*0.15}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1500);
+  }
+
+  // Ticket zoom + fade
+  ticket.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
+  ticket.style.transform = 'scale(1.5) rotateZ(5deg)';
+  ticket.style.opacity = '0';
+
+  setTimeout(() => {
+    screen.classList.add('fade-out');
+    setTimeout(() => { screen.style.display = 'none'; }, 1000);
+  }, 400);
+}
+
+// ============================================================
+// ANSWER BURST EFFECT
+// ============================================================
+
+function answerBurst(btn) {
+  const rect = btn.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const colors = ['#00b4d8', '#90e0ef', '#ffd6a5', '#ff6b6b', '#ffc107', '#ffffff'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'answer-burst';
+    const size = Math.random() * 8 + 4;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 80;
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px; left: ${cx}px; top: ${cy}px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --dx: ${Math.cos(angle)*dist}px; --dy: ${Math.sin(angle)*dist}px;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 900);
+  }
+}
+
+// ============================================================
+// SCREEN TRANSITION FLASH
+// ============================================================
+
+function flashTransition() {
+  const flash = document.createElement('div');
+  flash.className = 'screen-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 500);
+}
 </script>
 </body>
 </html>
