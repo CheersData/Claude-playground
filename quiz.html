@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Deep Blue Academy - Test di Idoneità</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ocean-dark: #0a1628;
+    --ocean-mid: #0d2847;
+    --ocean-light: #1a4a7a;
+    --teal: #00b4d8;
+    --teal-light: #90e0ef;
+    --coral: #ff6b6b;
+    --coral-light: #ffa8a8;
+    --sand: #ffd6a5;
+    --gold: #ffc107;
+    --white: #ffffff;
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.15);
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(180deg, var(--ocean-dark) 0%, var(--ocean-mid) 40%, var(--ocean-light) 100%);
+    min-height: 100vh;
+    color: var(--white);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* === BUBBLES === */
+  .bubbles-container {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .bubble {
+    position: absolute; bottom: -20px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
+    border-radius: 50%; animation: rise linear infinite;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.6; }
+    50% { opacity: 0.3; }
+    100% { transform: translateY(-110vh) scale(0.5); opacity: 0; }
+  }
+
+  /* === WAVES === */
+  .waves {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 100px;
+    pointer-events: none; z-index: 0;
+  }
+  .wave {
+    position: absolute; bottom: 0; left: -50%; width: 200%; height: 70px;
+    background: repeating-linear-gradient(90deg, transparent, transparent 40px,
+      rgba(0,180,216,0.08) 40px, rgba(0,180,216,0.08) 80px);
+    border-radius: 50% 50% 0 0; animation: wave-move 6s ease-in-out infinite;
+  }
+  .wave:nth-child(2) { animation-delay: -2s; opacity: 0.6; height: 50px; }
+  .wave:nth-child(3) { animation-delay: -4s; opacity: 0.3; height: 35px; }
+  @keyframes wave-move {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(2%); }
+  }
+
+  /* === PARTICLES === */
+  .particles {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .particle {
+    position: absolute; width: 3px; height: 3px; border-radius: 50%;
+    background: var(--teal-light); opacity: 0;
+    animation: sparkle 4s ease-in-out infinite;
+  }
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 0.8; transform: scale(1); }
+  }
+
+  /* === CONTAINER === */
+  .container {
+    position: relative; z-index: 1; max-width: 500px;
+    margin: 0 auto; padding: 20px 16px; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+
+  /* === CARDS === */
+  .card {
+    background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border); border-radius: 24px;
+    padding: 32px 24px; width: 100%; text-align: center;
+    animation: fadeInUp 0.6s ease-out; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hidden { display: none !important; }
+
+  /* === LOGO === */
+  .logo-container {
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+  }
+  .logo-container svg {
+    filter: drop-shadow(0 4px 20px rgba(0,180,216,0.4));
+  }
+
+  /* === CHALLENGE INVITE === */
+  .challenge-box {
+    background: linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,107,107,0.1));
+    border: 2px solid rgba(255,193,7,0.4);
+    border-radius: 16px; padding: 20px; margin: 20px 0;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(255,193,7,0.4); box-shadow: 0 0 0 rgba(255,193,7,0); }
+    50% { border-color: rgba(255,193,7,0.8); box-shadow: 0 0 20px rgba(255,193,7,0.15); }
+  }
+  .challenge-title {
+    font-family: 'Fredoka One', cursive; font-size: 18px;
+    color: var(--gold); margin-bottom: 8px;
+  }
+  .challenge-text {
+    font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.5;
+  }
+
+  /* === SPLASH === */
+  .splash-icon { font-size: 72px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .splash-title {
+    font-family: 'Fredoka One', cursive; font-size: 28px;
+    background: linear-gradient(135deg, var(--teal-light), var(--sand));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 8px; line-height: 1.2;
+  }
+  .splash-subtitle {
+    font-size: 15px; color: var(--teal-light); opacity: 0.7;
+    margin-bottom: 24px; font-style: italic;
+  }
+  .splash-desc {
+    font-size: 16px; line-height: 1.6; margin-bottom: 28px; color: rgba(255,255,255,0.85);
+  }
+  .splash-warning {
+    display: inline-block; background: rgba(255,107,107,0.15);
+    border: 1px solid rgba(255,107,107,0.3); border-radius: 12px;
+    padding: 10px 16px; font-size: 13px; color: var(--coral-light); margin-bottom: 24px;
+  }
+
+  /* === PHOTO CARDS === */
+  .photo-frame {
+    width: 85%;
+    max-width: 300px;
+    margin: 16px auto;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    position: relative;
+  }
+  .photo-frame img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .photo-caption {
+    font-size: 12px;
+    color: var(--teal-light);
+    opacity: 0.6;
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-block; padding: 14px 36px; border: none; border-radius: 50px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px;
+    cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--teal), #0096c7); color: var(--white);
+    box-shadow: 0 4px 20px rgba(0,180,216,0.4);
+  }
+  .btn-primary:hover, .btn-primary:active {
+    transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,180,216,0.5);
+  }
+  .btn-coral {
+    background: linear-gradient(135deg, var(--coral), #ee5a5a); color: var(--white);
+    box-shadow: 0 4px 20px rgba(255,107,107,0.4);
+  }
+  .btn-coral:hover, .btn-coral:active {
+    transform: translateY(-2px); box-shadow: 0 6px 28px rgba(255,107,107,0.5);
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #ff9800); color: var(--ocean-dark);
+    box-shadow: 0 4px 20px rgba(255,193,7,0.4);
+    animation: btn-glow 2s ease-in-out infinite;
+  }
+  @keyframes btn-glow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(255,193,7,0.4); }
+    50% { box-shadow: 0 4px 30px rgba(255,193,7,0.7); }
+  }
+  .btn-gold:hover, .btn-gold:active {
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  /* === PROGRESS === */
+  .progress-section { width: 100%; margin-bottom: 24px; }
+  .progress-labels {
+    display: flex; justify-content: space-between; font-size: 11px;
+    margin-bottom: 6px; color: var(--teal-light); opacity: 0.7;
+  }
+  .progress-bar {
+    width: 100%; height: 8px; background: rgba(255,255,255,0.1);
+    border-radius: 4px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--teal), var(--teal-light));
+    border-radius: 4px; transition: width 0.5s ease; width: 0%;
+  }
+  .progress-level {
+    text-align: center; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--sand);
+  }
+
+  /* === QUESTION === */
+  .question-number { font-size: 13px; color: var(--teal-light); opacity: 0.6; margin-bottom: 8px; }
+  .question-text {
+    font-family: 'Fredoka One', cursive; font-size: 20px; line-height: 1.4;
+    margin-bottom: 24px; color: var(--white);
+  }
+  .answers { display: flex; flex-direction: column; gap: 10px; }
+  .answer-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px; padding: 14px 18px; color: var(--white);
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.25s ease; text-align: left;
+  }
+  .answer-btn:hover, .answer-btn:active {
+    background: rgba(0,180,216,0.15); border-color: var(--teal); transform: translateX(4px);
+  }
+  .answer-btn.selected {
+    background: rgba(0,180,216,0.25); border-color: var(--teal);
+    box-shadow: 0 0 12px rgba(0,180,216,0.2);
+  }
+
+  /* === APHORISM === */
+  .aphorism-card {
+    background: linear-gradient(135deg, rgba(255,214,165,0.1), rgba(255,107,107,0.08));
+    border: 1px solid rgba(255,214,165,0.2);
+  }
+  .aphorism-icon { font-size: 40px; margin-bottom: 12px; }
+  .aphorism-text {
+    font-style: italic; font-size: 18px; line-height: 1.5;
+    color: var(--sand); margin-bottom: 12px;
+  }
+  .aphorism-author { font-size: 13px; color: var(--coral-light); opacity: 0.7; }
+
+  /* === FEEDBACK === */
+  .feedback {
+    margin-top: 16px; padding: 14px; border-radius: 14px;
+    font-size: 14px; line-height: 1.5; animation: fadeInUp 0.4s ease-out;
+  }
+  .feedback-funny {
+    background: rgba(255,214,165,0.12); border: 1px solid rgba(255,214,165,0.2); color: var(--sand);
+  }
+  .next-btn-wrap { margin-top: 20px; }
+
+  /* === LOADING === */
+  .loading-text {
+    font-family: 'Fredoka One', cursive; font-size: 22px;
+    color: var(--teal-light); margin-bottom: 20px;
+  }
+  .loading-bar-container {
+    width: 80%; margin: 0 auto 16px; height: 10px;
+    background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;
+  }
+  .loading-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--teal), var(--coral), var(--sand));
+    border-radius: 5px; width: 0%; animation: loading 3s ease-in-out forwards;
+  }
+  @keyframes loading {
+    0% { width: 0%; } 30% { width: 45%; } 60% { width: 70%; }
+    85% { width: 88%; } 100% { width: 100%; }
+  }
+  .loading-details { font-size: 13px; color: rgba(255,255,255,0.5); min-height: 20px; }
+
+  /* === RESULT === */
+  .result-score {
+    font-family: 'Fredoka One', cursive; font-size: 64px; color: var(--coral); margin: 12px 0;
+  }
+  .result-label {
+    font-size: 14px; color: var(--teal-light); opacity: 0.7; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .result-title {
+    font-family: 'Fredoka One', cursive; font-size: 22px; color: var(--sand); margin-bottom: 16px;
+  }
+  .result-text {
+    font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.85); margin-bottom: 24px;
+  }
+  .result-badge {
+    display: inline-block; background: rgba(255,107,107,0.15);
+    border: 1px solid rgba(255,107,107,0.3); border-radius: 50px;
+    padding: 8px 20px; font-size: 13px; font-weight: 700;
+    color: var(--coral-light); margin-bottom: 20px;
+  }
+
+  /* === MAP SCREEN === */
+  #map-screen .card {
+    background: linear-gradient(135deg, rgba(0,180,216,0.12), rgba(255,214,165,0.08));
+    border-color: rgba(0,180,216,0.3);
+  }
+  .map-title {
+    font-family: 'Fredoka One', cursive; font-size: 22px;
+    color: var(--sand); margin-bottom: 8px;
+  }
+  .map-subtitle {
+    font-size: 14px; color: var(--teal-light); opacity: 0.8; margin-bottom: 20px;
+  }
+  .map-container {
+    width: 100%; border-radius: 16px; overflow: hidden;
+    border: 2px solid rgba(0,180,216,0.3); margin: 16px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .map-container svg { width: 100%; display: block; }
+  .map-legend {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    margin: 16px 0; font-size: 12px; color: rgba(255,255,255,0.7);
+  }
+  .map-legend-item { display: flex; align-items: center; gap: 4px; }
+  .map-legend-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+  .map-info {
+    background: rgba(255,214,165,0.1); border: 1px solid rgba(255,214,165,0.2);
+    border-radius: 12px; padding: 16px; margin: 16px 0;
+    font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.85);
+  }
+  .map-info strong { color: var(--sand); }
+  .map-pin-pulse { animation: pin-pulse 1.5s ease-in-out infinite; }
+  @keyframes pin-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === FISH === */
+  .fish {
+    position: fixed; font-size: 28px; animation: swim linear infinite;
+    pointer-events: none; z-index: 0; opacity: 0.4;
+  }
+  @keyframes swim {
+    0% { transform: translateX(-60px) scaleX(1); }
+    49% { transform: translateX(calc(100vw + 60px)) scaleX(1); }
+    50% { transform: translateX(calc(100vw + 60px)) scaleX(-1); }
+    100% { transform: translateX(-60px) scaleX(-1); }
+  }
+
+  /* === CONFETTI === */
+  .confetti-container {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 10; overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute; top: -20px; width: 10px; height: 10px;
+    border-radius: 2px; animation: confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Responsive */
+  @media (max-width: 380px) {
+    .splash-title { font-size: 24px; }
+    .question-text { font-size: 18px; }
+    .card { padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bubbles-container" id="bubbles"></div>
+<div class="particles" id="particles"></div>
+<div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
+<div id="fish-container"></div>
+
+<div class="container">
+
+  <!-- SPLASH -->
+  <div id="splash-screen">
+    <div class="card">
+      <!-- LOGO SVG -->
+      <div class="logo-container">
+        <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="70" cy="70" r="66" fill="none" stroke="url(#logoGrad)" stroke-width="3" opacity="0.6"/>
+          <circle cx="70" cy="70" r="58" fill="rgba(0,180,216,0.08)" stroke="url(#logoGrad)" stroke-width="1.5" opacity="0.4"/>
+          <path d="M25 80 Q35 72,45 80 Q55 88,65 80 Q75 72,85 80 Q95 88,105 80 Q115 72,120 78" fill="none" stroke="#00b4d8" stroke-width="2.5" opacity="0.7"/>
+          <path d="M20 90 Q32 82,44 90 Q56 98,68 90 Q80 82,92 90 Q104 98,116 90" fill="none" stroke="#90e0ef" stroke-width="2" opacity="0.5"/>
+          <ellipse cx="70" cy="52" rx="22" ry="16" fill="none" stroke="#90e0ef" stroke-width="2.5"/>
+          <circle cx="60" cy="50" r="8" fill="rgba(0,180,216,0.15)" stroke="#00b4d8" stroke-width="1.5"/>
+          <circle cx="80" cy="50" r="8" fill="rgba(0,180,216,0.15)" stroke="#00b4d8" stroke-width="1.5"/>
+          <line x1="68" y1="50" x2="72" y2="50" stroke="#90e0ef" stroke-width="2"/>
+          <path d="M92 48 Q100 42,100 35 Q100 28,95 28" fill="none" stroke="#ffd6a5" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="95" cy="28" r="3" fill="#ffd6a5" opacity="0.7"/>
+          <circle cx="98" cy="18" r="2.5" fill="none" stroke="#90e0ef" stroke-width="1" opacity="0.6"/>
+          <circle cx="105" cy="12" r="2" fill="none" stroke="#90e0ef" stroke-width="1" opacity="0.4"/>
+          <circle cx="101" cy="6" r="1.5" fill="none" stroke="#90e0ef" stroke-width="1" opacity="0.3"/>
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00b4d8"/><stop offset="100%" stop-color="#ffd6a5"/>
+            </linearGradient>
+            <path id="textArc" d="M25,70 a45,45 0 1,1 90,0"/>
+            <path id="textArcBottom" d="M115,73 a45,45 0 1,1 -90,0"/>
+          </defs>
+          <text font-family="Fredoka One,cursive" font-size="9" fill="#90e0ef" opacity="0.8">
+            <textPath href="#textArc" startOffset="12%">DEEP BLUE</textPath>
+          </text>
+          <text font-family="Fredoka One,cursive" font-size="9" fill="#ffd6a5" opacity="0.8">
+            <textPath href="#textArcBottom" startOffset="14%">ACADEMY</textPath>
+          </text>
+        </svg>
+      </div>
+
+      <div class="splash-title">Deep Blue Academy</div>
+      <div class="splash-subtitle">Sede operativa: da qualche parte tra Sansepolcro e Padova</div>
+
+      <div class="photo-frame">
+        <img id="photo-splash" src="images/splash_coppia_mare.jpg" alt="Marco e Martina">
+      </div>
+      <div class="photo-caption">Candidata n. 34 — fascicolo riservato</div>
+
+      <div class="splash-desc">
+        Benvenuta <strong>Martina</strong>!<br><br>
+        In occasione del tuo <strong>34esimo compleanno</strong>,
+        il tuo compagno di avventure (e di divano) <strong>Marco</strong>
+        ha pensato bene di iscriverti al corso
+        <strong>"Tuffo Estremo per Principianti Terrorizzati"</strong>.<br><br>
+        Prima di procedere, devi superare questo
+        questionario di idoneità psico-fisica-emotiva.
+      </div>
+
+      <div class="challenge-box">
+        <div class="challenge-title">HAI IL CORAGGIO DI ACCETTARE?</div>
+        <div class="challenge-text">
+          10 domande. Nessuna risposta giusta. Tanto giudizio.<br>
+          Solo chi arriva in fondo scoprirà cosa ha in serbo Marco.<br>
+          <strong>La sfida ti aspetta. Non deludere i pesci.</strong>
+        </div>
+      </div>
+
+      <div class="splash-warning">
+        ⚠️ Il questionario è obbligatorio, vincolante e totalmente inventato. Forse.
+      </div>
+      <br>
+      <button class="btn btn-gold" onclick="startQuiz()">ACCETTO LA SFIDA!</button>
+    </div>
+  </div>
+
+  <!-- QUESTION -->
+  <div id="question-screen" class="hidden">
+    <div class="progress-section">
+      <div class="progress-labels">
+        <span>Inizio</span>
+        <span id="progress-percent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-level" id="progress-level">🐟 Livello: Pesce Rosso</div>
+    </div>
+    <div class="card" id="question-card">
+      <div class="question-number" id="q-number"></div>
+      <!-- Photo slot inside questions (shown conditionally) -->
+      <div class="photo-frame hidden" id="q-photo-frame">
+        <img id="q-photo" src="" alt="">
+      </div>
+      <div class="question-text" id="q-text"></div>
+      <div class="answers" id="q-answers"></div>
+      <div id="q-feedback" class="hidden"></div>
+      <div id="q-next" class="hidden next-btn-wrap">
+        <button class="btn btn-primary" onclick="nextStep()">AVANTI →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APHORISM -->
+  <div id="aphorism-screen" class="hidden">
+    <div class="card aphorism-card" id="aphorism-card">
+      <div class="aphorism-icon" id="aph-icon"></div>
+      <!-- Photo slot inside aphorisms (shown conditionally) -->
+      <div class="photo-frame hidden" id="aph-photo-frame">
+        <img id="aph-photo" src="" alt="">
+      </div>
+      <div class="aphorism-text" id="aph-text"></div>
+      <div class="aphorism-author" id="aph-author"></div>
+      <br><br>
+      <button class="btn btn-primary" onclick="nextStep()">CONTINUA →</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading-screen" class="hidden">
+    <div class="card">
+      <div class="splash-icon">🔬</div>
+      <div class="loading-text">Analisi in corso...</div>
+      <div class="loading-bar-container">
+        <div class="loading-bar-fill" id="loading-bar"></div>
+      </div>
+      <div class="loading-details" id="loading-details"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-screen" class="hidden">
+    <div class="card">
+      <div class="splash-icon">📊</div>
+      <div class="result-label">Punteggio di idoneità</div>
+      <div class="result-score" id="result-score">47%</div>
+      <div class="result-badge" id="result-badge">LIVELLO: STELLA MARINA INDECISA</div>
+
+      <!-- FOTO 4: foto divertente nel risultato -->
+      <div class="photo-frame">
+        <img id="photo-result" src="images/risultato_gelato.jpg" alt="Martina">
+      </div>
+      <div class="photo-caption">Il volto della candidata durante l'esame (ricostruzione fedele)</div>
+
+      <div class="result-title" id="result-title">Responso ufficiale</div>
+      <div class="result-text" id="result-text"></div>
+      <button class="btn btn-gold" onclick="showMap()">SCOPRI LA DESTINAZIONE!</button>
+    </div>
+  </div>
+
+  <!-- MAP (Venezia - Piazzale Roma - Battello) -->
+  <div id="map-screen" class="hidden">
+    <div class="card">
+      <div style="font-size:50px;margin-bottom:8px;">🗺️</div>
+      <div class="map-title">Destinazione sbloccata!</div>
+      <div class="map-subtitle">Coordinate segrete decodificate con successo</div>
+      <div class="map-container">
+        <svg viewBox="0 0 400 350" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="350" fill="#0a2540"/>
+          <ellipse cx="200" cy="180" rx="180" ry="140" fill="#0d3b66" opacity="0.6"/>
+          <ellipse cx="200" cy="180" rx="160" ry="120" fill="#114b7a" opacity="0.4"/>
+          <path d="M100,140 Q120,100 170,110 Q200,90 240,105 Q280,95 310,120 Q330,140 320,170 Q330,200 310,220 Q280,240 240,235 Q210,250 170,240 Q130,250 110,230 Q80,210 85,180 Q75,160 100,140 Z" fill="#1a5a3a" opacity="0.5" stroke="#2d8a5e" stroke-width="1"/>
+          <path d="M140,120 Q160,150 180,160 Q200,175 210,195 Q225,220 250,235" fill="none" stroke="#1a7ab5" stroke-width="8" opacity="0.6" stroke-linecap="round"/>
+          <line x1="160" y1="130" x2="200" y2="140" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <line x1="200" y1="140" x2="230" y2="130" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <line x1="190" y1="160" x2="220" y2="170" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <path d="M175,155 Q185,145 195,155" fill="none" stroke="#ffd6a5" stroke-width="2" opacity="0.6"/>
+          <text x="185" y="143" text-anchor="middle" font-size="7" fill="#ffd6a5" opacity="0.5" font-family="Nunito">Rialto</text>
+          <rect x="250" y="175" width="6" height="6" fill="#ffd6a5" opacity="0.5" rx="1"/>
+          <text x="258" y="183" font-size="7" fill="#ffd6a5" opacity="0.5" font-family="Nunito">S.Marco</text>
+          <circle cx="108" cy="155" r="12" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b" stroke-width="2"/>
+          <circle cx="108" cy="155" r="6" fill="#ff6b6b" class="map-pin-pulse"/>
+          <text x="108" y="140" text-anchor="middle" font-family="Fredoka One,cursive" font-size="9" fill="#ff6b6b">P.le Roma</text>
+          <g transform="translate(85,165)">
+            <path d="M0,10 Q2,16 15,16 Q28,16 30,10 Z" fill="#ffd6a5" stroke="#ff9800" stroke-width="1"/>
+            <rect x="12" y="2" width="3" height="8" fill="#90e0ef" rx="1"/>
+            <path d="M15,2 Q22,4 15,8" fill="#00b4d8" opacity="0.7"/>
+            <path d="M-3,18 Q4,15 10,18 Q16,21 22,18 Q28,15 34,18" fill="none" stroke="#90e0ef" stroke-width="1" opacity="0.5"/>
+          </g>
+          <text x="108" y="195" text-anchor="middle" font-family="Nunito" font-size="7" fill="#ffd6a5" font-weight="700">BATTELLO</text>
+          <path d="M120,170 Q145,165 165,160 Q180,158 190,162" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+          <polygon points="190,159 190,165 196,162" fill="#ff6b6b" opacity="0.7"/>
+          <g transform="translate(350,40)">
+            <circle cx="0" cy="0" r="18" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+            <text x="0" y="-8" text-anchor="middle" font-size="9" fill="#ff6b6b" font-weight="bold" font-family="Nunito">N</text>
+            <text x="0" y="14" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.3)" font-family="Nunito">S</text>
+            <text x="11" y="4" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.3)" font-family="Nunito">E</text>
+            <text x="-11" y="4" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.3)" font-family="Nunito">O</text>
+          </g>
+          <text x="200" y="280" text-anchor="middle" font-family="Fredoka One,cursive" font-size="20" fill="#90e0ef" opacity="0.4">VENEZIA</text>
+          <g transform="translate(200,320) rotate(-3)">
+            <rect x="-55" y="-12" width="110" height="22" rx="4" fill="rgba(255,107,107,0.15)" stroke="#ff6b6b" stroke-width="1"/>
+            <text x="0" y="4" text-anchor="middle" font-family="Fredoka One,cursive" font-size="11" fill="#ff6b6b">TOP SECRET</text>
+          </g>
+        </svg>
+      </div>
+      <div class="map-legend">
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#ff6b6b;"></div> Punto di ritrovo</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#ffd6a5;"></div> Battello</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#1a7ab5;"></div> Canal Grande</div>
+      </div>
+      <div class="map-info">
+        <strong>Missione:</strong> raggiungere <strong>Piazzale Roma, Venezia</strong>.<br>
+        Un battello ti aspetta. La destinazione finale... resta un mistero.<br><br>
+        <strong>Coordinate:</strong> 45.4371° N, 12.3190° E<br>
+        <strong>Equipaggiamento consigliato:</strong> coraggio, crema solare, e Marco.
+      </div>
+      <div style="font-size:36px;margin:12px 0;">🚢🌊🗺️</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:16px;color:var(--teal-light);margin-bottom:16px;">
+        Preparati... l'avventura sta per cominciare!
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const levels = [
+  "🐟 Livello: Pesce Rosso di Sansepolcro",
+  "🐠 Livello: Pesce del Tevere",
+  "🐡 Livello: Pesce Palla Padovano",
+  "🦈 Livello: Squalo Timido",
+  "🐬 Livello: Delfino Ansioso",
+  "🧜‍♀️ Livello: Sirena del Brenta",
+  "🦑 Livello: Kraken Domestico",
+  "🐙 Livello: Polpo Filosofo",
+  "🌊 Livello: Onda Anomala",
+  "🏊‍♀️ Livello: Nuotatrice Estrema",
+  "👑 Livello: Regina degli Abissi"
+];
+
+const questions = [
+  {
+    question: "Martina, qual è la prima cosa che fai quando vedi il mare?",
+    photo: null,
+    answers: [
+      "Corro verso le onde urlando",
+      "Stendo l'asciugamano e apro Instagram",
+      "Controllo se ci sono meduse nel raggio di 3 km",
+      "Valuto la temperatura con un piede e poi torno al bar"
+    ],
+    feedbacks: [
+      "Spirito selvaggio! Marco non ci crede neanche un po'.",
+      "La Talent Acquisition Specialist anche in vacanza cerca profili... marini.",
+      "La prudenza è la madre della porcellana. O era un altro proverbio?",
+      "Il bar: la vera meta di ogni vacanza. Marco approva al 100%."
+    ]
+  },
+  {
+    question: "Marco russa. Qual è la tua strategia di sopravvivenza notturna?",
+    photo: "images/q2_cagnolino.jpg",
+    answers: [
+      "Tappi per le orecchie, ormai sono professionista",
+      "Lo spingo finché non si gira. Funziona 1 volta su 47",
+      "Dormo prima di lui: la velocità è tutto",
+      "Registro i vocali del russamento e glieli mando la mattina come prova"
+    ],
+    feedbacks: [
+      "Professionista certificata. Anni di esperienza nel campo.",
+      "1 su 47: una statistica migliore di molti fondi d'investimento.",
+      "Strategia da Project Manager: anticipare i problemi. Marco ti ha insegnato bene.",
+      "Prove audio in tribunale: un classico delle coppie longeve."
+    ]
+  },
+  {
+    question: "Quanto è profonda una piscina olimpionica?",
+    photo: "images/q3_materassino.jpg",
+    answers: [
+      "2 metri",
+      "3 metri",
+      "Non mi importa, ci entro solo se c'è l'idromassaggio",
+      "Abbastanza da perderci le infradito"
+    ],
+    feedbacks: [
+      "Corretto! Ma ammettilo, hai googlato.",
+      "Nì. Ma apprezziamo la sicurezza con cui hai sbagliato.",
+      "Priorità chiare. Una donna che sa cosa vuole.",
+      "Le infradito perse: il vero dramma estivo dal 1992."
+    ]
+  },
+  {
+    question: "Scegli il tuo animale marino spirituale:",
+    photo: "images/q4_campagna_famiglia.jpg",
+    answers: [
+      "🦀 Granchio: cammino lateralmente ma arrivo sempre",
+      "🐢 Tartaruga: lenta ma determinata, e vivo 150 anni",
+      "🦑 Calamaro: elegante, misterioso, buono fritto",
+      "🐚 Conchiglia: tecnicamente non un animale ma ci sto bene"
+    ],
+    feedbacks: [
+      "Il granchio è il filosofo del mare. Andare lateralmente nella vita è sottovalutato.",
+      "La tartaruga vince ogni maratona... se ha abbastanza tempo. Tipo 3 settimane.",
+      "Elegante E buono fritto? Un curriculum perfetto. Lo inserisci su LinkedIn?",
+      "La conchiglia è uno stato d'animo. Accettato."
+    ]
+  },
+  {
+    question: "In un colloquio, il candidato ti dice: 'Come hobby faccio il sub.' Tu pensi:",
+    photo: "images/q5_spa.jpg",
+    answers: [
+      "Interessante, denota spirito avventuroso!",
+      "Bene, almeno sa trattenere il respiro sotto pressione",
+      "Mi chiedo quanto guadagna per permetterselo",
+      "Spero che non mi inviti a provare"
+    ],
+    feedbacks: [
+      "La Talent Acquisition Specialist parla! Risposta da manuale HR.",
+      "Trattenere il respiro sotto pressione: soft skill richiesta in ogni job posting.",
+      "Il vero screening: stipendio attuale + hobby costosi = aspettativa salariale.",
+      "Plot twist: qualcuno ti ci porterà comunque. Spoiler: si chiama Marco."
+    ]
+  },
+  {
+    question: "Domanda tecnica: cos'è la 'decompressione'?",
+    photo: "images/q6_amiche.jpg",
+    answers: [
+      "Quando torni in superficie e i gas nel sangue fanno cose strane",
+      "Quella cosa che fai dopo una giornata di lavoro in Zucchetti",
+      "Un tipo di caffè molto rilassante",
+      "Non lo so ma suona pericoloso, posso uscire?"
+    ],
+    feedbacks: [
+      "Corretta! Iniziamo a preoccuparci che tu sia troppo preparata.",
+      "La decompressione post-Zucchetti: divano, copertina, e Marco che cucina. O ordina.",
+      "Il Decaffeinato Decompresso™ — lo brevetti e diventi ricca.",
+      "La porta è da quella parte. Ma dietro c'è Marco con la muta da sub."
+    ]
+  },
+  {
+    question: "Completa la frase: 'Sansepolcro è famosa per...'",
+    photo: "images/q7_rovine.jpg",
+    answers: [
+      "Piero della Francesca, ovviamente",
+      "La gente che se ne va a Padova",
+      "I suoi subacquei di fama mondiale (fonte: nessuna)",
+      "Le colline, il cibo, e Marco che dice 'ai miei tempi...'"
+    ],
+    feedbacks: [
+      "Risposta da manuale! Piero approverebbe (probabilmente no, era burbero).",
+      "Da Sansepolcro a Padova: la migrazione più romantica della Toscana.",
+      "La squadra sub di Sansepolcro: 0 membri, 0 vittorie, grande potenziale.",
+      "'Ai miei tempi' è il preambolo ufficiale di ogni storia di Marco."
+    ]
+  },
+  {
+    question: "Il tuo istruttore ti dice: 'oggi ci tuffiamo a 30 metri.' Tu rispondi:",
+    photo: "images/q8_attrazione_acqua.jpg",
+    answers: [
+      "Perfetto, finalmente un po' di adrenalina!",
+      "Ok, ma prima devo mandare un vocale di 7 minuti a Marco",
+      "30 metri?! Io mi fermo al primo e aspetto lì col telefono",
+      "Faccio finta di svenire per evitare il tuffo"
+    ],
+    feedbacks: [
+      "Temeraria! A 30 metri l'adrenalina non mancherà, promesso.",
+      "Il vocale pre-immersione: 'MARCOOOO HO PAURAAAA' — 7 minuti, zero info utili.",
+      "Un metro, col telefono impermeabile. La vera avventura moderna.",
+      "Tecnica dello svenimento tattico: usata dal 73% degli studenti. Dato inventato."
+    ]
+  },
+  {
+    question: "Cosa porteresti in una grotta sottomarina?",
+    photo: null,
+    answers: [
+      "Una torcia, ovviamente",
+      "Uno snack, perché dopo le 17 il metabolismo chiama",
+      "Marco, come scudo umano",
+      "Niente. Perché NON ci entro. Mai. Fine."
+    ],
+    feedbacks: [
+      "Risposta sensata. Ci stai togliendo il divertimento.",
+      "Il metabolismo delle 17: il vero boss finale di ogni giornata.",
+      "Marco come scudo umano: usato anche contro ragni, rumori notturni e vicini.",
+      "La risposta più intelligente e più onesta di tutto il questionario."
+    ]
+  },
+  {
+    question: "Domanda definitiva: secondo te, perché Marco ti ha mandato questo quiz?",
+    photo: "images/q10_capodanno.jpg",
+    answers: [
+      "Perché è fatto così: complicato anche per farti gli auguri",
+      "Per terrorizzarmi. Missione compiuta.",
+      "Perché 'auguri amore' su WhatsApp era troppo facile per un PM",
+      "Non lo so, ma sicuramente c'è sotto qualcosa..."
+    ],
+    feedbacks: [
+      "Un Project Manager IT che fa le cose semplici? Mai. Troppo banale.",
+      "Terrorizzare con amore: la specialità della casa.",
+      "'Troppo facile' non è nel vocabolario di chi gestisce sprint e backlog.",
+      "C'è sempre sotto qualcosa. Ma stavolta è solo tanto affetto. E forse un tuffo."
+    ]
+  }
+];
+
+const aphorisms = [
+  {
+    text: "\"Chi non si tuffa, non trova perle. Chi si tuffa, trova meduse. La vita è una medusa.\"",
+    author: "— Capitano Ignazio Salmone, 1847 (mai esistito)",
+    icon: "🦪",
+    photo: "images/aph1_statua_panorama.jpg"
+  },
+  {
+    text: "\"Il mare insegna agli uomini a nuotare. Il divano insegna a non dover nuotare. Padova insegna a prendere lo spritz.\"",
+    author: "— Proverbio anonimo delle Osterie Venete",
+    icon: "🍹",
+    photo: "images/aph2_trekking_bosco.jpg"
+  },
+  {
+    text: "\"Non contare i candidati prima di averli assunti, né i pesci prima di averli persi.\"",
+    author: "— Confucio HR (versione Talent Acquisition)",
+    icon: "🐟",
+    photo: "images/aph3_montagna.jpg"
+  },
+  {
+    text: "\"Un Project Manager saggio non discute col polpo. Il polpo ha otto tentacoli e zero deadline.\"",
+    author: "— Antico detto della Scuola Agile dei Molluschi",
+    icon: "🐙",
+    photo: null
+  },
+  {
+    text: "\"L'acqua è paziente: aspetta sempre che tu ci cada dentro. Come le scadenze di progetto.\"",
+    author: "— Maestro Zen delle Pozzanghere, III secolo",
+    icon: "🧘",
+    photo: null
+  },
+  {
+    text: "\"Se Sansepolcro avesse il mare, non sareste mai andati a Padova. Ma il Tevere ce la mette tutta.\"",
+    author: "— Anonimo toscano emigrato in Veneto, 2019",
+    icon: "🏔️",
+    photo: null
+  },
+  {
+    text: "\"La vita è come un'immersione: se non respiri bene, risali. Se respiri troppo bene, sei sul divano.\"",
+    author: "— Guru Subacqueo di Abano Terme",
+    icon: "🫧",
+    photo: null
+  },
+  {
+    text: "\"Chi ha detto che il coraggio è non avere paura? Il coraggio è avere paura e salire comunque sul battello.\"",
+    author: "— Filosofo della Laguna, probabilmente dopo tre spritz",
+    icon: "🚢",
+    photo: null
+  },
+  {
+    text: "\"Venezia non affonda. E nemmeno tu. Probabilmente.\"",
+    author: "— Gondoliere ottimista, Piazzale Roma, stamattina",
+    icon: "🏛️",
+    photo: null
+  }
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let currentStep = 0;
+let totalSteps = [];
+let score = 0;
+
+function buildSequence() {
+  totalSteps = [];
+  let aphIdx = 0;
+  for (let i = 0; i < questions.length; i++) {
+    totalSteps.push({ type: 'question', index: i });
+    if ((i === 1 || i === 3 || i === 5 || i === 6 || i === 7 || i === 8) && aphIdx < aphorisms.length) {
+      totalSteps.push({ type: 'aphorism', index: aphIdx });
+      aphIdx++;
+    }
+  }
+  totalSteps.push({ type: 'loading' });
+  totalSteps.push({ type: 'result' });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function hideAllScreens() {
+  document.querySelectorAll('#splash-screen, #question-screen, #aphorism-screen, #loading-screen, #result-screen, #map-screen')
+    .forEach(el => el.classList.add('hidden'));
+}
+
+function showScreen(id) {
+  hideAllScreens();
+  document.getElementById(id).classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function startQuiz() {
+  buildSequence();
+  currentStep = 0;
+  score = 0;
+  showStep();
+}
+
+function showStep() {
+  if (currentStep >= totalSteps.length) return;
+  const step = totalSteps[currentStep];
+  if (step.type === 'question') showQuestion(step.index);
+  else if (step.type === 'aphorism') showAphorism(step.index);
+  else if (step.type === 'loading') showLoading();
+  else if (step.type === 'result') showResult();
+}
+
+function nextStep() {
+  currentStep++;
+  showStep();
+}
+
+// ============================================================
+// QUESTIONS
+// ============================================================
+
+function showQuestion(qIdx) {
+  showScreen('question-screen');
+  const q = questions[qIdx];
+  const qNum = qIdx + 1;
+  const total = questions.length;
+
+  const pct = Math.round((qIdx / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-percent').textContent = pct + '%';
+  const levelIdx = Math.min(Math.floor(qIdx / (total / levels.length)), levels.length - 1);
+  document.getElementById('progress-level').textContent = levels[levelIdx];
+
+  document.getElementById('q-number').textContent = `Domanda ${qNum} di ${total}`;
+  document.getElementById('q-text').textContent = q.question;
+
+  // Photo inside question
+  const photoFrame = document.getElementById('q-photo-frame');
+  const photoImg = document.getElementById('q-photo');
+  if (q.photo) {
+    photoImg.src = q.photo;
+    photoFrame.classList.remove('hidden');
+  } else {
+    photoFrame.classList.add('hidden');
+  }
+
+  const answersDiv = document.getElementById('q-answers');
+  answersDiv.innerHTML = '';
+  q.answers.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = ans;
+    btn.onclick = () => selectAnswer(qIdx, i);
+    answersDiv.appendChild(btn);
+  });
+
+  document.getElementById('q-feedback').classList.add('hidden');
+  document.getElementById('q-next').classList.add('hidden');
+
+  const card = document.getElementById('question-card');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeInUp 0.5s ease-out';
+}
+
+function selectAnswer(qIdx, ansIdx) {
+  const q = questions[qIdx];
+  const btns = document.querySelectorAll('#q-answers .answer-btn');
+  btns.forEach((b, i) => {
+    b.classList.toggle('selected', i === ansIdx);
+    b.style.pointerEvents = 'none';
+  });
+  score += Math.floor(Math.random() * 15) + 3;
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'feedback feedback-funny';
+  fb.innerHTML = '😂 ' + q.feedbacks[ansIdx];
+  fb.classList.remove('hidden');
+  document.getElementById('q-next').classList.remove('hidden');
+  setTimeout(() => fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+// ============================================================
+// APHORISMS
+// ============================================================
+
+function showAphorism(aphIdx) {
+  showScreen('aphorism-screen');
+  const aph = aphorisms[aphIdx];
+  document.getElementById('aph-icon').textContent = aph.icon;
+  document.getElementById('aph-text').textContent = aph.text;
+  document.getElementById('aph-author').textContent = aph.author;
+
+  // Photo inside aphorism
+  const photoFrame = document.getElementById('aph-photo-frame');
+  const photoImg = document.getElementById('aph-photo');
+  if (aph.photo) {
+    photoImg.src = aph.photo;
+    photoFrame.classList.remove('hidden');
+  } else {
+    photoFrame.classList.add('hidden');
+  }
+
+  const card = document.getElementById('aphorism-card');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeInUp 0.6s ease-out';
+}
+
+// ============================================================
+// LOADING
+// ============================================================
+
+function showLoading() {
+  showScreen('loading-screen');
+  const bar = document.getElementById('loading-bar');
+  bar.style.animation = 'none';
+  bar.offsetHeight;
+  bar.style.animation = 'loading 3.5s ease-in-out forwards';
+
+  const details = document.getElementById('loading-details');
+  const messages = [
+    "Analisi livello di coraggio...",
+    "Calcolo resistenza al panico...",
+    "Verifica compatibilità con i pesci...",
+    "Consultazione col Tevere di Sansepolcro...",
+    "Interrogazione dei canali di Padova...",
+    "Confronto con il CV LinkedIn di Martina...",
+    "Conteggio anni di sopravvivenza con Marco...",
+    "Risultato quasi pronto..."
+  ];
+
+  let msgIdx = 0;
+  details.textContent = messages[0];
+  const interval = setInterval(() => {
+    msgIdx++;
+    if (msgIdx < messages.length) {
+      details.textContent = messages[msgIdx];
+    } else {
+      clearInterval(interval);
+      setTimeout(() => nextStep(), 800);
+    }
+  }, 500);
+}
+
+// ============================================================
+// RESULT
+// ============================================================
+
+function showResult() {
+  showScreen('result-screen');
+  const displayScore = Math.min(score, 47);
+  document.getElementById('result-score').textContent = displayScore + '%';
+
+  document.getElementById('result-text').innerHTML = `
+    Cara Martina,<br><br>
+    dopo un'attenta analisi delle tue risposte,
+    una consultazione con tre delfini certificati
+    e un rapido check col Tevere,
+    il nostro verdetto è chiaro:<br><br>
+    <strong>Non sei pronta. Ma nessuno lo è mai.
+    Ed è proprio per questo che si parte.</strong><br><br>
+    La Deep Blue Academy ha decodificato
+    le coordinate della tua prossima avventura... 👇
+  `;
+
+  const scoreEl = document.getElementById('result-score');
+  let count = 0;
+  const target = displayScore;
+  const interval = setInterval(() => {
+    count += 1;
+    scoreEl.textContent = count + '%';
+    if (count >= target) clearInterval(interval);
+  }, 40);
+}
+
+// ============================================================
+// MAP
+// ============================================================
+
+function showMap() {
+  showScreen('map-screen');
+  launchConfetti();
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#ff6b6b', '#ffd6a5', '#00b4d8', '#90e0ef', '#ffffff', '#ff85a1', '#ffc300'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (Math.random() * 8 + 5) + 'px';
+    piece.style.height = (Math.random() * 8 + 5) + 'px';
+    piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+    piece.style.animationDelay = (Math.random() * 1.5) + 's';
+    container.appendChild(piece);
+  }
+  setTimeout(() => {
+    for (let i = 0; i < 50; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.width = (Math.random() * 8 + 5) + 'px';
+      piece.style.height = (Math.random() * 8 + 5) + 'px';
+      piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      piece.style.animationDelay = (Math.random() * 1) + 's';
+      container.appendChild(piece);
+    }
+  }, 1500);
+}
+
+// ============================================================
+// DECORATIONS
+// ============================================================
+
+function createBubbles() {
+  const container = document.getElementById('bubbles');
+  for (let i = 0; i < 20; i++) {
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    const size = Math.random() * 20 + 8;
+    bubble.style.width = size + 'px';
+    bubble.style.height = size + 'px';
+    bubble.style.left = Math.random() * 100 + '%';
+    bubble.style.animationDuration = (Math.random() * 8 + 6) + 's';
+    bubble.style.animationDelay = (Math.random() * 10) + 's';
+    container.appendChild(bubble);
+  }
+}
+
+function createFish() {
+  const container = document.getElementById('fish-container');
+  const fishEmojis = ['🐟', '🐠', '🐡', '🦐', '🦀'];
+  for (let i = 0; i < 4; i++) {
+    const fish = document.createElement('div');
+    fish.className = 'fish';
+    fish.textContent = fishEmojis[Math.floor(Math.random() * fishEmojis.length)];
+    fish.style.top = (Math.random() * 80 + 10) + '%';
+    fish.style.animationDuration = (Math.random() * 15 + 12) + 's';
+    fish.style.animationDelay = (Math.random() * 8) + 's';
+    fish.style.fontSize = (Math.random() * 16 + 18) + 'px';
+    container.appendChild(fish);
+  }
+}
+
+function createParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = Math.random() * 100 + '%';
+    p.style.animationDuration = (Math.random() * 4 + 3) + 's';
+    p.style.animationDelay = (Math.random() * 5) + 's';
+    container.appendChild(p);
+  }
+}
+
+createBubbles();
+createParticles();
+createFish();
+</script>
+</body>
+</html>
