@@ -378,6 +378,35 @@
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
   }
 
+  /* === MUSIC BUTTON === */
+  .music-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 50;
+    width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--teal);
+    background: rgba(0,180,216,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    color: var(--white); font-size: 24px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,180,216,0.3);
+    transition: all 0.3s ease;
+    animation: music-glow 2s ease-in-out infinite;
+  }
+  .music-btn:hover, .music-btn:active {
+    transform: scale(1.1);
+    box-shadow: 0 4px 28px rgba(0,180,216,0.5);
+  }
+  .music-btn.playing {
+    border-color: var(--sand);
+    animation: music-spin 3s linear infinite, music-glow 2s ease-in-out infinite;
+  }
+  @keyframes music-glow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(0,180,216,0.3); }
+    50% { box-shadow: 0 4px 28px rgba(0,180,216,0.5); }
+  }
+  @keyframes music-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .music-btn.hidden { display: none !important; }
+
   /* Responsive */
   @media (max-width: 380px) {
     .splash-title { font-size: 24px; }
@@ -604,6 +633,14 @@
   </div>
 
 </div>
+
+<!-- MUSIC -->
+<audio id="bg-music" loop preload="auto">
+  <source src="0rCTkx3d2S7RHL56.mp3" type="audio/mpeg">
+</audio>
+<button class="music-btn hidden" id="music-btn" onclick="toggleMusic()" title="Musica on/off">
+  🎵
+</button>
 
 <div class="confetti-container" id="confetti"></div>
 
@@ -886,7 +923,45 @@ function startQuiz() {
   buildSequence();
   currentStep = 0;
   score = 0;
+  startMusic();
   showStep();
+}
+
+// ============================================================
+// MUSIC
+// ============================================================
+const bgMusic = document.getElementById('bg-music');
+const musicBtn = document.getElementById('music-btn');
+let musicPlaying = false;
+
+function startMusic() {
+  bgMusic.volume = 0.35;
+  bgMusic.play().then(() => {
+    musicPlaying = true;
+    musicBtn.classList.remove('hidden');
+    musicBtn.classList.add('playing');
+    musicBtn.textContent = '🎵';
+  }).catch(() => {
+    // autoplay blocked, show button anyway so user can start manually
+    musicBtn.classList.remove('hidden');
+    musicBtn.textContent = '🔇';
+  });
+}
+
+function toggleMusic() {
+  if (musicPlaying) {
+    bgMusic.pause();
+    musicPlaying = false;
+    musicBtn.classList.remove('playing');
+    musicBtn.textContent = '🔇';
+  } else {
+    bgMusic.volume = 0.35;
+    bgMusic.play().then(() => {
+      musicPlaying = true;
+      musicBtn.classList.add('playing');
+      musicBtn.textContent = '🎵';
+    });
+  }
 }
 
 function showStep() {
