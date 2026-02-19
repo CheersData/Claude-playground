@@ -14,7 +14,7 @@ export async function runAdvisor(
 ): Promise<AdvisorResult> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 8192,
+    max_tokens: 4096,
     system: ADVISOR_SYSTEM_PROMPT,
     messages: [
       {

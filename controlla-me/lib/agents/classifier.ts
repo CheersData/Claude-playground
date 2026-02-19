@@ -1,4 +1,4 @@
-import { anthropic, MODEL, parseAgentJSON, extractTextContent } from "../anthropic";
+import { anthropic, MODEL_FAST, parseAgentJSON, extractTextContent } from "../anthropic";
 import { CLASSIFIER_SYSTEM_PROMPT } from "../prompts/classifier";
 import type { ClassificationResult } from "../types";
 
@@ -6,7 +6,7 @@ export async function runClassifier(
   documentText: string
 ): Promise<ClassificationResult> {
   const response = await anthropic.messages.create({
-    model: MODEL,
+    model: MODEL_FAST,
     max_tokens: 2048,
     system: CLASSIFIER_SYSTEM_PROMPT,
     messages: [
