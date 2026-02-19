@@ -38,18 +38,16 @@ export async function extractText(
 }
 
 async function extractFromPDF(buffer: Buffer): Promise<string> {
-  // Use createRequire to bypass Turbopack's module transformation
-  // which breaks dynamic import() for pdf-parse
-  const { createRequire } = await import("node:module");
-  const require = createRequire(import.meta.url);
-  const pdfParseModule = require("pdf-parse");
+  // Use indirect eval to completely hide require() from Turbopack's
+  // static analysis. Turbopack transforms all require/import calls
+  // but cannot see through eval.
+  // eslint-disable-next-line no-eval
+  const loadModule = eval("require") as NodeRequire;
+  const pdfParseModule = loadModule("pdf-parse");
 
-  // pdf-parse v2: class-based API (PDFParse)
-  const PDFParseClass =
-    pdfParseModule.PDFParse ?? pdfParseModule.default?.PDFParse;
-
-  if (typeof PDFParseClass === "function") {
-    const parser = new PDFParseClass({ data: buffer });
+  // pdf-parse v2: class-based API
+  if (typeof pdfParseModule.PDFParse === "function") {
+    const parser = new pdfParseModule.PDFParse({ data: buffer });
     try {
       const result = await parser.getText();
       const text = result.text ?? "";
@@ -78,7 +76,7 @@ async function extractFromPDF(buffer: Buffer): Promise<string> {
   }
 
   throw new Error(
-    `Impossibile caricare pdf-parse. Exports: ${Object.keys(pdfParseModule).join(", ")}`
+    `Impossibile caricare pdf-parse. Tipo modulo: ${typeof pdfParseModule}, exports: [${Object.keys(pdfParseModule).join(", ")}]`
   );
 }
 
