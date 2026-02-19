@@ -35,7 +35,7 @@ export const anthropic = {
 
         const start = Date.now();
         let response: Anthropic.Messages.Message;
-        const MAX_RETRIES = 3;
+        const MAX_RETRIES = 6;
 
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
           try {
@@ -46,7 +46,7 @@ export const anthropic = {
               err instanceof Error && err.message.includes("rate_limit");
             const status = (err as { status?: number }).status;
             if ((status === 429 || isRateLimit) && attempt < MAX_RETRIES) {
-              const waitSec = 30 * (attempt + 1); // 30s, 60s, 90s
+              const waitSec = 60; // sempre 60s - il rate limit e' per minuto
               console.log(
                 `[API] ⏳ Rate limit! Attendo ${waitSec}s prima di riprovare (tentativo ${attempt + 1}/${MAX_RETRIES})...`
               );
