@@ -8,18 +8,17 @@ export async function runAnalyzer(
 ): Promise<AnalysisResult> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 16384,
+    max_tokens: 8192,
     system: ANALYZER_SYSTEM_PROMPT,
     messages: [
       {
         role: "user",
-        content: `## CLASSIFICAZIONE DEL DOCUMENTO
-${JSON.stringify(classification, null, 2)}
+        content: `CLASSIFICAZIONE: ${JSON.stringify(classification)}
 
-## TESTO COMPLETO DEL DOCUMENTO
+DOCUMENTO:
 ${documentText}
 
-Analizza tutte le clausole significative, identifica i rischi e gli elementi mancanti.`,
+Analizza clausole, rischi e elementi mancanti.`,
       },
     ],
   });
