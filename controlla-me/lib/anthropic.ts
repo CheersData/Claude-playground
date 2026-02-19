@@ -14,10 +14,47 @@ export function getAnthropicClient(): Anthropic {
   return _client;
 }
 
-/** @deprecated Use getAnthropicClient() instead */
+/** Logging wrapper around the Anthropic client */
 export const anthropic = {
   get messages() {
-    return getAnthropicClient().messages;
+    const client = getAnthropicClient();
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async create(params: any): Promise<Anthropic.Messages.Message> {
+        const agentName =
+          params.system
+            ?.toString()
+            .match(/Sei l['']agente (\w+)|Tu sei (\w+)|Agente: (\w+)/i)?.[1] ??
+          params.system?.toString().slice(0, 30) ??
+          "unknown";
+        const inputChars = JSON.stringify(params.messages).length;
+
+        console.log(
+          `\n${"=".repeat(60)}\n[API] → ${agentName.toUpperCase()} | model: ${params.model} | max_tokens: ${params.max_tokens} | input: ~${inputChars} chars`
+        );
+
+        const start = Date.now();
+        const response = await client.messages.create(params);
+        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+
+        const textContent = response.content
+          .filter(
+            (b): b is Anthropic.Messages.TextBlock => b.type === "text"
+          )
+          .map((b) => b.text)
+          .join("\n");
+
+        console.log(
+          `[API] ← ${agentName.toUpperCase()} | ${elapsed}s | tokens: ${response.usage.input_tokens} in / ${response.usage.output_tokens} out | stop: ${response.stop_reason}`
+        );
+        console.log(
+          `[API]   Risposta (primi 500 char): ${textContent.slice(0, 500)}${textContent.length > 500 ? "..." : ""}`
+        );
+        console.log("=".repeat(60));
+
+        return response;
+      },
+    };
   },
 };
 
