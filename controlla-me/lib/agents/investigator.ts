@@ -20,16 +20,12 @@ export async function runInvestigator(
     return { findings: [] };
   }
 
-  const userMessage = `## TIPO DI DOCUMENTO
-${classification.documentTypeLabel} (${classification.jurisdiction})
+  const userMessage = `Documento: ${classification.documentTypeLabel} (${classification.jurisdiction})
+Leggi: ${classification.applicableLaws.map((l) => l.reference).join(", ")}
 
-## LEGGI DI RIFERIMENTO
-${classification.applicableLaws.map((l) => `- ${l.reference}: ${l.name}`).join("\n")}
+Clausole da investigare: ${JSON.stringify(problematicClauses)}
 
-## CLAUSOLE PROBLEMATICHE DA INVESTIGARE
-${JSON.stringify(problematicClauses, null, 2)}
-
-Per ogni clausola problematica, cerca norme vigenti e sentenze pertinenti. Concentrati sulle clausole con riskLevel "critical" e "high" prima.`;
+Cerca norme e sentenze. Priorità: critical e high prima.`;
 
   // Use an agentic loop to handle tool use for web search
   const messages: Anthropic.Messages.MessageParam[] = [
@@ -37,12 +33,12 @@ Per ogni clausola problematica, cerca norme vigenti e sentenze pertinenti. Conce
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 10;
+  const MAX_ITERATIONS = 5;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 8192,
+      max_tokens: 6144,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
         {
