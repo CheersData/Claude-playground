@@ -67,10 +67,10 @@ export const anthropic = {
           .join("\n");
 
         console.log(
-          `[API] ← ${agentName.toUpperCase()} | ${elapsed}s | tokens: ${response.usage.input_tokens} in / ${response.usage.output_tokens} out | stop: ${response.stop_reason}`
+          `[API] ← ${agentName.toUpperCase()} | ${elapsed}s | tokens: ${response.usage.input_tokens} in / ${response.usage.output_tokens} out | stop: ${response.stop_reason} | risposta totale: ${textContent.length} chars`
         );
         console.log(
-          `[API]   Risposta (primi 500 char): ${textContent.slice(0, 500)}${textContent.length > 500 ? "..." : ""}`
+          `[API]   Risposta (primi 8000 char):\n${textContent.slice(0, 8000)}${textContent.length > 8000 ? "\n... [troncato, altri " + (textContent.length - 8000) + " chars]" : ""}`
         );
         console.log("=".repeat(60));
 
