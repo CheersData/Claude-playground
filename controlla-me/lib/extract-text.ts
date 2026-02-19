@@ -38,27 +38,7 @@ export async function extractText(
 }
 
 async function extractFromPDF(buffer: Buffer): Promise<string> {
-  // Use require() to avoid webpack mangling the dynamic import for pdf-parse v2
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParseModule = require("pdf-parse");
-  const PDFParse = pdfParseModule.PDFParse || pdfParseModule.default?.PDFParse;
-
-  if (typeof PDFParse !== "function") {
-    // Fallback: try the v1 function-based API
-    const pdfParseFn = pdfParseModule.default || pdfParseModule;
-    if (typeof pdfParseFn === "function") {
-      const data = await pdfParseFn(buffer);
-      const text = data.text ?? "";
-      if (text.trim().length === 0) {
-        throw new Error(
-          "Il PDF non contiene testo estraibile. Potrebbe essere un PDF scansionato — prova a caricare un'immagine."
-        );
-      }
-      return text;
-    }
-    throw new Error("Impossibile caricare il modulo pdf-parse");
-  }
-
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();
