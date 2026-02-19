@@ -34,7 +34,29 @@ export const anthropic = {
         );
 
         const start = Date.now();
-        const response = await client.messages.create(params);
+        let response: Anthropic.Messages.Message;
+        const MAX_RETRIES = 3;
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            response = await client.messages.create(params);
+            break;
+          } catch (err: unknown) {
+            const isRateLimit =
+              err instanceof Error && err.message.includes("rate_limit");
+            const status = (err as { status?: number }).status;
+            if ((status === 429 || isRateLimit) && attempt < MAX_RETRIES) {
+              const waitSec = 30 * (attempt + 1); // 30s, 60s, 90s
+              console.log(
+                `[API] ⏳ Rate limit! Attendo ${waitSec}s prima di riprovare (tentativo ${attempt + 1}/${MAX_RETRIES})...`
+              );
+              await new Promise((r) => setTimeout(r, waitSec * 1000));
+              continue;
+            }
+            throw err;
+          }
+        }
+
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
         const textContent = response.content
