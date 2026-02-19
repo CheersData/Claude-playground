@@ -55,3 +55,67 @@ body {
   pointer-events: none;
   animation: float 6s ease-in-out infinite;
 }
+
+/* ── Agent illustration animations ── */
+
+/* Classifier: scan line sweeping over document */
+@keyframes scan-line {
+  0%   { top: 10%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+
+@keyframes doc-fade-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Analyzer: magnifying glass sweep */
+@keyframes mag-sweep {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(6px, -4px) rotate(-5deg); }
+  50%  { transform: translate(-2px, 4px) rotate(3deg); }
+  75%  { transform: translate(4px, 2px) rotate(-2deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes mag-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255,107,53,0.3)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(255,107,53,0.7)); }
+}
+
+/* Investigator: scale oscillation */
+@keyframes scale-swing {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(8deg); }
+  75%      { transform: rotate(-8deg); }
+}
+
+@keyframes pan-left {
+  0%, 100% { transform: translateY(0px); }
+  25%      { transform: translateY(4px); }
+  75%      { transform: translateY(-3px); }
+}
+
+@keyframes pan-right {
+  0%, 100% { transform: translateY(0px); }
+  25%      { transform: translateY(-3px); }
+  75%      { transform: translateY(4px); }
+}
+
+/* Advisor: lightbulb glow pulse */
+@keyframes bulb-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(255,200,50,0.3)); }
+  50%      { filter: drop-shadow(0 0 16px rgba(255,200,50,0.8)); }
+}
+
+@keyframes rays-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes idea-spark {
+  0%, 100% { opacity: 0; transform: scale(0.5) translateY(0); }
+  50%      { opacity: 1; transform: scale(1) translateY(-6px); }
+}
