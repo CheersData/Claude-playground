@@ -14,21 +14,18 @@ export async function runAdvisor(
 ): Promise<AdvisorResult> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 16384,
+    max_tokens: 8192,
     system: ADVISOR_SYSTEM_PROMPT,
     messages: [
       {
         role: "user",
-        content: `## CLASSIFICAZIONE DEL DOCUMENTO
-${JSON.stringify(classification, null, 2)}
+        content: `Classificazione: ${JSON.stringify(classification)}
 
-## ANALISI DELLE CLAUSOLE
-${JSON.stringify(analysis, null, 2)}
+Analisi clausole: ${JSON.stringify(analysis)}
 
-## RICERCA NORMATIVA E GIURISPRUDENZIALE
-${JSON.stringify(investigation, null, 2)}
+Ricerca normativa: ${JSON.stringify(investigation)}
 
-Produci il report finale in italiano semplice, comprensibile a chiunque. Includi il fairness score, i rischi, le scadenze, le azioni consigliate e se serve un avvocato.`,
+Produci il report finale.`,
       },
     ],
   });

@@ -7,7 +7,7 @@ export async function runClassifier(
 ): Promise<ClassificationResult> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 2048,
     system: CLASSIFIER_SYSTEM_PROMPT,
     messages: [
       {
