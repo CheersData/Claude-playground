@@ -60,17 +60,20 @@ export async function POST(req: NextRequest) {
             onError: (phase: AgentPhase, error: string) => {
               send("error", { phase, error });
             },
-            onComplete: (advice) => {
-              send("complete", {
-                advice,
-                classification: result?.classification,
-                analysis: result?.analysis,
-                investigation: result?.investigation,
-              });
+            onComplete: () => {
+              // noop — complete event is sent below after result is available
             },
           },
           resumeSessionId
         );
+
+        // Send the complete event now that result is fully populated
+        send("complete", {
+          advice: result.advice,
+          classification: result.classification,
+          analysis: result.analysis,
+          investigation: result.investigation,
+        });
 
         // Always send the sessionId so the frontend can resume later
         send("session", { sessionId: result.sessionId });
