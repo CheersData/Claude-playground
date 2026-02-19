@@ -38,16 +38,21 @@ export async function extractText(
 }
 
 async function extractFromPDF(buffer: Buffer): Promise<string> {
-  // Dynamic import to avoid canvas polyfill issues at build time
-  const pdfModule = await import("pdf-parse");
-  const pdfParse = (pdfModule as unknown as { default: (buf: Buffer) => Promise<{ text: string }> }).default || pdfModule;
-  const data = await (pdfParse as (buf: Buffer) => Promise<{ text: string }>)(buffer);
-  if (!data.text || data.text.trim().length === 0) {
-    throw new Error(
-      "Il PDF non contiene testo estraibile. Potrebbe essere un PDF scansionato — prova a caricare un'immagine."
-    );
+  // pdf-parse v2 uses a class-based API
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    const text = result.text ?? "";
+    if (text.trim().length === 0) {
+      throw new Error(
+        "Il PDF non contiene testo estraibile. Potrebbe essere un PDF scansionato — prova a caricare un'immagine."
+      );
+    }
+    return text;
+  } finally {
+    parser.destroy();
   }
-  return data.text;
 }
 
 async function extractFromDOCX(buffer: Buffer): Promise<string> {
