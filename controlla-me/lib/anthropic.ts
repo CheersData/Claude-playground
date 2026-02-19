@@ -24,17 +24,35 @@ export const anthropic = {
 export const MODEL = "claude-sonnet-4-5-20250929";
 
 /**
- * Parse JSON from Claude's response, stripping markdown code fences if present.
+ * Parse JSON from Claude's response, handling markdown fences and surrounding text.
  */
 export function parseAgentJSON<T>(text: string): T {
   let cleaned = text.trim();
 
-  // Strip markdown code fences
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  // Try 1: Strip markdown code fences
+  const fenceMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) {
+    cleaned = fenceMatch[1].trim();
   }
 
-  return JSON.parse(cleaned);
+  // Try 2: Direct parse
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Try 3: Find the first { ... } or [ ... ] block in the text
+    const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[1]);
+      } catch {
+        // fall through
+      }
+    }
+
+    throw new Error(
+      `Risposta non JSON da Claude. Inizio risposta: "${cleaned.slice(0, 200)}..."`
+    );
+  }
 }
 
 /**
