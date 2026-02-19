@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
         const formData = await req.formData();
         const file = formData.get("file") as File | null;
         const rawText = formData.get("text") as string | null;
+        const resumeSessionId =
+          (formData.get("sessionId") as string | null) || undefined;
 
         let documentText: string;
 
@@ -45,22 +47,33 @@ export async function POST(req: NextRequest) {
         }
 
         // Run the 4-agent orchestrator with SSE callbacks
-        const result = await runOrchestrator(documentText, {
-          onProgress: (phase: AgentPhase, status: PhaseStatus, data?: unknown) => {
-            send("progress", { phase, status, data });
+        const result = await runOrchestrator(
+          documentText,
+          {
+            onProgress: (
+              phase: AgentPhase,
+              status: PhaseStatus,
+              data?: unknown
+            ) => {
+              send("progress", { phase, status, data });
+            },
+            onError: (phase: AgentPhase, error: string) => {
+              send("error", { phase, error });
+            },
+            onComplete: (advice) => {
+              send("complete", {
+                advice,
+                classification: result?.classification,
+                analysis: result?.analysis,
+                investigation: result?.investigation,
+              });
+            },
           },
-          onError: (phase: AgentPhase, error: string) => {
-            send("error", { phase, error });
-          },
-          onComplete: (advice) => {
-            send("complete", {
-              advice,
-              classification: result?.classification,
-              analysis: result?.analysis,
-              investigation: result?.investigation,
-            });
-          },
-        });
+          resumeSessionId
+        );
+
+        // Always send the sessionId so the frontend can resume later
+        send("session", { sessionId: result.sessionId });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Errore sconosciuto";
