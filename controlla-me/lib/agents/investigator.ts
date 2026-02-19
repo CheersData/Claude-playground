@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODEL, parseAgentJSON } from "../anthropic";
+import { anthropic, MODEL, MODEL_FAST, parseAgentJSON } from "../anthropic";
 import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
 import type {
   ClassificationResult,
@@ -37,7 +37,7 @@ Cerca norme e sentenze. Priorità: critical e high prima.`;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 6144,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
