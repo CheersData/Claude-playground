@@ -8,31 +8,30 @@ import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 function ClassifierIllustration() {
   return (
-    <div className="relative w-28 h-32" style={{ animation: "doc-fade-in 0.6s ease-out" }}>
-      {/* Document body */}
+    <div className="relative w-32 h-32" style={{ animation: "doc-fade-in 0.6s ease-out" }}>
       <svg viewBox="0 0 80 100" className="w-full h-full">
         {/* Page shadow */}
-        <rect x="8" y="6" width="64" height="88" rx="4" fill="rgba(255,107,53,0.05)" />
+        <rect x="8" y="6" width="64" height="88" rx="4" fill="rgba(255,107,53,0.12)" />
         {/* Page */}
-        <rect x="4" y="2" width="64" height="88" rx="4" fill="rgba(255,255,255,0.06)" stroke="rgba(255,107,53,0.3)" strokeWidth="1" />
+        <rect x="4" y="2" width="64" height="88" rx="4" fill="rgba(255,255,255,0.1)" stroke="#FF6B35" strokeWidth="1.5" />
         {/* Folded corner */}
-        <path d="M52 2 L68 18 L52 18 Z" fill="rgba(255,107,53,0.15)" stroke="rgba(255,107,53,0.3)" strokeWidth="0.5" />
+        <path d="M52 2 L68 18 L52 18 Z" fill="rgba(255,107,53,0.35)" stroke="#FF6B35" strokeWidth="0.8" />
         {/* Text lines */}
-        <rect x="14" y="28" width="36" height="3" rx="1.5" fill="rgba(255,255,255,0.15)" />
-        <rect x="14" y="36" width="28" height="3" rx="1.5" fill="rgba(255,255,255,0.1)" />
-        <rect x="14" y="44" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.15)" />
-        <rect x="14" y="52" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.1)" />
-        <rect x="14" y="60" width="34" height="3" rx="1.5" fill="rgba(255,255,255,0.12)" />
-        <rect x="14" y="68" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.08)" />
-        <rect x="14" y="76" width="38" height="3" rx="1.5" fill="rgba(255,255,255,0.1)" />
+        <rect x="14" y="28" width="36" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
+        <rect x="14" y="36" width="28" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
+        <rect x="14" y="44" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
+        <rect x="14" y="52" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
+        <rect x="14" y="60" width="34" height="3" rx="1.5" fill="rgba(255,255,255,0.3)" />
+        <rect x="14" y="68" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+        <rect x="14" y="76" width="38" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
       </svg>
       {/* Scanning line */}
       <div
-        className="absolute left-2 right-10 h-[2px] rounded-full"
+        className="absolute left-2 right-8 h-[3px] rounded-full"
         style={{
-          background: "linear-gradient(90deg, transparent, #FF6B35, rgba(255,107,53,0.6), transparent)",
+          background: "linear-gradient(90deg, transparent 0%, #FF6B35 30%, #FF6B35 70%, transparent 100%)",
           animation: "scan-line 2.5s ease-in-out infinite",
-          boxShadow: "0 0 12px rgba(255,107,53,0.5)",
+          boxShadow: "0 0 16px rgba(255,107,53,0.8), 0 0 4px rgba(255,107,53,1)",
         }}
       />
     </div>
@@ -41,20 +40,20 @@ function ClassifierIllustration() {
 
 function AnalyzerIllustration() {
   return (
-    <div className="relative w-28 h-32 flex items-center justify-center">
+    <div className="relative w-32 h-32 flex items-center justify-center">
       {/* Text block behind */}
-      <svg viewBox="0 0 90 90" className="w-24 h-24 opacity-40">
-        <rect x="10" y="15" width="50" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
-        <rect x="10" y="23" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.15)" />
-        <rect x="10" y="31" width="55" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
-        <rect x="10" y="39" width="35" height="3" rx="1.5" fill="rgba(255,255,255,0.12)" />
-        <rect x="10" y="47" width="48" height="3" rx="1.5" fill="rgba(255,255,255,0.18)" />
-        <rect x="10" y="55" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.1)" />
-        <rect x="10" y="63" width="44" height="3" rx="1.5" fill="rgba(255,255,255,0.15)" />
-        <rect x="10" y="71" width="52" height="3" rx="1.5" fill="rgba(255,255,255,0.12)" />
-        {/* Highlight on some lines */}
-        <rect x="10" y="29" width="55" height="9" rx="2" fill="rgba(255,107,53,0.08)" />
-        <rect x="10" y="45" width="48" height="9" rx="2" fill="rgba(255,80,80,0.08)" />
+      <svg viewBox="0 0 90 90" className="w-28 h-28 opacity-70">
+        <rect x="10" y="15" width="50" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
+        <rect x="10" y="23" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
+        <rect x="10" y="31" width="55" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
+        <rect x="10" y="39" width="35" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+        <rect x="10" y="47" width="48" height="3" rx="1.5" fill="rgba(255,255,255,0.3)" />
+        <rect x="10" y="55" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+        <rect x="10" y="63" width="44" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
+        <rect x="10" y="71" width="52" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+        {/* Highlight on risky lines */}
+        <rect x="8" y="29" width="58" height="9" rx="2" fill="rgba(255,107,53,0.2)" stroke="rgba(255,107,53,0.3)" strokeWidth="0.5" />
+        <rect x="8" y="45" width="52" height="9" rx="2" fill="rgba(255,60,60,0.2)" stroke="rgba(255,60,60,0.3)" strokeWidth="0.5" />
       </svg>
       {/* Magnifying glass */}
       <div
@@ -63,16 +62,15 @@ function AnalyzerIllustration() {
           animation: "mag-sweep 3s ease-in-out infinite, mag-glow 2s ease-in-out infinite",
         }}
       >
-        <svg viewBox="0 0 48 48" className="w-14 h-14">
+        <svg viewBox="0 0 48 48" className="w-16 h-16">
           {/* Lens glow */}
-          <circle cx="20" cy="20" r="14" fill="rgba(255,107,53,0.06)" />
+          <circle cx="20" cy="20" r="14" fill="rgba(255,107,53,0.15)" />
           {/* Lens */}
-          <circle cx="20" cy="20" r="11" fill="none" stroke="rgba(255,107,53,0.7)" strokeWidth="2.5" />
-          <circle cx="20" cy="20" r="11" fill="rgba(255,107,53,0.04)" />
+          <circle cx="20" cy="20" r="11" fill="rgba(255,107,53,0.08)" stroke="#FF6B35" strokeWidth="2.5" />
           {/* Lens reflection */}
-          <ellipse cx="16" cy="16" rx="4" ry="3" fill="rgba(255,255,255,0.08)" transform="rotate(-20 16 16)" />
+          <ellipse cx="16" cy="16" rx="4" ry="3" fill="rgba(255,255,255,0.15)" transform="rotate(-20 16 16)" />
           {/* Handle */}
-          <line x1="28" y1="28" x2="40" y2="40" stroke="rgba(255,107,53,0.6)" strokeWidth="3" strokeLinecap="round" />
+          <line x1="28" y1="28" x2="40" y2="40" stroke="#FF6B35" strokeWidth="3.5" strokeLinecap="round" />
         </svg>
       </div>
     </div>
@@ -81,43 +79,41 @@ function AnalyzerIllustration() {
 
 function InvestigatorIllustration() {
   return (
-    <div className="relative w-28 h-32 flex items-center justify-center">
+    <div className="relative w-32 h-32 flex items-center justify-center">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         {/* Pillar */}
-        <rect x="46" y="10" width="8" height="50" rx="2" fill="rgba(255,255,255,0.08)" />
-        {/* Top triangle / beam */}
-        <polygon points="50,8 42,18 58,18" fill="rgba(255,107,53,0.25)" stroke="rgba(255,107,53,0.4)" strokeWidth="0.8" />
+        <rect x="46" y="10" width="8" height="50" rx="2" fill="rgba(255,255,255,0.15)" />
+        {/* Top triangle */}
+        <polygon points="50,6 40,18 60,18" fill="rgba(255,107,53,0.4)" stroke="#FF6B35" strokeWidth="1" />
         {/* Balance beam */}
         <g style={{ transformOrigin: "50px 20px", animation: "scale-swing 3s ease-in-out infinite" }}>
-          <line x1="20" y1="20" x2="80" y2="20" stroke="rgba(255,107,53,0.5)" strokeWidth="2" strokeLinecap="round" />
+          <line x1="18" y1="20" x2="82" y2="20" stroke="#FF6B35" strokeWidth="2.5" strokeLinecap="round" />
           {/* Left chain */}
-          <line x1="24" y1="20" x2="24" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-          <line x1="16" y1="20" x2="16" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+          <line x1="22" y1="20" x2="22" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
+          <line x1="14" y1="20" x2="14" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
           {/* Right chain */}
-          <line x1="76" y1="20" x2="76" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-          <line x1="84" y1="20" x2="84" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+          <line x1="78" y1="20" x2="78" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
+          <line x1="86" y1="20" x2="86" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
           {/* Left pan */}
-          <g style={{ transformOrigin: "20px 44px", animation: "pan-left 3s ease-in-out infinite" }}>
-            <ellipse cx="20" cy="44" rx="16" ry="4" fill="rgba(255,107,53,0.15)" stroke="rgba(255,107,53,0.3)" strokeWidth="1" />
-            {/* Book / law icon */}
-            <rect x="13" y="36" width="14" height="6" rx="1" fill="rgba(255,107,53,0.2)" />
-            <line x1="20" y1="36" x2="20" y2="42" stroke="rgba(255,107,53,0.4)" strokeWidth="0.5" />
+          <g style={{ transformOrigin: "18px 44px", animation: "pan-left 3s ease-in-out infinite" }}>
+            <ellipse cx="18" cy="44" rx="16" ry="4" fill="rgba(255,107,53,0.3)" stroke="#FF6B35" strokeWidth="1" />
+            <rect x="11" y="36" width="14" height="6" rx="1" fill="rgba(255,107,53,0.4)" />
+            <line x1="18" y1="36" x2="18" y2="42" stroke="#FF6B35" strokeWidth="0.8" />
           </g>
           {/* Right pan */}
-          <g style={{ transformOrigin: "80px 44px", animation: "pan-right 3s ease-in-out infinite" }}>
-            <ellipse cx="80" cy="44" rx="16" ry="4" fill="rgba(255,107,53,0.15)" stroke="rgba(255,107,53,0.3)" strokeWidth="1" />
-            {/* Gavel icon */}
-            <rect x="74" y="37" width="12" height="5" rx="1.5" fill="rgba(255,107,53,0.2)" />
-            <rect x="78" y="35" width="4" height="9" rx="1" fill="rgba(255,107,53,0.25)" />
+          <g style={{ transformOrigin: "82px 44px", animation: "pan-right 3s ease-in-out infinite" }}>
+            <ellipse cx="82" cy="44" rx="16" ry="4" fill="rgba(255,107,53,0.3)" stroke="#FF6B35" strokeWidth="1" />
+            <rect x="76" y="37" width="12" height="5" rx="1.5" fill="rgba(255,107,53,0.4)" />
+            <rect x="80" y="35" width="4" height="9" rx="1" fill="rgba(255,107,53,0.5)" />
           </g>
         </g>
         {/* Base */}
-        <rect x="34" y="60" width="32" height="4" rx="2" fill="rgba(255,255,255,0.06)" />
-        {/* "Norme" text labels floating */}
-        <text x="10" y="72" fontSize="5" fill="rgba(255,107,53,0.35)" fontFamily="monospace">Art. 1341</text>
-        <text x="55" y="78" fontSize="5" fill="rgba(255,107,53,0.3)" fontFamily="monospace">D.Lgs 122</text>
-        <text x="20" y="84" fontSize="4.5" fill="rgba(255,107,53,0.25)" fontFamily="monospace">Cass. 2024</text>
-        <text x="50" y="90" fontSize="4.5" fill="rgba(255,107,53,0.2)" fontFamily="monospace">Art. 1469-bis</text>
+        <rect x="34" y="60" width="32" height="4" rx="2" fill="rgba(255,255,255,0.12)" />
+        {/* Law references */}
+        <text x="8" y="72" fontSize="5.5" fill="rgba(255,107,53,0.7)" fontFamily="monospace">Art. 1341</text>
+        <text x="55" y="78" fontSize="5.5" fill="rgba(255,107,53,0.6)" fontFamily="monospace">D.Lgs 122</text>
+        <text x="18" y="84" fontSize="5" fill="rgba(255,107,53,0.5)" fontFamily="monospace">Cass. 2024</text>
+        <text x="48" y="92" fontSize="5" fill="rgba(255,107,53,0.45)" fontFamily="monospace">Art. 1469-bis</text>
       </svg>
     </div>
   );
@@ -125,13 +121,13 @@ function InvestigatorIllustration() {
 
 function AdvisorIllustration() {
   return (
-    <div className="relative w-28 h-32 flex items-center justify-center">
+    <div className="relative w-32 h-32 flex items-center justify-center">
       {/* Rays spinning behind */}
       <div
         className="absolute inset-0 flex items-center justify-center"
         style={{ animation: "rays-rotate 12s linear infinite" }}
       >
-        <svg viewBox="0 0 100 100" className="w-24 h-24 opacity-30">
+        <svg viewBox="0 0 100 100" className="w-28 h-28 opacity-50">
           {[...Array(8)].map((_, i) => (
             <line
               key={i}
@@ -140,41 +136,41 @@ function AdvisorIllustration() {
               x2={50 + 40 * Math.cos((i * Math.PI) / 4)}
               y2={50 + 40 * Math.sin((i * Math.PI) / 4)}
               stroke="#FFC832"
-              strokeWidth="1"
+              strokeWidth="1.5"
               strokeLinecap="round"
-              opacity={0.4 + (i % 2) * 0.3}
+              opacity={0.5 + (i % 2) * 0.3}
             />
           ))}
         </svg>
       </div>
       {/* Main bulb */}
       <div style={{ animation: "bulb-pulse 2.5s ease-in-out infinite" }}>
-        <svg viewBox="0 0 60 80" className="w-16 h-20">
+        <svg viewBox="0 0 60 80" className="w-20 h-24">
           {/* Outer glow */}
-          <circle cx="30" cy="28" r="24" fill="rgba(255,200,50,0.06)" />
+          <circle cx="30" cy="28" r="24" fill="rgba(255,200,50,0.12)" />
           {/* Bulb glass */}
-          <circle cx="30" cy="28" r="16" fill="rgba(255,200,50,0.1)" stroke="rgba(255,200,50,0.5)" strokeWidth="1.5" />
+          <circle cx="30" cy="28" r="16" fill="rgba(255,200,50,0.2)" stroke="rgba(255,200,50,0.8)" strokeWidth="2" />
           {/* Filament */}
-          <path d="M25 30 Q27 22 30 28 Q33 22 35 30" fill="none" stroke="rgba(255,200,50,0.8)" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M25 30 Q27 22 30 28 Q33 22 35 30" fill="none" stroke="#FFC832" strokeWidth="2" strokeLinecap="round" />
           {/* Bulb base */}
-          <rect x="24" y="44" width="12" height="8" rx="2" fill="rgba(255,255,255,0.1)" stroke="rgba(255,200,50,0.3)" strokeWidth="1" />
-          <line x1="24" y1="47" x2="36" y2="47" stroke="rgba(255,200,50,0.2)" strokeWidth="0.8" />
-          <line x1="24" y1="50" x2="36" y2="50" stroke="rgba(255,200,50,0.2)" strokeWidth="0.8" />
+          <rect x="24" y="44" width="12" height="8" rx="2" fill="rgba(255,255,255,0.15)" stroke="rgba(255,200,50,0.5)" strokeWidth="1.2" />
+          <line x1="24" y1="47" x2="36" y2="47" stroke="rgba(255,200,50,0.4)" strokeWidth="1" />
+          <line x1="24" y1="50" x2="36" y2="50" stroke="rgba(255,200,50,0.4)" strokeWidth="1" />
           {/* Connection to glass */}
-          <path d="M24 44 Q24 40 22 36" fill="none" stroke="rgba(255,200,50,0.3)" strokeWidth="1" />
-          <path d="M36 44 Q36 40 38 36" fill="none" stroke="rgba(255,200,50,0.3)" strokeWidth="1" />
+          <path d="M24 44 Q24 40 22 36" fill="none" stroke="rgba(255,200,50,0.5)" strokeWidth="1.2" />
+          <path d="M36 44 Q36 40 38 36" fill="none" stroke="rgba(255,200,50,0.5)" strokeWidth="1.2" />
         </svg>
       </div>
       {/* Floating sparkles */}
       {[
-        { x: "15%", y: "20%", delay: "0s" },
-        { x: "75%", y: "15%", delay: "0.8s" },
-        { x: "80%", y: "55%", delay: "1.6s" },
-        { x: "10%", y: "60%", delay: "2.2s" },
+        { x: "12%", y: "18%", delay: "0s" },
+        { x: "78%", y: "12%", delay: "0.8s" },
+        { x: "82%", y: "58%", delay: "1.6s" },
+        { x: "8%", y: "62%", delay: "2.2s" },
       ].map((spark, i) => (
         <div
           key={i}
-          className="absolute w-1.5 h-1.5 rounded-full bg-yellow-300/60"
+          className="absolute w-2 h-2 rounded-full bg-yellow-300/80"
           style={{
             left: spark.x,
             top: spark.y,
