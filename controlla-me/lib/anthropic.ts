@@ -34,7 +34,7 @@ export const anthropic = {
         );
 
         const start = Date.now();
-        let response: Anthropic.Messages.Message;
+        let response: Anthropic.Messages.Message = undefined!;
         const MAX_RETRIES = 6;
 
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
