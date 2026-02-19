@@ -254,6 +254,7 @@ export default function Home() {
             currentPhase={currentPhase}
             completedPhases={completedPhases}
             error={error || undefined}
+            onReset={reset}
           />
         </div>
       )}
