@@ -89,17 +89,14 @@ export const MODEL_FAST = "claude-haiku-4-5-20251001";
 export function parseAgentJSON<T>(text: string): T {
   let cleaned = text.trim();
 
-  // Try 1: Strip markdown code fences
-  const fenceMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (fenceMatch) {
-    cleaned = fenceMatch[1].trim();
-  }
+  // Strip markdown code fences (opening and closing independently)
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
 
-  // Try 2: Direct parse
+  // Try 1: Direct parse
   try {
     return JSON.parse(cleaned);
   } catch {
-    // Try 3: Find the first { ... } or [ ... ] block in the text
+    // Try 2: Find the first { ... } or [ ... ] block in the text
     const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     if (jsonMatch) {
       try {
