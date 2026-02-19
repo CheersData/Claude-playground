@@ -235,6 +235,8 @@ interface AnalysisProgressProps {
   completedPhases: AgentPhase[];
   error?: string;
   onReset?: () => void;
+  onRetry?: () => void;
+  sessionId?: string | null;
 }
 
 export default function AnalysisProgress({
@@ -243,6 +245,8 @@ export default function AnalysisProgress({
   completedPhases,
   error,
   onReset,
+  onRetry,
+  sessionId,
 }: AnalysisProgressProps) {
   const getPhaseStatus = (phase: AgentPhase): PhaseStatus | "pending" => {
     if (completedPhases.includes(phase)) return "done";
@@ -353,13 +357,33 @@ export default function AnalysisProgress({
           className="mt-6"
         >
           <p className="text-sm text-red-400 mb-4">{error}</p>
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="px-8 py-3 rounded-full text-sm font-bold text-white bg-gradient-to-br from-accent to-[#E8451A] hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(255,107,53,0.35)] transition-all"
-            >
-              Riprova
-            </button>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {/* Primary: resume from cache */}
+            {onRetry && sessionId && (
+              <button
+                onClick={onRetry}
+                className="px-8 py-3 rounded-full text-sm font-bold text-white bg-gradient-to-br from-accent to-[#E8451A] hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(255,107,53,0.35)] transition-all"
+              >
+                Riprova da dove eri
+              </button>
+            )}
+
+            {/* Secondary: start over */}
+            {onReset && (
+              <button
+                onClick={onReset}
+                className="px-8 py-3 rounded-full text-sm font-bold text-white/70 border border-white/10 hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all"
+              >
+                {sessionId ? "Ricomincia da capo" : "Riprova"}
+              </button>
+            )}
+          </div>
+
+          {sessionId && (
+            <p className="text-xs text-white/20 mt-3">
+              Sessione salvata &middot; i passaggi completati non verranno ripetuti
+            </p>
           )}
         </motion.div>
       )}

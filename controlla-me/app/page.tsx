@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Shield, Search, Scale, Lightbulb, Lock, Zap, Gift } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -18,6 +18,10 @@ export default function Home() {
   const [completedPhases, setCompletedPhases] = useState<AgentPhase[]>([]);
   const [result, setResult] = useState<AdvisorResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // Keep a ref to the last uploaded file so we can retry
+  const lastFileRef = useRef<File | null>(null);
 
   const reset = useCallback(() => {
     setView("landing");
@@ -26,79 +30,109 @@ export default function Home() {
     setCompletedPhases([]);
     setResult(null);
     setError(null);
+    setSessionId(null);
+    lastFileRef.current = null;
   }, []);
 
-  const handleFileSelected = useCallback(async (file: File) => {
-    setFileName(file.name);
-    setView("analyzing");
-    setCurrentPhase(null);
-    setCompletedPhases([]);
-    setError(null);
+  const startAnalysis = useCallback(
+    async (file: File, resumeId?: string) => {
+      setFileName(file.name);
+      setView("analyzing");
+      setCurrentPhase(null);
+      setCompletedPhases([]);
+      setError(null);
+      lastFileRef.current = file;
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (resumeId) {
+          formData.append("sessionId", resumeId);
+        }
 
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        body: formData,
-      });
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!response.ok) {
-        throw new Error("Errore nella richiesta di analisi");
-      }
+        if (!response.ok) {
+          throw new Error("Errore nella richiesta di analisi");
+        }
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("Stream non disponibile");
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("Stream non disponibile");
 
-      const decoder = new TextDecoder();
-      let buffer = "";
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-        let eventType = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            eventType = line.slice(7).trim();
-          } else if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6);
-            try {
-              const data = JSON.parse(dataStr);
+          let eventType = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventType = line.slice(7).trim();
+            } else if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6);
+              try {
+                const data = JSON.parse(dataStr);
 
-              if (eventType === "progress") {
-                const phase = data.phase as AgentPhase;
-                if (data.status === "running") {
-                  setCurrentPhase(phase);
-                } else if (data.status === "done") {
-                  setCompletedPhases((prev) =>
-                    prev.includes(phase) ? prev : [...prev, phase]
+                if (eventType === "progress") {
+                  const phase = data.phase as AgentPhase;
+                  if (data.status === "running") {
+                    setCurrentPhase(phase);
+                  } else if (data.status === "done") {
+                    setCompletedPhases((prev) =>
+                      prev.includes(phase) ? prev : [...prev, phase]
+                    );
+                  }
+                } else if (eventType === "complete") {
+                  const advice = data.advice || data;
+                  setResult(advice);
+                  setView("results");
+                } else if (eventType === "session") {
+                  setSessionId(data.sessionId);
+                } else if (eventType === "error") {
+                  setError(
+                    data.message || data.error || "Errore sconosciuto"
                   );
                 }
-              } else if (eventType === "complete") {
-                const advice = data.advice || data;
-                setResult(advice);
-                setView("results");
-              } else if (eventType === "error") {
-                setError(data.message || data.error || "Errore sconosciuto");
+              } catch {
+                // Ignore JSON parse errors for incomplete chunks
               }
-            } catch {
-              // Ignore JSON parse errors for incomplete chunks
             }
           }
         }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Errore durante l'analisi"
+        );
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Errore durante l'analisi"
-      );
+    },
+    []
+  );
+
+  const handleFileSelected = useCallback(
+    async (file: File) => {
+      startAnalysis(file);
+    },
+    [startAnalysis]
+  );
+
+  /** Retry using the cached sessionId so completed phases are skipped */
+  const handleRetry = useCallback(() => {
+    const file = lastFileRef.current;
+    if (file) {
+      startAnalysis(file, sessionId || undefined);
+    } else {
+      reset();
     }
-  }, []);
+  }, [startAnalysis, sessionId, reset]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -255,6 +289,8 @@ export default function Home() {
             completedPhases={completedPhases}
             error={error || undefined}
             onReset={reset}
+            onRetry={handleRetry}
+            sessionId={sessionId}
           />
         </div>
       )}
