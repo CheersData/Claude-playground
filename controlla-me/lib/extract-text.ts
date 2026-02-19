@@ -38,20 +38,48 @@ export async function extractText(
 }
 
 async function extractFromPDF(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    const text = result.text ?? "";
+  // Use createRequire to bypass Turbopack's module transformation
+  // which breaks dynamic import() for pdf-parse
+  const { createRequire } = await import("node:module");
+  const require = createRequire(import.meta.url);
+  const pdfParseModule = require("pdf-parse");
+
+  // pdf-parse v2: class-based API (PDFParse)
+  const PDFParseClass =
+    pdfParseModule.PDFParse ?? pdfParseModule.default?.PDFParse;
+
+  if (typeof PDFParseClass === "function") {
+    const parser = new PDFParseClass({ data: buffer });
+    try {
+      const result = await parser.getText();
+      const text = result.text ?? "";
+      if (text.trim().length === 0) {
+        throw new Error(
+          "Il PDF non contiene testo estraibile. Potrebbe essere un PDF scansionato — prova a caricare un'immagine."
+        );
+      }
+      return text;
+    } finally {
+      parser.destroy();
+    }
+  }
+
+  // pdf-parse v1 fallback: function-based API
+  const pdfParseFn = pdfParseModule.default ?? pdfParseModule;
+  if (typeof pdfParseFn === "function") {
+    const data = await pdfParseFn(buffer);
+    const text = data.text ?? "";
     if (text.trim().length === 0) {
       throw new Error(
         "Il PDF non contiene testo estraibile. Potrebbe essere un PDF scansionato — prova a caricare un'immagine."
       );
     }
     return text;
-  } finally {
-    parser.destroy();
   }
+
+  throw new Error(
+    `Impossibile caricare pdf-parse. Exports: ${Object.keys(pdfParseModule).join(", ")}`
+  );
 }
 
 async function extractFromDOCX(buffer: Buffer): Promise<string> {
