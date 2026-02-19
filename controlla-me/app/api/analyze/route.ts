@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
           send("progress", { phase: "upload", status: "done" });
         } else {
           send("error", { message: "Nessun file o testo fornito" });
-          controller.close();
           return;
         }
 
@@ -42,7 +41,6 @@ export async function POST(req: NextRequest) {
             message:
               "Il testo estratto è troppo corto. Assicurati che il documento contenga testo leggibile.",
           });
-          controller.close();
           return;
         }
 
@@ -68,7 +66,11 @@ export async function POST(req: NextRequest) {
           error instanceof Error ? error.message : "Errore sconosciuto";
         send("error", { message });
       } finally {
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Controller may already be closed from early returns
+        }
       }
     },
   });
