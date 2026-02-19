@@ -41,6 +41,7 @@ interface AnalysisProgressProps {
   currentPhase: AgentPhase | null;
   completedPhases: AgentPhase[];
   error?: string;
+  onReset?: () => void;
 }
 
 export default function AnalysisProgress({
@@ -48,6 +49,7 @@ export default function AnalysisProgress({
   currentPhase,
   completedPhases,
   error,
+  onReset,
 }: AnalysisProgressProps) {
   const getPhaseStatus = (phase: AgentPhase): PhaseStatus | "pending" => {
     if (completedPhases.includes(phase)) return "done";
@@ -133,13 +135,21 @@ export default function AnalysisProgress({
       </div>
 
       {error && (
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mt-6 text-sm text-red-400"
+          className="mt-6"
         >
-          {error}
-        </motion.p>
+          <p className="text-sm text-red-400 mb-4">{error}</p>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="px-8 py-3 rounded-full text-sm font-bold text-white bg-gradient-to-br from-accent to-[#E8451A] hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(255,107,53,0.35)] transition-all"
+            >
+              Riprova
+            </button>
+          )}
+        </motion.div>
       )}
     </motion.div>
   );
