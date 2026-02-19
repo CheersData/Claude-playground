@@ -8,7 +8,7 @@ export async function runAnalyzer(
 ): Promise<AnalysisResult> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 8192,
+    max_tokens: 16384,
     system: ANALYZER_SYSTEM_PROMPT,
     messages: [
       {
