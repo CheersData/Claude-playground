@@ -81,6 +81,7 @@ export const anthropic = {
 };
 
 export const MODEL = "claude-sonnet-4-5-20250929";
+export const MODEL_FAST = "claude-haiku-4-5-20251001";
 
 /**
  * Parse JSON from Claude's response, handling markdown fences and surrounding text.
