@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Search, Scale, Lightbulb, Lock, Zap, Gift } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -22,6 +22,23 @@ export default function Home() {
 
   // Keep a ref to the last uploaded file so we can retry
   const lastFileRef = useRef<File | null>(null);
+
+  // Dev shortcut: ?session=ID loads cached results directly
+  useEffect(() => {
+    const sid = new URLSearchParams(window.location.search).get("session");
+    if (!sid) return;
+    fetch(`/api/session/${sid}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.advice) {
+          setResult(data.advice);
+          setFileName(data.documentTextPreview?.slice(0, 30) + "..." || "cached");
+          setSessionId(data.sessionId);
+          setView("results");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const reset = useCallback(() => {
     setView("landing");
