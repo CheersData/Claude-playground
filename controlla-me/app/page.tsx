@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Search, Scale, Lightbulb, Lock, Zap, Gift } from "lucide-react";
+import { Shield, Lock, Zap, Gift } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import UploadZone from "@/components/UploadZone";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import ResultsView from "@/components/ResultsView";
+import TeamSection from "@/components/TeamSection";
 import type { AgentPhase, AdvisorResult } from "@/lib/types";
 
 type AppView = "landing" | "analyzing" | "results";
@@ -202,8 +203,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/[0.08] border border-accent/20 mb-8 text-sm text-white/70 font-medium"
           >
-            <Shield className="w-4 h-4 text-accent" />4 agenti AI lavorano per
-            te in 30 secondi
+            <Shield className="w-4 h-4 text-accent" />
+            Il tuo studio legale AI, pronto a lavorare per te
           </motion.div>
 
           {/* Headline */}
@@ -220,16 +221,24 @@ export default function Home() {
             </span>
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Subtitle + Motto */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-lg leading-relaxed text-white/50 max-w-[520px] mb-12"
+            className="text-lg leading-relaxed text-white/50 max-w-[520px] mb-4"
           >
             Carica un contratto, una bolletta, un documento legale.
             <br />
             L&apos;AI lo analizza, trova norme e sentenze, e ti dice cosa fare.
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="font-serif italic text-white/25 text-base mb-12"
+          >
+            La legge non ammette ignoranza. Noi non ammettiamo arroganza.
           </motion.p>
 
           {/* Upload zone */}
@@ -254,45 +263,8 @@ export default function Home() {
             </span>
           </motion.div>
 
-          {/* How it works */}
-          <div className="mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[800px] w-full">
-            {[
-              {
-                icon: <Search className="w-7 h-7 text-accent" />,
-                title: "Carica",
-                desc: "PDF, foto o testo del documento",
-              },
-              {
-                icon: <Shield className="w-7 h-7 text-accent" />,
-                title: "Analisi",
-                desc: "4 agenti AI esaminano ogni clausola",
-              },
-              {
-                icon: <Scale className="w-7 h-7 text-accent" />,
-                title: "Norme",
-                desc: "Ricerca sentenze e leggi pertinenti",
-              },
-              {
-                icon: <Lightbulb className="w-7 h-7 text-accent" />,
-                title: "Report",
-                desc: "Rischi, azioni e se serve un avvocato",
-              },
-            ].map((step, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + i * 0.15 }}
-                className="p-7 rounded-2xl bg-white/[0.02] border border-white/[0.05] text-center"
-              >
-                <div className="flex justify-center mb-3">{step.icon}</div>
-                <h3 className="text-base font-bold mb-1.5">{step.title}</h3>
-                <p className="text-sm text-white/40 leading-relaxed">
-                  {step.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+          {/* Team section */}
+          <TeamSection />
         </div>
       )}
 
