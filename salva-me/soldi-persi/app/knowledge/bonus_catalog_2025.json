@@ -1,0 +1,107 @@
+{
+  "nazionali_inps": [
+    {
+      "nome": "Assegno Unico Universale",
+      "requisiti": ["Figli a carico < 21 anni", "ISEE (opzionale, influenza importo)"],
+      "valore": "€57-199,4/mese per figlio (base ISEE)",
+      "scadenza": "Sempre aperto",
+      "come_richiederlo": "Domanda su portale INPS o tramite patronato",
+      "link": "https://www.inps.it/prestazioni-servizi/assegno-unico-e-universale-per-i-figli-a-carico"
+    },
+    {
+      "nome": "Bonus Mamme",
+      "requisiti": ["Madre lavoratrice", "2+ figli (dipendente) o 3+ figli (autonoma)", "Figlio più piccolo < 10 anni (dip) o < 18 anni (aut)"],
+      "valore": "Esonero contributi fino €3.000/anno",
+      "scadenza": "2025",
+      "come_richiederlo": "Automatico tramite datore di lavoro o domanda INPS per autonome"
+    },
+    {
+      "nome": "Bonus Asilo Nido",
+      "requisiti": ["Figli < 3 anni", "Frequenza asilo nido autorizzato"],
+      "valore_per_isee": {
+        "isee_sotto_25000": 3600,
+        "isee_25000_40000": 2500,
+        "isee_sopra_40000": 1500
+      },
+      "scadenza": "Annuale",
+      "come_richiederlo": "Domanda su portale INPS entro il 31 dicembre"
+    },
+    {
+      "nome": "Bonus Psicologo",
+      "requisiti": ["ISEE < €50.000"],
+      "valore_per_isee": {
+        "isee_sotto_15000": 1500,
+        "isee_15000_30000": 1000,
+        "isee_30000_50000": 500
+      },
+      "scadenza": "Quando disponibile (bando periodico)",
+      "come_richiederlo": "Domanda su portale INPS durante finestra di apertura"
+    },
+    {
+      "nome": "Carta Acquisti",
+      "requisiti": ["Over 65 o figli < 3 anni", "ISEE < €8.052,75"],
+      "valore": "€80 bimestrale (€480/anno)",
+      "scadenza": "Sempre aperto",
+      "come_richiederlo": "Domanda presso ufficio postale"
+    },
+    {
+      "nome": "Carta Dedicata a Te",
+      "requisiti": ["ISEE < €15.000", "Nucleo con almeno 3 componenti", "Nessun componente con NASpI/RDC/altro sostegno"],
+      "valore": "€500 una tantum",
+      "scadenza": "Quando disponibile",
+      "come_richiederlo": "Assegnazione automatica da Comuni (lista INPS)"
+    }
+  ],
+  "nazionali_agenzia_entrate": [
+    {
+      "nome": "Credito affitto giovani",
+      "requisiti": ["Età 20-31 anni", "Reddito < €15.493,71", "Contratto di locazione"],
+      "valore": "20% canone, max €2.000 per 4 anni",
+      "come_richiederlo": "In dichiarazione dei redditi (730/Modello Redditi)"
+    },
+    {
+      "nome": "Bonus Mobili",
+      "requisiti": ["Ristrutturazione in corso o recente"],
+      "valore": "50% su max €5.000 = max €2.500",
+      "come_richiederlo": "In dichiarazione dei redditi"
+    },
+    {
+      "nome": "Bonus Verde",
+      "requisiti": ["Interventi su giardini/terrazze/aree verdi"],
+      "valore": "36% su max €5.000 = max €1.800",
+      "come_richiederlo": "In dichiarazione dei redditi"
+    }
+  ],
+  "regionali": {
+    "veneto": [
+      {
+        "nome": "Contributo affitto Regione Veneto",
+        "requisiti": ["Residenza in Veneto", "ISEE < €20.000", "Contratto di locazione"],
+        "valore": "Fino €3.000",
+        "come_richiederlo": "Bando regionale (verificare date apertura)"
+      },
+      {
+        "nome": "Buono libri scolastici Veneto",
+        "requisiti": ["Residenza in Veneto", "ISEE < €10.632,94", "Figli in età scolare"],
+        "valore": "Variabile per fascia ISEE",
+        "come_richiederlo": "Domanda online su portale Regione Veneto"
+      }
+    ],
+    "lombardia": [
+      {
+        "nome": "Dote Scuola Lombardia",
+        "requisiti": ["Residenza in Lombardia", "Figli in età scolare"],
+        "valore": "Variabile per componente",
+        "come_richiederlo": "Domanda su portale Regione Lombardia"
+      }
+    ],
+    "lazio": [
+      {
+        "nome": "Bonus affitto Lazio",
+        "requisiti": ["Residenza nel Lazio", "Basso reddito"],
+        "valore": "Fino €2.000",
+        "come_richiederlo": "Bando regionale"
+      }
+    ]
+  }
+}

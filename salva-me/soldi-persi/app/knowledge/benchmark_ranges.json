@@ -1,0 +1,63 @@
+{
+  "energia_elettrica": {
+    "unita": "EUR/kWh",
+    "anno": 2024,
+    "famiglia_tipo_kwh_anno": 2700,
+    "tutela_min": 0.22,
+    "tutela_max": 0.28,
+    "mercato_libero_best": 0.18,
+    "mercato_libero_avg": 0.27,
+    "mercato_libero_worst": 0.35,
+    "soglia_allarme": 0.30,
+    "note": "Basato su famiglia tipo ARERA, 3kW, mercato libero"
+  },
+  "gas_naturale": {
+    "unita": "EUR/Smc",
+    "anno": 2024,
+    "famiglia_tipo_smc_anno": 1400,
+    "tutela_min": 0.80,
+    "tutela_max": 1.10,
+    "mercato_libero_best": 0.70,
+    "mercato_libero_avg": 0.95,
+    "mercato_libero_worst": 1.40,
+    "soglia_allarme": 1.20,
+    "note": "Basato su famiglia tipo ARERA"
+  },
+  "internet_fibra": {
+    "unita": "EUR/mese",
+    "anno": 2024,
+    "best": 24.0,
+    "avg": 30.0,
+    "soglia_allarme": 35.0
+  },
+  "mobile": {
+    "unita": "EUR/mese",
+    "anno": 2024,
+    "best_mvno": 7.0,
+    "avg": 12.0,
+    "soglia_allarme": 20.0
+  },
+  "rc_auto": {
+    "unita": "EUR/anno",
+    "anno": 2024,
+    "best_classe1": 200,
+    "media_italia": 375,
+    "soglia_allarme": 500
+  },
+  "assicurazione_casa": {
+    "unita": "EUR/anno",
+    "anno": 2024,
+    "base_min": 100,
+    "base_max": 200,
+    "soglia_allarme": 300
+  },
+  "mutuo": {
+    "anno": 2024,
+    "tasso_fisso_best": 3.0,
+    "tasso_fisso_avg": 3.5,
+    "tasso_variabile_spread_best": 1.0,
+    "tasso_variabile_spread_avg": 1.3,
+    "soglia_spread_allarme": 2.0,
+    "nota_surroga": "La surroga è gratuita per legge (Legge Bersani 40/2007)"
+  }
+}
