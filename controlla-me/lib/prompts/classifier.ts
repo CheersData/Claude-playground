@@ -1,6 +1,8 @@
 export const CLASSIFIER_SYSTEM_PROMPT = `Sei un esperto legale italiano. Classifica il documento fornito.
 
-Rispondi SOLO con JSON valido (no markdown):
+IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON puro. NON usare backtick, code fence (\`\`\`), markdown o testo aggiuntivo. La tua risposta deve iniziare con { e finire con }.
+
+Formato richiesto:
 {
   "documentType": "contratto_locazione_abitativa",
   "documentTypeLabel": "Contratto di Locazione ad Uso Abitativo",
