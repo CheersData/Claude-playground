@@ -8,7 +8,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.agents.document_ingestion import DocumentIngestionAgent
 from app.agents.orchestrator import OrchestratorAgent
@@ -22,6 +23,11 @@ app = FastAPI(
     description="Analisi finanziaria intelligente per contribuenti italiani",
     version="0.1.0",
 )
+
+# Serve static files (CSS, JS, images)
+_static_dir = Path(__file__).parent / "static"
+_static_dir.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 # In-memory store per i report (MVP — in produzione usare un DB)
 _reports: dict[str, dict] = {}
@@ -141,3 +147,36 @@ async def get_report(report_id: str):
     if report_id not in _reports:
         raise HTTPException(status_code=404, detail="Report non trovato")
     return {"status": "ok", "report": _reports[report_id]}
+
+
+@app.post("/api/demo")
+async def demo_analyze():
+    """Esegue l'analisi con il profilo demo (Mario Rossi)."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from cli import create_demo_profile
+
+    start_time = time.time()
+    profile = create_demo_profile()
+    orchestrator = OrchestratorAgent()
+    report = await orchestrator.analyze(profile)
+    elapsed = time.time() - start_time
+
+    report_id = report.user_id
+    _reports[report_id] = report.model_dump(mode="json")
+
+    return {
+        "status": "completed",
+        "report_id": report_id,
+        "report": report.model_dump(mode="json"),
+        "processing_time_seconds": round(elapsed, 1),
+    }
+
+
+@app.get("/")
+async def serve_index():
+    """Serve la pagina web principale."""
+    index_path = _static_dir / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=404, detail="Frontend non trovato")
+    return FileResponse(str(index_path), media_type="text/html")
