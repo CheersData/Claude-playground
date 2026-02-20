@@ -73,11 +73,22 @@ function ProgressRing({ progress, size = 160, stroke = 4 }: { progress: number; 
 
 /* ── Timer / ETA hook ── */
 
+/**
+ * Cumulative progress milestones – when a phase completes, the minimum
+ * progress percentage the bar should eventually reach.
+ */
+const PHASE_MILESTONES: Record<AgentPhase, number> = {
+  classifier: 15,
+  analyzer: 48,
+  investigator: 77,
+  advisor: 95,
+};
+
 function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: AgentPhase[]) {
   const startTimeRef = useRef<number | null>(null);
   const phaseStartRef = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [tick, setTick] = useState(0); // force re-render every second for smooth progress
+  const [smoothProgress, setSmoothProgress] = useState(0);
 
   // Start global timer when first phase begins
   useEffect(() => {
@@ -93,44 +104,74 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
     }
   }, [currentPhase]);
 
-  // Tick every second
+  // Tick every 500ms for smooth updates
   useEffect(() => {
     if (!currentPhase) return;
     const interval = setInterval(() => {
+      const now = Date.now();
+
+      // Update elapsed
       if (startTimeRef.current) {
-        setElapsed((Date.now() - startTimeRef.current) / 1000);
+        setElapsed((now - startTimeRef.current) / 1000);
       }
-      setTick((t) => t + 1); // trigger re-render so progress recalculates
-    }, 1000);
+
+      // ── Calculate target progress ──
+
+      // 1. Milestone floor from completed phases
+      let milestoneFloor = 0;
+      for (const p of completedPhases) {
+        milestoneFloor = Math.max(milestoneFloor, PHASE_MILESTONES[p] ?? 0);
+      }
+
+      // 2. Intra-phase partial progress (ease-out curve for natural deceleration)
+      let intraPhase = 0;
+      if (currentPhase && phaseStartRef.current) {
+        const est = PHASE_ESTIMATES[currentPhase] ?? 1;
+        const phaseElapsed = Math.max((now - phaseStartRef.current) / 1000, 0);
+        // ease-out: fast start, slows near end — feels more natural
+        const linearRatio = Math.min(phaseElapsed / est, 0.92);
+        const easedRatio = 1 - Math.pow(1 - linearRatio, 2.2);
+
+        // Find what range this phase covers
+        const phaseIdx = PHASE_ORDER.indexOf(currentPhase);
+        const prevMilestone = phaseIdx > 0
+          ? PHASE_MILESTONES[PHASE_ORDER[phaseIdx - 1]]
+          : 0;
+        const nextMilestone = PHASE_MILESTONES[currentPhase];
+        const phaseRange = nextMilestone - prevMilestone;
+
+        intraPhase = easedRatio * phaseRange;
+      }
+
+      // 3. Time-based floor — progress should never be less than what the
+      //    wall clock says, so it doesn't feel "stuck" even if phases are slow
+      const timeFloor = TOTAL_ESTIMATED > 0
+        ? (elapsed / TOTAL_ESTIMATED) * 85 // cap time-floor at 85%
+        : 0;
+
+      // Target = best of milestone + intra-phase, or time floor
+      const rawTarget = Math.max(milestoneFloor + intraPhase, timeFloor);
+      const target = Number.isFinite(rawTarget) ? Math.min(rawTarget, 95) : 0;
+
+      // ── Smooth toward target (exponential ease + minimum step) ──
+      setSmoothProgress((prev) => {
+        if (target <= prev) return prev; // never go backwards
+        // Close 25% of the gap each tick (500ms), with a minimum step of 0.3%
+        const step = Math.max((target - prev) * 0.25, 0.3);
+        return Math.min(prev + step, target);
+      });
+    }, 500);
+
     return () => clearInterval(interval);
-  }, [currentPhase]);
+  }, [currentPhase, completedPhases, elapsed]);
 
-  // Calculate overall progress percentage (with NaN safety on every step)
-  const completedTime = completedPhases.reduce(
-    (acc, p) => acc + (PHASE_ESTIMATES[p] ?? 0),
-    0
-  );
-  const currentPhaseEstimate = currentPhase ? (PHASE_ESTIMATES[currentPhase] ?? 0) : 0;
-  const phaseElapsed = phaseStartRef.current
-    ? Math.max((Date.now() - phaseStartRef.current) / 1000, 0)
-    : 0;
+  // ETA based on smoothed progress
+  const remaining = smoothProgress > 1
+    ? Math.max(((100 - smoothProgress) / smoothProgress) * elapsed, 5)
+    : TOTAL_ESTIMATED;
+  const safeRemaining = Number.isFinite(remaining) ? remaining : TOTAL_ESTIMATED;
 
-  // Clamp intra-phase progress to 90% so it doesn't "finish" before the real event
-  let intraPhaseProgress = 0;
-  if (currentPhaseEstimate > 0 && phaseElapsed > 0) {
-    intraPhaseProgress = Math.min(phaseElapsed / currentPhaseEstimate, 0.9) * currentPhaseEstimate;
-  }
-
-  const estimatedDone = completedTime + intraPhaseProgress;
-  const rawProgress = TOTAL_ESTIMATED > 0 ? (estimatedDone / TOTAL_ESTIMATED) * 100 : 0;
-  // Final safety: if anything produced NaN, fall back to 0. Cap at 95% until truly done.
-  const progress = Number.isFinite(rawProgress) ? Math.min(rawProgress, 95) : 0;
-
-  // ETA = total estimated - elapsed, but at least 5s if still running
-  const rawRemaining = TOTAL_ESTIMATED - elapsed;
-  const remaining = Number.isFinite(rawRemaining) ? Math.max(rawRemaining, 5) : TOTAL_ESTIMATED;
-
-  return { elapsed, remaining, progress };
+  return { elapsed, remaining: safeRemaining, progress: smoothProgress };
 }
 
 /* ── Animated illustrations for each agent ── */
