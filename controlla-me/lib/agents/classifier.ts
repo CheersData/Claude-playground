@@ -7,7 +7,7 @@ export async function runClassifier(
 ): Promise<ClassificationResult> {
   const response = await anthropic.messages.create({
     model: MODEL_FAST,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: CLASSIFIER_SYSTEM_PROMPT,
     messages: [
       {
@@ -16,6 +16,10 @@ export async function runClassifier(
       },
     ],
   });
+
+  if (response.stop_reason === "max_tokens") {
+    console.warn("[CLASSIFIER] Risposta troncata (max_tokens raggiunto)");
+  }
 
   const text = extractTextContent(response);
   return parseAgentJSON<ClassificationResult>(text);
