@@ -6,10 +6,19 @@ import { Shield, Lock, Zap, Gift, Upload, FileText, Scale, Eye, BookOpen, Messag
 import Navbar from "@/components/Navbar";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import ResultsView from "@/components/ResultsView";
+import PaywallBanner from "@/components/PaywallBanner";
 import TeamSection, { AgentAvatar, agents } from "@/components/TeamSection";
 import type { AgentPhase, AdvisorResult } from "@/lib/types";
 
-type AppView = "landing" | "analyzing" | "results";
+type AppView = "landing" | "analyzing" | "results" | "paywall";
+
+interface UsageInfo {
+  authenticated: boolean;
+  plan: "free" | "pro";
+  analysesUsed: number;
+  analysesLimit: number;
+  canAnalyze: boolean;
+}
 
 const leo = agents[0];
 
@@ -52,6 +61,7 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
 
   const lastFileRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,7 +155,15 @@ export default function Home() {
                   else if (data.status === "done") setCompletedPhases((p) => p.includes(phase) ? p : [...p, phase]);
                 } else if (eventType === "complete") { setResult(data.advice || data); setView("results"); }
                 else if (eventType === "session") setSessionId(data.sessionId);
-                else if (eventType === "error") setError(data.message || data.error || "Errore sconosciuto");
+                else if (eventType === "error") {
+                  if (data.code === "LIMIT_REACHED") {
+                    // Fetch fresh usage info and show paywall
+                    fetch("/api/user/usage").then(r => r.json()).then(setUsage).catch(() => {});
+                    setView("paywall");
+                  } else {
+                    setError(data.message || data.error || "Errore sconosciuto");
+                  }
+                }
               } catch { /* skip */ }
             }
           }
@@ -501,6 +519,17 @@ export default function Home() {
             onRetry={handleRetry}
             sessionId={sessionId}
             phaseEstimates={phaseEstimates}
+          />
+        </div>
+      )}
+
+      {/* ──────────── PAYWALL ──────────── */}
+      {view === "paywall" && usage && (
+        <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 relative z-10">
+          <PaywallBanner
+            analysesUsed={usage.analysesUsed}
+            analysesLimit={usage.analysesLimit}
+            authenticated={usage.authenticated}
           />
         </div>
       )}
