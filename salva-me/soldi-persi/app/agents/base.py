@@ -1,11 +1,13 @@
 import json
 import logging
+import time
 from abc import ABC, abstractmethod
 
 import anthropic
 from pydantic import BaseModel
 
 from app.config import settings
+from app.utils.agent_logger import log_agent_call
 
 logger = logging.getLogger(__name__)
 
@@ -31,21 +33,41 @@ class BaseAgent(ABC):
     async def run(self, user_message: str, **kwargs) -> dict:
         """Esegue l'agente e ritorna output strutturato."""
         logger.info("Agent %s starting with model %s", self.name, self.model)
+        system_prompt = self.get_system_prompt()
+        start = time.time()
+        raw_text = None
+
         try:
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=8192,
-                system=self.get_system_prompt(),
+                system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
                 **kwargs,
             )
 
             # Estrai testo dalla risposta
             raw_text = response.content[0].text
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
+            elapsed = time.time() - start
 
             # Pulisci e parsa JSON
             json_str = self._extract_json(raw_text)
             parsed = json.loads(json_str)
+
+            # Log completo della chiamata
+            log_agent_call(
+                agent_name=self.name,
+                model=self.model,
+                system_prompt=system_prompt,
+                user_message=user_message,
+                raw_response=raw_text,
+                parsed_response=parsed,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_seconds=elapsed,
+            )
 
             logger.info("Agent %s completed successfully", self.name)
             return {
@@ -53,19 +75,39 @@ class BaseAgent(ABC):
                 "data": parsed,
                 "model": self.model,
                 "usage": {
-                    "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
                 },
             }
 
         except json.JSONDecodeError as e:
+            elapsed = time.time() - start
+            log_agent_call(
+                agent_name=self.name,
+                model=self.model,
+                system_prompt=system_prompt,
+                user_message=user_message,
+                raw_response=raw_text,
+                elapsed_seconds=elapsed,
+                error=f"JSON parsing failed: {str(e)}",
+            )
             logger.error("Agent %s JSON parsing failed: %s", self.name, e)
             return {
                 "status": "error",
                 "error": f"JSON parsing failed: {str(e)}",
-                "raw_response": raw_text if "raw_text" in dir() else None,
+                "raw_response": raw_text,
             }
         except Exception as e:
+            elapsed = time.time() - start
+            log_agent_call(
+                agent_name=self.name,
+                model=self.model,
+                system_prompt=system_prompt,
+                user_message=user_message,
+                raw_response=raw_text,
+                elapsed_seconds=elapsed,
+                error=str(e),
+            )
             logger.error("Agent %s failed: %s", self.name, e)
             return {
                 "status": "error",

@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import time
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from app.agents.base import BaseAgent
 from app.config import settings
 from app.models.profile import DocumentExtractionResult, UserFinancialProfile
 from app.prompts.document_ingestion import DOCUMENT_INGESTION_SYSTEM_PROMPT
+from app.utils.agent_logger import log_agent_call
 from app.utils.merge_profiles import merge_extraction_results
 from app.utils.pdf_extractor import extract_text_from_pdf
 
@@ -77,11 +79,15 @@ class DocumentIngestionAgent(BaseAgent):
         with open(file_path, "rb") as f:
             image_data = base64.b64encode(f.read()).decode("utf-8")
 
+        system_prompt = self.get_system_prompt()
+        user_text = f"Analizza questo documento ({path.name}) ed estrai tutti i dati finanziari/fiscali."
+        start = time.time()
+
         try:
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=8192,
-                system=self.get_system_prompt(),
+                system=system_prompt,
                 messages=[
                     {
                         "role": "user",
@@ -96,7 +102,7 @@ class DocumentIngestionAgent(BaseAgent):
                             },
                             {
                                 "type": "text",
-                                "text": f"Analizza questo documento ({path.name}) ed estrai tutti i dati finanziari/fiscali.",
+                                "text": user_text,
                             },
                         ],
                     }
@@ -104,19 +110,47 @@ class DocumentIngestionAgent(BaseAgent):
             )
 
             raw_text = response.content[0].text
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
+            elapsed = time.time() - start
+
             json_str = self._extract_json(raw_text)
             parsed = json.loads(json_str)
+
+            # Log completo (senza image base64 per non riempire il disco)
+            log_agent_call(
+                agent_name=f"{self.name} [IMAGE]",
+                model=self.model,
+                system_prompt=system_prompt,
+                user_message=user_text,
+                raw_response=raw_text,
+                parsed_response=parsed,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_seconds=elapsed,
+                is_image_call=True,
+            )
 
             return {
                 "status": "success",
                 "data": parsed,
                 "model": self.model,
                 "usage": {
-                    "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
                 },
             }
         except Exception as e:
+            elapsed = time.time() - start
+            log_agent_call(
+                agent_name=f"{self.name} [IMAGE]",
+                model=self.model,
+                system_prompt=system_prompt,
+                user_message=user_text,
+                elapsed_seconds=elapsed,
+                error=str(e),
+                is_image_call=True,
+            )
             logger.error("Image processing failed for %s: %s", path.name, e)
             return {
                 "status": "error",
