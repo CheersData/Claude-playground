@@ -51,6 +51,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
 
   const lastFileRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +97,7 @@ export default function Home() {
     setResult(null);
     setError(null);
     setSessionId(null);
+    setPhaseEstimates(null);
     lastFileRef.current = null;
   }, []);
 
@@ -135,7 +137,9 @@ export default function Home() {
             } else if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (eventType === "progress") {
+                if (eventType === "timing") {
+                  setPhaseEstimates(data);
+                } else if (eventType === "progress") {
                   const phase = data.phase as AgentPhase;
                   if (data.status === "running") setCurrentPhase(phase);
                   else if (data.status === "done") setCompletedPhases((p) => p.includes(phase) ? p : [...p, phase]);
@@ -496,6 +500,7 @@ export default function Home() {
             onReset={reset}
             onRetry={handleRetry}
             sessionId={sessionId}
+            phaseEstimates={phaseEstimates}
           />
         </div>
       )}

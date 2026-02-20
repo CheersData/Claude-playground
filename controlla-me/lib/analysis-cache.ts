@@ -6,9 +6,16 @@ import type {
   AnalysisResult,
   InvestigationResult,
   AdvisorResult,
+  AgentPhase,
 } from "./types";
 
 const CACHE_DIR = path.join(process.cwd(), ".analysis-cache");
+
+export interface PhaseTiming {
+  startedAt: string;   // ISO timestamp
+  completedAt: string; // ISO timestamp
+  durationMs: number;
+}
 
 export interface CachedAnalysis {
   sessionId: string;
@@ -20,6 +27,8 @@ export interface CachedAnalysis {
   analysis: AnalysisResult | null;
   investigation: InvestigationResult | null;
   advice: AdvisorResult | null;
+  /** Actual measured durations for each phase (added after first run) */
+  phaseTiming?: Partial<Record<AgentPhase, PhaseTiming>>;
 }
 
 /** Generate a deterministic hash of the document text */
@@ -155,4 +164,85 @@ export async function listSessions(): Promise<CachedAnalysis[]> {
   } catch {
     return [];
   }
+}
+
+/** Save timing info for a single phase */
+export async function savePhaseTiming(
+  sessionId: string,
+  phase: AgentPhase,
+  timing: PhaseTiming
+): Promise<void> {
+  const cache = await loadSession(sessionId);
+  if (!cache) return;
+
+  if (!cache.phaseTiming) cache.phaseTiming = {};
+  cache.phaseTiming[phase] = timing;
+  cache.updatedAt = new Date().toISOString();
+
+  await fs.writeFile(cachePath(sessionId), JSON.stringify(cache, null, 2));
+  console.log(
+    `[CACHE] Timing ${phase}: ${(timing.durationMs / 1000).toFixed(1)}s per sessione ${sessionId}`
+  );
+}
+
+/** Default phase estimates (seconds) used when no historical data exists */
+const DEFAULT_ESTIMATES: Record<AgentPhase, number> = {
+  classifier: 12,
+  analyzer: 25,
+  investigator: 22,
+  advisor: 18,
+};
+
+/**
+ * Compute average phase durations from cached sessions.
+ * Falls back to defaults if not enough data.
+ */
+export async function getAverageTimings(): Promise<Record<AgentPhase, number>> {
+  await ensureCacheDir();
+
+  const phases: AgentPhase[] = ["classifier", "analyzer", "investigator", "advisor"];
+  const sums: Record<string, number> = {};
+  const counts: Record<string, number> = {};
+  for (const p of phases) {
+    sums[p] = 0;
+    counts[p] = 0;
+  }
+
+  try {
+    const files = await fs.readdir(CACHE_DIR);
+    // Read last 30 sessions max for averages
+    const jsonFiles = files.filter((f) => f.endsWith(".json")).slice(-30);
+
+    for (const f of jsonFiles) {
+      try {
+        const data = await fs.readFile(path.join(CACHE_DIR, f), "utf-8");
+        const session: CachedAnalysis = JSON.parse(data);
+        if (!session.phaseTiming) continue;
+
+        for (const p of phases) {
+          const t = session.phaseTiming[p];
+          if (t && t.durationMs > 0) {
+            sums[p] += t.durationMs / 1000;
+            counts[p]++;
+          }
+        }
+      } catch {
+        // Skip malformed files
+      }
+    }
+  } catch {
+    // No cache directory
+  }
+
+  const result = { ...DEFAULT_ESTIMATES };
+  for (const p of phases) {
+    if (counts[p] >= 1) {
+      result[p] = Math.round((sums[p] / counts[p]) * 10) / 10; // 1 decimal
+    }
+  }
+
+  console.log(
+    `[CACHE] Medie tempi: ${phases.map((p) => `${p}=${result[p]}s (n=${counts[p]})`).join(", ")}`
+  );
+  return result;
 }
