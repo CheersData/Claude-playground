@@ -13,12 +13,21 @@ export default function Navbar() {
       </Link>
 
       <div className="flex gap-3 items-center">
-        <button className="hidden md:block px-5 py-2.5 rounded-full text-sm font-medium text-white/70 border border-white/[0.15] hover:border-white/40 hover:text-white transition-all">
+        <button
+          onClick={() => {
+            const el = document.getElementById("upload-section");
+            if (el) el.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="hidden md:block px-5 py-2.5 rounded-full text-sm font-medium text-white/70 border border-white/[0.15] hover:border-white/40 hover:text-white transition-all"
+        >
           Come funziona
         </button>
-        <button className="hidden md:block px-5 py-2.5 rounded-full text-sm font-medium text-white/70 border border-white/[0.15] hover:border-white/40 hover:text-white transition-all">
+        <Link
+          href="/pricing"
+          className="hidden md:block px-5 py-2.5 rounded-full text-sm font-medium text-white/70 border border-white/[0.15] hover:border-white/40 hover:text-white transition-all"
+        >
           Prezzi
-        </button>
+        </Link>
         <Link
           href="/dashboard"
           className="px-5 py-2.5 rounded-full text-sm font-bold text-white bg-gradient-to-br from-accent to-[#E8451A] hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(255,107,53,0.35)] transition-all"
