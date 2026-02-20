@@ -263,7 +263,12 @@ export default function Home() {
             </span>
           </motion.div>
 
-          {/* Team section */}
+        </div>
+      )}
+
+      {/* ──────────── TEAM / AGENTS ──────────── */}
+      {view === "landing" && (
+        <div className="flex flex-col items-center px-6 pb-24 text-center relative z-10">
           <TeamSection />
         </div>
       )}
