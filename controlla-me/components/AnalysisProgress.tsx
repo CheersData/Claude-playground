@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, FileText, Search, Scale, Lightbulb, Loader2, Clock } from "lucide-react";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 /* ── ETA estimation config ── */
 
-/** Average duration of each phase in seconds (tuned from real-world usage) */
-const PHASE_ESTIMATES: Record<AgentPhase, number> = {
+/** Fallback durations if no historical data is available (seconds) */
+const DEFAULT_ESTIMATES: Record<AgentPhase, number> = {
   classifier: 12,
   analyzer: 25,
   investigator: 22,
@@ -16,7 +16,20 @@ const PHASE_ESTIMATES: Record<AgentPhase, number> = {
 };
 
 const PHASE_ORDER: AgentPhase[] = ["classifier", "analyzer", "investigator", "advisor"];
-const TOTAL_ESTIMATED = Object.values(PHASE_ESTIMATES).reduce((a, b) => a + b, 0); // ~77s
+
+/** Build cumulative milestones from estimates (e.g. {classifier:15, analyzer:48, ...}) */
+function buildMilestones(estimates: Record<AgentPhase, number>): Record<AgentPhase, number> {
+  const total = PHASE_ORDER.reduce((s, p) => s + (estimates[p] ?? 0), 0);
+  if (total <= 0) return { classifier: 15, analyzer: 48, investigator: 77, advisor: 95 };
+  let cum = 0;
+  const milestones: Partial<Record<AgentPhase, number>> = {};
+  for (const p of PHASE_ORDER) {
+    cum += (estimates[p] ?? 0);
+    // Scale to 0-95 range (last 5% is reserved for "truly done")
+    milestones[p] = (cum / total) * 95;
+  }
+  return milestones as Record<AgentPhase, number>;
+}
 
 /** Format seconds as m:ss */
 function formatTime(seconds: number): string {
@@ -73,22 +86,29 @@ function ProgressRing({ progress, size = 160, stroke = 4 }: { progress: number; 
 
 /* ── Timer / ETA hook ── */
 
-/**
- * Cumulative progress milestones – when a phase completes, the minimum
- * progress percentage the bar should eventually reach.
- */
-const PHASE_MILESTONES: Record<AgentPhase, number> = {
-  classifier: 15,
-  analyzer: 48,
-  investigator: 77,
-  advisor: 95,
-};
-
-function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: AgentPhase[]) {
+function useAnalysisTimer(
+  currentPhase: AgentPhase | null,
+  completedPhases: AgentPhase[],
+  dynamicEstimates?: Record<AgentPhase, number> | null
+) {
   const startTimeRef = useRef<number | null>(null);
   const phaseStartRef = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [smoothProgress, setSmoothProgress] = useState(0);
+
+  // Use dynamic estimates (from cache averages) or fall back to defaults
+  // Memoize to keep stable references for useEffect dependencies
+  const estimates = useMemo(
+    () => dynamicEstimates ?? DEFAULT_ESTIMATES,
+    // Only recompute when the individual values change, not the object reference
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dynamicEstimates?.classifier, dynamicEstimates?.analyzer, dynamicEstimates?.investigator, dynamicEstimates?.advisor]
+  );
+  const totalEstimated = useMemo(
+    () => PHASE_ORDER.reduce((s, p) => s + (estimates[p] ?? 0), 0) || 1,
+    [estimates]
+  );
+  const milestones = useMemo(() => buildMilestones(estimates), [estimates]);
 
   // Start global timer when first phase begins
   useEffect(() => {
@@ -120,13 +140,13 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
       // 1. Milestone floor from completed phases
       let milestoneFloor = 0;
       for (const p of completedPhases) {
-        milestoneFloor = Math.max(milestoneFloor, PHASE_MILESTONES[p] ?? 0);
+        milestoneFloor = Math.max(milestoneFloor, milestones[p] ?? 0);
       }
 
       // 2. Intra-phase partial progress (ease-out curve for natural deceleration)
       let intraPhase = 0;
       if (currentPhase && phaseStartRef.current) {
-        const est = PHASE_ESTIMATES[currentPhase] ?? 1;
+        const est = estimates[currentPhase] ?? 1;
         const phaseElapsed = Math.max((now - phaseStartRef.current) / 1000, 0);
         // ease-out: fast start, slows near end — feels more natural
         const linearRatio = Math.min(phaseElapsed / est, 0.92);
@@ -135,9 +155,9 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
         // Find what range this phase covers
         const phaseIdx = PHASE_ORDER.indexOf(currentPhase);
         const prevMilestone = phaseIdx > 0
-          ? PHASE_MILESTONES[PHASE_ORDER[phaseIdx - 1]]
+          ? milestones[PHASE_ORDER[phaseIdx - 1]]
           : 0;
-        const nextMilestone = PHASE_MILESTONES[currentPhase];
+        const nextMilestone = milestones[currentPhase];
         const phaseRange = nextMilestone - prevMilestone;
 
         intraPhase = easedRatio * phaseRange;
@@ -145,9 +165,7 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
 
       // 3. Time-based floor — progress should never be less than what the
       //    wall clock says, so it doesn't feel "stuck" even if phases are slow
-      const timeFloor = TOTAL_ESTIMATED > 0
-        ? (elapsed / TOTAL_ESTIMATED) * 85 // cap time-floor at 85%
-        : 0;
+      const timeFloor = (elapsed / totalEstimated) * 85; // cap time-floor at 85%
 
       // Target = best of milestone + intra-phase, or time floor
       const rawTarget = Math.max(milestoneFloor + intraPhase, timeFloor);
@@ -163,13 +181,13 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
     }, 500);
 
     return () => clearInterval(interval);
-  }, [currentPhase, completedPhases, elapsed]);
+  }, [currentPhase, completedPhases, elapsed, estimates, milestones, totalEstimated]);
 
   // ETA based on smoothed progress
   const remaining = smoothProgress > 1
     ? Math.max(((100 - smoothProgress) / smoothProgress) * elapsed, 5)
-    : TOTAL_ESTIMATED;
-  const safeRemaining = Number.isFinite(remaining) ? remaining : TOTAL_ESTIMATED;
+    : totalEstimated;
+  const safeRemaining = Number.isFinite(remaining) ? remaining : totalEstimated;
 
   return { elapsed, remaining: safeRemaining, progress: smoothProgress };
 }
@@ -403,6 +421,8 @@ interface AnalysisProgressProps {
   onReset?: () => void;
   onRetry?: () => void;
   sessionId?: string | null;
+  /** Real average timings from cache (seconds per phase). Falls back to defaults. */
+  phaseEstimates?: Record<string, number> | null;
 }
 
 export default function AnalysisProgress({
@@ -413,8 +433,13 @@ export default function AnalysisProgress({
   onReset,
   onRetry,
   sessionId,
+  phaseEstimates,
 }: AnalysisProgressProps) {
-  const { elapsed, remaining, progress } = useAnalysisTimer(currentPhase, completedPhases);
+  const { elapsed, remaining, progress } = useAnalysisTimer(
+    currentPhase,
+    completedPhases,
+    phaseEstimates as Record<AgentPhase, number> | null | undefined
+  );
 
   const getPhaseStatus = (phase: AgentPhase): PhaseStatus | "pending" => {
     if (completedPhases.includes(phase)) return "done";

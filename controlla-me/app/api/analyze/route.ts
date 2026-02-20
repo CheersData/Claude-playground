@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { extractText } from "@/lib/extract-text";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
+import { getAverageTimings } from "@/lib/analysis-cache";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
@@ -44,6 +45,14 @@ export async function POST(req: NextRequest) {
               "Il testo estratto è troppo corto. Assicurati che il documento contenga testo leggibile.",
           });
           return;
+        }
+
+        // Send historical average timings so the client can calibrate the progress bar
+        try {
+          const avgTimings = await getAverageTimings();
+          send("timing", avgTimings);
+        } catch {
+          // Non-critical — client will use defaults
         }
 
         // Run the 4-agent orchestrator with SSE callbacks
