@@ -6,6 +6,7 @@ import {
   createSession,
   loadSession,
   savePhaseResult,
+  savePhaseTiming,
   findSessionByDocument,
 } from "../analysis-cache";
 import type {
@@ -66,15 +67,27 @@ export async function runOrchestrator(
     sessionId,
   };
 
+  // Helper to track timing for a phase
+  const trackPhase = async (startTime: number, phase: Parameters<typeof savePhaseTiming>[1]) => {
+    const endTime = Date.now();
+    await savePhaseTiming(sessionId, phase, {
+      startedAt: new Date(startTime).toISOString(),
+      completedAt: new Date(endTime).toISOString(),
+      durationMs: endTime - startTime,
+    });
+  };
+
   // Step 1: Classifier
   if (result.classification) {
     console.log(`[ORCHESTRATOR] Classifier: SKIP (cached)`);
     callbacks.onProgress("classifier", "done", result.classification);
   } else {
+    const t0 = Date.now();
     try {
       callbacks.onProgress("classifier", "running");
       result.classification = await runClassifier(documentText);
       await savePhaseResult(sessionId, "classification", result.classification);
+      await trackPhase(t0, "classifier");
       callbacks.onProgress("classifier", "done", result.classification);
     } catch (error) {
       const message =
@@ -89,10 +102,12 @@ export async function runOrchestrator(
     console.log(`[ORCHESTRATOR] Analyzer: SKIP (cached)`);
     callbacks.onProgress("analyzer", "done", result.analysis);
   } else {
+    const t0 = Date.now();
     try {
       callbacks.onProgress("analyzer", "running");
       result.analysis = await runAnalyzer(documentText, result.classification);
       await savePhaseResult(sessionId, "analysis", result.analysis);
+      await trackPhase(t0, "analyzer");
       callbacks.onProgress("analyzer", "done", result.analysis);
     } catch (error) {
       const message =
@@ -107,6 +122,7 @@ export async function runOrchestrator(
     console.log(`[ORCHESTRATOR] Investigator: SKIP (cached)`);
     callbacks.onProgress("investigator", "done", result.investigation);
   } else {
+    const t0 = Date.now();
     try {
       callbacks.onProgress("investigator", "running");
       result.investigation = await runInvestigator(
@@ -114,6 +130,7 @@ export async function runOrchestrator(
         result.analysis
       );
       await savePhaseResult(sessionId, "investigation", result.investigation);
+      await trackPhase(t0, "investigator");
       callbacks.onProgress("investigator", "done", result.investigation);
     } catch (error) {
       const message =
@@ -122,6 +139,7 @@ export async function runOrchestrator(
       // Investigator failure is non-fatal — continue with empty findings
       result.investigation = { findings: [] };
       await savePhaseResult(sessionId, "investigation", result.investigation);
+      await trackPhase(t0, "investigator");
       callbacks.onProgress("investigator", "done", result.investigation);
     }
   }
@@ -132,6 +150,7 @@ export async function runOrchestrator(
     callbacks.onProgress("advisor", "done", result.advice);
     callbacks.onComplete(result.advice);
   } else {
+    const t0 = Date.now();
     try {
       callbacks.onProgress("advisor", "running");
       result.advice = await runAdvisor(
@@ -140,6 +159,7 @@ export async function runOrchestrator(
         result.investigation
       );
       await savePhaseResult(sessionId, "advice", result.advice);
+      await trackPhase(t0, "advisor");
       callbacks.onProgress("advisor", "done", result.advice);
       callbacks.onComplete(result.advice);
     } catch (error) {
