@@ -665,7 +665,13 @@ body::after {
             Analizza documenti
           </button>
           <button class="btn btn-secondary" id="btn-demo">
-            Prova con dati demo
+            Prova con dati demo (richiede API)
+          </button>
+        </div>
+        <div class="divider">oppure</div>
+        <div class="actions">
+          <button class="btn btn-secondary" id="btn-preview" style="border-color:var(--green-border);color:var(--green);">
+            Anteprima interfaccia (senza API)
           </button>
         </div>
       </div>
@@ -912,7 +918,7 @@ $('btn-analyze').addEventListener('click', async () => {
     setTimeout(() => showReport(data), 700);
   } catch (err) {
     loading.complete();
-    setTimeout(() => alert('Errore: ' + err.message), 700);
+    setTimeout(() => showError(err.message), 700);
   }
 });
 
@@ -929,9 +935,41 @@ $('btn-demo').addEventListener('click', async () => {
     setTimeout(() => showReport(data), 700);
   } catch (err) {
     loading.complete();
-    setTimeout(() => alert('Errore: ' + err.message), 700);
+    setTimeout(() => showError(err.message), 700);
   }
 });
+
+$('btn-preview').addEventListener('click', async () => {
+  const loading = showLoading();
+  try {
+    const res = await fetch('/api/demo/preview', { method: 'POST' });
+    const data = await res.json();
+    loading.complete();
+    setTimeout(() => showReport(data), 700);
+  } catch (err) {
+    loading.complete();
+    setTimeout(() => showError(err.message), 700);
+  }
+});
+
+function showError(msg) {
+  // Show styled error instead of ugly alert
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(9,9,11,0.9);z-index:200;display:flex;align-items:center;justify-content:center;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--bg-card);border:1px solid var(--red-border);border-radius:20px;padding:40px;max-width:500px;width:90%;text-align:center;animation:scaleIn 0.3s ease-out;';
+  const isApiError = msg.includes('API') || msg.includes('api') || msg.includes('401') || msg.includes('key');
+  card.innerHTML = `
+    <div style="font-size:48px;margin-bottom:16px;">${isApiError ? '&#128273;' : '&#9888;&#65039;'}</div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:12px;color:var(--red);">${isApiError ? 'Problema con la API Key' : 'Errore'}</div>
+    <div style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">${msg}</div>
+    ${isApiError ? '<div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:24px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:left;">Controlla il file <code style="color:var(--amber)">.env</code>:<br><code style="color:var(--green)">ANTHROPIC_API_KEY=sk-ant-...</code><br><br>Senza virgolette, senza spazi extra.<br>Dopo la modifica riavvia uvicorn.</div>' : ''}
+    <button onclick="this.closest('div[style]').remove()" style="padding:12px 32px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-weight:700;cursor:pointer;font-size:14px;">Chiudi</button>
+  `;
+  overlay.appendChild(card);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
 
 $('btn-back').addEventListener('click', () => {
   $('report-section').classList.remove('active');
