@@ -1,14 +1,14 @@
-"""FastAPI application — Soldi Persi API."""
+"""FastAPI application — risparmia.me API."""
 
 import json
 import logging
 import time
 import uuid
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
 
 from app.agents.document_ingestion import DocumentIngestionAgent
@@ -18,127 +18,56 @@ from app.models.report import FinalReport
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="Soldi Persi",
-    description="Analisi finanziaria intelligente per contribuenti italiani",
-    version="0.1.0",
-)
-
-# In-memory store per i report (MVP — in produzione usare un DB)
+app = FastAPI(title="risparmia.me", description="Scopri quanto puoi risparmiare ogni anno", version="0.2.0")
 _reports: dict[str, dict] = {}
 
 
 @app.get("/api/health")
 async def health():
-    """Health check."""
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.2.0"}
 
 
 @app.post("/api/analyze")
-async def analyze(
-    files: list[UploadFile] = File(...),
-    info_aggiuntive: str | None = Form(default=None),
-):
+async def analyze(files: list[UploadFile] = File(...), info_aggiuntive: str | None = Form(default=None)):
     """Upload documenti e ottieni il report completo."""
-    # Validazione
     if len(files) > settings.MAX_FILES_PER_REQUEST:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Massimo {settings.MAX_FILES_PER_REQUEST} file per richiesta",
-        )
-
+        raise HTTPException(status_code=400, detail=f"Massimo {settings.MAX_FILES_PER_REQUEST} file")
     for f in files:
         if f.size and f.size > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File '{f.filename}' supera il limite di {settings.MAX_FILE_SIZE_MB}MB",
-            )
-
-    extra_info = None
-    if info_aggiuntive:
-        try:
-            extra_info = json.loads(info_aggiuntive)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=400,
-                detail="info_aggiuntive deve essere un JSON valido",
-            )
-
+            raise HTTPException(status_code=400, detail=f"File '{f.filename}' troppo grande")
+    extra_info = json.loads(info_aggiuntive) if info_aggiuntive else None
     start_time = time.time()
-
-    # Salva file temporanei
     with TemporaryDirectory() as tmpdir:
-        file_paths: list[str] = []
+        file_paths = []
         for f in files:
-            tmp_path = Path(tmpdir) / (f.filename or f"upload_{uuid.uuid4()}")
-            content = await f.read()
-            tmp_path.write_bytes(content)
-            file_paths.append(str(tmp_path))
-
-        # Step 1: Document Ingestion
+            p = Path(tmpdir) / (f.filename or f"upload_{uuid.uuid4()}")
+            p.write_bytes(await f.read())
+            file_paths.append(str(p))
         ingestion = DocumentIngestionAgent()
         profile = await ingestion.process_files(file_paths, extra_info)
-
-        # Step 2: Orchestrator analysis
         orchestrator = OrchestratorAgent()
         report = await orchestrator.analyze(profile)
-
     elapsed = time.time() - start_time
-
-    # Salva report in memory
-    report_id = report.user_id
-    _reports[report_id] = report.model_dump(mode="json")
-
-    return {
-        "status": "completed",
-        "report_id": report_id,
-        "report": report.model_dump(mode="json"),
-        "processing_time_seconds": round(elapsed, 1),
-    }
+    _reports[report.user_id] = report.model_dump(mode="json")
+    return {"status": "completed", "report_id": report.user_id, "report": report.model_dump(mode="json"), "processing_time_seconds": round(elapsed, 1)}
 
 
 @app.post("/api/extract")
-async def extract(
-    files: list[UploadFile] = File(...),
-    info_aggiuntive: str | None = Form(default=None),
-):
-    """Solo estrazione documenti (senza analisi)."""
-    if len(files) > settings.MAX_FILES_PER_REQUEST:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Massimo {settings.MAX_FILES_PER_REQUEST} file per richiesta",
-        )
-
-    extra_info = None
-    if info_aggiuntive:
-        try:
-            extra_info = json.loads(info_aggiuntive)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=400,
-                detail="info_aggiuntive deve essere un JSON valido",
-            )
-
+async def extract(files: list[UploadFile] = File(...), info_aggiuntive: str | None = Form(default=None)):
+    extra_info = json.loads(info_aggiuntive) if info_aggiuntive else None
     with TemporaryDirectory() as tmpdir:
-        file_paths: list[str] = []
+        file_paths = []
         for f in files:
-            tmp_path = Path(tmpdir) / (f.filename or f"upload_{uuid.uuid4()}")
-            content = await f.read()
-            tmp_path.write_bytes(content)
-            file_paths.append(str(tmp_path))
-
+            p = Path(tmpdir) / (f.filename or f"upload_{uuid.uuid4()}")
+            p.write_bytes(await f.read())
+            file_paths.append(str(p))
         ingestion = DocumentIngestionAgent()
         profile = await ingestion.process_files(file_paths, extra_info)
-
-    return {
-        "status": "completed",
-        "profile": profile.model_dump(mode="json"),
-    }
+    return {"status": "completed", "profile": profile.model_dump(mode="json")}
 
 
 @app.get("/api/report/{report_id}")
 async def get_report(report_id: str):
-    """Recupera un report già generato."""
     if report_id not in _reports:
         raise HTTPException(status_code=404, detail="Report non trovato")
     return {"status": "ok", "report": _reports[report_id]}
@@ -146,255 +75,165 @@ async def get_report(report_id: str):
 
 @app.post("/api/demo")
 async def demo_analyze():
-    """Esegue l'analisi con il profilo demo (Mario Rossi). Richiede API key."""
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from cli import create_demo_profile
-
     start_time = time.time()
-    profile = create_demo_profile()
-
     try:
         orchestrator = OrchestratorAgent()
-        report = await orchestrator.analyze(profile)
+        report = await orchestrator.analyze(create_demo_profile())
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Analisi fallita (controlla la API key nel .env): {str(e)}",
-        )
-
+        raise HTTPException(status_code=500, detail=f"Analisi fallita (controlla API key): {e}")
     elapsed = time.time() - start_time
-
-    report_id = report.user_id
-    _reports[report_id] = report.model_dump(mode="json")
-
-    return {
-        "status": "completed",
-        "report_id": report_id,
-        "report": report.model_dump(mode="json"),
-        "processing_time_seconds": round(elapsed, 1),
-    }
+    _reports[report.user_id] = report.model_dump(mode="json")
+    return {"status": "completed", "report_id": report.user_id, "report": report.model_dump(mode="json"), "processing_time_seconds": round(elapsed, 1)}
 
 
-@app.post("/api/demo/preview")
-async def demo_preview():
-    """Report finto ma realistico — funziona SENZA API key."""
-    from datetime import datetime
+@app.post("/api/smart-preview")
+async def smart_preview(request: Request):
+    """Report personalizzato dal questionario — NO API key."""
+    data = await request.json()
+    abitazione = data.get("abitazione", "")
+    affitto_mensile = float(data.get("affitto_mensile") or 0)
+    mutuo_rata = float(data.get("mutuo_rata") or 0)
+    mutuo_tasso = float(data.get("mutuo_tasso") or 0)
+    mutuo_residuo = float(data.get("mutuo_residuo") or 0)
+    mutuo_banca = data.get("mutuo_banca", "")
+    ral = float(data.get("ral") or 0)
+    tipo_lavoro = data.get("tipo_lavoro", "")
+    ccnl = data.get("ccnl", "")
+    figli = data.get("figli", [])
+    piano_pensione = data.get("piano_pensione", "non_so")
+    energia_fornitore = data.get("energia_fornitore", "")
+    energia_mensile = float(data.get("energia_mensile") or 0)
+    gas_fornitore = data.get("gas_fornitore", "")
+    gas_mensile = float(data.get("gas_mensile") or 0)
+    internet_fornitore = data.get("internet_fornitore", "")
+    internet_mensile = float(data.get("internet_mensile") or 0)
+    assicurazione_fornitore = data.get("assicurazione_fornitore", "")
+    assicurazione_annua = float(data.get("assicurazione_annua") or 0)
+    comune = data.get("comune", "")
+    isee = float(data.get("isee") or 0)
+
+    tax_items, cost_items, benefit_items = [], [], []
+    tax_total = cost_total = benefit_total = 0.0
+
+    # --- FISCALE ---
+    if abitazione == "affitto" and affitto_mensile > 0 and ral and ral < 30987:
+        r = 495.80 if ral <= 15493 else 247.90
+        tax_items.append({"id":"tax-affitto","titolo":"Detrazione canone di locazione","descrizione":f"Reddito EUR {ral:,.0f}, affitto EUR {affitto_mensile:,.0f}/mese: detrai EUR {r:,.0f}/anno. Con canone concordato sale.","riferimento_normativo":"Art. 16 TUIR","tipo":"detrazione","risparmio_stimato_annuo":r,"risparmio_minimo":r,"risparmio_massimo":round(r*1.4,2),"azione_richiesta":"730 Quadro E Sez V. Conserva contratto registrato.","difficolta":"facile","urgenza":"prossima_dichiarazione","documenti_necessari":["Contratto registrato"],"confidence":0.9,"prerequisiti":[],"note":None})
+        tax_total += r
+
+    if abitazione == "proprieta_mutuo" and mutuo_rata > 0:
+        interessi = min(mutuo_rata * 12 * 0.55, 4000)
+        r = round(interessi * 0.19, 2)
+        tax_items.append({"id":"tax-mutuo","titolo":"Detrazione interessi mutuo","descrizione":f"Rata EUR {mutuo_rata:,.0f}/mese, interessi ~EUR {interessi:,.0f}/anno. Detrazione 19% fino a EUR 4.000.","riferimento_normativo":"Art. 15 TUIR","tipo":"detrazione","risparmio_stimato_annuo":r,"risparmio_minimo":round(r*0.8,2),"risparmio_massimo":760.0,"azione_richiesta":"Verifica interessi nel 730. La banca manda certificazione.","difficolta":"facile","urgenza":"prossima_dichiarazione","documenti_necessari":["Certificazione banca"],"confidence":0.85,"prerequisiti":[],"note":None})
+        tax_total += r
+
+    if piano_pensione != "si" and tipo_lavoro in ("dipendente", "autonomo"):
+        base = min(ral * 0.04, 5164.57) if ral else 1500
+        aliq = 0.35 if (ral and ral > 28000) else 0.27
+        r = round(base * aliq, 2)
+        fondo = ""
+        if ccnl:
+            for k, v in {"metalmeccanico":"Cometa","commercio":"Fon.Te","chimico":"Fonchim","edil":"Prevedi"}.items():
+                if k in ccnl.lower():
+                    fondo = f" Fondo categoria: {v}."
+                    break
+        desc = f"Contributi deducibili fino a EUR 5.164/anno."
+        if tipo_lavoro == "dipendente":
+            desc += f" Il datore versa contributo aggiuntivo — soldi gratis che perdi.{fondo}"
+        tax_items.append({"id":"tax-pensione","titolo":"Previdenza complementare","descrizione":desc,"riferimento_normativo":"Art. 10 TUIR + D.Lgs. 252/2005","tipo":"deduzione","risparmio_stimato_annuo":r,"risparmio_minimo":round(r*0.6,2),"risparmio_massimo":2220.0,"azione_richiesta":"Aderisci a fondo pensione. Dipendente? Chiedi HR.","difficolta":"facile","urgenza":"immediata","documenti_necessari":["Modulo adesione"],"confidence":0.9,"prerequisiti":[],"note":"Contributo datoriale = soldi che perdi se non aderisci"})
+        tax_total += r
+
+    tax_items.append({"id":"tax-mediche","titolo":"Spese mediche: deduci tutto?","descrizione":"Visite, farmaci, dentista, occhiali al 19% sopra EUR 129. Media persa: EUR 100-300/anno.","riferimento_normativo":"Art. 15 TUIR","tipo":"detrazione","risparmio_stimato_annuo":150.0,"risparmio_minimo":50.0,"risparmio_massimo":400.0,"azione_richiesta":"Conserva fatture e scontrini parlanti.","difficolta":"facile","urgenza":"prossima_dichiarazione","documenti_necessari":["Fatture","Scontrini"],"confidence":0.7,"prerequisiti":[],"note":"Pagamento tracciabile dal 2020"})
+    tax_total += 150.0
+
+    if figli:
+        fs = [f for f in figli if 5 <= (f.get("eta") or 0) <= 18]
+        if fs:
+            r = len(fs) * 40
+            tax_items.append({"id":"tax-sport","titolo":"Detrazione sport figli","descrizione":f"Sport figli 5-18: 19% fino a EUR 210/figlio. {len(fs)} in eta'.","riferimento_normativo":"Art. 15 TUIR","tipo":"detrazione","risparmio_stimato_annuo":float(r),"risparmio_minimo":0.0,"risparmio_massimo":float(r),"azione_richiesta":"Conserva ricevute sport.","difficolta":"facile","urgenza":"prossima_dichiarazione","documenti_necessari":["Ricevute sport"],"confidence":0.7,"prerequisiti":[],"note":None})
+            tax_total += r
+
+    # --- COSTI ---
+    if energia_mensile > 0 and energia_mensile > 63 * 1.1:
+        r = round((energia_mensile - 63) * 12, 2)
+        cost_items.append({"id":"cost-energia","titolo":"Bolletta luce: stai pagando troppo","categoria":"energia","fornitore_attuale":energia_fornitore or "Attuale","costo_attuale_annuo":round(energia_mensile*12,2),"benchmark_mercato":round(63*12,2),"risparmio_stimato_annuo":r,"alternativa_suggerita":"Migliori offerte da ~EUR 63/mese. Confronta GRATIS: portaleofferte.it, Switcho.it, Segugio.it. Cambio gratuito, 5 min online.","sforzo_cambio":"minimo","rischio_cambio":None,"fonte_benchmark":"ARERA 2024","note":"Cambio gratuito senza interruzioni"})
+        cost_total += r
+
+    if gas_mensile > 0 and gas_mensile > 93 * 1.1:
+        r = round((gas_mensile - 93) * 12, 2)
+        cost_items.append({"id":"cost-gas","titolo":"Bolletta gas: puoi risparmiare","categoria":"gas","fornitore_attuale":gas_fornitore or "Attuale","costo_attuale_annuo":round(gas_mensile*12,2),"benchmark_mercato":round(93*12,2),"risparmio_stimato_annuo":r,"alternativa_suggerita":"Offerte gas da ~EUR 93/mese. Dual-fuel (luce+gas) per sconti extra. Confronta: portaleofferte.it, Switcho.it.","sforzo_cambio":"minimo","rischio_cambio":None,"fonte_benchmark":"ARERA 2024","note":None})
+        cost_total += r
+
+    if internet_mensile > 0 and internet_mensile > 25 * 1.15:
+        r = round((internet_mensile - 25) * 12, 2)
+        cost_items.append({"id":"cost-internet","titolo":"Internet: offerte migliori","categoria":"internet","fornitore_attuale":internet_fornitore or "Attuale","costo_attuale_annuo":round(internet_mensile*12,2),"benchmark_mercato":300.0,"risparmio_stimato_annuo":r,"alternativa_suggerita":"Fibra da EUR 25/mese (Iliad 21.99, Fastweb 24.95). Confronta SOStariffe.it.","sforzo_cambio":"minimo","rischio_cambio":"Verifica penali recesso","fonte_benchmark":"SOStariffe.it 2024","note":None})
+        cost_total += r
+
+    if assicurazione_annua > 0 and assicurazione_annua > 350 * 1.15:
+        r = round(assicurazione_annua - 350, 2)
+        cost_items.append({"id":"cost-auto","titolo":"RC Auto: confronta","categoria":"assicurazione","fornitore_attuale":assicurazione_fornitore or "Attuale","costo_attuale_annuo":assicurazione_annua,"benchmark_mercato":350.0,"risparmio_stimato_annuo":r,"alternativa_suggerita":"RC Auto da ~EUR 350/anno. Confronta: Facile.it, Segugio.it, Prima.it.","sforzo_cambio":"minimo","rischio_cambio":None,"fonte_benchmark":"Facile.it 2024","note":"30gg prima della scadenza"})
+        cost_total += r
+
+    if abitazione == "proprieta_mutuo" and mutuo_tasso > 3.2 and mutuo_residuo > 50000:
+        d = mutuo_tasso - 2.9
+        rm = round(mutuo_residuo * d / 100 / 12 * 0.7, 2)
+        r = round(rm * 12, 2)
+        cost_items.append({"id":"cost-surroga","titolo":"Surroga mutuo","categoria":"mutuo","fornitore_attuale":mutuo_banca or "Banca","costo_attuale_annuo":round(mutuo_rata*12,2),"benchmark_mercato":round((mutuo_rata-rm)*12,2),"risparmio_stimato_annuo":r,"alternativa_suggerita":f"Tasso {mutuo_tasso}% vs ~2.9%. Su EUR {mutuo_residuo:,.0f} = ~EUR {rm:,.0f}/mese meno. SURROGA GRATUITA. MutuiOnline.it, Facile.it.","sforzo_cambio":"medio","rischio_cambio":"Zero penali, 30-60gg","fonte_benchmark":"MutuiOnline.it 2025","note":"Surroga = diritto, costa ZERO"})
+        cost_total += r
+
+    # --- BENEFIT ---
+    if figli:
+        fu = [f for f in figli if (f.get("eta") or 0) < 21]
+        if fu:
+            imp = 199 if (isee and isee <= 17090) else (162 if (isee and isee <= 25000) else (100 if (isee and isee <= 40000) else 57))
+            magg = 96 if (len(fu) >= 2 and isee and isee <= 17090) else (16 if len(fu) >= 2 else 0)
+            mens = imp * len(fu) + magg
+            ott = round(mens * 12 * 0.1, 2)
+            benefit_items.append({"id":"ben-assegno","titolo":"Assegno Unico","descrizione":f"{len(fu)} figli" + (f", ISEE EUR {isee:,.0f}" if isee else "") + f": ~EUR {mens:,.0f}/mese. Verifica importo e maggiorazioni su MyINPS.","ente_erogatore":"inps","nome_ente":"INPS","valore_stimato":ott,"valore_minimo":round(ott*0.5,2),"valore_massimo":round(ott*2,2),"tipo":"contributo_periodico","eligibilita_confidence":0.9,"requisiti":["ISEE valido"],"requisiti_mancanti":[],"scadenza_domanda":None,"come_richiederlo":"MyINPS > Assegno Unico oppure CAF.","link_ufficiale":None,"note":f"Stima: EUR {mens:,.0f}/mese"})
+            benefit_total += ott
+        fn = [f for f in figli if (f.get("eta") or 0) <= 3]
+        if fn:
+            val = 2500 if (isee and isee <= 25000) else (1500 if (isee and isee <= 40000) else 1000)
+            benefit_items.append({"id":"ben-nido","titolo":"Bonus Asilo Nido","descrizione":f"Figlio under 3" + (f", ISEE EUR {isee:,.0f}" if isee else "") + f": fino a EUR {val:,.0f}/anno.","ente_erogatore":"inps","nome_ente":"INPS","valore_stimato":float(val),"valore_minimo":1000.0,"valore_massimo":2500.0,"tipo":"contributo_periodico","eligibilita_confidence":0.8,"requisiti":["Figlio al nido"],"requisiti_mancanti":["Conferma iscrizione"],"scadenza_domanda":None,"come_richiederlo":"INPS online > Bonus Nido.","link_ufficiale":None,"note":"Da solo puo' valere piu' di tutto!"})
+            benefit_total += val
+
+    if comune:
+        benefit_items.append({"id":"ben-locale","titolo":f"Agevolazioni — {comune}","descrizione":"Bonus famiglia, TARI ridotta, contributi affitto, borse studio." + (f" ISEE EUR {isee:,.0f}." if isee else ""),"ente_erogatore":"comune","nome_ente":f"Comune di {comune}","valore_stimato":400.0,"valore_minimo":100.0,"valore_massimo":1500.0,"tipo":"bonus_una_tantum","eligibilita_confidence":0.5,"requisiti":[f"Residenza {comune}"],"requisiti_mancanti":["Bandi da verificare"],"scadenza_domanda":None,"come_richiederlo":f"Sito Comune di {comune} o CAF.","link_ufficiale":None,"note":None})
+        benefit_total += 400.0
+
+    totale = round(tax_total + cost_total + benefit_total, 2)
+    all_act = []
+    for it in tax_items:
+        all_act.append({"titolo":it["titolo"],"risparmio":it["risparmio_stimato_annuo"],"azione":it["azione_richiesta"],"urgenza":it.get("urgenza","pianificazione")})
+    for it in cost_items:
+        all_act.append({"titolo":it["titolo"],"risparmio":it["risparmio_stimato_annuo"],"azione":(it.get("alternativa_suggerita") or "")[:200],"urgenza":"immediata"})
+    for it in benefit_items:
+        all_act.append({"titolo":it["titolo"],"risparmio":it["valore_stimato"],"azione":it["come_richiederlo"],"urgenza":"immediata"})
+    all_act.sort(key=lambda x: x["risparmio"], reverse=True)
+
+    score = 50
+    if not cost_items: score += 15
+    if piano_pensione == "si": score += 10
+    compl = 0.5 + (0.1 if ral else 0) + (0.1 if isee else 0) + (0.05 if comune else 0) + (0.1 if energia_mensile or gas_mensile else 0) + (0.1 if abitazione else 0)
 
     report = {
-        "user_id": "preview-demo",
-        "data_generazione": datetime.now().isoformat(),
-        "anno_riferimento": 2024,
-        "profilo_completezza": 0.85,
-        "opportunita_fiscali": {
-            "titolo": "Opportunità Fiscali",
-            "items": [
-                {
-                    "id": "tax-1",
-                    "titolo": "Spese mediche non detratte",
-                    "descrizione": "Hai EUR 800 di spese mediche (visite specialistiche e farmaci) che non risultano in dichiarazione. Puoi recuperare il 19% sopra la franchigia di EUR 129.",
-                    "riferimento_normativo": "Art. 15 TUIR, comma 1, lett. c",
-                    "tipo": "detrazione",
-                    "risparmio_stimato_annuo": 127.49,
-                    "risparmio_minimo": 100.0,
-                    "risparmio_massimo": 155.0,
-                    "azione_richiesta": "Inserire le spese mediche nella prossima dichiarazione dei redditi (730). Conservare fatture e scontrini parlanti.",
-                    "difficolta": "facile",
-                    "urgenza": "prossima_dichiarazione",
-                    "documenti_necessari": ["Fatture mediche", "Scontrini parlanti farmacia"],
-                    "confidence": 0.95,
-                    "prerequisiti": [],
-                    "note": "Verifica che le spese siano tracciate (pagamento elettronico obbligatorio dal 2020)"
-                },
-                {
-                    "id": "tax-2",
-                    "titolo": "Previdenza complementare non attivata",
-                    "descrizione": "Con il CCNL Metalmeccanico hai diritto a Cometa (fondo pensione di categoria). I contributi sono deducibili fino a EUR 5.164,57/anno, con contributo aggiuntivo del datore di lavoro.",
-                    "riferimento_normativo": "Art. 10 TUIR + D.Lgs. 252/2005",
-                    "tipo": "deduzione",
-                    "risparmio_stimato_annuo": 890.0,
-                    "risparmio_minimo": 600.0,
-                    "risparmio_massimo": 1200.0,
-                    "azione_richiesta": "Aderire al fondo Cometa tramite il datore di lavoro. Destinare il TFR e versare contributo minimo per ottenere il contributo aziendale.",
-                    "difficolta": "facile",
-                    "urgenza": "immediata",
-                    "documenti_necessari": ["Modulo adesione Cometa", "Busta paga"],
-                    "confidence": 0.9,
-                    "prerequisiti": ["CCNL Metalmeccanico attivo"],
-                    "note": "Il contributo datoriale del 2% sulla RAL e' 'soldi gratis' che stai perdendo"
-                },
-                {
-                    "id": "tax-3",
-                    "titolo": "Assicurazione vita/infortuni detraibile",
-                    "descrizione": "Con famiglia e mutuo, un'assicurazione sulla vita e' consigliata ed e' detraibile al 19% fino a EUR 530/anno. Se non ne hai una, stai perdendo sia la copertura che il beneficio fiscale.",
-                    "riferimento_normativo": "Art. 15 TUIR, comma 1, lett. f",
-                    "tipo": "detrazione",
-                    "risparmio_stimato_annuo": 100.7,
-                    "risparmio_minimo": 80.0,
-                    "risparmio_massimo": 130.0,
-                    "azione_richiesta": "Valutare polizza vita con premio fino a EUR 530/anno. La detrazione copre il 19% del premio.",
-                    "difficolta": "media",
-                    "urgenza": "pianificazione",
-                    "documenti_necessari": ["Polizza assicurativa"],
-                    "confidence": 0.7,
-                    "prerequisiti": [],
-                    "note": None
-                }
-            ],
-            "totale_risparmio": 1118.19
-        },
-        "riduzioni_costo": {
-            "titolo": "Riduzioni di Costo",
-            "items": [
-                {
-                    "id": "cost-1",
-                    "titolo": "Bolletta energia sovrapprezzata",
-                    "categoria": "energia",
-                    "fornitore_attuale": "Enel Energia",
-                    "costo_attuale_annuo": 1020.0,
-                    "benchmark_mercato": 756.0,
-                    "risparmio_stimato_annuo": 264.0,
-                    "alternativa_suggerita": "Confronta offerte su ARERA Portale Offerte o Switcho. Per 2700 kWh/anno le migliori offerte mercato libero partono da EUR 63/mese.",
-                    "sforzo_cambio": "minimo",
-                    "rischio_cambio": None,
-                    "fonte_benchmark": "Portale Offerte ARERA - medie mercato libero Q4 2024",
-                    "note": "Il cambio fornitore e' gratuito e senza interruzione di servizio"
-                },
-                {
-                    "id": "cost-2",
-                    "titolo": "Fornitura gas sopra la media",
-                    "categoria": "gas",
-                    "fornitore_attuale": "Enel Energia",
-                    "costo_attuale_annuo": 1440.0,
-                    "benchmark_mercato": 1120.0,
-                    "risparmio_stimato_annuo": 320.0,
-                    "alternativa_suggerita": "Per 1400 smc/anno a Padova, le offerte migliori stanno intorno a EUR 93/mese. Valuta anche dual-fuel (luce+gas stesso fornitore) per sconto aggiuntivo.",
-                    "sforzo_cambio": "minimo",
-                    "rischio_cambio": None,
-                    "fonte_benchmark": "Portale Offerte ARERA - medie mercato libero Q4 2024",
-                    "note": None
-                },
-                {
-                    "id": "cost-3",
-                    "titolo": "Mutuo con tasso rinegoziabile",
-                    "categoria": "mutuo",
-                    "fornitore_attuale": "Intesa Sanpaolo",
-                    "costo_attuale_annuo": 8400.0,
-                    "benchmark_mercato": 7440.0,
-                    "risparmio_stimato_annuo": 960.0,
-                    "alternativa_suggerita": "Il tuo tasso fisso al 3.8% (stipulato 2020) e' sopra le offerte attuali (~2.9-3.2% per surroga). Con EUR 120k residui su 20 anni, una surroga puo' farti risparmiare EUR 80/mese. Chiedi preventivo a MutuiOnline.",
-                    "sforzo_cambio": "medio",
-                    "rischio_cambio": "Nessuna penale per surroga (legge Bersani). Tempi: 30-60 giorni.",
-                    "fonte_benchmark": "MutuiOnline.it / Facile.it — medie tassi fissi surroga Feb 2025",
-                    "note": "La surroga e' GRATUITA per il cliente. Tutte le spese sono a carico della nuova banca."
-                }
-            ],
-            "totale_risparmio": 1544.0
-        },
-        "benefit_disponibili": {
-            "titolo": "Bonus e Agevolazioni Disponibili",
-            "items": [
-                {
-                    "id": "ben-1",
-                    "titolo": "Assegno Unico potenzialmente non ottimizzato",
-                    "descrizione": "Con ISEE EUR 25.000 e 2 figli (eta' 3 e 7), hai diritto all'Assegno Unico di circa EUR 162/mese per figlio. Verifica che l'importo sia corretto e che tu stia ricevendo le maggiorazioni per nucleo con 2+ figli.",
-                    "ente_erogatore": "inps",
-                    "nome_ente": "INPS",
-                    "valore_stimato": 350.0,
-                    "valore_minimo": 200.0,
-                    "valore_massimo": 500.0,
-                    "tipo": "contributo_periodico",
-                    "eligibilita_confidence": 0.8,
-                    "requisiti": ["ISEE in corso di validita'", "Figli a carico under 21"],
-                    "requisiti_mancanti": ["Importo attuale Assegno Unico non verificabile"],
-                    "scadenza_domanda": None,
-                    "come_richiederlo": "Verificare importo su MyINPS > Assegno Unico. Se non lo percepisci, fare domanda su INPS online o tramite CAF/Patronato.",
-                    "link_ufficiale": None,
-                    "note": "L'importo dipende dall'ISEE: con EUR 25k dovresti ricevere circa EUR 162/figlio/mese"
-                },
-                {
-                    "id": "ben-2",
-                    "titolo": "Bonus asilo nido",
-                    "descrizione": "Sofia (3 anni) potrebbe avere diritto al bonus asilo nido fino a EUR 2.500/anno con ISEE sotto EUR 25.000. Il bonus copre le rette dell'asilo nido.",
-                    "ente_erogatore": "inps",
-                    "nome_ente": "INPS",
-                    "valore_stimato": 2500.0,
-                    "valore_minimo": 1500.0,
-                    "valore_massimo": 2500.0,
-                    "tipo": "contributo_periodico",
-                    "eligibilita_confidence": 0.75,
-                    "requisiti": ["Figlio under 3 iscritto ad asilo nido", "ISEE sotto EUR 25.000"],
-                    "requisiti_mancanti": ["Non sappiamo se Sofia frequenta un asilo nido"],
-                    "scadenza_domanda": None,
-                    "come_richiederlo": "Domanda su INPS online > Bonus Nido. Servono ricevute di pagamento rette asilo.",
-                    "link_ufficiale": None,
-                    "note": "Se Sofia va al nido, questo bonus da solo vale piu' di tutto il resto"
-                },
-                {
-                    "id": "ben-3",
-                    "titolo": "Contributo regionale famiglia Veneto",
-                    "descrizione": "La Regione Veneto prevede contributi per famiglie con figli. Con ISEE EUR 25.000 e residenza a Padova, potresti accedere al bando regionale.",
-                    "ente_erogatore": "regione",
-                    "nome_ente": "Regione Veneto",
-                    "valore_stimato": 600.0,
-                    "valore_minimo": 300.0,
-                    "valore_massimo": 1000.0,
-                    "tipo": "bonus_una_tantum",
-                    "eligibilita_confidence": 0.6,
-                    "requisiti": ["Residenza in Veneto", "ISEE sotto soglia regionale", "Figli a carico"],
-                    "requisiti_mancanti": ["Bando attuale da verificare sul sito della Regione"],
-                    "scadenza_domanda": None,
-                    "come_richiederlo": "Consultare il sito della Regione Veneto > Bandi Famiglia oppure rivolgersi a un CAF.",
-                    "link_ufficiale": None,
-                    "note": None
-                }
-            ],
-            "totale_risparmio": 3450.0
-        },
-        "risparmio_totale_stimato": 6112.19,
-        "risparmio_minimo": 4280.0,
-        "risparmio_massimo": 8485.0,
-        "azioni_prioritarie": [
-            {
-                "titolo": "Bonus asilo nido per Sofia",
-                "risparmio": 2500.0,
-                "azione": "Verificare se Sofia frequenta un asilo nido e fare domanda su INPS online",
-                "urgenza": "immediata"
-            },
-            {
-                "titolo": "Surroga mutuo (da 3.8% a ~3.0%)",
-                "risparmio": 960.0,
-                "azione": "Richiedere preventivi di surroga su MutuiOnline.it — la surroga e' GRATUITA",
-                "urgenza": "immediata"
-            },
-            {
-                "titolo": "Fondo pensione Cometa — contributo datoriale perso",
-                "risparmio": 890.0,
-                "azione": "Aderire al fondo Cometa tramite HR per ottenere il contributo aziendale del 2%",
-                "urgenza": "immediata"
-            }
-        ],
-        "documenti_analizzati": ["CU_2024_demo.pdf", "busta_paga_demo.pdf"],
-        "limitazioni": [
-            "Dati basati su profilo demo — i valori reali dipendono dalla tua situazione specifica",
-            "Benchmark costi aggiornati a Q4 2024",
-            "Bonus regionali soggetti a bandi periodici"
-        ],
-        "disclaimer": "Questo report e' generato automaticamente e ha valore puramente informativo. Le stime di risparmio sono indicative e basate su dati di mercato generali. Si consiglia di verificare le opportunita' identificate con un professionista abilitato (commercialista, consulente finanziario) prima di intraprendere azioni. Soldi Persi non e' un CAF ne' un intermediario finanziario.",
-        "score_salute_finanziaria": 72,
-        "confronto_media_nazionale": None,
+        "user_id":"smart-preview","data_generazione":datetime.now().isoformat(),"anno_riferimento":2024,
+        "profilo_completezza":min(compl,1.0),
+        "opportunita_fiscali":{"titolo":"Opportunita' Fiscali","items":tax_items,"totale_risparmio":round(tax_total,2)},
+        "riduzioni_costo":{"titolo":"Riduzioni di Costo","items":cost_items,"totale_risparmio":round(cost_total,2)},
+        "benefit_disponibili":{"titolo":"Bonus e Agevolazioni","items":benefit_items,"totale_risparmio":round(benefit_total,2)},
+        "risparmio_totale_stimato":totale,"risparmio_minimo":round(totale*0.6,2),"risparmio_massimo":round(totale*1.5,2),
+        "azioni_prioritarie":all_act[:3],"documenti_analizzati":[],
+        "limitazioni":["Stime dal questionario — carica documenti per piu' precisione","Benchmark costi indicativi 2024","Bonus locali variano"],
+        "disclaimer":"Report informativo automatico. Stime indicative. Verifica con commercialista/CAF. risparmia.me non e' un CAF.",
+        "score_salute_finanziaria":min(score,100),"confronto_media_nazionale":None,
     }
-
-    return {
-        "status": "completed",
-        "report_id": "preview-demo",
-        "report": report,
-        "processing_time_seconds": 0.1,
-    }
+    return {"status":"completed","report_id":"smart-preview","report":report,"processing_time_seconds":0.1}
 
 
-# ---- Static files (MUST be last — catches all non-API routes) ----
-# html=True serves index.html for "/" and any directory request
 _static_dir = Path(__file__).parent / "static"
 _static_dir.mkdir(exist_ok=True)
 app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="frontend")
