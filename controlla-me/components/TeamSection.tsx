@@ -56,8 +56,9 @@ export default function TeamSection() {
       {/* Section header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.5 }}
         className="text-center mb-14"
       >
         <p className="text-[11px] font-bold tracking-[3px] uppercase text-accent/70 mb-3">
@@ -78,8 +79,9 @@ export default function TeamSection() {
           <div key={agent.phase}>
             <motion.div
               initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 + i * 0.15 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
               className="relative bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 md:p-7"
             >
               {/* Agent header */}
@@ -138,8 +140,9 @@ export default function TeamSection() {
             {i < agents.length - 1 && (
               <motion.div
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 + i * 0.15 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3 }}
                 className="flex justify-center py-2"
               >
                 <div className="flex flex-col items-center gap-0.5 text-white/15">
