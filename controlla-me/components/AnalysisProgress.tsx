@@ -77,6 +77,7 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
   const startTimeRef = useRef<number | null>(null);
   const phaseStartRef = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [tick, setTick] = useState(0); // force re-render every second for smooth progress
 
   // Start global timer when first phase begins
   useEffect(() => {
@@ -99,24 +100,35 @@ function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: Agen
       if (startTimeRef.current) {
         setElapsed((Date.now() - startTimeRef.current) / 1000);
       }
+      setTick((t) => t + 1); // trigger re-render so progress recalculates
     }, 1000);
     return () => clearInterval(interval);
   }, [currentPhase]);
 
-  // Calculate overall progress percentage
-  const completedTime = completedPhases.reduce((acc, p) => acc + PHASE_ESTIMATES[p], 0);
-  const currentPhaseEstimate = currentPhase ? PHASE_ESTIMATES[currentPhase] : 0;
-  const phaseElapsed = phaseStartRef.current ? (Date.now() - phaseStartRef.current) / 1000 : 0;
-  // Clamp intra-phase progress to 90% so it doesn't "finish" before the real event
-  const intraPhaseProgress = currentPhaseEstimate > 0
-    ? Math.min(phaseElapsed / currentPhaseEstimate, 0.9) * currentPhaseEstimate
+  // Calculate overall progress percentage (with NaN safety on every step)
+  const completedTime = completedPhases.reduce(
+    (acc, p) => acc + (PHASE_ESTIMATES[p] ?? 0),
+    0
+  );
+  const currentPhaseEstimate = currentPhase ? (PHASE_ESTIMATES[currentPhase] ?? 0) : 0;
+  const phaseElapsed = phaseStartRef.current
+    ? Math.max((Date.now() - phaseStartRef.current) / 1000, 0)
     : 0;
 
+  // Clamp intra-phase progress to 90% so it doesn't "finish" before the real event
+  let intraPhaseProgress = 0;
+  if (currentPhaseEstimate > 0 && phaseElapsed > 0) {
+    intraPhaseProgress = Math.min(phaseElapsed / currentPhaseEstimate, 0.9) * currentPhaseEstimate;
+  }
+
   const estimatedDone = completedTime + intraPhaseProgress;
-  const progress = Math.min((estimatedDone / TOTAL_ESTIMATED) * 100, 95); // cap at 95% until truly done
+  const rawProgress = TOTAL_ESTIMATED > 0 ? (estimatedDone / TOTAL_ESTIMATED) * 100 : 0;
+  // Final safety: if anything produced NaN, fall back to 0. Cap at 95% until truly done.
+  const progress = Number.isFinite(rawProgress) ? Math.min(rawProgress, 95) : 0;
 
   // ETA = total estimated - elapsed, but at least 5s if still running
-  const remaining = Math.max(TOTAL_ESTIMATED - elapsed, 5);
+  const rawRemaining = TOTAL_ESTIMATED - elapsed;
+  const remaining = Number.isFinite(rawRemaining) ? Math.max(rawRemaining, 5) : TOTAL_ESTIMATED;
 
   return { elapsed, remaining, progress };
 }
