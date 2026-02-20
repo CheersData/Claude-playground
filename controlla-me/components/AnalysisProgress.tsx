@@ -1,8 +1,125 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, FileText, Search, Scale, Lightbulb, Loader2 } from "lucide-react";
+import { Check, FileText, Search, Scale, Lightbulb, Loader2, Clock } from "lucide-react";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
+
+/* ── ETA estimation config ── */
+
+/** Average duration of each phase in seconds (tuned from real-world usage) */
+const PHASE_ESTIMATES: Record<AgentPhase, number> = {
+  classifier: 12,
+  analyzer: 25,
+  investigator: 22,
+  advisor: 18,
+};
+
+const PHASE_ORDER: AgentPhase[] = ["classifier", "analyzer", "investigator", "advisor"];
+const TOTAL_ESTIMATED = Object.values(PHASE_ESTIMATES).reduce((a, b) => a + b, 0); // ~77s
+
+/** Format seconds as m:ss */
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/* ── Circular progress ring ── */
+
+function ProgressRing({ progress, size = 160, stroke = 4 }: { progress: number; size?: number; stroke?: number }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      className="absolute inset-0 m-auto -rotate-90"
+      style={{ filter: "drop-shadow(0 0 8px rgba(255,107,53,0.3))" }}
+    >
+      {/* Background track */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(255,255,255,0.06)"
+        strokeWidth={stroke}
+      />
+      {/* Progress arc */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="url(#progressGradient)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+      />
+      <defs>
+        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FF6B35" />
+          <stop offset="100%" stopColor="#FFC832" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+/* ── Timer / ETA hook ── */
+
+function useAnalysisTimer(currentPhase: AgentPhase | null, completedPhases: AgentPhase[]) {
+  const startTimeRef = useRef<number | null>(null);
+  const phaseStartRef = useRef<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+
+  // Start global timer when first phase begins
+  useEffect(() => {
+    if (currentPhase && !startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    }
+  }, [currentPhase]);
+
+  // Track phase start for intra-phase progress
+  useEffect(() => {
+    if (currentPhase) {
+      phaseStartRef.current = Date.now();
+    }
+  }, [currentPhase]);
+
+  // Tick every second
+  useEffect(() => {
+    if (!currentPhase) return;
+    const interval = setInterval(() => {
+      if (startTimeRef.current) {
+        setElapsed((Date.now() - startTimeRef.current) / 1000);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentPhase]);
+
+  // Calculate overall progress percentage
+  const completedTime = completedPhases.reduce((acc, p) => acc + PHASE_ESTIMATES[p], 0);
+  const currentPhaseEstimate = currentPhase ? PHASE_ESTIMATES[currentPhase] : 0;
+  const phaseElapsed = phaseStartRef.current ? (Date.now() - phaseStartRef.current) / 1000 : 0;
+  // Clamp intra-phase progress to 90% so it doesn't "finish" before the real event
+  const intraPhaseProgress = currentPhaseEstimate > 0
+    ? Math.min(phaseElapsed / currentPhaseEstimate, 0.9) * currentPhaseEstimate
+    : 0;
+
+  const estimatedDone = completedTime + intraPhaseProgress;
+  const progress = Math.min((estimatedDone / TOTAL_ESTIMATED) * 100, 95); // cap at 95% until truly done
+
+  // ETA = total estimated - elapsed, but at least 5s if still running
+  const remaining = Math.max(TOTAL_ESTIMATED - elapsed, 5);
+
+  return { elapsed, remaining, progress };
+}
 
 /* ── Animated illustrations for each agent ── */
 
@@ -244,6 +361,8 @@ export default function AnalysisProgress({
   onRetry,
   sessionId,
 }: AnalysisProgressProps) {
+  const { elapsed, remaining, progress } = useAnalysisTimer(currentPhase, completedPhases);
+
   const getPhaseStatus = (phase: AgentPhase): PhaseStatus | "pending" => {
     if (completedPhases.includes(phase)) return "done";
     if (currentPhase === phase) return "running";
@@ -256,29 +375,87 @@ export default function AnalysisProgress({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/[0.03] border border-white/[0.06] rounded-3xl p-10 md:p-12 max-w-[480px] w-full text-center"
+      className="bg-white/[0.03] border border-white/[0.06] rounded-3xl p-10 md:p-12 max-w-[520px] w-full text-center"
     >
       <p className="text-sm text-white/35 mb-2">Analisi in corso</p>
       <p className="text-base font-semibold text-white/70 mb-6 break-all">
         {fileName}
       </p>
 
-      {/* Animated illustration for the active agent */}
-      <div className="flex justify-center mb-8 h-32">
-        <AnimatePresence mode="wait">
-          {ActiveIllustration && (
-            <motion.div
-              key={currentPhase}
-              initial={{ opacity: 0, scale: 0.85, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -10 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
-              <ActiveIllustration />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Animated illustration with progress ring */}
+      <div className="relative flex justify-center mb-4" style={{ height: 168 }}>
+        {/* Progress ring around illustration */}
+        <ProgressRing progress={progress} size={168} stroke={4} />
+
+        {/* Illustration centered inside the ring */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {ActiveIllustration && (
+              <motion.div
+                key={currentPhase}
+                initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              >
+                <ActiveIllustration />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+
+      {/* Timer + ETA row */}
+      {currentPhase && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center justify-center gap-6 mb-6"
+        >
+          {/* Elapsed time */}
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-white/30" />
+            <span className="text-xs text-white/40 font-mono tabular-nums">
+              {formatTime(elapsed)}
+            </span>
+          </div>
+
+          {/* Percentage */}
+          <motion.span
+            key={Math.floor(progress)}
+            className="text-lg font-bold bg-gradient-to-r from-accent to-amber-400 bg-clip-text text-transparent"
+          >
+            {Math.floor(progress)}%
+          </motion.span>
+
+          {/* ETA */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-white/30">~</span>
+            <span className="text-xs text-white/40 font-mono tabular-nums">
+              {formatTime(remaining)}
+            </span>
+            <span className="text-xs text-white/25">rimasti</span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Global progress bar */}
+      {currentPhase && (
+        <div className="mb-8 mx-2">
+          <div className="h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background: "linear-gradient(90deg, #FF6B35 0%, #FFC832 100%)",
+                boxShadow: "0 0 12px rgba(255,107,53,0.5)",
+              }}
+              initial={{ width: "0%" }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-5">
         {PHASES.map((phase) => {
