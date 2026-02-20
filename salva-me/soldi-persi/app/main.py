@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.agents.document_ingestion import DocumentIngestionAgent
@@ -23,11 +23,6 @@ app = FastAPI(
     description="Analisi finanziaria intelligente per contribuenti italiani",
     version="0.1.0",
 )
-
-# Serve static files (CSS, JS, images)
-_static_dir = Path(__file__).parent / "static"
-_static_dir.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 # In-memory store per i report (MVP — in produzione usare un DB)
 _reports: dict[str, dict] = {}
@@ -173,10 +168,8 @@ async def demo_analyze():
     }
 
 
-@app.get("/")
-async def serve_index():
-    """Serve la pagina web principale."""
-    index_path = _static_dir / "index.html"
-    if not index_path.exists():
-        raise HTTPException(status_code=404, detail="Frontend non trovato")
-    return FileResponse(str(index_path), media_type="text/html")
+# ---- Static files (MUST be last — catches all non-API routes) ----
+# html=True serves index.html for "/" and any directory request
+_static_dir = Path(__file__).parent / "static"
+_static_dir.mkdir(exist_ok=True)
+app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="frontend")
