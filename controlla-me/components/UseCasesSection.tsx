@@ -150,20 +150,21 @@ export default function UseCasesSection() {
                 }}
               />
 
-              {/* Decorative cubist image banner */}
-              <div className="relative h-[120px] overflow-hidden">
+              {/* Decorative cubist image banner — large and visible */}
+              <div className="relative h-[200px] md:h-[260px] overflow-hidden">
                 <Image
                   src="/images/contract-house.png"
                   alt=""
                   fill
                   className="object-cover"
-                  quality={80}
+                  quality={90}
+                  sizes="(max-width: 768px) 100vw, 700px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/70 to-[#0a0a0a]/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
                 <div
                   className="absolute inset-0"
                   style={{
-                    background: `linear-gradient(135deg, ${current.color}15, transparent 60%)`,
+                    background: `linear-gradient(135deg, ${current.color}12, transparent 50%)`,
                   }}
                 />
               </div>
