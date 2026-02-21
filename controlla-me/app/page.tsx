@@ -199,11 +199,11 @@ export default function Home() {
             <MissionSection />
           </div>
 
-          {/* 3. VIDEO SHOWCASE — placeholder per Sora content */}
+          {/* 3. VIDEO SHOWCASE — hero video */}
           <VideoShowcase
+            src="/videos/Video 1 Hero Lo studio legale del futuro.mp4"
             title="Guarda come funziona"
             subtitle="Carica un documento e guarda i 4 agenti al lavoro."
-            placeholderText="Video demo in arrivo — generato con Sora AI"
           />
 
           {/* Divider */}
