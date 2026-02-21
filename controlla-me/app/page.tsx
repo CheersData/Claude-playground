@@ -177,7 +177,7 @@ export default function Home() {
       {/* Noise texture overlay */}
       <div className="noise-overlay" />
 
-      <Navbar />
+      <Navbar onLogoClick={reset} />
 
       {/* Floating orbs */}
       <div className="floating-orb" style={{ width: 300, height: 300, left: "5%", top: "10%" }} />

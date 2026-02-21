@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { FileText, Clock, ArrowRight, Plus } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 // Placeholder data for demo — in production, this comes from Supabase
 const MOCK_ANALYSES = [
@@ -133,6 +134,8 @@ export default function Dashboard() {
           </motion.div>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 }
