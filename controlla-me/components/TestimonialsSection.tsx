@@ -1,7 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, Home, Briefcase, Receipt, ShoppingCart, Heart, FileText } from "lucide-react";
+
+const avatarColors = ["#4ECDC4", "#FF6B6B", "#A78BFA", "#FFC832", "#FF6B35", "#22D3EE"];
+const avatarIcons = [Home, Briefcase, Receipt, ShoppingCart, Heart, FileText];
 
 const testimonials = [
   {
@@ -91,7 +94,7 @@ export default function TestimonialsSection() {
               className="flex gap-5"
             >
               {[...testimonials.slice(0, 3), ...testimonials.slice(0, 3)].map((t, i) => (
-                <TestimonialCard key={i} testimonial={t} />
+                <TestimonialCard key={i} testimonial={t} index={i % 3} />
               ))}
             </motion.div>
           </div>
@@ -106,7 +109,7 @@ export default function TestimonialsSection() {
               className="flex gap-5"
             >
               {[...testimonials.slice(3, 6), ...testimonials.slice(3, 6)].map((t, i) => (
-                <TestimonialCard key={i} testimonial={t} />
+                <TestimonialCard key={i} testimonial={t} index={(i % 3) + 3} />
               ))}
             </motion.div>
           </div>
@@ -138,7 +141,11 @@ export default function TestimonialsSection() {
   );
 }
 
-function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[number] }) {
+function TestimonialCard({ testimonial, index }: { testimonial: typeof testimonials[number]; index: number }) {
+  const colorIdx = index % avatarColors.length;
+  const color = avatarColors[colorIdx];
+  const Icon = avatarIcons[colorIdx];
+
   return (
     <div className="shrink-0 w-[360px] md:w-[400px] rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
       {/* Stars */}
@@ -159,10 +166,16 @@ function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[num
         <span className="text-[10px] font-semibold text-accent/80">{testimonial.highlight}</span>
       </div>
 
-      {/* User */}
+      {/* User — stylized minimal avatar */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center text-sm font-bold text-white/40">
-          {testimonial.name.split(" ").map((n) => n[0]).join("")}
+        <div
+          className="relative w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+          style={{
+            background: `linear-gradient(135deg, ${color}25, ${color}10)`,
+            border: `1.5px solid ${color}30`,
+          }}
+        >
+          <Icon className="w-4 h-4" style={{ color }} />
         </div>
         <div>
           <p className="text-sm font-medium text-white/70">{testimonial.name}</p>
