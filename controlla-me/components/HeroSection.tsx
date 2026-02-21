@@ -51,7 +51,7 @@ export default function HeroSection({
       {/* ═══ Layer 0: Background image ═══ */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/hero-bg.jpg"
+          src="/images/Hero.webp"
           alt=""
           fill
           priority
