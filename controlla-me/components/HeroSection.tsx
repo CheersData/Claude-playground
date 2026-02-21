@@ -86,67 +86,87 @@ export default function HeroSection({
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen px-6 pt-24 pb-16 text-center z-10 overflow-hidden">
-      {/* ═══ Animated gradient background — Stripe-inspired, orange/amber ═══ */}
+      {/* ═══ Animated gradient background — dramatic, visible, alive ═══ */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Primary glow — large, centered, slow pulse */}
+        {/* Primary glow — LARGE orange, very visible */}
         <motion.div
           className="absolute rounded-full"
           style={{
-            width: 800,
-            height: 800,
+            width: 1000,
+            height: 1000,
             left: "50%",
-            top: "42%",
+            top: "40%",
             x: "-50%",
             y: "-50%",
             background:
-              "radial-gradient(circle, rgba(255,107,53,0.14) 0%, rgba(255,107,53,0.05) 40%, transparent 70%)",
-            filter: "blur(80px)",
-          }}
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.5, 0.85, 0.5],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Secondary glow — amber, offset right, different rhythm */}
-        <motion.div
-          className="absolute rounded-full"
-          style={{
-            width: 500,
-            height: 500,
-            left: "62%",
-            top: "32%",
-            x: "-50%",
-            y: "-50%",
-            background:
-              "radial-gradient(circle, rgba(255,170,40,0.10) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(255,107,53,0.25) 0%, rgba(255,107,53,0.08) 40%, transparent 65%)",
             filter: "blur(60px)",
           }}
           animate={{
-            scale: [1.1, 0.9, 1.1],
-            opacity: [0.3, 0.65, 0.3],
+            scale: [1, 1.2, 1],
+            opacity: [0.6, 1, 0.6],
           }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Tertiary glow — subtle teal hint (agent color) */}
+        {/* Secondary glow — warm amber, offset top-right */}
         <motion.div
           className="absolute rounded-full"
           style={{
-            width: 350,
-            height: 350,
-            left: "35%",
-            top: "58%",
+            width: 600,
+            height: 600,
+            left: "65%",
+            top: "25%",
             x: "-50%",
             y: "-50%",
             background:
-              "radial-gradient(circle, rgba(78,205,196,0.06) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(255,160,40,0.18) 0%, rgba(255,140,30,0.04) 50%, transparent 70%)",
             filter: "blur(50px)",
           }}
           animate={{
-            scale: [0.9, 1.15, 0.9],
-            opacity: [0.3, 0.6, 0.3],
+            scale: [1.15, 0.85, 1.15],
+            opacity: [0.4, 0.8, 0.4],
           }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Tertiary glow — teal accent, bottom-left */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: 450,
+            height: 450,
+            left: "30%",
+            top: "62%",
+            x: "-50%",
+            y: "-50%",
+            background:
+              "radial-gradient(circle, rgba(78,205,196,0.12) 0%, transparent 65%)",
+            filter: "blur(40px)",
+          }}
+          animate={{
+            scale: [0.85, 1.2, 0.85],
+            opacity: [0.3, 0.7, 0.3],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Fourth glow — deep purple accent, subtle, adds depth */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: 400,
+            height: 400,
+            left: "75%",
+            top: "60%",
+            x: "-50%",
+            y: "-50%",
+            background:
+              "radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 65%)",
+            filter: "blur(45px)",
+          }}
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.2, 0.5, 0.2],
+          }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
@@ -199,15 +219,16 @@ export default function HeroSection({
         transition={{ delay: 0.4, duration: 0.7 }}
         className="relative w-full max-w-[520px]"
       >
-        {/* Glow behind card */}
-        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-accent/15 via-amber-500/8 to-transparent blur-2xl opacity-70" />
+        {/* Glow behind card — strong, visible */}
+        <div className="absolute -inset-3 rounded-3xl bg-gradient-to-b from-accent/25 via-accent/10 to-amber-500/5 blur-2xl" />
+        <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-accent/20 via-transparent to-amber-500/10 blur-md" />
 
         {/* Card */}
         <div
-          className={`relative rounded-2xl border-2 transition-all duration-300 cursor-pointer backdrop-blur-sm ${
+          className={`relative rounded-2xl border transition-all duration-300 cursor-pointer backdrop-blur-md ${
             dragOver
-              ? "border-accent/60 bg-accent/[0.08] scale-[1.01]"
-              : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.15] hover:bg-white/[0.05]"
+              ? "border-accent/70 bg-accent/[0.12] scale-[1.02] shadow-[0_0_60px_rgba(255,107,53,0.15)]"
+              : "border-white/[0.12] bg-white/[0.04] hover:border-accent/30 hover:bg-white/[0.06] hover:shadow-[0_0_40px_rgba(255,107,53,0.08)]"
           }`}
           onDragOver={(e) => {
             e.preventDefault();

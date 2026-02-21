@@ -51,9 +51,10 @@ body {
 .floating-orb {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255,107,53,0.12), rgba(255,107,53,0.02));
+  background: radial-gradient(circle at 30% 30%, rgba(255,107,53,0.04), rgba(255,107,53,0.005));
   pointer-events: none;
   animation: float 6s ease-in-out infinite;
+  filter: blur(40px);
 }
 
 /* ── Agent illustration animations ── */
