@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Check, Zap, Crown, FileText, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const plans = [
   {
@@ -256,11 +257,7 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="text-center py-10 border-t border-white/[0.04] text-white/20 text-sm relative z-10">
-        <span className="font-serif italic">controlla.me</span> — Non
-        sostituisce un avvocato. Ti aiuta a capire cosa stai firmando.
-      </footer>
+      <Footer />
     </div>
   );
 }
