@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Home, Briefcase, Receipt, Heart, ShoppingCart } from "lucide-react";
+import Image from "next/image";
 
 const useCases = [
   {
@@ -148,6 +149,24 @@ export default function UseCasesSection() {
                   background: `radial-gradient(ellipse at 0% 0%, ${current.color}08, transparent 60%)`,
                 }}
               />
+
+              {/* Decorative cubist image banner */}
+              <div className="relative h-[120px] overflow-hidden">
+                <Image
+                  src="/images/contract-house.png"
+                  alt=""
+                  fill
+                  className="object-cover"
+                  quality={80}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/70 to-[#0a0a0a]/30" />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${current.color}15, transparent 60%)`,
+                  }}
+                />
+              </div>
 
               <div className="relative p-8 md:p-10">
                 {/* Title */}
