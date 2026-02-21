@@ -1,66 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
-import { Shield } from "lucide-react";
-import { AgentAvatar, agents } from "./TeamSection";
+import { useState, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
+import { Shield, Upload, FileText, Lock, Globe, Sparkles } from "lucide-react";
 
-/* ── Typewriter effect ── */
-function Typewriter({ phrases, speed = 60, pause = 2000 }: { phrases: string[]; speed?: number; pause?: number }) {
-  const [text, setText] = useState("");
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  const [charIdx, setCharIdx] = useState(0);
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    const current = phrases[phraseIdx];
-    if (!deleting && charIdx < current.length) {
-      const t = setTimeout(() => { setText(current.slice(0, charIdx + 1)); setCharIdx(charIdx + 1); }, speed);
-      return () => clearTimeout(t);
-    }
-    if (!deleting && charIdx === current.length) {
-      const t = setTimeout(() => setDeleting(true), pause);
-      return () => clearTimeout(t);
-    }
-    if (deleting && charIdx > 0) {
-      const t = setTimeout(() => { setText(current.slice(0, charIdx - 1)); setCharIdx(charIdx - 1); }, speed / 2);
-      return () => clearTimeout(t);
-    }
-    if (deleting && charIdx === 0) {
-      setDeleting(false);
-      setPhraseIdx((phraseIdx + 1) % phrases.length);
-    }
-  }, [charIdx, deleting, phraseIdx, phrases, speed, pause]);
-
-  return (
-    <span>
-      {text}
-      <motion.span
-        animate={{ opacity: [1, 0] }}
-        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-        className="text-accent"
-      >
-        |
-      </motion.span>
-    </span>
-  );
-}
-
-/* ── Floating legal paragraph elements ── */
+/* ── Floating legal terms — atmospheric background ── */
 function FloatingLegalElements() {
   const clauses = [
-    "Art. 1341 c.c.",
-    "clausola vessatoria",
-    "recesso unilaterale",
-    "penale contrattuale",
-    "Art. 1375 c.c.",
-    "buona fede",
-    "nullita parziale",
-    "Art. 33 Cod. Consumo",
-    "foro competente",
-    "tacito rinnovo",
-    "Art. 1469-bis c.c.",
-    "diritto di recesso",
+    "Art. 1341 c.c.", "clausola vessatoria", "recesso unilaterale",
+    "penale contrattuale", "Art. 1375 c.c.", "buona fede",
+    "nullita parziale", "Art. 33 Cod. Consumo", "foro competente",
+    "tacito rinnovo", "Art. 1469-bis c.c.", "diritto di recesso",
+    "Art. 1384 c.c.", "responsabilita limitata", "clausola compromissoria",
   ];
 
   return (
@@ -68,19 +19,19 @@ function FloatingLegalElements() {
       {clauses.map((clause, i) => (
         <motion.div
           key={i}
-          className="absolute text-[10px] md:text-xs font-mono text-white/[0.04] whitespace-nowrap select-none"
+          className="absolute text-[10px] md:text-xs font-mono text-white/[0.03] whitespace-nowrap select-none"
           style={{
-            left: `${5 + (i * 7.5) % 90}%`,
-            top: `${10 + (i * 13) % 80}%`,
+            left: `${5 + (i * 6.5) % 90}%`,
+            top: `${8 + (i * 11) % 84}%`,
           }}
           initial={{ opacity: 0 }}
           animate={{
-            opacity: [0, 0.06, 0.06, 0],
-            y: [0, -30],
+            opacity: [0, 0.05, 0.05, 0],
+            y: [0, -40],
           }}
           transition={{
-            duration: 8,
-            delay: i * 0.7,
+            duration: 10,
+            delay: i * 0.6,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -92,62 +43,117 @@ function FloatingLegalElements() {
   );
 }
 
-/* ── Animated scan line across the hero ── */
+/* ── Scan line — sweeps across the hero ── */
 function HeroScanLine() {
   return (
     <motion.div
       className="absolute left-0 right-0 h-[1px] pointer-events-none z-0"
       style={{
-        background: "linear-gradient(90deg, transparent, rgba(255,107,53,0.15), transparent)",
+        background: "linear-gradient(90deg, transparent, rgba(255,107,53,0.12), transparent)",
       }}
-      animate={{
-        top: ["0%", "100%"],
-      }}
-      transition={{
-        duration: 6,
-        repeat: Infinity,
-        ease: "linear",
-      }}
+      animate={{ top: ["0%", "100%"] }}
+      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
     />
   );
 }
 
-export default function HeroSection({ onScrollToUpload }: { onScrollToUpload: () => void }) {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+/* ── Main Hero ── */
+export default function HeroSection({
+  onFileSelected,
+}: {
+  onFileSelected: (file: File) => void;
+}) {
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!heroRef.current) return;
-      const rect = heroRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      mouseX.set(x);
-      mouseY.set(y);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const f = e.dataTransfer.files[0];
+      if (f) onFileSelected(f);
     },
-    [mouseX, mouseY]
+    [onFileSelected]
   );
 
-  const avatarX = useTransform(mouseX, [-0.5, 0.5], [-12, 12]);
-  const avatarY = useTransform(mouseY, [-0.5, 0.5], [-12, 12]);
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      if (f) onFileSelected(f);
+    },
+    [onFileSelected]
+  );
 
   return (
-    <div
-      ref={heroRef}
-      onMouseMove={handleMouseMove}
-      className="relative flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 text-center z-10 overflow-hidden"
-    >
+    <div className="relative flex flex-col items-center justify-center min-h-screen px-6 pt-24 pb-16 text-center z-10 overflow-hidden">
+      {/* ═══ Animated gradient background — Stripe-inspired, orange/amber ═══ */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Primary glow — large, centered, slow pulse */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: 800,
+            height: 800,
+            left: "50%",
+            top: "42%",
+            x: "-50%",
+            y: "-50%",
+            background:
+              "radial-gradient(circle, rgba(255,107,53,0.14) 0%, rgba(255,107,53,0.05) 40%, transparent 70%)",
+            filter: "blur(80px)",
+          }}
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.5, 0.85, 0.5],
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Secondary glow — amber, offset right, different rhythm */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: 500,
+            height: 500,
+            left: "62%",
+            top: "32%",
+            x: "-50%",
+            y: "-50%",
+            background:
+              "radial-gradient(circle, rgba(255,170,40,0.10) 0%, transparent 70%)",
+            filter: "blur(60px)",
+          }}
+          animate={{
+            scale: [1.1, 0.9, 1.1],
+            opacity: [0.3, 0.65, 0.3],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Tertiary glow — subtle teal hint (agent color) */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: 350,
+            height: 350,
+            left: "35%",
+            top: "58%",
+            x: "-50%",
+            y: "-50%",
+            background:
+              "radial-gradient(circle, rgba(78,205,196,0.06) 0%, transparent 70%)",
+            filter: "blur(50px)",
+          }}
+          animate={{
+            scale: [0.9, 1.15, 0.9],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
       <FloatingLegalElements />
       <HeroScanLine />
 
-      {/* Radial spotlight */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(255,107,53,0.06), transparent)",
-        }}
-      />
+      {/* ═══ Content ═══ */}
 
       {/* Badge */}
       <motion.div
@@ -157,99 +163,138 @@ export default function HeroSection({ onScrollToUpload }: { onScrollToUpload: ()
         className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/[0.08] border border-accent/20 mb-8 text-sm text-white/70 font-medium"
       >
         <Shield className="w-4 h-4 text-accent" />
-        Studio legale AI — 4 consulenti, 30 secondi
+        4 agenti AI · Risultati in 30 secondi
       </motion.div>
 
-      {/* Main headline */}
+      {/* Headline */}
       <motion.h1
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 0.7 }}
-        className="font-serif text-[clamp(40px,7vw,80px)] leading-[1.05] max-w-[800px] mb-6"
+        transition={{ delay: 0.1, duration: 0.7 }}
+        className="font-serif text-[clamp(42px,8vw,88px)] leading-[1.02] tracking-[-0.02em] max-w-[800px] mb-6"
       >
         Non firmare nulla
         <br />
-        <span className="italic bg-gradient-to-br from-accent to-amber-400 bg-clip-text text-transparent">
+        <span className="italic bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent">
           che non capisci.
         </span>
       </motion.h1>
 
-      {/* Typewriter sub-headline */}
-      <motion.div
+      {/* Subheadline */}
+      <motion.p
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="text-lg md:text-xl leading-relaxed text-white/40 max-w-[600px] mb-4 h-[60px] flex items-center justify-center"
+        transition={{ delay: 0.25 }}
+        className="text-lg md:text-xl leading-relaxed text-white/45 max-w-[560px] mb-10"
       >
-        <Typewriter
-          phrases={[
-            "Contratto d'affitto? Analizzo le clausole vessatorie.",
-            "Preliminare di vendita? Trovo le trappole nascoste.",
-            "Bolletta sospetta? Verifico la legittimita.",
-            "Contratto di lavoro? Controllo i tuoi diritti.",
-          ]}
-          speed={45}
-          pause={2500}
-        />
-      </motion.div>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="text-sm text-white/25 mb-10 max-w-[500px]"
-      >
-        Carica un documento. Quattro consulenti AI lo analizzano in profondita:
-        classificazione, clausole rischiose, norme applicabili e consiglio finale.
+        Carica un contratto, una bolletta, qualsiasi documento legale.
+        <br className="hidden md:block" />
+        Quattro agenti AI lo analizzano e ti dicono esattamente cosa rischi.
       </motion.p>
 
-      {/* 4 Avatars in a row with parallax */}
+      {/* ═══ Upload Card — the hero action ═══ */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55, duration: 0.7 }}
-        style={{ x: avatarX, y: avatarY }}
-        className="flex items-end justify-center gap-4 md:gap-6 mb-10"
+        transition={{ delay: 0.4, duration: 0.7 }}
+        className="relative w-full max-w-[520px]"
       >
-        {agents.map((agent, i) => (
-          <motion.div
-            key={agent.phase}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 + i * 0.12 }}
-            className="flex flex-col items-center gap-2"
-          >
-            <AgentAvatar variant={agent.variant} color={agent.color} size="md" delay={0.6 + i * 0.12} />
-            <span className="text-xs font-medium text-white/30">{agent.name}</span>
-          </motion.div>
-        ))}
+        {/* Glow behind card */}
+        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-accent/15 via-amber-500/8 to-transparent blur-2xl opacity-70" />
+
+        {/* Card */}
+        <div
+          className={`relative rounded-2xl border-2 transition-all duration-300 cursor-pointer backdrop-blur-sm ${
+            dragOver
+              ? "border-accent/60 bg-accent/[0.08] scale-[1.01]"
+              : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.15] hover:bg-white/[0.05]"
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <div className="flex flex-col items-center gap-5 px-8 py-10">
+            {/* Icon */}
+            <motion.div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center bg-accent/[0.1] border border-accent/20"
+              animate={dragOver ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
+            >
+              {dragOver ? (
+                <FileText className="w-6 h-6 text-accent" />
+              ) : (
+                <Upload className="w-6 h-6 text-accent" />
+              )}
+            </motion.div>
+
+            {/* Text */}
+            <div className="text-center">
+              <p className="text-base font-semibold text-white/80 mb-1">
+                {dragOver ? "Rilascia per analizzare" : "Trascina qui il tuo documento"}
+              </p>
+              <p className="text-sm text-white/30">oppure clicca per selezionare</p>
+            </div>
+
+            {/* CTA Button */}
+            <button
+              className="relative px-10 py-4 rounded-full text-base font-bold text-white overflow-hidden group bg-gradient-to-r from-accent to-amber-500 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.98] transition-all"
+              style={{ boxShadow: "0 12px 40px rgba(255,107,53,0.3)" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+            >
+              {/* Shimmer */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                animate={{ x: ["-200%", "200%"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+              />
+              <span className="relative z-10">Analizza il tuo documento</span>
+            </button>
+
+            {/* Formats */}
+            <p className="text-xs text-white/20 tracking-wide">
+              PDF · Word · Immagini · TXT · max 20MB
+            </p>
+          </div>
+        </div>
       </motion.div>
 
-      {/* CTA button */}
-      <motion.button
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-        whileHover={{ scale: 1.04, y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={onScrollToUpload}
-        className="px-10 py-4 rounded-full text-base font-bold text-white transition-all bg-gradient-to-r from-accent to-amber-500 relative overflow-hidden group"
-        style={{ boxShadow: "0 12px 40px rgba(255,107,53,0.3)" }}
-      >
-        {/* Shimmer effect */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
-          animate={{ x: ["-200%", "200%"] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
-        />
-        <span className="relative z-10">Analizza un documento</span>
-      </motion.button>
-
-      {/* Scroll hint */}
+      {/* ═══ Trust signals ═══ */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
+        transition={{ delay: 0.7 }}
+        className="flex gap-6 flex-wrap justify-center mt-8 text-white/30 text-xs"
+      >
+        <span className="flex items-center gap-1.5">
+          <Lock className="w-3.5 h-3.5" /> Dati protetti
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Globe className="w-3.5 h-3.5" /> Server in EU
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" /> 3 analisi gratis
+        </span>
+      </motion.div>
+
+      {/* ═══ Scroll hint ═══ */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
         className="mt-14 flex flex-col items-center gap-2 text-white/15"
       >
         <span className="text-[10px] tracking-[2px] uppercase">Scopri come funziona</span>
