@@ -69,7 +69,7 @@ const steps = [
 export default function MissionSection() {
   return (
     <section className="relative z-10 px-6 py-24">
-      <div className="max-w-[1000px] mx-auto">
+      <div className="max-w-[1100px] mx-auto">
         {/* ═══ Mission header with image ═══ */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -86,7 +86,7 @@ export default function MissionSection() {
           />
 
           <div className="relative px-8 md:px-14 py-12 md:py-16">
-            <div className="grid md:grid-cols-[1fr_280px] gap-10 items-center mb-0">
+            <div className="grid md:grid-cols-[1fr_360px] gap-10 items-center mb-0">
               {/* Text */}
               <div className="text-center md:text-left">
                 <motion.p
@@ -122,7 +122,7 @@ export default function MissionSection() {
                 </motion.p>
               </div>
 
-              {/* Decorative image */}
+              {/* Decorative image — large and prominent */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -130,18 +130,19 @@ export default function MissionSection() {
                 transition={{ delay: 0.3, duration: 0.6 }}
                 className="hidden md:block relative"
               >
-                <div className="relative w-[280px] h-[200px] rounded-2xl overflow-hidden border border-white/[0.08]">
+                <div className="relative w-[360px] h-[280px] rounded-2xl overflow-hidden border border-white/[0.08]">
                   <Image
                     src="/images/about-legal.png"
                     alt="Analisi legale cubista"
                     fill
                     className="object-cover"
-                    quality={85}
+                    quality={90}
+                    sizes="360px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 </div>
                 {/* Glow behind image */}
-                <div className="absolute -inset-4 rounded-3xl bg-accent/5 blur-2xl -z-10" />
+                <div className="absolute -inset-6 rounded-3xl bg-accent/5 blur-3xl -z-10" />
               </motion.div>
             </div>
           </div>
@@ -163,7 +164,7 @@ export default function MissionSection() {
           </h3>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
           {steps.map((step, i) => (
             <motion.div
               key={i}
@@ -173,37 +174,43 @@ export default function MissionSection() {
               transition={{ delay: 0.1 + i * 0.1 }}
               className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] transition-all"
             >
-              {/* Image */}
-              <div className="relative h-[140px] overflow-hidden">
+              {/* Image — big and prominent */}
+              <div className="relative h-[240px] md:h-[300px] overflow-hidden">
                 <Image
                   src={step.image}
                   alt={step.label}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  quality={80}
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  quality={90}
+                  sizes="(max-width: 768px) 100vw, 50vw"
                 />
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent" />
+                {/* Subtle gradient — only at bottom for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
                 {/* Step number */}
                 <div
-                  className="absolute top-3 left-3 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
-                  style={{ background: `${step.color}25`, color: step.color }}
+                  className="absolute top-4 left-4 w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold backdrop-blur-sm"
+                  style={{ background: `${step.color}30`, color: step.color, border: `1px solid ${step.color}40` }}
                 >
                   {i + 1}
                 </div>
                 {/* Duration badge */}
-                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-[10px] font-mono text-accent/60">
+                <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-[11px] font-mono text-accent/70 border border-white/[0.06]">
                   {step.duration}
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <step.icon className="w-4 h-4" style={{ color: step.color }} />
-                  <p className="text-sm font-semibold">{step.label}</p>
+              <div className="p-5 md:p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: `${step.color}15` }}
+                  >
+                    <step.icon className="w-4 h-4" style={{ color: step.color }} />
+                  </div>
+                  <p className="text-base font-semibold">{step.label}</p>
                 </div>
-                <p className="text-xs text-white/35 leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-white/40 leading-relaxed">{step.desc}</p>
               </div>
 
               {/* Bottom accent line */}
