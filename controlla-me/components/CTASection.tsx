@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Shield, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function CTASection({ onScrollToUpload }: { onScrollToUpload: () => void }) {
@@ -18,6 +19,17 @@ export default function CTASection({ onScrollToUpload }: { onScrollToUpload: () 
             background: "linear-gradient(135deg, rgba(255,107,53,0.08), rgba(255,107,53,0.02))",
           }}
         >
+          {/* Background cubist image */}
+          <div className="absolute inset-0 pointer-events-none">
+            <Image
+              src="/images/confidential-docs.png"
+              alt=""
+              fill
+              className="object-cover opacity-[0.06]"
+              quality={60}
+            />
+          </div>
+
           {/* Animated border glow */}
           <motion.div
             className="absolute inset-0 rounded-[32px] pointer-events-none"
