@@ -188,8 +188,8 @@ export default function Home() {
       {/* ═══════════ LANDING ═══════════ */}
       {view === "landing" && (
         <>
-          {/* 1. HERO — cinematic with typewriter + floating legal terms */}
-          <HeroSection onScrollToUpload={scrollToUpload} />
+          {/* 1. HERO — epic gradient + embedded upload */}
+          <HeroSection onFileSelected={handleFileSelected} />
 
           {/* Divider */}
           <div className="section-divider" />
