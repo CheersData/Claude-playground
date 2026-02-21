@@ -119,3 +119,31 @@ body {
   0%, 100% { opacity: 0; transform: scale(0.5) translateY(0); }
   50%      { opacity: 1; transform: scale(1) translateY(-6px); }
 }
+
+/* ── Section divider gradient ── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,107,53,0.15), transparent);
+  margin: 0 auto;
+  max-width: 600px;
+}
+
+/* ── Smooth scroll ── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Noise texture overlay ── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ── Video container ── */
+.video-glow {
+  box-shadow: 0 0 80px rgba(255,107,53,0.06), 0 0 160px rgba(255,107,53,0.03);
+}

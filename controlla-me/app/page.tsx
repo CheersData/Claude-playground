@@ -1,13 +1,21 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { motion, useMotionValue, useTransform, useInView } from "framer-motion";
-import { Shield, Lock, Zap, Gift, Upload, FileText, Scale, Eye, BookOpen, MessageCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { Lock, Zap, Gift, Upload, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import HeroSection from "@/components/HeroSection";
+import MissionSection from "@/components/MissionSection";
+import TeamSection from "@/components/TeamSection";
+import UseCasesSection from "@/components/UseCasesSection";
+import VideoShowcase from "@/components/VideoShowcase";
+import TestimonialsSection from "@/components/TestimonialsSection";
+import CTASection from "@/components/CTASection";
+import Footer from "@/components/Footer";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import ResultsView from "@/components/ResultsView";
 import PaywallBanner from "@/components/PaywallBanner";
-import TeamSection, { AgentAvatar, agents } from "@/components/TeamSection";
+import { AgentAvatar, agents } from "@/components/TeamSection";
 import type { AgentPhase, AdvisorResult } from "@/lib/types";
 
 type AppView = "landing" | "analyzing" | "results" | "paywall";
@@ -21,35 +29,6 @@ interface UsageInfo {
 }
 
 const leo = agents[0];
-
-/* ── Animated counter ── */
-function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.5 });
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    if (!inView) return;
-    let start = 0;
-    const step = value / 40;
-    const interval = setInterval(() => {
-      start += step;
-      if (start >= value) {
-        setDisplay(value);
-        clearInterval(interval);
-      } else {
-        setDisplay(Math.floor(start));
-      }
-    }, 30);
-    return () => clearInterval(interval);
-  }, [inView, value]);
-
-  return (
-    <span ref={ref}>
-      {display}{suffix}
-    </span>
-  );
-}
 
 export default function Home() {
   const [view, setView] = useState<AppView>("landing");
@@ -66,28 +45,12 @@ export default function Home() {
   const lastFileRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Parallax mouse tracking for hero
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!heroRef.current) return;
-    const rect = heroRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x);
-    mouseY.set(y);
-  }, [mouseX, mouseY]);
-
-  const avatarX = useTransform(mouseX, [-0.5, 0.5], [-8, 8]);
-  const avatarY = useTransform(mouseY, [-0.5, 0.5], [-8, 8]);
-
+  // Load session from URL
   useEffect(() => {
     const sid = new URLSearchParams(window.location.search).get("session");
     if (!sid) return;
     fetch(`/api/session/${sid}`)
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.advice) {
           setResult(data.advice);
@@ -97,6 +60,11 @@ export default function Home() {
         }
       })
       .catch(() => {});
+  }, []);
+
+  const scrollToUpload = useCallback(() => {
+    const el = document.getElementById("upload-section");
+    el?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   const reset = useCallback(() => {
@@ -152,19 +120,25 @@ export default function Home() {
                 } else if (eventType === "progress") {
                   const phase = data.phase as AgentPhase;
                   if (data.status === "running") setCurrentPhase(phase);
-                  else if (data.status === "done") setCompletedPhases((p) => p.includes(phase) ? p : [...p, phase]);
-                } else if (eventType === "complete") { setResult(data.advice || data); setView("results"); }
-                else if (eventType === "session") setSessionId(data.sessionId);
+                  else if (data.status === "done") setCompletedPhases((p) => (p.includes(phase) ? p : [...p, phase]));
+                } else if (eventType === "complete") {
+                  setResult(data.advice || data);
+                  setView("results");
+                } else if (eventType === "session") setSessionId(data.sessionId);
                 else if (eventType === "error") {
                   if (data.code === "LIMIT_REACHED") {
-                    // Fetch fresh usage info and show paywall
-                    fetch("/api/user/usage").then(r => r.json()).then(setUsage).catch(() => {});
+                    fetch("/api/user/usage")
+                      .then((r) => r.json())
+                      .then(setUsage)
+                      .catch(() => {});
                     setView("paywall");
                   } else {
                     setError(data.message || data.error || "Errore sconosciuto");
                   }
                 }
-              } catch { /* skip */ }
+              } catch {
+                /* skip */
+              }
             }
           }
         }
@@ -175,13 +149,34 @@ export default function Home() {
     []
   );
 
-  const handleFileSelected = useCallback((file: File) => { startAnalysis(file); }, [startAnalysis]);
-  const handleRetry = useCallback(() => { const f = lastFileRef.current; if (f) startAnalysis(f, sessionId || undefined); else reset(); }, [startAnalysis, sessionId, reset]);
-  const handleDrop = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelected(f); }, [handleFileSelected]);
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) handleFileSelected(f); }, [handleFileSelected]);
+  const handleFileSelected = useCallback((file: File) => startAnalysis(file), [startAnalysis]);
+  const handleRetry = useCallback(() => {
+    const f = lastFileRef.current;
+    if (f) startAnalysis(f, sessionId || undefined);
+    else reset();
+  }, [startAnalysis, sessionId, reset]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const f = e.dataTransfer.files[0];
+      if (f) handleFileSelected(f);
+    },
+    [handleFileSelected]
+  );
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      if (f) handleFileSelected(f);
+    },
+    [handleFileSelected]
+  );
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+      {/* Noise texture overlay */}
+      <div className="noise-overlay" />
+
       <Navbar />
 
       {/* Floating orbs */}
@@ -190,220 +185,54 @@ export default function Home() {
       <div className="floating-orb" style={{ width: 250, height: 250, left: "60%", top: "60%", animationDelay: "4s", animationDuration: "10s" }} />
       <div className="floating-orb" style={{ width: 180, height: 180, left: "10%", top: "70%", animationDelay: "1s", animationDuration: "7s" }} />
 
-      {/* ──────────── LANDING ──────────── */}
+      {/* ═══════════ LANDING ═══════════ */}
       {view === "landing" && (
         <>
-          {/* ═══ HERO with team preview ═══ */}
-          <div
-            ref={heroRef}
-            onMouseMove={handleMouseMove}
-            className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 text-center relative z-10"
-          >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/[0.08] border border-accent/20 mb-8 text-sm text-white/70 font-medium"
-            >
-              <Shield className="w-4 h-4 text-accent" />
-              Studio legale AI — 4 consulenti, 30 secondi
-            </motion.div>
+          {/* 1. HERO — cinematic with typewriter + floating legal terms */}
+          <HeroSection onScrollToUpload={scrollToUpload} />
 
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="font-serif text-[clamp(40px,7vw,80px)] leading-[1.05] max-w-[800px] mb-6"
-            >
-              Non firmare nulla
-              <br />
-              <span className="italic bg-gradient-to-br from-accent to-amber-400 bg-clip-text text-transparent">
-                che non capisci.
-              </span>
-            </motion.h1>
+          {/* Divider */}
+          <div className="section-divider" />
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-lg leading-relaxed text-white/50 max-w-[540px] mb-10"
-            >
-              Carica un documento. Quattro consulenti AI lo analizzano in profondità:
-              classificazione, clausole rischiose, norme applicabili e consiglio finale.
-            </motion.p>
-
-            {/* 4 Avatars in a row — parallax on mouse */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.7 }}
-              style={{ x: avatarX, y: avatarY }}
-              className="flex items-end justify-center gap-4 md:gap-6 mb-10"
-            >
-              {agents.map((agent, i) => (
-                <motion.div
-                  key={agent.phase}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + i * 0.1 }}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <AgentAvatar
-                    variant={agent.variant}
-                    color={agent.color}
-                    size="md"
-                    delay={0.4 + i * 0.1}
-                  />
-                  <span className="text-xs font-medium text-white/30">{agent.name}</span>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* CTA button */}
-            <motion.button
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              onClick={() => {
-                const el = document.getElementById("upload-section");
-                el?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="px-10 py-4 rounded-full text-base font-bold text-white hover:-translate-y-0.5 hover:shadow-xl transition-all bg-gradient-to-r from-accent to-amber-500"
-              style={{ boxShadow: "0 12px 40px rgba(255,107,53,0.3)" }}
-            >
-              Analizza un documento
-            </motion.button>
-
-            {/* Scroll hint */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="mt-12 flex flex-col items-center gap-2 text-white/15"
-            >
-              <span className="text-[10px] tracking-[2px] uppercase">Scopri come funziona</span>
-              <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}>
-                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                  <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </motion.div>
-            </motion.div>
+          {/* 2. MISSIONE — come funziona in 4 step */}
+          <div id="mission">
+            <MissionSection />
           </div>
 
-          {/* ═══ LA NOSTRA MISSIONE ═══ */}
-          <div className="relative z-10 px-6 py-24">
-            <div className="max-w-[900px] mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.6 }}
-                className="relative overflow-hidden rounded-[32px] border border-white/[0.06] bg-white/[0.02]"
-              >
-                {/* Background gradient */}
-                <div className="absolute inset-0 pointer-events-none" style={{
-                  background: "radial-gradient(ellipse at 50% 0%, rgba(255,107,53,0.06), transparent 60%)",
-                }} />
+          {/* 3. VIDEO SHOWCASE — placeholder per Sora content */}
+          <VideoShowcase
+            title="Guarda come funziona"
+            subtitle="Carica un documento e guarda i 4 agenti al lavoro."
+            placeholderText="Video demo in arrivo — generato con Sora AI"
+          />
 
-                <div className="relative px-8 md:px-14 py-12 md:py-16">
-                  {/* Mission header */}
-                  <div className="text-center mb-12">
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      className="text-[11px] font-bold tracking-[3px] uppercase text-accent/70 mb-4"
-                    >
-                      La nostra missione
-                    </motion.p>
-                    <motion.h2
-                      initial={{ opacity: 0, y: 15 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.1 }}
-                      className="font-serif text-2xl md:text-4xl leading-snug max-w-[600px] mx-auto mb-6"
-                    >
-                      Rendere la legge accessibile a{" "}
-                      <span className="italic bg-gradient-to-br from-accent to-amber-400 bg-clip-text text-transparent">
-                        chi non la conosce.
-                      </span>
-                    </motion.h2>
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 }}
-                      className="text-base text-white/40 max-w-[520px] mx-auto leading-relaxed"
-                    >
-                      Ogni giorno milioni di persone firmano documenti senza capirli davvero.
-                      Noi mettiamo a disposizione un team di AI specializzate che leggono,
-                      analizzano e ti spiegano tutto — prima che sia troppo tardi.
-                    </motion.p>
-                  </div>
+          {/* Divider */}
+          <div className="section-divider" />
 
-                  {/* How it works — 4 steps with icons */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-                    {[
-                      { icon: BookOpen, label: "Classificazione", desc: "Leo cataloga il tipo di documento", color: agents[0].color },
-                      { icon: Eye, label: "Analisi", desc: "Marta trova le clausole rischiose", color: agents[1].color },
-                      { icon: Scale, label: "Verifica legale", desc: "Giulia cerca norme e sentenze", color: agents[2].color },
-                      { icon: MessageCircle, label: "Consiglio", desc: "Enzo ti dice cosa fare", color: agents[3].color },
-                    ].map((step, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.1 + i * 0.08 }}
-                        className="text-center p-4"
-                      >
-                        <div
-                          className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                          style={{ background: `${step.color}15` }}
-                        >
-                          <step.icon className="w-5 h-5" style={{ color: step.color }} />
-                        </div>
-                        <p className="text-sm font-semibold mb-1">{step.label}</p>
-                        <p className="text-xs text-white/35">{step.desc}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-8">
-                    {[
-                      { value: 4, suffix: "", label: "Consulenti AI" },
-                      { value: 30, suffix: "s", label: "Tempo medio analisi" },
-                      { value: 100, suffix: "+", label: "Norme verificate" },
-                    ].map((stat, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.2 + i * 0.1 }}
-                        className="text-center"
-                      >
-                        <p className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent">
-                          <Counter value={stat.value} suffix={stat.suffix} />
-                        </p>
-                        <p className="text-xs text-white/30 mt-1">{stat.label}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* ═══ TEAM SHOWCASE (interactive) ═══ */}
-          <div className="flex flex-col items-center px-6 py-20 relative z-10">
+          {/* 4. IL TEAM AI — interactive agent cards */}
+          <div id="team" className="flex flex-col items-center px-6 py-20 relative z-10">
             <TeamSection />
           </div>
 
-          {/* ═══ LEO'S UPLOAD SECTION ═══ */}
-          <div id="upload-section" className="relative z-10 px-6 pb-32">
+          {/* Divider */}
+          <div className="section-divider" />
+
+          {/* 5. CASI D'USO — tabbed examples */}
+          <div id="use-cases">
+            <UseCasesSection />
+          </div>
+
+          {/* Divider */}
+          <div className="section-divider" />
+
+          {/* 6. TESTIMONIANZE — scrolling cards */}
+          <TestimonialsSection />
+
+          {/* Divider */}
+          <div className="section-divider" />
+
+          {/* 7. UPLOAD SECTION — Leo's zone */}
+          <div id="upload-section" className="relative z-10 px-6 pb-16">
             <div className="max-w-[700px] mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -413,16 +242,18 @@ export default function Home() {
                 className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]"
               >
                 {/* Background effects */}
-                <div className="absolute inset-0 pointer-events-none" style={{
-                  background: `radial-gradient(ellipse at 20% 20%, ${leo.color}08, transparent 60%)`,
-                }} />
-                <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{
-                  background: `linear-gradient(to bottom, ${leo.color}80, ${leo.color}20, transparent)`,
-                }} />
-                {/* Top glow */}
-                <div className="absolute top-0 left-0 right-0 h-[2px]" style={{
-                  background: `linear-gradient(90deg, transparent, ${leo.color}50, transparent)`,
-                }} />
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at 20% 20%, ${leo.color}08, transparent 60%)` }}
+                />
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-[3px]"
+                  style={{ background: `linear-gradient(to bottom, ${leo.color}80, ${leo.color}20, transparent)` }}
+                />
+                <div
+                  className="absolute top-0 left-0 right-0 h-[2px]"
+                  style={{ background: `linear-gradient(90deg, transparent, ${leo.color}50, transparent)` }}
+                />
 
                 <div className="relative p-8 md:p-10">
                   {/* Leo's intro */}
@@ -440,8 +271,6 @@ export default function Home() {
                           {leo.role}
                         </span>
                       </div>
-
-                      {/* Speech bubble */}
                       <div className="relative bg-white/[0.05] border border-white/[0.08] rounded-2xl rounded-tl-sm p-4">
                         <p className="text-base text-white/70 leading-relaxed">
                           Piacere, sono <strong style={{ color: leo.color }}>Leo</strong>.
@@ -458,17 +287,27 @@ export default function Home() {
                   {/* Upload zone */}
                   <div
                     className={`rounded-2xl border-2 border-dashed transition-all cursor-pointer mt-2
-                      ${dragOver
-                        ? "border-[#4ECDC4]/80 bg-[#4ECDC4]/5 scale-[1.01]"
-                        : "border-[#4ECDC4]/30 bg-white/[0.02] hover:border-[#4ECDC4]/60 hover:bg-[#4ECDC4]/[0.03]"
+                      ${
+                        dragOver
+                          ? "border-[#4ECDC4]/80 bg-[#4ECDC4]/5 scale-[1.01]"
+                          : "border-[#4ECDC4]/30 bg-white/[0.02] hover:border-[#4ECDC4]/60 hover:bg-[#4ECDC4]/[0.03]"
                       }
                     `}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" className="hidden" onChange={handleFileChange} />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                     <div className="flex flex-col items-center gap-4 px-8 py-10">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${leo.color}15` }}>
                         {dragOver ? (
@@ -487,7 +326,10 @@ export default function Home() {
                           background: `linear-gradient(135deg, ${leo.color}, ${leo.color}CC)`,
                           boxShadow: `0 12px 40px ${leo.color}30`,
                         }}
-                        onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
                       >
                         Scegli file
                       </button>
@@ -496,18 +338,33 @@ export default function Home() {
 
                   {/* Trust signals */}
                   <div className="flex gap-6 flex-wrap justify-center mt-6 text-white/30 text-xs">
-                    <span className="flex items-center gap-1.5"><Lock className="w-3 h-3" /> I documenti non vengono salvati</span>
-                    <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> Risultati in 30 secondi</span>
-                    <span className="flex items-center gap-1.5"><Gift className="w-3 h-3" /> 3 analisi gratuite al mese</span>
+                    <span className="flex items-center gap-1.5">
+                      <Lock className="w-3 h-3" /> I documenti non vengono salvati
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Zap className="w-3 h-3" /> Risultati in 30 secondi
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Gift className="w-3 h-3" /> 3 analisi gratuite al mese
+                    </span>
                   </div>
                 </div>
               </motion.div>
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="section-divider" />
+
+          {/* 8. CTA FINALE */}
+          <CTASection onScrollToUpload={scrollToUpload} />
+
+          {/* 9. FOOTER */}
+          <Footer />
         </>
       )}
 
-      {/* ──────────── ANALYZING ──────────── */}
+      {/* ═══════════ ANALYZING ═══════════ */}
       {view === "analyzing" && (
         <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 relative z-10">
           <AnalysisProgress
@@ -523,29 +380,19 @@ export default function Home() {
         </div>
       )}
 
-      {/* ──────────── PAYWALL ──────────── */}
+      {/* ═══════════ PAYWALL ═══════════ */}
       {view === "paywall" && usage && (
         <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 relative z-10">
-          <PaywallBanner
-            analysesUsed={usage.analysesUsed}
-            analysesLimit={usage.analysesLimit}
-            authenticated={usage.authenticated}
-          />
+          <PaywallBanner analysesUsed={usage.analysesUsed} analysesLimit={usage.analysesLimit} authenticated={usage.authenticated} />
         </div>
       )}
 
-      {/* ──────────── RESULTS ──────────── */}
+      {/* ═══════════ RESULTS ═══════════ */}
       {view === "results" && result && (
         <div className="relative z-10">
           <ResultsView result={result} fileName={fileName} onReset={reset} />
         </div>
       )}
-
-      {/* Footer */}
-      <footer className="text-center py-10 border-t border-white/[0.04] text-white/20 text-sm relative z-10">
-        <span className="font-serif italic">controlla.me</span> — Non
-        sostituisce un avvocato. Ti aiuta a capire cosa stai firmando.
-      </footer>
     </div>
   );
 }
