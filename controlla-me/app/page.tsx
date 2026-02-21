@@ -179,11 +179,11 @@ export default function Home() {
 
       <Navbar onLogoClick={reset} />
 
-      {/* Floating orbs */}
-      <div className="floating-orb" style={{ width: 300, height: 300, left: "5%", top: "10%" }} />
-      <div className="floating-orb" style={{ width: 200, height: 200, left: "75%", top: "5%", animationDelay: "2s", animationDuration: "8s" }} />
-      <div className="floating-orb" style={{ width: 250, height: 250, left: "60%", top: "60%", animationDelay: "4s", animationDuration: "10s" }} />
-      <div className="floating-orb" style={{ width: 180, height: 180, left: "10%", top: "70%", animationDelay: "1s", animationDuration: "7s" }} />
+      {/* Floating orbs — ultra-subtle, only visible on dark sections */}
+      <div className="floating-orb" style={{ width: 400, height: 400, left: "5%", top: "15%", opacity: 0.3 }} />
+      <div className="floating-orb" style={{ width: 300, height: 300, left: "80%", top: "5%", animationDelay: "2s", animationDuration: "8s", opacity: 0.2 }} />
+      <div className="floating-orb" style={{ width: 350, height: 350, left: "65%", top: "65%", animationDelay: "4s", animationDuration: "10s", opacity: 0.25 }} />
+      <div className="floating-orb" style={{ width: 250, height: 250, left: "8%", top: "75%", animationDelay: "1s", animationDuration: "7s", opacity: 0.2 }} />
 
       {/* ═══════════ LANDING ═══════════ */}
       {view === "landing" && (
