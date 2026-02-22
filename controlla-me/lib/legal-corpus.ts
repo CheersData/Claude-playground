@@ -402,15 +402,81 @@ function mapRowToArticle(row: Record<string, unknown>): LegalArticle {
 function normalizeLawSource(reference: string): string | null {
   const ref = reference.trim();
 
+  // ─── Codici italiani ───
+
   // Codice Civile
   if (/c\.c\./i.test(ref) || /codice\s+civile/i.test(ref)) {
     return "Codice Civile";
+  }
+
+  // Codice Penale
+  if (/c\.p\.\s*(?!c)/i.test(ref) || /codice\s+penale/i.test(ref)) {
+    return "Codice Penale";
   }
 
   // Codice di Procedura Civile
   if (/c\.p\.c\./i.test(ref) || /procedura\s+civile/i.test(ref)) {
     return "Codice di Procedura Civile";
   }
+
+  // Codice del Consumo
+  if (/consumo/i.test(ref) || /206\/2005/i.test(ref) || /cod\.?\s*cons/i.test(ref)) {
+    return "Codice del Consumo";
+  }
+
+  // D.Lgs. 231/2001
+  if (/231\/2001/i.test(ref) || /responsabilit[àa]\s+(?:amministrativa\s+)?(?:degli?\s+)?ent/i.test(ref)) {
+    return "D.Lgs. 231/2001";
+  }
+
+  // D.Lgs. 122/2005
+  if (/122\/2005/i.test(ref) || /immobil[ei]\s+da\s+costruire/i.test(ref)) {
+    return "D.Lgs. 122/2005";
+  }
+
+  // Statuto dei Lavoratori
+  if (/300\/1970/i.test(ref) || /statuto\s+(?:dei\s+)?lavorator/i.test(ref)) {
+    return "Statuto dei Lavoratori";
+  }
+
+  // TU Edilizia
+  if (/edilizia/i.test(ref) || /380\/2001/i.test(ref) || /testo\s+unico\s+edil/i.test(ref)) {
+    return "DPR 380/2001";
+  }
+
+  // ─── Normative EU ───
+
+  // GDPR
+  if (/gdpr/i.test(ref) || /2016\/679/i.test(ref) || /protezione\s+(?:dei\s+)?dati/i.test(ref)) {
+    return "GDPR";
+  }
+
+  // Direttiva clausole abusive
+  if (/93\/13/i.test(ref) || /clausole?\s+abusiv/i.test(ref)) {
+    return "Direttiva 93/13/CEE";
+  }
+
+  // Direttiva diritti consumatori
+  if (/2011\/83/i.test(ref) || /direttiva\s+(?:sui\s+)?diritti\s+(?:dei\s+)?consumator/i.test(ref)) {
+    return "Direttiva 2011/83/UE";
+  }
+
+  // Direttiva vendita beni
+  if (/2019\/771/i.test(ref) || /direttiva\s+(?:sulla\s+)?vendita\s+(?:di\s+)?beni/i.test(ref)) {
+    return "Direttiva 2019/771/UE";
+  }
+
+  // Roma I
+  if (/roma\s+I/i.test(ref) || /593\/2008/i.test(ref)) {
+    return "Reg. Roma I";
+  }
+
+  // DSA
+  if (/\bDSA\b/.test(ref) || /2022\/2065/i.test(ref) || /digital\s+services?\s+act/i.test(ref)) {
+    return "DSA";
+  }
+
+  // ─── Pattern generici ───
 
   // D.Lgs. / Decreto Legislativo
   const dlgs = ref.match(/D\.?\s*Lgs\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
@@ -424,15 +490,13 @@ function normalizeLawSource(reference: string): string | null {
   const legge = ref.match(/L\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
   if (legge) return `L. ${legge[1]}/${legge[2]}`;
 
-  // Codice del Consumo
-  if (/consumo/i.test(ref) || /206\/2005/i.test(ref)) {
-    return "D.Lgs. 206/2005";
-  }
+  // Regolamento UE
+  const regUE = ref.match(/(?:Reg\.?|Regolamento)\s*\(?(?:UE|CE)\)?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (regUE) return `Reg. (UE) ${regUE[1]}/${regUE[2]}`;
 
-  // TU Edilizia
-  if (/edilizia/i.test(ref) || /380\/2001/i.test(ref)) {
-    return "DPR 380/2001";
-  }
+  // Direttiva UE
+  const dirUE = ref.match(/(?:Dir\.?|Direttiva)\s*\(?(?:UE|CE|CEE)\)?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (dirUE) return `Dir. ${dirUE[1]}/${dirUE[2]}`;
 
   return null;
 }

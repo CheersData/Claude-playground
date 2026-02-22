@@ -658,20 +658,183 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ─── Main ───
+// ─── Import fonti aggiuntive ───
 
-async function main() {
+import { ITALIAN_SOURCES, EU_SOURCES, ALL_SOURCES } from "./corpus-sources";
+import { downloadFromNormattiva } from "./normattiva-client";
+import { downloadFromEurLex } from "./eurlex-client";
+
+// ─── Main: solo Codice Civile (comando originale) ───
+
+async function seedCodiceCivile() {
+  console.log("\n");
+  console.log("╔══════════════════════════════════════════════════════════════╗");
+  console.log("║   controlla.me — Seed Codice Civile (HuggingFace)          ║");
+  console.log("╚══════════════════════════════════════════════════════════════╝\n");
+
+  checkEnv();
+
+  const rows = await downloadCodiceCivile();
+  const articles = transformArticles(rows);
+  printStats(articles);
+  await generateAndUpload(articles);
+
+  console.log("✅ Codice Civile caricato!\n");
+}
+
+// ─── Main: tutte le fonti italiane (Normattiva) ───
+
+async function seedNormattiva() {
+  console.log("\n");
+  console.log("╔══════════════════════════════════════════════════════════════╗");
+  console.log("║   controlla.me — Seed Codici Italiani (Normattiva)         ║");
+  console.log("║                                                            ║");
+  console.log("║   Codice Penale, Codice del Consumo, C.P.C.,              ║");
+  console.log("║   D.Lgs. 231/2001, D.Lgs. 122/2005,                      ║");
+  console.log("║   Statuto Lavoratori, TU Edilizia                         ║");
+  console.log("╚══════════════════════════════════════════════════════════════╝\n");
+
+  checkEnv();
+
+  let totalArticles = 0;
+  let totalErrors = 0;
+
+  for (const source of ITALIAN_SOURCES) {
+    console.log(`\n── ${source.id} ──`);
+
+    const parsed = await downloadFromNormattiva(source);
+    if (parsed.length === 0) {
+      console.log(`  ⚠ Nessun articolo scaricato per ${source.id}`);
+      continue;
+    }
+
+    // Converti in formato LegalArticle per l'upload
+    const articles: LegalArticle[] = parsed.map((p) => ({
+      lawSource: p.lawSource,
+      articleReference: p.articleReference,
+      articleTitle: p.articleTitle,
+      articleText: p.articleText,
+      hierarchy: p.hierarchy,
+      keywords: p.keywords,
+      relatedInstitutes: p.relatedInstitutes,
+      sourceUrl: p.sourceUrl,
+      isInForce: p.isInForce,
+    }));
+
+    printStats(articles);
+    await generateAndUpload(articles);
+    totalArticles += articles.length;
+  }
+
+  console.log(`\n╔══════════════════════════════════════════════════╗`);
+  console.log(`║  NORMATTIVA — RISULTATO FINALE                  ║`);
+  console.log(`╠══════════════════════════════════════════════════╣`);
+  console.log(`║  Fonti processate: ${ITALIAN_SOURCES.length.toString().padStart(5)}`);
+  console.log(`║  Articoli totali:  ${totalArticles.toString().padStart(5)}`);
+  console.log(`╚══════════════════════════════════════════════════╝\n`);
+}
+
+// ─── Main: normative EU (EUR-Lex) ───
+
+async function seedEurLex() {
+  console.log("\n");
+  console.log("╔══════════════════════════════════════════════════════════════╗");
+  console.log("║   controlla.me — Seed Normative EU (EUR-Lex CELLAR)        ║");
+  console.log("║                                                            ║");
+  console.log("║   GDPR, Dir. Clausole Abusive, Dir. Consumatori,          ║");
+  console.log("║   Dir. Vendita Beni, Roma I, DSA                          ║");
+  console.log("╚══════════════════════════════════════════════════════════════╝\n");
+
+  checkEnv();
+
+  let totalArticles = 0;
+
+  for (const source of EU_SOURCES) {
+    console.log(`\n── ${source.id} ──`);
+
+    const parsed = await downloadFromEurLex(source);
+    if (parsed.length === 0) {
+      console.log(`  ⚠ Nessun articolo scaricato per ${source.id}`);
+      continue;
+    }
+
+    const articles: LegalArticle[] = parsed.map((p) => ({
+      lawSource: p.lawSource,
+      articleReference: p.articleReference,
+      articleTitle: p.articleTitle,
+      articleText: p.articleText,
+      hierarchy: p.hierarchy,
+      keywords: p.keywords,
+      relatedInstitutes: p.relatedInstitutes,
+      sourceUrl: p.sourceUrl,
+      isInForce: p.isInForce,
+    }));
+
+    printStats(articles);
+    await generateAndUpload(articles);
+    totalArticles += articles.length;
+  }
+
+  console.log(`\n╔══════════════════════════════════════════════════╗`);
+  console.log(`║  EUR-LEX — RISULTATO FINALE                     ║`);
+  console.log(`╠══════════════════════════════════════════════════╣`);
+  console.log(`║  Fonti processate: ${EU_SOURCES.length.toString().padStart(5)}`);
+  console.log(`║  Articoli totali:  ${totalArticles.toString().padStart(5)}`);
+  console.log(`╚══════════════════════════════════════════════════╝\n`);
+}
+
+// ─── Main: TUTTO il corpus ───
+
+async function seedAll() {
   console.log("\n");
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║                                                            ║");
-  console.log("║   controlla.me — Seed Corpus Legislativo Italiano          ║");
+  console.log("║   controlla.me — Seed INTERO Corpus Legislativo            ║");
   console.log("║                                                            ║");
-  console.log("║   Scarica INTERO Codice Civile (3.040 articoli)            ║");
-  console.log("║   da HuggingFace → Classifica → Embeddings → Supabase     ║");
+  console.log("║   1. Codice Civile         (HuggingFace)     ~3.040 art.  ║");
+  console.log("║   2. Codice Penale         (Normattiva)        ~734 art.  ║");
+  console.log("║   3. Codice del Consumo    (Normattiva)        ~146 art.  ║");
+  console.log("║   4. Codice Proc. Civile   (Normattiva)        ~831 art.  ║");
+  console.log("║   5. D.Lgs. 231/2001       (Normattiva)         ~85 art.  ║");
+  console.log("║   6. D.Lgs. 122/2005       (Normattiva)         ~21 art.  ║");
+  console.log("║   7. Statuto Lavoratori    (Normattiva)         ~41 art.  ║");
+  console.log("║   8. TU Edilizia           (Normattiva)        ~138 art.  ║");
+  console.log("║   9. GDPR                  (EUR-Lex)            ~99 art.  ║");
+  console.log("║  10. Dir. Clausole Abusive (EUR-Lex)            ~11 art.  ║");
+  console.log("║  11. Dir. Consumatori      (EUR-Lex)            ~35 art.  ║");
+  console.log("║  12. Dir. Vendita Beni     (EUR-Lex)            ~28 art.  ║");
+  console.log("║  13. Roma I                (EUR-Lex)            ~29 art.  ║");
+  console.log("║  14. DSA                   (EUR-Lex)            ~93 art.  ║");
+  console.log("║                                          Tot. ~5.331 art. ║");
   console.log("║                                                            ║");
   console.log("╚══════════════════════════════════════════════════════════════╝\n");
 
-  // Check env
+  checkEnv();
+
+  // 1. Codice Civile (HuggingFace)
+  console.log("\n════ FASE 1/3: Codice Civile (HuggingFace) ════\n");
+  await seedCodiceCivile();
+
+  // 2. Codici italiani (Normattiva)
+  console.log("\n════ FASE 2/3: Codici italiani (Normattiva) ════\n");
+  await seedNormattiva();
+
+  // 3. Normative EU (EUR-Lex)
+  console.log("\n════ FASE 3/3: Normative EU (EUR-Lex) ════\n");
+  await seedEurLex();
+
+  console.log("\n╔══════════════════════════════════════════════════════════════╗");
+  console.log("║  ✅ SEED CORPUS COMPLETO — TUTTE LE FONTI CARICATE!        ║");
+  console.log("╚══════════════════════════════════════════════════════════════╝\n");
+  console.log("Prossimi passi:");
+  console.log("  1. Verifica: SELECT law_source, COUNT(*) FROM legal_articles GROUP BY law_source;");
+  console.log("  2. Test: SELECT * FROM legal_articles WHERE 'clausole_vessatorie' = ANY(related_institutes);");
+  console.log("  3. Avvia l'app e testa un'analisi di documento\n");
+}
+
+// ─── Helpers condivisi ───
+
+function checkEnv() {
   const envChecks = [
     { key: "VOYAGE_API_KEY", label: "Voyage AI" },
     { key: "NEXT_PUBLIC_SUPABASE_URL", label: "Supabase URL" },
@@ -689,66 +852,45 @@ async function main() {
     console.error("\n❌ Configura le variabili mancanti in controlla-me/.env.local e riprova.\n");
     process.exit(1);
   }
+}
 
-  console.log("\n");
+function printStats(articles: LegalArticle[]) {
+  if (articles.length === 0) return;
 
-  // Step 1: Download da HuggingFace
-  const rows = await downloadCodiceCivile();
-
-  // Step 2: Trasforma e classifica
-  const articles = transformArticles(rows);
-
-  // Step 3: Statistiche pre-upload
   const withInstitutes = articles.filter((a) => a.relatedInstitutes && a.relatedInstitutes.length > 0);
   const withKeywords = articles.filter((a) => a.keywords && a.keywords.length > 0);
 
-  console.log("── Statistiche classificazione ──");
+  console.log(`\n── Statistiche: ${articles[0].lawSource} ──`);
   console.log(`  Articoli totali:          ${articles.length}`);
   console.log(`  Con istituti giuridici:   ${withInstitutes.length} (${((withInstitutes.length / articles.length) * 100).toFixed(1)}%)`);
   console.log(`  Con keywords:             ${withKeywords.length} (${((withKeywords.length / articles.length) * 100).toFixed(1)}%)`);
-
-  // Distribuzione per libro
-  const bookCounts: Record<string, number> = {};
-  for (const a of articles) {
-    const book = a.hierarchy?.book || "Sconosciuto";
-    const shortBook = book.split("—")[0].trim();
-    bookCounts[shortBook] = (bookCounts[shortBook] ?? 0) + 1;
-  }
-  console.log("\n── Distribuzione per Libro ──");
-  for (const [book, count] of Object.entries(bookCounts).sort()) {
-    console.log(`  ${book}: ${count} articoli`);
-  }
-
-  // Istituti più frequenti
-  const instituteCounts: Record<string, number> = {};
-  for (const a of articles) {
-    for (const inst of a.relatedInstitutes ?? []) {
-      instituteCounts[inst] = (instituteCounts[inst] ?? 0) + 1;
-    }
-  }
-  console.log("\n── Top 20 istituti giuridici ──");
-  const topInstitutes = Object.entries(instituteCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
-  for (const [inst, count] of topInstitutes) {
-    console.log(`  ${inst}: ${count} articoli`);
-  }
-
-  console.log("\n");
-
-  // Step 4: Genera embeddings e upload
-  await generateAndUpload(articles);
-
-  console.log("✅ Seed corpus completato!\n");
-  console.log("Prossimi passi:");
-  console.log("  1. Verifica su Supabase: SELECT COUNT(*) FROM legal_articles;");
-  console.log("  2. Test ricerca: SELECT * FROM legal_articles WHERE 'vendita_a_corpo' = ANY(related_institutes);");
-  console.log("  3. Avvia l'app e testa un'analisi di documento\n");
 }
 
-// ─── Run ───
+// ─── CLI ───
 
-main().catch((err) => {
+const command = process.argv[2] || "all";
+
+const COMMANDS: Record<string, () => Promise<void>> = {
+  "civile": seedCodiceCivile,
+  "normattiva": seedNormattiva,
+  "eurlex": seedEurLex,
+  "all": seedAll,
+};
+
+if (!COMMANDS[command]) {
+  console.log(`
+Uso: npx tsx controlla-me/scripts/seed-corpus.ts [comando]
+
+Comandi:
+  civile       Solo Codice Civile (HuggingFace)
+  normattiva   Codici italiani via Normattiva API
+  eurlex       Normative EU via EUR-Lex CELLAR
+  all          Tutto il corpus (default)
+`);
+  process.exit(0);
+}
+
+COMMANDS[command]().catch((err) => {
   console.error("\n❌ Errore fatale:", err);
   process.exit(1);
 });
