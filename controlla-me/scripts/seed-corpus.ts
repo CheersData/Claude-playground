@@ -26,6 +26,7 @@
 
 import * as dotenv from "dotenv";
 import * as path from "path";
+import { createHash } from "crypto";
 
 // Carica env dal .env.local della app
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
@@ -469,13 +470,52 @@ function extractLegalTermsFromText(text: string): string[] {
   return terms;
 }
 
-// ─── Genera embeddings e carica su Supabase ───
+// ─── Delta: controlla articoli già presenti in Supabase ───
 
-async function generateAndUpload(articles: LegalArticle[]): Promise<void> {
-  console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║  Generazione embeddings e upload su Supabase    ║");
-  console.log("╚══════════════════════════════════════════════════╝\n");
+/**
+ * Ritorna una mappa article_reference → content_hash per gli articoli
+ * già presenti in DB con embedding. Se content_hash è null (pre-migration 004),
+ * il valore sarà stringa vuota — l'articolo verrà considerato "da aggiornare".
+ */
+async function getExistingArticleHashes(
+  supabase: ReturnType<Awaited<typeof import("@supabase/supabase-js")>["createClient"]>,
+  lawSource: string
+): Promise<Map<string, string>> {
+  const hashes = new Map<string, string>();
+  let offset = 0;
+  const pageSize = 1000;
 
+  while (true) {
+    const { data, error } = await supabase
+      .from("legal_articles")
+      .select("article_reference, content_hash")
+      .eq("law_source", lawSource)
+      .not("embedding", "is", null)
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.error(`  [DELTA] Errore query esistenti per ${lawSource}: ${error.message}`);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    for (const row of data) {
+      hashes.set(row.article_reference, row.content_hash || "");
+    }
+
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return hashes;
+}
+
+function md5Hash(text: string): string {
+  return createHash("md5").update(text).digest("hex");
+}
+
+async function getSupabaseClient() {
   if (!process.env.VOYAGE_API_KEY) {
     console.error("❌ VOYAGE_API_KEY non configurata! Impossibile generare embeddings.");
     console.error("   Aggiungi VOYAGE_API_KEY al file .env.local");
@@ -488,18 +528,94 @@ async function generateAndUpload(articles: LegalArticle[]): Promise<void> {
   }
 
   const { createClient } = await import("@supabase/supabase-js");
-  const supabase = createClient(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
+}
 
+// ─── Genera embeddings e carica su Supabase (con delta) ───
+
+async function generateAndUpload(articles: LegalArticle[]): Promise<void> {
+  console.log("╔══════════════════════════════════════════════════╗");
+  console.log("║  Generazione embeddings e upload su Supabase    ║");
+  console.log("╚══════════════════════════════════════════════════╝\n");
+
+  const supabase = await getSupabaseClient();
+
+  // ─── Delta: filtra articoli già presenti ───
+  // Raggruppa per law_source per fare una query per fonte
+  const bySource = new Map<string, LegalArticle[]>();
+  for (const a of articles) {
+    const list = bySource.get(a.lawSource) || [];
+    list.push(a);
+    bySource.set(a.lawSource, list);
+  }
+
+  let totalSkipped = 0;
+  let totalChanged = 0;
+  const articlesToProcess: LegalArticle[] = [];
+
+  for (const [lawSource, sourceArticles] of bySource) {
+    const existingHashes = await getExistingArticleHashes(supabase, lawSource);
+
+    if (existingHashes.size > 0) {
+      let skipped = 0;
+      let changed = 0;
+      let added = 0;
+
+      for (const article of sourceArticles) {
+        const existingHash = existingHashes.get(article.articleReference);
+
+        if (existingHash === undefined) {
+          // Articolo nuovo — non esiste in DB
+          articlesToProcess.push(article);
+          added++;
+        } else {
+          // Articolo esiste — confronta hash del testo
+          const currentHash = md5Hash(article.articleText);
+          if (existingHash !== currentHash) {
+            // Testo cambiato — rigenera embedding
+            articlesToProcess.push(article);
+            changed++;
+          } else {
+            skipped++;
+          }
+        }
+      }
+
+      totalSkipped += skipped;
+      totalChanged += changed;
+
+      console.log(
+        `  [DELTA] ${lawSource}: ${existingHashes.size} in DB | ` +
+        `${skipped} invariati (skip), ${changed} modificati, ${added} nuovi`
+      );
+    } else {
+      articlesToProcess.push(...sourceArticles);
+      console.log(`  [DELTA] ${lawSource}: nessun articolo in DB, ${sourceArticles.length} nuovi`);
+    }
+  }
+
+  if (articlesToProcess.length === 0) {
+    console.log(`\n  ✓ Nessun articolo nuovo o modificato — tutto aggiornato\n`);
+    return;
+  }
+
+  console.log(
+    `\n  [DELTA] Totale: ${articles.length} scaricati, ${totalSkipped} invariati, ` +
+    `${totalChanged} modificati, ${articlesToProcess.length - totalChanged} nuovi → ` +
+    `${articlesToProcess.length} da processare\n`
+  );
+
+  // ─── Genera embeddings e upload solo per nuovi/modificati ───
   let totalInserted = 0;
   let totalErrors = 0;
-  const totalBatches = Math.ceil(articles.length / EMBEDDING_BATCH_SIZE);
+  const totalBatches = Math.ceil(articlesToProcess.length / EMBEDDING_BATCH_SIZE);
 
-  for (let batchIdx = 0; batchIdx < articles.length; batchIdx += EMBEDDING_BATCH_SIZE) {
-    const batch = articles.slice(batchIdx, batchIdx + EMBEDDING_BATCH_SIZE);
+  for (let batchIdx = 0; batchIdx < articlesToProcess.length; batchIdx += EMBEDDING_BATCH_SIZE) {
+    const batch = articlesToProcess.slice(batchIdx, batchIdx + EMBEDDING_BATCH_SIZE);
     const batchNum = Math.floor(batchIdx / EMBEDDING_BATCH_SIZE) + 1;
 
     console.log(`\n── Batch ${batchNum}/${totalBatches} (${batch.length} articoli) ──`);
@@ -540,6 +656,7 @@ async function generateAndUpload(articles: LegalArticle[]): Promise<void> {
             embedding: JSON.stringify(embeddings[i]),
             source_url: article.sourceUrl,
             is_in_force: article.isInForce ?? true,
+            content_hash: md5Hash(article.articleText),
             updated_at: new Date().toISOString(),
           },
           { onConflict: "law_source,article_reference" }
@@ -556,7 +673,7 @@ async function generateAndUpload(articles: LegalArticle[]): Promise<void> {
     console.log(`  [SUPABASE] ✓ Batch ${batchNum} — ${totalInserted} inseriti totali, ${totalErrors} errori`);
 
     // Rate limit tra batch
-    if (batchIdx + EMBEDDING_BATCH_SIZE < articles.length) {
+    if (batchIdx + EMBEDDING_BATCH_SIZE < articlesToProcess.length) {
       console.log("  [WAIT] Pausa 2s tra batch...");
       await sleep(2000);
     }
@@ -565,9 +682,12 @@ async function generateAndUpload(articles: LegalArticle[]): Promise<void> {
   console.log(`\n╔══════════════════════════════════════════════════╗`);
   console.log(`║  RISULTATO FINALE                                ║`);
   console.log(`╠══════════════════════════════════════════════════╣`);
-  console.log(`║  Articoli processati: ${articles.length.toString().padStart(5)}`);
-  console.log(`║  Inseriti/aggiornati: ${totalInserted.toString().padStart(5)}`);
-  console.log(`║  Errori:             ${totalErrors.toString().padStart(5)}`);
+  console.log(`║  Articoli scaricati:   ${articles.length.toString().padStart(5)}`);
+  console.log(`║  Invariati (skip):     ${totalSkipped.toString().padStart(5)}`);
+  console.log(`║  Modificati:           ${totalChanged.toString().padStart(5)}`);
+  console.log(`║  Nuovi:                ${(articlesToProcess.length - totalChanged).toString().padStart(5)}`);
+  console.log(`║  Inseriti/aggiornati:  ${totalInserted.toString().padStart(5)}`);
+  console.log(`║  Errori:               ${totalErrors.toString().padStart(5)}`);
   console.log(`╚══════════════════════════════════════════════════╝\n`);
 }
 
