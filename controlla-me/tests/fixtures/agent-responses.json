@@ -1,0 +1,157 @@
+{
+  "classifier": {
+    "documentType": "contratto_locazione_abitativa",
+    "documentTypeLabel": "Contratto di Locazione ad Uso Abitativo",
+    "parties": [
+      { "role": "locatore", "name": "Mario Rossi", "type": "persona_fisica" },
+      { "role": "conduttore", "name": "Luigi Bianchi", "type": "persona_fisica" }
+    ],
+    "jurisdiction": "Italia - Diritto Civile",
+    "applicableLaws": [
+      { "reference": "L. 431/1998", "name": "Disciplina locazioni abitative" },
+      { "reference": "Art. 1571-1614 c.c.", "name": "Codice Civile - Locazione" }
+    ],
+    "keyDates": [
+      { "date": "2025-04-01", "description": "Decorrenza contratto" },
+      { "date": "2029-03-31", "description": "Scadenza naturale" }
+    ],
+    "summary": "Contratto di locazione abitativa 4+4 con canone EUR 800/mese. Penale eccessiva per risoluzione anticipata (12 mensilità). Deposito cauzionale di 3 mensilità.",
+    "confidence": 0.95
+  },
+
+  "analyzer": {
+    "clauses": [
+      {
+        "id": "clause_1",
+        "title": "Penale eccessiva per risoluzione anticipata",
+        "originalText": "In caso di risoluzione anticipata da parte del Conduttore prima della scadenza naturale, questi dovrà corrispondere al Locatore una penale pari a 12 (dodici) mensilità del canone di locazione.",
+        "riskLevel": "high",
+        "issue": "Penale manifestamente sproporzionata rispetto al danno effettivo subito dal locatore",
+        "potentialViolation": "Art. 1384 c.c. - Riduzione della penale",
+        "marketStandard": "Standard di mercato: penale di 2-3 mensilità",
+        "recommendation": "Negoziare riduzione della penale a 2-3 mensilità. Un giudice potrebbe comunque ridurla d'ufficio."
+      },
+      {
+        "id": "clause_2",
+        "title": "Trattenimento integrale deposito cauzionale",
+        "originalText": "Il deposito cauzionale verrà trattenuto integralmente a titolo di risarcimento.",
+        "riskLevel": "critical",
+        "issue": "Il trattenimento automatico del deposito cauzionale è illegittimo senza verifica dei danni effettivi",
+        "potentialViolation": "Art. 11 L. 392/1978 e Art. 1385 c.c.",
+        "marketStandard": "Il deposito va restituito dedotte solo le somme per danni documentati",
+        "recommendation": "Eliminare la clausola di trattenimento automatico. Il deposito è a garanzia, non a titolo di penale."
+      }
+    ],
+    "missingElements": [
+      {
+        "element": "Clausola di recesso per giusta causa",
+        "importance": "high",
+        "explanation": "Il contratto non prevede la possibilità di recesso anticipato per giusta causa (trasferimento lavoro, motivi di salute)."
+      }
+    ],
+    "overallRisk": "high",
+    "positiveAspects": [
+      "Durata conforme alla L. 431/1998 (4+4)",
+      "Canone nella media per la zona",
+      "Ripartizione spese chiara"
+    ]
+  },
+
+  "investigator": {
+    "findings": [
+      {
+        "clauseId": "clause_1",
+        "laws": [
+          {
+            "reference": "Art. 1384 c.c.",
+            "fullText": "La penale può essere diminuita equamente dal giudice, se l'obbligazione principale è stata eseguita in parte ovvero se l'ammontare della penale è manifestamente eccessivo, avuto sempre riguardo all'interesse che il creditore aveva all'adempimento.",
+            "sourceUrl": "https://www.brocardi.it/codice-civile/libro-quarto/titolo-i/capo-v/sezione-iii/art1384.html",
+            "isInForce": true,
+            "lastModified": null
+          }
+        ],
+        "courtCases": [
+          {
+            "reference": "Cass. Civ. Sez. III, n. 4258/2023",
+            "court": "Corte di Cassazione",
+            "date": "2023-02-13",
+            "summary": "La Cassazione ha ribadito che la penale manifestamente eccessiva può essere ridotta equamente dal giudice, anche d'ufficio.",
+            "relevance": "Conferma il potere del giudice di ridurre la penale eccessiva nei contratti di locazione",
+            "sourceUrl": "https://www.italgiure.giustizia.it/"
+          }
+        ],
+        "legalOpinion": "Orientamento consolidato della giurisprudenza a favore della riduzione della penale eccessiva. Una penale di 12 mensilità per recesso anticipato da locazione abitativa è con alta probabilità riducibile giudizialmente."
+      },
+      {
+        "clauseId": "clause_2",
+        "laws": [
+          {
+            "reference": "Art. 11 L. 392/1978",
+            "fullText": "Il deposito cauzionale non può essere superiore a tre mensilità del canone. Esso è produttivo di interessi legali che debbono essere corrisposti al conduttore alla fine di ogni anno.",
+            "sourceUrl": "https://www.brocardi.it/legge-sull-equo-canone/titolo-i/capo-i/art11.html",
+            "isInForce": true,
+            "lastModified": null
+          }
+        ],
+        "courtCases": [
+          {
+            "reference": "Cass. Civ. Sez. III, n. 17245/2019",
+            "court": "Corte di Cassazione",
+            "date": "2019-06-27",
+            "summary": "Il deposito cauzionale ha funzione di garanzia e non può essere trattenuto automaticamente senza prova dei danni.",
+            "relevance": "Il locatore deve provare i danni prima di trattenere il deposito",
+            "sourceUrl": "https://www.italgiure.giustizia.it/"
+          }
+        ],
+        "legalOpinion": "La clausola di trattenimento automatico del deposito è con alta probabilità nulla. Il deposito cauzionale ha funzione esclusivamente di garanzia."
+      }
+    ]
+  },
+
+  "advisor": {
+    "fairnessScore": 5.5,
+    "summary": "Questo contratto ha due problemi seri: la penale per andartene prima è esagerata (12 mesi di affitto!) e il padrone di casa si tiene il deposito se te ne vai. Il resto è nella norma.",
+    "risks": [
+      {
+        "severity": "alta",
+        "title": "Penale esagerata se te ne vai prima",
+        "detail": "Se devi andartene prima della scadenza, ti chiedono 12 mesi di affitto come penale. È troppo: di solito sono 2-3 mesi. Un giudice te la ridurrebbe quasi sicuramente.",
+        "legalBasis": "Art. 1384 c.c.",
+        "courtCase": "Cass. Civ. n. 4258/2023"
+      },
+      {
+        "severity": "alta",
+        "title": "Si tengono il deposito automaticamente",
+        "detail": "C'è scritto che se te ne vai prima, il padrone di casa si tiene tutto il deposito (2.400 EUR) senza dover dimostrare danni. Questo è illegale.",
+        "legalBasis": "Art. 11 L. 392/1978",
+        "courtCase": "Cass. Civ. n. 17245/2019"
+      }
+    ],
+    "deadlines": [
+      {
+        "date": "30 Settembre 2028",
+        "action": "Ultimo giorno per inviare disdetta con 6 mesi di preavviso prima della scadenza del 31/03/2029"
+      }
+    ],
+    "actions": [
+      {
+        "priority": 1,
+        "action": "Chiedi di togliere il trattenimento automatico del deposito",
+        "rationale": "È illegale. Il deposito è tuo e ti va restituito, meno eventuali danni provati."
+      },
+      {
+        "priority": 2,
+        "action": "Negozia la penale da 12 a 2-3 mesi",
+        "rationale": "12 mesi è sproporzionato. Lo standard è 2-3 mesi e i giudici la ridurrebbero comunque."
+      },
+      {
+        "priority": 3,
+        "action": "Aggiungi il recesso per giusta causa",
+        "rationale": "Se ti trasferiscono per lavoro o hai problemi di salute, devi poter uscire senza penale."
+      }
+    ],
+    "needsLawyer": true,
+    "lawyerSpecialization": "Diritto immobiliare / locazioni",
+    "lawyerReason": "Due clausole potenzialmente nulle. Un avvocato può negoziare la rimozione prima della firma, o contestarle dopo."
+  }
+}

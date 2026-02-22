@@ -1,0 +1,48 @@
+{
+  "project": "controlla.me",
+  "description": "AI Legal Document Analysis — Classifier → Analyzer → Investigator → Advisor",
+  "test_command": "npm test",
+  "lint_command": "npm run lint",
+  "typecheck_command": "npm run typecheck",
+  "coverage_command": "npm run test:coverage",
+  "build_command": "npm run build",
+  "source_dirs": ["lib/agents", "lib/prompts", "lib", "app/api", "components"],
+  "test_dirs": ["tests/unit", "tests/integration", "tests/e2e"],
+  "fixtures_dir": "tests/fixtures",
+  "docs_dir": "docs",
+  "coverage_threshold": 80,
+  "max_files_per_fix": 3,
+  "max_iterations": 5,
+  "critical_modules": [
+    {"path": "lib/agents/orchestrator.ts", "reason": "Coordina 4 agenti"},
+    {"path": "lib/agents/investigator.ts", "reason": "Unico con web_search"},
+    {"path": "lib/agents/analyzer.ts", "reason": "Core: identifica rischi legali"},
+    {"path": "lib/extract-text.ts", "reason": "Entry point estrazione"},
+    {"path": "app/api/analyze/route.ts", "reason": "Endpoint SSE principale"}
+  ],
+  "mock_rules": [
+    "Mock Claude API con fixture JSON",
+    "Mock Supabase client",
+    "Mock Stripe webhook",
+    "Mock web search Agent 3 con fixture sentenze",
+    "Fixture PDF in tests/fixtures/"
+  ],
+  "beauty": {
+    "design_system": "../okmom-design/tailwind-preset.ts",
+    "palette": {
+      "background": "#FFFFFF",
+      "background_secondary": "#F8F8FA",
+      "foreground": "#1A1A1A",
+      "foreground_secondary": "#6B6B6B",
+      "primary": "#FF6B35",
+      "success": "#22C55E",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "border": "#E5E5E5"
+    },
+    "fonts": {"heading": "DM Sans", "body": "DM Sans", "accent": "Instrument Serif"},
+    "spacing_scale": [0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96],
+    "border_radius": "8px",
+    "breakpoints": {"sm": "640px", "md": "768px", "lg": "1024px", "xl": "1280px", "2xl": "1440px"}
+  }
+}
