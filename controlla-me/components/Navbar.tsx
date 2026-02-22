@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Come funziona", href: "/#mission", sectionId: "mission" },
   { label: "Il Team", href: "/#team", sectionId: "team" },
   { label: "Casi d'uso", href: "/#use-cases", sectionId: "use-cases" },
+  { label: "Corpus", href: "/corpus", sectionId: null },
   { label: "Prezzi", href: "/pricing", sectionId: null },
 ];
 
