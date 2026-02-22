@@ -19,9 +19,18 @@ export interface KeyDate {
 export interface ClassificationResult {
   documentType: string;
   documentTypeLabel: string;
+  /** Sotto-tipo specifico: "vendita_a_corpo", "locazione_4+4", "appalto_privato", etc. */
+  documentSubType: string | null;
   parties: Party[];
   jurisdiction: string;
   applicableLaws: ApplicableLaw[];
+  /** Istituti giuridici rilevanti identificati nel documento.
+   * Es: ["vendita_a_corpo", "caparra_confirmatoria", "fideiussione_122_2005"]
+   * Serve per guidare l'Analyzer e per query al vector DB. */
+  relevantInstitutes: string[];
+  /** Aree di focus legale per guidare l'Analyzer.
+   * Es: ["diritto_immobiliare", "tutela_acquirente_immobili_da_costruire", "diritto_urbanistico"] */
+  legalFocusAreas: string[];
   keyDates: KeyDate[];
   summary: string;
   confidence: number;
@@ -98,8 +107,22 @@ export interface Action {
   rationale: string;
 }
 
+/** Scoring multidimensionale — ogni dimensione è 1-10. */
+export interface MultiDimensionalScore {
+  /** Equità complessiva tra le parti (il vecchio fairnessScore) */
+  contractEquity: number;
+  /** Coerenza interna tra le clausole del documento */
+  legalCoherence: number;
+  /** Aderenza alla prassi reale e praticità delle clausole */
+  practicalCompliance: number;
+  /** Copertura delle situazioni tipiche della materia */
+  completeness: number;
+}
+
 export interface AdvisorResult {
   fairnessScore: number;
+  /** Scoring dettagliato su 4 dimensioni */
+  scores: MultiDimensionalScore | null;
   summary: string;
   risks: Risk[];
   deadlines: Deadline[];
