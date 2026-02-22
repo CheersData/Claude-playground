@@ -35,7 +35,7 @@ const steps = [
   {
     icon: BookOpen,
     label: "Classificazione",
-    desc: "Leo cataloga il tipo di documento e le parti coinvolte",
+    desc: "Read cataloga il tipo di documento e le parti coinvolte",
     color: agents[0].color,
     duration: "~5s",
     image: "/images/confidential-docs.png",
@@ -43,7 +43,7 @@ const steps = [
   {
     icon: Eye,
     label: "Analisi",
-    desc: "Marta trova le clausole rischiose e gli squilibri",
+    desc: "Understand trova le clausole rischiose e gli squilibri",
     color: agents[1].color,
     duration: "~10s",
     image: "/images/clause-analysis.png",
@@ -51,7 +51,7 @@ const steps = [
   {
     icon: Scale,
     label: "Verifica legale",
-    desc: "Giulia cerca norme, sentenze e precedenti",
+    desc: "Investigate cerca norme, sentenze e precedenti",
     color: agents[2].color,
     duration: "~10s",
     image: "/images/law-references.png",
@@ -59,7 +59,7 @@ const steps = [
   {
     icon: MessageCircle,
     label: "Consiglio",
-    desc: "Enzo ti spiega tutto e ti dice cosa fare",
+    desc: "Advisor ti spiega tutto e ti dice cosa fare",
     color: agents[3].color,
     duration: "~5s",
     image: "/images/checklist-results.png",
