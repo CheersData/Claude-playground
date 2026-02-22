@@ -9,7 +9,6 @@ import MissionSection from "@/components/MissionSection";
 import TeamSection from "@/components/TeamSection";
 import UseCasesSection from "@/components/UseCasesSection";
 import VideoShowcase from "@/components/VideoShowcase";
-import TestimonialsSection from "@/components/TestimonialsSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import AnalysisProgress from "@/components/AnalysisProgress";
@@ -28,7 +27,7 @@ interface UsageInfo {
   canAnalyze: boolean;
 }
 
-const leo = agents[0];
+const read = agents[0];
 
 export default function Home() {
   const [view, setView] = useState<AppView>("landing");
@@ -225,13 +224,7 @@ export default function Home() {
           {/* Divider */}
           <div className="section-divider" />
 
-          {/* 6. TESTIMONIANZE — scrolling cards */}
-          <TestimonialsSection />
-
-          {/* Divider */}
-          <div className="section-divider" />
-
-          {/* 7. UPLOAD SECTION — Leo's zone */}
+          {/* 7. UPLOAD SECTION — Read's zone */}
           <div id="upload-section" className="relative z-10 px-6 pb-16">
             <div className="max-w-[700px] mx-auto">
               <motion.div
@@ -244,36 +237,36 @@ export default function Home() {
                 {/* Background effects */}
                 <div
                   className="absolute inset-0 pointer-events-none"
-                  style={{ background: `radial-gradient(ellipse at 20% 20%, ${leo.color}08, transparent 60%)` }}
+                  style={{ background: `radial-gradient(ellipse at 20% 20%, ${read.color}08, transparent 60%)` }}
                 />
                 <div
                   className="absolute left-0 top-0 bottom-0 w-[3px]"
-                  style={{ background: `linear-gradient(to bottom, ${leo.color}80, ${leo.color}20, transparent)` }}
+                  style={{ background: `linear-gradient(to bottom, ${read.color}80, ${read.color}20, transparent)` }}
                 />
                 <div
                   className="absolute top-0 left-0 right-0 h-[2px]"
-                  style={{ background: `linear-gradient(90deg, transparent, ${leo.color}50, transparent)` }}
+                  style={{ background: `linear-gradient(90deg, transparent, ${read.color}50, transparent)` }}
                 />
 
                 <div className="relative p-8 md:p-10">
-                  {/* Leo's intro */}
+                  {/* Read's intro */}
                   <div className="flex items-start gap-5 mb-6">
                     <div className="shrink-0">
-                      <AgentAvatar variant="catalogatore" color={leo.color} size="xl" />
+                      <AgentAvatar variant="catalogatore" color={read.color} size="xl" />
                     </div>
                     <div className="flex-1 pt-2">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-2xl font-bold">{leo.name}</h3>
+                        <h3 className="text-2xl font-bold">{read.name}</h3>
                         <span
                           className="text-[10px] font-bold tracking-[2px] uppercase px-3 py-1 rounded-full"
-                          style={{ color: leo.color, background: `${leo.color}15`, border: `1px solid ${leo.color}25` }}
+                          style={{ color: read.color, background: `${read.color}15`, border: `1px solid ${read.color}25` }}
                         >
-                          {leo.role}
+                          {read.role}
                         </span>
                       </div>
                       <div className="relative bg-background-secondary border border-border rounded-2xl rounded-tl-sm p-4">
                         <p className="text-base text-foreground-secondary leading-relaxed">
-                          Piacere, sono <strong style={{ color: leo.color }}>Leo</strong>.
+                          Piacere, sono <strong style={{ color: read.color }}>Read</strong>.
                           Passami il documento e ci pensiamo noi quattro.
                           <br />
                           <span className="text-foreground-tertiary text-sm">
@@ -309,11 +302,11 @@ export default function Home() {
                       onChange={handleFileChange}
                     />
                     <div className="flex flex-col items-center gap-4 px-8 py-10">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${leo.color}15` }}>
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${read.color}15` }}>
                         {dragOver ? (
-                          <FileText className="w-6 h-6" style={{ color: leo.color }} />
+                          <FileText className="w-6 h-6" style={{ color: read.color }} />
                         ) : (
-                          <Upload className="w-6 h-6" style={{ color: leo.color }} />
+                          <Upload className="w-6 h-6" style={{ color: read.color }} />
                         )}
                       </div>
                       <div className="text-center">
@@ -323,8 +316,8 @@ export default function Home() {
                       <button
                         className="mt-1 px-10 py-4 rounded-full text-base font-bold text-white hover:-translate-y-0.5 transition-all"
                         style={{
-                          background: `linear-gradient(135deg, ${leo.color}, ${leo.color}CC)`,
-                          boxShadow: `0 12px 40px ${leo.color}30`,
+                          background: `linear-gradient(135deg, ${read.color}, ${read.color}CC)`,
+                          boxShadow: `0 12px 40px ${read.color}30`,
                         }}
                         onClick={(e) => {
                           e.stopPropagation();

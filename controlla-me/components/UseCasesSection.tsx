@@ -11,7 +11,7 @@ const useCases = [
     title: "Contratto d'affitto",
     color: "#4ECDC4",
     risks: ["Clausola di recesso solo per il locatore", "Penale nascosta per disdetta anticipata", "Spese straordinarie a carico dell'inquilino"],
-    quote: "Giulia ha trovato 3 clausole vessatorie. Non avrei mai firmato.",
+    quote: "Investigate ha trovato 3 clausole vessatorie. Non avrei mai firmato.",
     user: "Marco R., Milano",
   },
   {
@@ -19,7 +19,7 @@ const useCases = [
     title: "Contratto di lavoro",
     color: "#FF6B6B",
     risks: ["Patto di non concorrenza eccessivo", "Straordinari non retribuiti", "Clausola di trasferimento unilaterale"],
-    quote: "Ho rinegoziato 2 clausole prima di firmare. Grazie Marta!",
+    quote: "Ho rinegoziato 2 clausole prima di firmare. Grazie Understand!",
     user: "Sofia L., Roma",
   },
   {
@@ -51,7 +51,7 @@ const useCases = [
     title: "Preliminare di vendita",
     color: "#22D3EE",
     risks: ["Caparra confirmatoria vs penitenziale", "Clausola risolutiva espressa", "Mancata menzione di vincoli urbanistici"],
-    quote: "Enzo mi ha spiegato la differenza tra le caparre. Mi ha salvato.",
+    quote: "Advisor mi ha spiegato la differenza tra le caparre. Mi ha salvato.",
     user: "Giulia T., Firenze",
   },
 ];
