@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
         const rawText = formData.get("text") as string | null;
         const resumeSessionId =
           (formData.get("sessionId") as string | null) || undefined;
+        const userContext =
+          (formData.get("userContext") as string | null) || undefined;
 
         let documentText: string;
 
@@ -115,7 +117,8 @@ export async function POST(req: NextRequest) {
               // noop — complete event is sent below after result is available
             },
           },
-          resumeSessionId
+          resumeSessionId,
+          userContext
         );
 
         // Send the complete event now that result is fully populated

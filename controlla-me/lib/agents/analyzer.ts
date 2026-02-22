@@ -4,8 +4,13 @@ import type { ClassificationResult, AnalysisResult } from "../types";
 
 export async function runAnalyzer(
   documentText: string,
-  classification: ClassificationResult
+  classification: ClassificationResult,
+  userContext?: string
 ): Promise<AnalysisResult> {
+  const contextBlock = userContext
+    ? `\nRICHIESTA DELL'UTENTE: "${userContext}"\nDai priorità a questa richiesta nell'analisi delle clausole e dei rischi.\n`
+    : "";
+
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 8192,
@@ -14,7 +19,7 @@ export async function runAnalyzer(
       {
         role: "user",
         content: `CLASSIFICAZIONE: ${JSON.stringify(classification)}
-
+${contextBlock}
 DOCUMENTO:
 ${documentText}
 
