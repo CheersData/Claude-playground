@@ -126,7 +126,7 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-10 py-4 transition-all duration-300 ${
           scrolled
-            ? "bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-white/[0.06] py-3"
+            ? "bg-[#FAFAFA]/90 backdrop-blur-xl border-b border-gray-200 py-3 shadow-sm"
             : "bg-transparent border-b border-transparent py-5"
         }`}
       >
@@ -136,7 +136,7 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
           onClick={handleLogoClick}
           className="flex items-baseline gap-0.5 group"
         >
-          <span className="font-serif text-[28px] text-white italic group-hover:text-white/80 transition-colors">
+          <span className="font-serif text-[28px] text-[#1A1A2E] italic group-hover:text-[#1A1A2E]/80 transition-colors">
             controlla
           </span>
           <span className="font-serif text-[28px] text-accent group-hover:text-accent/80 transition-colors">
@@ -155,8 +155,8 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
                 onClick={(e) => handleNavClick(e, link)}
                 className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   active
-                    ? "text-white"
-                    : "text-white/40 hover:text-white/80"
+                    ? "text-[#1A1A2E]"
+                    : "text-gray-400 hover:text-gray-700"
                 }`}
               >
                 {link.label}
@@ -185,16 +185,16 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.1]"
+          className="md:hidden w-11 h-11 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200"
           onClick={(e) => {
             e.stopPropagation();
             setMobileOpen(!mobileOpen);
           }}
         >
           {mobileOpen ? (
-            <X className="w-5 h-5 text-white/70" />
+            <X className="w-5 h-5 text-gray-600" />
           ) : (
-            <Menu className="w-5 h-5 text-white/70" />
+            <Menu className="w-5 h-5 text-gray-600" />
           )}
         </button>
 
@@ -207,7 +207,7 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-full left-0 right-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/[0.06] px-6 py-6 md:hidden"
+              className="absolute top-full left-0 right-0 bg-[#FAFAFA]/95 backdrop-blur-xl border-b border-gray-200 shadow-lg px-6 py-6 md:hidden"
             >
               <div className="flex flex-col gap-1">
                 {navLinks.map((link) => {
@@ -219,8 +219,8 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
                       onClick={(e) => handleNavClick(e, link)}
                       className={`px-4 py-3 rounded-xl text-base transition-all ${
                         active
-                          ? "bg-accent/10 text-white font-semibold"
-                          : "text-white/60 hover:bg-white/[0.05] hover:text-white"
+                          ? "bg-accent/10 text-[#1A1A2E] font-semibold"
+                          : "text-gray-500 hover:bg-gray-100 hover:text-[#1A1A2E]"
                       }`}
                     >
                       <span className="flex items-center gap-3">
@@ -253,10 +253,10 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 w-11 h-11 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.1] flex items-center justify-center hover:bg-white/[0.15] hover:border-white/[0.2] transition-all group"
+            className="fixed bottom-8 right-8 z-50 w-11 h-11 rounded-full bg-white backdrop-blur-md border border-gray-200 shadow-md flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all group"
             aria-label="Torna su"
           >
-            <ChevronUp className="w-5 h-5 text-white/50 group-hover:text-white/80 transition-colors" />
+            <ChevronUp className="w-5 h-5 text-gray-400 group-hover:text-gray-700 transition-colors" />
           </motion.button>
         )}
       </AnimatePresence>

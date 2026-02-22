@@ -63,12 +63,12 @@ export default function HeroSection({
           className="absolute inset-0"
           style={{
             background: [
-              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.65) 60%, rgba(10,10,10,0.45) 100%)",
+              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(250,250,250,0.88) 0%, rgba(250,250,250,0.65) 60%, rgba(250,250,250,0.45) 100%)",
             ].join(", "),
           }}
         />
         {/* Bottom fade to seamless section transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#0a0a0a] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#FAFAFA] to-transparent" />
       </div>
 
       {/* ═══ Layer 1: Animated gradient glow (on top of image) ═══ */}
@@ -124,7 +124,7 @@ export default function HeroSection({
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-accent/25 backdrop-blur-sm mb-8 text-sm text-white/70 font-medium"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-accent/25 mb-8 text-sm text-gray-600 font-medium"
         >
           <Shield className="w-4 h-4 text-accent" />
           4 agenti AI · Risultati in 30 secondi
@@ -150,7 +150,7 @@ export default function HeroSection({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="text-lg md:text-xl leading-relaxed text-white/50 max-w-[520px] mb-10"
+          className="text-lg md:text-xl leading-relaxed text-gray-500 max-w-[520px] mb-10"
           style={{ textShadow: "0 2px 20px rgba(0,0,0,0.5)" }}
         >
           Carica un contratto, una bolletta, qualsiasi documento legale.
@@ -173,8 +173,8 @@ export default function HeroSection({
           <div
             className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
               dragOver
-                ? "border-accent/70 bg-black/60 scale-[1.02] shadow-[0_0_80px_rgba(255,107,53,0.2)]"
-                : "border-white/[0.15] bg-black/50 backdrop-blur-xl hover:border-accent/40 hover:shadow-[0_0_60px_rgba(255,107,53,0.1)]"
+                ? "border-accent/70 bg-white/80 backdrop-blur-sm scale-[1.02] shadow-[0_0_80px_rgba(255,107,53,0.2)]"
+                : "border-gray-300 bg-white/80 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_60px_rgba(255,107,53,0.1)]"
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -209,7 +209,7 @@ export default function HeroSection({
               </motion.div>
 
               {/* Text */}
-              <p className="text-sm text-white/40">
+              <p className="text-sm text-gray-500">
                 {dragOver ? "Rilascia per analizzare" : "Trascina qui il tuo documento oppure"}
               </p>
 
@@ -233,7 +233,7 @@ export default function HeroSection({
               </button>
 
               {/* Formats */}
-              <p className="text-xs text-white/25 tracking-wide">
+              <p className="text-xs text-gray-300 tracking-wide">
                 PDF · Word · Immagini · TXT · max 20MB
               </p>
             </div>
@@ -245,7 +245,7 @@ export default function HeroSection({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="flex gap-6 flex-wrap justify-center mt-8 text-white/35 text-xs"
+          className="flex gap-6 flex-wrap justify-center mt-8 text-gray-400 text-xs"
         >
           <span className="flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" /> Dati protetti
@@ -263,7 +263,7 @@ export default function HeroSection({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-12 flex flex-col items-center gap-2 text-white/20"
+          className="mt-12 flex flex-col items-center gap-2 text-gray-300"
         >
           <span className="text-[10px] tracking-[2px] uppercase">Scopri come funziona</span>
           <motion.div

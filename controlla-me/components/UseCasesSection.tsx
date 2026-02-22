@@ -79,7 +79,7 @@ export default function UseCasesSection() {
               tra le mani?
             </span>
           </h2>
-          <p className="text-base text-white/40 max-w-[520px] mx-auto">
+          <p className="text-base text-gray-500 max-w-[520px] mx-auto">
             Ogni giorno analizziamo contratti, bollette, polizze e documenti legali.
             Ecco cosa troviamo.
           </p>
@@ -98,24 +98,24 @@ export default function UseCasesSection() {
                 onClick={() => setActive(i)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all whitespace-nowrap md:whitespace-normal shrink-0 md:shrink ${
                   active === i
-                    ? "bg-white/[0.06] border border-white/[0.12]"
-                    : "hover:bg-white/[0.03] border border-transparent"
+                    ? "bg-gray-100 border border-gray-300"
+                    : "hover:bg-gray-50 border border-transparent"
                 }`}
               >
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all"
                   style={{
-                    background: active === i ? `${uc.color}20` : "rgba(255,255,255,0.04)",
+                    background: active === i ? `${uc.color}20` : "rgba(0,0,0,0.03)",
                   }}
                 >
                   <uc.icon
                     className="w-4 h-4 transition-colors"
-                    style={{ color: active === i ? uc.color : "rgba(255,255,255,0.3)" }}
+                    style={{ color: active === i ? uc.color : "rgba(26,26,46,0.4)" }}
                   />
                 </div>
                 <span
                   className={`text-sm font-medium transition-colors ${
-                    active === i ? "text-white" : "text-white/40"
+                    active === i ? "text-[#1A1A2E]" : "text-gray-400"
                   }`}
                 >
                   {uc.title}
@@ -132,7 +132,7 @@ export default function UseCasesSection() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
               transition={{ duration: 0.35 }}
-              className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.02]"
+              className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
             >
               {/* Top glow */}
               <div
@@ -160,7 +160,7 @@ export default function UseCasesSection() {
                   quality={90}
                   sizes="(max-width: 768px) 100vw, 700px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA]/40 to-transparent" />
                 <div
                   className="absolute inset-0"
                   style={{
@@ -180,7 +180,7 @@ export default function UseCasesSection() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold">{current.title}</h3>
-                    <p className="text-xs text-white/30">Rischi comuni trovati dai nostri agenti</p>
+                    <p className="text-xs text-gray-300">Rischi comuni trovati dai nostri agenti</p>
                   </div>
                 </div>
 
@@ -192,7 +192,7 @@ export default function UseCasesSection() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + j * 0.08 }}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]"
+                      className="flex items-start gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-200"
                     >
                       <div
                         className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
@@ -202,7 +202,7 @@ export default function UseCasesSection() {
                           <path d="M6 2v4M6 8.5v.5" stroke={current.color} strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </div>
-                      <span className="text-sm text-white/60">{risk}</span>
+                      <span className="text-sm text-gray-600">{risk}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -212,12 +212,12 @@ export default function UseCasesSection() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="border-t border-white/[0.06] pt-6"
+                  className="border-t border-gray-200 pt-6"
                 >
-                  <p className="font-serif italic text-white/50 text-base mb-2">
+                  <p className="font-serif italic text-gray-500 text-base mb-2">
                     &ldquo;{current.quote}&rdquo;
                   </p>
-                  <p className="text-xs text-white/25">— {current.user}</p>
+                  <p className="text-xs text-gray-300">— {current.user}</p>
                 </motion.div>
               </div>
             </motion.div>
