@@ -49,13 +49,13 @@ export default function LawyerCTA({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-green-950/30 border border-green-500/20 rounded-2xl p-6 mb-5 text-center"
+        className="bg-green-50 border border-green-500/20 rounded-2xl p-6 mb-5 text-center"
       >
         <Check className="w-10 h-10 text-green-400 mx-auto mb-3" />
         <h3 className="text-lg font-bold text-green-400 mb-2">
           Richiesta inviata
         </h3>
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-gray-500">
           Ti contatteremo entro 24 ore con un avvocato specializzato in{" "}
           <strong>{specialization}</strong> nella tua zona.
         </p>
@@ -78,7 +78,7 @@ export default function LawyerCTA({
           <h3 className="text-base font-bold mb-1">
             Questo documento ha problemi che un avvocato puo risolvere
           </h3>
-          <p className="text-sm text-white/55">{reason}</p>
+          <p className="text-sm text-gray-500">{reason}</p>
           <p className="text-xs text-accent/70 mt-1">
             Specializzazione consigliata: {specialization}
           </p>
@@ -108,54 +108,59 @@ export default function LawyerCTA({
               <input
                 type="text"
                 placeholder="Nome e cognome"
+                aria-label="Nome e cognome"
                 required
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-accent/40"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
               <input
                 type="email"
                 placeholder="Email"
+                aria-label="Email"
                 required
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-accent/40"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <input
                 type="tel"
                 placeholder="Telefono"
+                aria-label="Telefono"
                 required
                 value={formData.phone}
                 onChange={(e) =>
                   setFormData({ ...formData, phone: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-accent/40"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
               <input
                 type="text"
                 placeholder="Regione"
+                aria-label="Regione"
                 required
                 value={formData.region}
                 onChange={(e) =>
                   setFormData({ ...formData, region: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-accent/40"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
             </div>
             <textarea
               placeholder="Breve descrizione del problema..."
+              aria-label="Descrizione del problema"
               rows={3}
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-accent/40 resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1 resize-none"
             />
             <button
               type="submit"

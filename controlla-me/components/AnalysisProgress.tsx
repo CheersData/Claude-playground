@@ -58,7 +58,7 @@ function ProgressRing({ progress, size = 160, stroke = 4 }: { progress: number; 
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="rgba(255,255,255,0.06)"
+        stroke="rgba(0,0,0,0.06)"
         strokeWidth={stroke}
       />
       {/* Progress arc */}
@@ -201,17 +201,17 @@ function ClassifierIllustration() {
         {/* Page shadow */}
         <rect x="8" y="6" width="64" height="88" rx="4" fill="rgba(255,107,53,0.12)" />
         {/* Page */}
-        <rect x="4" y="2" width="64" height="88" rx="4" fill="rgba(255,255,255,0.1)" stroke="#FF6B35" strokeWidth="1.5" />
+        <rect x="4" y="2" width="64" height="88" rx="4" fill="rgba(26,26,46,0.1)" stroke="#FF6B35" strokeWidth="1.5" />
         {/* Folded corner */}
         <path d="M52 2 L68 18 L52 18 Z" fill="rgba(255,107,53,0.35)" stroke="#FF6B35" strokeWidth="0.8" />
         {/* Text lines */}
-        <rect x="14" y="28" width="36" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
-        <rect x="14" y="36" width="28" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
-        <rect x="14" y="44" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
-        <rect x="14" y="52" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
-        <rect x="14" y="60" width="34" height="3" rx="1.5" fill="rgba(255,255,255,0.3)" />
-        <rect x="14" y="68" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
-        <rect x="14" y="76" width="38" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
+        <rect x="14" y="28" width="36" height="3" rx="1.5" fill="rgba(26,26,46,0.35)" />
+        <rect x="14" y="36" width="28" height="3" rx="1.5" fill="rgba(26,26,46,0.25)" />
+        <rect x="14" y="44" width="40" height="3" rx="1.5" fill="rgba(26,26,46,0.35)" />
+        <rect x="14" y="52" width="24" height="3" rx="1.5" fill="rgba(26,26,46,0.25)" />
+        <rect x="14" y="60" width="34" height="3" rx="1.5" fill="rgba(26,26,46,0.3)" />
+        <rect x="14" y="68" width="30" height="3" rx="1.5" fill="rgba(26,26,46,0.2)" />
+        <rect x="14" y="76" width="38" height="3" rx="1.5" fill="rgba(26,26,46,0.25)" />
       </svg>
       {/* Scanning line */}
       <div
@@ -231,14 +231,14 @@ function AnalyzerIllustration() {
     <div className="relative w-32 h-32 flex items-center justify-center">
       {/* Text block behind */}
       <svg viewBox="0 0 90 90" className="w-28 h-28 opacity-70">
-        <rect x="10" y="15" width="50" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
-        <rect x="10" y="23" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
-        <rect x="10" y="31" width="55" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
-        <rect x="10" y="39" width="35" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
-        <rect x="10" y="47" width="48" height="3" rx="1.5" fill="rgba(255,255,255,0.3)" />
-        <rect x="10" y="55" width="30" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
-        <rect x="10" y="63" width="44" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
-        <rect x="10" y="71" width="52" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+        <rect x="10" y="15" width="50" height="3" rx="1.5" fill="rgba(26,26,46,0.35)" />
+        <rect x="10" y="23" width="40" height="3" rx="1.5" fill="rgba(26,26,46,0.25)" />
+        <rect x="10" y="31" width="55" height="3" rx="1.5" fill="rgba(26,26,46,0.35)" />
+        <rect x="10" y="39" width="35" height="3" rx="1.5" fill="rgba(26,26,46,0.2)" />
+        <rect x="10" y="47" width="48" height="3" rx="1.5" fill="rgba(26,26,46,0.3)" />
+        <rect x="10" y="55" width="30" height="3" rx="1.5" fill="rgba(26,26,46,0.2)" />
+        <rect x="10" y="63" width="44" height="3" rx="1.5" fill="rgba(26,26,46,0.25)" />
+        <rect x="10" y="71" width="52" height="3" rx="1.5" fill="rgba(26,26,46,0.2)" />
         {/* Highlight on risky lines */}
         <rect x="8" y="29" width="58" height="9" rx="2" fill="rgba(255,107,53,0.2)" stroke="rgba(255,107,53,0.3)" strokeWidth="0.5" />
         <rect x="8" y="45" width="52" height="9" rx="2" fill="rgba(255,60,60,0.2)" stroke="rgba(255,60,60,0.3)" strokeWidth="0.5" />
@@ -256,7 +256,7 @@ function AnalyzerIllustration() {
           {/* Lens */}
           <circle cx="20" cy="20" r="11" fill="rgba(255,107,53,0.08)" stroke="#FF6B35" strokeWidth="2.5" />
           {/* Lens reflection */}
-          <ellipse cx="16" cy="16" rx="4" ry="3" fill="rgba(255,255,255,0.15)" transform="rotate(-20 16 16)" />
+          <ellipse cx="16" cy="16" rx="4" ry="3" fill="rgba(26,26,46,0.15)" transform="rotate(-20 16 16)" />
           {/* Handle */}
           <line x1="28" y1="28" x2="40" y2="40" stroke="#FF6B35" strokeWidth="3.5" strokeLinecap="round" />
         </svg>
@@ -270,18 +270,18 @@ function InvestigatorIllustration() {
     <div className="relative w-32 h-32 flex items-center justify-center">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         {/* Pillar */}
-        <rect x="46" y="10" width="8" height="50" rx="2" fill="rgba(255,255,255,0.15)" />
+        <rect x="46" y="10" width="8" height="50" rx="2" fill="rgba(26,26,46,0.15)" />
         {/* Top triangle */}
         <polygon points="50,6 40,18 60,18" fill="rgba(255,107,53,0.4)" stroke="#FF6B35" strokeWidth="1" />
         {/* Balance beam */}
         <g style={{ transformOrigin: "50px 20px", animation: "scale-swing 3s ease-in-out infinite" }}>
           <line x1="18" y1="20" x2="82" y2="20" stroke="#FF6B35" strokeWidth="2.5" strokeLinecap="round" />
           {/* Left chain */}
-          <line x1="22" y1="20" x2="22" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
-          <line x1="14" y1="20" x2="14" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
+          <line x1="22" y1="20" x2="22" y2="42" stroke="rgba(26,26,46,0.3)" strokeWidth="1.2" />
+          <line x1="14" y1="20" x2="14" y2="42" stroke="rgba(26,26,46,0.3)" strokeWidth="1.2" />
           {/* Right chain */}
-          <line x1="78" y1="20" x2="78" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
-          <line x1="86" y1="20" x2="86" y2="42" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" />
+          <line x1="78" y1="20" x2="78" y2="42" stroke="rgba(26,26,46,0.3)" strokeWidth="1.2" />
+          <line x1="86" y1="20" x2="86" y2="42" stroke="rgba(26,26,46,0.3)" strokeWidth="1.2" />
           {/* Left pan */}
           <g style={{ transformOrigin: "18px 44px", animation: "pan-left 3s ease-in-out infinite" }}>
             <ellipse cx="18" cy="44" rx="16" ry="4" fill="rgba(255,107,53,0.3)" stroke="#FF6B35" strokeWidth="1" />
@@ -296,7 +296,7 @@ function InvestigatorIllustration() {
           </g>
         </g>
         {/* Base */}
-        <rect x="34" y="60" width="32" height="4" rx="2" fill="rgba(255,255,255,0.12)" />
+        <rect x="34" y="60" width="32" height="4" rx="2" fill="rgba(26,26,46,0.12)" />
         {/* Law references */}
         <text x="8" y="72" fontSize="5.5" fill="rgba(255,107,53,0.7)" fontFamily="monospace">Art. 1341</text>
         <text x="55" y="78" fontSize="5.5" fill="rgba(255,107,53,0.6)" fontFamily="monospace">D.Lgs 122</text>
@@ -341,7 +341,7 @@ function AdvisorIllustration() {
           {/* Filament */}
           <path d="M25 30 Q27 22 30 28 Q33 22 35 30" fill="none" stroke="#FFC832" strokeWidth="2" strokeLinecap="round" />
           {/* Bulb base */}
-          <rect x="24" y="44" width="12" height="8" rx="2" fill="rgba(255,255,255,0.15)" stroke="rgba(255,200,50,0.5)" strokeWidth="1.2" />
+          <rect x="24" y="44" width="12" height="8" rx="2" fill="rgba(26,26,46,0.15)" stroke="rgba(255,200,50,0.5)" strokeWidth="1.2" />
           <line x1="24" y1="47" x2="36" y2="47" stroke="rgba(255,200,50,0.4)" strokeWidth="1" />
           <line x1="24" y1="50" x2="36" y2="50" stroke="rgba(255,200,50,0.4)" strokeWidth="1" />
           {/* Connection to glass */}
@@ -453,10 +453,10 @@ export default function AnalysisProgress({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/[0.03] border border-white/[0.06] rounded-3xl p-10 md:p-12 max-w-[520px] w-full text-center"
+      className="bg-white shadow-sm border border-gray-200 rounded-3xl p-10 md:p-12 max-w-[520px] w-full text-center"
     >
-      <p className="text-sm text-white/35 mb-2">Analisi in corso</p>
-      <p className="text-base font-semibold text-white/70 mb-6 break-all">
+      <p className="text-sm text-gray-400 mb-2">Analisi in corso</p>
+      <p className="text-base font-semibold text-[#1A1A2E]/70 mb-6 break-all">
         {fileName}
       </p>
 
@@ -492,8 +492,8 @@ export default function AnalysisProgress({
         >
           {/* Elapsed time */}
           <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-white/30" />
-            <span className="text-xs text-white/40 font-mono tabular-nums">
+            <Clock className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-xs text-gray-500 font-mono tabular-nums">
               {formatTime(elapsed)}
             </span>
           </div>
@@ -508,11 +508,11 @@ export default function AnalysisProgress({
 
           {/* ETA */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-white/30">~</span>
-            <span className="text-xs text-white/40 font-mono tabular-nums">
+            <span className="text-xs text-gray-400">~</span>
+            <span className="text-xs text-gray-500 font-mono tabular-nums">
               {formatTime(remaining)}
             </span>
-            <span className="text-xs text-white/25">rimasti</span>
+            <span className="text-xs text-gray-400">rimasti</span>
           </div>
         </motion.div>
       )}
@@ -520,7 +520,7 @@ export default function AnalysisProgress({
       {/* Global progress bar */}
       {currentPhase && (
         <div className="mb-8 mx-2">
-          <div className="h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="h-[3px] rounded-full bg-gray-200 overflow-hidden">
             <motion.div
               className="h-full rounded-full"
               style={{
@@ -556,7 +556,7 @@ export default function AnalysisProgress({
                       ? "bg-green-500/10 border-green-500/20 text-green-400"
                       : isActive
                       ? "bg-accent/10 border-accent/30 text-accent"
-                      : "bg-white/[0.04] border-transparent text-white/30"
+                      : "bg-gray-100 border-gray-200 text-gray-400"
                   }`}
               >
                 {isDone ? (
@@ -574,8 +574,8 @@ export default function AnalysisProgress({
                     isDone
                       ? "font-normal text-green-400/80"
                       : isActive
-                      ? "font-semibold text-white"
-                      : "font-normal text-white/30"
+                      ? "font-semibold text-[#1A1A2E]"
+                      : "font-normal text-gray-400"
                   }`}
                 >
                   {isDone ? phase.doneLabel : phase.label}
@@ -585,7 +585,7 @@ export default function AnalysisProgress({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-1.5 h-[3px] rounded-full bg-white/[0.06] overflow-hidden"
+                    className="mt-1.5 h-[3px] rounded-full bg-gray-200 overflow-hidden"
                   >
                     <motion.div
                       className="h-full rounded-full bg-gradient-to-r from-accent to-amber-400"
@@ -624,7 +624,7 @@ export default function AnalysisProgress({
             {onReset && (
               <button
                 onClick={onReset}
-                className="px-8 py-3 rounded-full text-sm font-bold text-white/70 border border-white/10 hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all"
+                className="px-8 py-3 rounded-full text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 hover:-translate-y-0.5 transition-all"
               >
                 {sessionId ? "Ricomincia da capo" : "Riprova"}
               </button>
@@ -632,7 +632,7 @@ export default function AnalysisProgress({
           </div>
 
           {sessionId && (
-            <p className="text-xs text-white/20 mt-3">
+            <p className="text-xs text-gray-400 mt-3">
               Sessione salvata &middot; i passaggi completati non verranno ripetuti
             </p>
           )}

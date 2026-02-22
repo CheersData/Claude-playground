@@ -14,19 +14,19 @@ interface RiskCardProps {
 
 const severityStyles = {
   alta: {
-    bg: "bg-red-950/60",
+    bg: "bg-red-50",
     border: "border-red-500/40",
     text: "text-red-400",
     badge: "bg-red-950 border-red-500 text-red-400",
   },
   media: {
-    bg: "bg-amber-950/60",
+    bg: "bg-amber-50",
     border: "border-amber-500/40",
     text: "text-amber-400",
     badge: "bg-amber-950 border-amber-500 text-amber-400",
   },
   bassa: {
-    bg: "bg-green-950/60",
+    bg: "bg-green-50",
     border: "border-green-500/40",
     text: "text-green-400",
     badge: "bg-green-950 border-green-500 text-green-400",
@@ -42,7 +42,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.3 + index * 0.12 }}
-      className={`p-5 rounded-xl bg-white/[0.02] border border-white/[0.05]`}
+      className={`p-5 rounded-xl bg-white shadow-sm border border-gray-200`}
     >
       <div className="flex justify-between items-center mb-2">
         <span className="text-[15px] font-bold">{risk.title}</span>
@@ -53,12 +53,12 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
         </span>
       </div>
 
-      <p className="text-sm leading-relaxed text-white/55 mb-3">
+      <p className="text-sm leading-relaxed text-gray-500 mb-3">
         {risk.detail}
       </p>
 
       {(risk.legalBasis || risk.courtCase) && (
-        <div className="flex gap-3 flex-wrap text-xs text-white/30 mb-3">
+        <div className="flex gap-3 flex-wrap text-xs text-gray-300 mb-3">
           {risk.legalBasis && <span>{risk.legalBasis}</span>}
           {risk.courtCase && <span>{risk.courtCase}</span>}
         </div>
@@ -76,7 +76,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="mt-3 pt-3 border-t border-white/[0.06]"
+          className="mt-3 pt-3 border-t border-gray-200"
         >
           <DeepSearchChat
             clauseContext={`${risk.title}: ${risk.detail}`}

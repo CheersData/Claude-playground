@@ -239,7 +239,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.6 }}
-                className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]"
+                className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
               >
                 {/* Background effects */}
                 <div
@@ -271,12 +271,12 @@ export default function Home() {
                           {leo.role}
                         </span>
                       </div>
-                      <div className="relative bg-white/[0.05] border border-white/[0.08] rounded-2xl rounded-tl-sm p-4">
-                        <p className="text-base text-white/70 leading-relaxed">
+                      <div className="relative bg-gray-50 border border-gray-200 rounded-2xl rounded-tl-sm p-4">
+                        <p className="text-base text-gray-600 leading-relaxed">
                           Piacere, sono <strong style={{ color: leo.color }}>Leo</strong>.
                           Passami il documento e ci pensiamo noi quattro.
                           <br />
-                          <span className="text-white/40 text-sm">
+                          <span className="text-gray-400 text-sm">
                             Lo leggo, lo catalogo, e passo tutto ai colleghi.
                           </span>
                         </p>
@@ -290,7 +290,7 @@ export default function Home() {
                       ${
                         dragOver
                           ? "border-[#4ECDC4]/80 bg-[#4ECDC4]/5 scale-[1.01]"
-                          : "border-[#4ECDC4]/30 bg-white/[0.02] hover:border-[#4ECDC4]/60 hover:bg-[#4ECDC4]/[0.03]"
+                          : "border-[#4ECDC4]/30 bg-white shadow-sm hover:border-[#4ECDC4]/60 hover:bg-[#4ECDC4]/[0.03]"
                       }
                     `}
                     onDragOver={(e) => {
@@ -318,7 +318,7 @@ export default function Home() {
                       </div>
                       <div className="text-center">
                         <p className="text-base font-semibold mb-1">Trascina qui il tuo documento</p>
-                        <p className="text-sm text-white/35">PDF, immagine, Word o testo — max 20MB</p>
+                        <p className="text-sm text-gray-400">PDF, immagine, Word o testo — max 20MB</p>
                       </div>
                       <button
                         className="mt-1 px-10 py-4 rounded-full text-base font-bold text-white hover:-translate-y-0.5 transition-all"
@@ -337,7 +337,7 @@ export default function Home() {
                   </div>
 
                   {/* Trust signals */}
-                  <div className="flex gap-6 flex-wrap justify-center mt-6 text-white/30 text-xs">
+                  <div className="flex gap-6 flex-wrap justify-center mt-6 text-gray-400 text-xs">
                     <span className="flex items-center gap-1.5">
                       <Lock className="w-3 h-3" /> I documenti non vengono salvati
                     </span>
