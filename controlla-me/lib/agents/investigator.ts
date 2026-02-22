@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODEL, MODEL_FAST, parseAgentJSON } from "../anthropic";
 import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
 import type {
@@ -27,18 +26,21 @@ Clausole da investigare: ${JSON.stringify(problematicClauses)}
 
 Cerca norme e sentenze. Priorità: critical e high prima.`;
 
-  // Use an agentic loop to handle tool use for web search
+  // web_search_20250305 is a server-side tool: the API executes searches
+  // internally within a single call and injects results automatically.
+  // No client-side agentic loop is needed. We only loop to handle
+  // max_tokens truncation (continuation of a cut-off response).
   const messages: Anthropic.Messages.MessageParam[] = [
     { role: "user", content: userMessage },
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 5;
+  const MAX_CONTINUATIONS = 3;
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
+  for (let i = 0; i <= MAX_CONTINUATIONS; i++) {
     const response = await anthropic.messages.create({
       model: MODEL_FAST,
-      max_tokens: 6144,
+      max_tokens: 16000,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
         {
@@ -49,50 +51,38 @@ Cerca norme e sentenze. Priorità: critical e high prima.`;
       messages,
     });
 
-    // Collect all text blocks from the response
-    const textBlocks = response.content
+    // Collect text blocks from the response
+    const textContent = response.content
       .filter(
         (block): block is Anthropic.Messages.TextBlock => block.type === "text"
       )
-      .map((block) => block.text);
+      .map((block) => block.text)
+      .join("\n");
 
-    if (textBlocks.length > 0) {
-      finalText = textBlocks.join("\n");
+    if (textContent) {
+      finalText += (finalText ? "\n" : "") + textContent;
     }
 
-    // If the model has stopped (no more tool use), break
+    // Model finished naturally — done
     if (response.stop_reason === "end_turn") {
       break;
     }
 
-    // If there are tool use blocks, we need to continue the loop
-    // The web_search tool is handled by the API automatically,
-    // but we add the assistant response and continue
-    const hasToolUse = response.content.some(
-      (block) => block.type === "tool_use"
-    );
-
-    if (!hasToolUse) {
-      break;
+    // Output was truncated — continue with text-only context to avoid
+    // tool_use ID uniqueness conflicts from server-side tool blocks
+    // (server_tool_use / web_search_tool_result contain IDs that would
+    // collide if sent back and the server generates new ones).
+    if (response.stop_reason === "max_tokens" && textContent) {
+      messages.push({ role: "assistant", content: textContent });
+      messages.push({
+        role: "user",
+        content: "Continua esattamente dal punto in cui ti sei fermato. Completa il JSON.",
+      });
+      continue;
     }
 
-    // Add assistant's response to messages
-    messages.push({ role: "assistant", content: response.content });
-
-    // Add tool results for each tool use block
-    const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-      response.content
-        .filter(
-          (block): block is Anthropic.Messages.ToolUseBlock =>
-            block.type === "tool_use"
-        )
-        .map((block) => ({
-          type: "tool_result" as const,
-          tool_use_id: block.id,
-          content: "Search completed.",
-        }));
-
-    messages.push({ role: "user", content: toolResults });
+    // Any other stop_reason (tool_use from hallucinated tool, etc.) — stop
+    break;
   }
 
   return parseAgentJSON<InvestigationResult>(finalText);
@@ -127,12 +117,12 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 8;
+  const MAX_CONTINUATIONS = 3;
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
+  for (let i = 0; i <= MAX_CONTINUATIONS; i++) {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 16000,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
         {
@@ -143,38 +133,29 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
       messages,
     });
 
-    const textBlocks = response.content
+    const textContent = response.content
       .filter(
         (block): block is Anthropic.Messages.TextBlock => block.type === "text"
       )
-      .map((block) => block.text);
+      .map((block) => block.text)
+      .join("\n");
 
-    if (textBlocks.length > 0) {
-      finalText = textBlocks.join("\n");
+    if (textContent) {
+      finalText += (finalText ? "\n" : "") + textContent;
     }
 
     if (response.stop_reason === "end_turn") break;
 
-    const hasToolUse = response.content.some(
-      (block) => block.type === "tool_use"
-    );
-    if (!hasToolUse) break;
+    if (response.stop_reason === "max_tokens" && textContent) {
+      messages.push({ role: "assistant", content: textContent });
+      messages.push({
+        role: "user",
+        content: "Continua esattamente dal punto in cui ti sei fermato. Completa il JSON.",
+      });
+      continue;
+    }
 
-    messages.push({ role: "assistant", content: response.content });
-
-    const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-      response.content
-        .filter(
-          (block): block is Anthropic.Messages.ToolUseBlock =>
-            block.type === "tool_use"
-        )
-        .map((block) => ({
-          type: "tool_result" as const,
-          tool_use_id: block.id,
-          content: "Search completed.",
-        }));
-
-    messages.push({ role: "user", content: toolResults });
+    break;
   }
 
   return parseAgentJSON(finalText);
