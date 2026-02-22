@@ -35,7 +35,8 @@ export interface OrchestratorResult {
 export async function runOrchestrator(
   documentText: string,
   callbacks: OrchestratorCallbacks,
-  resumeSessionId?: string
+  resumeSessionId?: string,
+  userContext?: string
 ): Promise<OrchestratorResult> {
   // Try to resume an existing session or find one for this document
   let sessionId: string;
@@ -85,7 +86,7 @@ export async function runOrchestrator(
     const t0 = Date.now();
     try {
       callbacks.onProgress("classifier", "running");
-      result.classification = await runClassifier(documentText);
+      result.classification = await runClassifier(documentText, userContext);
       await savePhaseResult(sessionId, "classification", result.classification);
       await trackPhase(t0, "classifier");
       callbacks.onProgress("classifier", "done", result.classification);
@@ -105,7 +106,7 @@ export async function runOrchestrator(
     const t0 = Date.now();
     try {
       callbacks.onProgress("analyzer", "running");
-      result.analysis = await runAnalyzer(documentText, result.classification);
+      result.analysis = await runAnalyzer(documentText, result.classification, userContext);
       await savePhaseResult(sessionId, "analysis", result.analysis);
       await trackPhase(t0, "analyzer");
       callbacks.onProgress("analyzer", "done", result.analysis);
@@ -127,7 +128,8 @@ export async function runOrchestrator(
       callbacks.onProgress("investigator", "running");
       result.investigation = await runInvestigator(
         result.classification,
-        result.analysis
+        result.analysis,
+        userContext
       );
       await savePhaseResult(sessionId, "investigation", result.investigation);
       await trackPhase(t0, "investigator");
@@ -156,7 +158,8 @@ export async function runOrchestrator(
       result.advice = await runAdvisor(
         result.classification,
         result.analysis,
-        result.investigation
+        result.investigation,
+        userContext
       );
       await savePhaseResult(sessionId, "advice", result.advice);
       await trackPhase(t0, "advisor");

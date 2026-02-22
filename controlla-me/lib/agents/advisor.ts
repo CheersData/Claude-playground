@@ -10,8 +10,13 @@ import type {
 export async function runAdvisor(
   classification: ClassificationResult,
   analysis: AnalysisResult,
-  investigation: InvestigationResult
+  investigation: InvestigationResult,
+  userContext?: string
 ): Promise<AdvisorResult> {
+  const contextBlock = userContext
+    ? `\nRichiesta dell'utente: "${userContext}"\nNel report finale, rispondi in modo specifico a questa richiesta e mettila in evidenza.\n`
+    : "";
+
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 4096,
@@ -24,7 +29,7 @@ export async function runAdvisor(
 Analisi clausole: ${JSON.stringify(analysis)}
 
 Ricerca normativa: ${JSON.stringify(investigation)}
-
+${contextBlock}
 Produci il report finale.`,
       },
     ],

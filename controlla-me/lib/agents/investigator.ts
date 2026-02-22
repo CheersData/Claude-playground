@@ -9,7 +9,8 @@ import type {
 
 export async function runInvestigator(
   classification: ClassificationResult,
-  analysis: AnalysisResult
+  analysis: AnalysisResult,
+  userContext?: string
 ): Promise<InvestigationResult> {
   // Filter only problematic clauses (medium risk or higher)
   const problematicClauses = analysis.clauses.filter((c) =>
@@ -20,9 +21,13 @@ export async function runInvestigator(
     return { findings: [] };
   }
 
+  const contextBlock = userContext
+    ? `\nRichiesta specifica dell'utente: "${userContext}"\nCerca norme e sentenze anche in relazione a questa richiesta.\n`
+    : "";
+
   const userMessage = `Documento: ${classification.documentTypeLabel} (${classification.jurisdiction})
 Leggi: ${classification.applicableLaws.map((l) => l.reference).join(", ")}
-
+${contextBlock}
 Clausole da investigare: ${JSON.stringify(problematicClauses)}
 
 Cerca norme e sentenze. Priorità: critical e high prima.`;

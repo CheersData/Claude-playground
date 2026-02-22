@@ -25,9 +25,10 @@ function HeroScanLine() {
 export default function HeroSection({
   onFileSelected,
 }: {
-  onFileSelected: (file: File) => void;
+  onFileSelected: (file: File, userContext?: string) => void;
 }) {
   const [dragOver, setDragOver] = useState(false);
+  const [userContext, setUserContext] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback(
@@ -35,17 +36,17 @@ export default function HeroSection({
       e.preventDefault();
       setDragOver(false);
       const f = e.dataTransfer.files[0];
-      if (f) onFileSelected(f);
+      if (f) onFileSelected(f, userContext.trim() || undefined);
     },
-    [onFileSelected]
+    [onFileSelected, userContext]
   );
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const f = e.target.files?.[0];
-      if (f) onFileSelected(f);
+      if (f) onFileSelected(f, userContext.trim() || undefined);
     },
-    [onFileSelected]
+    [onFileSelected, userContext]
   );
 
   return (
@@ -159,6 +160,28 @@ export default function HeroSection({
           <br className="hidden md:block" />
           Quattro agenti AI lo analizzano e ti dicono cosa rischi.
         </motion.p>
+
+        {/* ═══ User Context — optional pre-upload input ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.6 }}
+          className="w-full max-w-[520px] mb-4"
+        >
+          <textarea
+            value={userContext}
+            onChange={(e) => setUserContext(e.target.value)}
+            placeholder="Cosa vuoi controllare? (opzionale) — es. &quot;Cerco clausole vessatorie&quot;, &quot;Voglio capire i termini di recesso&quot;..."
+            className="w-full px-4 py-3 rounded-xl border border-border bg-white/80 backdrop-blur-sm text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition-all"
+            rows={2}
+            maxLength={500}
+          />
+          {userContext.trim() && (
+            <p className="text-[11px] text-foreground-tertiary mt-1 text-right">
+              {userContext.length}/500
+            </p>
+          )}
+        </motion.div>
 
         {/* ═══ Upload Card — prominent, glowing ═══ */}
         <motion.div
