@@ -76,7 +76,7 @@ export default function MissionSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="relative overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-sm mb-8"
+          className="relative overflow-hidden rounded-[32px] border border-border bg-white shadow-sm mb-8"
         >
           <div
             className="absolute inset-0 pointer-events-none"
@@ -114,7 +114,7 @@ export default function MissionSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.2 }}
-                  className="text-base text-gray-500 max-w-[520px] leading-relaxed"
+                  className="text-base text-foreground-secondary max-w-[520px] leading-relaxed"
                 >
                   Ogni giorno milioni di persone firmano documenti senza capirli davvero.
                   Noi mettiamo a disposizione un team di AI specializzate che leggono,
@@ -130,7 +130,7 @@ export default function MissionSection() {
                 transition={{ delay: 0.3, duration: 0.6 }}
                 className="hidden md:block relative"
               >
-                <div className="relative w-[360px] h-[280px] rounded-2xl overflow-hidden border border-gray-200">
+                <div className="relative w-[360px] h-[280px] rounded-2xl overflow-hidden border border-border">
                   <Image
                     src="/images/about-legal.png"
                     alt="Analisi legale cubista"
@@ -139,7 +139,7 @@ export default function MissionSection() {
                     quality={90}
                     sizes="360px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white/80 backdrop-blur-sm to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent" />
                 </div>
                 {/* Glow behind image */}
                 <div className="absolute -inset-6 rounded-3xl bg-accent/5 blur-3xl -z-10" />
@@ -159,7 +159,7 @@ export default function MissionSection() {
           <p className="text-[11px] font-bold tracking-[3px] uppercase text-accent/70 mb-3">
             Come funziona
           </p>
-          <h3 className="font-serif text-xl md:text-2xl text-[#1A1A2E]">
+          <h3 className="font-serif text-xl md:text-2xl text-foreground">
             4 agenti, 30 secondi, zero dubbi.
           </h3>
         </motion.div>
@@ -172,7 +172,7 @@ export default function MissionSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 + i * 0.1 }}
-              className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:border-gray-300 transition-all"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-white shadow-sm hover:border-border transition-all"
             >
               {/* Image — big and prominent */}
               <div className="relative h-[240px] md:h-[300px] overflow-hidden">
@@ -185,7 +185,7 @@ export default function MissionSection() {
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
                 {/* Subtle gradient — only at bottom for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-transparent" />
                 {/* Step number */}
                 <div
                   className="absolute top-4 left-4 w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold backdrop-blur-sm"
@@ -194,7 +194,7 @@ export default function MissionSection() {
                   {i + 1}
                 </div>
                 {/* Duration badge */}
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-white/80 backdrop-blur-sm text-[11px] font-mono text-accent/70 border border-gray-200">
+                <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-white/80 backdrop-blur-sm text-[11px] font-mono text-accent/70 border border-border">
                   {step.duration}
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function MissionSection() {
                   </div>
                   <p className="text-base font-semibold">{step.label}</p>
                 </div>
-                <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-foreground-secondary leading-relaxed">{step.desc}</p>
               </div>
 
               {/* Bottom accent line */}
@@ -257,7 +257,7 @@ export default function MissionSection() {
         </motion.div>
 
         {/* Stats */}
-        <div className="relative overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-sm">
+        <div className="relative overflow-hidden rounded-[32px] border border-border bg-white shadow-sm">
           <div className="grid grid-cols-3 gap-4 px-8 md:px-14 py-8">
             {[
               { value: 4, suffix: "", label: "Consulenti AI" },
@@ -272,10 +272,10 @@ export default function MissionSection() {
                 transition={{ delay: 0.2 + i * 0.1 }}
                 className="text-center"
               >
-                <p className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-[#1A1A2E] to-[#1A1A2E]/50 bg-clip-text text-transparent">
+                <p className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-[#1A1A1A] to-[#1A1A1A]/50 bg-clip-text text-transparent">
                   <Counter value={stat.value} suffix={stat.suffix} />
                 </p>
-                <p className="text-xs text-gray-300 mt-1">{stat.label}</p>
+                <p className="text-xs text-foreground-tertiary mt-1">{stat.label}</p>
               </motion.div>
             ))}
           </div>

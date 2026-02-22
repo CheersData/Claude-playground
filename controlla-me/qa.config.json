@@ -28,20 +28,21 @@
     "Fixture PDF in tests/fixtures/"
   ],
   "beauty": {
+    "design_system": "../okmom-design/tailwind-preset.ts",
     "palette": {
+      "background": "#FFFFFF",
+      "background_secondary": "#F8F8FA",
+      "foreground": "#1A1A1A",
+      "foreground_secondary": "#6B6B6B",
       "primary": "#FF6B35",
-      "background": "#FAFAFA",
-      "surface": "#FFFFFF",
-      "text": "#1A1A2E",
-      "text_secondary": "#6B7280",
       "success": "#22C55E",
-      "warning": "#EAB308",
+      "warning": "#F59E0B",
       "danger": "#EF4444",
-      "border": "#E5E7EB"
+      "border": "#E5E5E5"
     },
-    "fonts": {"heading": "Instrument Serif", "body": "DM Sans"},
-    "spacing_scale": [0, 4, 8, 12, 16, 20, 24, 32, 48, 64],
+    "fonts": {"heading": "DM Sans", "body": "DM Sans", "accent": "Instrument Serif"},
+    "spacing_scale": [0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96],
     "border_radius": "8px",
-    "breakpoints": {"sm": "640px", "md": "768px", "lg": "1024px", "xl": "1280px"}
+    "breakpoints": {"sm": "640px", "md": "768px", "lg": "1024px", "xl": "1280px", "2xl": "1440px"}
   }
 }

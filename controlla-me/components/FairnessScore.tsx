@@ -40,7 +40,7 @@ export default function FairnessScore({ score }: FairnessScoreProps) {
           x="65"
           y="60"
           textAnchor="middle"
-          fill="#1A1A2E"
+          fill="#1A1A1A"
           fontSize="32"
           fontWeight="800"
           className="font-serif"

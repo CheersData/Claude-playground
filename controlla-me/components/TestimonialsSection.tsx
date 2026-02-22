@@ -77,7 +77,7 @@ export default function TestimonialsSection() {
               non torna indietro.
             </span>
           </h2>
-          <p className="text-base text-gray-500 max-w-[500px] mx-auto">
+          <p className="text-base text-foreground-secondary max-w-[500px] mx-auto">
             Migliaia di persone hanno gia protetto i loro diritti con controlla.me.
           </p>
         </motion.div>
@@ -86,8 +86,8 @@ export default function TestimonialsSection() {
         <div className="space-y-5">
           {/* Row 1 — scroll left */}
           <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-r from-[#FAFAFA] to-transparent pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-l from-[#FAFAFA] to-transparent pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-l from-background to-transparent pointer-events-none" />
             <motion.div
               animate={{ x: [0, -1200] }}
               transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
@@ -101,8 +101,8 @@ export default function TestimonialsSection() {
 
           {/* Row 2 — scroll right */}
           <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-r from-[#FAFAFA] to-transparent pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-l from-[#FAFAFA] to-transparent pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-l from-background to-transparent pointer-events-none" />
             <motion.div
               animate={{ x: [-1200, 0] }}
               transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
@@ -121,7 +121,7 @@ export default function TestimonialsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
-          className="flex justify-center gap-8 md:gap-14 mt-14 pt-8 border-t border-gray-200"
+          className="flex justify-center gap-8 md:gap-14 mt-14 pt-8 border-t border-border"
         >
           {[
             { value: "4.9/5", label: "Valutazione media" },
@@ -129,10 +129,10 @@ export default function TestimonialsSection() {
             { value: "98%", label: "Consiglia controlla.me" },
           ].map((stat, i) => (
             <div key={i} className="text-center">
-              <p className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#1A1A2E] to-gray-500 bg-clip-text text-transparent">
+              <p className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#1A1A1A] to-foreground-secondary bg-clip-text text-transparent">
                 {stat.value}
               </p>
-              <p className="text-xs text-gray-300 mt-1">{stat.label}</p>
+              <p className="text-xs text-foreground-tertiary mt-1">{stat.label}</p>
             </div>
           ))}
         </motion.div>
@@ -147,7 +147,7 @@ function TestimonialCard({ testimonial, index }: { testimonial: typeof testimoni
   const Icon = avatarIcons[colorIdx];
 
   return (
-    <div className="shrink-0 w-[360px] md:w-[400px] rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
+    <div className="shrink-0 w-[360px] md:w-[400px] rounded-2xl border border-border bg-white shadow-sm p-6">
       {/* Stars */}
       <div className="flex gap-0.5 mb-3">
         {Array.from({ length: testimonial.stars }).map((_, i) => (
@@ -156,7 +156,7 @@ function TestimonialCard({ testimonial, index }: { testimonial: typeof testimoni
       </div>
 
       {/* Text */}
-      <p className="text-sm text-gray-500 leading-relaxed mb-4">
+      <p className="text-sm text-foreground-secondary leading-relaxed mb-4">
         &ldquo;{testimonial.text}&rdquo;
       </p>
 
@@ -178,8 +178,8 @@ function TestimonialCard({ testimonial, index }: { testimonial: typeof testimoni
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-600">{testimonial.name}</p>
-          <p className="text-[11px] text-gray-300">
+          <p className="text-sm font-medium text-foreground-secondary">{testimonial.name}</p>
+          <p className="text-[11px] text-foreground-tertiary">
             {testimonial.role} — {testimonial.location}
           </p>
         </div>

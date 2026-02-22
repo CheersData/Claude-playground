@@ -131,7 +131,7 @@ export default function PricingPage() {
         {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-10"
+          className="inline-flex items-center gap-2 text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors mb-10"
         >
           <ArrowLeft className="w-4 h-4" />
           Torna alla home
@@ -149,7 +149,7 @@ export default function PricingPage() {
               piano
             </span>
           </h1>
-          <p className="text-lg text-gray-500 max-w-[480px] mx-auto">
+          <p className="text-lg text-foreground-secondary max-w-[480px] mx-auto">
             Inizia gratis. Passa a Pro quando vuoi, cancella quando vuoi.
           </p>
         </motion.div>
@@ -165,7 +165,7 @@ export default function PricingPage() {
               className={`relative rounded-3xl border p-8 flex flex-col ${
                 plan.popular
                   ? "border-accent/40 bg-accent/[0.04]"
-                  : "border-gray-200 bg-white shadow-sm"
+                  : "border-border bg-white shadow-sm"
               }`}
             >
               {plan.popular && (
@@ -191,16 +191,16 @@ export default function PricingPage() {
               {/* Price */}
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-4xl font-bold">&euro;{plan.price}</span>
-                <span className="text-sm text-gray-400">{plan.period}</span>
+                <span className="text-sm text-foreground-tertiary">{plan.period}</span>
               </div>
-              <p className="text-sm text-gray-500 mb-6">{plan.description}</p>
+              <p className="text-sm text-foreground-secondary mb-6">{plan.description}</p>
 
               {/* Features */}
               <ul className="flex-1 space-y-3 mb-8">
                 {plan.features.map((feature) => (
                   <li
                     key={feature}
-                    className="flex items-center gap-3 text-sm text-gray-600"
+                    className="flex items-center gap-3 text-sm text-foreground-secondary"
                   >
                     <Check
                       className="w-4 h-4 flex-shrink-0"
@@ -215,7 +215,7 @@ export default function PricingPage() {
               {plan.id === "free" ? (
                 <Link
                   href="/"
-                  className="block text-center px-6 py-3 rounded-full text-sm font-bold border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-[#1A1A2E] transition-all"
+                  className="block text-center px-6 py-3 rounded-full text-sm font-bold border border-border text-foreground-secondary hover:border-border hover:text-foreground transition-all"
                 >
                   Inizia gratis
                 </Link>
@@ -226,7 +226,7 @@ export default function PricingPage() {
                   className={`px-6 py-3 rounded-full text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
                     plan.popular
                       ? "text-white bg-gradient-to-r from-accent to-amber-500 shadow-[0_12px_40px_rgba(255,107,53,0.3)]"
-                      : "text-[#1A1A2E] bg-gray-100 border border-gray-200 hover:bg-gray-200"
+                      : "text-foreground bg-background-secondary border border-border hover:bg-surface-hover"
                   }`}
                 >
                   {loading === plan.id ? (
@@ -244,7 +244,7 @@ export default function PricingPage() {
 
         {/* Manage subscription */}
         <div className="text-center">
-          <p className="text-sm text-gray-400 mb-3">
+          <p className="text-sm text-foreground-tertiary mb-3">
             Hai già un abbonamento Pro?
           </p>
           <button

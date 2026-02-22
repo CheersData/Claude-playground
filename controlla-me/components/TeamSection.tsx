@@ -68,8 +68,8 @@ function LeoCharacter({ color }: { color: string }) {
     <g>
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
         <path d="M50 175 C50 140 70 125 100 120 C130 125 150 140 150 175" fill={color} fillOpacity="0.8" />
-        <path d="M85 125 L100 140 L115 125" fill="none" stroke="#1A1A2E" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" />
-        <path d="M93 132 L100 136 L107 132 L100 128 Z" fill="#1A1A2E" fillOpacity="0.6" />
+        <path d="M85 125 L100 140 L115 125" fill="none" stroke="#1A1A1A" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" />
+        <path d="M93 132 L100 136 L107 132 L100 128 Z" fill="#1A1A1A" fillOpacity="0.6" />
       </motion.g>
       <rect x="92" y="112" width="16" height="14" rx="4" fill="#E8C4A8" />
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.15 }}>
@@ -84,8 +84,8 @@ function LeoCharacter({ color }: { color: string }) {
         <line x1="99" y1="80" x2="101" y2="80" stroke={color} strokeWidth="2.5" strokeOpacity="0.8" />
         <line x1="73" y1="78" x2="66" y2="76" stroke={color} strokeWidth="2" strokeOpacity="0.5" />
         <line x1="127" y1="78" x2="134" y2="76" stroke={color} strokeWidth="2" strokeOpacity="0.5" />
-        <circle cx="82" cy="76" r="3" fill="#1A1A2E" fillOpacity="0.1" />
-        <circle cx="110" cy="76" r="3" fill="#1A1A2E" fillOpacity="0.1" />
+        <circle cx="82" cy="76" r="3" fill="#1A1A1A" fillOpacity="0.1" />
+        <circle cx="110" cy="76" r="3" fill="#1A1A1A" fillOpacity="0.1" />
         <motion.g animate={{ scaleY: [1, 1, 0.1, 1, 1] }} transition={{ duration: 4, repeat: Infinity, times: [0, 0.45, 0.5, 0.55, 1] }} style={{ transformOrigin: "100px 80px" }}>
           <circle cx="86" cy="80" r="4" fill="#2D1810" />
           <circle cx="114" cy="80" r="4" fill="#2D1810" />
@@ -98,7 +98,7 @@ function LeoCharacter({ color }: { color: string }) {
         <path d="M90 98 Q100 106 110 98" fill="none" stroke="#C4836B" strokeWidth="1.8" strokeLinecap="round" />
       </motion.g>
       <motion.g animate={{ rotate: [-3, 3, -3], y: [0, -3, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} style={{ transformOrigin: "160px 100px" }}>
-        <rect x="148" y="70" width="28" height="38" rx="3" fill="#1A1A2E" fillOpacity="0.15" stroke={color} strokeWidth="1.5" />
+        <rect x="148" y="70" width="28" height="38" rx="3" fill="#1A1A1A" fillOpacity="0.15" stroke={color} strokeWidth="1.5" />
         <rect x="155" y="67" width="14" height="6" rx="2" fill={color} fillOpacity="0.6" />
         <line x1="153" y1="80" x2="171" y2="80" stroke={color} strokeWidth="1" strokeOpacity="0.5" />
         <line x1="153" y1="86" x2="168" y2="86" stroke={color} strokeWidth="1" strokeOpacity="0.5" />
@@ -115,7 +115,7 @@ function MartaCharacter({ color }: { color: string }) {
     <g>
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}>
         <path d="M48 175 C48 138 68 122 100 118 C132 122 152 138 152 175" fill={color} fillOpacity="0.8" />
-        <path d="M82 122 L100 142 L118 122" fill="#FAFAFA" fillOpacity="0.3" />
+        <path d="M82 122 L100 142 L118 122" fill="#FFFFFF" fillOpacity="0.3" />
       </motion.g>
       <rect x="92" y="110" width="16" height="14" rx="4" fill="#E8C4A8" />
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.45 }}>
@@ -144,9 +144,9 @@ function MartaCharacter({ color }: { color: string }) {
       </motion.g>
       <motion.g animate={{ x: [0, 4, 0, -4, 0], y: [0, -3, 0, 2, 0], rotate: [0, 5, 0, -5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} style={{ transformOrigin: "38px 100px" }}>
         <circle cx="38" cy="88" r="16" fill={color} fillOpacity="0.08" stroke={color} strokeWidth="2.5" />
-        <circle cx="38" cy="88" r="11" fill="#1A1A2E" fillOpacity="0.05" stroke={color} strokeWidth="1" strokeOpacity="0.3" />
+        <circle cx="38" cy="88" r="11" fill="#1A1A1A" fillOpacity="0.05" stroke={color} strokeWidth="1" strokeOpacity="0.3" />
         <line x1="50" y1="100" x2="62" y2="112" stroke={color} strokeWidth="3.5" strokeLinecap="round" />
-        <motion.circle cx="32" cy="82" r="3" fill="#1A1A2E" fillOpacity="0.3" animate={{ opacity: [0.1, 0.4, 0.1] }} transition={{ duration: 2, repeat: Infinity }} />
+        <motion.circle cx="32" cy="82" r="3" fill="#1A1A1A" fillOpacity="0.3" animate={{ opacity: [0.1, 0.4, 0.1] }} transition={{ duration: 2, repeat: Infinity }} />
       </motion.g>
     </g>
   );
@@ -157,28 +157,28 @@ function GiuliaCharacter({ color }: { color: string }) {
     <g>
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}>
         <path d="M46 175 C46 136 68 120 100 116 C132 120 154 136 154 175" fill={color} fillOpacity="0.8" />
-        <path d="M84 120 C90 126 96 128 100 128 C104 128 110 126 116 120" fill="none" stroke="#1A1A2E" strokeOpacity="0.3" strokeWidth="1.5" />
+        <path d="M84 120 C90 126 96 128 100 128 C104 128 110 126 116 120" fill="none" stroke="#1A1A1A" strokeOpacity="0.3" strokeWidth="1.5" />
       </motion.g>
       <rect x="92" y="108" width="16" height="14" rx="4" fill="#E8C4A8" />
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.75 }}>
         <ellipse cx="100" cy="78" rx="33" ry="37" fill="#F0D0B4" />
-        <path d="M67 70 C65 44 80 32 100 32 C120 32 135 44 133 70 C133 55 120 38 100 38 C80 38 67 55 67 70 Z" fill="#1A1A2E" />
-        <motion.path d="M67 70 C62 80 58 105 60 130 C63 120 65 95 67 80 Z" fill="#1A1A2E" animate={{ x: [0, -1, 0, 1, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
+        <path d="M67 70 C65 44 80 32 100 32 C120 32 135 44 133 70 C133 55 120 38 100 38 C80 38 67 55 67 70 Z" fill="#1A1A1A" />
+        <motion.path d="M67 70 C62 80 58 105 60 130 C63 120 65 95 67 80 Z" fill="#1A1A1A" animate={{ x: [0, -1, 0, 1, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
         <motion.path d="M62 80 C58 100 56 125 58 140 C60 130 62 108 64 90 Z" fill="#12122A" animate={{ x: [0, -1.5, 0, 1, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.2 }} />
-        <motion.path d="M133 70 C138 80 142 105 140 130 C137 120 135 95 133 80 Z" fill="#1A1A2E" animate={{ x: [0, 1, 0, -1, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
+        <motion.path d="M133 70 C138 80 142 105 140 130 C137 120 135 95 133 80 Z" fill="#1A1A1A" animate={{ x: [0, 1, 0, -1, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
         <motion.path d="M138 80 C142 100 144 125 142 140 C140 130 138 108 136 90 Z" fill="#12122A" animate={{ x: [0, 1.5, 0, -1, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.2 }} />
         <ellipse cx="67" cy="80" rx="5" ry="7" fill="#E8C0A0" />
         <ellipse cx="133" cy="80" rx="5" ry="7" fill="#E8C0A0" />
         <motion.g animate={{ scaleY: [1, 1, 0.1, 1, 1] }} transition={{ duration: 6, repeat: Infinity, times: [0, 0.48, 0.52, 0.56, 1] }} style={{ transformOrigin: "100px 76px" }}>
-          <ellipse cx="86" cy="76" rx="5" ry="4" fill="#1A1A2E" />
-          <ellipse cx="114" cy="76" rx="5" ry="4" fill="#1A1A2E" />
+          <ellipse cx="86" cy="76" rx="5" ry="4" fill="#1A1A1A" />
+          <ellipse cx="114" cy="76" rx="5" ry="4" fill="#1A1A1A" />
           <circle cx="87" cy="75" r="1.8" fill="white" />
           <circle cx="115" cy="75" r="1.8" fill="white" />
           <circle cx="86" cy="76" r="2.5" fill="none" stroke={color} strokeWidth="0.8" strokeOpacity="0.4" />
           <circle cx="114" cy="76" r="2.5" fill="none" stroke={color} strokeWidth="0.8" strokeOpacity="0.4" />
         </motion.g>
-        <path d="M76 66 L96 66" fill="none" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M104 66 L124 66" fill="none" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M76 66 L96 66" fill="none" stroke="#1A1A1A" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M104 66 L124 66" fill="none" stroke="#1A1A1A" strokeWidth="1.8" strokeLinecap="round" />
         <path d="M98 84 Q100 90 102 86" fill="none" stroke="#D4A574" strokeWidth="1.2" strokeLinecap="round" />
         <path d="M92 96 Q100 101 108 96" fill="none" stroke="#C4836B" strokeWidth="1.5" strokeLinecap="round" />
       </motion.g>
@@ -204,7 +204,7 @@ function EnzoCharacter({ color }: { color: string }) {
     <g>
       <motion.g animate={{ y: [0, -1.5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}>
         <path d="M48 175 C48 138 68 122 100 118 C132 122 152 138 152 175" fill={color} fillOpacity="0.8" />
-        <path d="M86 122 L78 145 L88 138 L100 148 L112 138 L122 145 L114 122" fill="none" stroke="#1A1A2E" strokeOpacity="0.3" strokeWidth="1.2" />
+        <path d="M86 122 L78 145 L88 138 L100 148 L112 138 L122 145 L114 122" fill="none" stroke="#1A1A1A" strokeOpacity="0.3" strokeWidth="1.2" />
         <path d="M97 132 L100 160 L103 132 Z" fill={color} fillOpacity="0.4" />
       </motion.g>
       <rect x="92" y="110" width="16" height="14" rx="4" fill="#DDB896" />
@@ -355,7 +355,7 @@ function AgentCard({ agent, index }: { agent: typeof agents[number]; index: numb
       className="group relative cursor-pointer"
     >
       {/* Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm backdrop-blur-sm transition-all duration-500 hover:border-gray-300"
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-white shadow-sm backdrop-blur-sm transition-all duration-500 hover:border-border"
         style={{
           boxShadow: hovered ? `0 0 60px ${agent.color}15, 0 0 120px ${agent.color}08` : "none",
         }}
@@ -459,7 +459,7 @@ function AgentCard({ agent, index }: { agent: typeof agents[number]; index: numb
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="font-serif italic text-gray-400 text-sm mb-4"
+                  className="font-serif italic text-foreground-tertiary text-sm mb-4"
                 >
                   &ldquo;{agent.tagline}&rdquo;
                 </motion.p>
@@ -475,7 +475,7 @@ function AgentCard({ agent, index }: { agent: typeof agents[number]; index: numb
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.3, delay: 0.15 + j * 0.06 }}
-                  className="flex items-center gap-2.5 text-sm text-gray-500"
+                  className="flex items-center gap-2.5 text-sm text-foreground-secondary"
                 >
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: agent.color }} />
                   {item}
@@ -510,7 +510,7 @@ export default function TeamSection() {
             Una missione.
           </span>
         </h2>
-        <p className="text-base md:text-lg text-gray-500 max-w-[520px] mx-auto leading-relaxed">
+        <p className="text-base md:text-lg text-foreground-secondary max-w-[520px] mx-auto leading-relaxed">
           Passa il mouse su ognuno per sentire cosa ha da dire.
         </p>
       </motion.div>
@@ -537,7 +537,7 @@ export default function TeamSection() {
               <span className="text-sm font-medium" style={{ color: `${agent.color}CC` }}>{agent.name}</span>
             </div>
             {i < agents.length - 1 && (
-              <svg width="20" height="10" viewBox="0 0 20 10" className="text-gray-300 shrink-0">
+              <svg width="20" height="10" viewBox="0 0 20 10" className="text-foreground-tertiary shrink-0">
                 <path d="M0 5h16M14 2l3 3-3 3" stroke="currentColor" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}

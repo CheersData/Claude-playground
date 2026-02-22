@@ -453,10 +453,10 @@ export default function AnalysisProgress({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white shadow-sm border border-gray-200 rounded-3xl p-10 md:p-12 max-w-[520px] w-full text-center"
+      className="bg-white shadow-sm border border-border rounded-3xl p-10 md:p-12 max-w-[520px] w-full text-center"
     >
-      <p className="text-sm text-gray-400 mb-2">Analisi in corso</p>
-      <p className="text-base font-semibold text-[#1A1A2E]/70 mb-6 break-all">
+      <p className="text-sm text-foreground-tertiary mb-2">Analisi in corso</p>
+      <p className="text-base font-semibold text-foreground-secondary mb-6 break-all">
         {fileName}
       </p>
 
@@ -492,8 +492,8 @@ export default function AnalysisProgress({
         >
           {/* Elapsed time */}
           <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-xs text-gray-500 font-mono tabular-nums">
+            <Clock className="w-3.5 h-3.5 text-foreground-tertiary" />
+            <span className="text-xs text-foreground-secondary font-mono tabular-nums">
               {formatTime(elapsed)}
             </span>
           </div>
@@ -508,11 +508,11 @@ export default function AnalysisProgress({
 
           {/* ETA */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-400">~</span>
-            <span className="text-xs text-gray-500 font-mono tabular-nums">
+            <span className="text-xs text-foreground-tertiary">~</span>
+            <span className="text-xs text-foreground-secondary font-mono tabular-nums">
               {formatTime(remaining)}
             </span>
-            <span className="text-xs text-gray-400">rimasti</span>
+            <span className="text-xs text-foreground-tertiary">rimasti</span>
           </div>
         </motion.div>
       )}
@@ -520,7 +520,7 @@ export default function AnalysisProgress({
       {/* Global progress bar */}
       {currentPhase && (
         <div className="mb-8 mx-2">
-          <div className="h-[3px] rounded-full bg-gray-200 overflow-hidden">
+          <div className="h-[3px] rounded-full bg-border overflow-hidden">
             <motion.div
               className="h-full rounded-full"
               style={{
@@ -556,7 +556,7 @@ export default function AnalysisProgress({
                       ? "bg-green-500/10 border-green-500/20 text-green-400"
                       : isActive
                       ? "bg-accent/10 border-accent/30 text-accent"
-                      : "bg-gray-100 border-gray-200 text-gray-400"
+                      : "bg-background-secondary border-border text-foreground-tertiary"
                   }`}
               >
                 {isDone ? (
@@ -574,8 +574,8 @@ export default function AnalysisProgress({
                     isDone
                       ? "font-normal text-green-400/80"
                       : isActive
-                      ? "font-semibold text-[#1A1A2E]"
-                      : "font-normal text-gray-400"
+                      ? "font-semibold text-foreground"
+                      : "font-normal text-foreground-tertiary"
                   }`}
                 >
                   {isDone ? phase.doneLabel : phase.label}
@@ -585,7 +585,7 @@ export default function AnalysisProgress({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-1.5 h-[3px] rounded-full bg-gray-200 overflow-hidden"
+                    className="mt-1.5 h-[3px] rounded-full bg-border overflow-hidden"
                   >
                     <motion.div
                       className="h-full rounded-full bg-gradient-to-r from-accent to-amber-400"
@@ -624,7 +624,7 @@ export default function AnalysisProgress({
             {onReset && (
               <button
                 onClick={onReset}
-                className="px-8 py-3 rounded-full text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 hover:-translate-y-0.5 transition-all"
+                className="px-8 py-3 rounded-full text-sm font-bold text-foreground-secondary border border-border hover:bg-surface-hover hover:-translate-y-0.5 transition-all"
               >
                 {sessionId ? "Ricomincia da capo" : "Riprova"}
               </button>
@@ -632,7 +632,7 @@ export default function AnalysisProgress({
           </div>
 
           {sessionId && (
-            <p className="text-xs text-gray-400 mt-3">
+            <p className="text-xs text-foreground-tertiary mt-3">
               Sessione salvata &middot; i passaggi completati non verranno ripetuti
             </p>
           )}

@@ -65,12 +65,12 @@ export default function PaywallBanner({
         <h3 className="text-xl font-bold mb-2">
           Hai usato tutte le analisi gratuite
         </h3>
-        <p className="text-sm text-gray-500 mb-2">
+        <p className="text-sm text-foreground-secondary mb-2">
           {analysesUsed}/{analysesLimit} analisi utilizzate questo mese
         </p>
 
         {/* Usage bar */}
-        <div className="h-[4px] rounded-full bg-gray-100 overflow-hidden max-w-[200px] mx-auto mb-6">
+        <div className="h-[4px] rounded-full bg-background-secondary overflow-hidden max-w-[200px] mx-auto mb-6">
           <div
             className="h-full rounded-full bg-gradient-to-r from-accent to-red-500"
             style={{ width: "100%" }}
@@ -79,7 +79,7 @@ export default function PaywallBanner({
 
         {!authenticated ? (
           <>
-            <p className="text-sm text-gray-500 mb-5">
+            <p className="text-sm text-foreground-secondary mb-5">
               Accedi per gestire il tuo piano o sblocca analisi illimitate.
             </p>
             <Link
@@ -94,7 +94,7 @@ export default function PaywallBanner({
           </>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-foreground-secondary mb-6">
               Scegli come continuare:
             </p>
 
@@ -122,7 +122,7 @@ export default function PaywallBanner({
               <button
                 onClick={() => handleCheckout("single")}
                 disabled={loading !== null}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-gray-600 border border-gray-200 hover:border-gray-300 hover:text-[#1A1A2E] transition-all disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-foreground-secondary border border-border hover:border-border hover:text-foreground transition-all disabled:opacity-50"
               >
                 {loading === "single" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -137,7 +137,7 @@ export default function PaywallBanner({
 
             <Link
               href="/pricing"
-              className="inline-block mt-5 text-xs text-gray-300 hover:text-gray-500 transition-colors underline underline-offset-4"
+              className="inline-block mt-5 text-xs text-foreground-tertiary hover:text-foreground-secondary transition-colors underline underline-offset-4"
             >
               Confronta i piani
             </Link>

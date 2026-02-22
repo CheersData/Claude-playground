@@ -1,15 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FAFAFA;
-  --foreground: #1A1A2E;
+  /* ─── Lightlife Design System ─── */
+  --background: #FFFFFF;
+  --background-secondary: #F8F8FA;
+  --foreground: #1A1A1A;
+  --foreground-secondary: #6B6B6B;
+  --foreground-tertiary: #9B9B9B;
   --accent: #FF6B35;
+  --accent-dark: #E85A24;
+  --border: #E5E5E5;
+  --border-subtle: #F0F0F0;
+  --surface: #FFFFFF;
+  --surface-hover: #F5F5F7;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-tertiary: var(--foreground-tertiary);
   --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
   --font-sans: 'DM Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
   --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
 }
