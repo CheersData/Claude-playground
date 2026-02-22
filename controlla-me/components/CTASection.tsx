@@ -93,7 +93,7 @@ export default function CTASection({ onScrollToUpload }: { onScrollToUpload: () 
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
-              className="text-base text-gray-500 max-w-[440px] mx-auto mb-8 leading-relaxed"
+              className="text-base text-foreground-secondary max-w-[440px] mx-auto mb-8 leading-relaxed"
             >
               Le prime 3 analisi sono gratuite. Nessuna carta di credito richiesta.
               Carica il tuo primo documento e scopri cosa stai firmando.
@@ -124,7 +124,7 @@ export default function CTASection({ onScrollToUpload }: { onScrollToUpload: () 
 
               <Link
                 href="/pricing"
-                className="px-8 py-4 rounded-full text-sm font-medium text-gray-500 border border-gray-200 hover:border-gray-300 hover:text-gray-700 transition-all"
+                className="px-8 py-4 rounded-full text-sm font-medium text-foreground-secondary border border-border hover:border-border hover:text-foreground transition-all"
               >
                 Vedi i piani Pro
               </Link>

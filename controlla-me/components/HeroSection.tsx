@@ -9,12 +9,14 @@ import { Shield, Upload, FileText, Lock, Globe, Sparkles, ArrowRight } from "luc
 function HeroScanLine() {
   return (
     <motion.div
-      className="absolute left-0 right-0 h-[1px] pointer-events-none z-[2]"
+      className="absolute left-0 right-0 pointer-events-none z-[2]"
       style={{
-        background: "linear-gradient(90deg, transparent, rgba(255,107,53,0.18), transparent)",
+        height: "3px",
+        background: "linear-gradient(90deg, transparent 5%, rgba(255,107,53,0.9) 30%, #FF6B35 50%, rgba(255,107,53,0.9) 70%, transparent 95%)",
+        boxShadow: "0 0 20px 6px rgba(255,107,53,0.4), 0 0 60px 15px rgba(255,107,53,0.15)",
       }}
       animate={{ top: ["0%", "100%"] }}
-      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+      transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
     />
   );
 }
@@ -63,12 +65,12 @@ export default function HeroSection({
           className="absolute inset-0"
           style={{
             background: [
-              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(250,250,250,0.88) 0%, rgba(250,250,250,0.65) 60%, rgba(250,250,250,0.45) 100%)",
+              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 60%, rgba(255,255,255,0.65) 100%)",
             ].join(", "),
           }}
         />
         {/* Bottom fade to seamless section transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#FAFAFA] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       {/* ═══ Layer 1: Animated gradient glow (on top of image) ═══ */}
@@ -124,7 +126,7 @@ export default function HeroSection({
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-accent/25 mb-8 text-sm text-gray-600 font-medium"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-accent/25 mb-8 text-sm text-foreground font-medium"
         >
           <Shield className="w-4 h-4 text-accent" />
           4 agenti AI · Risultati in 30 secondi
@@ -136,7 +138,7 @@ export default function HeroSection({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.7 }}
           className="font-serif text-[clamp(42px,8vw,88px)] leading-[1.02] tracking-[-0.02em] max-w-[800px] mb-5"
-          style={{ textShadow: "0 4px 30px rgba(0,0,0,0.5)" }}
+          style={{ textShadow: "0 4px 30px rgba(255,255,255,0.8)" }}
         >
           Non firmare nulla
           <br />
@@ -150,8 +152,8 @@ export default function HeroSection({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="text-lg md:text-xl leading-relaxed text-gray-500 max-w-[520px] mb-10"
-          style={{ textShadow: "0 2px 20px rgba(0,0,0,0.5)" }}
+          className="text-lg md:text-xl leading-relaxed text-foreground max-w-[520px] mb-10"
+          style={{ textShadow: "0 2px 20px rgba(255,255,255,0.8)" }}
         >
           Carica un contratto, una bolletta, qualsiasi documento legale.
           <br className="hidden md:block" />
@@ -174,7 +176,7 @@ export default function HeroSection({
             className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
               dragOver
                 ? "border-accent/70 bg-white/80 backdrop-blur-sm scale-[1.02] shadow-[0_0_80px_rgba(255,107,53,0.2)]"
-                : "border-gray-300 bg-white/80 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_60px_rgba(255,107,53,0.1)]"
+                : "border-border bg-white/80 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_60px_rgba(255,107,53,0.1)]"
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -209,7 +211,7 @@ export default function HeroSection({
               </motion.div>
 
               {/* Text */}
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-foreground">
                 {dragOver ? "Rilascia per analizzare" : "Trascina qui il tuo documento oppure"}
               </p>
 
@@ -233,7 +235,7 @@ export default function HeroSection({
               </button>
 
               {/* Formats */}
-              <p className="text-xs text-gray-300 tracking-wide">
+              <p className="text-xs text-foreground-tertiary tracking-wide">
                 PDF · Word · Immagini · TXT · max 20MB
               </p>
             </div>
@@ -245,7 +247,7 @@ export default function HeroSection({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="flex gap-6 flex-wrap justify-center mt-8 text-gray-400 text-xs"
+          className="flex gap-6 flex-wrap justify-center mt-8 text-foreground-tertiary text-xs"
         >
           <span className="flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" /> Dati protetti
@@ -263,7 +265,7 @@ export default function HeroSection({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-12 flex flex-col items-center gap-2 text-gray-300"
+          className="mt-12 flex flex-col items-center gap-2 text-foreground-tertiary"
         >
           <span className="text-[10px] tracking-[2px] uppercase">Scopri come funziona</span>
           <motion.div

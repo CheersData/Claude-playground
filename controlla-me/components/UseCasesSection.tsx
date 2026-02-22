@@ -79,7 +79,7 @@ export default function UseCasesSection() {
               tra le mani?
             </span>
           </h2>
-          <p className="text-base text-gray-500 max-w-[520px] mx-auto">
+          <p className="text-base text-foreground-secondary max-w-[520px] mx-auto">
             Ogni giorno analizziamo contratti, bollette, polizze e documenti legali.
             Ecco cosa troviamo.
           </p>
@@ -98,8 +98,8 @@ export default function UseCasesSection() {
                 onClick={() => setActive(i)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all whitespace-nowrap md:whitespace-normal shrink-0 md:shrink ${
                   active === i
-                    ? "bg-gray-100 border border-gray-300"
-                    : "hover:bg-gray-50 border border-transparent"
+                    ? "bg-background-secondary border border-border"
+                    : "hover:bg-surface-hover border border-transparent"
                 }`}
               >
                 <div
@@ -115,7 +115,7 @@ export default function UseCasesSection() {
                 </div>
                 <span
                   className={`text-sm font-medium transition-colors ${
-                    active === i ? "text-[#1A1A2E]" : "text-gray-400"
+                    active === i ? "text-foreground" : "text-foreground-tertiary"
                   }`}
                 >
                   {uc.title}
@@ -132,7 +132,7 @@ export default function UseCasesSection() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
               transition={{ duration: 0.35 }}
-              className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+              className="relative overflow-hidden rounded-3xl border border-border bg-white shadow-sm"
             >
               {/* Top glow */}
               <div
@@ -160,7 +160,7 @@ export default function UseCasesSection() {
                   quality={90}
                   sizes="(max-width: 768px) 100vw, 700px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA]/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                 <div
                   className="absolute inset-0"
                   style={{
@@ -180,7 +180,7 @@ export default function UseCasesSection() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold">{current.title}</h3>
-                    <p className="text-xs text-gray-300">Rischi comuni trovati dai nostri agenti</p>
+                    <p className="text-xs text-foreground-tertiary">Rischi comuni trovati dai nostri agenti</p>
                   </div>
                 </div>
 
@@ -192,7 +192,7 @@ export default function UseCasesSection() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + j * 0.08 }}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-200"
+                      className="flex items-start gap-3 p-3 rounded-xl bg-white shadow-sm border border-border"
                     >
                       <div
                         className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
@@ -202,7 +202,7 @@ export default function UseCasesSection() {
                           <path d="M6 2v4M6 8.5v.5" stroke={current.color} strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-600">{risk}</span>
+                      <span className="text-sm text-foreground-secondary">{risk}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -212,12 +212,12 @@ export default function UseCasesSection() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="border-t border-gray-200 pt-6"
+                  className="border-t border-border pt-6"
                 >
-                  <p className="font-serif italic text-gray-500 text-base mb-2">
+                  <p className="font-serif italic text-foreground-secondary text-base mb-2">
                     &ldquo;{current.quote}&rdquo;
                   </p>
-                  <p className="text-xs text-gray-300">— {current.user}</p>
+                  <p className="text-xs text-foreground-tertiary">— {current.user}</p>
                 </motion.div>
               </div>
             </motion.div>

@@ -55,7 +55,7 @@ export default function LawyerCTA({
         <h3 className="text-lg font-bold text-green-400 mb-2">
           Richiesta inviata
         </h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-foreground-secondary">
           Ti contatteremo entro 24 ore con un avvocato specializzato in{" "}
           <strong>{specialization}</strong> nella tua zona.
         </p>
@@ -78,7 +78,7 @@ export default function LawyerCTA({
           <h3 className="text-base font-bold mb-1">
             Questo documento ha problemi che un avvocato puo risolvere
           </h3>
-          <p className="text-sm text-gray-500">{reason}</p>
+          <p className="text-sm text-foreground-secondary">{reason}</p>
           <p className="text-xs text-accent/70 mt-1">
             Specializzazione consigliata: {specialization}
           </p>
@@ -114,7 +114,7 @@ export default function LawyerCTA({
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-border text-sm text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
               <input
                 type="email"
@@ -125,7 +125,7 @@ export default function LawyerCTA({
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-border text-sm text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -138,7 +138,7 @@ export default function LawyerCTA({
                 onChange={(e) =>
                   setFormData({ ...formData, phone: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-border text-sm text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
               <input
                 type="text"
@@ -149,7 +149,7 @@ export default function LawyerCTA({
                 onChange={(e) =>
                   setFormData({ ...formData, region: e.target.value })
                 }
-                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
+                className="px-4 py-2.5 rounded-xl bg-white shadow-sm border border-border text-sm text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1"
               />
             </div>
             <textarea
@@ -160,7 +160,7 @@ export default function LawyerCTA({
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm border border-gray-200 text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1 resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm border border-border text-sm text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30 focus:ring-offset-1 resize-none"
             />
             <button
               type="submit"

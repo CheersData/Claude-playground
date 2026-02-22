@@ -5,16 +5,16 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 border-t border-gray-100">
+    <footer className="relative z-10 border-t border-border-subtle">
       <div className="max-w-[1000px] mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="inline-flex items-baseline gap-0.5 mb-4">
-              <span className="font-serif text-2xl text-[#1A1A2E] italic">controlla</span>
+              <span className="font-serif text-2xl text-foreground italic">controlla</span>
               <span className="font-serif text-2xl text-accent">.me</span>
             </Link>
-            <p className="text-sm text-gray-300 leading-relaxed">
+            <p className="text-sm text-foreground-tertiary leading-relaxed">
               Il tuo studio legale AI.
               <br />
               4 consulenti, 30 secondi, zero sorprese.
@@ -23,7 +23,7 @@ export default function Footer() {
 
           {/* Prodotto */}
           <div>
-            <h4 className="text-xs font-bold tracking-[2px] uppercase text-gray-500 mb-4">Prodotto</h4>
+            <h4 className="text-xs font-bold tracking-[2px] uppercase text-foreground-secondary mb-4">Prodotto</h4>
             <ul className="space-y-2.5">
               {[
                 { label: "Come funziona", href: "/#mission" },
@@ -32,7 +32,7 @@ export default function Footer() {
                 { label: "Prezzi", href: "/pricing" },
               ].map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-gray-300 hover:text-gray-600 transition-colors">
+                  <Link href={item.href} className="text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors">
                     {item.label}
                   </Link>
                 </li>
@@ -42,7 +42,7 @@ export default function Footer() {
 
           {/* Risorse */}
           <div>
-            <h4 className="text-xs font-bold tracking-[2px] uppercase text-gray-500 mb-4">Risorse</h4>
+            <h4 className="text-xs font-bold tracking-[2px] uppercase text-foreground-secondary mb-4">Risorse</h4>
             <ul className="space-y-2.5">
               {[
                 { label: "Dashboard", href: "/dashboard" },
@@ -51,7 +51,7 @@ export default function Footer() {
                 { label: "Contatti", href: "#" },
               ].map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-gray-300 hover:text-gray-600 transition-colors">
+                  <Link href={item.href} className="text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors">
                     {item.label}
                   </Link>
                 </li>
@@ -61,7 +61,7 @@ export default function Footer() {
 
           {/* Legale */}
           <div>
-            <h4 className="text-xs font-bold tracking-[2px] uppercase text-gray-500 mb-4">Legale</h4>
+            <h4 className="text-xs font-bold tracking-[2px] uppercase text-foreground-secondary mb-4">Legale</h4>
             <ul className="space-y-2.5">
               {[
                 { label: "Privacy Policy", href: "#" },
@@ -70,7 +70,7 @@ export default function Footer() {
                 { label: "GDPR", href: "#" },
               ].map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-gray-300 hover:text-gray-600 transition-colors">
+                  <Link href={item.href} className="text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors">
                     {item.label}
                   </Link>
                 </li>
@@ -80,8 +80,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-100">
-          <p className="text-xs text-gray-200">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-border-subtle">
+          <p className="text-xs text-foreground-tertiary">
             &copy; {new Date().getFullYear()} controlla.me — Non sostituisce un avvocato. Ti aiuta a capire cosa stai firmando.
           </p>
           <div className="flex items-center gap-1.5">
@@ -90,7 +90,7 @@ export default function Footer() {
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             />
-            <span className="text-xs text-gray-200">Tutti i sistemi operativi</span>
+            <span className="text-xs text-foreground-tertiary">Tutti i sistemi operativi</span>
           </div>
         </div>
       </div>
