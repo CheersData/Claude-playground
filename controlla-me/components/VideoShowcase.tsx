@@ -79,7 +79,7 @@ export default function VideoShowcase({
           <h2 className="font-serif text-3xl md:text-5xl mb-4">
             {title}
           </h2>
-          <p className="text-base text-white/40 max-w-[480px] mx-auto">
+          <p className="text-base text-gray-500 max-w-[480px] mx-auto">
             {subtitle}
           </p>
         </motion.div>
@@ -90,7 +90,7 @@ export default function VideoShowcase({
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative rounded-3xl overflow-hidden border border-white/[0.08] bg-white/[0.02]"
+          className="relative rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-sm"
           style={{ aspectRatio: "16/9" }}
         >
           {src ? (
@@ -109,7 +109,7 @@ export default function VideoShowcase({
               {/* Play overlay (shown when not playing) */}
               {!isPlaying && (
                 <div
-                  className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+                  className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm cursor-pointer"
                   onClick={handlePlay}
                 >
                   <motion.div
@@ -127,12 +127,12 @@ export default function VideoShowcase({
               {isPlaying && (
                 <button
                   onClick={toggleMute}
-                  className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+                  className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white/90 transition-colors"
                 >
                   {isMuted ? (
-                    <VolumeX className="w-4 h-4 text-white/70" />
+                    <VolumeX className="w-4 h-4 text-gray-600" />
                   ) : (
-                    <Volume2 className="w-4 h-4 text-white/70" />
+                    <Volume2 className="w-4 h-4 text-gray-600" />
                   )}
                 </button>
               )}
@@ -153,7 +153,7 @@ export default function VideoShowcase({
 /* ── Animated placeholder with cinematic feel ── */
 function AnimatedVideoPlaceholder({ text, color }: { text: string; color: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-white/[0.02] to-transparent">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-gray-50 to-transparent">
       {/* Animated rings */}
       <div className="relative w-32 h-32">
         <motion.div
@@ -190,8 +190,8 @@ function AnimatedVideoPlaceholder({ text, color }: { text: string; color: string
 
       {/* Text */}
       <div className="text-center px-6">
-        <p className="text-sm text-white/30 mb-1">{text}</p>
-        <p className="text-xs text-white/15">Posiziona i tuoi video in /public/videos/</p>
+        <p className="text-sm text-gray-300 mb-1">{text}</p>
+        <p className="text-xs text-gray-300">Posiziona i tuoi video in /public/videos/</p>
       </div>
 
       {/* Scanning lines effect */}

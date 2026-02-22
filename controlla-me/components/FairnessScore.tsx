@@ -19,7 +19,7 @@ export default function FairnessScore({ score }: FairnessScoreProps) {
           cy="65"
           r="54"
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="rgba(0,0,0,0.08)"
           strokeWidth="8"
         />
         <motion.circle
@@ -40,7 +40,7 @@ export default function FairnessScore({ score }: FairnessScoreProps) {
           x="65"
           y="60"
           textAnchor="middle"
-          fill="white"
+          fill="#1A1A2E"
           fontSize="32"
           fontWeight="800"
           className="font-serif"
@@ -51,7 +51,7 @@ export default function FairnessScore({ score }: FairnessScoreProps) {
           x="65"
           y="80"
           textAnchor="middle"
-          fill="rgba(255,255,255,0.4)"
+          fill="rgba(26,26,46,0.4)"
           fontSize="11"
           fontWeight="500"
         >

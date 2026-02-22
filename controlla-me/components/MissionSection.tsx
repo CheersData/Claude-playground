@@ -76,7 +76,7 @@ export default function MissionSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="relative overflow-hidden rounded-[32px] border border-white/[0.06] bg-white/[0.02] mb-8"
+          className="relative overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-sm mb-8"
         >
           <div
             className="absolute inset-0 pointer-events-none"
@@ -114,7 +114,7 @@ export default function MissionSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.2 }}
-                  className="text-base text-white/40 max-w-[520px] leading-relaxed"
+                  className="text-base text-gray-500 max-w-[520px] leading-relaxed"
                 >
                   Ogni giorno milioni di persone firmano documenti senza capirli davvero.
                   Noi mettiamo a disposizione un team di AI specializzate che leggono,
@@ -130,7 +130,7 @@ export default function MissionSection() {
                 transition={{ delay: 0.3, duration: 0.6 }}
                 className="hidden md:block relative"
               >
-                <div className="relative w-[360px] h-[280px] rounded-2xl overflow-hidden border border-white/[0.08]">
+                <div className="relative w-[360px] h-[280px] rounded-2xl overflow-hidden border border-gray-200">
                   <Image
                     src="/images/about-legal.png"
                     alt="Analisi legale cubista"
@@ -139,7 +139,7 @@ export default function MissionSection() {
                     quality={90}
                     sizes="360px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/80 backdrop-blur-sm to-transparent" />
                 </div>
                 {/* Glow behind image */}
                 <div className="absolute -inset-6 rounded-3xl bg-accent/5 blur-3xl -z-10" />
@@ -159,7 +159,7 @@ export default function MissionSection() {
           <p className="text-[11px] font-bold tracking-[3px] uppercase text-accent/70 mb-3">
             Come funziona
           </p>
-          <h3 className="font-serif text-xl md:text-2xl text-white/80">
+          <h3 className="font-serif text-xl md:text-2xl text-[#1A1A2E]">
             4 agenti, 30 secondi, zero dubbi.
           </h3>
         </motion.div>
@@ -172,7 +172,7 @@ export default function MissionSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 + i * 0.1 }}
-              className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] transition-all"
+              className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:border-gray-300 transition-all"
             >
               {/* Image — big and prominent */}
               <div className="relative h-[240px] md:h-[300px] overflow-hidden">
@@ -185,7 +185,7 @@ export default function MissionSection() {
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
                 {/* Subtle gradient — only at bottom for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA]/30 to-transparent" />
                 {/* Step number */}
                 <div
                   className="absolute top-4 left-4 w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold backdrop-blur-sm"
@@ -194,7 +194,7 @@ export default function MissionSection() {
                   {i + 1}
                 </div>
                 {/* Duration badge */}
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-[11px] font-mono text-accent/70 border border-white/[0.06]">
+                <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-white/80 backdrop-blur-sm text-[11px] font-mono text-accent/70 border border-gray-200">
                   {step.duration}
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function MissionSection() {
                   </div>
                   <p className="text-base font-semibold">{step.label}</p>
                 </div>
-                <p className="text-sm text-white/40 leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
               </div>
 
               {/* Bottom accent line */}
@@ -230,7 +230,7 @@ export default function MissionSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="relative h-1 rounded-full bg-white/[0.04] mb-10 mx-4 hidden md:block"
+          className="relative h-1 rounded-full bg-white shadow-sm mb-10 mx-4 hidden md:block"
         >
           <motion.div
             initial={{ width: 0 }}
@@ -257,7 +257,7 @@ export default function MissionSection() {
         </motion.div>
 
         {/* Stats */}
-        <div className="relative overflow-hidden rounded-[32px] border border-white/[0.06] bg-white/[0.02]">
+        <div className="relative overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-sm">
           <div className="grid grid-cols-3 gap-4 px-8 md:px-14 py-8">
             {[
               { value: 4, suffix: "", label: "Consulenti AI" },
@@ -272,10 +272,10 @@ export default function MissionSection() {
                 transition={{ delay: 0.2 + i * 0.1 }}
                 className="text-center"
               >
-                <p className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent">
+                <p className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-[#1A1A2E] to-[#1A1A2E]/50 bg-clip-text text-transparent">
                   <Counter value={stat.value} suffix={stat.suffix} />
                 </p>
-                <p className="text-xs text-white/30 mt-1">{stat.label}</p>
+                <p className="text-xs text-gray-300 mt-1">{stat.label}</p>
               </motion.div>
             ))}
           </div>

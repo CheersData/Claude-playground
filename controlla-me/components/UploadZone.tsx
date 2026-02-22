@@ -43,7 +43,7 @@ export default function UploadZone({
         ${
           dragOver
             ? "border-accent/80 bg-accent/5 scale-[1.01]"
-            : "border-accent/30 bg-white/[0.02] hover:border-accent/60 hover:bg-accent/[0.03]"
+            : "border-accent/30 bg-white shadow-sm hover:border-accent/60 hover:bg-accent/[0.03]"
         }
         ${isLoading ? "pointer-events-none opacity-60" : ""}
       `}
@@ -76,7 +76,7 @@ export default function UploadZone({
           <p className="text-base font-semibold mb-1">
             Trascina qui il tuo documento
           </p>
-          <p className="text-sm text-white/35">
+          <p className="text-sm text-gray-500">
             PDF, immagine, Word o testo — max 20MB
           </p>
         </div>

@@ -63,7 +63,7 @@ export default function Dashboard() {
         >
           <div>
             <h1 className="font-serif text-3xl mb-1">I tuoi documenti</h1>
-            <p className="text-sm text-white/40">
+            <p className="text-sm text-gray-500">
               {analyses.length} analisi effettuate
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function Dashboard() {
             >
               <Link
                 href={`/analysis/${analysis.id}`}
-                className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all"
+                className="group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-sm border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
                 <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
                   <FileText className="w-5 h-5 text-accent" />
@@ -96,9 +96,9 @@ export default function Dashboard() {
                   <p className="text-sm font-semibold truncate">
                     {analysis.file_name}
                   </p>
-                  <p className="text-xs text-white/40 flex items-center gap-2 mt-1">
+                  <p className="text-xs text-gray-400 flex items-center gap-2 mt-1">
                     <span>{analysis.document_type}</span>
-                    <span className="text-white/20">&#x2022;</span>
+                    <span className="text-gray-300">&#x2022;</span>
                     <Clock className="w-3 h-3" />
                     <span>
                       {new Date(analysis.created_at).toLocaleDateString("it-IT")}
@@ -108,7 +108,7 @@ export default function Dashboard() {
 
                 <ScoreDot score={analysis.fairness_score} />
 
-                <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
               </Link>
             </motion.div>
           ))}
@@ -120,8 +120,8 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             className="text-center py-20"
           >
-            <FileText className="w-12 h-12 text-white/10 mx-auto mb-4" />
-            <p className="text-white/40 mb-6">
+            <FileText className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-500 mb-6">
               Non hai ancora analizzato nessun documento
             </p>
             <Link
