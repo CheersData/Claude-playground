@@ -35,7 +35,7 @@ export default function ResultsView({
           </p>
           <h2 className="font-serif text-3xl">Ecco cosa abbiamo trovato.</h2>
         </div>
-        <FairnessScore score={result.fairnessScore} />
+        <FairnessScore score={result.fairnessScore} scores={result.scores} />
       </motion.div>
 
       {/* Summary */}
