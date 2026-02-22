@@ -17,6 +17,11 @@
  *   SUPABASE_SERVICE_ROLE_KEY
  */
 
+// Carica variabili d'ambiente da .env.local
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(__dirname, "../.env.local") });
+
 import { createClient } from "@supabase/supabase-js";
 import {
   ALL_SOURCES,
