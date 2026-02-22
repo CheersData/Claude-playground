@@ -76,7 +76,7 @@ export default function UploadZone({
           <p className="text-base font-semibold mb-1">
             Trascina qui il tuo documento
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-foreground-secondary">
             PDF, immagine, Word o testo — max 20MB
           </p>
         </div>

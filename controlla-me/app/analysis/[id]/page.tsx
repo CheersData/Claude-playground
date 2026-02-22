@@ -90,7 +90,7 @@ export default function AnalysisPage({
         >
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Torna alla dashboard

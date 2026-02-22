@@ -42,7 +42,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.3 + index * 0.12 }}
-      className={`p-5 rounded-xl bg-white shadow-sm border border-gray-200`}
+      className={`p-5 rounded-xl bg-white shadow-sm border border-border`}
     >
       <div className="flex justify-between items-center mb-2">
         <span className="text-[15px] font-bold">{risk.title}</span>
@@ -53,12 +53,12 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
         </span>
       </div>
 
-      <p className="text-sm leading-relaxed text-gray-500 mb-3">
+      <p className="text-sm leading-relaxed text-foreground-secondary mb-3">
         {risk.detail}
       </p>
 
       {(risk.legalBasis || risk.courtCase) && (
-        <div className="flex gap-3 flex-wrap text-xs text-gray-300 mb-3">
+        <div className="flex gap-3 flex-wrap text-xs text-foreground-tertiary mb-3">
           {risk.legalBasis && <span>{risk.legalBasis}</span>}
           {risk.courtCase && <span>{risk.courtCase}</span>}
         </div>
@@ -76,7 +76,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="mt-3 pt-3 border-t border-gray-200"
+          className="mt-3 pt-3 border-t border-border"
         >
           <DeepSearchChat
             clauseContext={`${risk.title}: ${risk.detail}`}
