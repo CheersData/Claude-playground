@@ -42,12 +42,33 @@ export interface ArticleDetail {
   in_force: boolean;
 }
 
+// ─── Helpers ───
+
+/** Supabase restituisce max 1000 righe per query. Questa funzione pagina automaticamente. */
+async function fetchAllRows<T>(
+  queryBuilder: { range: (from: number, to: number) => { data: T[] | null; error: { message: string } | null } },
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await (queryBuilder as any).range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 // ─── Query Functions ───
 
 /** Ottieni tutte le fonti con conteggio articoli */
 export async function getCorpusSources() {
   const supabase = createAdminClient();
 
+  // Usa conteggio aggregato via RPC per evitare di scaricare tutte le righe
   const { data, error } = await supabase
     .from("legal_articles")
     .select("source_id, source_name, source_type")
@@ -55,7 +76,8 @@ export async function getCorpusSources() {
 
   if (error) throw new Error(`Errore query fonti: ${error.message}`);
 
-  // Aggrega per fonte
+  // Aggrega per fonte (max 1000 righe ma per il conteggio fonti basta)
+  // Per il conteggio esatto usiamo una query separata count
   const sourcesMap = new Map<string, { source_name: string; source_type: string; count: number }>();
   for (const row of data || []) {
     const existing = sourcesMap.get(row.source_id);
@@ -70,38 +92,71 @@ export async function getCorpusSources() {
     }
   }
 
-  return Array.from(sourcesMap.entries()).map(([source_id, info]) => ({
-    source_id,
-    source_name: info.source_name,
-    source_type: info.source_type,
-    article_count: info.count,
-  }));
+  // Per le fonti trovate, ottieni il conteggio esatto
+  const results = [];
+  for (const [source_id, info] of sourcesMap) {
+    const { count } = await supabase
+      .from("legal_articles")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source_id)
+      .eq("in_force", true);
+
+    results.push({
+      source_id,
+      source_name: info.source_name,
+      source_type: info.source_type,
+      article_count: count || info.count,
+    });
+  }
+
+  return results;
 }
 
 /** Ottieni la gerarchia navigabile per una fonte specifica */
 export async function getSourceHierarchy(sourceId: string): Promise<SourceHierarchy | null> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("legal_articles")
-    .select("id, source_id, source_name, source_type, article_number, article_title, hierarchy")
-    .eq("source_id", sourceId)
-    .eq("in_force", true)
-    .order("article_number");
+  // Pagina per superare il limite di 1000 righe di Supabase
+  const PAGE_SIZE = 1000;
+  const allData: Array<{
+    id: string;
+    source_id: string;
+    source_name: string;
+    source_type: string;
+    article_number: string;
+    article_title: string | null;
+    hierarchy: Record<string, string>;
+  }> = [];
 
-  if (error) throw new Error(`Errore query gerarchia: ${error.message}`);
-  if (!data || data.length === 0) return null;
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("legal_articles")
+      .select("id, source_id, source_name, source_type, article_number, article_title, hierarchy")
+      .eq("source_id", sourceId)
+      .eq("in_force", true)
+      .order("article_number")
+      .range(offset, offset + PAGE_SIZE - 1);
 
-  const first = data[0];
+    if (error) throw new Error(`Errore query gerarchia: ${error.message}`);
+    if (!data || data.length === 0) break;
+    allData.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  if (allData.length === 0) return null;
+
+  const first = allData[0];
 
   // Costruisci albero gerarchico
-  const tree = buildHierarchyTree(data);
+  const tree = buildHierarchyTree(allData);
 
   return {
     source_id: first.source_id,
     source_name: first.source_name,
     source_type: first.source_type,
-    article_count: data.length,
+    article_count: allData.length,
     tree,
   };
 }
