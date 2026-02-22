@@ -6,7 +6,7 @@ import { Lock, Zap, Gift, Upload, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
-import TeamSection from "@/components/TeamSection";
+
 import UseCasesSection from "@/components/UseCasesSection";
 import VideoShowcase from "@/components/VideoShowcase";
 import CTASection from "@/components/CTASection";
@@ -216,15 +216,7 @@ export default function Home() {
           {/* Divider */}
           <div className="section-divider" />
 
-          {/* 4. IL TEAM AI — interactive agent cards */}
-          <div id="team" className="flex flex-col items-center px-6 py-20 relative z-10">
-            <TeamSection />
-          </div>
-
-          {/* Divider */}
-          <div className="section-divider" />
-
-          {/* 5. CASI D'USO — tabbed examples */}
+          {/* 4. CASI D'USO — tabbed examples */}
           <div id="use-cases">
             <UseCasesSection />
           </div>
