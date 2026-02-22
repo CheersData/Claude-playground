@@ -12,7 +12,7 @@ export async function runClassifier(
     messages: [
       {
         role: "user",
-        content: `Analizza e classifica il seguente documento:\n\n${documentText}`,
+        content: `Analizza e classifica il seguente documento. Identifica con precisione il sotto-tipo, gli istituti giuridici e le aree di focus legale.\n\n${documentText}`,
       },
     ],
   });
@@ -22,5 +22,13 @@ export async function runClassifier(
   }
 
   const text = extractTextContent(response);
-  return parseAgentJSON<ClassificationResult>(text);
+  const result = parseAgentJSON<ClassificationResult>(text);
+
+  // Ensure new fields have defaults for backward compatibility
+  return {
+    ...result,
+    documentSubType: result.documentSubType ?? null,
+    relevantInstitutes: result.relevantInstitutes ?? [],
+    legalFocusAreas: result.legalFocusAreas ?? [],
+  };
 }

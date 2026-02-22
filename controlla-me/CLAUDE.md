@@ -15,6 +15,8 @@
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
+| Embeddings | Voyage AI (voyage-law-2) | API HTTP |
+| Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
 | Database | Supabase (PostgreSQL + RLS) | 2.97.0 |
 | Auth | Supabase Auth (OAuth) | via @supabase/ssr |
 | Pagamenti | Stripe | 20.3.1 |
@@ -61,6 +63,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_PRO_PRICE_ID=price_...
 STRIPE_SINGLE_PRICE_ID=price_...
 
+# Voyage AI (embeddings per vector DB — opzionale)
+VOYAGE_API_KEY=pa-...
+
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -105,6 +110,8 @@ controlla-me/
 │       ├── analyze/route.ts       # CORE - SSE streaming analisi
 │       ├── upload/route.ts        # Estrazione testo da file
 │       ├── deep-search/route.ts   # Ricerca approfondita clausole
+│       ├── vector-search/route.ts # Ricerca semantica vector DB
+│       ├── corpus/route.ts        # Gestione corpus legislativo
 │       ├── session/[sessionId]/route.ts  # Cache sessioni
 │       ├── user/usage/route.ts    # Limiti utilizzo
 │       ├── auth/callback/route.ts # OAuth Supabase
@@ -133,6 +140,9 @@ controlla-me/
 │
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
+│   ├── embeddings.ts             # Client Voyage AI per embeddings
+│   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
+│   ├── legal-corpus.ts           # Ingest e query corpus legislativo
 │   ├── extract-text.ts           # Estrazione PDF/DOCX/TXT
 │   ├── analysis-cache.ts         # Cache analisi su filesystem
 │   ├── stripe.ts                 # Config Stripe + piani
@@ -162,32 +172,44 @@ controlla-me/
 
 ## 4. SISTEMA MULTI-AGENTE (IL CUORE)
 
-### Pipeline sequenziale
+### Pipeline con RAG
 
 ```
 Documento
    |
 [1] CLASSIFIER (Haiku 4.5, ~12s)
-   -> Tipo documento, parti, giurisdizione, leggi applicabili
+   -> Tipo, sotto-tipo, istituti giuridici, focus areas, leggi
    |
-[2] ANALYZER (Sonnet 4.5, ~25s)
-   -> Clausole rischiose, elementi mancanti, rischio complessivo
+[1.5] RETRIEVAL (Vector DB, ~2s)
+   -> Lookup diretto per leggi identificate
+   -> Ricerca per istituti giuridici
+   -> Ricerca semantica per clausole
+   -> Contesto da analisi precedenti (knowledge base)
    |
-[3] INVESTIGATOR (Haiku 4.5 + web_search, ~22s)
-   -> Norme vigenti, sentenze Cassazione, opinioni legali
+[2] ANALYZER (Sonnet 4.5, ~25s) + contesto normativo verificato
+   -> Clausole rischiose con framework normativo corretto
    |
-[4] ADVISOR (Sonnet 4.5, ~18s)
-   -> Score equita 1-10, rischi in italiano semplice, azioni concrete
+[2.5] RETRIEVAL (Vector DB, ~1s)
+   -> Ricerca semantica per clausole problematiche trovate
+   |
+[3] INVESTIGATOR (Sonnet 4.5 + web_search, ~30s) + contesto legale + RAG
+   -> Copre TUTTE le clausole critical e high
+   |
+[4] ADVISOR (Sonnet 4.5, ~18s) + RAG per calibrazione mercato
+   -> Scoring multidimensionale (4 dimensioni), max 3 rischi, max 3 azioni
+   |
+[5] AUTO-INDEX (background, ~5s)
+   -> Salva conoscenza nel vector DB per analisi future
 ```
 
 ### Scelta dei modelli
 
 | Agente | Modello | Perche |
 |--------|---------|--------|
-| Classifier | `claude-haiku-4-5-20251001` | Task semplice, velocita |
-| Analyzer | `claude-sonnet-4-5-20250929` | Analisi profonda |
-| Investigator | `claude-haiku-4-5-20251001` | Ha web_search, serve velocita |
-| Advisor | `claude-sonnet-4-5-20250929` | Output finale di qualita |
+| Classifier | `claude-haiku-4-5-20251001` | Prompt profondo compensa, velocita |
+| Analyzer | `claude-sonnet-4-5-20250929` | Analisi profonda con contesto normativo |
+| Investigator | `claude-sonnet-4-5-20250929` | Upgrade da Haiku: query migliori, copertura completa |
+| Advisor | `claude-sonnet-4-5-20250929` | Output finale + scoring multidimensionale |
 
 ### Regole dei prompt
 
@@ -595,7 +617,108 @@ vercel deploy    # O collega repo GitHub a Vercel
 
 ---
 
-## 15. FEATURE INCOMPLETE
+## 15. DATABASE VETTORIALE E RAG
+
+### Architettura a 3 layer
+
+```
+┌─────────────────────────────────────────────────────┐
+│              SUPABASE pgvector                       │
+│                                                      │
+│  1. legal_articles    → Corpus legislativo italiano  │
+│     - Codice Civile, D.Lgs., DPR, Leggi            │
+│     - Ricerca semantica + lookup diretto            │
+│     - Embedding: Voyage AI (voyage-law-2, 1024d)    │
+│                                                      │
+│  2. document_chunks   → Chunk documenti analizzati  │
+│     - Ogni analisi spezza il doc in chunk           │
+│     - Trova documenti simili a quelli passati       │
+│                                                      │
+│  3. legal_knowledge   → Intelligenza collettiva     │
+│     - Norme, sentenze, pattern di clausole/rischi   │
+│     - Arricchita da OGNI analisi completata         │
+│     - Più usi l'app, più diventa intelligente       │
+└─────────────────────────────────────────────────────┘
+```
+
+### Pipeline RAG nella pipeline agenti
+
+```
+[1] CLASSIFIER → identifica tipo, sotto-tipo, istituti giuridici
+         ↓
+[1.5] RETRIEVAL → query al vector DB:
+      - Lookup diretto: leggi identificate dal Classifier
+      - Per istituto: Art. collegati agli istituti giuridici
+      - Semantico: norme simili alle clausole
+         ↓
+[2] ANALYZER → riceve il contesto normativo verificato
+         ↓
+[2.5] RETRIEVAL → ricerca semantica per clausole problematiche
+         ↓
+[3] INVESTIGATOR → riceve contesto legale + RAG da analisi precedenti
+         ↓
+[4] ADVISOR → riceve RAG per calibrare scoring sul mercato
+         ↓
+[5] AUTO-INDEX → salva conoscenza nel vector DB (background)
+```
+
+### Variabili d'ambiente aggiuntive
+
+```env
+# Voyage AI (per embeddings — raccomandato voyage-law-2 per testi legali)
+VOYAGE_API_KEY=pa-...
+```
+
+Se `VOYAGE_API_KEY` non è configurata, tutte le feature vector DB vengono saltate silenziosamente. L'app funziona comunque.
+
+### API Routes
+
+- `POST /api/vector-search` — Ricerca semantica (query, type, category, limit)
+- `GET /api/vector-search` — Statistiche vector DB
+- `POST /api/corpus` — Caricamento articoli nel corpus
+- `GET /api/corpus` — Statistiche corpus legislativo
+
+### Migrazione database
+
+```bash
+# Esegui su Supabase SQL Editor:
+# 3. supabase/migrations/003_vector_db.sql → pgvector, document_chunks, legal_knowledge, legal_articles
+```
+
+### File chiave
+
+```
+lib/
+├── embeddings.ts        # Client Voyage AI per generare embeddings
+├── vector-store.ts      # RAG pipeline: chunking, indexing, search, buildRAGContext
+├── legal-corpus.ts      # Ingest e query corpus legislativo
+```
+
+### ClassificationResult arricchito
+
+Il Classifier ora identifica:
+- `documentSubType`: sotto-tipo specifico (es. "vendita_a_corpo", "locazione_4+4")
+- `relevantInstitutes`: istituti giuridici nel documento (es. ["vendita_a_corpo", "caparra_confirmatoria"])
+- `legalFocusAreas`: aree di diritto per guidare l'analisi
+
+### Scoring multidimensionale (Advisor)
+
+```typescript
+scores: {
+  contractEquity: number;      // Bilanciamento tra le parti
+  legalCoherence: number;      // Coerenza interna clausole
+  practicalCompliance: number;  // Aderenza alla prassi
+  completeness: number;         // Copertura situazioni tipiche
+}
+```
+
+### Limiti output Advisor enforced
+
+Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il modello ne produce di più.
+
+---
+
+## 16. FEATURE INCOMPLETE
 
 1. OCR immagini — tesseract.js importato ma non implementato
 2. Dashboard reale — Usa mock data, servono query Supabase
@@ -604,6 +727,8 @@ vercel deploy    # O collega repo GitHub a Vercel
 5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
 6. Test — Nessun test unitario/integrazione/E2E
 7. CI/CD — Nessuna GitHub Action
+8. Corpus legislativo — Tabella e API pronte, servono dati (Codice Civile da HuggingFace, D.Lgs. da Normattiva)
+9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
 
 ---
 
