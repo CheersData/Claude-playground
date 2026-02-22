@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+:root {
+  /* ─── Lightlife Design System ─── */
+  --background: #FFFFFF;
+  --background-secondary: #F8F8FA;
+  --foreground: #1A1A1A;
+  --foreground-secondary: #6B6B6B;
+  --foreground-tertiary: #9B9B9B;
+  --accent: #FF6B35;
+  --accent-dark: #E85A24;
+  --border: #E5E5E5;
+  --border-subtle: #F0F0F0;
+  --surface: #FFFFFF;
+  --surface-hover: #F5F5F7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-tertiary: var(--foreground-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --font-sans: 'DM Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'DM Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+}
+
+.font-serif {
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Floating orb animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-30px) scale(1.05); }
+}
+
+.floating-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,107,53,0.06), rgba(255,107,53,0.01));
+  pointer-events: none;
+  animation: float 6s ease-in-out infinite;
+  filter: blur(40px);
+}
+
+/* ── Agent illustration animations ── */
+
+/* Classifier: scan line sweeping over document */
+@keyframes scan-line {
+  0%   { top: 10%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+
+@keyframes doc-fade-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Analyzer: magnifying glass sweep */
+@keyframes mag-sweep {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(6px, -4px) rotate(-5deg); }
+  50%  { transform: translate(-2px, 4px) rotate(3deg); }
+  75%  { transform: translate(4px, 2px) rotate(-2deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes mag-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255,107,53,0.3)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(255,107,53,0.7)); }
+}
+
+/* Investigator: scale oscillation */
+@keyframes scale-swing {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(8deg); }
+  75%      { transform: rotate(-8deg); }
+}
+
+@keyframes pan-left {
+  0%, 100% { transform: translateY(0px); }
+  25%      { transform: translateY(4px); }
+  75%      { transform: translateY(-3px); }
+}
+
+@keyframes pan-right {
+  0%, 100% { transform: translateY(0px); }
+  25%      { transform: translateY(-3px); }
+  75%      { transform: translateY(4px); }
+}
+
+/* Advisor: lightbulb glow pulse */
+@keyframes bulb-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(255,200,50,0.3)); }
+  50%      { filter: drop-shadow(0 0 16px rgba(255,200,50,0.8)); }
+}
+
+@keyframes rays-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes idea-spark {
+  0%, 100% { opacity: 0; transform: scale(0.5) translateY(0); }
+  50%      { opacity: 1; transform: scale(1) translateY(-6px); }
+}
+
+/* ── Section divider gradient ── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,107,53,0.15), transparent);
+  margin: 0 auto;
+  max-width: 600px;
+}
+
+/* ── Smooth scroll ── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Noise texture overlay ── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ── Video container ── */
+.video-glow {
+  box-shadow: 0 0 80px rgba(255,107,53,0.06), 0 0 160px rgba(255,107,53,0.03);
+}
