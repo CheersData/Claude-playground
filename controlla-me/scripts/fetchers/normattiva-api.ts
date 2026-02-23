@@ -17,6 +17,25 @@ import { fetchNormattivaHtml } from "./normattiva-html";
 import type { LegalArticle } from "../lib/types";
 import type { NormattivaSource } from "../corpus-sources";
 
+/** Pattern che indicano testo di preambolo/formula di promulgazione */
+const PREAMBLE_PATTERNS = [
+  /udito il consiglio/i,
+  /abbiamo decretato e decretiamo/i,
+  /sulla proposta del/i,
+  /ministro segretario di stato/i,
+  /della legge predetta/i,
+  /visto il regio decreto/i,
+  /il presidente della repubblica/i,
+  /gazzetta ufficiale/i,
+  /vista la deliberazione/i,
+  /sentito il consiglio di stato/i,
+  /è promulgata la seguente legge/i,
+];
+
+function isPreambleText(text: string): boolean {
+  return PREAMBLE_PATTERNS.some((p) => p.test(text));
+}
+
 const API_BASE = "https://pre.api.normattiva.it/t/normattiva.api/bff-opendata/v1/api/v1";
 
 // ─── Fetch principale (API-first, HTML fallback) ───
@@ -170,6 +189,9 @@ function parseAkomaNtoso(xml: string, source: NormattivaSource): LegalArticle[] 
     text = cleanText(text);
 
     if (text.length < 10) continue;
+
+    // Filtra preambolo/formula di promulgazione
+    if (isPreambleText(text) || (rubrica && isPreambleText(rubrica))) continue;
 
     // Gerarchia dai parent elements (book, title, chapter)
     const hierarchy = extractHierarchyFromXml(xml, eId);

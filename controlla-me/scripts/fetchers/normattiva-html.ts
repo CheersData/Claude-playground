@@ -193,6 +193,9 @@ function extractArticle(
 
   if (text.length < 10) return null;
 
+  // Filtra preambolo/formula di promulgazione
+  if (isPreambleText(text) || (rubrica && isPreambleText(rubrica))) return null;
+
   // Hierarchy
   const hierarchy: Record<string, string> = {};
   if (ctx.currentBook) hierarchy.book = ctx.currentBook;
@@ -217,6 +220,25 @@ function extractArticle(
   };
 }
 
+/** Pattern che indicano testo di preambolo/formula di promulgazione, non contenuto normativo */
+const PREAMBLE_PATTERNS = [
+  /udito il consiglio/i,
+  /abbiamo decretato e decretiamo/i,
+  /sulla proposta del/i,
+  /ministro segretario di stato/i,
+  /della legge predetta/i,
+  /visto il regio decreto/i,
+  /il presidente della repubblica/i,
+  /gazzetta ufficiale/i,
+  /vista la deliberazione/i,
+  /sentito il consiglio di stato/i,
+  /è promulgata la seguente legge/i,
+];
+
+function isPreambleText(text: string): boolean {
+  return PREAMBLE_PATTERNS.some((p) => p.test(text));
+}
+
 function parseWithRegex(fullText: string, source: NormattivaSource, articles: LegalArticle[]): void {
   const regex = /Art\.\s*(\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)\s*(?:[-–—]\s*)?([^\n]*?)?\n([\s\S]*?)(?=Art\.\s*\d|$)/gi;
 
@@ -226,6 +248,9 @@ function parseWithRegex(fullText: string, source: NormattivaSource, articles: Le
     const rubrica = match[2]?.trim() || null;
     const text = cleanText(match[3] || "");
     if (text.length < 10) continue;
+
+    // Filtra preambolo/formula di promulgazione
+    if (isPreambleText(text) || (rubrica && isPreambleText(rubrica))) continue;
 
     const keywords = [...source.defaultKeywords];
     const institutes = [...source.defaultInstitutes];

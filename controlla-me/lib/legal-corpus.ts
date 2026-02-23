@@ -355,14 +355,26 @@ export async function getCorpusStats(): Promise<{
     .from("legal_articles")
     .select("*", { count: "exact", head: true });
 
-  const { data: sourceStats } = await admin
-    .from("legal_articles")
-    .select("law_source");
+  // Fetch paginato per superare il limite di 1000 righe
+  const allSourceRows: Array<{ law_source: string }> = [];
+  let statsOffset = 0;
+  const statsPageSize = 1000;
+
+  while (true) {
+    const { data: page } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(statsOffset, statsOffset + statsPageSize - 1);
+
+    if (!page || page.length === 0) break;
+    allSourceRows.push(...(page as Array<{ law_source: string }>));
+    if (page.length < statsPageSize) break;
+    statsOffset += statsPageSize;
+  }
 
   const bySource: Record<string, number> = {};
-  for (const row of sourceStats ?? []) {
-    const src = (row as { law_source: string }).law_source;
-    bySource[src] = (bySource[src] ?? 0) + 1;
+  for (const row of allSourceRows) {
+    bySource[row.law_source] = (bySource[row.law_source] ?? 0) + 1;
   }
 
   const { count: hasEmbeddings } = await admin
@@ -387,17 +399,37 @@ export async function getCorpusSources(): Promise<
   Array<{ lawSource: string; articleCount: number }>
 > {
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("legal_articles")
-    .select("law_source")
-    .eq("is_in_force", true);
 
-  if (!data) return [];
+  // Prova prima la RPC server-side (più efficiente, no limit 1000)
+  const { data: rpcData, error: rpcError } = await admin.rpc("get_corpus_sources_count");
+  if (!rpcError && rpcData) {
+    return (rpcData as Array<{ law_source: string; article_count: number }>).map((r) => ({
+      lawSource: r.law_source,
+      articleCount: r.article_count,
+    }));
+  }
+
+  // Fallback: fetch paginato per superare il limite di 1000 righe
+  const allRows: Array<{ law_source: string }> = [];
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .eq("is_in_force", true)
+      .range(offset, offset + pageSize - 1);
+
+    if (!data || data.length === 0) break;
+    allRows.push(...(data as Array<{ law_source: string }>));
+    if (data.length < pageSize) break; // ultima pagina
+    offset += pageSize;
+  }
 
   const counts: Record<string, number> = {};
-  for (const row of data) {
-    const src = (row as { law_source: string }).law_source;
-    counts[src] = (counts[src] ?? 0) + 1;
+  for (const row of allRows) {
+    counts[row.law_source] = (counts[row.law_source] ?? 0) + 1;
   }
 
   return Object.entries(counts)
@@ -413,14 +445,29 @@ export async function getSourceHierarchy(
   lawSource: string
 ): Promise<Array<{ hierarchy: Record<string, string>; articleCount: number; articles: Array<{ ref: string; title: string | null }> }>> {
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("legal_articles")
-    .select("article_reference, article_title, hierarchy")
-    .eq("law_source", lawSource)
-    .eq("is_in_force", true)
-    .order("article_reference");
 
-  if (!data) return [];
+  // Fetch paginato per superare il limite di 1000 righe di Supabase
+  const allData: Array<Record<string, unknown>> = [];
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data } = await admin
+      .from("legal_articles")
+      .select("article_reference, article_title, hierarchy")
+      .eq("law_source", lawSource)
+      .eq("is_in_force", true)
+      .order("article_reference")
+      .range(offset, offset + pageSize - 1);
+
+    if (!data || data.length === 0) break;
+    allData.push(...(data as Array<Record<string, unknown>>));
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  const data = allData;
+  if (!data.length) return [];
 
   // Raggruppa per gerarchia
   const groups = new Map<string, {

@@ -141,6 +141,12 @@ function parseXhtml(xhtml: string, source: EurLexSource): LegalArticle[] {
       const institutes = [...source.defaultInstitutes];
       extractLegalTerms(fullText).forEach((t) => { if (!keywords.includes(t)) keywords.push(t); });
 
+      const elId = $el.attr("id");
+      const articleAnchor = elId || `art_${artMatch[1]}`;
+      const articleUrl = source.sourceUrlPattern
+        ? `${source.sourceUrlPattern}#${articleAnchor}`
+        : undefined;
+
       articles.push({
         lawSource: source.lawSource,
         articleReference: artRef,
@@ -149,7 +155,7 @@ function parseXhtml(xhtml: string, source: EurLexSource): LegalArticle[] {
         hierarchy: {},
         keywords,
         relatedInstitutes: institutes,
-        sourceUrl: source.sourceUrlPattern ?? undefined,
+        sourceUrl: articleUrl,
         isInForce: true,
       });
     });
@@ -172,6 +178,10 @@ function parseXhtml(xhtml: string, source: EurLexSource): LegalArticle[] {
       const institutes = [...source.defaultInstitutes];
       extractLegalTerms(text).forEach((t) => { if (!keywords.includes(t)) keywords.push(t); });
 
+      const articleUrl = source.sourceUrlPattern
+        ? `${source.sourceUrlPattern}#art_${artNum}`
+        : undefined;
+
       articles.push({
         lawSource: source.lawSource,
         articleReference: `Art. ${artNum}`,
@@ -180,7 +190,7 @@ function parseXhtml(xhtml: string, source: EurLexSource): LegalArticle[] {
         hierarchy: {},
         keywords,
         relatedInstitutes: institutes,
-        sourceUrl: source.sourceUrlPattern ?? undefined,
+        sourceUrl: articleUrl,
         isInForce: true,
       });
     }
@@ -237,6 +247,13 @@ function extractArticleFromEl(
   const institutes = [...source.defaultInstitutes];
   extractLegalTerms(text).forEach((t) => { if (!keywords.includes(t)) keywords.push(t); });
 
+  // URL articolo-specifico: aggiungi anchor con ID elemento o numero articolo
+  const elId = $el.attr("id");
+  const articleAnchor = elId || `art_${artMatch[1]}`;
+  const articleUrl = source.sourceUrlPattern
+    ? `${source.sourceUrlPattern}#${articleAnchor}`
+    : undefined;
+
   return {
     lawSource: source.lawSource,
     articleReference: artRef,
@@ -245,7 +262,7 @@ function extractArticleFromEl(
     hierarchy,
     keywords,
     relatedInstitutes: institutes,
-    sourceUrl: source.sourceUrlPattern ?? undefined,
+    sourceUrl: articleUrl,
     isInForce: true,
   };
 }

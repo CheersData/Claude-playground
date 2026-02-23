@@ -393,9 +393,25 @@ function ArticleCard({
   );
 }
 
+function extractSynthesis(text: string): string {
+  // Estrai le prime 1-2 frasi come sintesi
+  const sentences = text.split(/(?<=[.;:])\s+/);
+  let synthesis = "";
+  for (const s of sentences) {
+    if (synthesis.length > 300) break;
+    synthesis += (synthesis ? " " : "") + s;
+    if (synthesis.length > 80) break; // almeno una frase significativa
+  }
+  return synthesis || text.slice(0, 200);
+}
+
 function ArticleDetailView({ article }: { article: ArticleDetail }) {
+  const synthesis = extractSynthesis(article.articleText);
+  const hasLongText = article.articleText.length > synthesis.length + 50;
+
   return (
     <div className="bg-surface border border-border rounded-2xl p-6">
+      {/* Header */}
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-lg font-bold text-accent">{article.articleReference}</span>
@@ -406,12 +422,31 @@ function ArticleDetailView({ article }: { article: ArticleDetail }) {
         )}
       </div>
 
-      <div className="prose prose-sm max-w-none text-foreground leading-relaxed whitespace-pre-wrap mb-6">
-        {article.articleText}
+      {/* Sintesi */}
+      <div className="mb-4 p-4 bg-accent/5 border border-accent/15 rounded-xl">
+        <h3 className="text-xs font-semibold text-accent uppercase tracking-wider mb-2">Sintesi</h3>
+        <p className="text-sm text-foreground leading-relaxed">{synthesis}</p>
       </div>
 
+      {/* Testo integrale */}
+      {hasLongText && (
+        <div className="mb-6">
+          <h3 className="text-xs font-semibold text-foreground-tertiary uppercase tracking-wider mb-2">Testo integrale</h3>
+          <div className="prose prose-sm max-w-none text-foreground leading-relaxed whitespace-pre-wrap">
+            {article.articleText}
+          </div>
+        </div>
+      )}
+
+      {/* Testo breve — mostra solo se non c'è versione lunga */}
+      {!hasLongText && (
+        <div className="prose prose-sm max-w-none text-foreground leading-relaxed whitespace-pre-wrap mb-6">
+          {article.articleText}
+        </div>
+      )}
+
       {/* Metadata */}
-      <div className="border-t border-border-subtle pt-4 space-y-2">
+      <div className="border-t border-border-subtle pt-4 space-y-3">
         {article.keywords && article.keywords.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {article.keywords.map((k) => (
@@ -426,9 +461,9 @@ function ArticleDetailView({ article }: { article: ArticleDetail }) {
             href={article.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-accent hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
           >
-            Fonte originale
+            Fonte originale ↗
           </a>
         )}
       </div>
