@@ -49,31 +49,31 @@ export async function fetchHuggingFace(source: HuggingFaceSource): Promise<Legal
   offset = PAGE_SIZE;
   while (offset < total) {
     const url = `${API_URL}?dataset=${encodeURIComponent(source.dataset)}&config=${source.config}&split=${source.split}&offset=${offset}&length=${PAGE_SIZE}`;
-    const resp = await fetchWithRetry(url);
 
-    // HuggingFace a volte ritorna HTML (es. pagina errore) invece di JSON
-    const contentType = resp.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      const page = Math.floor(offset / PAGE_SIZE) + 1;
-      console.warn(`  [HF] Pagina ${page}: risposta non-JSON (${contentType.split(";")[0]}) — ritento dopo pausa...`);
-      await sleep(5000);
-
-      // Retry una volta
-      const retry = await fetchWithRetry(url);
-      const retryType = retry.headers.get("content-type") || "";
-      if (!retryType.includes("application/json")) {
-        console.warn(`  [HF] Pagina ${page}: retry fallito — restituisco ${allRows.length} articoli parziali`);
+    // Retry loop — HuggingFace sometimes returns HTML instead of JSON
+    let data: HFResponse | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const resp = await fetchWithRetry(url);
+        const text = await resp.text();
+        if (text.startsWith("<")) {
+          console.warn(`  [HF] Pagina ${Math.floor(offset / PAGE_SIZE) + 1}: HTML instead of JSON, retry ${attempt + 1}/3...`);
+          await sleep(5000);
+          continue;
+        }
+        data = JSON.parse(text) as HFResponse;
         break;
+      } catch (err) {
+        console.warn(`  [HF] Pagina ${Math.floor(offset / PAGE_SIZE) + 1}: parse error, retry ${attempt + 1}/3...`);
+        await sleep(5000);
       }
-      const retryData: HFResponse = await retry.json();
-      for (const item of retryData.rows) allRows.push(item.row);
-      offset += PAGE_SIZE;
-      await sleep(500);
-      continue;
     }
 
-    const data: HFResponse = await resp.json();
-    for (const item of data.rows) allRows.push(item.row);
+    if (data) {
+      for (const item of data.rows) allRows.push(item.row);
+    } else {
+      console.error(`  [HF] Pagina ${Math.floor(offset / PAGE_SIZE) + 1}: fallita dopo 3 tentativi — skip`);
+    }
 
     const page = Math.floor(offset / PAGE_SIZE) + 1;
     if (page % 5 === 0) console.log(`  [HF] ${allRows.length}/${total} (pagina ${page})`);

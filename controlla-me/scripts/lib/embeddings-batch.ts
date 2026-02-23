@@ -46,8 +46,8 @@ async function generateBatch(texts: string[]): Promise<number[][] | null> {
     console.error(`  [VOYAGE] Errore ${response.status}: ${errorText.slice(0, 200)}`);
 
     if (response.status === 429) {
-      console.log("  [VOYAGE] Rate limit — attendo 10s...");
-      await sleep(10000);
+      console.log("  [VOYAGE] Rate limit — attendo 3s...");
+      await sleep(3000);
 
       const retry = await fetchWithRetry(VOYAGE_API_URL, {
         method: "POST",
@@ -99,6 +99,9 @@ export async function generateEmbeddingsAndUpload(
     // Upsert su Supabase
     for (let i = 0; i < batch.length; i++) {
       const article = batch[i];
+      // Populate both old schema (law_source, article_reference) and new schema (source_id, etc.)
+      const artNum = article.articleReference.replace(/^\s*Art\.?\s*/i, "").trim();
+      const sourceId = article.lawSource.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
       const { error } = await supabase
         .from("legal_articles")
         .upsert(
@@ -114,7 +117,12 @@ export async function generateEmbeddingsAndUpload(
             source_url: article.sourceUrl,
             is_in_force: article.isInForce ?? true,
             updated_at: new Date().toISOString(),
-            ...(article.sourceId ? { source_id: article.sourceId } : {}),
+            // New schema columns
+            source_id: sourceId,
+            source_name: article.lawSource,
+            source_type: "normattiva",
+            article_number: artNum,
+            in_force: article.isInForce ?? true,
           },
           { onConflict: "law_source,article_reference" }
         );
@@ -133,7 +141,7 @@ export async function generateEmbeddingsAndUpload(
 
     // Pausa tra batch
     if (batchIdx + BATCH_SIZE < articles.length) {
-      await sleep(2000);
+      await sleep(200);
     }
   }
 

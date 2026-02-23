@@ -139,9 +139,6 @@ async function processSource(
   console.log(`  ${source.name} (${source.type}) | ~${source.expectedArticles} art.`);
   console.log(`${"=".repeat(60)}`);
 
-  // Force delete
-  if (force) await forceDeleteSource(supabase, source.lawSource);
-
   // Fetch — usa API dove censite, HTML come backup (gestito internamente dai fetcher)
   let articles: LegalArticle[] = [];
   try {
@@ -154,12 +151,16 @@ async function processSource(
   }
 
   if (articles.length === 0) {
-    console.warn(`  [WARN] Nessun articolo per ${source.name}`);
+    console.warn(`  [WARN] Nessun articolo per ${source.name} — skip (no force delete)`);
     return { sourceId: source.id, sourceName: source.name, fetched: 0, inserted: 0, skipped: 0, errors: 0, elapsed: (Date.now() - start) / 1000 };
   }
 
   // Tag articoli con source ID per il DB
   for (const a of articles) a.sourceId = source.id;
+
+  // Force delete DOPO il fetch — solo se abbiamo articoli da sostituire
+  // Evita di cancellare dati HuggingFace quando Normattiva skippa la stessa fonte
+  if (force) await forceDeleteSource(supabase, source.lawSource);
 
   // Delta loading
   let toUpload = articles;
