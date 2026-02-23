@@ -214,20 +214,10 @@ async function main() {
     ["SUPABASE_SERVICE_ROLE_KEY", "Supabase Key"],
   ];
 
-  // Env opzionali con avviso
-  const optionalEnv: Array<[string, string]> = [
-    ["NORMATTIVA_API_TOKEN", "Normattiva OpenData API (fallback: HTML scraping)"],
-  ];
-
   for (const [key, label] of requiredEnv) {
     const ok = !!process.env[key];
     console.log(`  ${ok ? "[OK]" : "[!!]"} ${label}: ${ok ? "configurato" : "MANCANTE!"}`);
     if (!ok) { console.error("\nConfigura le variabili in .env.local\n"); process.exit(1); }
-  }
-
-  for (const [key, label] of optionalEnv) {
-    const ok = !!process.env[key];
-    console.log(`  ${ok ? "[OK]" : "[--]"} ${label}: ${ok ? "configurato" : "non configurato"}`);
   }
 
   const supabase = await createSupabaseAdmin();

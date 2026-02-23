@@ -3,15 +3,13 @@
  *
  * Normattiva OpenData (dal 1 gennaio 2026):
  * - Endpoint: https://pre.api.normattiva.it/t/normattiva.api/bff-opendata/v1/api/v1/...
- * - Auth: token via registrazione email su dati.normattiva.it
+ * - API pubblica, nessuna autenticazione richiesta (dati aperti CC BY 4.0)
  * - Restituisce ZIP con XML Akoma Ntoso (strutturato, con <article>)
- * - Licenza CC BY 4.0
+ * - Documentazione: https://dati.normattiva.it/Come-scaricare-i-dati
  *
  * Strategia:
- * 1. Se NORMATTIVA_API_TOKEN presente → usa API OpenData (XML strutturato)
- * 2. Altrimenti → fallback su HTML scraping (normattiva-html.ts)
- *
- * Registrazione: https://dati.normattiva.it/Come-scaricare-i-dati
+ * 1. Prova API OpenData (XML strutturato, più affidabile)
+ * 2. Se l'API non risponde → fallback su HTML scraping (normattiva-html.ts)
  */
 
 import { fetchWithRetry, sleep, extractLegalTerms, cleanText } from "../lib/utils";
@@ -24,15 +22,6 @@ const API_BASE = "https://pre.api.normattiva.it/t/normattiva.api/bff-opendata/v1
 // ─── Fetch principale (API-first, HTML fallback) ───
 
 export async function fetchNormattiva(source: NormattivaSource): Promise<LegalArticle[]> {
-  const token = process.env.NORMATTIVA_API_TOKEN;
-
-  if (!token) {
-    console.log(`  [NORM-API] Token non configurato — fallback HTML scraping`);
-    console.log(`  [NORM-API] Per usare l'API, registrati su: https://dati.normattiva.it/Come-scaricare-i-dati`);
-    console.log(`  [NORM-API] E aggiungi NORMATTIVA_API_TOKEN nel .env.local`);
-    return fetchNormattivaHtml(source);
-  }
-
   // Per il Codice Civile, usa HuggingFace (più affidabile)
   if (source.id === "codice-civile") {
     console.log(`  [SKIP] ${source.name} — usa fonte HuggingFace`);
@@ -42,17 +31,15 @@ export async function fetchNormattiva(source: NormattivaSource): Promise<LegalAr
   console.log(`\n  [NORM-API] Scaricamento ${source.name} via OpenData API...`);
 
   try {
-    // Step 1: Richiedi la collezione
+    // Step 1: Richiedi la collezione (API pubblica, no auth)
     const requestBody = {
       codiceRedazionale: source.codiceRedazionale,
       tipoAtto: source.tipoAtto,
-      email: process.env.NORMATTIVA_API_EMAIL || "",
       formato: "AKN", // Akoma Ntoso XML
     };
 
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
     };
 
     console.log(`  [NORM-API] Richiesta collezione per ${source.codiceRedazionale}...`);
