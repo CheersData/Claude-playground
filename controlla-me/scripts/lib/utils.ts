@@ -104,8 +104,50 @@ export function extractLegalTerms(text: string): string[] {
 
 // ─── Pulizia testo ───
 
-export function cleanText(text: string): string {
+/** Mappa entità HTML comuni → carattere Unicode */
+const HTML_ENTITIES: Record<string, string> = {
+  "&agrave;": "à", "&egrave;": "è", "&eacute;": "é", "&igrave;": "ì",
+  "&ograve;": "ò", "&ugrave;": "ù", "&Agrave;": "À", "&Egrave;": "È",
+  "&Eacute;": "É", "&Igrave;": "Ì", "&Ograve;": "Ò", "&Ugrave;": "Ù",
+  "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&apos;": "'",
+  "&nbsp;": " ", "&ndash;": "–", "&mdash;": "—", "&laquo;": "«",
+  "&raquo;": "»", "&deg;": "°", "&euro;": "€", "&sect;": "§",
+  "&copy;": "©", "&reg;": "®", "&times;": "×",
+};
+
+/** Decodifica entità HTML (named + numeric) */
+function decodeHtmlEntities(text: string): string {
+  // Named entities
+  let result = text.replace(/&\w+;/g, (match) => HTML_ENTITIES[match] ?? match);
+  // Numeric entities: &#224; → à
+  result = result.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+  // Hex entities: &#xE0; → à
+  result = result.replace(/&#x([0-9A-Fa-f]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  return result;
+}
+
+/** Rimuove marker UI di Normattiva: (L), (R), [image], etichette Sintesi/Testo integrale */
+function stripNormattivaUI(text: string): string {
   return text
+    // Rimuovi marker (L) e (R) isolati (indicano "lettera della legge" / "regolamento")
+    .replace(/^\s*\(L\)\s*/gm, "")
+    .replace(/^\s*\(R\)\s*/gm, "")
+    .replace(/\s+\(L\)\s+/g, " ")
+    .replace(/\s+\(R\)\s+/g, " ")
+    // Rimuovi etichette sezione Normattiva
+    .replace(/^Sintesi\s*/gm, "")
+    .replace(/^Testo integrale\s*/gm, "")
+    // Rimuovi placeholder immagini
+    .replace(/\[image\]/gi, "")
+    // Rimuovi doppie parentesi tonde usate da Normattiva per modifiche
+    .replace(/\(\(/g, "(")
+    .replace(/\)\)/g, ")");
+}
+
+export function cleanText(text: string): string {
+  let cleaned = decodeHtmlEntities(text);
+  cleaned = stripNormattivaUI(cleaned);
+  return cleaned
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]+/g, " ")
     .trim();

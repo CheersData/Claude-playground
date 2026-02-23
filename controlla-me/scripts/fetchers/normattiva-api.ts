@@ -193,6 +193,10 @@ function parseAkomaNtoso(xml: string, source: NormattivaSource): LegalArticle[] 
     // Filtra preambolo/formula di promulgazione
     if (isPreambleText(text) || (rubrica && isPreambleText(rubrica))) continue;
 
+    // Filtra indici/TOC catturati erroneamente come testo articolo
+    const artRefsInText = (text.match(/\bart\.\s*\d+/gi) || []).length;
+    if (artRefsInText > 5 && artRefsInText > text.length / 80) continue;
+
     // Gerarchia dai parent elements (book, title, chapter)
     const hierarchy = extractHierarchyFromXml(xml, eId);
 

@@ -196,6 +196,9 @@ function extractArticle(
   // Filtra preambolo/formula di promulgazione
   if (isPreambleText(text) || (rubrica && isPreambleText(rubrica))) return null;
 
+  // Filtra indici/TOC catturati come testo di un articolo
+  if (isTocText(text)) return null;
+
   // Hierarchy
   const hierarchy: Record<string, string> = {};
   if (ctx.currentBook) hierarchy.book = ctx.currentBook;
@@ -239,6 +242,14 @@ function isPreambleText(text: string): boolean {
   return PREAMBLE_PATTERNS.some((p) => p.test(text));
 }
 
+/** Verifica se il testo è un indice/TOC invece di contenuto normativo */
+function isTocText(text: string): boolean {
+  const artRefs = (text.match(/\bart\.\s*\d+/gi) || []).length;
+  // Se il testo contiene molti riferimenti ad articoli rispetto alla lunghezza, è un TOC
+  // Un vero articolo ha al massimo 2-3 riferimenti ad altri articoli per 100 chars
+  return artRefs > 5 && artRefs > text.length / 80;
+}
+
 function parseWithRegex(fullText: string, source: NormattivaSource, articles: LegalArticle[]): void {
   const regex = /Art\.\s*(\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)\s*(?:[-–—]\s*)?([^\n]*?)?\n([\s\S]*?)(?=Art\.\s*\d|$)/gi;
 
@@ -251,6 +262,9 @@ function parseWithRegex(fullText: string, source: NormattivaSource, articles: Le
 
     // Filtra preambolo/formula di promulgazione
     if (isPreambleText(text) || (rubrica && isPreambleText(rubrica))) continue;
+
+    // Filtra indici/TOC catturati come testo di un articolo
+    if (isTocText(text)) continue;
 
     const keywords = [...source.defaultKeywords];
     const institutes = [...source.defaultInstitutes];

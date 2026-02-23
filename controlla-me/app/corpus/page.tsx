@@ -456,16 +456,7 @@ function ArticleDetailView({ article }: { article: ArticleDetail }) {
             ))}
           </div>
         )}
-        {article.sourceUrl && (
-          <a
-            href={article.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
-          >
-            Fonte originale ↗
-          </a>
-        )}
+        {/* Link "Fonte originale" nascosto — Normattiva non ha URL per singolo articolo */}
       </div>
     </div>
   );
