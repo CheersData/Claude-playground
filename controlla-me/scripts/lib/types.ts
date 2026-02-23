@@ -1,5 +1,5 @@
 /**
- * Tipi condivisi per lo script di seed del corpus.
+ * Tipi condivisi per il loader del corpus.
  */
 
 export interface LegalArticle {
@@ -22,4 +22,18 @@ export interface SourceResult {
   skipped: number;
   errors: number;
   elapsed: number;
+}
+
+/** Profilo di caricamento — ogni profilo definisce quali fonti caricare */
+export interface LoaderProfile {
+  /** ID univoco del profilo */
+  id: string;
+  /** Nome visualizzato */
+  name: string;
+  /** Descrizione */
+  description: string;
+  /** Funzione che restituisce le fonti da caricare */
+  getSources: () => import("../corpus-sources").CorpusSource[];
+  /** Variabili d'ambiente richieste (oltre a quelle base) */
+  requiredEnv?: string[];
 }

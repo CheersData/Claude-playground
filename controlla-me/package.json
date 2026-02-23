@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "seed:corpus": "npx tsx scripts/seed-corpus.ts"
+    "loader": "npx tsx scripts/loader.ts",
+    "loader:corpus": "npx tsx scripts/loader.ts --profile corpus-legislativo",
+    "seed:corpus": "npx tsx scripts/loader.ts --profile corpus-legislativo"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.77.0",
