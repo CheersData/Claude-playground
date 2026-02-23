@@ -103,7 +103,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     name: "Codice del Consumo",
     type: "normattiva",
     lawSource: "D.Lgs. 206/2005",
-    expectedArticles: 146,
+    expectedArticles: 202,
     minThresholdPct: 70,
     urn: "urn:nir:stato:decreto.legislativo:2005-09-06;206",
     codiceRedazionale: "005G0232",
