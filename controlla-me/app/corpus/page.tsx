@@ -595,6 +595,15 @@ function SourceCard({
 
 // ─── Tree Node (recursive) ───
 
+/** Conteggio ricorsivo articoli in un nodo (figli + articoli diretti) */
+function countNodeArticles(node: HierarchyNode): number {
+  let total = node.articles.length;
+  for (const child of node.children) {
+    total += countNodeArticles(child);
+  }
+  return total;
+}
+
 function TreeNode({
   node,
   depth,
@@ -612,6 +621,7 @@ function TreeNode({
   const hasChildren = node.children.length > 0;
   const hasArticles = node.articles.length > 0;
   const isExpandable = hasChildren || hasArticles;
+  const totalArticles = countNodeArticles(node);
 
   return (
     <div>
@@ -638,11 +648,9 @@ function TreeNode({
         >
           {node.label}
         </span>
-        {(hasChildren || hasArticles) && (
+        {totalArticles > 0 && (
           <span className="text-xs text-foreground-tertiary ml-auto">
-            {hasArticles
-              ? `${node.articles.length} art.`
-              : `${node.children.length}`}
+            {totalArticles} art.
           </span>
         )}
       </button>
