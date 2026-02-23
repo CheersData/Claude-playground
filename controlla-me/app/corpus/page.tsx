@@ -340,21 +340,46 @@ export default function CorpusPage() {
                     )}
                   </div>
 
-                  <div className="space-y-3">
-                    {selectedArticle.article_text.split("\n").map((paragraph, i) =>
-                      paragraph.trim() ? (
-                        <p
-                          key={i}
-                          className="text-base leading-relaxed text-foreground-secondary"
-                        >
-                          {paragraph}
-                        </p>
-                      ) : null
-                    )}
+                  {/* Link alla fonte originale — prominente in alto */}
+                  {selectedArticle.url && (
+                    <div className="mb-6 flex items-center gap-3">
+                      <a
+                        href={selectedArticle.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#A78BFA]/10 text-[#A78BFA] text-sm font-medium border border-[#A78BFA]/20 hover:bg-[#A78BFA]/15 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Vedi su {selectedArticle.source_name?.includes("Dir.") || selectedArticle.source_name?.includes("Reg.") || selectedArticle.source_name?.includes("GDPR") || selectedArticle.source_name?.includes("DSA") ? "EUR-Lex" : "Normattiva"}
+                      </a>
+                      <span className="text-xs text-foreground-tertiary">
+                        Testo ufficiale vigente
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Testo completo dell'articolo */}
+                  <div className="bg-background-secondary/50 rounded-xl border border-border/50 p-5 md:p-6">
+                    <p className="text-[11px] font-bold tracking-[2px] uppercase text-foreground-tertiary mb-3">
+                      Testo completo
+                    </p>
+                    <div className="space-y-3">
+                      {selectedArticle.article_text.split("\n").map((paragraph, i) =>
+                        paragraph.trim() ? (
+                          <p
+                            key={i}
+                            className="text-[15px] leading-[1.8] text-foreground-secondary"
+                          >
+                            {paragraph}
+                          </p>
+                        ) : null
+                      )}
+                    </div>
                   </div>
 
+                  {/* Link in fondo per chi scrolla */}
                   {selectedArticle.url && (
-                    <div className="mt-6 pt-4 border-t border-border">
+                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
                       <a
                         href={selectedArticle.url}
                         target="_blank"
@@ -362,8 +387,11 @@ export default function CorpusPage() {
                         className="inline-flex items-center gap-2 text-sm text-[#A78BFA] hover:underline"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        Vedi fonte originale
+                        Apri fonte originale
                       </a>
+                      <span className="text-xs text-foreground-tertiary">
+                        Art. {selectedArticle.article_number} — {selectedArticle.source_name}
+                      </span>
                     </div>
                   )}
                 </div>
