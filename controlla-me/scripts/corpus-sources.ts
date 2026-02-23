@@ -81,7 +81,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "REGIO DECRETO",
     defaultKeywords: ["codice_civile", "diritto_civile"],
     defaultInstitutes: ["diritto_civile"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:codice.civile:1942-03-16;262~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art{N}!vig=",
   },
   {
     id: "codice-penale",
@@ -96,7 +96,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "REGIO DECRETO",
     defaultKeywords: ["codice_penale", "diritto_penale", "reato"],
     defaultInstitutes: ["diritto_penale"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:codice.penale:1930-10-19;1398~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art{N}!vig=",
   },
   {
     id: "codice-consumo",
@@ -111,7 +111,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "DECRETO LEGISLATIVO",
     defaultKeywords: ["consumatore", "codice_consumo", "tutela_consumatore", "garanzia"],
     defaultInstitutes: ["tutela_consumatore", "codice_consumo"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art{N}!vig=",
   },
   {
     id: "codice-proc-civile",
@@ -126,7 +126,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "REGIO DECRETO",
     defaultKeywords: ["procedura_civile", "processo_civile", "giudizio"],
     defaultInstitutes: ["procedura_civile"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:codice.procedura.civile:1940-10-28;1443~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art{N}!vig=",
   },
   {
     id: "dlgs-231-2001",
@@ -141,7 +141,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "DECRETO LEGISLATIVO",
     defaultKeywords: ["responsabilità_enti", "modello_organizzativo", "compliance", "231"],
     defaultInstitutes: ["responsabilità_amministrativa_enti", "compliance"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-06-08;231~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-06-08;231~art{N}!vig=",
   },
   {
     id: "dlgs-122-2005",
@@ -156,7 +156,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "DECRETO LEGISLATIVO",
     defaultKeywords: ["tutela_acquirenti", "immobili_da_costruire", "fideiussione", "preliminare"],
     defaultInstitutes: ["tutela_acquirenti_immobili", "fideiussione_immobiliare"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-06-20;122~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-06-20;122~art{N}!vig=",
   },
   {
     id: "statuto-lavoratori",
@@ -171,7 +171,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "LEGGE",
     defaultKeywords: ["lavoro", "lavoratore", "diritti_lavoratore", "licenziamento", "sindacato"],
     defaultInstitutes: ["diritto_lavoro", "statuto_lavoratori"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art{N}!vig=",
   },
   {
     id: "tu-edilizia",
@@ -186,7 +186,7 @@ export const NORMATTIVA_SOURCES: NormattivaSource[] = [
     tipoAtto: "DECRETO DEL PRESIDENTE DELLA REPUBBLICA",
     defaultKeywords: ["edilizia", "costruzione", "permesso_costruire", "concessione", "abuso_edilizio"],
     defaultInstitutes: ["edilizia", "urbanistica", "tu_edilizia"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001-06-06;380~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001-06-06;380~art{N}!vig=",
   },
 ];
 
@@ -288,7 +288,7 @@ export const HUGGINGFACE_SOURCES: HuggingFaceSource[] = [
     minThresholdPct: 80,
     defaultKeywords: ["codice_civile", "diritto_civile"],
     defaultInstitutes: ["diritto_civile"],
-    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:codice.civile:1942-03-16;262~art{N}",
+    sourceUrlPattern: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art{N}!vig=",
   },
 ];
 
