@@ -776,7 +776,6 @@ Ogni sorgente ha un fetcher **API-first con fallback HTML scraping**. Nessuna AP
 scripts/
 ├── loader.ts                      # Orchestratore CLI (entry point)
 ├── corpus-sources.ts              # 14 fonti con metadati (URN, CELEX, dataset)
-├── seed-corpus.ts                 # Versione legacy (usare loader.ts)
 ├── loader-profiles/
 │   └── corpus-legislativo.ts      # Profilo default: tutte le 14 fonti
 ├── fetchers/
