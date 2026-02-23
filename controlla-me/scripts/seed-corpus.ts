@@ -429,8 +429,10 @@ function parseEurLexHtml(html: string, source: CorpusSource): ArticleRow[] {
       .replace(/<\/p>/gi, "\n\n")
       .replace(/<\/div>/gi, "\n")
       .replace(/<[^>]+>/g, " ")
-      .replace(/[ \t]+/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
+      .replace(/[ \t]+/g, " ")         // spazi multipli → singolo
+      .replace(/\n *\n/g, "\n\n")      // normalizza righe vuote
+      .replace(/\n{3,}/g, "\n\n")      // max 2 newline consecutivi
+      .replace(/\xa0/g, " ")           // non-breaking space → spazio
       .trim()
   );
 
@@ -440,8 +442,10 @@ function parseEurLexHtml(html: string, source: CorpusSource): ArticleRow[] {
 
   let currentHierarchy: Record<string, string> = {};
 
-  const chapterRegex = /(?:CAPO|Capo)\s+(I{1,3}V?X{0,3}|X{0,3}I{0,3}V?|[IVX]+)\s*[\-—]?\s*(.+)/i;
-  const sectionRegex = /(?:SEZIONE|Sezione)\s+(\d+|I{1,3}V?X{0,3}|[IVX]+)\s*[\-—]?\s*(.+)/i;
+  // Regex limitate a [^\n]{1,150} per evitare di catturare interi paragrafi
+  const titleRegex = /(?:TITOLO|Titolo)\s+(I{1,3}V?X{0,3}|X{0,3}I{0,3}V?|[IVX]+|\d+)\s*[\-—]?\s*([^\n]{1,150})/i;
+  const chapterRegex = /(?:CAPO|Capo)\s+(I{1,3}V?X{0,3}|X{0,3}I{0,3}V?|[IVX]+)\s*[\-—]?\s*([^\n]{1,150})/i;
+  const sectionRegex = /(?:SEZIONE|Sezione)\s+(\d+|I{1,3}V?X{0,3}|[IVX]+)\s*[\-—]?\s*([^\n]{1,150})/i;
 
   if (parts.length > 2) {
     for (let i = 1; i < parts.length - 1; i += 2) {
@@ -450,19 +454,37 @@ function parseEurLexHtml(html: string, source: CorpusSource): ArticleRow[] {
 
       if (!artNum || !artText || artText.length < 5) continue;
 
-      // Aggiorna gerarchia
+      // Aggiorna gerarchia dal testo tra articoli
       const precedingText = i > 1 ? parts[i - 1] || "" : parts[0] || "";
+
+      const titleMatch = precedingText.match(titleRegex);
+      if (titleMatch) {
+        currentHierarchy = { title: `Titolo ${titleMatch[1]} - ${titleMatch[2].trim()}` };
+      }
       const chMatch = precedingText.match(chapterRegex);
       if (chMatch) {
-        currentHierarchy = { chapter: `Capo ${chMatch[1]} - ${chMatch[2].trim()}` };
+        const newChapter = `Capo ${chMatch[1]} - ${chMatch[2].trim()}`;
+        if (currentHierarchy.title) {
+          currentHierarchy = { title: currentHierarchy.title, chapter: newChapter };
+        } else {
+          currentHierarchy = { chapter: newChapter };
+        }
       }
       const secMatch = precedingText.match(sectionRegex);
       if (secMatch) {
         currentHierarchy.section = `Sezione ${secMatch[1]} - ${secMatch[2].trim()}`;
       }
 
-      // Titolo articolo (prima riga se corta)
-      const firstLine = artText.split("\n")[0]?.trim();
+      // Pulisci testo articolo: rimuovi righe vuote iniziali e spazi eccessivi
+      const cleanText = artText
+        .split("\n")
+        .map((l: string) => l.trim())
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+      // Titolo articolo (prima riga se corta e non numerica)
+      const firstLine = cleanText.split("\n")[0]?.trim();
       const title = firstLine && firstLine.length < 200 && !firstLine.match(/^\d/) ? firstLine : null;
 
       articles.push({
@@ -471,7 +493,7 @@ function parseEurLexHtml(html: string, source: CorpusSource): ArticleRow[] {
         source_type: source.type,
         article_number: artNum,
         article_title: title,
-        article_text: artText.slice(0, 10000),
+        article_text: cleanText.slice(0, 10000),
         hierarchy: { ...currentHierarchy },
         url: `${source.baseUrl}#${source.celexId}_art${artNum}`,
         in_force: true,
