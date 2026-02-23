@@ -114,6 +114,7 @@ export async function generateEmbeddingsAndUpload(
             source_url: article.sourceUrl,
             is_in_force: article.isInForce ?? true,
             updated_at: new Date().toISOString(),
+            ...(article.sourceId ? { source_id: article.sourceId } : {}),
           },
           { onConflict: "law_source,article_reference" }
         );

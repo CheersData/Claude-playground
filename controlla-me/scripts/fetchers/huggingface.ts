@@ -50,6 +50,28 @@ export async function fetchHuggingFace(source: HuggingFaceSource): Promise<Legal
   while (offset < total) {
     const url = `${API_URL}?dataset=${encodeURIComponent(source.dataset)}&config=${source.config}&split=${source.split}&offset=${offset}&length=${PAGE_SIZE}`;
     const resp = await fetchWithRetry(url);
+
+    // HuggingFace a volte ritorna HTML (es. pagina errore) invece di JSON
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const page = Math.floor(offset / PAGE_SIZE) + 1;
+      console.warn(`  [HF] Pagina ${page}: risposta non-JSON (${contentType.split(";")[0]}) — ritento dopo pausa...`);
+      await sleep(5000);
+
+      // Retry una volta
+      const retry = await fetchWithRetry(url);
+      const retryType = retry.headers.get("content-type") || "";
+      if (!retryType.includes("application/json")) {
+        console.warn(`  [HF] Pagina ${page}: retry fallito — restituisco ${allRows.length} articoli parziali`);
+        break;
+      }
+      const retryData: HFResponse = await retry.json();
+      for (const item of retryData.rows) allRows.push(item.row);
+      offset += PAGE_SIZE;
+      await sleep(500);
+      continue;
+    }
+
     const data: HFResponse = await resp.json();
     for (const item of data.rows) allRows.push(item.row);
 

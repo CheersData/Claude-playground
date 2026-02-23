@@ -158,6 +158,9 @@ async function processSource(
     return { sourceId: source.id, sourceName: source.name, fetched: 0, inserted: 0, skipped: 0, errors: 0, elapsed: (Date.now() - start) / 1000 };
   }
 
+  // Tag articoli con source ID per il DB
+  for (const a of articles) a.sourceId = source.id;
+
   // Delta loading
   let toUpload = articles;
   let skipped = 0;

@@ -12,6 +12,8 @@ export interface LegalArticle {
   relatedInstitutes: string[];
   sourceUrl?: string;
   isInForce: boolean;
+  /** ID della fonte (corpus-sources.ts) — mappato a source_id in DB */
+  sourceId?: string;
 }
 
 export interface SourceResult {
