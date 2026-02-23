@@ -718,21 +718,165 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 16. FEATURE INCOMPLETE
+## 16. LOADER — ARCHITETTURA CARICAMENTO CORPUS
+
+### Panoramica
+
+Il Loader è il sistema che popola il vector DB con articoli di legge da 14 fonti (8 IT + 6 EU).
+Ogni sorgente ha un fetcher **API-first con fallback HTML scraping**. Nessuna API richiede autenticazione.
+
+### Architettura a strati
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  CLI: npx tsx scripts/loader.ts                             │
+│  Profili: --profile corpus-legislativo (default)            │
+│  Filtri:  --source normattiva|eurlex|huggingface  --force   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  loader.ts (orchestratore)                                  │
+│    ├── Carica profilo da loader-profiles/{id}.ts            │
+│    ├── Per ogni fonte: fetch → delta → embed → upload       │
+│    └── Report finale con statistiche                        │
+│                                                             │
+├────────────┬────────────────┬───────────────────────────────┤
+│  FETCHER   │  API PRIMARIA  │  FALLBACK                     │
+├────────────┼────────────────┼───────────────────────────────┤
+│ Normattiva │ OpenData API   │ HTML scraping normattiva.it   │
+│ (8 fonti)  │ (Akoma Ntoso   │ (Cheerio + regex fallback)    │
+│            │  XML, zero     │                               │
+│            │  auth, CC BY   │ Rate limit: 1.5s tra pagine   │
+│            │  4.0)          │ Paginazione automatica        │
+├────────────┼────────────────┼───────────────────────────────┤
+│ EUR-Lex    │ CELLAR REST    │ HTML scraping eur-lex.europa  │
+│ (6 fonti)  │ (XHTML via     │ (.eli-subdivision + regex)    │
+│            │  content-nego- │                               │
+│            │  tiation, zero │                               │
+│            │  auth)         │                               │
+├────────────┼────────────────┼───────────────────────────────┤
+│ HuggingFace│ Datasets API   │ (nessun fallback)             │
+│ (1 fonte)  │ (JSON REST,    │                               │
+│            │  zero auth)    │ Paginazione: 100/pagina       │
+└────────────┴────────────────┴───────────────────────────────┘
+```
+
+### Flusso per ogni fonte
+
+```
+1. FETCH       → Chiamata API (strutturata) o scraping HTML (fallback)
+2. DELTA       → Confronta hash MD5 con articoli già in DB → skip invariati
+3. EMBED       → Voyage AI voyage-law-2 (batch 50, 1024 dim) → vettori
+4. UPLOAD      → Upsert su Supabase (on conflict: law_source + article_reference)
+5. REPORT      → Conteggio fetched / inserted / skipped / errors
+```
+
+### File chiave
+
+```
+scripts/
+├── loader.ts                      # Orchestratore CLI (entry point)
+├── corpus-sources.ts              # 14 fonti con metadati (URN, CELEX, dataset)
+├── seed-corpus.ts                 # Versione legacy (usare loader.ts)
+├── loader-profiles/
+│   └── corpus-legislativo.ts      # Profilo default: tutte le 14 fonti
+├── fetchers/
+│   ├── normattiva-api.ts          # API OpenData → Akoma Ntoso XML (primario)
+│   ├── normattiva-html.ts         # HTML scraping normattiva.it (fallback)
+│   ├── normattiva.ts              # Re-export da normattiva-api
+│   ├── eurlex-cellar.ts           # CELLAR REST API → XHTML (primario)
+│   ├── eurlex-html.ts             # HTML scraping eur-lex.europa.eu (fallback)
+│   ├── eurlex.ts                  # Re-export da eurlex-cellar
+│   └── huggingface.ts             # HuggingFace Datasets API (Codice Civile)
+└── lib/
+    ├── types.ts                   # LegalArticle, SourceResult, LoaderProfile
+    ├── delta.ts                   # Delta loading (MD5 hash + DB compare)
+    ├── embeddings-batch.ts        # Voyage AI batch (50 art/req) + Supabase upsert
+    └── utils.ts                   # fetchWithRetry, sleep, extractLegalTerms, cleanText
+```
+
+### Le 14 fonti censite
+
+| # | Fonte | Tipo | lawSource | ~Articoli |
+|---|-------|------|-----------|-----------|
+| 1 | Codice Civile | huggingface | Codice Civile | 2.439 |
+| 2 | Codice Civile (Normattiva) | normattiva | Codice Civile | 3.150* |
+| 3 | Codice Penale | normattiva | Codice Penale | 734 |
+| 4 | Codice del Consumo | normattiva | D.Lgs. 206/2005 | 146 |
+| 5 | Codice di Procedura Civile | normattiva | CPC | 831 |
+| 6 | D.Lgs. 231/2001 | normattiva | D.Lgs. 231/2001 | 85 |
+| 7 | D.Lgs. 122/2005 | normattiva | D.Lgs. 122/2005 | 21 |
+| 8 | Statuto Lavoratori | normattiva | L. 300/1970 | 41 |
+| 9 | TU Edilizia | normattiva | DPR 380/2001 | 138 |
+| 10 | GDPR | eurlex | Reg. UE 2016/679 (GDPR) | 99 |
+| 11 | Dir. Clausole Abusive | eurlex | Dir. 93/13/CEE | 11 |
+| 12 | Dir. Consumatori | eurlex | Dir. 2011/83/UE | 35 |
+| 13 | Dir. Vendita Beni | eurlex | Dir. 2019/771/UE | 28 |
+| 14 | Roma I | eurlex | Reg. CE 593/2008 | 29 |
+| 15 | DSA | eurlex | Reg. UE 2022/2065 | 93 |
+
+*\* Il Codice Civile Normattiva è skippato automaticamente: usa la fonte HuggingFace (più affidabile).*
+
+### API delle sorgenti — nessuna autenticazione
+
+| Sorgente | API | Auth | Note |
+|----------|-----|------|------|
+| Normattiva OpenData | `pre.api.normattiva.it/.../bff-opendata/v1/...` | Nessuna | API pubblica CC BY 4.0 (dal 1 gen 2026). Il "token" nella doc è l'idCollezione di risposta, NON un token di auth |
+| EUR-Lex CELLAR | `publications.europa.eu/resource/celex/{CELEX}` | Nessuna | Content negotiation: `Accept: application/xhtml+xml` + `Accept-Language: ita` |
+| HuggingFace Datasets | `datasets-server.huggingface.co/rows` | Nessuna | API pubblica per dataset pubblici |
+
+### Uso
+
+```bash
+# Carica tutte le fonti (delta: skip articoli invariati)
+npm run loader
+
+# Solo una categoria di fonti
+npm run loader -- --source normattiva
+npm run loader -- --source eurlex
+npm run loader -- --source huggingface
+
+# Forza ricaricamento (cancella + reinserisce)
+npm run loader -- --force
+npm run loader -- --source eurlex --force
+
+# Profilo esplicito
+npm run loader -- --profile corpus-legislativo
+
+# Lista profili disponibili
+npm run loader -- --list-profiles
+```
+
+### Variabili d'ambiente richieste dal Loader
+
+```env
+VOYAGE_API_KEY=pa-...               # Voyage AI (embeddings)
+NEXT_PUBLIC_SUPABASE_URL=https://... # Supabase URL
+SUPABASE_SERVICE_ROLE_KEY=eyJ...     # Supabase admin key
+```
+
+### Aggiungere una nuova fonte
+
+1. Definisci la fonte in `corpus-sources.ts` (tipo `NormattivaSource`, `EurLexSource`, o `HuggingFaceSource`)
+2. Aggiungila all'array corrispondente (`NORMATTIVA_SOURCES`, `EURLEX_SOURCES`, `HUGGINGFACE_SOURCES`)
+3. Se è un tipo nuovo, crea un fetcher in `scripts/fetchers/` che restituisca `LegalArticle[]`
+4. Aggiorna il profilo in `loader-profiles/corpus-legislativo.ts` se necessario
+5. Lancia `npm run loader -- --source <tipo>` per testare
+
+---
+
+## 17. FEATURE INCOMPLETE
 
 1. OCR immagini — tesseract.js importato ma non implementato
 2. Dashboard reale — Usa mock data, servono query Supabase
 3. Pagina dettaglio analisi — Usa mock, serve fetch da Supabase
 4. Deep search limit — Modello dati supporta, non enforced in UI
 5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
-6. Test — Nessun test unitario/integrazione/E2E
-7. CI/CD — Nessuna GitHub Action
-8. Corpus legislativo — Tabella e API pronte, servono dati (Codice Civile da HuggingFace, D.Lgs. da Normattiva)
-9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
+6. CI/CD — Nessuna GitHub Action
+7. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
 
 ---
 
-## 16. CONVENZIONI DI CODICE
+## 18. CONVENZIONI DI CODICE
 
 - **Lingua UI**: Italiano
 - **Lingua codice**: Inglese (variabili, funzioni, commenti tecnici)

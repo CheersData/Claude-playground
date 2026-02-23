@@ -7,7 +7,7 @@
  * - Gerarchia interna (Libro/Titolo/Capo per i codici)
  * - Keywords e istituti giuridici di default
  *
- * Usato da seed-corpus.ts per il caricamento su Supabase + Voyage AI.
+ * Usato da loader.ts per il caricamento su Supabase + Voyage AI.
  */
 
 // ─── Tipi ───
