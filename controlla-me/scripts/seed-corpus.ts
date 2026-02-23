@@ -23,6 +23,7 @@ import { resolve } from "path";
 config({ path: resolve(__dirname, "../.env.local") });
 
 import { createClient } from "@supabase/supabase-js";
+import { XMLParser } from "fast-xml-parser";
 import {
   ALL_SOURCES,
   NORMATTIVA_SOURCES,
@@ -64,134 +65,319 @@ interface ArticleRow {
   in_force: boolean;
 }
 
-// ─── Fetch Normattiva ───
+// ─── HTML entity decoder ───
 
-async function fetchNormattivaArticles(source: CorpusSource): Promise<ArticleRow[]> {
-  console.log(`\n  Fetching ${source.name} da Normattiva...`);
-  console.log(`  URN: ${source.urn}`);
-
-  // Normattiva espone gli atti in formato HTML.
-  // Strategia: fetch della pagina completa e parsing degli articoli.
-  // Per ora usiamo un approccio pragmatico con l'API multi-vigente.
-  const articles: ArticleRow[] = [];
-
-  try {
-    // Normattiva URL per il testo vigente completo
-    const url = `https://www.normattiva.it/uri-res/N2Ls?${source.urn}~art0!vig=`;
-    console.log(`  URL: ${url}`);
-
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "controlla.me/1.0 (legal-corpus-loader)",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "it-IT,it;q=0.9",
-      },
-    });
-
-    if (!response.ok) {
-      console.warn(`  WARN: HTTP ${response.status} per ${source.name}. Provo pagina principale...`);
-      // Fallback: prova l'URL base
-      const fallbackResp = await fetch(source.baseUrl, {
-        headers: {
-          "User-Agent": "controlla.me/1.0 (legal-corpus-loader)",
-          "Accept": "text/html,application/xhtml+xml",
-        },
-      });
-      if (!fallbackResp.ok) {
-        console.error(`  ERRORE: Impossibile raggiungere ${source.name} (HTTP ${fallbackResp.status})`);
-        return [];
-      }
-      const html = await fallbackResp.text();
-      return parseNormattivaHtml(html, source);
-    }
-
-    const html = await response.text();
-    return parseNormattivaHtml(html, source);
-  } catch (err) {
-    console.error(`  ERRORE fetching ${source.name}:`, err instanceof Error ? err.message : err);
-    return articles;
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"',
+    "&apos;": "'", "&laquo;": "«", "&raquo;": "»", "&ndash;": "–", "&mdash;": "—",
+    "&Egrave;": "È", "&egrave;": "è", "&Eacute;": "É", "&eacute;": "é",
+    "&Agrave;": "À", "&agrave;": "à", "&Aacute;": "Á", "&aacute;": "á",
+    "&Igrave;": "Ì", "&igrave;": "ì", "&Iacute;": "Í", "&iacute;": "í",
+    "&Ograve;": "Ò", "&ograve;": "ò", "&Oacute;": "Ó", "&oacute;": "ó",
+    "&Ugrave;": "Ù", "&ugrave;": "ù", "&Uacute;": "Ú", "&uacute;": "ú",
+    "&ccedil;": "ç", "&Ccedil;": "Ç", "&ntilde;": "ñ", "&Ntilde;": "Ñ",
+    "&deg;": "°", "&euro;": "€", "&sect;": "§", "&copy;": "©",
+  };
+  let result = text;
+  for (const [entity, char] of Object.entries(entities)) {
+    result = result.replaceAll(entity, char);
   }
+  // Numeric entities: &#123; and &#x1F;
+  result = result.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
+  return result;
 }
 
-function parseNormattivaHtml(html: string, source: CorpusSource): ArticleRow[] {
-  const articles: ArticleRow[] = [];
+// ─── Fetch Normattiva via Akoma Ntoso XML API ───
 
-  // Pattern per estrarre articoli da HTML Normattiva
-  // Gli articoli sono tipicamente in strutture come:
-  // <div class="art-body"> o <div id="art123">
-  // con il numero dell'articolo e il testo
+const NORMATTIVA_HEADERS = {
+  "User-Agent": "controlla.me/1.0 (legal-corpus-loader)",
+  "Accept": "text/html,application/xhtml+xml,application/xml",
+  "Accept-Language": "it-IT,it;q=0.9",
+  "Referer": "https://www.normattiva.it/",
+};
 
-  // Pattern 1: Cerca blocchi articolo con id "art" + numero
-  const artBlockRegex = /<(?:div|section)[^>]*(?:id|class)=[^>]*art[^>]*>([\s\S]*?)(?=<(?:div|section)[^>]*(?:id|class)=[^>]*art[^>]*>|$)/gi;
+/**
+ * Step 1: Visita la pagina HTML dell'atto su Normattiva.
+ * Estrai dataGU, codiceRedaz, dataVigenza dai campi hidden del form.
+ */
+async function extractAknParams(source: CorpusSource): Promise<{
+  dataGU: string;
+  codiceRedaz: string;
+  dataVigenza: string;
+} | null> {
+  const url = source.baseUrl;
+  console.log(`  Step 1: Estraggo parametri AKN da ${url}`);
 
-  // Pattern 2: Cerca "Art. N" nel testo
-  const artHeaderRegex = /Art(?:icolo)?\.?\s*(\d+(?:\s*(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)/gi;
+  const resp = await fetch(url, { headers: NORMATTIVA_HEADERS, redirect: "follow" });
+  if (!resp.ok) {
+    console.error(`  ERRORE: HTTP ${resp.status} per ${source.name}`);
+    return null;
+  }
+  const html = await resp.text();
 
-  // Prima proviamo a estrarre articoli individuali dal testo puro
-  const textContent = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, "\n")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#\d+;/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  // Cerca i campi hidden nel form
+  const dataGUMatch = html.match(/name=["']atto\.dataPubblicazioneGazzetta["'][^>]*value=["']([^"']+)["']/i)
+    || html.match(/value=["']([^"']+)["'][^>]*name=["']atto\.dataPubblicazioneGazzetta["']/i);
+  const codiceMatch = html.match(/name=["']atto\.codiceRedazionale["'][^>]*value=["']([^"']+)["']/i)
+    || html.match(/value=["']([^"']+)["'][^>]*name=["']atto\.codiceRedazionale["']/i);
+  const vigenzaMatch = html.match(/name=["']dataVigenza["'][^>]*value=["']([^"']+)["']/i)
+    || html.match(/value=["']([^"']+)["'][^>]*name=["']dataVigenza["']/i);
 
-  // Split per articoli
-  const artSplitRegex = /\n\s*Art(?:icolo)?\.?\s*(\d+(?:\s*(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)\s*[\.\-\n]/gi;
-  const parts = textContent.split(artSplitRegex);
+  if (!codiceMatch) {
+    console.error(`  ERRORE: codiceRedaz non trovato per ${source.name}`);
+    return null;
+  }
 
-  // Gerarchia corrente (tracciata durante il parsing)
-  let currentHierarchy: Record<string, string> = {};
-  const hierarchyPatterns: Record<string, RegExp> = {
-    book: /(?:LIBRO|Libro)\s+(I{1,3}V?|V?I{0,3}|PRIMO|SECONDO|TERZO|QUARTO|QUINTO|SESTO)\s*[\-—]\s*(.+)/i,
-    part: /(?:PARTE|Parte)\s+(I{1,3}V?|V?I{0,3}|PRIMA|SECONDA|TERZA)\s*[\-—]\s*(.+)/i,
-    title: /(?:TITOLO|Titolo)\s+(I{1,3}V?X{0,3}|X{0,3}I{0,3}V?|[IVX]+)\s*[\-—]?\s*(.+)/i,
-    chapter: /(?:CAPO|Capo)\s+(I{1,3}V?X{0,3}|X{0,3}I{0,3}V?|[IVX]+)\s*[\-—]?\s*(.+)/i,
-    section: /(?:SEZIONE|Sezione)\s+(I{1,3}V?X{0,3}|X{0,3}I{0,3}V?|[IVX]+)\s*[\-—]?\s*(.+)/i,
-  };
+  const codiceRedaz = codiceMatch[1];
 
-  if (parts.length > 2) {
-    // parts[0] = preambolo, parts[1] = num art 1, parts[2] = testo art 1, ecc.
-    for (let i = 1; i < parts.length - 1; i += 2) {
-      const artNum = parts[i].trim();
-      const artText = (parts[i + 1] || "").trim();
-
-      if (!artNum || !artText || artText.length < 10) continue;
-
-      // Aggiorna gerarchia dal testo che precede
-      const precedingText = i > 1 ? parts[i - 1] || "" : parts[0] || "";
-      for (const [key, regex] of Object.entries(hierarchyPatterns)) {
-        const match = precedingText.match(regex);
-        if (match) {
-          currentHierarchy[key] = `${key === "book" ? "Libro" : key === "part" ? "Parte" : key === "title" ? "Titolo" : key === "chapter" ? "Capo" : "Sezione"} ${match[1]} - ${match[2].trim()}`;
-        }
-      }
-
-      // Estrai titolo articolo (prima riga non vuota dopo il numero)
-      const firstLine = artText.split("\n")[0]?.trim();
-      const title = firstLine && firstLine.length < 200 && !firstLine.match(/^\d/) ? firstLine : null;
-
-      articles.push({
-        source_id: source.id,
-        source_name: source.name,
-        source_type: source.type,
-        article_number: artNum,
-        article_title: title,
-        article_text: artText.slice(0, 10000), // Max 10k chars per articolo
-        hierarchy: { ...currentHierarchy },
-        url: `${source.baseUrl}~art${artNum}`,
-        in_force: true,
-      });
+  // dataGU: formato DD/MM/YYYY → YYYYMMDD
+  let dataGU = "";
+  if (dataGUMatch) {
+    const raw = dataGUMatch[1];
+    if (raw.includes("/")) {
+      const [d, m, y] = raw.split("/");
+      dataGU = `${y}${m.padStart(2, "0")}${d.padStart(2, "0")}`;
+    } else {
+      dataGU = raw;
     }
   }
 
-  console.log(`  Estratti ${articles.length} articoli da ${source.name}`);
+  // dataVigenza: usa data corrente se non trovata
+  let dataVigenza = "";
+  if (vigenzaMatch) {
+    const raw = vigenzaMatch[1];
+    if (raw.includes("/")) {
+      const [d, m, y] = raw.split("/");
+      dataVigenza = `${y}${m.padStart(2, "0")}${d.padStart(2, "0")}`;
+    } else {
+      dataVigenza = raw;
+    }
+  } else {
+    const now = new Date();
+    dataVigenza = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  }
+
+  console.log(`  Parametri: codice=${codiceRedaz}, dataGU=${dataGU}, vigenza=${dataVigenza}`);
+  return { dataGU, codiceRedaz, dataVigenza };
+}
+
+/**
+ * Step 2: Scarica l'XML Akoma Ntoso dall'endpoint caricaAKN.
+ */
+async function downloadAkomaNtoso(params: {
+  dataGU: string;
+  codiceRedaz: string;
+  dataVigenza: string;
+}): Promise<string | null> {
+  const url = `https://www.normattiva.it/do/atto/caricaAKN?dataGU=${params.dataGU}&codiceRedaz=${params.codiceRedaz}&dataVigenza=${params.dataVigenza}`;
+  console.log(`  Step 2: Download AKN XML da /do/atto/caricaAKN`);
+
+  const resp = await fetch(url, { headers: NORMATTIVA_HEADERS });
+  if (!resp.ok) {
+    console.error(`  ERRORE: HTTP ${resp.status} per AKN download`);
+    return null;
+  }
+
+  const xml = await resp.text();
+  // Verifica che sia XML valido
+  if (!xml.includes("<?xml") && !xml.includes("<akomaNtoso") && !xml.includes("<akn:akomaNtoso")) {
+    console.error(`  ERRORE: Risposta non e XML Akoma Ntoso (primi 200 chars: ${xml.slice(0, 200)})`);
+    return null;
+  }
+
+  console.log(`  AKN XML scaricato: ${(xml.length / 1024).toFixed(0)} KB`);
+  return xml;
+}
+
+/**
+ * Step 3: Parsa l'XML Akoma Ntoso per estrarre articoli con gerarchia.
+ * La struttura AKN e gerarchica: book > title > chapter > section > article.
+ */
+function parseAkomaNtoso(xml: string, source: CorpusSource): ArticleRow[] {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "@_",
+    textNodeName: "#text",
+    isArray: (name) => ["book", "part", "title", "chapter", "section", "article",
+      "paragraph", "content", "p", "num", "heading", "list", "item", "point",
+      "akn:book", "akn:part", "akn:title", "akn:chapter", "akn:section",
+      "akn:article", "akn:paragraph", "akn:content", "akn:p", "akn:num",
+      "akn:heading", "akn:list", "akn:item", "akn:point"].includes(name),
+  });
+
+  const doc = parser.parse(xml);
+
+  // Normattiva puo usare namespace akn: o nessuno
+  const root = doc["akomaNtoso"] || doc["akn:akomaNtoso"] || doc;
+  const act = root?.["act"] || root?.["akn:act"] || root;
+  const body = act?.["body"] || act?.["akn:body"] || act;
+
+  if (!body) {
+    console.error(`  ERRORE: Body non trovato nell'XML AKN`);
+    return [];
+  }
+
+  const articles: ArticleRow[] = [];
+
+  // Estrai testo da un nodo AKN (ricorsivo, raccoglie tutti i <p> e testo)
+  function extractText(node: any): string {
+    if (!node) return "";
+    if (typeof node === "string") return node;
+    if (typeof node === "number") return String(node);
+
+    const parts: string[] = [];
+
+    if (node["#text"]) parts.push(String(node["#text"]));
+
+    // Raccogli testo da <p>, <content>, <paragraph> ecc.
+    const textTags = ["p", "akn:p", "content", "akn:content", "paragraph", "akn:paragraph",
+      "list", "akn:list", "item", "akn:item", "point", "akn:point",
+      "intro", "akn:intro", "wrapUp", "akn:wrapUp"];
+
+    for (const tag of textTags) {
+      const child = node[tag];
+      if (!child) continue;
+      const arr = Array.isArray(child) ? child : [child];
+      for (const c of arr) {
+        const text = extractText(c);
+        if (text.trim()) parts.push(text.trim());
+      }
+    }
+
+    return parts.join("\n");
+  }
+
+  // Estrai num e heading da un nodo
+  function getNumHeading(node: any): { num: string; heading: string } {
+    const numNode = node?.["num"] || node?.["akn:num"];
+    const headingNode = node?.["heading"] || node?.["akn:heading"];
+
+    let num = "";
+    if (numNode) {
+      const arr = Array.isArray(numNode) ? numNode : [numNode];
+      num = arr.map((n: any) => typeof n === "string" ? n : n?.["#text"] || "").join("").trim();
+    }
+
+    let heading = "";
+    if (headingNode) {
+      const arr = Array.isArray(headingNode) ? headingNode : [headingNode];
+      heading = arr.map((h: any) => typeof h === "string" ? h : h?.["#text"] || "").join("").trim();
+    }
+
+    return { num: decodeHtmlEntities(num), heading: decodeHtmlEntities(heading) };
+  }
+
+  // Estrai articoli ricorsivamente, tracciando la gerarchia
+  function walkNode(node: any, hierarchy: Record<string, string>) {
+    if (!node || typeof node !== "object") return;
+
+    const hierarchyLevels: Array<{ tag: string; key: string; label: string }> = [
+      { tag: "book", key: "book", label: "Libro" },
+      { tag: "akn:book", key: "book", label: "Libro" },
+      { tag: "part", key: "part", label: "Parte" },
+      { tag: "akn:part", key: "part", label: "Parte" },
+      { tag: "title", key: "title", label: "Titolo" },
+      { tag: "akn:title", key: "title", label: "Titolo" },
+      { tag: "chapter", key: "chapter", label: "Capo" },
+      { tag: "akn:chapter", key: "chapter", label: "Capo" },
+      { tag: "section", key: "section", label: "Sezione" },
+      { tag: "akn:section", key: "section", label: "Sezione" },
+    ];
+
+    // Processa nodi gerarchici
+    for (const { tag, key, label } of hierarchyLevels) {
+      const children = node[tag];
+      if (!children) continue;
+      const arr = Array.isArray(children) ? children : [children];
+      for (const child of arr) {
+        const { num, heading } = getNumHeading(child);
+        const newHierarchy = { ...hierarchy };
+        if (num || heading) {
+          newHierarchy[key] = heading ? `${num} - ${heading}`.replace(/^\s*-\s*/, "") : num;
+        }
+        walkNode(child, newHierarchy);
+      }
+    }
+
+    // Processa articoli
+    const articleNodes = node["article"] || node["akn:article"];
+    if (articleNodes) {
+      const arr = Array.isArray(articleNodes) ? articleNodes : [articleNodes];
+      for (const artNode of arr) {
+        const { num, heading } = getNumHeading(artNode);
+
+        // Estrai numero articolo dal tag <num> (es. "Art. 1.", "1", "Art. 1321")
+        let artNum = num.replace(/^Art\.?\s*/i, "").replace(/\.\s*$/, "").trim();
+        if (!artNum) {
+          // Prova dall'attributo eId
+          const eId = artNode?.["@_eId"] || "";
+          const match = eId.match(/art[_-]?(\w+)/i);
+          artNum = match ? match[1] : "";
+        }
+        if (!artNum) continue;
+
+        // Testo completo dell'articolo
+        const text = decodeHtmlEntities(extractText(artNode));
+        if (!text || text.length < 5) continue;
+
+        // Heading come titolo
+        const artTitle = heading || null;
+
+        articles.push({
+          source_id: source.id,
+          source_name: source.name,
+          source_type: source.type,
+          article_number: artNum,
+          article_title: artTitle,
+          article_text: text.slice(0, 10000),
+          hierarchy: { ...hierarchy },
+          url: `${source.baseUrl}~art${artNum}`,
+          in_force: true,
+        });
+      }
+    }
+  }
+
+  walkNode(body, {});
+
+  console.log(`  Estratti ${articles.length} articoli da AKN XML`);
   return articles;
+}
+
+/**
+ * Fetch articoli Normattiva: prima prova via AKN XML API, poi fallback HTML.
+ */
+async function fetchNormattivaArticles(source: CorpusSource): Promise<ArticleRow[]> {
+  console.log(`\n  Fetching ${source.name} da Normattiva (Akoma Ntoso XML)...`);
+  console.log(`  URN: ${source.urn}`);
+
+  try {
+    // Step 1: Estrai parametri dalla pagina HTML
+    const params = await extractAknParams(source);
+    if (!params) {
+      console.warn(`  WARN: Parametri AKN non trovati, skip ${source.name}`);
+      return [];
+    }
+
+    // Step 2: Scarica XML Akoma Ntoso
+    const xml = await downloadAkomaNtoso(params);
+    if (!xml) {
+      console.warn(`  WARN: XML AKN non disponibile per ${source.name}`);
+      return [];
+    }
+
+    // Step 3: Parsa XML
+    const articles = parseAkomaNtoso(xml, source);
+    if (articles.length === 0) {
+      console.warn(`  WARN: Nessun articolo estratto dall'XML per ${source.name}`);
+    }
+    return articles;
+  } catch (err) {
+    console.error(`  ERRORE fetching ${source.name}:`, err instanceof Error ? err.message : err);
+    return [];
+  }
 }
 
 // ─── Fetch EUR-Lex ───
@@ -231,23 +417,22 @@ async function fetchEurLexArticles(source: CorpusSource): Promise<ArticleRow[]> 
 function parseEurLexHtml(html: string, source: CorpusSource): ArticleRow[] {
   const articles: ArticleRow[] = [];
 
-  // Rimuovi script/style, converti a testo
-  const textContent = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#\d+;/g, "")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  // Rimuovi script/style/nav, converti a testo
+  const textContent = decodeHtmlEntities(
+    html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
 
   // Split per articoli
   const artSplitRegex = /\n\s*Articolo\s+(\d+(?:\s*(?:bis|ter|quater))?)\s*\n/gi;
