@@ -376,6 +376,138 @@ export async function getCorpusStats(): Promise<{
   };
 }
 
+// ─── Query: Navigazione gerarchica del corpus ───
+
+/**
+ * Lista tutte le fonti legislative presenti nel corpus con conteggio articoli.
+ * Usato dalla pagina /corpus per mostrare l'albero navigabile.
+ */
+export async function getCorpusSources(): Promise<
+  Array<{ lawSource: string; articleCount: number }>
+> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("legal_articles")
+    .select("law_source")
+    .eq("is_in_force", true);
+
+  if (!data) return [];
+
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    const src = (row as { law_source: string }).law_source;
+    counts[src] = (counts[src] ?? 0) + 1;
+  }
+
+  return Object.entries(counts)
+    .map(([lawSource, articleCount]) => ({ lawSource, articleCount }))
+    .sort((a, b) => a.lawSource.localeCompare(b.lawSource));
+}
+
+/**
+ * Restituisce la struttura gerarchica di una fonte (Libri/Titoli/Capi).
+ * Usato per l'albero espandibile nella pagina /corpus.
+ */
+export async function getSourceHierarchy(
+  lawSource: string
+): Promise<Array<{ hierarchy: Record<string, string>; articleCount: number; articles: Array<{ ref: string; title: string | null }> }>> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("legal_articles")
+    .select("article_reference, article_title, hierarchy")
+    .eq("law_source", lawSource)
+    .eq("is_in_force", true)
+    .order("article_reference");
+
+  if (!data) return [];
+
+  // Raggruppa per gerarchia
+  const groups = new Map<string, {
+    hierarchy: Record<string, string>;
+    articles: Array<{ ref: string; title: string | null }>;
+  }>();
+
+  for (const row of data) {
+    const h = (row as any).hierarchy as Record<string, string> ?? {};
+    const key = JSON.stringify(h);
+
+    if (!groups.has(key)) {
+      groups.set(key, { hierarchy: h, articles: [] });
+    }
+
+    groups.get(key)!.articles.push({
+      ref: (row as any).article_reference as string,
+      title: (row as any).article_title as string | null,
+    });
+  }
+
+  return Array.from(groups.values()).map((g) => ({
+    hierarchy: g.hierarchy,
+    articleCount: g.articles.length,
+    articles: g.articles,
+  }));
+}
+
+/**
+ * Cerca articoli per testo (full-text search) all'interno di una fonte.
+ */
+export async function searchArticlesFullText(
+  query: string,
+  lawSource?: string,
+  limit: number = 20
+): Promise<LegalArticle[]> {
+  const admin = createAdminClient();
+
+  let q = admin
+    .from("legal_articles")
+    .select("*")
+    .eq("is_in_force", true)
+    .or(`article_text.ilike.%${query}%,article_title.ilike.%${query}%,article_reference.ilike.%${query}%`)
+    .limit(limit);
+
+  if (lawSource) {
+    q = q.eq("law_source", lawSource);
+  }
+
+  const { data, error } = await q;
+
+  if (error) {
+    console.error(`[CORPUS] Errore ricerca full-text: ${error.message}`);
+    return [];
+  }
+
+  return (data ?? []).map(mapRowToArticle);
+}
+
+/**
+ * Recupera un singolo articolo per fonte + riferimento.
+ */
+export async function getArticle(
+  lawSource: string,
+  articleReference: string
+): Promise<LegalArticle | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("legal_articles")
+    .select("*")
+    .eq("law_source", lawSource)
+    .eq("article_reference", articleReference)
+    .single();
+
+  if (error || !data) return null;
+  return mapRowToArticle(data as Record<string, unknown>);
+}
+
+/**
+ * Dati per breadcrumb: fonte → gerarchia → articolo
+ */
+export interface BreadcrumbData {
+  lawSource: string;
+  hierarchy: Record<string, string>;
+  articleReference: string;
+  articleTitle: string | null;
+}
+
 // ─── Utility ───
 
 function mapRowToArticle(row: Record<string, unknown>): LegalArticle {

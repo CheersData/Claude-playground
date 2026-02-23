@@ -6,6 +6,7 @@ export function makeClassification(
   return {
     documentType: "contratto_locazione_abitativa",
     documentTypeLabel: "Contratto di Locazione ad Uso Abitativo",
+    documentSubType: null,
     parties: [
       { role: "locatore", name: "Mario Rossi", type: "persona_fisica" },
       { role: "conduttore", name: "Luigi Bianchi", type: "persona_fisica" },
@@ -15,6 +16,8 @@ export function makeClassification(
       { reference: "L. 431/1998", name: "Disciplina locazioni abitative" },
       { reference: "Art. 1571-1614 c.c.", name: "Codice Civile - Locazione" },
     ],
+    relevantInstitutes: ["locazione", "locazione_abitativa"],
+    legalFocusAreas: ["diritto_civile", "locazione"],
     keyDates: [{ date: "2025-04-01", description: "Decorrenza contratto" }],
     summary: "Contratto di locazione abitativa 4+4 con canone EUR 800/mese.",
     confidence: 0.95,

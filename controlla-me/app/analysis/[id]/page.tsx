@@ -11,6 +11,7 @@ import type { AdvisorResult } from "@/lib/types";
 // In production, this would fetch from Supabase
 const MOCK_RESULT: AdvisorResult = {
   fairnessScore: 6.2,
+  scores: null,
   summary:
     "È un contratto di affitto per una casa a Milano. In generale è nella norma, ma ci sono 3 problemi importanti che dovresti risolvere prima di firmare. Il più grave è una penale esagerata se vuoi andartene prima della scadenza.",
   risks: [
