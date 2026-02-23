@@ -8,18 +8,18 @@ echo     controlla.me - Setup Completo + Avvio
 echo  ============================================
 echo.
 
-:: Vai alla root del repo
-cd /d "C:\Users\MarcoCristofori\Claude-playground"
+:: Vai alla root del repo (usa la home dell'utente corrente)
+cd /d "%USERPROFILE%\Claude-playground"
 
 echo  [1/4] Scarico gli ultimi aggiornamenti...
 echo.
-git fetch origin claude/review-code-instructions-9aGkc
-git checkout claude/review-code-instructions-9aGkc
-git pull origin claude/review-code-instructions-9aGkc
+git fetch origin master
+git checkout master
+git pull origin master
 echo.
 
 :: Vai nella cartella del progetto
-cd /d "C:\Users\MarcoCristofori\Claude-playground\controlla-me"
+cd /d "%USERPROFILE%\Claude-playground\controlla-me"
 
 echo  [2/4] Verifico che i file ci siano...
 if not exist "package.json" (
