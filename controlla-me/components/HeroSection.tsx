@@ -140,196 +140,198 @@ function HeroVerifica({
   );
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/about-legal.png"
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          quality={90}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 60%, rgba(255,255,255,0.7) 100%)",
-          }}
-        />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent" />
-      </div>
+    <section className="relative min-h-[100vh] flex items-center bg-white overflow-hidden">
+      <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 pt-24 pb-12">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-[680px] mx-auto px-6 pt-28 pb-16 text-center">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-accent/25 mb-8 text-sm text-foreground font-medium"
-        >
-          <Sparkles className="w-4 h-4 text-accent" />4 agenti AI al tuo
-          servizio
-        </motion.div>
+          {/* LEFT — Text & CTA on clean white */}
+          <div className="flex-1 w-full md:w-1/2 text-left">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/25 mb-6 text-sm text-foreground font-medium"
+            >
+              <Sparkles className="w-4 h-4 text-accent" />
+              4 agenti AI al tuo servizio
+            </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
-          className="font-serif text-[clamp(38px,7vw,76px)] leading-[1.05] tracking-[-0.02em] mb-4"
-        >
-          Ti verifico
-          <br />
-          <span className="italic bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent">
-            il documento.
-          </span>
-        </motion.h1>
+            {/* Headline — poche parole, MOLTO BOLD */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="font-serif font-black text-[clamp(42px,6vw,80px)] leading-[1.02] tracking-[-0.03em] text-foreground mb-4"
+            >
+              Ti verifico
+              <br />
+              <span className="italic bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent">
+                il documento.
+              </span>
+            </motion.h1>
 
-        {/* Animated strike words */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-lg text-foreground-secondary mb-3 h-10 flex items-center justify-center"
-        >
-          <span className="mr-2">Troviamo</span>
-          <TextStrikeAnimation />
-        </motion.div>
+            {/* Animated strike words */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-lg text-foreground-secondary mb-6 h-10 flex items-center"
+            >
+              <span className="mr-2">Troviamo</span>
+              <TextStrikeAnimation />
+            </motion.div>
 
-        {/* Subheadline */}
-        <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="text-base text-foreground-secondary max-w-[500px] mx-auto mb-8 leading-relaxed"
-        >
-          Carica un contratto, una bolletta, qualsiasi documento legale.
-          <br className="hidden md:block" />I nostri agenti lo analizzano e ti
-          spiegano cosa verificare.
-        </motion.p>
+            {/* Sub — una riga sola */}
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-base text-foreground-secondary max-w-[460px] mb-8 leading-relaxed"
+            >
+              Carica un contratto, una bolletta, qualsiasi documento.
+              <br className="hidden md:block" />
+              I nostri agenti lo analizzano e ti spiegano tutto.
+            </motion.p>
 
-        {/* Context prompt */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="w-full max-w-[520px] mx-auto mb-4"
-        >
-          <textarea
-            value={contextPrompt}
-            onChange={(e) => onContextChange(e.target.value)}
-            placeholder="Descrivi il contesto: che tipo di documento e'? Hai dubbi specifici? (opzionale)"
-            className="w-full px-4 py-3 rounded-xl bg-white border border-border text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all"
-            rows={2}
-          />
-        </motion.div>
+            {/* Context prompt */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="w-full max-w-[480px] mb-4"
+            >
+              <textarea
+                value={contextPrompt}
+                onChange={(e) => onContextChange(e.target.value)}
+                placeholder="Descrivi il contesto: che tipo di documento e'? Hai dubbi specifici? (opzionale)"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-border text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all"
+                rows={2}
+              />
+            </motion.div>
 
-        {/* Upload card */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="relative w-full max-w-[520px] mx-auto"
-        >
-          <div className="absolute -inset-4 rounded-3xl bg-accent/10 blur-3xl" />
-          <div
-            className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
-              dragOver
-                ? "border-accent/70 bg-white scale-[1.02] shadow-lg"
-                : "border-border bg-white hover:border-accent/40 hover:shadow-md"
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-
-            <div className="flex flex-col items-center gap-3 px-8 py-7">
-              <motion.div
-                className="w-11 h-11 rounded-xl flex items-center justify-center bg-accent/[0.12] border border-accent/25"
-                animate={
+            {/* Upload card */}
+            <motion.div
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="relative w-full max-w-[480px]"
+            >
+              <div
+                className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
                   dragOver
-                    ? { scale: 1.15, rotate: 5 }
-                    : { scale: 1, rotate: 0 }
-                }
-              >
-                {dragOver ? (
-                  <FileText className="w-5 h-5 text-accent" />
-                ) : (
-                  <Upload className="w-5 h-5 text-accent" />
-                )}
-              </motion.div>
-
-              <p className="text-sm text-foreground">
-                {dragOver
-                  ? "Rilascia per analizzare"
-                  : "Trascina qui il tuo documento oppure"}
-              </p>
-
-              <button
-                className="relative w-full max-w-[360px] px-8 py-3.5 rounded-xl text-base font-bold text-white overflow-hidden bg-gradient-to-r from-accent to-amber-500 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                style={{
-                  boxShadow:
-                    "0 8px 32px rgba(255,107,53,0.35), 0 0 0 1px rgba(255,107,53,0.1)",
+                    ? "border-accent/70 bg-white scale-[1.02] shadow-lg"
+                    : "border-border bg-white hover:border-accent/40 hover:shadow-md"
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
                 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
               >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12"
-                  animate={{ x: ["-200%", "200%"] }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    repeatDelay: 2,
-                  }}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
-                <span className="relative z-10">Analizza il tuo documento</span>
-                <ArrowRight className="w-4 h-4 relative z-10" />
-              </button>
 
-              <p className="text-xs text-foreground-tertiary tracking-wide">
-                PDF · Word · Immagini · TXT · max 20MB
-              </p>
-            </div>
+                <div className="flex flex-col items-center gap-3 px-6 py-6">
+                  <motion.div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center bg-accent/[0.12] border border-accent/25"
+                    animate={
+                      dragOver
+                        ? { scale: 1.15, rotate: 5 }
+                        : { scale: 1, rotate: 0 }
+                    }
+                  >
+                    {dragOver ? (
+                      <FileText className="w-5 h-5 text-accent" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-accent" />
+                    )}
+                  </motion.div>
+
+                  <p className="text-sm text-foreground">
+                    {dragOver
+                      ? "Rilascia per analizzare"
+                      : "Trascina qui il tuo documento oppure"}
+                  </p>
+
+                  <button
+                    className="relative w-full max-w-[360px] px-8 py-3.5 rounded-xl text-base font-bold text-white overflow-hidden bg-gradient-to-r from-accent to-amber-500 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    style={{
+                      boxShadow:
+                        "0 8px 32px rgba(255,107,53,0.35), 0 0 0 1px rgba(255,107,53,0.1)",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12"
+                      animate={{ x: ["-200%", "200%"] }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        repeatDelay: 2,
+                      }}
+                    />
+                    <span className="relative z-10">Analizza il tuo documento</span>
+                    <ArrowRight className="w-4 h-4 relative z-10" />
+                  </button>
+
+                  <p className="text-xs text-foreground-tertiary tracking-wide">
+                    PDF · Word · Immagini · TXT · max 20MB
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Trust signals */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="flex gap-6 flex-wrap mt-5 text-foreground-tertiary text-xs"
+            >
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" /> Dati protetti
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5" /> Server in EU
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> 3 analisi gratis
+              </span>
+            </motion.div>
           </div>
-        </motion.div>
 
-        {/* Trust signals */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="flex gap-6 flex-wrap justify-center mt-6 text-foreground-tertiary text-xs"
-        >
-          <span className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" /> Dati protetti
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5" /> Server in EU
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> 3 analisi gratis
-          </span>
-        </motion.div>
+          {/* RIGHT — Immagine a metà schermo, nessun overlay */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="flex-1 w-full md:w-1/2 relative"
+          >
+            <div className="relative w-full aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="/images/about-legal.png"
+                alt="Analisi documenti legali"
+                fill
+                priority
+                className="object-cover object-center"
+                quality={90}
+              />
+            </div>
+          </motion.div>
+
+        </div>
       </div>
     </section>
   );
