@@ -41,14 +41,24 @@ export interface LegalArticleSearchResult extends LegalArticle {
 
 /**
  * Recupera un singolo articolo per UUID.
+ * Formato compatibile con la UI di /corpus (ArticleDetail).
  */
 export async function getArticleById(
   id: string
-): Promise<LegalArticle | null> {
+): Promise<{
+  id: string;
+  source_id: string;
+  source_name: string;
+  article_number: string;
+  article_title: string | null;
+  article_text: string;
+  hierarchy: Record<string, string>;
+  url: string | null;
+} | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("legal_articles")
-    .select("*")
+    .select("id, law_source, article_reference, article_title, article_text, hierarchy, source_url")
     .eq("id", id)
     .single();
 
@@ -57,7 +67,26 @@ export async function getArticleById(
     return null;
   }
 
-  return mapRowToArticle(data as Record<string, unknown>);
+  const r = data as {
+    id: string;
+    law_source: string;
+    article_reference: string;
+    article_title: string | null;
+    article_text: string;
+    hierarchy: Record<string, string> | null;
+    source_url: string | null;
+  };
+
+  return {
+    id: r.id,
+    source_id: sourceToId(r.law_source),
+    source_name: r.law_source,
+    article_number: r.article_reference,
+    article_title: r.article_title,
+    article_text: r.article_text,
+    hierarchy: r.hierarchy ?? {},
+    url: r.source_url,
+  };
 }
 
 // ─── Query: Lookup diretto per fonte ───
@@ -401,12 +430,49 @@ export async function getCorpusStats(): Promise<{
 
 // ─── Query: fonti e gerarchia (per API /corpus/hierarchy) ───
 
+interface SourceInfo {
+  source_id: string;
+  source_name: string;
+  source_type: string;
+  article_count: number;
+}
+
+interface HierarchyNode {
+  key: string;
+  label: string;
+  children: HierarchyNode[];
+  articles: Array<{
+    id: string;
+    article_number: string;
+    article_title: string | null;
+    hierarchy: Record<string, string>;
+  }>;
+}
+
+/**
+ * Determina il tipo di fonte (normattiva per italiane, eurlex per EU).
+ */
+function detectSourceType(lawSource: string): string {
+  if (/Dir\.|Reg\.|GDPR|DSA|DMA|EUR/i.test(lawSource)) return "eurlex";
+  return "normattiva";
+}
+
+/**
+ * Genera un ID slug dalla fonte.
+ */
+function sourceToId(lawSource: string): string {
+  return lawSource
+    .toLowerCase()
+    .replace(/[.\s/]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
 /**
  * Lista tutte le fonti legislative nel corpus con conteggio articoli.
+ * Formato compatibile con la UI di /corpus.
  */
-export async function getCorpusSources(): Promise<
-  Array<{ source: string; articleCount: number }>
-> {
+export async function getCorpusSources(): Promise<SourceInfo[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("legal_articles")
@@ -424,55 +490,122 @@ export async function getCorpusSources(): Promise<
   }
 
   return Object.entries(counts)
-    .map(([source, articleCount]) => ({ source, articleCount }))
-    .sort((a, b) => b.articleCount - a.articleCount);
+    .map(([source, count]) => ({
+      source_id: sourceToId(source),
+      source_name: source,
+      source_type: detectSourceType(source),
+      article_count: count,
+    }))
+    .sort((a, b) => b.article_count - a.article_count);
 }
 
 /**
  * Restituisce l'albero navigabile di una fonte legislativa.
  * Raggruppa gli articoli per hierarchy (libro, titolo, capo, sezione).
+ * Formato compatibile con la UI di /corpus (HierarchyNode[]).
  */
 export async function getSourceHierarchy(
   sourceId: string
 ): Promise<{
-  source: string;
-  totalArticles: number;
-  tree: Record<string, unknown>;
+  source_id: string;
+  source_name: string;
+  source_type: string;
+  article_count: number;
+  tree: HierarchyNode[];
 } | null> {
-  const articles = await getArticlesBySource(sourceId, 500);
-  if (articles.length === 0) return null;
+  // sourceId può essere uno slug o il nome diretto della fonte
+  const admin = createAdminClient();
 
-  const tree: Record<string, unknown> = {};
+  // Prova prima un match esatto
+  let { data } = await admin
+    .from("legal_articles")
+    .select("id, law_source, article_reference, article_title, hierarchy")
+    .eq("law_source", sourceId)
+    .order("article_reference")
+    .limit(2000);
 
-  for (const article of articles) {
-    const h = article.hierarchy ?? {};
+  // Se non trova, prova con ilike (slug → nome originale)
+  if (!data || data.length === 0) {
+    const pattern = sourceId.replace(/_/g, "%");
+    ({ data } = await admin
+      .from("legal_articles")
+      .select("id, law_source, article_reference, article_title, hierarchy")
+      .ilike("law_source", `%${pattern}%`)
+      .order("article_reference")
+      .limit(2000));
+  }
+
+  if (!data || data.length === 0) return null;
+
+  const sourceName = (data[0] as { law_source: string }).law_source;
+
+  // Costruisci albero HierarchyNode[] dai dati
+  const rootMap = new Map<string, HierarchyNode>();
+
+  for (const row of data) {
+    const r = row as {
+      id: string;
+      law_source: string;
+      article_reference: string;
+      article_title: string | null;
+      hierarchy: Record<string, string> | null;
+    };
+
+    const h = r.hierarchy ?? {};
     const keys = Object.keys(h);
+    const articleEntry = {
+      id: r.id,
+      article_number: r.article_reference,
+      article_title: r.article_title,
+      hierarchy: h,
+    };
 
     if (keys.length === 0) {
-      // Articolo senza gerarchia — metti direttamente alla radice
-      (tree[article.articleReference] as unknown) = {
-        title: article.articleTitle,
-        reference: article.articleReference,
-      };
-    } else {
-      // Costruisci la struttura gerarchica
-      let current = tree;
-      for (const key of keys) {
-        const val = h[key];
-        if (!current[val]) current[val] = {};
-        current = current[val] as Record<string, unknown>;
+      // Articolo senza gerarchia → nodo radice fittizio
+      const rootKey = "__root__";
+      if (!rootMap.has(rootKey)) {
+        rootMap.set(rootKey, {
+          key: rootKey,
+          label: "Articoli",
+          children: [],
+          articles: [],
+        });
       }
-      current[article.articleReference] = {
-        title: article.articleTitle,
-        reference: article.articleReference,
-      };
+      rootMap.get(rootKey)!.articles.push(articleEntry);
+    } else {
+      // Naviga/crea i nodi per ogni livello di hierarchy
+      const topKey = h[keys[0]];
+      if (!rootMap.has(topKey)) {
+        rootMap.set(topKey, {
+          key: topKey,
+          label: topKey,
+          children: [],
+          articles: [],
+        });
+      }
+
+      let currentNode = rootMap.get(topKey)!;
+
+      for (let i = 1; i < keys.length; i++) {
+        const val = h[keys[i]];
+        let child = currentNode.children.find((c) => c.key === val);
+        if (!child) {
+          child = { key: val, label: val, children: [], articles: [] };
+          currentNode.children.push(child);
+        }
+        currentNode = child;
+      }
+
+      currentNode.articles.push(articleEntry);
     }
   }
 
   return {
-    source: sourceId,
-    totalArticles: articles.length,
-    tree,
+    source_id: sourceToId(sourceName),
+    source_name: sourceName,
+    source_type: detectSourceType(sourceName),
+    article_count: data.length,
+    tree: Array.from(rootMap.values()),
   };
 }
 
