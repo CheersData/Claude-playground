@@ -406,14 +406,21 @@ export async function getCorpusStats(): Promise<{
     .from("legal_articles")
     .select("*", { count: "exact", head: true });
 
-  const { data: sourceStats } = await admin
-    .from("legal_articles")
-    .select("law_source");
-
   const bySource: Record<string, number> = {};
-  for (const row of sourceStats ?? []) {
-    const src = (row as { law_source: string }).law_source;
-    bySource[src] = (bySource[src] ?? 0) + 1;
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(offset, offset + pageSize - 1);
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const src = (row as { law_source: string }).law_source;
+      bySource[src] = (bySource[src] ?? 0) + 1;
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
   }
 
   const { count: hasEmbeddings } = await admin
@@ -474,19 +481,25 @@ function sourceToId(lawSource: string): string {
  */
 export async function getCorpusSources(): Promise<SourceInfo[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("legal_articles")
-    .select("law_source");
-
-  if (error) {
-    console.error(`[CORPUS] Errore getCorpusSources: ${error.message}`);
-    return [];
-  }
-
   const counts: Record<string, number> = {};
-  for (const row of data ?? []) {
-    const src = (row as { law_source: string }).law_source;
-    counts[src] = (counts[src] ?? 0) + 1;
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page, error } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(offset, offset + pageSize - 1);
+    if (error) {
+      console.error(`[CORPUS] Errore getCorpusSources: ${error.message}`);
+      break;
+    }
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const src = (row as { law_source: string }).law_source;
+      counts[src] = (counts[src] ?? 0) + 1;
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
   }
 
   return Object.entries(counts)
@@ -515,27 +528,39 @@ export async function getSourceHierarchy(
 } | null> {
   // sourceId può essere uno slug o il nome diretto della fonte
   const admin = createAdminClient();
+  const fields = "id, law_source, article_reference, article_title, hierarchy";
 
-  // Prova prima un match esatto
-  let { data } = await admin
-    .from("legal_articles")
-    .select("id, law_source, article_reference, article_title, hierarchy")
-    .eq("law_source", sourceId)
-    .order("article_reference")
-    .limit(2000);
-
-  // Se non trova, prova con ilike (slug → nome originale)
-  if (!data || data.length === 0) {
-    const pattern = sourceId.replace(/_/g, "%");
-    ({ data } = await admin
-      .from("legal_articles")
-      .select("id, law_source, article_reference, article_title, hierarchy")
-      .ilike("law_source", `%${pattern}%`)
-      .order("article_reference")
-      .limit(2000));
+  // Funzione helper per fetch paginato
+  async function fetchAllPages(
+    queryBuilder: () => ReturnType<ReturnType<typeof admin.from>["select"]>
+  ) {
+    const allRows: Record<string, unknown>[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: page } = await queryBuilder().range(offset, offset + pageSize - 1);
+      if (!page || page.length === 0) break;
+      allRows.push(...(page as Record<string, unknown>[]));
+      offset += page.length;
+      if (page.length < pageSize) break;
+    }
+    return allRows;
   }
 
-  if (!data || data.length === 0) return null;
+  // Prova prima un match esatto
+  let data = await fetchAllPages(() =>
+    admin.from("legal_articles").select(fields).eq("law_source", sourceId).order("article_reference")
+  );
+
+  // Se non trova, prova con ilike (slug → nome originale)
+  if (data.length === 0) {
+    const pattern = sourceId.replace(/_/g, "%");
+    data = await fetchAllPages(() =>
+      admin.from("legal_articles").select(fields).ilike("law_source", `%${pattern}%`).order("article_reference")
+    );
+  }
+
+  if (data.length === 0) return null;
 
   const sourceName = (data[0] as { law_source: string }).law_source;
 
