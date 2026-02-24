@@ -5,6 +5,8 @@
 > **Controlla.me è il primo prototipo** di una piattaforma madre per molteplici team di agenti AI. I servizi devono essere scalabili e parametrizzabili.
 >
 > Per l'architettura completa, fragilità, security status e roadmap: vedi **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+>
+> Per il censimento modelli AI, prezzi e scelta per agente: vedi **[docs/MODEL-CENSUS.md](docs/MODEL-CENSUS.md)**
 
 ---
 
