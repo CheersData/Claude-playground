@@ -1,15 +1,17 @@
-# Controlla.me — Architettura, Fragilita e Roadmap
+# Controlla.me — Architettura, Fragilità e Roadmap
 
-> Documento generato il 2026-02-24. Analisi completa del codebase attuale con
-> identificazione dei punti di fragilita, proposte di hardening e design del
-> nuovo sistema di agenti modulari (incluso il **Connect Agent**).
+> **Ultimo aggiornamento**: 2026-02-24 — Verificato contro il codebase reale.
+>
+> Controlla.me è il **primo prototipo** di una piattaforma madre per molteplici team
+> di agenti AI. Ogni servizio è progettato per essere **scalabile e parametrizzabile**,
+> riutilizzabile in futuri progetti con pipeline di agenti diverse.
 
 ---
 
 ## Indice
 
 1. [Architettura Corrente](#1-architettura-corrente)
-2. [Mappa delle Fragilita](#2-mappa-delle-fragilita)
+2. [Mappa delle Fragilità](#2-mappa-delle-fragilità)
 3. [Piano di Hardening Sicurezza](#3-piano-di-hardening-sicurezza)
 4. [Parametrizzazione e Feature Flags](#4-parametrizzazione-e-feature-flags)
 5. [Agent Registry — Sistema Modulare](#5-agent-registry--sistema-modulare)
@@ -46,6 +48,18 @@
 └─────────┬───────────────┘
           │
           ▼
+┌───────────────────────────────────────────────────────────┐
+│              MIDDLEWARE LAYER (lib/middleware/)             │
+│                                                           │
+│  ┌──────────────┐ ┌──────────────┐ ┌───────────────────┐ │
+│  │ auth.ts      │ │ rate-limit.ts│ │ sanitize.ts       │ │
+│  │ requireAuth()│ │ checkRate()  │ │ sanitizeDocument() │ │
+│  │ requireAdmin│ │ IP + userId  │ │ sanitizeQuestion() │ │
+│  │ isAuthError()│ │ sliding win  │ │ sanitizeSessionId()│ │
+│  └──────────────┘ └──────────────┘ └───────────────────┘ │
+└───────────────────────────┬───────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   AGENT PIPELINE                        │
 │                                                         │
@@ -92,6 +106,8 @@ Utente carica documento (PDF/DOCX/TXT)
         │
         ▼
 [POST /api/analyze] ─── SSE Stream ───▶ Frontend (progress bar)
+        │
+        ├── 0. Auth check + Rate limit + Sanitize input
         │
         ├── 1. Extract text (pdf-parse / mammoth)
         │
@@ -169,181 +185,227 @@ Utente carica documento (PDF/DOCX/TXT)
                           └──────────────────────┘  └──────────────────┘
 ```
 
+### 1.4 Corpus Legislativo — Stato Operativo
+
+Il corpus legislativo è **caricato e operativo** su Supabase pgvector:
+
+| Statistica | Valore |
+|-----------|--------|
+| Articoli totali | ~3548 |
+| Fonti legislative | 13 |
+| Articoli con embeddings | ~3544 (99.9%) |
+| Modello embedding | Voyage AI voyage-law-2 (1024 dims) |
+
+**Fonti caricate**:
+Codice Civile (~3018), D.Lgs. 206/2005 Codice del Consumo (~239), GDPR (~99),
+Digital Services Act (~93), D.Lgs. 122/2005 (~29), DPR 380/2001 TU Edilizia,
+L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
+
+**API disponibili**:
+- `POST /api/corpus` — Ingest articoli (richiede auth + admin)
+- `GET /api/corpus` — Statistiche corpus
+- `POST /api/vector-search` — Ricerca semantica
+- `GET /api/vector-search` — Statistiche vector DB
+
+**Funzioni `lib/legal-corpus.ts`**:
+- `getArticlesBySource()` — Lookup diretto per fonte
+- `getArticlesByInstitute()` — Ricerca per istituto giuridico
+- `searchArticles()` — Ricerca semantica con embeddings
+- `retrieveLegalContext()` — Query combinata per pipeline agenti
+- `formatLegalContextForPrompt()` — Formatta contesto per prompt LLM
+- `ingestArticles()` — Caricamento batch con embeddings
+- `getCorpusStats()` — Statistiche runtime
+
 ---
 
-## 2. Mappa delle Fragilita
+## 2. Mappa delle Fragilità
 
 ### 2.1 SUPABASE — Single Point of Failure
 
-| Problema | Severita | File coinvolti |
-|----------|----------|----------------|
-| **Supabase gestisce TUTTO**: auth, data, vectors, RLS, functions | CRITICA | Tutti i `lib/supabase/*` |
-| **Nessun connection pooling** visibile — un picco di utenti satura le connessioni | ALTA | `admin.ts`, `server.ts` |
-| **pgvector su Supabase ha limiti di memoria** — HNSW index in RAM | ALTA | `003_vector_db.sql` |
-| **Nessuna strategia di backup** codificata | ALTA | Nessun file |
-| **Service role key usata ovunque server-side** senza rate limiting interno | MEDIA | `admin.ts`, `vector-store.ts`, `legal-corpus.ts` |
-| **Se Supabase va in down** = auth + DB + vectors + RLS tutti down | CRITICA | Intero sistema |
-| **Costi unpredictable** — pgvector + storage + auth + realtime | MEDIA | — |
+| Problema | Severità | Stato |
+|----------|----------|-------|
+| **Supabase gestisce TUTTO**: auth, data, vectors, RLS, functions | CRITICA | ⚠️ Aperto |
+| **Nessun connection pooling** visibile | ALTA | ⚠️ Aperto |
+| **pgvector su Supabase ha limiti di memoria** — HNSW index in RAM | ALTA | ⚠️ Aperto |
+| **Nessuna strategia di backup** codificata | ALTA | ⚠️ Aperto |
+| **Se Supabase va in down** = tutto down, zero fallback | CRITICA | ⚠️ Aperto |
+| **Costi unpredictable** — pgvector + storage + auth | MEDIA | ⚠️ Aperto |
 
-**Impatto concreto**: Un downtime Supabase di 1 ora = zero funzionalita, zero fallback.
+**Impatto concreto**: Un downtime Supabase di 1 ora = zero funzionalità, zero fallback.
 
-### 2.2 SCALABILITA
+### 2.2 SCALABILITÀ
 
-| Problema | Severita | File coinvolti |
-|----------|----------|----------------|
-| **Cache su filesystem locale** (`.analysis-cache/`) | CRITICA | `analysis-cache.ts` |
+| Problema | Severità | Stato |
+|----------|----------|-------|
+| **Cache su filesystem locale** (`.analysis-cache/`) | CRITICA | ⚠️ Aperto |
 | Non funziona con multiple istanze serverless | | |
-| Non persiste tra i deploy | | |
-| **Pipeline sequenziale bloccante** per 60-300 secondi | ALTA | `orchestrator.ts` |
-| Una singola funzione serverless occupa 5 min max | | `route.ts:10` (`maxDuration = 300`) |
-| **Nessun sistema di code** (queue) | ALTA | `api/analyze/route.ts` |
-| Se il client disconnette, l'analisi continua senza destinatario | | |
-| **Nessun horizontal scaling** | ALTA | Architettura generale |
-| **Auto-indexing fire-and-forget** nello stesso processo | MEDIA | `orchestrator.ts:266-284` |
-| Se il processo muore, l'indexing si perde | | |
-| **Rate limit Anthropic: 60s fissi** per ogni 429 | MEDIA | `anthropic.ts:49` |
+| **Pipeline sequenziale bloccante** per 60-300 secondi | ALTA | ⚠️ Aperto |
+| **Nessun sistema di code** (queue) | ALTA | ⚠️ Aperto |
+| **Nessun horizontal scaling** | ALTA | ⚠️ Aperto |
+| **Auto-indexing fire-and-forget** nello stesso processo | MEDIA | ⚠️ Aperto |
+| **Rate limit Anthropic: 60s fissi** per ogni 429 | MEDIA | ⚠️ Aperto |
 | Nessun backoff esponenziale, nessun circuit breaker | | |
-| **Rate limit Voyage AI: singolo retry** | MEDIA | `embeddings.ts:92` |
-
-**Impatto concreto**: Con 10 utenti simultanei, le funzioni serverless raggiungono
-il limite di concorrenza. Con 50+, il sistema diventa inutilizzabile.
+| **Rate limit Voyage AI: singolo retry** | MEDIA | ⚠️ Aperto |
 
 ### 2.3 SICUREZZA
 
-| Problema | Severita | File coinvolti |
-|----------|----------|----------------|
-| **`/api/corpus` POST senza autenticazione** | CRITICA | `api/corpus/route.ts` |
-| Chiunque puo iniettare articoli falsi nel corpus legislativo | | |
-| **`/api/deep-search` POST senza auth** | ALTA | `api/deep-search/route.ts` |
-| Chiunque puo fare ricerche consumando token Anthropic | | |
-| **`/api/session/[id]` GET senza auth** | ALTA | `api/session/[sessionId]/route.ts` |
-| Se indovini il sessionId, vedi l'analisi di chiunque | | |
-| **`/api/upload` POST senza auth** | MEDIA | `api/upload/route.ts` |
-| **`/api/vector-search` POST senza auth** | MEDIA | `api/vector-search/route.ts` |
-| **`/api/analyze` graceful degradation** permette analisi anonime | MEDIA | `api/analyze/route.ts:50-52` |
-| **Nessun rate limiting su nessun endpoint** | ALTA | Tutti gli endpoint |
-| Un attaccante puo esaurire i token Anthropic in minuti | | |
-| **`eval("require")` in extract-text.ts** | BASSA | `extract-text.ts:45` |
-| Workaround per Turbopack ma e' un code smell | | |
-| **Nessuna protezione CSRF** | MEDIA | Tutti i POST |
-| **Nessuna sanitizzazione input documentText** | MEDIA | `orchestrator.ts` |
-| Il testo del documento viene passato direttamente ai prompt | | Potenziale prompt injection |
-| **SessionId derivato da hash + timestamp** | BASSA | `analysis-cache.ts:54` |
-| Prevedibile se si conosce il contenuto del documento | | |
+| Problema | Severità | Stato |
+|----------|----------|-------|
+| ~~`/api/corpus` POST senza autenticazione~~ | ~~CRITICA~~ | ✅ **RISOLTO** — `requireAuth()` + header admin |
+| ~~`/api/deep-search` POST senza auth~~ | ~~ALTA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkRateLimit` + `sanitizeUserQuestion` |
+| ~~`/api/session/[id]` GET senza auth~~ | ~~ALTA~~ | ✅ **RISOLTO** — `requireAuth()` + `sanitizeSessionId` |
+| ~~`/api/upload` POST senza auth~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkRateLimit` |
+| ~~`/api/vector-search` POST senza auth~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkRateLimit` |
+| `/api/analyze` graceful degradation (auth inline) | MEDIA | ⚠️ Parziale — auth inline, non usa `requireAuth()` |
+| ~~Nessun rate limiting~~ | ~~ALTA~~ | ✅ **RISOLTO** — `lib/middleware/rate-limit.ts` (in-memory, sliding window) |
+| ~~`eval("require")` in extract-text.ts~~ | ~~BASSA~~ | ✅ **RISOLTO** — Usa `createRequire(import.meta.url)` |
+| **Nessuna protezione CSRF** | MEDIA | ❌ Aperto |
+| ~~Nessuna sanitizzazione input~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `lib/middleware/sanitize.ts` (document, question, sessionId) |
+| ~~SessionId prevedibile (hash + timestamp)~~ | ~~BASSA~~ | ✅ **RISOLTO** — Hash + `crypto.randomUUID()` (28 char entropia) |
+| **Security headers incompleti** | BASSA | ⚠️ Parziale — 5/8 header (mancano CSP, HSTS) |
+
+**Copertura auth sulle API routes**:
+
+| Route | Auth | Rate Limit | Sanitization |
+|-------|------|-----------|--------------|
+| `/api/analyze` | ⚠️ Inline | ✅ | ✅ `sanitizeDocumentText` |
+| `/api/upload` | ✅ `requireAuth` | ✅ | — |
+| `/api/deep-search` | ✅ `requireAuth` | ✅ | ✅ `sanitizeUserQuestion` |
+| `/api/vector-search` | ✅ `requireAuth` | ✅ | — |
+| `/api/corpus` | ✅ `requireAuth` + admin | ✅ | — |
+| `/api/session/[id]` | ✅ `requireAuth` | ✅ | ✅ `sanitizeSessionId` |
+| `/api/user/usage` | — (pubblico) | — | — |
+| `/api/stripe/*` | ⚠️ Inline | — | — |
+| `/api/webhook` | — (Stripe signature) | — | — |
+| `/api/auth/callback` | — (OAuth) | — | — |
 
 ### 2.4 PARAMETRIZZAZIONE
 
-| Cosa e' hardcoded | File | Valore attuale |
+| Cosa è hardcoded | File | Valore attuale |
 |---------------------|------|----------------|
-| Modello Claude (Sonnet) | `anthropic.ts:83` | `claude-sonnet-4-5-20250929` |
-| Modello Claude (Haiku) | `anthropic.ts:84` | `claude-haiku-4-5-20251001` |
+| Modello Claude (Sonnet) | `anthropic.ts` | `claude-sonnet-4-5-20250929` |
+| Modello Claude (Haiku) | `anthropic.ts` | `claude-haiku-4-5-20251001` |
 | Max tokens per agente | Ogni agente | 4096 / 8192 |
 | System prompts | `lib/prompts/*.ts` | Stringhe TypeScript |
-| PLANS config | `stripe.ts:14-33` | `{free: 3/mese, pro: 4.99}` |
-| Chunk size / overlap | `vector-store.ts:37-38` | 1000 / 200 chars |
-| Embedding model | `embeddings.ts:14` | `voyage-law-2` |
+| PLANS config | `stripe.ts` | `{free: 3/mese, pro: 4.99}` |
+| Chunk size / overlap | `vector-store.ts` | 1000 / 200 chars |
+| Embedding model | `embeddings.ts` | `voyage-law-2` |
 | Search thresholds | Vari | 0.55 / 0.6 / 0.65 / 0.7 |
-| Max investigator iterations | `investigator.ts:60` | 8 |
-| Rate limit wait | `anthropic.ts:49` | 60s fissi |
-| Max file size | `upload/route.ts:17` | 20 MB |
-| Retry embedding | `embeddings.ts:93` | 5s, 1 solo retry |
-| Max risks/actions in advisor | `advisor.ts:44-51` | 3 / 3 |
+| Max investigator iterations | `investigator.ts` | 8 |
+| Rate limit wait | `anthropic.ts` | 60s fissi |
+| Max file size | `upload/route.ts` | 20 MB |
+| Max risks/actions in advisor | `advisor.ts` | 3 / 3 |
+| Rate limits per endpoint | `rate-limit.ts` | Hardcoded in `RATE_LIMITS` |
 
-**Impatto**: Ogni modifica a questi parametri richiede un deploy del codice.
+**Impatto**: Ogni modifica richiede un deploy del codice.
 Nessun admin panel, nessun feature flag, nessun A/B testing.
+
+> **Nota piattaforma**: Essendo controlla.me il primo prototipo, la parametrizzazione
+> è la priorità più alta per rendere i servizi riutilizzabili nei futuri team di agenti.
 
 ---
 
 ## 3. Piano di Hardening Sicurezza
 
-### 3.1 Priorita IMMEDIATE (Settimana 1)
+### 3.1 Priorità IMMEDIATE — ✅ IMPLEMENTATO
 
-#### A. Middleware di autenticazione centralizzato
+#### A. Middleware di autenticazione centralizzato — ✅ FATTO
+
+**File**: `lib/middleware/auth.ts`
 
 ```typescript
-// Proposta: lib/middleware/auth.ts
-export async function requireAuth(req: NextRequest): Promise<{
-  user: User;
-  profile: Profile;
-} | NextResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "Autenticazione richiesta" },
-      { status: 401 }
-    );
-  }
-  // ... fetch profile, return
-}
+// Implementazione reale (non più proposta)
+export async function requireAuth(req: NextRequest): Promise<AuthResult | NextResponse>
+export async function requireAdmin(req: NextRequest): Promise<AuthResult | NextResponse>
+export function isAuthError(result: AuthResult | NextResponse): boolean
 ```
 
-**Endpoint da proteggere subito**:
-- `POST /api/corpus` (CRITICO — permette di iniettare norme false)
-- `POST /api/deep-search`
-- `GET /api/session/[id]` (verificare che l'utente sia owner)
-- `POST /api/upload`
-- `POST /api/vector-search`
+**Endpoint protetti**:
+- ✅ `POST /api/corpus` — `requireAuth()` + header `ADMIN_API_SECRET`
+- ✅ `POST /api/deep-search` — `requireAuth()`
+- ✅ `GET /api/session/[id]` — `requireAuth()` + `sanitizeSessionId()`
+- ✅ `POST /api/upload` — `requireAuth()`
+- ✅ `POST /api/vector-search` — `requireAuth()`
+- ⚠️ `POST /api/analyze` — Auth inline (non usa `requireAuth()`)
 
-#### B. Rate Limiting
+#### B. Rate Limiting — ✅ FATTO
+
+**File**: `lib/middleware/rate-limit.ts`
 
 ```typescript
-// Proposta: lib/middleware/rate-limit.ts
-// Basato su IP + user_id con sliding window
-// Storage: Supabase (breve termine) o Redis (se disponibile)
-const LIMITS = {
-  "api/analyze":      { window: 60, max: 3 },   // 3/min
-  "api/deep-search":  { window: 60, max: 10 },  // 10/min
-  "api/corpus":       { window: 3600, max: 50 }, // 50/ora (admin only)
-  "api/upload":       { window: 60, max: 5 },    // 5/min
+// Implementazione reale
+const RATE_LIMITS = {
+  "api/analyze":      { window: 60, max: 3 },
+  "api/deep-search":  { window: 60, max: 10 },
+  "api/corpus":       { window: 3600, max: 20 },
+  "api/upload":       { window: 60, max: 10 },
+  "api/vector-search":{ window: 60, max: 20 },
+  "api/session":      { window: 60, max: 30 },
 };
 ```
 
-#### C. Input Sanitization
+⚠️ **Limitazione**: In-memory sliding window — non condiviso tra istanze serverless.
+Per produzione multi-istanza serve Redis/Upstash.
+
+#### C. Input Sanitization — ✅ FATTO
+
+**File**: `lib/middleware/sanitize.ts`
 
 ```typescript
-// Prima di passare il testo ai prompt degli agenti:
-function sanitizeDocumentText(text: string): string {
-  // Rimuovi potenziali prompt injection markers
-  // Limita lunghezza massima
-  // Strip caratteri di controllo
-  return text.slice(0, MAX_DOCUMENT_LENGTH).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
-}
+// Implementazione reale
+sanitizeDocumentText(text: string): string   // Max 500.000 char, strip control chars
+sanitizeUserQuestion(question: string): string // Max 2.000 char
+sanitizeSessionId(sessionId: string): string  // Alfanumerico + hyphens, path traversal protection
 ```
 
-### 3.2 Priorita ALTA (Settimana 2-3)
+### 3.2 Priorità ALTA — Stato Misto
 
-#### D. Session ID non prevedibili
+#### D. Session ID non prevedibili — ✅ FATTO
+
+**File**: `analysis-cache.ts`
 
 ```typescript
-// Usare UUID v4 invece di hash+timestamp
-import { randomUUID } from "crypto";
-const sessionId = randomUUID(); // Non piu' derivato dal contenuto
+// Implementazione reale: hash + UUID ibrido
+const docHash = hashDocument(documentText);  // SHA256, primi 16 char
+const randomPart = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+const sessionId = `${docHash}-${randomPart}`;
+// 28 char di entropia, combina ripetibilità con imprevedibilità
 ```
 
-#### E. CORS e CSRF Protection
+#### E. Security Headers — ⚠️ PARZIALE
+
+**File**: `next.config.ts`
+
+Headers implementati:
+- ✅ `X-Content-Type-Options: nosniff`
+- ✅ `X-Frame-Options: DENY`
+- ✅ `X-XSS-Protection: 1; mode=block`
+- ✅ `Referrer-Policy: strict-origin-when-cross-origin`
+- ✅ `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- ❌ `Content-Security-Policy` — da aggiungere
+- ❌ `Strict-Transport-Security` — da aggiungere
+
+#### F. Eliminare eval() da extract-text.ts — ✅ FATTO
 
 ```typescript
-// next.config.ts - headers di sicurezza
-headers: [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-]
+// Usa createRequire come alternativa sicura (riga 43)
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 ```
 
-#### F. Eliminare eval() da extract-text.ts
+#### G. CSRF Protection — ❌ NON IMPLEMENTATO
 
-```typescript
-// Soluzione: dynamic import con next/dynamic o configurazione Turbopack
-// per escludere pdf-parse dal bundling client-side
-const pdfParse = await import("pdf-parse");
-```
+Nessun middleware CSRF. Le API si basano su auth cookies Supabase (same-origin).
+Rischio medio per endpoint Stripe checkout.
 
 ---
 
 ## 4. Parametrizzazione e Feature Flags
+
+> **Stato**: ❌ NON IMPLEMENTATO — Proposta di design.
+>
+> Questa sezione è critica per la visione piattaforma: i servizi devono essere
+> parametrizzabili per essere riutilizzati in altri team di agenti.
 
 ### 4.1 Sistema di Configurazione Proposto
 
@@ -427,7 +489,7 @@ export const AGENTS: Record<string, AgentConfig> = {
   connect: {
     id: "connect",
     name: "Connect Agent",
-    description: "Ricerca e studia modalita di integrazione con sistemi esterni",
+    description: "Ricerca e studia modalità di integrazione con sistemi esterni",
     model: process.env.CONNECT_MODEL || "claude-sonnet-4-5-20250929",
     maxTokens: parseInt(process.env.CONNECT_MAX_TOKENS || "8192"),
     systemPrompt: "connect",
@@ -449,7 +511,7 @@ export const FEATURES = {
   deepSearch:          envBool("FEATURE_DEEP_SEARCH", true),
   connectAgent:        envBool("FEATURE_CONNECT_AGENT", false),
 
-  // Funzionalita
+  // Funzionalità
   anonymousAnalysis:   envBool("FEATURE_ANONYMOUS_ANALYSIS", false),
   stripePayments:      envBool("FEATURE_STRIPE_PAYMENTS", true),
   lawyerReferral:      envBool("FEATURE_LAWYER_REFERRAL", false),
@@ -495,9 +557,12 @@ export const VECTOR_CONFIG = {
 
 ## 5. Agent Registry — Sistema Modulare
 
-### 5.1 Architettura Proposta
+> **Stato**: ❌ NON IMPLEMENTATO — Proposta di design.
+>
+> Il registry è fondamentale per la visione piattaforma: ogni nuovo progetto
+> (dopo controlla.me) avrà il proprio set di agenti registrabili dinamicamente.
 
-Trasformare la pipeline da hardcoded a registry-based:
+### 5.1 Architettura Proposta
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -527,7 +592,7 @@ Trasformare la pipeline da hardcoded a registry-based:
 │  │  Prompt Store                                        │  │
 │  │  - Prompts versionati (v1, v2, ...)                  │  │
 │  │  - A/B testing tra versioni                          │  │
-│  │  - Rollback automatico se qualita scende             │  │
+│  │  - Rollback automatico se qualità scende             │  │
 │  └──────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -565,7 +630,7 @@ export interface Agent {
 
 ### 5.3 Agenti Futuri Proposti
 
-| Agente | Ruolo | Priorita |
+| Agente | Ruolo | Priorità |
 |--------|-------|----------|
 | **Connect** | Ricerca e studia integrazioni con sistemi esterni | P0 |
 | **Sentinel** | Monitoraggio continuo: aggiornamenti normativi, scadenze | P1 |
@@ -578,11 +643,13 @@ export interface Agent {
 
 ## 6. Connect Agent — Design Completo
 
+> **Stato**: ❌ NON IMPLEMENTATO — Proposta di design.
+
 ### 6.1 Mission
 
-Il **Connect Agent** e' un agente di ricerca e integrazione il cui compito e' studiare
+Il **Connect Agent** è un agente di ricerca e integrazione il cui compito è studiare
 come connettersi a sistemi esterni non ancora censiti, seguendo una strategia gerarchica
-di discovery delle fonti. Non e' solo un connettore: e' un **ricercatore** che costruisce
+di discovery delle fonti. Non è solo un connettore: è un **ricercatore** che costruisce
 e mantiene un catalogo di integrazioni.
 
 ### 6.2 Architettura
@@ -594,7 +661,7 @@ e mantiene un catalogo di integrazioni.
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │                  Integration Discovery                     │  │
 │  │                                                            │  │
-│  │  Gerarchia di ricerca (priorita decrescente):              │  │
+│  │  Gerarchia di ricerca (priorità decrescente):              │  │
 │  │                                                            │  │
 │  │  1. API Ufficiali (docs.*, developer.*, api.*)             │  │
 │  │     └─ OpenAPI/Swagger specs, GraphQL schemas              │  │
@@ -634,7 +701,7 @@ e mantiene un catalogo di integrazioni.
 │  │  │    lastVerified: "2026-02-24"                        │  │  │
 │  │  │    integrationCode: "..."                            │  │  │
 │  │  │    fallbackStrategies: [...]                         │  │  │
-│  │  │    discoveryLog: [...]  // Come e' stato scoperto    │  │  │
+│  │  │    discoveryLog: [...]  // Come è stato scoperto     │  │  │
 │  │  │  }                                                   │  │  │
 │  │  └──────────────────────────────────────────────────────┘  │  │
 │  └────────────────────────────────────────────────────────────┘  │
@@ -741,7 +808,7 @@ e mantiene un catalogo di integrazioni.
 
 ```typescript
 export const CONNECT_AGENT_SYSTEM_PROMPT = `Sei il Connect Agent di controlla.me.
-Il tuo compito e' ricercare e progettare integrazioni con sistemi esterni.
+Il tuo compito è ricercare e progettare integrazioni con sistemi esterni.
 
 PROCEDURA DI DISCOVERY (segui RIGOROSAMENTE quest'ordine):
 
@@ -750,15 +817,15 @@ PROCEDURA DI DISCOVERY (segui RIGOROSAMENTE quest'ordine):
    - Cerca OpenAPI/Swagger specification
    - Verifica autenticazione richiesta e rate limits
 
-2. SDK/LIBRERIE — Se non c'e' API diretta, cerca package ufficiali.
+2. SDK/LIBRERIE — Se non c'è API diretta, cerca package ufficiali.
    - npmjs.com, PyPI, GitHub dell'organizzazione
    - Valuta manutenzione (ultimo commit, issues aperte)
 
-3. DOCUMENTAZIONE UFFICIALE — Se non c'e' SDK, studia la documentazione.
+3. DOCUMENTAZIONE UFFICIALE — Se non c'è SDK, studia la documentazione.
    - Cerca pattern di integrazione documentati
    - Guide per sviluppatori, webhook, export
 
-4. COMMUNITY SOURCES — Se la documentazione e' scarsa:
+4. COMMUNITY SOURCES — Se la documentazione è scarsa:
    - GitHub: repos che integrano il sistema, issues rilevanti
    - Stack Overflow: soluzioni validate dalla community
    - Reddit: esperienze reali, problemi noti
@@ -799,9 +866,9 @@ OUTPUT RICHIESTO (JSON):
 REGOLE:
 - MAI suggerire metodi illegali o che violino ToS.
 - Per lo scraping: rispetta robots.txt, usa rate limiting gentile, identifica l'user-agent.
-- Preferisci SEMPRE l'approccio piu' ufficiale e stabile.
+- Preferisci SEMPRE l'approccio più ufficiale e stabile.
 - Se un sistema richiede pagamento, segnalalo chiaramente.
-- Documenta OGNI passo del discovery per riproducibilita.`;
+- Documenta OGNI passo del discovery per riproducibilità.`;
 ```
 
 ### 6.6 Schema DB per il Catalogo Integrazioni
@@ -844,11 +911,9 @@ create table public.integration_runs (
 alter table public.integration_catalog enable row level security;
 alter table public.integration_runs enable row level security;
 
--- Catalog: leggibile da tutti (e' conoscenza condivisa)
 create policy "Anyone can read catalog" on public.integration_catalog
   for select using (true);
 
--- Solo service role puo' modificare
 create policy "Service role manages catalog" on public.integration_catalog
   for all using (true);
 
@@ -860,28 +925,35 @@ create policy "Service role manages runs" on public.integration_runs
 
 ## 7. Roadmap di Implementazione
 
-### Fase 1 — Hardening (1-2 settimane)
+### Fase 1 — Hardening (1-2 settimane) — ✅ ~95% COMPLETATA
 
 ```
-[ ] Auth middleware centralizzato per tutti gli endpoint
-[ ] Rate limiting (IP + user based)
-[ ] Input sanitization pre-prompt
-[ ] Session ID con UUID v4
-[ ] Security headers (CSP, X-Frame-Options, etc.)
-[ ] Rimuovere eval() da extract-text.ts
-[ ] CORS configuration
+[x] Auth middleware centralizzato per tutti gli endpoint
+[x] Rate limiting (IP + user based, in-memory sliding window)
+[x] Input sanitization pre-prompt (document, question, sessionId)
+[x] Session ID con hash + crypto.randomUUID()
+[x] Security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy)
+[x] Rimuovere eval() da extract-text.ts (usa createRequire)
+[ ] CSRF protection
+[ ] Content-Security-Policy header
+[ ] Strict-Transport-Security header
+[ ] Uniformare auth pattern in api/analyze e api/stripe/* (usano auth inline)
 ```
 
-### Fase 2 — Parametrizzazione (1 settimana)
+### Fase 2 — Parametrizzazione (1 settimana) — ❌ NON INIZIATA
+
+> **Priorità piattaforma**: Questa fase è critica per rendere i servizi
+> riutilizzabili nei futuri team di agenti oltre controlla.me.
 
 ```
 [ ] Creare config/ directory con files di configurazione
 [ ] Estrarre tutti i valori hardcoded in env vars
-[ ] Feature flags per ogni funzionalita
+[ ] Feature flags per ogni funzionalità
 [ ] Refactor agenti per leggere da config
+[ ] Rate limits da config (non hardcoded in rate-limit.ts)
 ```
 
-### Fase 3 — Resilienza Supabase (2 settimane)
+### Fase 3 — Resilienza Supabase (2 settimane) — ❌ NON INIZIATA
 
 ```
 [ ] Connection pooling (Supabase pgBouncer o esterno)
@@ -893,18 +965,18 @@ create policy "Service role manages runs" on public.integration_runs
 [ ] Backup strategy (pg_dump schedulato o Supabase backup API)
 ```
 
-### Fase 4 — Agent Registry (2 settimane)
+### Fase 4 — Agent Registry (2 settimane) — ❌ NON INIZIATA
 
 ```
 [ ] Interfaccia base Agent con run() / validate()
 [ ] Agent Registry con registrazione dinamica
 [ ] Pipeline Engine con esecuzione configurabile
 [ ] Prompt Store versionato
-[ ] Metriche per agente (latenza, costo, qualita)
+[ ] Metriche per agente (latenza, costo, qualità)
 [ ] Refactor dei 4 agenti esistenti sulla nuova interfaccia
 ```
 
-### Fase 5 — Connect Agent (2-3 settimane)
+### Fase 5 — Connect Agent (2-3 settimane) — ❌ NON INIZIATA
 
 ```
 [ ] Implementare Connect Agent base
@@ -917,7 +989,7 @@ create policy "Service role manages runs" on public.integration_runs
 [ ] API per trigger manuale discovery
 ```
 
-### Fase 6 — Scalabilita (3-4 settimane)
+### Fase 6 — Scalabilità (3-4 settimane) — ❌ NON INIZIATA
 
 ```
 [ ] Sistema di code (BullMQ / Inngest / Trigger.dev)
@@ -931,9 +1003,9 @@ create policy "Service role manages runs" on public.integration_runs
 
 ---
 
-## Appendice: Rischi Supabase e Mitigazione
+## Appendice A: Rischi Supabase e Mitigazione
 
-### Scenario: "Supabase e' down per 2 ore"
+### Scenario: "Supabase è down per 2 ore"
 
 | Componente | Impatto | Mitigazione proposta |
 |-----------|---------|----------------------|
@@ -958,11 +1030,39 @@ create policy "Service role manages runs" on public.integration_runs
 Se i costi Supabase diventano insostenibili o i limiti troppo stringenti:
 
 1. **Auth**: Migrare a Auth.js (NextAuth) — zero costi, stessa UX
-2. **Database**: PostgreSQL self-hosted (Railway, Neon, o VPS) — piu controllo
+2. **Database**: PostgreSQL self-hosted (Railway, Neon, o VPS) — più controllo
 3. **Vectors**: pgvector su PostgreSQL dedicato, oppure Pinecone/Qdrant
-4. **La migrazione e' incrementale**: si puo fare un pezzo alla volta
+4. **La migrazione è incrementale**: si può fare un pezzo alla volta
 
 ---
 
-*Documento di architettura — controlla.me v1.0*
+## Appendice B: Visione Piattaforma
+
+Controlla.me è il **primo prototipo** di un ecosistema più ampio. I componenti
+riutilizzabili per i futuri team di agenti:
+
+| Componente | Riutilizzabilità | Note |
+|-----------|-----------------|------|
+| `lib/middleware/auth.ts` | ✅ Alta | Pattern auth generico, adattabile |
+| `lib/middleware/rate-limit.ts` | ✅ Alta | Serve solo Redis per produzione |
+| `lib/middleware/sanitize.ts` | ⚠️ Media | Funzioni specifiche per legal, da generalizzare |
+| `lib/anthropic.ts` | ✅ Alta | Client Claude con retry, riutilizzabile ovunque |
+| `lib/embeddings.ts` | ✅ Alta | Client Voyage generico |
+| `lib/vector-store.ts` | ✅ Alta | RAG pipeline generica |
+| `lib/agents/orchestrator.ts` | ⚠️ Media | Pipeline hardcoded, va reso configurabile (Fase 4) |
+| Agent pipeline pattern | ✅ Alta | Classifier → Retrieval → Analyzer → Investigator → Advisor |
+| SSE streaming pattern | ✅ Alta | Progress real-time riutilizzabile |
+| Supabase setup (auth + RLS) | ✅ Alta | Pattern replicabile |
+
+**Prossimi team di agenti possibili**:
+- Analisi contratti di lavoro
+- Due diligence societaria
+- Compliance GDPR/AML
+- Revisione bandi di gara
+- Analisi brevetti
+
+---
+
+*Documento di architettura — controlla.me v1.1*
+*Verificato contro il codebase il 2026-02-24*
 *Per domande o aggiornamenti: aggiornare questo file nel branch di sviluppo.*
