@@ -1,196 +1,231 @@
-# Project Review — controlla.me (Piattaforma Multi-Verticale)
+# Project Review — controlla.me → Meta-Agent Platform
 
-> Valutazione come piattaforma di orchestrazione AI multi-agente replicabile su N domini.
+> Valutazione evolutiva: da tool legale → piattaforma multi-verticale → meta-agente autonomo.
 > Data: 2026-02-24
 
 ---
 
-## 1. Cosa e' realmente questo progetto
+## 1. La visione a 3 livelli
 
-Non un "tool per contratti". E' un **template produttizzato di analisi documentale AI** con un core riutilizzabile al ~60%.
+Questo progetto ha tre letture, ognuna con potenziale crescente:
 
-### Core riutilizzabile (60%)
+| Livello | Cosa | Valore |
+|---------|------|--------|
+| L1 | Tool analisi contratti | Side-project, nicchia |
+| L2 | Piattaforma multi-verticale (N domini) | Startup seria |
+| **L3** | **Meta-agente che orchestra agenti, crea sub-agenti, si integra con DB esterni, monitora normative** | **Piattaforma AI di valore** |
 
-| Componente | File | Ruolo |
+Questa review valuta il **Livello 3** — il meta-orchestratore autonomo.
+
+---
+
+## 2. Stato attuale vs. visione
+
+### Cosa esiste gia (il prototipo)
+
+| Componente | File | Stato |
 |-----------|------|-------|
-| Orchestratore | `lib/agents/orchestrator.ts` | Pipeline 4 agenti con callbacks, cache, resume |
-| RAG pipeline | `lib/vector-store.ts` | Chunking, embedding, ricerca semantica, auto-indexing |
-| Streaming | `app/api/analyze/route.ts` | SSE real-time con progress tracking |
-| Progress UX | `components/AnalysisProgress.tsx` | 643 righe, riutilizzabile as-is |
-| Auth + Pagamenti | Supabase + Stripe | Gia pronto |
-| Cache sessioni | `lib/analysis-cache.ts` | SHA256, timing, ripresa |
-| LLM client | `lib/anthropic.ts` | Retry, parsing JSON robusto, logging |
+| Pipeline 4 agenti sequenziali | `orchestrator.ts` | Funzionante, hardcoded |
+| Agentic loop con tool_use | `investigator.ts` (web_search, 8 iter) | Funzionante |
+| RAG auto-alimentato | `vector-store.ts` → `indexAnalysisKnowledge()` | Funzionante |
+| Memoria persistente | pgvector: `legal_knowledge`, `document_chunks` | Funzionante |
+| LLM con retry + logging | `anthropic.ts` | Funzionante |
+| SSE streaming + UX | `analyze/route.ts` + `AnalysisProgress.tsx` | Funzionante |
+| Auth + Pagamenti | Supabase + Stripe | Funzionante |
 
-### Domain-specific (40% — da riscrivere per verticale)
+### Cosa manca per il meta-agente
 
-| Componente | File | Da fare per nuovo dominio |
-|-----------|------|--------------------------|
-| Prompt | `lib/prompts/*.ts` | Riscrivere 4 prompt |
-| Types | `lib/types.ts` | Nuove interfacce output |
-| Corpus | `lib/legal-corpus.ts` | Nuovo corpus di dominio |
-| Labels + Copy | Landing page, UI | Nuovo branding |
+| Componente | Descrizione | Complessita |
+|-----------|-------------|-------------|
+| Meta-orchestratore | Agente che decide QUALI agenti creare e in che ordine | Alta |
+| Generazione dinamica agenti | Il sistema crea prompt + types al volo per un nuovo dominio | Alta |
+| Connettori DB esterni | Normattiva, Agenzia Entrate, INPS, Banca d'Italia, Cassazione | Media per ciascuno |
+| Monitoring normativo | Agente che rileva cambiamenti in leggi/circolari | Media |
+| Knowledge cross-dominio | Il legale informa il fiscale che informa il bancario | Media |
+| Orchestratore configurabile | `definePipeline({ domain, agents[], types, corpus })` | Media |
+| Layer LLM astratto | Supporto OpenAI / Mistral come fallback | Bassa |
 
-**Time-to-market per nuovo verticale (avendo il core): settimane, non mesi.**
-
----
-
-## 2. Posizionamento nel mercato AI
-
-| Livello | Esempi | Differenza |
-|---------|--------|------------|
-| Framework | CrewAI, LangGraph, AutoGen | Tool per developer. Nessuna UX, nessun utente finale |
-| Vertical SaaS AI | Harvey (legal), Keeper (tax) | Un prodotto, un dominio, fundraising $100M+ |
-| **Questo progetto** | controlla.me + futuri verticali | Core riutilizzabile, deploy rapido su N domini, mercato italiano |
-
-Non competi con i framework (quelli sono per developer). Non competi con gli Harvey (quelli hanno $100M). Occupi la nicchia: **"vertical AI veloce per il mercato italiano"** — arrivi per primo su segmenti che i big ignorano.
+La distanza e' significativa ma non abissale. L'Investigator con il suo agentic loop (tool_use) e' l'embrione dell'agente autonomo. Il RAG auto-alimentato e' l'embrione della memoria. Manca il layer sopra: l'agente che pensa a quali agenti servono.
 
 ---
 
-## 3. I 5 segnali positivi per il mercato AI
+## 3. Posizionamento nel mercato AI Agent Platform
 
-### 3.1. Multi-agente e' il trend dominante 2025-26
+### Il panorama competitivo
 
-Tutti stanno andando da "un prompt, una risposta" a pipeline di agenti specializzati. Ma i framework richiedono competenze tecniche forti. Qui c'e' gia l'implementazione produttizzata con UX, pagamenti, onboarding.
+| Azienda | Cosa fa | Funding / Valuation |
+|---------|---------|-------------------|
+| CrewAI | Multi-agent framework per dev | $18M Series A |
+| LangChain/LangGraph | Agent framework + tools | $25M+, ~$200M val |
+| Relevance AI | No-code AI agent builder | $15M raised |
+| Dust | AI agent platform | $16M raised |
+| Harvey | Legal AI verticale | $715M raised, $1.5B val |
+| Hebbia | Document AI con agenti | $130M raised, $700M val |
+| Cognigy | Enterprise AI agents | $169M raised |
+| Palantir | Data + AI orchestration | $70B+ market cap |
 
-### 3.2. Knowledge base auto-alimentata = moat reale
-
-Ogni analisi arricchisce `legal_knowledge` nel vector DB tramite `indexAnalysisKnowledge()`. Dopo 1000 analisi, il sistema ha visto pattern che nessun competitor nuovo puo replicare il giorno 1. Questo si replica su ogni verticale.
-
-### 3.3. Mercato italiano dei servizi professionali: frammentato e underserved
-
-- ~250.000 commercialisti
-- ~60.000 agenzie immobiliari
-- ~240.000 studi professionali
-- ~4.5M di P.IVA
-
-Nessuno costruisce AI verticali per questi segmenti in italiano.
-
-### 3.4. Replicabilita abbatte il CAC
-
-Un utente che usa controlla.me/contratti e' un lead naturale per /fiscale o /banca. Una base utenti, N prodotti. Il cross-sell e' organico.
-
-### 3.5. Architettura a 4 agenti = messaging chiaro
-
-"4 esperti AI analizzano il tuo documento in 90 secondi" — dimostrabile, memorabile, virale.
-
----
-
-## 4. I 3 rischi strutturali
-
-### 4.1. Nessun moat tecnico profondo
-
-L'orchestratore e' ben fatto ma non e' proprietary tech. Qualcuno con competenze simili replica l'architettura in 2-3 settimane. Il moat reale viene dalla knowledge base (dati accumulati), dal brand, e dalla velocita di esecuzione.
-
-### 4.2. Dipendenza totale da Anthropic
-
-100% del valore passa per Claude API. Se Anthropic cambia pricing, rate limits, o TOS, il business e' esposto. Mitigazione necessaria: astrarre il layer LLM per supportare anche OpenAI/Mistral come fallback.
-
-### 4.3. Regolamentazione AI in Italia/EU
-
-L'AI Act europeo classifica certi usi come "ad alto rischio". Consulenza legale/fiscale/finanziaria potrebbe rientrare. Serve monitorare e strutturare disclaimer e compliance.
-
----
-
-## 5. Verticali piu promettenti (roadmap)
-
-| # | Verticale | Problema | Difficolta prompt | Mercato Italia |
-|---|-----------|----------|-------------------|----------------|
-| 1 | **Contratti** (attuale) | "Cosa sto firmando?" | Fatto | Tutti |
-| 2 | **Commercialista AI** | Bilanci, dichiarazioni, anomalie | Media | 250K studi + 4.5M P.IVA |
-| 3 | **Vantaggi fiscali** | Bonus, detrazioni, crediti d'imposta | Media-alta | Tutti i contribuenti |
-| 4 | **Buste paga** | "Il mio stipendio e' giusto?" | Bassa | 17M dipendenti |
-| 5 | **Consulente bancario** | Mutui, prestiti, condizioni nascoste | Media | Tutti |
-| 6 | **Polizze assicurative** | Clausole oscure, esclusioni | Media | 40M+ polizze/anno |
-
-**Buste paga** e' particolarmente interessante: volume altissimo, dolore reale, documento strutturato.
-
----
-
-## 6. Monetizzazione multi-verticale
-
-### Pricing attuale (troppo basso)
-
-| Piano | Prezzo | Problema |
-|-------|--------|---------|
-| Free | €0, 3/mese | OK come trial |
-| Pro | €4.99/mese illimitato | Sottocosto per tool professionale. "Illimitato" non scala |
-| Single | €0.99 | Margine risicato con costi API |
-
-### Pricing suggerito (per verticale)
-
-| Piano | Prezzo | Target |
-|-------|--------|--------|
-| Free | €0 | 2 analisi/mese per verticale |
-| Single | €3.99 | Pay-per-use, consumatore occasionale |
-| Pro | €14.99/mese | 15 analisi/mese, consumatore frequente |
-| Business | €39.99/mese | 50 analisi/mese, PMI e studi |
-| Bundle | €24.99/mese | Accesso a tutti i verticali, 20 analisi totali |
-| Enterprise | Custom | API, white-label, volumi |
-
-### Revenue streams aggiuntive
-
-1. **Referral professionisti** — Commissione per lead qualificati (avvocati, commercialisti). DB gia predisposto.
-2. **API per integratori** — Studi e software house integrano l'analisi nei loro tool.
-3. **White-label** — Associazioni di categoria / ordini professionali.
-
----
-
-## 7. Cosa serve per farne una piattaforma vera
-
-### 7.1. Astrarre l'orchestratore
-
-Oggi i 4 agenti sono hardcoded. Per essere piattaforma, serve un orchestratore configurabile:
+### Dove si posiziona il meta-agente
 
 ```
-Oggi:   runClassifier() -> runAnalyzer() -> runInvestigator() -> runAdvisor()
-Domani: definePipeline({ domain, agents[], types, corpus })
+Framework (CrewAI, LangGraph)     → Tool per developer, no UX, no utente finale
+    ↕
+>>> META-AGENTE <<<               → Prodottizzato, autonomo, con UX e pagamenti
+    ↕
+Vertical SaaS (Harvey, Hebbia)    → Un dominio, team da 50+, $100M+ funding
 ```
 
-Ogni "domain pack" diventa un pacchetto: `/domains/legal/`, `/domains/fiscal/`, `/domains/payroll/`.
-
-### 7.2. Astrarre il layer LLM
-
-Supportare OpenAI / Mistral come fallback. Riduce dipendenza da Anthropic e permette ottimizzazione costi.
-
-### 7.3. Brand ombrello
-
-Non "controlla.me" per tutto, ma una famiglia: controlla.me/contratti, controlla.me/fisco, controlla.me/busta-paga. Un account, N servizi.
+Non e' un framework (ha UX e utenti finali). Non e' un vertical SaaS (copre N domini). E' una **piattaforma autonoma che si auto-configura per dominio** — una categoria emergente nel mercato AI.
 
 ---
 
-## 8. Verdetto finale
+## 4. Tre scenari di mercato
 
-### Come prodotto singolo (solo legale)
+### Scenario A: "Il Palantir italiano dei servizi professionali"
+
+- **Cosa**: Agenti AI integrati con basi dati normative italiane (Normattiva, Agenzia Entrate, INPS, Cassazione)
+- **Moat**: Integrazioni con datasource italiane. Nessun player US/global le fara mai. Moat geografico + regolamentare.
+- **Target**: 250K commercialisti + 240K avvocati + 60K agenzie + 4.5M P.IVA
+- **Valore**: 5.000 studi a €50/mese = €3M ARR → Series A €40-60M valuation
+- **Rischio**: Lento da costruire, mercato conservatore
+
+### Scenario B: "AI Agent Factory — crea verticali in giorni"
+
+- **Cosa**: Non vendi il prodotto finale. Vendi la piattaforma che CREA prodotti verticali AI. Il meta-agente genera la pipeline ottimale dato un dominio e un corpus.
+- **Moat**: Velocita di deployment. Altri impiegano mesi, tu giorni.
+- **Target**: Software house, system integrator, aziende che vogliono AI verticale custom.
+- **Valore**: Platform play tipo Shopify. Valuation €20-50M a Series A con traction.
+- **Rischio**: Molto ambizioso. La creazione dinamica di agenti efficaci e' un problema di ricerca aperto.
+
+### Scenario C: "Compliance AI — regolatorio su autopilota"
+
+- **Cosa**: Il meta-agente monitora cambiamenti normativi e aggiorna automaticamente le analisi. "Il tuo contratto era OK, ma e' cambiata la legge — ecco cosa fare."
+- **Moat**: Monitoring + analisi retroattiva. Nessuno in Italia lo fa.
+- **Target**: Studi legali, compliance officer, PMI regolamentate.
+- **Valore**: Willingness-to-pay altissima. 2.000 clienti a €200/mese = €4.8M ARR → Series A €60-80M val.
+- **Rischio**: Serve affidabilita quasi perfetta. In compliance, un errore = causa.
+
+---
+
+## 5. Perche la visione e' appetibile nel mercato AI 2026
+
+### 5.1. Il timing e' perfetto
+
+Il mercato delle AI agent platform e' esploso nel 2024-25. Gli investitori VOGLIONO multi-agente. Non e' hype — e' il paradigma emergente.
+
+### 5.2. L'angolo italiano e' difendibile
+
+I big (OpenAI, Anthropic, Google) non integreranno mai Normattiva o Agenzia Entrate. Moat geografico + regolamentare reale. L'AI Act europeo rende il mercato europeo ancora piu complesso per player esterni.
+
+### 5.3. Il proof-of-concept esiste
+
+Il verticale legale con 4 agenti + RAG + streaming UX e' una demo funzionante. Piu della maggior parte dei pitch deck che circolano.
+
+### 5.4. Cross-domain knowledge e' il moltiplicatore
+
+Un sistema dove la conoscenza legale informa la fiscale che informa la bancaria e' esponenzialmente piu potente di N sistemi separati. E' la stessa intuizione di Palantir: i dati connessi valgono piu della somma dei dati isolati.
+
+### 5.5. Il moat cresce con l'uso
+
+Ogni analisi arricchisce la knowledge base (`indexAnalysisKnowledge()`). Dopo 10.000 analisi cross-dominio, il gap con un nuovo competitor e' incolmabile.
+
+---
+
+## 6. I 3 rischi strutturali
+
+### 6.1. Complessita tecnica del meta-agente
+
+Il salto da "pipeline hardcoded" a "agente che crea agenti" e' il problema piu difficile. I big (OpenAI, Anthropic, Google) ci stanno lavorando con team di 100+ persone. La domanda e': serve un meta-agente PERFETTO o basta uno ABBASTANZA BUONO? Per i casi d'uso professionali italiani, "abbastanza buono" potrebbe bastare.
+
+### 6.2. Dipendenza da LLM provider
+
+100% del valore passa per Claude API. Mitigazione: astrarre il layer LLM per supportare OpenAI/Mistral/modelli open-source come fallback.
+
+### 6.3. Regolamentazione EU
+
+L'AI Act classifica certi usi come "ad alto rischio". Consulenza legale/fiscale/finanziaria potrebbe rientrare. Pero: la compliance e' anche un'OPPORTUNITA — chi la risolve per primo ha un vantaggio.
+
+---
+
+## 7. Valuation realistica per fase
+
+| Fase | Milestone | Valuation range |
+|------|----------|-----------------|
+| **Oggi** | MVP legale funzionante, 0 utenti | Pre-seed: €500K-1.5M |
+| **+3 mesi** | 2 verticali, 100 utenti paganti, orchestratore astratto | Seed: €2-5M |
+| **+6 mesi** | Meta-agente base, 3+ verticali, 500 utenti, primi DB connector | Seed+: €5-10M |
+| **+12 mesi** | 4+ verticali, 1.000+ utenti, €100K+ ARR, knowledge cross-domain | Series A: €15-40M |
+| **+24 mesi** | Piattaforma matura, 5.000+ clienti, €1M+ ARR, moat dati solido | Series A/B: €50-100M+ |
+
+### Unit economics
+
+```
+Costo per analisi (API Claude):  ~€0.05-0.15
+Prezzo per analisi (utente):      €1-5 (subscription) o €3-5 (single)
+Margine lordo:                     70-95%
+```
+
+Il margine e' eccellente. Il modello economico regge. Il problema non e' il margine, e' il volume.
+
+---
+
+## 8. Roadmap consigliata
+
+### Fase 1 — Validazione (mese 1-2)
+- Completare il verticale legale (corpus, dashboard, OCR)
+- Lanciare online con pricing reale
+- Trovare i primi 50 utenti paganti
+- Validare che la gente paga
+
+### Fase 2 — Astrazione (mese 3-4)
+- Astrarre l'orchestratore: `definePipeline({ domain, agents[], types })`
+- Lanciare il secondo verticale (buste paga: bassa complessita, alto volume)
+- Iniziare lo sviluppo del primo DB connector (Normattiva)
+
+### Fase 3 — Meta-agente base (mese 5-8)
+- Meta-agente che sceglie quale pipeline usare
+- Cross-domain knowledge sharing
+- 3-4 verticali attivi
+- Primi 500 utenti paganti
+
+### Fase 4 — Piattaforma (mese 9-12)
+- Meta-agente che crea sub-agenti dinamicamente
+- Monitoring normativo
+- 3+ DB connector
+- Pitch Series A con €100K+ ARR
+
+---
+
+## 9. Verticali in ordine di priorita
+
+| # | Verticale | Dolore | Volume | Complessita prompt | Priorita |
+|---|-----------|--------|--------|-------------------|----------|
+| 1 | Contratti (attuale) | Alto | Medio | Fatto | Lanciare ORA |
+| 2 | Buste paga | Altissimo | 17M dipendenti | Bassa | Secondo verticale |
+| 3 | Commercialista AI | Alto | 250K studi + 4.5M P.IVA | Media | Terzo |
+| 4 | Vantaggi fiscali | Alto | Tutti i contribuenti | Media-alta | Quarto |
+| 5 | Polizze assicurative | Medio | 40M+ polizze/anno | Media | Quinto |
+| 6 | Consulente bancario | Medio | Tutti | Media | Sesto |
+
+---
+
+## 10. Verdetto finale
+
+### Come meta-agent platform
 
 | Dimensione | Voto |
 |-----------|------|
-| Architettura tecnica | 8/10 |
-| UX/UI | 7.5/10 |
-| Monetizzazione | 5/10 |
-| Market fit B2C | 6.5/10 |
-| Market fit B2B | 8/10 |
-| Go-to-market readiness | 5/10 |
-
-### Come piattaforma multi-verticale
-
-| Dimensione | Voto |
-|-----------|------|
-| Architettura come piattaforma | 7.5/10 |
-| Potenziale di scala | 8.5/10 |
-| Appetibilita mercato AI | 8/10 |
-| Moat / difendibilita | 5.5/10 |
-| Replicabilita su N verticali | 7/10 |
-| Monetizzazione multi-verticale | 8/10 |
-| Rischio regolamentare | 6/10 |
+| Visione / ambizione | 9/10 |
+| Proof-of-concept (codice esistente) | 7.5/10 |
+| Appetibilita mercato AI | 8.5/10 |
+| Difendibilita / moat | 6/10 (sale con dati e integrazioni) |
+| Fattibilita tecnica | 6.5/10 (meta-agente e' hard) |
+| Potenziale di valuation | 8/10 |
+| Rischio di execution | 7/10 (alto, ma gestibile) |
 
 ### Conclusione
 
-Come prodotto singolo: buon side-project. Come piattaforma multi-verticale di analisi documentale AI per il mercato italiano: **idea con potenziale serio**.
+La visione del meta-agente autonomo che orchestra sub-agenti, si integra con DB e monitora normative e' **solidamente appetibile nel mercato AI 2026**. Il timing e' perfetto, l'angolo italiano e' difendibile, e il proof-of-concept esiste.
 
-Il pezzo mancante critico e' l'astrazione del core (orchestratore configurabile + domain packs). Il moat verra dalla knowledge base accumulata e dalla velocita di esecuzione, non dalla tech in se.
+Il valore potenziale e' alto: €50-100M+ di valuation a 24 mesi con execution forte. Il rischio principale non e' l'idea ma l'execution — servono velocita, primi clienti paganti, e la capacita di costruire il meta-agente "abbastanza buono" senza aspettare che sia perfetto.
 
-Priorita immediate:
-1. Lanciare il verticale legale con feature complete (corpus, dashboard, OCR)
-2. Validare il pricing piu alto su primi utenti reali
-3. Astrarre il core per il secondo verticale (commercialista o buste paga)
-4. Costruire il brand ombrello
+**Il consiglio**: la visione del meta-agente e' il pitch per gli investitori. Il prodotto che vendi oggi e' l'analisi documentale AI per professionisti italiani. Lancia, valida, accumula dati, poi scala.
