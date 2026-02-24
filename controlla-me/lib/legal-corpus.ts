@@ -53,12 +53,13 @@ export async function getArticleById(
   article_title: string | null;
   article_text: string;
   hierarchy: Record<string, string>;
+  keywords: string[];
   url: string | null;
 } | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("legal_articles")
-    .select("id, law_source, article_reference, article_title, article_text, hierarchy, source_url")
+    .select("id, law_source, article_reference, article_title, article_text, hierarchy, keywords, source_url")
     .eq("id", id)
     .single();
 
@@ -74,6 +75,7 @@ export async function getArticleById(
     article_title: string | null;
     article_text: string;
     hierarchy: Record<string, string> | null;
+    keywords: string[] | null;
     source_url: string | null;
   };
 
@@ -85,6 +87,7 @@ export async function getArticleById(
     article_title: r.article_title,
     article_text: r.article_text,
     hierarchy: r.hierarchy ?? {},
+    keywords: r.keywords ?? [],
     url: r.source_url,
   };
 }

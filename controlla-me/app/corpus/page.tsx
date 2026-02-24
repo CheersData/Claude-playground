@@ -57,6 +57,7 @@ interface ArticleDetail {
   article_title: string | null;
   article_text: string;
   hierarchy: Record<string, string>;
+  keywords: string[];
   url: string | null;
 }
 
@@ -340,21 +341,17 @@ export default function CorpusPage() {
                     )}
                   </div>
 
-                  {/* Link alla fonte originale — prominente in alto */}
-                  {selectedArticle.url && (
-                    <div className="mb-6 flex items-center gap-3">
-                      <a
-                        href={selectedArticle.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#A78BFA]/10 text-[#A78BFA] text-sm font-medium border border-[#A78BFA]/20 hover:bg-[#A78BFA]/15 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Vedi su {selectedArticle.source_name?.includes("Dir.") || selectedArticle.source_name?.includes("Reg.") || selectedArticle.source_name?.includes("GDPR") || selectedArticle.source_name?.includes("DSA") ? "EUR-Lex" : "Normattiva"}
-                      </a>
-                      <span className="text-xs text-foreground-tertiary">
-                        Testo ufficiale vigente
-                      </span>
+                  {/* Keywords come tag */}
+                  {selectedArticle.keywords && selectedArticle.keywords.length > 0 && (
+                    <div className="mb-6 flex flex-wrap gap-2">
+                      {selectedArticle.keywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="px-2.5 py-1 text-xs rounded-lg bg-[#A78BFA]/8 text-[#A78BFA] border border-[#A78BFA]/15"
+                        >
+                          {kw.replace(/_/g, " ")}
+                        </span>
+                      ))}
                     </div>
                   )}
 
@@ -377,23 +374,30 @@ export default function CorpusPage() {
                     </div>
                   </div>
 
-                  {/* Link in fondo per chi scrolla */}
-                  {selectedArticle.url && (
-                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                      <a
-                        href={selectedArticle.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-[#A78BFA] hover:underline"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Apri fonte originale
-                      </a>
-                      <span className="text-xs text-foreground-tertiary">
-                        Art. {selectedArticle.article_number} — {selectedArticle.source_name}
-                      </span>
-                    </div>
-                  )}
+                  {/* Link alla fonte originale in fondo */}
+                  {selectedArticle.url && (() => {
+                    const isEU = /Dir\.|Reg\.|GDPR|DSA|DMA/i.test(selectedArticle.source_name || "");
+                    const siteName = isEU ? "EUR-Lex" : "Normattiva";
+                    const note = isEU
+                      ? "Link al documento completo"
+                      : "Testo ufficiale vigente";
+                    return (
+                      <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                        <a
+                          href={selectedArticle.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-[#A78BFA] hover:underline"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Vedi su {siteName}
+                        </a>
+                        <span className="text-xs text-foreground-tertiary">
+                          {note}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </motion.div>
             )}
