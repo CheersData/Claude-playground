@@ -1,4 +1,4 @@
-import { anthropic, MODEL, parseAgentJSON, extractTextContent } from "../anthropic";
+import { runAgent } from "../ai-sdk/agent-runner";
 import { ANALYZER_SYSTEM_PROMPT } from "../prompts/analyzer";
 import type { ClassificationResult, AnalysisResult } from "../types";
 
@@ -39,13 +39,11 @@ export async function runAnalyzer(
     .filter(Boolean)
     .join("\n");
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 8192,
-    system: ANALYZER_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  const { parsed } = await runAgent<AnalysisResult>(
+    "analyzer",
+    userMessage,
+    { systemPrompt: ANALYZER_SYSTEM_PROMPT }
+  );
 
-  const text = extractTextContent(response);
-  return parseAgentJSON<AnalysisResult>(text);
+  return parsed;
 }

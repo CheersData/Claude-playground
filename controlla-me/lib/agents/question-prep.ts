@@ -2,14 +2,13 @@
  * Question-Prep Agent — riformula domande colloquiali in linguaggio giuridico
  * per migliorare la ricerca semantica nel corpus legislativo.
  *
- * Flusso: domanda colloquiale → Gemini Flash (o Haiku fallback) → query legale
+ * Flusso: domanda colloquiale → runAgent("question-prep") → query legale
  *
  * Leggero: max 1024 token output, ~1-2s.
  * Resiliente: se fallisce, restituisce la domanda originale.
  */
 
-import { generateWithGemini, isGeminiEnabled, parseAgentJSON } from "../gemini";
-import { anthropic, MODEL_FAST, extractTextContent } from "../anthropic";
+import { runAgent } from "../ai-sdk/agent-runner";
 import { QUESTION_PREP_SYSTEM_PROMPT } from "../prompts/question-prep";
 
 // ─── Tipi ───
@@ -18,31 +17,8 @@ export interface QuestionPrepResult {
   legalQuery: string;
   keywords: string[];
   legalAreas: string[];
-  provider: "gemini" | "haiku";
+  provider: string;
   durationMs: number;
-}
-
-// ─── LLM Calls ───
-
-async function callGemini(question: string): Promise<string> {
-  const result = await generateWithGemini(`Utente: "${question}"`, {
-    systemPrompt: QUESTION_PREP_SYSTEM_PROMPT,
-    maxOutputTokens: 1024,
-    temperature: 0.2,
-    jsonOutput: true,
-    agentName: "QUESTION-PREP",
-  });
-  return result.text;
-}
-
-async function callHaiku(question: string): Promise<string> {
-  const response = await anthropic.messages.create({
-    model: MODEL_FAST,
-    max_tokens: 1024,
-    system: QUESTION_PREP_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: `Utente: "${question}"` }],
-  });
-  return extractTextContent(response);
 }
 
 // ─── Main ───
@@ -58,42 +34,24 @@ export async function prepareQuestion(
   const startTime = Date.now();
 
   try {
-    let text: string;
-    let usedProvider: "gemini" | "haiku";
-
-    if (isGeminiEnabled()) {
-      try {
-        text = await callGemini(question);
-        usedProvider = "gemini";
-      } catch (err) {
-        console.warn(
-          `[QUESTION-PREP] Gemini fallito, fallback a Haiku:`,
-          err instanceof Error ? err.message : err
-        );
-        text = await callHaiku(question);
-        usedProvider = "haiku";
-      }
-    } else {
-      text = await callHaiku(question);
-      usedProvider = "haiku";
-    }
-
-    const parsed = parseAgentJSON<{
+    const { parsed, provider, usedFallback } = await runAgent<{
       legalQuery?: string;
       keywords?: string[];
       legalAreas?: string[];
-    }>(text);
+    }>("question-prep", `Utente: "${question}"`, {
+      systemPrompt: QUESTION_PREP_SYSTEM_PROMPT,
+    });
 
     const result: QuestionPrepResult = {
       legalQuery: parsed.legalQuery || question,
       keywords: parsed.keywords ?? [],
       legalAreas: parsed.legalAreas ?? [],
-      provider: usedProvider,
+      provider,
       durationMs: Date.now() - startTime,
     };
 
     console.log(
-      `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..." | ${usedProvider} | ${result.durationMs}ms`
+      `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..." | ${provider}${usedFallback ? " (fallback)" : ""} | ${result.durationMs}ms`
     );
 
     return result;
@@ -107,7 +65,7 @@ export async function prepareQuestion(
       legalQuery: question,
       keywords: [],
       legalAreas: [],
-      provider: "haiku",
+      provider: "none",
       durationMs: Date.now() - startTime,
     };
   }

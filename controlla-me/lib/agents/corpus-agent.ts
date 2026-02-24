@@ -3,24 +3,25 @@
  *
  * Flusso:
  *   Domanda → Question-Prep (riformulazione legale) → Voyage AI embedding
- *     → pgvector search (top 8) → Gemini 2.5 Flash (o Haiku fallback)
+ *     → pgvector search (top 8) → runAgent("corpus-agent") con fallback
  *     → Risposta strutturata
  *
- * Primo agente multi-provider: Gemini come primario, Haiku come fallback.
+ * Usa il AI SDK: primary/fallback configurati in lib/models.ts AGENT_MODELS.
  */
 
 import { searchArticles, type LegalArticleSearchResult } from "../legal-corpus";
 import { searchLegalKnowledge, type SearchResult } from "../vector-store";
 import { isVectorDBEnabled } from "../embeddings";
-import { generateWithGemini, isGeminiEnabled, parseAgentJSON } from "../gemini";
-import { anthropic, MODEL_FAST, extractTextContent } from "../anthropic";
+import { runAgent } from "../ai-sdk/agent-runner";
+import { generate } from "../ai-sdk/generate";
+import { parseAgentJSON } from "../anthropic";
 import { CORPUS_AGENT_SYSTEM_PROMPT } from "../prompts/corpus-agent";
 import { prepareQuestion } from "./question-prep";
 
 // ─── Tipi ───
 
 export interface CorpusAgentConfig {
-  /** LLM provider: "auto" tenta Gemini poi Haiku. Default "auto". */
+  /** LLM provider: "auto" usa AGENT_MODELS con fallback. Default "auto". */
   provider?: "auto" | "gemini" | "haiku";
   /** Max output tokens. Default 4096. */
   maxTokens?: number;
@@ -44,7 +45,7 @@ export interface CorpusAgentResult {
   citedArticles: CitedArticle[];
   confidence: number;
   followUpQuestions: string[];
-  provider: "gemini" | "haiku";
+  provider: string;
   articlesRetrieved: number;
   durationMs: number;
 }
@@ -78,42 +79,13 @@ function formatArticlesForContext(
   return sections.join("\n\n");
 }
 
-// ─── LLM Calls ───
+// ─── Parsed Response Type ───
 
-async function callGemini(
-  question: string,
-  context: string,
-  maxTokens: number
-): Promise<{ text: string; durationMs: number }> {
-  const prompt = `CONTESTO NORMATIVO:\n${context}\n\nDOMANDA:\n${question}`;
-  const result = await generateWithGemini(prompt, {
-    systemPrompt: CORPUS_AGENT_SYSTEM_PROMPT,
-    maxOutputTokens: maxTokens,
-    temperature: 0.2,
-    jsonOutput: true,
-    agentName: "CORPUS-AGENT",
-  });
-  return { text: result.text, durationMs: result.durationMs };
-}
-
-async function callHaiku(
-  question: string,
-  context: string,
-  maxTokens: number
-): Promise<{ text: string; durationMs: number }> {
-  const start = Date.now();
-  const response = await anthropic.messages.create({
-    model: MODEL_FAST,
-    max_tokens: maxTokens,
-    system: CORPUS_AGENT_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `CONTESTO NORMATIVO:\n${context}\n\nDOMANDA:\n${question}`,
-      },
-    ],
-  });
-  return { text: extractTextContent(response), durationMs: Date.now() - start };
+interface CorpusParsedResponse {
+  answer: string;
+  citedArticles?: CitedArticle[];
+  confidence?: number;
+  followUpQuestions?: string[];
 }
 
 // ─── Main ───
@@ -121,7 +93,7 @@ async function callHaiku(
 /**
  * Risponde a una domanda sulla legislazione italiana usando il corpus pgvector.
  *
- * @throws Error se vector DB non disponibile o entrambi i provider falliscono
+ * @throws Error se vector DB non disponibile o tutti i provider falliscono
  */
 export async function askCorpusAgent(
   question: string,
@@ -164,7 +136,7 @@ export async function askCorpusAgent(
     `[CORPUS-AGENT] Recuperati ${articles.length} articoli + ${knowledge.length} knowledge entries`
   );
 
-  // 2. Build context
+  // 3. Build context
   const context = formatArticlesForContext(articles, knowledge);
 
   if (!context) {
@@ -174,59 +146,45 @@ export async function askCorpusAgent(
       citedArticles: [],
       confidence: 0,
       followUpQuestions: [],
-      provider: "haiku",
+      provider: "none",
       articlesRetrieved: 0,
       durationMs: Date.now() - startTime,
     };
   }
 
-  // 3. LLM call con fallback chain
-  let text: string;
-  let usedProvider: "gemini" | "haiku";
+  // 4. LLM call
+  const llmPrompt = `CONTESTO NORMATIVO:\n${context}\n\nDOMANDA:\n${question}`;
+  let parsed: CorpusParsedResponse;
+  let usedProvider: string;
 
   if (provider === "haiku") {
     // Forza Haiku
-    const result = await callHaiku(question, context, maxTokens);
-    text = result.text;
-    usedProvider = "haiku";
+    const result = await generate("claude-haiku-4.5", llmPrompt, {
+      systemPrompt: CORPUS_AGENT_SYSTEM_PROMPT,
+      maxTokens,
+      agentName: "CORPUS-AGENT",
+    });
+    parsed = parseAgentJSON<CorpusParsedResponse>(result.text);
+    usedProvider = "anthropic";
   } else if (provider === "gemini") {
-    // Forza Gemini, nessun fallback
-    if (!isGeminiEnabled()) {
-      throw new Error("GEMINI_API_KEY non configurata e provider forzato a 'gemini'.");
-    }
-    const result = await callGemini(question, context, maxTokens);
-    text = result.text;
+    // Forza Gemini
+    const result = await generate("gemini-2.5-flash", llmPrompt, {
+      systemPrompt: CORPUS_AGENT_SYSTEM_PROMPT,
+      maxTokens,
+      agentName: "CORPUS-AGENT",
+    });
+    parsed = parseAgentJSON<CorpusParsedResponse>(result.text);
     usedProvider = "gemini";
   } else {
-    // Auto: Gemini → Haiku fallback
-    if (isGeminiEnabled()) {
-      try {
-        const result = await callGemini(question, context, maxTokens);
-        text = result.text;
-        usedProvider = "gemini";
-      } catch (err) {
-        console.warn(
-          `[CORPUS-AGENT] Gemini fallito, fallback a Haiku:`,
-          err instanceof Error ? err.message : err
-        );
-        const result = await callHaiku(question, context, maxTokens);
-        text = result.text;
-        usedProvider = "haiku";
-      }
-    } else {
-      const result = await callHaiku(question, context, maxTokens);
-      text = result.text;
-      usedProvider = "haiku";
-    }
+    // Auto: usa runAgent con fallback automatico da AGENT_MODELS
+    const result = await runAgent<CorpusParsedResponse>(
+      "corpus-agent",
+      llmPrompt,
+      { systemPrompt: CORPUS_AGENT_SYSTEM_PROMPT }
+    );
+    parsed = result.parsed;
+    usedProvider = result.provider;
   }
-
-  // 4. Parse JSON response
-  const parsed = parseAgentJSON<{
-    answer: string;
-    citedArticles?: CitedArticle[];
-    confidence?: number;
-    followUpQuestions?: string[];
-  }>(text);
 
   const totalMs = Date.now() - startTime;
   console.log(
