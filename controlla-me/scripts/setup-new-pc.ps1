@@ -207,9 +207,17 @@ if (Test-Cmd "npm") {
 
 Write-Step "2" $TOTAL_STEPS "Python 3"
 
-if (Test-Cmd "python") {
-    $pyVer = python --version 2>&1
-    Write-Ok "$pyVer gia installato"
+# Disabilita temporaneamente errori per gestire l'alias Windows Store di python
+$savedEAP = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+$pyVer = $null
+try { $pyVer = python --version 2>&1 | Out-String } catch {}
+$ErrorActionPreference = $savedEAP
+
+$realPython = $pyVer -and $pyVer -match "Python \d"
+
+if ($realPython) {
+    Write-Ok "$($pyVer.Trim()) gia installato"
 } elseif (Test-Cmd "python3") {
     $pyVer = python3 --version 2>&1
     Write-Ok "$pyVer gia installato"
