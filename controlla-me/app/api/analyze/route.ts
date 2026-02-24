@@ -1,10 +1,12 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "@/lib/extract-text";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
 import { getAverageTimings } from "@/lib/analysis-cache";
 import { createClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { sanitizeDocumentText } from "@/lib/middleware/sanitize";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
@@ -12,7 +14,7 @@ export const maxDuration = 300; // 5 minutes for long-running analysis
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
 
-  // Check usage limits before starting the stream
+  // Auth: richiede utente autenticato
   let userId: string | null = null;
   try {
     const supabase = await createClient();
@@ -20,35 +22,48 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user) {
-      userId = user.id;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan, analyses_count")
-        .eq("id", user.id)
-        .single();
+    if (!user) {
+      return NextResponse.json(
+        { error: "Autenticazione richiesta" },
+        { status: 401 }
+      );
+    }
 
-      const plan = (profile?.plan as "free" | "pro") || "free";
-      const used = profile?.analyses_count ?? 0;
+    userId = user.id;
 
-      if (plan === "free" && used >= PLANS.free.analysesPerMonth) {
-        return new Response(
-          `event: error\ndata: ${JSON.stringify({
-            message: "Hai raggiunto il limite di analisi gratuite per questo mese.",
-            code: "LIMIT_REACHED",
-          })}\n\n`,
-          {
-            headers: {
-              "Content-Type": "text/event-stream",
-              "Cache-Control": "no-cache",
-              Connection: "keep-alive",
-            },
-          }
-        );
-      }
+    // Rate limit (dopo auth per avere userId)
+    const limited = checkRateLimit(req, userId);
+    if (limited) return limited;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan, analyses_count")
+      .eq("id", user.id)
+      .single();
+
+    const plan = (profile?.plan as "free" | "pro") || "free";
+    const used = profile?.analyses_count ?? 0;
+
+    if (plan === "free" && used >= PLANS.free.analysesPerMonth) {
+      return new Response(
+        `event: error\ndata: ${JSON.stringify({
+          message: "Hai raggiunto il limite di analisi gratuite per questo mese.",
+          code: "LIMIT_REACHED",
+        })}\n\n`,
+        {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        }
+      );
     }
   } catch {
-    // Auth check failed — allow analysis (graceful degradation)
+    return NextResponse.json(
+      { error: "Errore di autenticazione" },
+      { status: 401 }
+    );
   }
 
   const stream = new ReadableStream({
@@ -70,11 +85,12 @@ export async function POST(req: NextRequest) {
         let documentText: string;
 
         if (rawText && rawText.trim().length > 0) {
-          documentText = rawText;
+          documentText = sanitizeDocumentText(rawText);
         } else if (file) {
           send("progress", { phase: "upload", status: "running" });
           const buffer = Buffer.from(await file.arrayBuffer());
-          documentText = await extractText(buffer, file.type, file.name);
+          const rawDocText = await extractText(buffer, file.type, file.name);
+          documentText = sanitizeDocumentText(rawDocText);
           send("progress", { phase: "upload", status: "done" });
         } else {
           send("error", { message: "Nessun file o testo fornito" });

@@ -38,12 +38,12 @@ export async function extractText(
 }
 
 async function extractFromPDF(buffer: Buffer): Promise<string> {
-  // Use indirect eval to completely hide require() from Turbopack's
-  // static analysis. Turbopack transforms all require/import calls
-  // but cannot see through eval.
-  // eslint-disable-next-line no-eval
-  const loadModule = eval("require") as NodeRequire;
-  const pdfParseModule = loadModule("pdf-parse");
+  // Dynamic import: pdf-parse e' in serverExternalPackages (next.config.ts)
+  // quindi non viene bundlato da Turbopack e il dynamic import funziona.
+  // Usiamo createRequire come alternativa sicura a eval("require").
+  const { createRequire } = await import("module");
+  const require = createRequire(import.meta.url);
+  const pdfParseModule = require("pdf-parse");
 
   // pdf-parse v2: class-based API
   if (typeof pdfParseModule.PDFParse === "function") {

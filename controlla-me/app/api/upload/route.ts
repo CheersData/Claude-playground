@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "@/lib/extract-text";
+import { requireAuth, isAuthError } from "@/lib/middleware/auth";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Auth
+  const auth = await requireAuth();
+  if (isAuthError(auth)) return auth;
+
+  // Rate limit
+  const limited = checkRateLimit(req, auth.user.id);
+  if (limited) return limited;
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
