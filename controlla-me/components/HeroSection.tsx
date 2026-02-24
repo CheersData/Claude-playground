@@ -207,7 +207,13 @@ function HeroVerifica({
                 placeholder="Descrivi il contesto: che tipo di documento e'? Hai dubbi specifici? (opzionale)"
                 className="w-full px-4 py-3 rounded-xl bg-white border border-border text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all"
                 rows={2}
+                maxLength={500}
               />
+              {contextPrompt.trim() && (
+                <p className="text-[11px] text-foreground-tertiary mt-1 text-right">
+                  {contextPrompt.length}/500
+                </p>
+              )}
             </motion.div>
 
             {/* Upload card */}

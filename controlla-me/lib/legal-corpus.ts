@@ -37,6 +37,61 @@ export interface LegalArticleSearchResult extends LegalArticle {
   similarity: number;
 }
 
+// ─── Query: Lookup singolo articolo per ID ───
+
+/**
+ * Recupera un singolo articolo per UUID.
+ * Formato compatibile con la UI di /corpus (ArticleDetail).
+ */
+export async function getArticleById(
+  id: string
+): Promise<{
+  id: string;
+  source_id: string;
+  source_name: string;
+  article_number: string;
+  article_title: string | null;
+  article_text: string;
+  hierarchy: Record<string, string>;
+  keywords: string[];
+  url: string | null;
+} | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("legal_articles")
+    .select("id, law_source, article_reference, article_title, article_text, hierarchy, keywords, source_url")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    console.error(`[CORPUS] Errore getArticleById("${id}"): ${error?.message}`);
+    return null;
+  }
+
+  const r = data as {
+    id: string;
+    law_source: string;
+    article_reference: string;
+    article_title: string | null;
+    article_text: string;
+    hierarchy: Record<string, string> | null;
+    keywords: string[] | null;
+    source_url: string | null;
+  };
+
+  return {
+    id: r.id,
+    source_id: sourceToId(r.law_source),
+    source_name: r.law_source,
+    article_number: r.article_reference,
+    article_title: r.article_title,
+    article_text: r.article_text,
+    hierarchy: r.hierarchy ?? {},
+    keywords: r.keywords ?? [],
+    url: r.source_url,
+  };
+}
+
 // ─── Query: Lookup diretto per fonte ───
 
 /**
@@ -354,14 +409,21 @@ export async function getCorpusStats(): Promise<{
     .from("legal_articles")
     .select("*", { count: "exact", head: true });
 
-  const { data: sourceStats } = await admin
-    .from("legal_articles")
-    .select("law_source");
-
   const bySource: Record<string, number> = {};
-  for (const row of sourceStats ?? []) {
-    const src = (row as { law_source: string }).law_source;
-    bySource[src] = (bySource[src] ?? 0) + 1;
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(offset, offset + pageSize - 1);
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const src = (row as { law_source: string }).law_source;
+      bySource[src] = (bySource[src] ?? 0) + 1;
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
   }
 
   const { count: hasEmbeddings } = await admin
@@ -373,6 +435,204 @@ export async function getCorpusStats(): Promise<{
     totalArticles: totalArticles ?? 0,
     bySource,
     hasEmbeddings: hasEmbeddings ?? 0,
+  };
+}
+
+// ─── Query: fonti e gerarchia (per API /corpus/hierarchy) ───
+
+interface SourceInfo {
+  source_id: string;
+  source_name: string;
+  source_type: string;
+  article_count: number;
+}
+
+interface HierarchyNode {
+  key: string;
+  label: string;
+  children: HierarchyNode[];
+  articles: Array<{
+    id: string;
+    article_number: string;
+    article_title: string | null;
+    hierarchy: Record<string, string>;
+  }>;
+}
+
+/**
+ * Determina il tipo di fonte (normattiva per italiane, eurlex per EU).
+ */
+function detectSourceType(lawSource: string): string {
+  if (/Dir\.|Reg\.|GDPR|DSA|DMA|EUR/i.test(lawSource)) return "eurlex";
+  return "normattiva";
+}
+
+/**
+ * Genera un ID slug dalla fonte.
+ */
+function sourceToId(lawSource: string): string {
+  return lawSource
+    .toLowerCase()
+    .replace(/[.\s/]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+/**
+ * Lista tutte le fonti legislative nel corpus con conteggio articoli.
+ * Formato compatibile con la UI di /corpus.
+ */
+export async function getCorpusSources(): Promise<SourceInfo[]> {
+  const admin = createAdminClient();
+  const counts: Record<string, number> = {};
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page, error } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(offset, offset + pageSize - 1);
+    if (error) {
+      console.error(`[CORPUS] Errore getCorpusSources: ${error.message}`);
+      break;
+    }
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const src = (row as { law_source: string }).law_source;
+      counts[src] = (counts[src] ?? 0) + 1;
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
+  }
+
+  return Object.entries(counts)
+    .map(([source, count]) => ({
+      source_id: sourceToId(source),
+      source_name: source,
+      source_type: detectSourceType(source),
+      article_count: count,
+    }))
+    .sort((a, b) => b.article_count - a.article_count);
+}
+
+/**
+ * Restituisce l'albero navigabile di una fonte legislativa.
+ * Raggruppa gli articoli per hierarchy (libro, titolo, capo, sezione).
+ * Formato compatibile con la UI di /corpus (HierarchyNode[]).
+ */
+export async function getSourceHierarchy(
+  sourceId: string
+): Promise<{
+  source_id: string;
+  source_name: string;
+  source_type: string;
+  article_count: number;
+  tree: HierarchyNode[];
+} | null> {
+  // sourceId può essere uno slug o il nome diretto della fonte
+  const admin = createAdminClient();
+  const fields = "id, law_source, article_reference, article_title, hierarchy";
+
+  // Funzione helper per fetch paginato
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function fetchAllPages(queryBuilder: () => any) {
+    const allRows: Record<string, unknown>[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: page } = await queryBuilder().range(offset, offset + pageSize - 1);
+      if (!page || page.length === 0) break;
+      allRows.push(...(page as Record<string, unknown>[]));
+      offset += page.length;
+      if (page.length < pageSize) break;
+    }
+    return allRows;
+  }
+
+  // Prova prima un match esatto
+  let data = await fetchAllPages(() =>
+    admin.from("legal_articles").select(fields).eq("law_source", sourceId).order("article_reference")
+  );
+
+  // Se non trova, prova con ilike (slug → nome originale)
+  if (data.length === 0) {
+    const pattern = sourceId.replace(/_/g, "%");
+    data = await fetchAllPages(() =>
+      admin.from("legal_articles").select(fields).ilike("law_source", `%${pattern}%`).order("article_reference")
+    );
+  }
+
+  if (data.length === 0) return null;
+
+  const sourceName = (data[0] as { law_source: string }).law_source;
+
+  // Costruisci albero HierarchyNode[] dai dati
+  const rootMap = new Map<string, HierarchyNode>();
+
+  for (const row of data) {
+    const r = row as {
+      id: string;
+      law_source: string;
+      article_reference: string;
+      article_title: string | null;
+      hierarchy: Record<string, string> | null;
+    };
+
+    const h = r.hierarchy ?? {};
+    const keys = Object.keys(h);
+    const articleEntry = {
+      id: r.id,
+      article_number: r.article_reference,
+      article_title: r.article_title,
+      hierarchy: h,
+    };
+
+    if (keys.length === 0) {
+      // Articolo senza gerarchia → nodo radice fittizio
+      const rootKey = "__root__";
+      if (!rootMap.has(rootKey)) {
+        rootMap.set(rootKey, {
+          key: rootKey,
+          label: "Articoli",
+          children: [],
+          articles: [],
+        });
+      }
+      rootMap.get(rootKey)!.articles.push(articleEntry);
+    } else {
+      // Naviga/crea i nodi per ogni livello di hierarchy
+      const topKey = h[keys[0]];
+      if (!rootMap.has(topKey)) {
+        rootMap.set(topKey, {
+          key: topKey,
+          label: topKey,
+          children: [],
+          articles: [],
+        });
+      }
+
+      let currentNode = rootMap.get(topKey)!;
+
+      for (let i = 1; i < keys.length; i++) {
+        const val = h[keys[i]];
+        let child = currentNode.children.find((c) => c.key === val);
+        if (!child) {
+          child = { key: val, label: val, children: [], articles: [] };
+          currentNode.children.push(child);
+        }
+        currentNode = child;
+      }
+
+      currentNode.articles.push(articleEntry);
+    }
+  }
+
+  return {
+    source_id: sourceToId(sourceName),
+    source_name: sourceName,
+    source_type: detectSourceType(sourceName),
+    article_count: data.length,
+    tree: Array.from(rootMap.values()),
   };
 }
 

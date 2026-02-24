@@ -106,12 +106,14 @@ controlla-me/
 │   ├── dashboard/page.tsx         # Storico analisi utente
 │   ├── pricing/page.tsx           # Piani (Free/Pro/Single)
 │   ├── analysis/[id]/page.tsx     # Dettaglio analisi
+│   ├── corpus/page.tsx            # Navigazione corpus legislativo
 │   └── api/
 │       ├── analyze/route.ts       # CORE - SSE streaming analisi
 │       ├── upload/route.ts        # Estrazione testo da file
 │       ├── deep-search/route.ts   # Ricerca approfondita clausole
 │       ├── vector-search/route.ts # Ricerca semantica vector DB
-│       ├── corpus/route.ts        # Gestione corpus legislativo
+│       ├── corpus/route.ts           # Gestione corpus legislativo
+│       ├── corpus/hierarchy/route.ts # Fonti e albero navigabile
 │       ├── session/[sessionId]/route.ts  # Cache sessioni
 │       ├── user/usage/route.ts    # Limiti utilizzo
 │       ├── auth/callback/route.ts # OAuth Supabase
@@ -677,6 +679,8 @@ Se `VOYAGE_API_KEY` non è configurata, tutte le feature vector DB vengono salta
 - `GET /api/vector-search` — Statistiche vector DB
 - `POST /api/corpus` — Caricamento articoli nel corpus
 - `GET /api/corpus` — Statistiche corpus legislativo
+- `GET /api/corpus/hierarchy` — Lista fonti o albero navigabile per fonte
+- `GET /corpus` — Pagina UI navigazione corpus
 
 ### Migrazione database
 
@@ -727,7 +731,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
 6. Test — Nessun test unitario/integrazione/E2E
 7. CI/CD — Nessuna GitHub Action
-8. Corpus legislativo — Tabella e API pronte, servono dati (Codice Civile da HuggingFace, D.Lgs. da Normattiva)
+8. ~~Corpus legislativo~~ — **COMPLETATO**: 3548 articoli caricati (1000 Codice Civile), embeddings Voyage AI attivi, pagina UI `/corpus` operativa
 9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
 
 ---

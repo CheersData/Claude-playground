@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { BookOpen, Eye, Scale, MessageCircle, Database } from "lucide-react";
-import { agents } from "./TeamSection";
+import { AgentAvatar, agents } from "./TeamSection";
 import Image from "next/image";
 
 /* ── Animated counter ── */
@@ -112,6 +112,7 @@ const MINI_ILLUSTRATIONS = [
   AdvisorMiniIllustration,
 ];
 
+/* ── Step data (linked to agents) ── */
 const steps = [
   {
     icon: BookOpen,
@@ -122,6 +123,8 @@ const steps = [
     color: agents[0].color,
     image: "/images/confidential-docs.png",
     usesCorpus: false,
+    duration: "~5s",
+    agent: agents[0],
   },
   {
     icon: Eye,
@@ -132,6 +135,8 @@ const steps = [
     color: agents[1].color,
     image: "/images/clause-analysis.png",
     usesCorpus: true,
+    duration: "~10s",
+    agent: agents[1],
   },
   {
     icon: Scale,
@@ -142,6 +147,8 @@ const steps = [
     color: agents[2].color,
     image: "/images/law-references.png",
     usesCorpus: true,
+    duration: "~10s",
+    agent: agents[2],
   },
   {
     icon: MessageCircle,
@@ -152,9 +159,193 @@ const steps = [
     color: agents[3].color,
     image: "/images/checklist-results.png",
     usesCorpus: false,
+    duration: "~5s",
+    agent: agents[3],
   },
 ];
 
+/* ── Single expandable card (agent-based, alternative layout) ── */
+export function AgentStepCard({ step, index }: { step: typeof steps[number]; index: number }) {
+  const [hovered, setHovered] = useState(false);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  const handleMouseEnter = () => {
+    setHovered(true);
+    setQuoteIndex(Math.floor(Math.random() * step.agent.hoverQuotes.length));
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setHovered(false)}
+      className="group relative cursor-pointer"
+    >
+      <motion.div
+        layout
+        className="relative overflow-hidden rounded-3xl border border-border bg-white shadow-sm transition-all duration-500"
+        style={{
+          boxShadow: hovered
+            ? `0 0 60px ${step.color}15, 0 20px 60px ${step.color}10`
+            : "0 1px 3px rgba(0,0,0,0.04)",
+        }}
+      >
+        {/* Hover gradient overlay */}
+        <div
+          className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            background: `linear-gradient(135deg, ${step.color}12, transparent 40%, transparent 60%, ${step.color}08)`,
+          }}
+        />
+
+        {/* Top glow stripe */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{ background: `linear-gradient(90deg, transparent, ${step.color}80, transparent)` }}
+        />
+
+        <div className="relative p-6 md:p-7">
+          {/* Header row: step badge + duration */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold"
+                style={{ background: `${step.color}20`, color: step.color, border: `1px solid ${step.color}30` }}
+              >
+                {index + 1}
+              </div>
+              <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: `${step.color}90` }}>
+                Fase {index + 1}
+              </span>
+            </div>
+            <div className="px-3 py-1 rounded-lg bg-background-secondary text-[11px] font-mono text-foreground-tertiary border border-border">
+              {step.duration}
+            </div>
+          </div>
+
+          {/* Avatar + Agent info */}
+          <div className="flex flex-col items-center text-center">
+            {/* Animated avatar with hover scale */}
+            <motion.div
+              animate={hovered ? { scale: 1.1 } : { scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="relative mb-4"
+            >
+              <AgentAvatar
+                variant={step.agent.variant}
+                color={step.color}
+                size="md"
+                delay={index * 0.08}
+              />
+              {/* Hover glow ring */}
+              <motion.div
+                className="absolute inset-[-6px] rounded-full pointer-events-none"
+                style={{ border: `2px solid ${step.color}` }}
+                animate={hovered ? { opacity: 0.35, scale: 1.08 } : { opacity: 0, scale: 1 }}
+                transition={{ duration: 0.3 }}
+              />
+            </motion.div>
+
+            {/* Agent name + role */}
+            <h3 className="text-lg md:text-xl font-bold mb-0.5">{step.agent.name}</h3>
+            <span
+              className="inline-block text-[9px] font-bold tracking-[2px] uppercase px-2.5 py-0.5 rounded-full mb-3"
+              style={{ color: step.color, background: `${step.color}12`, border: `1px solid ${step.color}20` }}
+            >
+              {step.agent.role}
+            </span>
+
+            {/* Default state: step description */}
+            <AnimatePresence mode="wait">
+              {!hovered ? (
+                <motion.div
+                  key="default"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="flex items-center gap-2 justify-center mb-2">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center"
+                      style={{ background: `${step.color}12` }}
+                    >
+                      <step.icon className="w-3.5 h-3.5" style={{ color: step.color }} />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{step.label}</p>
+                  </div>
+                  <p className="text-sm text-foreground-secondary leading-relaxed max-w-[260px] mx-auto">
+                    {step.desc}
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="expanded"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full"
+                >
+                  {/* Speech bubble quote */}
+                  <div
+                    className="relative rounded-2xl px-4 py-3 text-sm leading-relaxed backdrop-blur-md mb-4"
+                    style={{
+                      background: `${step.color}10`,
+                      border: `1px solid ${step.color}25`,
+                      color: `${step.color}DD`,
+                    }}
+                  >
+                    <div
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rotate-45"
+                      style={{
+                        background: `${step.color}10`,
+                        borderTop: `1px solid ${step.color}25`,
+                        borderLeft: `1px solid ${step.color}25`,
+                      }}
+                    />
+                    <span className="relative z-10 font-medium italic">
+                      &ldquo;{step.agent.hoverQuotes[quoteIndex]}&rdquo;
+                    </span>
+                  </div>
+
+                  {/* What they do — bullet list */}
+                  <ul className="space-y-1.5 text-left">
+                    {step.agent.whatHeDoes.map((item, j) => (
+                      <motion.li
+                        key={j}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: j * 0.05 }}
+                        className="flex items-center gap-2 text-[13px] text-foreground-secondary"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: step.color }} />
+                        {item}
+                      </motion.li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Bottom accent line */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[2px]"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${step.color}40, transparent)`,
+          }}
+        />
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ── Main section ── */
 export default function MissionSection() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
@@ -167,7 +358,7 @@ export default function MissionSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="relative overflow-hidden rounded-[32px] border border-border bg-white shadow-sm mb-8"
+          className="relative overflow-hidden rounded-[32px] border border-border bg-white shadow-sm mb-10"
         >
           <div
             className="absolute inset-0 pointer-events-none"
@@ -244,14 +435,20 @@ export default function MissionSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="text-center mb-8"
+          className="text-center mb-4"
         >
           <p className="text-[11px] font-bold tracking-[3px] uppercase text-accent/70 mb-3">
             Come funziona
           </p>
-          <h3 className="font-serif text-xl md:text-2xl text-foreground">
-            4 agenti, pochi attimi, zero dubbi.
+          <h3 className="font-serif text-2xl md:text-3xl text-foreground mb-2">
+            Quattro menti.{" "}
+            <span className="italic bg-gradient-to-br from-accent to-amber-400 bg-clip-text text-transparent">
+              Una missione.
+            </span>
           </h3>
+          <p className="text-sm md:text-base text-foreground-secondary max-w-[400px] mx-auto leading-relaxed">
+            Passa il mouse su ognuno per sentire cosa ha da dire.
+          </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
@@ -365,6 +562,29 @@ export default function MissionSection() {
             );
           })}
         </div>
+
+        {/* Pipeline flow: Read → Understand → Investigate → Advisor */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex items-center justify-center gap-2 md:gap-3 flex-wrap mb-8"
+        >
+          {agents.map((agent, i) => (
+            <div key={agent.phase} className="flex items-center gap-2 md:gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: `${agent.color}10` }}>
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: agent.color }} />
+                <span className="text-sm font-medium" style={{ color: `${agent.color}CC` }}>{agent.name}</span>
+              </div>
+              {i < agents.length - 1 && (
+                <svg width="20" height="10" viewBox="0 0 20 10" className="text-foreground-tertiary shrink-0">
+                  <path d="M0 5h16M14 2l3 3-3 3" stroke="currentColor" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          ))}
+        </motion.div>
 
         {/* Timeline bar */}
         <motion.div
