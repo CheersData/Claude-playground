@@ -14,6 +14,7 @@ import {
   ArrowDown,
   BookOpen,
 } from "lucide-react";
+import CorpusChat from "@/components/CorpusChat";
 
 /* ══════════════════════════════════════════════════════
    Animated text — words appear, get circled in red,
@@ -348,8 +349,6 @@ function HeroVerifica({
    ══════════════════════════════════════════════════════ */
 
 function HeroDubbi() {
-  const [mockInput, setMockInput] = useState("");
-
   return (
     <section className="relative min-h-[90vh] flex items-center bg-white overflow-hidden">
       <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-20">
@@ -366,10 +365,10 @@ function HeroDubbi() {
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-300/30 mb-6 text-sm text-foreground font-medium"
             >
               <MessageCircle className="w-4 h-4 text-purple-500" />
-              Corpus normativo in costruzione
+              Corpus normativo
             </motion.div>
 
-            {/* Headline — poche parole, MOLTO BOLD */}
+            {/* Headline */}
             <motion.h2
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -396,7 +395,7 @@ function HeroDubbi() {
               Norme, sentenze, prassi — tutto a portata di domanda.
             </motion.p>
 
-            {/* Mock chatbox */}
+            {/* Chat */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -411,13 +410,10 @@ function HeroDubbi() {
                   <span className="text-xs font-medium text-purple-600">
                     Assistente legale AI
                   </span>
-                  <span className="text-xs text-foreground-tertiary ml-auto">
-                    Prossimamente
-                  </span>
                 </div>
 
-                {/* Mock messages */}
-                <div className="px-5 py-6 space-y-4">
+                {/* Welcome message */}
+                <div className="px-5 pt-5 pb-2">
                   <div className="flex gap-3">
                     <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
                       <BookOpen className="w-3.5 h-3.5 text-purple-500" />
@@ -431,20 +427,9 @@ function HeroDubbi() {
                   </div>
                 </div>
 
-                {/* Input */}
-                <div className="px-4 pb-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={mockInput}
-                      onChange={(e) => setMockInput(e.target.value)}
-                      placeholder="Chiedimi qualsiasi dubbio legale..."
-                      className="flex-1 px-4 py-2.5 rounded-xl bg-background-secondary border border-border text-sm placeholder:text-foreground-tertiary focus:border-purple-300 focus:ring-2 focus:ring-purple-200/50 focus:outline-none transition-all"
-                    />
-                    <button className="px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium opacity-50 cursor-not-allowed">
-                      Invia
-                    </button>
-                  </div>
+                {/* CorpusChat */}
+                <div className="px-4 pb-4 pt-2">
+                  <CorpusChat variant="hero" />
                 </div>
               </div>
             </motion.div>

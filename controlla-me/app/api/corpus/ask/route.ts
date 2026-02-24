@@ -17,13 +17,15 @@ export const maxDuration = 60;
  *   { answer, citedArticles, confidence, followUpQuestions, provider, articlesRetrieved, durationMs }
  */
 export async function POST(req: NextRequest) {
-  // Auth
+  // Auth (opzionale — se non loggato, prosegui senza rate limit per utente)
   const auth = await requireAuth();
-  if (isAuthError(auth)) return auth;
+  const userId = isAuthError(auth) ? null : auth.user.id;
 
-  // Rate limit
-  const limited = checkRateLimit(req, auth.user.id);
-  if (limited) return limited;
+  // Rate limit solo per utenti autenticati
+  if (userId) {
+    const limited = checkRateLimit(req, userId);
+    if (limited) return limited;
+  }
 
   // Vector DB check
   if (!isVectorDBEnabled()) {

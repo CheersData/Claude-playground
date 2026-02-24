@@ -12,10 +12,12 @@ import {
   FileText,
   ArrowLeft,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LegalBreadcrumb from "@/components/LegalBreadcrumb";
+import CorpusChat from "@/components/CorpusChat";
 
 // ─── Types ───
 
@@ -525,6 +527,31 @@ export default function CorpusPage() {
           )}
         </div>
       </main>
+
+      {/* Q&A Section */}
+      <section className="relative z-10 px-4 md:px-8 pb-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="rounded-2xl border border-[#A78BFA]/20 bg-[#A78BFA]/[0.03] p-6 md:p-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-[#A78BFA]/15 flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-[#A78BFA]" />
+              </div>
+              <h2 className="text-2xl font-serif font-bold">
+                Hai un dubbio legale?
+              </h2>
+            </div>
+            <p className="text-foreground-secondary mb-6 ml-[52px]">
+              Interroga il corpus normativo italiano con l&apos;AI
+            </p>
+            <div className="max-w-2xl ml-[52px]">
+              <CorpusChat
+                variant="purple"
+                placeholder="Es. Cosa prevede il codice civile sulla vendita a corpo?"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>

@@ -2,8 +2,9 @@
  * Corpus Agent — agente standalone per domande sulla legislazione italiana.
  *
  * Flusso:
- *   Domanda → Voyage AI embedding → pgvector search (top 8)
- *     → Gemini 2.5 Flash (o Haiku fallback) → Risposta strutturata
+ *   Domanda → Question-Prep (riformulazione legale) → Voyage AI embedding
+ *     → pgvector search (top 8) → Gemini 2.5 Flash (o Haiku fallback)
+ *     → Risposta strutturata
  *
  * Primo agente multi-provider: Gemini come primario, Haiku come fallback.
  */
@@ -14,6 +15,7 @@ import { isVectorDBEnabled } from "../embeddings";
 import { generateWithGemini, isGeminiEnabled, parseAgentJSON } from "../gemini";
 import { anthropic, MODEL_FAST, extractTextContent } from "../anthropic";
 import { CORPUS_AGENT_SYSTEM_PROMPT } from "../prompts/corpus-agent";
+import { prepareQuestion } from "./question-prep";
 
 // ─── Tipi ───
 
@@ -26,6 +28,8 @@ export interface CorpusAgentConfig {
   threshold?: number;
   /** Max articoli da recuperare. Default 8. */
   maxArticles?: number;
+  /** Salta il question-prep (usa la domanda originale per la ricerca). Default false. */
+  skipQuestionPrep?: boolean;
 }
 
 interface CitedArticle {
@@ -128,6 +132,7 @@ export async function askCorpusAgent(
     maxTokens = 4096,
     threshold = 0.40,
     maxArticles = 8,
+    skipQuestionPrep = false,
   } = config;
 
   const startTime = Date.now();
@@ -137,12 +142,22 @@ export async function askCorpusAgent(
     throw new Error("Vector DB non disponibile. VOYAGE_API_KEY non configurata.");
   }
 
-  // 1. Retrieval parallelo: articoli legislativi + knowledge base
-  console.log(`[CORPUS-AGENT] Ricerca per: "${question.slice(0, 80)}..."`);
+  // 1. Question-Prep: riformula la domanda in linguaggio giuridico per la ricerca
+  let searchQuery = question;
+  if (!skipQuestionPrep) {
+    const prep = await prepareQuestion(question);
+    searchQuery = prep.legalQuery;
+    console.log(
+      `[CORPUS-AGENT] Prep: "${question.slice(0, 50)}..." → "${searchQuery.slice(0, 80)}..." | ${prep.provider} | ${prep.durationMs}ms`
+    );
+  }
+
+  // 2. Retrieval parallelo: articoli legislativi + knowledge base
+  console.log(`[CORPUS-AGENT] Ricerca per: "${searchQuery.slice(0, 80)}..."`);
 
   const [articles, knowledge] = await Promise.all([
-    searchArticles(question, { threshold, limit: maxArticles }),
-    searchLegalKnowledge(question, { threshold: 0.6, limit: 4 }),
+    searchArticles(searchQuery, { threshold, limit: maxArticles }),
+    searchLegalKnowledge(searchQuery, { threshold: 0.6, limit: 4 }),
   ]);
 
   console.log(
