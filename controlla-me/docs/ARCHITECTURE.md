@@ -41,6 +41,7 @@
 │  /api/corpus            │  └────────────────────────────┘
 │  /api/corpus/hierarchy  │
 │  /api/corpus/article    │
+│  /api/corpus/ask        │
 │  /api/session/[id]      │
 │  /api/stripe/*          │
 │  /api/webhook           │
@@ -87,18 +88,20 @@
 └─────────────────┘ │  │ profiles                     │  │
                     │  │ analyses (JSONB)             │  │
 ┌─────────────────┐ │  │ deep_searches                │  │
-│   VOYAGE AI     │ │  │ lawyer_referrals             │  │
-│   Embeddings    │ │  │ document_chunks (vector)     │  │
-│   voyage-law-2  │ │  │ legal_knowledge (vector)     │  │
-│   1024 dims     │ │  │ legal_articles (vector)      │  │
-└─────────────────┘ │  └──────────────────────────────┘  │
-                    │  RLS attivo su tutte le tabelle     │
-┌─────────────────┐ └────────────────────────────────────┘
-│     STRIPE      │
-│  Subscriptions  │
-│  One-time pay   │
-│  Webhooks       │
-└─────────────────┘
+│   GOOGLE AI     │ │  │ lawyer_referrals             │  │
+│   Gemini API    │ │  │ document_chunks (vector)     │  │
+│   - Flash 2.5   │ │  │ legal_knowledge (vector)     │  │
+└─────────────────┘ │  │ legal_articles (vector)      │  │
+                    │  └──────────────────────────────┘  │
+┌─────────────────┐ │  RLS attivo su tutte le tabelle     │
+│   VOYAGE AI     │ └────────────────────────────────────┘
+│   Embeddings    │
+│   voyage-law-2  │ ┌─────────────────┐
+│   1024 dims     │ │     STRIPE      │
+└─────────────────┘ │  Subscriptions  │
+                    │  One-time pay   │
+                    │  Webhooks       │
+                    └─────────────────┘
 ```
 
 ### 1.2 Flusso di Analisi Completo
@@ -209,6 +212,7 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 - `GET /api/corpus/hierarchy` — Lista fonti o albero gerarchico per fonte specifica
 - `GET /api/corpus/article?id=...` — Dettaglio articolo per ID
 - `GET /api/corpus/article?q=...&source=...` — Ricerca articoli per testo
+- `POST /api/corpus/ask` — Corpus Agent Q&A (Gemini 2.5 Flash / Haiku fallback)
 - `POST /api/vector-search` — Ricerca semantica
 - `GET /api/vector-search` — Statistiche vector DB
 
@@ -224,7 +228,44 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 - `getCorpusSources()` — Lista fonti con conteggio articoli (paginato)
 - `getSourceHierarchy()` — Albero gerarchico HierarchyNode[] per una fonte
 
-### 1.5 Pagine Frontend
+### 1.5 Corpus Agent — Q&A sulla Legislazione
+
+Agente standalone che risponde a domande sulla legislazione italiana usando il corpus pgvector.
+Primo agente multi-provider: introduce **Google Gemini** come LLM alternativo a Claude.
+
+```
+Domanda utente
+      │
+      ▼
+[Voyage AI] → embedding
+      │
+      ▼
+[pgvector] → top 8 articoli + knowledge base (parallelo)
+      │
+      ▼
+[Gemini 2.5 Flash] ──fallback──▶ [Haiku 4.5]
+      │
+      ▼
+Risposta JSON: { answer, citedArticles, confidence, followUpQuestions }
+```
+
+**Endpoint**: `POST /api/corpus/ask`
+- Auth: richiede utente autenticato
+- Rate limit: 10 RPM (allineato al free tier Gemini)
+- Validazione: domanda 5-2000 caratteri
+- Body: `{ "question": "...", "config?": { "provider": "auto"|"gemini"|"haiku" } }`
+
+**File chiave**:
+- `lib/gemini.ts` — Client Gemini (parallelo a `lib/anthropic.ts`)
+- `lib/agents/corpus-agent.ts` — Logica agente con fallback chain
+- `lib/prompts/corpus-agent.ts` — System prompt
+
+**Fallback chain** (provider = "auto"):
+1. Se `GEMINI_API_KEY` presente → Gemini 2.5 Flash
+2. Se Gemini fallisce → warning + Haiku 4.5
+3. Se Haiku fallisce → errore 500
+
+### 1.6 Pagine Frontend
 
 | Pagina | File | Descrizione |
 |--------|------|-------------|
@@ -240,7 +281,7 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 - Navigazione gerarchica (Libro → Titolo → Capo → Sezione → Articolo)
 - Keywords come tag, testo completo articoli
 
-### 1.6 Componenti
+### 1.7 Componenti
 
 | Componente | File | Note |
 |------------|------|------|
@@ -263,7 +304,7 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 | Footer | `components/Footer.tsx` | Footer |
 | **LegalBreadcrumb** | `components/LegalBreadcrumb.tsx` | **Breadcrumb navigazione gerarchica corpus** |
 
-### 1.7 Scripts e Tooling
+### 1.8 Scripts e Tooling
 
 | Script | File | Descrizione |
 |--------|------|-------------|
@@ -275,7 +316,7 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 | **SETUP_PC_NUOVO.bat** | root | Launcher batch per setup-new-pc.ps1 |
 | **AVVIA_SITO.bat** | root | One-command: git pull + npm install + npm run dev |
 
-### 1.8 Migrazioni Database
+### 1.9 Migrazioni Database
 
 | Migrazione | File | Descrizione |
 |-----------|------|-------------|
@@ -285,7 +326,7 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 | **004** | `supabase/migrations/004_align_legal_articles.sql` | **Allineamento schema: source_id, source_type, article_number, url, hierarchy** |
 | **005** | `supabase/migrations/005_fix_hierarchy_data.sql` | **Normalizzazione JSONB hierarchy (deduplica nodi Libri Codice Civile)** |
 
-### 1.9 Struttura Monorepo
+### 1.10 Struttura Monorepo
 
 Il repository `Claude-playground` contiene più progetti:
 

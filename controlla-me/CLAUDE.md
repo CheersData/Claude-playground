@@ -19,6 +19,7 @@
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
+| AI/LLM | @google/genai (Gemini 2.5 Flash) | 1.x |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
 | Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
 | Database | Supabase (PostgreSQL + RLS) | 2.97.0 |
@@ -70,6 +71,9 @@ STRIPE_SINGLE_PRICE_ID=price_...
 # Voyage AI (embeddings per vector DB — opzionale)
 VOYAGE_API_KEY=pa-...
 
+# Google Gemini (LLM secondario per Corpus Agent — opzionale, fallback a Haiku)
+GEMINI_API_KEY=...
+
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -118,6 +122,7 @@ controlla-me/
 │       ├── vector-search/route.ts # Ricerca semantica vector DB
 │       ├── corpus/route.ts           # Gestione corpus legislativo
 │       ├── corpus/hierarchy/route.ts # Fonti e albero navigabile
+│       ├── corpus/ask/route.ts      # Corpus Agent Q&A (Gemini/Haiku)
 │       ├── session/[sessionId]/route.ts  # Cache sessioni
 │       ├── user/usage/route.ts    # Limiti utilizzo
 │       ├── auth/callback/route.ts # OAuth Supabase
@@ -146,6 +151,7 @@ controlla-me/
 │
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
+│   ├── gemini.ts                 # Client Gemini 2.5 Flash + retry
 │   ├── embeddings.ts             # Client Voyage AI per embeddings
 │   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
 │   ├── legal-corpus.ts           # Ingest e query corpus legislativo
@@ -158,12 +164,14 @@ controlla-me/
 │   │   ├── classifier.ts         # Agente 1: classificazione
 │   │   ├── analyzer.ts           # Agente 2: analisi rischi
 │   │   ├── investigator.ts       # Agente 3: ricerca legale
-│   │   └── advisor.ts            # Agente 4: consiglio finale
+│   │   ├── advisor.ts            # Agente 4: consiglio finale
+│   │   └── corpus-agent.ts      # Agente corpus: Q&A legislativo (Gemini/Haiku)
 │   ├── prompts/
 │   │   ├── classifier.ts         # Prompt classificatore
 │   │   ├── analyzer.ts           # Prompt analista
 │   │   ├── investigator.ts       # Prompt investigatore
-│   │   └── advisor.ts            # Prompt consigliere
+│   │   ├── advisor.ts            # Prompt consigliere
+│   │   └── corpus-agent.ts      # Prompt agente corpus
 │   └── supabase/
 │       ├── client.ts             # Client browser
 │       ├── server.ts             # Client SSR
@@ -737,6 +745,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 7. CI/CD — Nessuna GitHub Action
 8. ~~Corpus legislativo~~ — **COMPLETATO**: 3548 articoli caricati (1000 Codice Civile), embeddings Voyage AI attivi, pagina UI `/corpus` operativa
 9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
+10. Corpus Agent UI — Backend `POST /api/corpus/ask` operativo (Gemini + Haiku fallback), nessuna pagina frontend
 
 ---
 

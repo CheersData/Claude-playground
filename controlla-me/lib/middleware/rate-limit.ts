@@ -46,6 +46,7 @@ export interface RateLimitConfig {
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/analyze": { windowSec: 60, max: 3 },
   "api/deep-search": { windowSec: 60, max: 10 },
+  "api/corpus/ask": { windowSec: 60, max: 10 },
   "api/corpus": { windowSec: 3600, max: 20 },
   "api/upload": { windowSec: 60, max: 10 },
   "api/vector-search": { windowSec: 60, max: 20 },
@@ -69,18 +70,22 @@ function getClientKey(req: NextRequest, userId?: string): string {
 
 /**
  * Identifica l'endpoint dalla URL per trovare la config giusta.
+ * Usa longest match per evitare che "api/corpus" matchi prima di "api/corpus/ask".
  */
 function getEndpointKey(req: NextRequest): string {
   const path = new URL(req.url).pathname;
 
-  // Cerca match piu' specifico
+  let bestKey = "default";
+  let bestLen = 0;
+
   for (const key of Object.keys(RATE_LIMITS)) {
-    if (key !== "default" && path.includes(key)) {
-      return key;
+    if (key !== "default" && path.includes(key) && key.length > bestLen) {
+      bestKey = key;
+      bestLen = key.length;
     }
   }
 
-  return "default";
+  return bestKey;
 }
 
 /**
