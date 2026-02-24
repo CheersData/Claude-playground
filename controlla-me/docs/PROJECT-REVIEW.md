@@ -1,103 +1,166 @@
-# Project Review — controlla.me
+# Project Review — controlla.me (Piattaforma Multi-Verticale)
 
-> Valutazione tecnica, potenziale di mercato e monetizzazione.
+> Valutazione come piattaforma di orchestrazione AI multi-agente replicabile su N domini.
 > Data: 2026-02-24
 
 ---
 
-## Architettura tecnica: 8/10
+## 1. Cosa e' realmente questo progetto
 
-L'architettura multi-agente a 4 fasi con RAG e ben pensata:
+Non un "tool per contratti". E' un **template produttizzato di analisi documentale AI** con un core riutilizzabile al ~60%.
 
-- **Pipeline sequenziale**: Classifier (Haiku) -> Analyzer (Sonnet) -> Investigator (Sonnet + web search) -> Advisor (Sonnet). Ogni agente arricchisce il contesto per il successivo.
-- **RAG a 3 layer** con Voyage AI `voyage-law-2` (embedding specifico per testi legali). Il sistema "impara" da ogni analisi completata (`legal_knowledge`) — potenziale effetto flywheel.
-- **Streaming SSE** per UX real-time, caching SHA256 per ripresa sessioni, retry 60s su rate limit.
-- **Stack moderno**: Next.js 16, React 19, Tailwind 4, TypeScript strict.
+### Core riutilizzabile (60%)
+
+| Componente | File | Ruolo |
+|-----------|------|-------|
+| Orchestratore | `lib/agents/orchestrator.ts` | Pipeline 4 agenti con callbacks, cache, resume |
+| RAG pipeline | `lib/vector-store.ts` | Chunking, embedding, ricerca semantica, auto-indexing |
+| Streaming | `app/api/analyze/route.ts` | SSE real-time con progress tracking |
+| Progress UX | `components/AnalysisProgress.tsx` | 643 righe, riutilizzabile as-is |
+| Auth + Pagamenti | Supabase + Stripe | Gia pronto |
+| Cache sessioni | `lib/analysis-cache.ts` | SHA256, timing, ripresa |
+| LLM client | `lib/anthropic.ts` | Retry, parsing JSON robusto, logging |
+
+### Domain-specific (40% — da riscrivere per verticale)
+
+| Componente | File | Da fare per nuovo dominio |
+|-----------|------|--------------------------|
+| Prompt | `lib/prompts/*.ts` | Riscrivere 4 prompt |
+| Types | `lib/types.ts` | Nuove interfacce output |
+| Corpus | `lib/legal-corpus.ts` | Nuovo corpus di dominio |
+| Labels + Copy | Landing page, UI | Nuovo branding |
+
+**Time-to-market per nuovo verticale (avendo il core): settimane, non mesi.**
 
 ---
 
-## Potenziale: alto, con caveat
+## 2. Posizionamento nel mercato AI
 
-### Punti di forza
+| Livello | Esempi | Differenza |
+|---------|--------|------------|
+| Framework | CrewAI, LangGraph, AutoGen | Tool per developer. Nessuna UX, nessun utente finale |
+| Vertical SaaS AI | Harvey (legal), Keeper (tax) | Un prodotto, un dominio, fundraising $100M+ |
+| **Questo progetto** | controlla.me + futuri verticali | Core riutilizzabile, deploy rapido su N domini, mercato italiano |
 
-1. **Mercato italiano sottopresidiato** — Il LegalTech in Italia e indietro rispetto a US/UK. Pochi competitor diretti per analisi AI di contratti in italiano.
-2. **Problema reale** — La gente firma contratti che non capisce (affitto, lavoro, acquisti).
-3. **Approccio "linguaggio da bar"** — Tradurre il legalese in linguaggio comprensibile e il vero valore.
-4. **Knowledge base che cresce** — Ogni analisi alimenta il vector DB. Effetto flywheel.
-
-### Rischi concreti
-
-1. **Responsabilita legale** — Dare "consigli legali" via AI in Italia e un campo minato. Serve parere legale e disclaimer blindato.
-2. **Costo unitario per analisi** — ~85s di API Claude per analisi. Costo stimato €0.05-0.15 per analisi in API calls.
-3. **Affidabilita output** — Claude puo allucinare su riferimenti normativi. In ambito legale anche errori piccoli possono essere gravi.
+Non competi con i framework (quelli sono per developer). Non competi con gli Harvey (quelli hanno $100M). Occupi la nicchia: **"vertical AI veloce per il mercato italiano"** — arrivi per primo su segmenti che i big ignorano.
 
 ---
 
-## Monetizzazione: 5/10 — da ripensare
+## 3. I 5 segnali positivi per il mercato AI
 
-### Modello attuale
+### 3.1. Multi-agente e' il trend dominante 2025-26
 
-| Piano | Prezzo | Analisi |
+Tutti stanno andando da "un prompt, una risposta" a pipeline di agenti specializzati. Ma i framework richiedono competenze tecniche forti. Qui c'e' gia l'implementazione produttizzata con UX, pagamenti, onboarding.
+
+### 3.2. Knowledge base auto-alimentata = moat reale
+
+Ogni analisi arricchisce `legal_knowledge` nel vector DB tramite `indexAnalysisKnowledge()`. Dopo 1000 analisi, il sistema ha visto pattern che nessun competitor nuovo puo replicare il giorno 1. Questo si replica su ogni verticale.
+
+### 3.3. Mercato italiano dei servizi professionali: frammentato e underserved
+
+- ~250.000 commercialisti
+- ~60.000 agenzie immobiliari
+- ~240.000 studi professionali
+- ~4.5M di P.IVA
+
+Nessuno costruisce AI verticali per questi segmenti in italiano.
+
+### 3.4. Replicabilita abbatte il CAC
+
+Un utente che usa controlla.me/contratti e' un lead naturale per /fiscale o /banca. Una base utenti, N prodotti. Il cross-sell e' organico.
+
+### 3.5. Architettura a 4 agenti = messaging chiaro
+
+"4 esperti AI analizzano il tuo documento in 90 secondi" — dimostrabile, memorabile, virale.
+
+---
+
+## 4. I 3 rischi strutturali
+
+### 4.1. Nessun moat tecnico profondo
+
+L'orchestratore e' ben fatto ma non e' proprietary tech. Qualcuno con competenze simili replica l'architettura in 2-3 settimane. Il moat reale viene dalla knowledge base (dati accumulati), dal brand, e dalla velocita di esecuzione.
+
+### 4.2. Dipendenza totale da Anthropic
+
+100% del valore passa per Claude API. Se Anthropic cambia pricing, rate limits, o TOS, il business e' esposto. Mitigazione necessaria: astrarre il layer LLM per supportare anche OpenAI/Mistral come fallback.
+
+### 4.3. Regolamentazione AI in Italia/EU
+
+L'AI Act europeo classifica certi usi come "ad alto rischio". Consulenza legale/fiscale/finanziaria potrebbe rientrare. Serve monitorare e strutturare disclaimer e compliance.
+
+---
+
+## 5. Verticali piu promettenti (roadmap)
+
+| # | Verticale | Problema | Difficolta prompt | Mercato Italia |
+|---|-----------|----------|-------------------|----------------|
+| 1 | **Contratti** (attuale) | "Cosa sto firmando?" | Fatto | Tutti |
+| 2 | **Commercialista AI** | Bilanci, dichiarazioni, anomalie | Media | 250K studi + 4.5M P.IVA |
+| 3 | **Vantaggi fiscali** | Bonus, detrazioni, crediti d'imposta | Media-alta | Tutti i contribuenti |
+| 4 | **Buste paga** | "Il mio stipendio e' giusto?" | Bassa | 17M dipendenti |
+| 5 | **Consulente bancario** | Mutui, prestiti, condizioni nascoste | Media | Tutti |
+| 6 | **Polizze assicurative** | Clausole oscure, esclusioni | Media | 40M+ polizze/anno |
+
+**Buste paga** e' particolarmente interessante: volume altissimo, dolore reale, documento strutturato.
+
+---
+
+## 6. Monetizzazione multi-verticale
+
+### Pricing attuale (troppo basso)
+
+| Piano | Prezzo | Problema |
 |-------|--------|---------|
-| Free | €0 | 3/mese |
-| Pro | €4.99/mese | illimitate |
-| Single | €0.99 | 1 analisi |
+| Free | €0, 3/mese | OK come trial |
+| Pro | €4.99/mese illimitato | Sottocosto per tool professionale. "Illimitato" non scala |
+| Single | €0.99 | Margine risicato con costi API |
 
-### Problemi
-
-1. **€4.99/mese e troppo poco** — Un tool legale vale di piu. Consumatori pagherebbero €9.99-14.99. Professionisti pagherebbero €29-49/mese.
-2. **"Illimitato" a €4.99 e pericoloso** — Un power user a 50 analisi/mese costa €2.50-7.50 in API. Non scala. Meglio Pro a €9.99 con 20 analisi/mese.
-3. **Manca il B2B** — Agenzie immobiliari, PMI senza ufficio legale, commercialisti, piccoli studi legali.
-4. **Referral avvocati** — Commissione per lead qualificati. Modello marketplace gia previsto nel DB.
-
-### Pricing suggerito
+### Pricing suggerito (per verticale)
 
 | Piano | Prezzo | Target |
 |-------|--------|--------|
-| Free | €0 | 2 analisi/mese, prova |
-| Single | €3.99 | Pay-per-use consumatore |
-| Pro | €14.99/mese | Consumatore frequente, 15 analisi/mese |
-| Business | €39.99/mese | PMI, agenzie, studi, 50 analisi/mese |
-| Enterprise | Custom | Volumi, API, white-label |
+| Free | €0 | 2 analisi/mese per verticale |
+| Single | €3.99 | Pay-per-use, consumatore occasionale |
+| Pro | €14.99/mese | 15 analisi/mese, consumatore frequente |
+| Business | €39.99/mese | 50 analisi/mese, PMI e studi |
+| Bundle | €24.99/mese | Accesso a tutti i verticali, 20 analisi totali |
+| Enterprise | Custom | API, white-label, volumi |
+
+### Revenue streams aggiuntive
+
+1. **Referral professionisti** — Commissione per lead qualificati (avvocati, commercialisti). DB gia predisposto.
+2. **API per integratori** — Studi e software house integrano l'analisi nei loro tool.
+3. **White-label** — Associazioni di categoria / ordini professionali.
 
 ---
 
-## Interesse di mercato
+## 7. Cosa serve per farne una piattaforma vera
 
-### B2C: 6.5/10
+### 7.1. Astrarre l'orchestratore
 
-- Mercato grande ma disperso. 2-3 contratti importanti/anno per persona.
-- Pay-per-use funziona meglio del subscription per consumatori.
-- Canale: SEO ("contratto affitto clausole ingiuste"), social media.
+Oggi i 4 agenti sono hardcoded. Per essere piattaforma, serve un orchestratore configurabile:
 
-### B2B: 8/10
+```
+Oggi:   runClassifier() -> runAnalyzer() -> runInvestigator() -> runAdvisor()
+Domani: definePipeline({ domain, agents[], types, corpus })
+```
 
-- Willingness-to-pay molto superiore.
-- Italia: ~60.000 agenzie immobiliari, ~120.000 PMI senza legale interno, ~240.000 studi professionali.
-- Subscription €29-49/mese funziona.
-- Canale: LinkedIn, associazioni di categoria, demo dirette.
+Ogni "domain pack" diventa un pacchetto: `/domains/legal/`, `/domains/fiscal/`, `/domains/payroll/`.
 
-### Nicchie verticali consigliate per il lancio
+### 7.2. Astrarre il layer LLM
 
-1. **Immobiliare** — Contratti di locazione e compravendita (volume alto, ripetitivo)
-2. **HR / Lavoro** — Contratti di assunzione, NDA, patti di non concorrenza
-3. **Freelance / P.IVA** — Contratti di collaborazione, lettere d'incarico
+Supportare OpenAI / Mistral come fallback. Riduce dipendenza da Anthropic e permette ottimizzazione costi.
 
----
+### 7.3. Brand ombrello
 
-## Feature critiche per il go-to-market
-
-Ordine di priorita dalle feature incomplete:
-
-1. **Corpus legislativo** — RAG vuoto = Analyzer lavora alla cieca
-2. **Dashboard reale** — Mock data, senza storico gli utenti non tornano
-3. **OCR** — Molti contratti sono PDF scansionati
-4. **UI scoring multidimensionale** — 4 score calcolati, solo 1 mostrato
-5. **Deep search limits** — Free tier senza limiti reali e un buco
+Non "controlla.me" per tutto, ma una famiglia: controlla.me/contratti, controlla.me/fisco, controlla.me/busta-paga. Un account, N servizi.
 
 ---
 
-## Verdetto
+## 8. Verdetto finale
+
+### Come prodotto singolo (solo legale)
 
 | Dimensione | Voto |
 |-----------|------|
@@ -106,7 +169,28 @@ Ordine di priorita dalle feature incomplete:
 | Monetizzazione | 5/10 |
 | Market fit B2C | 6.5/10 |
 | Market fit B2B | 8/10 |
-| Competitivita | 7/10 |
 | Go-to-market readiness | 5/10 |
 
-**Conclusione**: Basi tecniche solide, problema reale, potenziale specialmente nel B2B italiano. Serve repricing, completamento feature critiche, e focus su una nicchia verticale (es. immobiliare) per il lancio.
+### Come piattaforma multi-verticale
+
+| Dimensione | Voto |
+|-----------|------|
+| Architettura come piattaforma | 7.5/10 |
+| Potenziale di scala | 8.5/10 |
+| Appetibilita mercato AI | 8/10 |
+| Moat / difendibilita | 5.5/10 |
+| Replicabilita su N verticali | 7/10 |
+| Monetizzazione multi-verticale | 8/10 |
+| Rischio regolamentare | 6/10 |
+
+### Conclusione
+
+Come prodotto singolo: buon side-project. Come piattaforma multi-verticale di analisi documentale AI per il mercato italiano: **idea con potenziale serio**.
+
+Il pezzo mancante critico e' l'astrazione del core (orchestratore configurabile + domain packs). Il moat verra dalla knowledge base accumulata e dalla velocita di esecuzione, non dalla tech in se.
+
+Priorita immediate:
+1. Lanciare il verticale legale con feature complete (corpus, dashboard, OCR)
+2. Validare il pricing piu alto su primi utenti reali
+3. Astrarre il core per il secondo verticale (commercialista o buste paga)
+4. Costruire il brand ombrello
