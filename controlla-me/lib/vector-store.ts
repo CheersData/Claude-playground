@@ -85,7 +85,7 @@ export function chunkText(
 
     // Avanza con overlap
     start = end - CHUNK_OVERLAP;
-    if (start <= chunks[chunks.length - 1]?.metadata?.charStart as number) {
+    if (start <= (chunks[chunks.length - 1]?.metadata?.charStart as number)) {
       start = end; // Previeni loop infinito
     }
   }

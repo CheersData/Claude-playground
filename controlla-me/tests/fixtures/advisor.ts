@@ -5,6 +5,7 @@ export function makeAdvisorResult(
 ): AdvisorResult {
   return {
     fairnessScore: 6.2,
+    scores: null,
     summary:
       "Il contratto presenta una penale eccessiva per risoluzione anticipata. Per il resto, le condizioni sono nella norma.",
     risks: [
