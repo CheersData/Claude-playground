@@ -31,9 +31,9 @@ function getCerebrasClient(): OpenAI {
 
 // ─── Models ───
 
-/** Llama 3.3 70B su Cerebras: reasoning forte, velocita' estrema */
-export const CEREBRAS_MODEL_LLAMA3_70B = "llama-3.3-70b";
-/** Llama 3.1 8B su Cerebras: ultra-veloce, economy */
+/** GPT-OSS 120B su Cerebras: 120B params, ~3000 tok/s ($0.35/$0.75 per 1M token) */
+export const CEREBRAS_MODEL_GPT_OSS = "gpt-oss-120b";
+/** Llama 3.1 8B su Cerebras: ultra-veloce, ~2200 tok/s ($0.10/$0.10 per 1M token) */
 export const CEREBRAS_MODEL_LLAMA3_8B = "llama3.1-8b";
 
 const MAX_RETRIES = 3;
@@ -76,7 +76,7 @@ export async function generateWithCerebras(
   config: CerebrasGenerateConfig = {}
 ): Promise<CerebrasResult> {
   const {
-    model = CEREBRAS_MODEL_LLAMA3_70B,
+    model = CEREBRAS_MODEL_GPT_OSS,
     systemPrompt,
     maxTokens = 4096,
     temperature = 0.2,

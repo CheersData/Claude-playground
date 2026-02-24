@@ -120,31 +120,79 @@ export const MODELS = {
     outputCostPer1M: 0.4,
     contextWindow: 1_000_000,
   },
+  "gpt-5": {
+    provider: "openai" as const,
+    model: "gpt-5",
+    displayName: "GPT-5",
+    inputCostPer1M: 1.25,
+    outputCostPer1M: 10.0,
+    contextWindow: 400_000,
+  },
+  "gpt-5-mini": {
+    provider: "openai" as const,
+    model: "gpt-5-mini",
+    displayName: "GPT-5 Mini",
+    inputCostPer1M: 0.25,
+    outputCostPer1M: 2.0,
+    contextWindow: 400_000,
+  },
+  "gpt-5-nano": {
+    provider: "openai" as const,
+    model: "gpt-5-nano",
+    displayName: "GPT-5 Nano",
+    inputCostPer1M: 0.05,
+    outputCostPer1M: 0.4,
+    contextWindow: 400_000,
+  },
 
-  // ── Mistral (free tier: tutti i modelli, 2 RPM) ──
-  "mistral-large": {
+  // ── Mistral (free tier: tutti i modelli, 2 RPM, 1B tok/mese) ──
+  "mistral-large-3": {
     provider: "mistral" as const,
-    model: "mistral-large-latest",
-    displayName: "Mistral Large",
-    inputCostPer1M: 2.0,
-    outputCostPer1M: 6.0,
+    model: "mistral-large-2512",
+    displayName: "Mistral Large 3",
+    inputCostPer1M: 0.5,
+    outputCostPer1M: 1.5,
+    contextWindow: 256_000,
+  },
+  "mistral-medium-3": {
+    provider: "mistral" as const,
+    model: "mistral-medium-3.1",
+    displayName: "Mistral Medium 3.1",
+    inputCostPer1M: 0.4,
+    outputCostPer1M: 2.0,
     contextWindow: 128_000,
   },
-  "mistral-small": {
+  "mistral-small-3": {
     provider: "mistral" as const,
-    model: "mistral-small-latest",
-    displayName: "Mistral Small",
+    model: "mistral-small-3.2-24b-instruct",
+    displayName: "Mistral Small 3.2",
+    inputCostPer1M: 0.06,
+    outputCostPer1M: 0.18,
+    contextWindow: 128_000,
+  },
+  "ministral-8b": {
+    provider: "mistral" as const,
+    model: "ministral-8b-2512",
+    displayName: "Ministral 3 8B",
+    inputCostPer1M: 0.15,
+    outputCostPer1M: 0.15,
+    contextWindow: 256_000,
+  },
+  "ministral-3b": {
+    provider: "mistral" as const,
+    model: "ministral-3b-2512",
+    displayName: "Ministral 3 3B",
     inputCostPer1M: 0.1,
-    outputCostPer1M: 0.3,
+    outputCostPer1M: 0.1,
     contextWindow: 128_000,
   },
-  "mistral-nemo": {
+  "codestral": {
     provider: "mistral" as const,
-    model: "open-mistral-nemo",
-    displayName: "Mistral Nemo",
-    inputCostPer1M: 0.02,
-    outputCostPer1M: 0.04,
-    contextWindow: 128_000,
+    model: "codestral-2508",
+    displayName: "Codestral",
+    inputCostPer1M: 0.3,
+    outputCostPer1M: 0.9,
+    contextWindow: 256_000,
   },
 
   // ── Groq — Llama su hardware LPU (free tier: 1000 req/giorno) ──
@@ -154,7 +202,7 @@ export const MODELS = {
     displayName: "Llama 4 Scout (Groq)",
     inputCostPer1M: 0.11,
     outputCostPer1M: 0.34,
-    contextWindow: 512_000,
+    contextWindow: 128_000,
   },
   "groq-llama3-70b": {
     provider: "groq" as const,
@@ -172,22 +220,30 @@ export const MODELS = {
     outputCostPer1M: 0.08,
     contextWindow: 128_000,
   },
+  "groq-qwen3-32b": {
+    provider: "groq" as const,
+    model: "qwen/qwen3-32b",
+    displayName: "Qwen 3 32B (Groq)",
+    inputCostPer1M: 0.29,
+    outputCostPer1M: 0.59,
+    contextWindow: 128_000,
+  },
 
-  // ── Cerebras — Llama su hardware WSE (free tier: 1M tok/giorno) ──
-  "cerebras-llama3-70b": {
+  // ── Cerebras — hardware WSE (free tier: 24M tok/giorno) ──
+  "cerebras-gpt-oss-120b": {
     provider: "cerebras" as const,
-    model: "llama-3.3-70b",
-    displayName: "Llama 3.3 70B (Cerebras)",
-    inputCostPer1M: 0,
-    outputCostPer1M: 0,
+    model: "gpt-oss-120b",
+    displayName: "GPT-OSS 120B (Cerebras)",
+    inputCostPer1M: 0.35,
+    outputCostPer1M: 0.75,
     contextWindow: 128_000,
   },
   "cerebras-llama3-8b": {
     provider: "cerebras" as const,
     model: "llama3.1-8b",
     displayName: "Llama 3.1 8B (Cerebras)",
-    inputCostPer1M: 0,
-    outputCostPer1M: 0,
+    inputCostPer1M: 0.1,
+    outputCostPer1M: 0.1,
     contextWindow: 128_000,
   },
 
@@ -195,9 +251,9 @@ export const MODELS = {
   "deepseek-v3": {
     provider: "deepseek" as const,
     model: "deepseek-chat",
-    displayName: "DeepSeek V3",
-    inputCostPer1M: 0.14,
-    outputCostPer1M: 0.28,
+    displayName: "DeepSeek V3.2",
+    inputCostPer1M: 0.28,
+    outputCostPer1M: 0.42,
     contextWindow: 128_000,
   },
   "deepseek-r1": {

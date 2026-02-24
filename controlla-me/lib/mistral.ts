@@ -30,14 +30,18 @@ function getMistralClient(): OpenAI {
 
 // ─── Models ───
 
-/** Mistral Large: top-tier reasoning ($2/$6 per 1M token) */
-export const MISTRAL_MODEL_LARGE = "mistral-large-latest";
-/** Mistral Small: buon rapporto qualita'/prezzo ($0.10/$0.30 per 1M token) */
-export const MISTRAL_MODEL_SMALL = "mistral-small-latest";
-/** Mistral Nemo: ultra-economico ($0.02/$0.04 per 1M token) */
-export const MISTRAL_MODEL_NEMO = "open-mistral-nemo";
+/** Mistral Large 3: MoE 675B, reasoning forte ($0.50/$1.50 per 1M token) */
+export const MISTRAL_MODEL_LARGE = "mistral-large-2512";
+/** Mistral Medium 3.1: fascia media ($0.40/$2.00 per 1M token) */
+export const MISTRAL_MODEL_MEDIUM = "mistral-medium-3.1";
+/** Mistral Small 3.2: 24B params, economico ($0.06/$0.18 per 1M token) */
+export const MISTRAL_MODEL_SMALL = "mistral-small-3.2-24b-instruct";
+/** Ministral 3 8B: leggero ($0.15/$0.15 per 1M token) */
+export const MISTRAL_MODEL_MINI = "ministral-8b-2512";
+/** Ministral 3 3B: ultra-leggero ($0.10/$0.10 per 1M token) */
+export const MISTRAL_MODEL_NANO = "ministral-3b-2512";
 /** Codestral: specializzato codice ($0.30/$0.90 per 1M token) */
-export const MISTRAL_MODEL_CODE = "codestral-latest";
+export const MISTRAL_MODEL_CODE = "codestral-2508";
 
 const MAX_RETRIES = 3;
 const RETRY_WAIT_MS = 35_000; // Free tier ha 2 RPM, serve wait piu' lungo

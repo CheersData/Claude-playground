@@ -34,9 +34,9 @@ function getDeepSeekClient(): OpenAI {
 
 // ─── Models ───
 
-/** DeepSeek V3: economy general purpose ($0.14/$0.28 per 1M token) */
+/** DeepSeek V3.2 (chat): general purpose ($0.28/$0.42 per 1M token, cache hit $0.028) */
 export const DEEPSEEK_MODEL_V3 = "deepseek-chat";
-/** DeepSeek R1: reasoning ($0.55/$2.19 per 1M token) — attenzione: reasoning token nascosti */
+/** DeepSeek R1 (reasoner): reasoning ($0.55/$2.19 per 1M token) — attenzione: reasoning token nascosti */
 export const DEEPSEEK_MODEL_R1 = "deepseek-reasoner";
 
 const MAX_RETRIES = 3;
