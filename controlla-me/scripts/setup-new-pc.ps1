@@ -218,21 +218,28 @@ $realPython = $pyVer -and $pyVer -match "Python \d"
 
 if ($realPython) {
     Write-Ok "$($pyVer.Trim()) gia installato"
-} elseif (Test-Cmd "python3") {
-    $pyVer = python3 --version 2>&1
-    Write-Ok "$pyVer gia installato"
 } else {
-    $installed = Install-WithWinget -PackageId "Python.Python.3.12" -DisplayName "Python 3.12"
-    if ($installed) {
-        Refresh-Path
-        if (Test-Cmd "python") {
-            Write-Ok "Python $(python --version 2>&1) installato"
-        } else {
-            Write-Warn "Python installato ma serve riavviare il terminale per usarlo"
-        }
+    # Prova anche python3 (stesso trattamento per alias Windows Store)
+    $ErrorActionPreference = "SilentlyContinue"
+    $py3Ver = $null
+    try { $py3Ver = python3 --version 2>&1 | Out-String } catch {}
+    $ErrorActionPreference = $savedEAP
+
+    if ($py3Ver -and $py3Ver -match "Python \d") {
+        Write-Ok "$($py3Ver.Trim()) gia installato"
     } else {
-        Write-Warn "Python non installato. Non e' strettamente necessario per controlla.me."
-        Write-Info "Puoi installarlo dopo da: https://www.python.org/downloads/"
+        $installed = Install-WithWinget -PackageId "Python.Python.3.12" -DisplayName "Python 3.12"
+        if ($installed) {
+            Refresh-Path
+            if (Test-Cmd "python") {
+                Write-Ok "Python $(python --version 2>&1) installato"
+            } else {
+                Write-Warn "Python installato ma serve riavviare il terminale per usarlo"
+            }
+        } else {
+            Write-Warn "Python non installato. Non e' strettamente necessario per controlla.me."
+            Write-Info "Puoi installarlo dopo da: https://www.python.org/downloads/"
+        }
     }
 }
 
