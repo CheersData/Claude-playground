@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (query) {
-      const results = await searchArticles(query, sourceId || undefined);
+      const results = await searchArticles(query, { lawSource: sourceId || undefined });
       return NextResponse.json({ results, count: results.length });
     }
 

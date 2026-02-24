@@ -37,6 +37,29 @@ export interface LegalArticleSearchResult extends LegalArticle {
   similarity: number;
 }
 
+// ─── Query: Lookup singolo articolo per ID ───
+
+/**
+ * Recupera un singolo articolo per UUID.
+ */
+export async function getArticleById(
+  id: string
+): Promise<LegalArticle | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("legal_articles")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    console.error(`[CORPUS] Errore getArticleById("${id}"): ${error?.message}`);
+    return null;
+  }
+
+  return mapRowToArticle(data as Record<string, unknown>);
+}
+
 // ─── Query: Lookup diretto per fonte ───
 
 /**
