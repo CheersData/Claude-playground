@@ -41,7 +41,7 @@ Client: `lib/gemini.ts` — SDK `@google/genai`, retry 10s. Free tier: 250 req/g
 
 ### 1.3 OpenAI
 
-Client: `lib/openai.ts` — SDK `openai`. Subscription ChatGPT Plus ($20/mese) NON include crediti API.
+Client: `lib/ai-sdk/openai-compat.ts` — SDK `openai`. Subscription ChatGPT Plus ($20/mese) NON include crediti API.
 
 #### Modelli principali (consigliati)
 
@@ -92,7 +92,7 @@ Attenzione: usano **reasoning token nascosti** fatturati come output ma invisibi
 
 ### 1.4 Mistral
 
-Client: `lib/mistral.ts` — API OpenAI-compatibile. **Free tier: TUTTI i modelli, 2 RPM, 1B tok/mese.**
+Client: `lib/ai-sdk/openai-compat.ts` — API OpenAI-compatibile. **Free tier: TUTTI i modelli, 2 RPM, 1B tok/mese.**
 
 #### Modelli generali
 
@@ -136,7 +136,7 @@ Client: `lib/mistral.ts` — API OpenAI-compatibile. **Free tier: TUTTI i modell
 
 ### 1.5 Groq (Llama su hardware LPU)
 
-Client: `lib/groq.ts` — API OpenAI-compatibile. **Free tier: 1000 req/giorno.** Velocita' estrema.
+Client: `lib/ai-sdk/openai-compat.ts` — API OpenAI-compatibile. **Free tier: 1000 req/giorno.** Velocita' estrema.
 
 #### Modelli production
 
@@ -168,7 +168,7 @@ Client: `lib/groq.ts` — API OpenAI-compatibile. **Free tier: 1000 req/giorno.*
 
 ### 1.6 Cerebras (Llama su hardware WSE)
 
-Client: `lib/cerebras.ts` — API OpenAI-compatibile. **Free tier: 24M token/giorno ($48/giorno di valore!).**
+Client: `lib/ai-sdk/openai-compat.ts` — API OpenAI-compatibile. **Free tier: 24M token/giorno ($48/giorno di valore!).**
 
 | Modello | Model ID | Input | Output | Velocita' | Punti di forza | Limiti |
 |---------|----------|-------|--------|-----------|----------------|--------|
@@ -185,7 +185,7 @@ Client: `lib/cerebras.ts` — API OpenAI-compatibile. **Free tier: 24M token/gio
 
 ### 1.7 DeepSeek
 
-Client: `lib/deepseek.ts` — API OpenAI-compatibile. 5M token gratis per nuovi account (30gg). **⚠️ Server in Cina.**
+Client: `lib/ai-sdk/openai-compat.ts` — API OpenAI-compatibile. 5M token gratis per nuovi account (30gg). **⚠️ Server in Cina.**
 
 | Modello | Model ID | Input | Output | Context | Punti di forza | Limiti |
 |---------|----------|-------|--------|---------|----------------|--------|
@@ -303,17 +303,19 @@ Client: `lib/deepseek.ts` — API OpenAI-compatibile. 5M token gratis per nuovi 
 
 ### Provider integrati (7)
 
-Tutti integrati con client wrapper in `lib/`, logging e retry automatico. Configurazione centralizzata in `lib/models.ts`.
+Configurazione centralizzata in `lib/models.ts`. Routing automatico tramite `lib/ai-sdk/generate.ts`.
+Anthropic e Gemini hanno SDK nativi. Gli altri 5 provider usano `lib/ai-sdk/openai-compat.ts` (1 funzione parametrizzata).
+Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts` con fallback automatico.
 
-| Provider | Client | API | Free tier | Note |
-|----------|--------|-----|-----------|------|
-| **Anthropic** | `lib/anthropic.ts` | SDK dedicato | No | Provider principale, retry 60s |
-| **Google** | `lib/gemini.ts` | SDK dedicato | 250 req/giorno Flash | Corpus Agent, Question-Prep |
-| **OpenAI** | `lib/openai.ts` | SDK `openai` | $5 crediti | Subscription Plus NON include API |
-| **Mistral** | `lib/mistral.ts` | OpenAI-compatibile | **Tutti i modelli, 2 RPM, 1B tok/mese** | Nemo a $0.02 = ultra-economico |
-| **Groq** | `lib/groq.ts` | OpenAI-compatibile | **1000 req/giorno** | Llama su hardware LPU, velocissimo |
-| **Cerebras** | `lib/cerebras.ts` | OpenAI-compatibile | **24M tok/giorno** | Llama su hardware WSE, velocissimo |
-| **DeepSeek** | `lib/deepseek.ts` | OpenAI-compatibile | 5M tok (30gg) | ⚠️ Server in Cina, sconsigliato per dati legali |
+| Provider | Implementazione | API | Free tier | Note |
+|----------|----------------|-----|-----------|------|
+| **Anthropic** | `lib/anthropic.ts` | SDK nativo | No | Provider principale, retry 60s |
+| **Google** | `lib/gemini.ts` | SDK nativo | 250 req/giorno Flash | Corpus Agent, Question-Prep |
+| **OpenAI** | `lib/ai-sdk/openai-compat.ts` | OpenAI SDK | $5 crediti | Subscription Plus NON include API |
+| **Mistral** | `lib/ai-sdk/openai-compat.ts` | OpenAI-compat | **Tutti i modelli, 2 RPM, 1B tok/mese** | Nemo a $0.02 = ultra-economico |
+| **Groq** | `lib/ai-sdk/openai-compat.ts` | OpenAI-compat | **1000 req/giorno** | Llama su hardware LPU, velocissimo |
+| **Cerebras** | `lib/ai-sdk/openai-compat.ts` | OpenAI-compat | **24M tok/giorno** | Llama su hardware WSE, velocissimo |
+| **DeepSeek** | `lib/ai-sdk/openai-compat.ts` | OpenAI-compat | 5M tok (30gg) | ⚠️ Server in Cina, sconsigliato per dati legali |
 | **Voyage AI** | `lib/embeddings.ts` | API HTTP | 50M tok | Embeddings legali specializzati |
 
 ### Regole per la scelta modello

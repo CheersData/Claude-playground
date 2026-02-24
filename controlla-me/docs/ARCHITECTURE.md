@@ -95,32 +95,20 @@
 └─────────────────┘ │  └──────────────────────────────┘  │
                     │  RLS attivo su tutte le tabelle     │
 ┌─────────────────┐ └────────────────────────────────────┘
-│   OPENAI        │
-│   GPT-4o/4.1    │ ┌─────────────────┐
-│   4.1 Mini/Nano │ │     STRIPE      │
-└─────────────────┘ │  Subscriptions  │
-                    │  One-time pay   │
-┌─────────────────┐ │  Webhooks       │
-│   MISTRAL       │ └─────────────────┘
-│   Large/Small   │
-│   Nemo          │
-└─────────────────┘
-
-┌─────────────────┐
-│   GROQ (LPU)    │
-│   Llama 4 Scout │
-│   Llama 3.3 70B │
-└─────────────────┘
-
-┌─────────────────┐
-│   CEREBRAS(WSE) │
-│   Llama 3.3 70B │
-└─────────────────┘
-
-┌─────────────────┐
-│   DEEPSEEK ⚠️   │
-│   V3 / R1       │
-│   (server Cina) │
+│ lib/ai-sdk/     │
+│ (infra riusab.) │ ┌─────────────────┐
+│                 │ │     STRIPE      │
+│ openai-compat:  │ │  Subscriptions  │
+│  • OpenAI       │ │  One-time pay   │
+│  • Mistral      │ │  Webhooks       │
+│  • Groq (LPU)   │ └─────────────────┘
+│  • Cerebras     │
+│  • DeepSeek ⚠️  │
+│                 │
+│ generate.ts     │
+│ agent-runner.ts │
+│ models.ts →     │
+│  AGENT_MODELS   │
 └─────────────────┘
 
 ┌─────────────────┐
@@ -293,14 +281,14 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 **File chiave**:
 - `lib/agents/question-prep.ts` — Agente riformulazione domande (colloquiale → legale)
 - `lib/prompts/question-prep.ts` — System prompt riformulatore
-- `lib/gemini.ts` — Client Gemini (parallelo a `lib/anthropic.ts`)
-- `lib/agents/corpus-agent.ts` — Logica agente con fallback chain + question-prep
+- `lib/agents/corpus-agent.ts` — Logica agente, usa `runAgent("corpus-agent")` con auto-fallback
 - `lib/prompts/corpus-agent.ts` — System prompt (vincolo: solo articoli dal contesto)
+- `lib/ai-sdk/agent-runner.ts` — Gestisce primary→fallback automaticamente da `AGENT_MODELS`
 
-**Fallback chain** (provider = "auto"):
-1. Se `GEMINI_API_KEY` presente → Gemini 2.5 Flash
-2. Se Gemini fallisce → warning + Haiku 4.5
-3. Se Haiku fallisce → errore 500
+**Fallback chain** (provider = "auto", gestito da `runAgent`):
+1. Legge primary/fallback da `AGENT_MODELS["corpus-agent"]` in `lib/models.ts`
+2. Se primary provider disponibile → lo usa (default: Gemini Flash)
+3. Se primary fallisce → automaticamente prova fallback (default: Haiku 4.5)
 4. Se question-prep fallisce → usa domanda originale (non blocca mai il flusso)
 
 ### 1.6 Pagine Frontend

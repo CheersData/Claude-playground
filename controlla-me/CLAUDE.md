@@ -173,12 +173,12 @@ controlla-me/
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
 │   ├── gemini.ts                 # Client Gemini 2.5 Flash + retry
-│   ├── openai.ts                 # Client OpenAI (GPT-4o, 4.1, Nano)
-│   ├── mistral.ts                # Client Mistral (Large, Small, Nemo)
-│   ├── groq.ts                   # Client Groq (Llama 4, 3.3, 3.1)
-│   ├── cerebras.ts               # Client Cerebras (Llama 3.3, 3.1)
-│   ├── deepseek.ts               # Client DeepSeek (V3, R1)
 │   ├── models.ts                 # Registry centralizzato: 22 modelli, 7 provider
+│   ├── ai-sdk/                   # Infrastruttura AI riusabile (astraibile)
+│   │   ├── types.ts              # Interfacce GenerateConfig, GenerateResult
+│   │   ├── openai-compat.ts      # 1 funzione per 5 provider OpenAI-compatibili
+│   │   ├── generate.ts           # Router universale: generate(modelKey) → provider
+│   │   └── agent-runner.ts       # runAgent(agentName) con auto-fallback da AGENT_MODELS
 │   ├── embeddings.ts             # Client Voyage AI per embeddings
 │   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
 │   ├── legal-corpus.ts           # Ingest e query corpus legislativo
@@ -280,17 +280,20 @@ Configurazione centralizzata in `lib/models.ts`. Per cambiare modello a un agent
 
 ### Provider disponibili (7)
 
-Tutti integrati con client wrapper in `lib/`, logging e retry automatico.
+Architettura a 3 livelli: `lib/models.ts` (registry) → `lib/ai-sdk/generate.ts` (router) → provider client.
+Anthropic e Gemini hanno SDK nativi dedicati. Gli altri 5 usano `lib/ai-sdk/openai-compat.ts` (1 funzione per tutti).
 
-| Provider | Client | Modelli | Free tier |
-|----------|--------|---------|-----------|
-| Anthropic | `lib/anthropic.ts` | Sonnet 4.5, Haiku 4.5 | No |
-| Google Gemini | `lib/gemini.ts` | Flash, Pro | 250 req/giorno |
-| OpenAI | `lib/openai.ts` | GPT-4o, 4.1, 4.1 Mini, 4.1 Nano, 4o Mini | $5 crediti |
-| Mistral | `lib/mistral.ts` | Large, Small, Nemo ($0.02!) | Tutti i modelli, 2 RPM |
-| Groq | `lib/groq.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B | 1000 req/giorno |
-| Cerebras | `lib/cerebras.ts` | Llama 3.3 70B, 3.1 8B | 1M tok/giorno |
-| DeepSeek | `lib/deepseek.ts` | V3, R1 | 5M tok (30gg) |
+| Provider | Implementazione | Modelli | Free tier |
+|----------|----------------|---------|-----------|
+| Anthropic | `lib/anthropic.ts` (SDK nativo) | Sonnet 4.5, Haiku 4.5 | No |
+| Google Gemini | `lib/gemini.ts` (SDK nativo) | Flash, Pro | 250 req/giorno |
+| OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-4o, 4.1, 4.1 Mini, 4.1 Nano, 4o Mini | $5 crediti |
+| Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo ($0.02!) | Tutti i modelli, 2 RPM |
+| Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B | 1000 req/giorno |
+| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B | 1M tok/giorno |
+| DeepSeek | `lib/ai-sdk/openai-compat.ts` | V3, R1 | 5M tok (30gg) |
+
+Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts`. Per cambiare modello: modificare `AGENT_MODELS` in `lib/models.ts`, zero codice agente da toccare.
 
 Vedi `docs/MODEL-CENSUS.md` per pricing completo e configurazioni raccomandate.
 
