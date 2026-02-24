@@ -376,6 +376,83 @@ export async function getCorpusStats(): Promise<{
   };
 }
 
+// ─── Query: fonti e gerarchia (per API /corpus/hierarchy) ───
+
+/**
+ * Lista tutte le fonti legislative nel corpus con conteggio articoli.
+ */
+export async function getCorpusSources(): Promise<
+  Array<{ source: string; articleCount: number }>
+> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("legal_articles")
+    .select("law_source");
+
+  if (error) {
+    console.error(`[CORPUS] Errore getCorpusSources: ${error.message}`);
+    return [];
+  }
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const src = (row as { law_source: string }).law_source;
+    counts[src] = (counts[src] ?? 0) + 1;
+  }
+
+  return Object.entries(counts)
+    .map(([source, articleCount]) => ({ source, articleCount }))
+    .sort((a, b) => b.articleCount - a.articleCount);
+}
+
+/**
+ * Restituisce l'albero navigabile di una fonte legislativa.
+ * Raggruppa gli articoli per hierarchy (libro, titolo, capo, sezione).
+ */
+export async function getSourceHierarchy(
+  sourceId: string
+): Promise<{
+  source: string;
+  totalArticles: number;
+  tree: Record<string, unknown>;
+} | null> {
+  const articles = await getArticlesBySource(sourceId, 500);
+  if (articles.length === 0) return null;
+
+  const tree: Record<string, unknown> = {};
+
+  for (const article of articles) {
+    const h = article.hierarchy ?? {};
+    const keys = Object.keys(h);
+
+    if (keys.length === 0) {
+      // Articolo senza gerarchia — metti direttamente alla radice
+      (tree[article.articleReference] as unknown) = {
+        title: article.articleTitle,
+        reference: article.articleReference,
+      };
+    } else {
+      // Costruisci la struttura gerarchica
+      let current = tree;
+      for (const key of keys) {
+        const val = h[key];
+        if (!current[val]) current[val] = {};
+        current = current[val] as Record<string, unknown>;
+      }
+      current[article.articleReference] = {
+        title: article.articleTitle,
+        reference: article.articleReference,
+      };
+    }
+  }
+
+  return {
+    source: sourceId,
+    totalArticles: articles.length,
+    tree,
+  };
+}
+
 // ─── Utility ───
 
 function mapRowToArticle(row: Record<string, unknown>): LegalArticle {
