@@ -1,6 +1,10 @@
 # CLAUDE.md — Istruzioni per agenti AI
 
 > Tutto ciò che un agente AI deve sapere per sviluppare, deployare e mantenere **controlla.me** — app di analisi legale AI con 4 agenti specializzati.
+>
+> **Controlla.me è il primo prototipo** di una piattaforma madre per molteplici team di agenti AI. I servizi devono essere scalabili e parametrizzabili.
+>
+> Per l'architettura completa, fragilità, security status e roadmap: vedi **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 
 ---
 
