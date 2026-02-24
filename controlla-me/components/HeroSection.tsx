@@ -345,118 +345,125 @@ function HeroDubbi() {
   const [mockInput, setMockInput] = useState("");
 
   return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/Hero.webp"
-          alt=""
-          fill
-          className="object-cover object-center"
-          quality={90}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 60%, rgba(255,255,255,0.68) 100%)",
-          }}
-        />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white to-transparent" />
-      </div>
+    <section className="relative min-h-[90vh] flex items-center bg-white overflow-hidden">
+      <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-20">
+        <div className="flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-[680px] mx-auto px-6 py-20 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-purple-300/30 mb-8 text-sm text-foreground font-medium"
-        >
-          <MessageCircle className="w-4 h-4 text-purple-500" />
-          Corpus normativo in costruzione
-        </motion.div>
+          {/* RIGHT — Text & chatbox on clean white */}
+          <div className="flex-1 w-full md:w-1/2 text-left">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-300/30 mb-6 text-sm text-foreground font-medium"
+            >
+              <MessageCircle className="w-4 h-4 text-purple-500" />
+              Corpus normativo in costruzione
+            </motion.div>
 
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
-          className="font-serif text-[clamp(32px,6vw,64px)] leading-[1.08] tracking-[-0.02em] mb-4"
-        >
-          Parlami dei
-          <br />
-          <span className="italic bg-gradient-to-br from-purple-500 via-purple-400 to-violet-400 bg-clip-text text-transparent">
-            tuoi dubbi.
-          </span>
-        </motion.h2>
-
-        <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          className="text-base text-foreground-secondary max-w-[480px] mx-auto mb-10 leading-relaxed"
-        >
-          Una chatbox che interroga il corpus normativo italiano per rispondere
-          alle tue domande legali. Norme, sentenze, prassi — tutto a portata di
-          domanda.
-        </motion.p>
-
-        {/* Mock chatbox */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="w-full max-w-[520px] mx-auto"
-        >
-          <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-            {/* Chat header */}
-            <div className="px-5 py-3 border-b border-border bg-purple-50/50 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-              <span className="text-xs font-medium text-purple-600">
-                Assistente legale AI
+            {/* Headline — poche parole, MOLTO BOLD */}
+            <motion.h2
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="font-serif font-black text-[clamp(38px,5.5vw,72px)] leading-[1.02] tracking-[-0.03em] text-foreground mb-4"
+            >
+              Parlami dei
+              <br />
+              <span className="italic bg-gradient-to-br from-purple-500 via-purple-400 to-violet-400 bg-clip-text text-transparent">
+                tuoi dubbi.
               </span>
-              <span className="text-xs text-foreground-tertiary ml-auto">
-                Prossimamente
-              </span>
-            </div>
+            </motion.h2>
 
-            {/* Mock messages */}
-            <div className="px-5 py-6 space-y-4">
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-3.5 h-3.5 text-purple-500" />
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-base text-foreground-secondary max-w-[460px] mb-8 leading-relaxed"
+            >
+              Interroga il corpus normativo italiano.
+              <br className="hidden md:block" />
+              Norme, sentenze, prassi — tutto a portata di domanda.
+            </motion.p>
+
+            {/* Mock chatbox */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="w-full max-w-[480px]"
+            >
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                {/* Chat header */}
+                <div className="px-5 py-3 border-b border-border bg-purple-50/50 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-xs font-medium text-purple-600">
+                    Assistente legale AI
+                  </span>
+                  <span className="text-xs text-foreground-tertiary ml-auto">
+                    Prossimamente
+                  </span>
                 </div>
-                <div className="bg-purple-50 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%]">
-                  <p className="text-sm text-foreground-secondary">
-                    Ciao! Chiedimi qualsiasi dubbio legale. Consultero' il
-                    corpus normativo per darti una risposta fondata.
-                  </p>
+
+                {/* Mock messages */}
+                <div className="px-5 py-6 space-y-4">
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-3.5 h-3.5 text-purple-500" />
+                    </div>
+                    <div className="bg-purple-50 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%]">
+                      <p className="text-sm text-foreground-secondary">
+                        Ciao! Chiedimi qualsiasi dubbio legale. Consultero&apos; il
+                        corpus normativo per darti una risposta fondata.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Input */}
+                <div className="px-4 pb-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={mockInput}
+                      onChange={(e) => setMockInput(e.target.value)}
+                      placeholder="Chiedimi qualsiasi dubbio legale..."
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-background-secondary border border-border text-sm placeholder:text-foreground-tertiary focus:border-purple-300 focus:ring-2 focus:ring-purple-200/50 focus:outline-none transition-all"
+                    />
+                    <button className="px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium opacity-50 cursor-not-allowed">
+                      Invia
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Input */}
-            <div className="px-4 pb-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={mockInput}
-                  onChange={(e) => setMockInput(e.target.value)}
-                  placeholder="Chiedimi qualsiasi dubbio legale..."
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-background-secondary border border-border text-sm placeholder:text-foreground-tertiary focus:border-purple-300 focus:ring-2 focus:ring-purple-200/50 focus:outline-none transition-all"
-                />
-                <button className="px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium opacity-50 cursor-not-allowed">
-                  Invia
-                </button>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </motion.div>
+
+          {/* LEFT — Immagine a metà schermo */}
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="flex-1 w-full md:w-1/2 relative"
+          >
+            <div className="relative w-full aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="/images/Hero.webp"
+                alt="Assistente legale AI"
+                fill
+                className="object-cover object-center"
+                quality={90}
+              />
+            </div>
+          </motion.div>
+
+        </div>
       </div>
     </section>
   );
@@ -468,83 +475,88 @@ function HeroDubbi() {
 
 function HeroBrand() {
   return (
-    <section className="relative min-h-[70vh] flex items-center overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/law-references.png"
-          alt=""
-          fill
-          className="object-cover object-center"
-          quality={90}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 60%, rgba(255,255,255,0.72) 100%)",
-          }}
-        />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white to-transparent" />
-      </div>
+    <section className="relative min-h-[90vh] flex items-center bg-white overflow-hidden">
+      <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-20">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-[680px] mx-auto px-6 py-20 text-center">
-        {/* Brand mark */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6 }}
-          className="mb-6"
-        >
-          <span className="font-serif text-[clamp(48px,9vw,96px)] leading-none tracking-[-0.03em]">
-            <span className="text-foreground">controlla</span>
-            <span className="text-accent">.me</span>
-          </span>
-        </motion.div>
+          {/* LEFT — Brand text on clean white */}
+          <div className="flex-1 w-full md:w-1/2 text-left">
+            {/* Brand mark */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+              className="mb-4"
+            >
+              <span className="font-serif font-black text-[clamp(48px,8vw,96px)] leading-none tracking-[-0.03em]">
+                <span className="text-foreground">controlla</span>
+                <span className="text-accent">.me</span>
+              </span>
+            </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="font-serif italic text-[clamp(20px,4vw,36px)] leading-snug bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent mb-6"
-        >
-          La legge, compresa da tutti.
-        </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="font-serif italic text-[clamp(22px,4vw,40px)] leading-snug bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent mb-6"
+            >
+              La legge, compresa da tutti.
+            </motion.p>
 
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="text-base text-foreground-secondary max-w-[440px] mx-auto mb-10 leading-relaxed"
-        >
-          Un team di intelligenze artificiali specializzate che leggono,
-          analizzano e ti spiegano i tuoi documenti legali — prima che sia
-          troppo tardi.
-        </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="text-base text-foreground-secondary max-w-[440px] mb-10 leading-relaxed"
+            >
+              Un team di intelligenze artificiali specializzate che leggono,
+              analizzano e ti spiegano i tuoi documenti legali — prima che sia
+              troppo tardi.
+            </motion.p>
 
-        {/* CTA scroll */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
-          whileHover={{ scale: 1.04, y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            document
-              .getElementById("mission")
-              ?.scrollIntoView({ behavior: "smooth" });
-          }}
-          className="px-8 py-3.5 rounded-full text-sm font-medium text-foreground-secondary border border-border hover:border-accent/40 hover:text-foreground transition-all inline-flex items-center gap-2"
-        >
-          Scopri come funziona
-          <ArrowDown className="w-4 h-4" />
-        </motion.button>
+            {/* CTA scroll */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                document
+                  .getElementById("mission")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="px-8 py-3.5 rounded-full text-sm font-medium text-foreground-secondary border border-border hover:border-accent/40 hover:text-foreground transition-all inline-flex items-center gap-2"
+            >
+              Scopri come funziona
+              <ArrowDown className="w-4 h-4" />
+            </motion.button>
+          </div>
+
+          {/* RIGHT — Immagine a metà schermo */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="flex-1 w-full md:w-1/2 relative"
+          >
+            <div className="relative w-full aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="/images/law-references.png"
+                alt="Riferimenti normativi"
+                fill
+                className="object-cover object-center"
+                quality={90}
+              />
+            </div>
+          </motion.div>
+
+        </div>
       </div>
     </section>
   );
