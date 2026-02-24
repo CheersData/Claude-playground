@@ -6,6 +6,9 @@ export function makeClassification(
   return {
     documentType: "contratto_locazione_abitativa",
     documentTypeLabel: "Contratto di Locazione ad Uso Abitativo",
+    documentSubType: "locazione_4+4",
+    relevantInstitutes: ["locazione_abitativa"],
+    legalFocusAreas: ["diritto_immobiliare"],
     parties: [
       { role: "locatore", name: "Mario Rossi", type: "persona_fisica" },
       { role: "conduttore", name: "Luigi Bianchi", type: "persona_fisica" },

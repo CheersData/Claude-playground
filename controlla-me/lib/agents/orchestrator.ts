@@ -45,7 +45,8 @@ export interface OrchestratorResult {
 export async function runOrchestrator(
   documentText: string,
   callbacks: OrchestratorCallbacks,
-  resumeSessionId?: string
+  resumeSessionId?: string,
+  userContext?: string
 ): Promise<OrchestratorResult> {
   // Try to resume an existing session or find one for this document
   let sessionId: string;
@@ -95,7 +96,11 @@ export async function runOrchestrator(
     const t0 = Date.now();
     try {
       callbacks.onProgress("classifier", "running");
-      result.classification = await runClassifier(documentText);
+      // Prepend user context to guide classification if provided
+      const classifierInput = userContext
+        ? `CONTESTO UTENTE: ${userContext}\n\nDOCUMENTO:\n${documentText}`
+        : documentText;
+      result.classification = await runClassifier(classifierInput);
       await savePhaseResult(sessionId, "classification", result.classification);
       await trackPhase(t0, "classifier");
       callbacks.onProgress("classifier", "done", result.classification);

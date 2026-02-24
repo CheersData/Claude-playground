@@ -53,10 +53,9 @@ export async function runAdvisor(
   // Ensure scores field exists with defaults
   if (!result.scores) {
     result.scores = {
-      contractEquity: result.fairnessScore,
-      legalCoherence: result.fairnessScore,
-      practicalCompliance: result.fairnessScore,
-      completeness: result.fairnessScore,
+      legalCompliance: result.fairnessScore,
+      contractBalance: result.fairnessScore,
+      industryPractice: result.fairnessScore,
     };
   }
 

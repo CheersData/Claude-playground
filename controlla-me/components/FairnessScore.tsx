@@ -13,10 +13,9 @@ const SCORE_DIMENSIONS: Array<{
   label: string;
   labelShort: string;
 }> = [
-  { key: "contractEquity", label: "Equità contrattuale", labelShort: "Equità" },
-  { key: "legalCoherence", label: "Coerenza giuridica", labelShort: "Coerenza" },
-  { key: "practicalCompliance", label: "Conformità pratica", labelShort: "Conformità" },
-  { key: "completeness", label: "Completezza", labelShort: "Completezza" },
+  { key: "legalCompliance", label: "Aderenza legale", labelShort: "Aderenza" },
+  { key: "contractBalance", label: "Equilibrio contratto", labelShort: "Equilibrio" },
+  { key: "industryPractice", label: "Prassi di settore", labelShort: "Prassi" },
 ];
 
 function getColor(value: number): string {
@@ -82,7 +81,7 @@ export default function FairnessScore({ score, scores }: FairnessScoreProps) {
         className="text-xs font-semibold tracking-[1.5px] uppercase"
         style={{ color }}
       >
-        Fairness Score
+        Score complessivo
       </span>
 
       {/* Sotto-score multidimensionali */}

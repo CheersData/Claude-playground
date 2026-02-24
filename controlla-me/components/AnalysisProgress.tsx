@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, FileText, Search, Scale, Lightbulb, Loader2, Clock } from "lucide-react";
-import type { AgentPhase, PhaseStatus } from "@/lib/types";
+import type { AgentPhase, PhaseStatus, ClassificationResult, AnalysisResult, InvestigationResult } from "@/lib/types";
 
 /* ── ETA estimation config ── */
 
@@ -413,6 +413,41 @@ const PHASES: {
   },
 ];
 
+/** Build a short summary string for a completed phase */
+function phaseSummary(phase: AgentPhase, data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  try {
+    if (phase === "classifier") {
+      const d = data as ClassificationResult;
+      const parts: string[] = [];
+      if (d.documentTypeLabel) parts.push(`Tipo: ${d.documentTypeLabel}`);
+      if (d.parties?.length) parts.push(`Parti: ${d.parties.length}`);
+      if (d.applicableLaws?.length) parts.push(`Leggi: ${d.applicableLaws.length}`);
+      return parts.join(" · ") || null;
+    }
+    if (phase === "analyzer") {
+      const d = data as AnalysisResult;
+      const parts: string[] = [];
+      const risky = d.clauses?.filter(c => ["critical", "high", "medium"].includes(c.riskLevel)).length ?? 0;
+      if (risky > 0) parts.push(`${risky} clausole da verificare`);
+      if (d.overallRisk) parts.push(`Rischio: ${d.overallRisk}`);
+      return parts.join(" · ") || null;
+    }
+    if (phase === "investigator") {
+      const d = data as InvestigationResult;
+      const laws = d.findings?.reduce((n, f) => n + (f.laws?.length ?? 0), 0) ?? 0;
+      const cases = d.findings?.reduce((n, f) => n + (f.courtCases?.length ?? 0), 0) ?? 0;
+      const parts: string[] = [];
+      if (laws > 0) parts.push(`${laws} norme verificate`);
+      if (cases > 0) parts.push(`${cases} sentenze`);
+      return parts.join(" · ") || null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 interface AnalysisProgressProps {
   fileName: string;
   currentPhase: AgentPhase | null;
@@ -423,6 +458,8 @@ interface AnalysisProgressProps {
   sessionId?: string | null;
   /** Real average timings from cache (seconds per phase). Falls back to defaults. */
   phaseEstimates?: Record<string, number> | null;
+  /** Partial results from completed phases for progressive rendering */
+  phaseResults?: Record<string, unknown>;
 }
 
 export default function AnalysisProgress({
@@ -434,6 +471,7 @@ export default function AnalysisProgress({
   onRetry,
   sessionId,
   phaseEstimates,
+  phaseResults,
 }: AnalysisProgressProps) {
   const { elapsed, remaining, progress } = useAnalysisTimer(
     currentPhase,
@@ -542,6 +580,8 @@ export default function AnalysisProgress({
           const isActive = status === "running";
           const isPending = status === "pending";
 
+          const summaryText = isDone ? phaseSummary(phase.key, phaseResults?.[phase.key]) : null;
+
           return (
             <div
               key={phase.key}
@@ -580,6 +620,18 @@ export default function AnalysisProgress({
                 >
                   {isDone ? phase.doneLabel : phase.label}
                 </p>
+
+                {/* Mini-summary for completed phases */}
+                {summaryText && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-[11px] text-foreground-tertiary mt-0.5"
+                  >
+                    {summaryText}
+                  </motion.p>
+                )}
 
                 {isActive && (
                   <motion.div
