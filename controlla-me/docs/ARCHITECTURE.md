@@ -39,6 +39,8 @@
 │  /api/deep-search       │  │  JWT tokens                 │
 │  /api/upload            │  │  Cookie-based sessions      │
 │  /api/corpus            │  └────────────────────────────┘
+│  /api/corpus/hierarchy  │
+│  /api/corpus/article    │
 │  /api/session/[id]      │
 │  /api/stripe/*          │
 │  /api/webhook           │
@@ -204,17 +206,101 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 **API disponibili**:
 - `POST /api/corpus` — Ingest articoli (richiede auth + admin)
 - `GET /api/corpus` — Statistiche corpus
+- `GET /api/corpus/hierarchy` — Lista fonti o albero gerarchico per fonte specifica
+- `GET /api/corpus/article?id=...` — Dettaglio articolo per ID
+- `GET /api/corpus/article?q=...&source=...` — Ricerca articoli per testo
 - `POST /api/vector-search` — Ricerca semantica
 - `GET /api/vector-search` — Statistiche vector DB
 
-**Funzioni `lib/legal-corpus.ts`**:
-- `getArticlesBySource()` — Lookup diretto per fonte
+**Funzioni `lib/legal-corpus.ts`** (13 export):
+- `getArticlesBySource()` — Lookup diretto per fonte (con paginazione >1000 righe)
 - `getArticlesByInstitute()` — Ricerca per istituto giuridico
 - `searchArticles()` — Ricerca semantica con embeddings
 - `retrieveLegalContext()` — Query combinata per pipeline agenti
 - `formatLegalContextForPrompt()` — Formatta contesto per prompt LLM
 - `ingestArticles()` — Caricamento batch con embeddings
 - `getCorpusStats()` — Statistiche runtime
+- `getArticleById()` — Dettaglio singolo articolo con metadati
+- `getCorpusSources()` — Lista fonti con conteggio articoli (paginato)
+- `getSourceHierarchy()` — Albero gerarchico HierarchyNode[] per una fonte
+
+### 1.5 Pagine Frontend
+
+| Pagina | File | Descrizione |
+|--------|------|-------------|
+| Landing | `app/page.tsx` | Hero 3 sezioni (Verifica, Dubbi, Brand) + orchestratore analisi |
+| Dashboard | `app/dashboard/page.tsx` | Storico analisi utente |
+| Pricing | `app/pricing/page.tsx` | Piani Free/Pro/Single |
+| Analisi | `app/analysis/[id]/page.tsx` | Dettaglio singola analisi |
+| **Corpus** | `app/corpus/page.tsx` | **Browser legislativo interattivo** |
+
+**Corpus Browser** (`app/corpus/page.tsx`):
+- 3 viste: lista fonti → albero gerarchico → dettaglio articolo
+- Ricerca full-text articoli
+- Navigazione gerarchica (Libro → Titolo → Capo → Sezione → Articolo)
+- Keywords come tag, testo completo articoli
+
+### 1.6 Componenti
+
+| Componente | File | Note |
+|------------|------|------|
+| Navbar | `components/Navbar.tsx` | Nav + menu mobile |
+| **HeroSection** | `components/HeroSection.tsx` | **3 hero: HeroVerifica (upload), HeroDubbi, HeroBrand** |
+| **MissionSection** | `components/MissionSection.tsx` | **Griglia 2x2 agenti con mini-illustrazioni SVG** |
+| TeamSection | `components/TeamSection.tsx` | 4 avatar agenti (SVG) |
+| VideoShowcase | `components/VideoShowcase.tsx` | Player video con autoplay |
+| UseCasesSection | `components/UseCasesSection.tsx` | Casi d'uso a tab |
+| TestimonialsSection | `components/TestimonialsSection.tsx` | Carosello testimonianze |
+| UploadZone | `components/UploadZone.tsx` | Drag-drop upload |
+| AnalysisProgress | `components/AnalysisProgress.tsx` | Progress real-time (643 righe) |
+| ResultsView | `components/ResultsView.tsx` | Vista risultati |
+| RiskCard | `components/RiskCard.tsx` | Card rischio + deep search |
+| DeepSearchChat | `components/DeepSearchChat.tsx` | Chat Q&A su clausole |
+| FairnessScore | `components/FairnessScore.tsx` | Indicatore circolare 1-10 |
+| LawyerCTA | `components/LawyerCTA.tsx` | Raccomandazione avvocato |
+| PaywallBanner | `components/PaywallBanner.tsx` | Banner limite utilizzo |
+| CTASection | `components/CTASection.tsx` | Call-to-action |
+| Footer | `components/Footer.tsx` | Footer |
+| **LegalBreadcrumb** | `components/LegalBreadcrumb.tsx` | **Breadcrumb navigazione gerarchica corpus** |
+
+### 1.7 Scripts e Tooling
+
+| Script | File | Descrizione |
+|--------|------|-------------|
+| **seed-corpus** | `scripts/seed-corpus.ts` | Download corpus da HuggingFace + Normattiva, genera embeddings Voyage AI, upsert in Supabase |
+| **check-data** | `scripts/check-data.ts` | Validazione qualità dati corpus (conteggi, embeddings, campionamento) |
+| **corpus-sources** | `scripts/corpus-sources.ts` | Definizioni 14+ fonti legislative con gerarchie e metadati |
+| **setup-new-pc** | `scripts/setup-new-pc.ps1` | Setup completo Windows: fnm, Node 22, Python, VS Code, repo |
+| **setup-dev** | `scripts/setup-dev.ps1` | Setup ambiente dev: git, npm install, .env.local, corpus loading |
+| **SETUP_PC_NUOVO.bat** | root | Launcher batch per setup-new-pc.ps1 |
+| **AVVIA_SITO.bat** | root | One-command: git pull + npm install + npm run dev |
+
+### 1.8 Migrazioni Database
+
+| Migrazione | File | Descrizione |
+|-----------|------|-------------|
+| 001 | `supabase/migrations/001_initial.sql` | Profili, analisi, deep_searches, lawyer_referrals + RLS |
+| 002 | `supabase/migrations/002_usage_tracking.sql` | Funzioni increment + reset mensile |
+| 003 | `supabase/migrations/003_legal_corpus.sql` | Tabella legal_articles con pgvector, HNSW index |
+| **004** | `supabase/migrations/004_align_legal_articles.sql` | **Allineamento schema: source_id, source_type, article_number, url, hierarchy** |
+| **005** | `supabase/migrations/005_fix_hierarchy_data.sql` | **Normalizzazione JSONB hierarchy (deduplica nodi Libri Codice Civile)** |
+
+### 1.9 Struttura Monorepo
+
+Il repository `Claude-playground` contiene più progetti:
+
+```
+Claude-playground/
+├── controlla-me/          ← Questo progetto (prototipo principale)
+├── okmom-design/          ← Design system condiviso (Tailwind preset)
+├── okmom-qa/              ← Template QA per validazione progetti
+│   └── templates/
+│       ├── qa.config.controlla-me.json
+│       ├── qa.config.soldi-persi.json
+│       └── qa.config.template.json
+├── salva-me/              ← Progetto agenti Python (architettura separata)
+└── commands/              ← Utility condivise tra progetti
+```
 
 ---
 
