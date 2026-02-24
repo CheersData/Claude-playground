@@ -1,0 +1,25 @@
+{
+  "project": "[NOME]",
+  "description": "[Descrizione]",
+  "test_command": "npm test",
+  "lint_command": "npm run lint",
+  "typecheck_command": "npm run typecheck",
+  "coverage_command": "npm run test:coverage",
+  "build_command": "npm run build",
+  "source_dirs": ["src", "lib", "app"],
+  "test_dirs": ["tests"],
+  "fixtures_dir": "tests/fixtures",
+  "docs_dir": "docs",
+  "coverage_threshold": 80,
+  "max_files_per_fix": 3,
+  "max_iterations": 5,
+  "critical_modules": [{"path": "[modulo]", "reason": "[perché critico]"}],
+  "mock_rules": ["Mock tutte le API esterne"],
+  "beauty": {
+    "palette": {},
+    "fonts": {"heading": "", "body": ""},
+    "spacing_scale": [0, 4, 8, 12, 16, 20, 24, 32, 48, 64],
+    "border_radius": "8px",
+    "breakpoints": {"sm": "640px", "md": "768px", "lg": "1024px", "xl": "1280px"}
+  }
+}

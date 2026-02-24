@@ -6,7 +6,7 @@ import { Lock, Zap, Gift, Upload, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
-import TeamSection from "@/components/TeamSection";
+
 import UseCasesSection from "@/components/UseCasesSection";
 import VideoShowcase from "@/components/VideoShowcase";
 import CTASection from "@/components/CTASection";
@@ -40,6 +40,7 @@ export default function Home() {
   const [dragOver, setDragOver] = useState(false);
   const [phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [userContext, setUserContext] = useState("");
 
   const lastFileRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +80,7 @@ export default function Home() {
   }, []);
 
   const startAnalysis = useCallback(
-    async (file: File, resumeId?: string) => {
+    async (file: File, resumeId?: string, context?: string) => {
       setFileName(file.name);
       setView("analyzing");
       setCurrentPhase(null);
@@ -91,6 +92,7 @@ export default function Home() {
         const formData = new FormData();
         formData.append("file", file);
         if (resumeId) formData.append("sessionId", resumeId);
+        if (context) formData.append("userContext", context);
 
         const response = await fetch("/api/analyze", { method: "POST", body: formData });
         if (!response.ok) throw new Error("Errore nella richiesta di analisi");
@@ -148,7 +150,13 @@ export default function Home() {
     []
   );
 
-  const handleFileSelected = useCallback((file: File) => startAnalysis(file), [startAnalysis]);
+  const handleFileSelected = useCallback(
+    (file: File, ctx?: string) => {
+      const context = ctx || userContext.trim() || undefined;
+      startAnalysis(file, undefined, context);
+    },
+    [startAnalysis, userContext]
+  );
   const handleRetry = useCallback(() => {
     const f = lastFileRef.current;
     if (f) startAnalysis(f, sessionId || undefined);
@@ -208,15 +216,7 @@ export default function Home() {
           {/* Divider */}
           <div className="section-divider" />
 
-          {/* 4. IL TEAM AI — interactive agent cards */}
-          <div id="team" className="flex flex-col items-center px-6 py-20 relative z-10">
-            <TeamSection />
-          </div>
-
-          {/* Divider */}
-          <div className="section-divider" />
-
-          {/* 5. CASI D'USO — tabbed examples */}
+          {/* 4. CASI D'USO — tabbed examples */}
           <div id="use-cases">
             <UseCasesSection />
           </div>
@@ -276,6 +276,22 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+
+                  {/* User context */}
+                  <textarea
+                    value={userContext}
+                    onChange={(e) => setUserContext(e.target.value)}
+                    placeholder="Cosa vuoi controllare? (opzionale) — es. &quot;Cerco clausole vessatorie&quot;, &quot;Voglio capire i termini di recesso&quot;..."
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:outline-none focus:border-[#4ECDC4]/40 focus:ring-2 focus:ring-[#4ECDC4]/10 transition-all mt-2"
+                    rows={2}
+                    maxLength={500}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {userContext.trim() && (
+                    <p className="text-[11px] text-foreground-tertiary mt-1 text-right mb-2">
+                      {userContext.length}/500
+                    </p>
+                  )}
 
                   {/* Upload zone */}
                   <div

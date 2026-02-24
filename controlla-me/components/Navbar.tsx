@@ -8,8 +8,8 @@ import { Menu, X, ChevronUp } from "lucide-react";
 
 const navLinks = [
   { label: "Come funziona", href: "/#mission", sectionId: "mission" },
-  { label: "Il Team", href: "/#team", sectionId: "team" },
   { label: "Casi d'uso", href: "/#use-cases", sectionId: "use-cases" },
+  { label: "Corpus", href: "/corpus", sectionId: null },
   { label: "Prezzi", href: "/pricing", sectionId: null },
 ];
 
@@ -35,7 +35,7 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
       // Only track sections on home page
       if (pathname !== "/") return;
 
-      const sections = ["mission", "team", "use-cases", "upload-section"];
+      const sections = ["mission", "use-cases", "upload-section"];
       let current: string | null = null;
 
       for (const id of sections) {
