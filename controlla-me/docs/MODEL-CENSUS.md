@@ -43,6 +43,24 @@ Per task critici: analisi legale profonda, output finale utente, zero tolleranza
 | **Claude Sonnet 4.5** | Anthropic | $3.00 | $15.00 | 200K | Top reasoning, segue istruzioni alla lettera | Costoso |
 | Claude Opus 4.5 | Anthropic | $5.00 | $25.00 | 200K | Massima qualita' assoluta | Molto costoso, raramente necessario |
 
+### Fascia Mistral ($0.02–$6.00/1M output)
+
+| Modello | Provider | Input | Output | Context | Punti di forza | Limiti |
+|---------|----------|-------|--------|---------|----------------|--------|
+| **Mistral Nemo** | Mistral | $0.02 | $0.04 | 128K | Ultra-economico, free tier, buon JSON | Meno capace su reasoning complesso |
+| Mistral Small | Mistral | $0.10 | $0.30 | 128K | Buon rapporto qualita'/prezzo | — |
+| Mistral Large | Mistral | $2.00 | $6.00 | 128K | Reasoning forte, free tier incluso | Costoso per la fascia |
+
+### Fascia Llama — via Groq/Cerebras (gratis o quasi)
+
+| Modello | Provider | Input | Output | Context | Punti di forza | Limiti |
+|---------|----------|-------|--------|---------|----------------|--------|
+| Llama 3.1 8B | Groq | $0.05 | $0.08 | 128K | Ultra-veloce, gratuito | Qualita' limitata |
+| **Llama 4 Scout** | Groq | $0.11 | $0.34 | 512K | Context 512K, economico, veloce | Da validare su task legali IT |
+| Llama 3.3 70B | Groq | $0.59 | $0.79 | 128K | Reasoning forte, veloce | Piu' costoso nella fascia |
+| Llama 3.3 70B | Cerebras | $0.00 | $0.00 | 128K | **Completamente gratis** (1M tok/giorno) | Limite giornaliero |
+| Llama 3.1 8B | Cerebras | $0.00 | $0.00 | 128K | **Completamente gratis**, velocissimo | Qualita' limitata |
+
 ### Reasoning Models (O-series OpenAI)
 
 Attenzione: i modelli O-series usano **reasoning token nascosti** fatturati come output ma invisibili nella risposta. Un output di 500 token puo' costare 2000+ token reali.
@@ -116,16 +134,20 @@ Attenzione: i modelli O-series usano **reasoning token nascosti** fatturati come
 
 ## 4. Considerazioni Strategiche
 
-### Provider che usiamo oggi
+### Provider integrati (7)
 
-- **Anthropic** (Claude) — Provider principale. SDK gia' integrato, retry logic, rate limit 60s.
-- **Google** (Gemini) — Provider secondario. SDK integrato, retry 10s, usato per Corpus Agent.
-- **Voyage AI** — Embeddings legali. API HTTP diretta, no SDK.
+Tutti integrati con client wrapper in `lib/`, logging e retry automatico. Configurazione centralizzata in `lib/models.ts`.
 
-### Provider da valutare
-
-- **OpenAI** — Richiederebbe integrazione SDK nuovo. GPT-4.1 Mini e' interessante come fascia media economica. Richiede account API separato (la subscription Plus da $20/mese NON include crediti API). $5 crediti gratis per nuovi account.
-- **DeepSeek** — Prezzi bassissimi ma server in Cina: latenza alta per EU, preoccupazioni privacy su dati legali sensibili. **Sconsigliato per dati legali**.
+| Provider | Client | API | Free tier | Note |
+|----------|--------|-----|-----------|------|
+| **Anthropic** | `lib/anthropic.ts` | SDK dedicato | No | Provider principale, retry 60s |
+| **Google** | `lib/gemini.ts` | SDK dedicato | 250 req/giorno Flash | Corpus Agent, Question-Prep |
+| **OpenAI** | `lib/openai.ts` | SDK `openai` | $5 crediti | Subscription Plus NON include API |
+| **Mistral** | `lib/mistral.ts` | OpenAI-compatibile | **Tutti i modelli, 2 RPM, 1B tok/mese** | Nemo a $0.02 = ultra-economico |
+| **Groq** | `lib/groq.ts` | OpenAI-compatibile | **1000 req/giorno** | Llama su hardware LPU, velocissimo |
+| **Cerebras** | `lib/cerebras.ts` | OpenAI-compatibile | **1M tok/giorno** | Llama su hardware WSE, velocissimo |
+| **DeepSeek** | `lib/deepseek.ts` | OpenAI-compatibile | 5M tok (30gg) | ⚠️ Server in Cina, sconsigliato per dati legali |
+| **Voyage AI** | `lib/embeddings.ts` | API HTTP | 50M tok | Embeddings legali specializzati |
 
 ### Regole per la scelta modello
 
@@ -149,6 +171,9 @@ Tutti i provider offrono Batch API con sconti 50%. Utile per:
 - [Anthropic Claude API Pricing](https://platform.claude.com/docs/en/about-claude/pricing)
 - [Google Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing)
 - [OpenAI API Pricing](https://openai.com/api/pricing/)
+- [Mistral AI Pricing](https://mistral.ai/pricing)
+- [Groq Pricing](https://groq.com/pricing)
+- [Cerebras Pricing](https://cloud.cerebras.ai/)
 - [DeepSeek API Pricing](https://api-docs.deepseek.com/quick_start/pricing)
 - [Voyage AI Pricing](https://docs.voyageai.com/docs/pricing)
 - [LLM Benchmark Comparison](https://artificialanalysis.ai/models/comparisons/claude-4-5-haiku-vs-gemini-2-5-flash)

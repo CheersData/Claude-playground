@@ -21,7 +21,9 @@
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
-| AI/LLM | @google/genai (Gemini 2.5 Flash) | 1.x |
+| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
+| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 5.x |
+| AI Registry | lib/models.ts — 22 modelli, 7 provider | — |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
 | Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
 | Database | Supabase (PostgreSQL + RLS) | 2.97.0 |
@@ -73,8 +75,23 @@ STRIPE_SINGLE_PRICE_ID=price_...
 # Voyage AI (embeddings per vector DB — opzionale)
 VOYAGE_API_KEY=pa-...
 
-# Google Gemini (LLM secondario per Corpus Agent — opzionale, fallback a Haiku)
+# Google Gemini (opzionale, fallback a Haiku)
 GEMINI_API_KEY=...
+
+# OpenAI (opzionale — subscription ChatGPT Plus NON include crediti API)
+OPENAI_API_KEY=sk-proj-...
+
+# Mistral (opzionale, free tier: tutti i modelli, 2 RPM)
+MISTRAL_API_KEY=...
+
+# Groq (opzionale, free tier: Llama 4, 1000 req/giorno)
+GROQ_API_KEY=gsk_...
+
+# Cerebras (opzionale, free tier: 1M token/giorno)
+CEREBRAS_API_KEY=csk-...
+
+# DeepSeek (opzionale — ⚠️ server in Cina, non usare per dati sensibili)
+DEEPSEEK_API_KEY=...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -156,6 +173,12 @@ controlla-me/
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
 │   ├── gemini.ts                 # Client Gemini 2.5 Flash + retry
+│   ├── openai.ts                 # Client OpenAI (GPT-4o, 4.1, Nano)
+│   ├── mistral.ts                # Client Mistral (Large, Small, Nemo)
+│   ├── groq.ts                   # Client Groq (Llama 4, 3.3, 3.1)
+│   ├── cerebras.ts               # Client Cerebras (Llama 3.3, 3.1)
+│   ├── deepseek.ts               # Client DeepSeek (V3, R1)
+│   ├── models.ts                 # Registry centralizzato: 22 modelli, 7 provider
 │   ├── embeddings.ts             # Client Voyage AI per embeddings
 │   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
 │   ├── legal-corpus.ts           # Ingest e query corpus legislativo
@@ -244,14 +267,32 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 
 ### Scelta dei modelli
 
-| Agente | Modello | Perche |
-|--------|---------|--------|
-| Classifier | `claude-haiku-4-5-20251001` | Prompt profondo compensa, velocita |
-| Analyzer | `claude-sonnet-4-5-20250929` | Analisi profonda con contesto normativo |
-| Investigator | `claude-sonnet-4-5-20250929` | Upgrade da Haiku: query migliori, copertura completa |
-| Advisor | `claude-sonnet-4-5-20250929` | Output finale + scoring multidimensionale |
-| Question-Prep | `gemini-2.5-flash` / Haiku fallback | Leggero (~1024 token), solo riformulazione |
-| Corpus Agent | `gemini-2.5-flash` / Haiku fallback | Risposta strutturata con articoli citati |
+Configurazione centralizzata in `lib/models.ts`. Per cambiare modello a un agente basta modificare una riga.
+
+| Agente | Modello attuale | Fallback | Perche |
+|--------|----------------|----------|--------|
+| Classifier | Claude Haiku 4.5 | Gemini Flash | Prompt profondo compensa, velocita |
+| Analyzer | Claude Sonnet 4.5 | Gemini Pro | Analisi profonda con contesto normativo |
+| Investigator | Claude Sonnet 4.5 | Claude Sonnet 4.5 | Usa web_search Anthropic, richiede Claude |
+| Advisor | Claude Sonnet 4.5 | Claude Sonnet 4.5 | Output finale + scoring multidimensionale |
+| Question-Prep | Gemini Flash | Claude Haiku 4.5 | Leggero (~1024 token), solo riformulazione |
+| Corpus Agent | Gemini Flash | Claude Haiku 4.5 | Risposta strutturata con articoli citati |
+
+### Provider disponibili (7)
+
+Tutti integrati con client wrapper in `lib/`, logging e retry automatico.
+
+| Provider | Client | Modelli | Free tier |
+|----------|--------|---------|-----------|
+| Anthropic | `lib/anthropic.ts` | Sonnet 4.5, Haiku 4.5 | No |
+| Google Gemini | `lib/gemini.ts` | Flash, Pro | 250 req/giorno |
+| OpenAI | `lib/openai.ts` | GPT-4o, 4.1, 4.1 Mini, 4.1 Nano, 4o Mini | $5 crediti |
+| Mistral | `lib/mistral.ts` | Large, Small, Nemo ($0.02!) | Tutti i modelli, 2 RPM |
+| Groq | `lib/groq.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B | 1000 req/giorno |
+| Cerebras | `lib/cerebras.ts` | Llama 3.3 70B, 3.1 8B | 1M tok/giorno |
+| DeepSeek | `lib/deepseek.ts` | V3, R1 | 5M tok (30gg) |
+
+Vedi `docs/MODEL-CENSUS.md` per pricing completo e configurazioni raccomandate.
 
 ### Regole dei prompt
 

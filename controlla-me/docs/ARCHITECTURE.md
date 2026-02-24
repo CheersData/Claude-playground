@@ -91,17 +91,44 @@
 │   GOOGLE AI     │ │  │ lawyer_referrals             │  │
 │   Gemini API    │ │  │ document_chunks (vector)     │  │
 │   - Flash 2.5   │ │  │ legal_knowledge (vector)     │  │
-└─────────────────┘ │  │ legal_articles (vector)      │  │
-                    │  └──────────────────────────────┘  │
-┌─────────────────┐ │  RLS attivo su tutte le tabelle     │
-│   VOYAGE AI     │ └────────────────────────────────────┘
-│   Embeddings    │
-│   voyage-law-2  │ ┌─────────────────┐
-│   1024 dims     │ │     STRIPE      │
+│   - Pro 2.5     │ │  │ legal_articles (vector)      │  │
+└─────────────────┘ │  └──────────────────────────────┘  │
+                    │  RLS attivo su tutte le tabelle     │
+┌─────────────────┐ └────────────────────────────────────┘
+│   OPENAI        │
+│   GPT-4o/4.1    │ ┌─────────────────┐
+│   4.1 Mini/Nano │ │     STRIPE      │
 └─────────────────┘ │  Subscriptions  │
                     │  One-time pay   │
-                    │  Webhooks       │
-                    └─────────────────┘
+┌─────────────────┐ │  Webhooks       │
+│   MISTRAL       │ └─────────────────┘
+│   Large/Small   │
+│   Nemo          │
+└─────────────────┘
+
+┌─────────────────┐
+│   GROQ (LPU)    │
+│   Llama 4 Scout │
+│   Llama 3.3 70B │
+└─────────────────┘
+
+┌─────────────────┐
+│   CEREBRAS(WSE) │
+│   Llama 3.3 70B │
+└─────────────────┘
+
+┌─────────────────┐
+│   DEEPSEEK ⚠️   │
+│   V3 / R1       │
+│   (server Cina) │
+└─────────────────┘
+
+┌─────────────────┐
+│   VOYAGE AI     │
+│   Embeddings    │
+│   voyage-law-2  │
+│   1024 dims     │
+└─────────────────┘
 ```
 
 ### 1.2 Flusso di Analisi Completo
