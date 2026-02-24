@@ -11,7 +11,6 @@ import {
   Globe,
   FileText,
   ArrowLeft,
-  ExternalLink,
   Loader2,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -374,30 +373,12 @@ export default function CorpusPage() {
                     </div>
                   </div>
 
-                  {/* Link alla fonte originale in fondo */}
-                  {selectedArticle.url && (() => {
-                    const isEU = /Dir\.|Reg\.|GDPR|DSA|DMA/i.test(selectedArticle.source_name || "");
-                    const siteName = isEU ? "EUR-Lex" : "Normattiva";
-                    const note = isEU
-                      ? "Link al documento completo"
-                      : "Testo ufficiale vigente";
-                    return (
-                      <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                        <a
-                          href={selectedArticle.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-[#A78BFA] hover:underline"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Vedi su {siteName}
-                        </a>
-                        <span className="text-xs text-foreground-tertiary">
-                          {note}
-                        </span>
-                      </div>
-                    );
-                  })()}
+                  {/* Fonte */}
+                  <div className="mt-6 pt-4 border-t border-border flex items-center justify-end">
+                    <span className="text-xs text-foreground-tertiary">
+                      Fonte: {selectedArticle.source_name} — Art. {selectedArticle.article_number}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             )}
