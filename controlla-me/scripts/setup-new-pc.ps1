@@ -103,6 +103,38 @@ function Test-Cmd {
     $null -ne (Get-Command $Command -ErrorAction SilentlyContinue)
 }
 
+function Test-RealPython {
+    # Verifica che python/python3 sia VERO e non l'alias Windows Store
+    param([string]$Cmd = "python")
+    $savedEAP = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    $ver = $null
+    try { $ver = & $Cmd --version 2>&1 | Out-String } catch {}
+    $ErrorActionPreference = $savedEAP
+    if ($ver -and $ver -match "Python \d") {
+        return $ver.Trim()
+    }
+    return $null
+}
+
+function Invoke-Native {
+    # Esegue un comando nativo senza che stderr faccia crashare lo script
+    param(
+        [scriptblock]$Command,
+        [switch]$PassThru
+    )
+    $savedEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = & $Command 2>&1
+        if ($PassThru) { return $output }
+    }
+    catch { }
+    finally {
+        $ErrorActionPreference = $savedEAP
+    }
+}
+
 function Install-WithWinget {
     param(
         [string]$PackageId,
@@ -117,8 +149,13 @@ function Install-WithWinget {
 
     Write-Info "Installazione $DisplayName tramite winget..."
     try {
-        winget install --id $PackageId -e --accept-source-agreements --accept-package-agreements --silent
-        return $true
+        Invoke-Native { winget install --id $PackageId -e --accept-source-agreements --accept-package-agreements --silent }
+        if ($LASTEXITCODE -eq 0) {
+            return $true
+        } else {
+            Write-Err "Installazione $DisplayName fallita (exit code: $LASTEXITCODE)"
+            return $false
+        }
     }
     catch {
         Write-Err "Installazione $DisplayName fallita: $_"
@@ -207,39 +244,25 @@ if (Test-Cmd "npm") {
 
 Write-Step "2" $TOTAL_STEPS "Python 3"
 
-# Disabilita temporaneamente errori per gestire l'alias Windows Store di python
-$savedEAP = $ErrorActionPreference
-$ErrorActionPreference = "SilentlyContinue"
-$pyVer = $null
-try { $pyVer = python --version 2>&1 | Out-String } catch {}
-$ErrorActionPreference = $savedEAP
+# Usa Test-RealPython per evitare crash con l'alias Windows Store
+$pyVer = Test-RealPython "python"
+if (-not $pyVer) { $pyVer = Test-RealPython "python3" }
 
-$realPython = $pyVer -and $pyVer -match "Python \d"
-
-if ($realPython) {
-    Write-Ok "$($pyVer.Trim()) gia installato"
+if ($pyVer) {
+    Write-Ok "$pyVer gia installato"
 } else {
-    # Prova anche python3 (stesso trattamento per alias Windows Store)
-    $ErrorActionPreference = "SilentlyContinue"
-    $py3Ver = $null
-    try { $py3Ver = python3 --version 2>&1 | Out-String } catch {}
-    $ErrorActionPreference = $savedEAP
-
-    if ($py3Ver -and $py3Ver -match "Python \d") {
-        Write-Ok "$($py3Ver.Trim()) gia installato"
-    } else {
-        $installed = Install-WithWinget -PackageId "Python.Python.3.12" -DisplayName "Python 3.12"
-        if ($installed) {
-            Refresh-Path
-            if (Test-Cmd "python") {
-                Write-Ok "Python $(python --version 2>&1) installato"
-            } else {
-                Write-Warn "Python installato ma serve riavviare il terminale per usarlo"
-            }
+    $installed = Install-WithWinget -PackageId "Python.Python.3.12" -DisplayName "Python 3.12"
+    if ($installed) {
+        Refresh-Path
+        $pyVer = Test-RealPython "python"
+        if ($pyVer) {
+            Write-Ok "$pyVer installato"
         } else {
-            Write-Warn "Python non installato. Non e' strettamente necessario per controlla.me."
-            Write-Info "Puoi installarlo dopo da: https://www.python.org/downloads/"
+            Write-Warn "Python installato ma serve riavviare il terminale per usarlo"
         }
+    } else {
+        Write-Warn "Python non installato. Non e' strettamente necessario per controlla.me."
+        Write-Info "Puoi installarlo dopo da: https://www.python.org/downloads/"
     }
 }
 
@@ -270,7 +293,7 @@ if (Test-Cmd "code") {
     foreach ($ext in $VSCODE_EXTENSIONS) {
         $extName = $ext.Split(".")[-1]
         try {
-            code --install-extension $ext --force 2>&1 | Out-Null
+            Invoke-Native { code --install-extension $ext --force } | Out-Null
             Write-Ok "  $extName"
         } catch {
             Write-Warn "  $extName - installazione saltata"
@@ -292,7 +315,7 @@ if (Test-Cmd "supabase") {
     $installSupa = Read-Host "    Installare Supabase CLI? (S/n)"
     if ($installSupa -ne "n" -and $installSupa -ne "N") {
         try {
-            npm install -g supabase 2>&1 | Out-Null
+            Invoke-Native { npm install -g supabase } | Out-Null
             Write-Ok "Supabase CLI installato"
         } catch {
             Write-Warn "Installazione Supabase CLI fallita. Puoi installarlo dopo con: npm i -g supabase"
@@ -311,9 +334,9 @@ if (Test-Path "$REPO_DIR\.git") {
     Write-Info "Aggiorno all'ultima versione..."
     Push-Location $REPO_DIR
     try {
-        git fetch origin master
-        git checkout master
-        git pull origin master
+        Invoke-Native { git fetch origin master }
+        Invoke-Native { git checkout master }
+        Invoke-Native { git pull origin master }
         Write-Ok "Repository aggiornato"
     } catch {
         Write-Warn "Aggiornamento fallito: $($_.Exception.Message)"
@@ -324,7 +347,7 @@ if (Test-Path "$REPO_DIR\.git") {
     Write-Info "Clono il repository..."
     Write-Info "URL: $REPO_URL"
     Write-Info "Destinazione: $REPO_DIR"
-    git clone $REPO_URL $REPO_DIR
+    Invoke-Native { git clone $REPO_URL $REPO_DIR }
     Write-Ok "Repository clonato"
 }
 
@@ -343,7 +366,7 @@ Write-Step "6" $TOTAL_STEPS "Installazione dipendenze npm"
 
 Push-Location $PROJECT_DIR
 Write-Info "Eseguo npm install (puo' richiedere qualche minuto)..."
-npm install 2>&1 | Out-Null
+Invoke-Native { npm install } | Out-Null
 Pop-Location
 
 if (Test-Path "$PROJECT_DIR\node_modules") {
@@ -447,7 +470,7 @@ Write-Step "8" $TOTAL_STEPS "Verifica build e test"
 Push-Location $PROJECT_DIR
 
 Write-Info "Eseguo lint..."
-$lintResult = npm run lint 2>&1
+$lintResult = Invoke-Native { npm run lint } -PassThru
 if ($LASTEXITCODE -eq 0) {
     Write-Ok "Lint passato"
 } else {
@@ -455,7 +478,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 Write-Info "Eseguo test..."
-$testResult = npm run test 2>&1
+$testResult = Invoke-Native { npm run test } -PassThru
 if ($LASTEXITCODE -eq 0) {
     Write-Ok "Test passati"
 } else {
@@ -477,7 +500,7 @@ $loadCorpus = Read-Host "    Caricare il corpus ora? (s/N)"
 if ($loadCorpus -eq "s" -or $loadCorpus -eq "S") {
     Push-Location $REPO_DIR
     Write-Info "Avvio seed-corpus.ts..."
-    npx tsx controlla-me/scripts/seed-corpus.ts
+    Invoke-Native { npx tsx controlla-me/scripts/seed-corpus.ts }
     Pop-Location
     if ($LASTEXITCODE -eq 0) {
         Write-Ok "Corpus caricato!"
@@ -557,7 +580,7 @@ $checks = @(
     @{ Name = "Git";            Check = { Test-Cmd "git" } },
     @{ Name = "Node.js $NODE_VERSION";     Check = { Test-Cmd "node" } },
     @{ Name = "npm";            Check = { Test-Cmd "npm" } },
-    @{ Name = "Python";         Check = { (Test-Cmd "python") -or (Test-Cmd "python3") } },
+    @{ Name = "Python";         Check = { (Test-RealPython "python") -or (Test-RealPython "python3") } },
     @{ Name = "VS Code";        Check = { Test-Cmd "code" } },
     @{ Name = "Repository";     Check = { Test-Path "$REPO_DIR\.git" } },
     @{ Name = "package.json";   Check = { Test-Path "$PROJECT_DIR\package.json" } },
