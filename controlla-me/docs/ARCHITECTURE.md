@@ -232,61 +232,74 @@ L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
 
 Agente standalone che risponde a domande sulla legislazione italiana usando il corpus pgvector.
 Primo agente multi-provider: introduce **Google Gemini** come LLM alternativo a Claude.
+Include **Question-Prep Agent** che riformula domande colloquiali in linguaggio giuridico.
 
 ```
-Domanda utente
+Domanda utente (colloquiale, es. "posso restituire lo spazzolino?")
       │
       ▼
-[Voyage AI] → embedding
+[QUESTION-PREP] (Gemini Flash / Haiku, ~1-2s)
+  Riformula → "diritto di recesso consumatore restituzione bene acquistato"
+      │
+      ▼
+[Voyage AI] → embedding della domanda riformulata
       │
       ▼
 [pgvector] → top 8 articoli + knowledge base (parallelo)
       │
       ▼
 [Gemini 2.5 Flash] ──fallback──▶ [Haiku 4.5]
+  Risponde alla domanda ORIGINALE usando gli articoli trovati
       │
       ▼
 Risposta JSON: { answer, citedArticles, confidence, followUpQuestions }
 ```
 
+Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda originale**.
+
 **Endpoint**: `POST /api/corpus/ask`
-- Auth: richiede utente autenticato
-- Rate limit: 10 RPM (allineato al free tier Gemini)
+- Auth: opzionale (funziona per utenti anonimi, rate limit solo per autenticati)
+- Rate limit: 10 RPM per utenti autenticati
 - Validazione: domanda 5-2000 caratteri
 - Body: `{ "question": "...", "config?": { "provider": "auto"|"gemini"|"haiku" } }`
 
 **File chiave**:
+- `lib/agents/question-prep.ts` — Agente riformulazione domande (colloquiale → legale)
+- `lib/prompts/question-prep.ts` — System prompt riformulatore
 - `lib/gemini.ts` — Client Gemini (parallelo a `lib/anthropic.ts`)
-- `lib/agents/corpus-agent.ts` — Logica agente con fallback chain
-- `lib/prompts/corpus-agent.ts` — System prompt
+- `lib/agents/corpus-agent.ts` — Logica agente con fallback chain + question-prep
+- `lib/prompts/corpus-agent.ts` — System prompt (vincolo: solo articoli dal contesto)
 
 **Fallback chain** (provider = "auto"):
 1. Se `GEMINI_API_KEY` presente → Gemini 2.5 Flash
 2. Se Gemini fallisce → warning + Haiku 4.5
 3. Se Haiku fallisce → errore 500
+4. Se question-prep fallisce → usa domanda originale (non blocca mai il flusso)
 
 ### 1.6 Pagine Frontend
 
 | Pagina | File | Descrizione |
 |--------|------|-------------|
-| Landing | `app/page.tsx` | Hero 3 sezioni (Verifica, Dubbi, Brand) + orchestratore analisi |
+| Landing | `app/page.tsx` | Hero 3 sezioni (Verifica, Dubbi con CorpusChat live, Brand) + orchestratore analisi |
 | Dashboard | `app/dashboard/page.tsx` | Storico analisi utente |
 | Pricing | `app/pricing/page.tsx` | Piani Free/Pro/Single |
 | Analisi | `app/analysis/[id]/page.tsx` | Dettaglio singola analisi |
-| **Corpus** | `app/corpus/page.tsx` | **Browser legislativo interattivo** |
+| **Corpus** | `app/corpus/page.tsx` | **Browser legislativo + Q&A AI in fondo** |
+| **Articolo** | `app/corpus/article/[id]/page.tsx` | **Dettaglio articolo legislativo (linkato da CorpusChat)** |
 
 **Corpus Browser** (`app/corpus/page.tsx`):
 - 3 viste: lista fonti → albero gerarchico → dettaglio articolo
 - Ricerca full-text articoli
 - Navigazione gerarchica (Libro → Titolo → Capo → Sezione → Articolo)
 - Keywords come tag, testo completo articoli
+- Sezione Q&A in fondo con `CorpusChat` (variant purple)
 
 ### 1.7 Componenti
 
 | Componente | File | Note |
 |------------|------|------|
 | Navbar | `components/Navbar.tsx` | Nav + menu mobile |
-| **HeroSection** | `components/HeroSection.tsx` | **3 hero: HeroVerifica (upload), HeroDubbi, HeroBrand** |
+| **HeroSection** | `components/HeroSection.tsx` | **3 hero: HeroVerifica (upload), HeroDubbi (CorpusChat live), HeroBrand** |
 | **MissionSection** | `components/MissionSection.tsx` | **Griglia 2x2 agenti con mini-illustrazioni SVG** |
 | TeamSection | `components/TeamSection.tsx` | 4 avatar agenti (SVG) |
 | VideoShowcase | `components/VideoShowcase.tsx` | Player video con autoplay |
@@ -297,6 +310,7 @@ Risposta JSON: { answer, citedArticles, confidence, followUpQuestions }
 | ResultsView | `components/ResultsView.tsx` | Vista risultati |
 | RiskCard | `components/RiskCard.tsx` | Card rischio + deep search |
 | DeepSearchChat | `components/DeepSearchChat.tsx` | Chat Q&A su clausole |
+| **CorpusChat** | `components/CorpusChat.tsx` | **Chat Q&A corpus legislativo (varianti hero/purple)** |
 | FairnessScore | `components/FairnessScore.tsx` | Indicatore circolare 1-10 |
 | LawyerCTA | `components/LawyerCTA.tsx` | Raccomandazione avvocato |
 | PaywallBanner | `components/PaywallBanner.tsx` | Banner limite utilizzo |

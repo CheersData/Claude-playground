@@ -114,7 +114,8 @@ controlla-me/
 │   ├── dashboard/page.tsx         # Storico analisi utente
 │   ├── pricing/page.tsx           # Piani (Free/Pro/Single)
 │   ├── analysis/[id]/page.tsx     # Dettaglio analisi
-│   ├── corpus/page.tsx            # Navigazione corpus legislativo
+│   ├── corpus/page.tsx            # Navigazione corpus legislativo + Q&A
+│   ├── corpus/article/[id]/page.tsx # Dettaglio articolo legislativo
 │   └── api/
 │       ├── analyze/route.ts       # CORE - SSE streaming analisi
 │       ├── upload/route.ts        # Estrazione testo da file
@@ -130,9 +131,9 @@ controlla-me/
 │       ├── stripe/portal/route.ts
 │       └── webhook/route.ts       # Webhook Stripe
 │
-├── components/                    # 17 componenti React
+├── components/                    # 18 componenti React
 │   ├── Navbar.tsx                # Nav + menu mobile
-│   ├── HeroSection.tsx           # Typewriter hero + elementi flottanti
+│   ├── HeroSection.tsx           # 3 hero: HeroVerifica, HeroDubbi (CorpusChat live), HeroBrand
 │   ├── MissionSection.tsx        # Come funziona (4 step)
 │   ├── TeamSection.tsx           # 4 avatar agenti (SVG)
 │   ├── VideoShowcase.tsx         # Player video con autoplay
@@ -143,6 +144,7 @@ controlla-me/
 │   ├── ResultsView.tsx           # Vista risultati
 │   ├── RiskCard.tsx              # Card rischio + deep search
 │   ├── DeepSearchChat.tsx        # Chat Q&A su clausole
+│   ├── CorpusChat.tsx            # Chat Q&A corpus legislativo (hero + /corpus)
 │   ├── FairnessScore.tsx         # Indicatore circolare 1-10
 │   ├── LawyerCTA.tsx             # Raccomandazione avvocato
 │   ├── PaywallBanner.tsx         # Banner limite utilizzo
@@ -165,13 +167,15 @@ controlla-me/
 │   │   ├── analyzer.ts           # Agente 2: analisi rischi
 │   │   ├── investigator.ts       # Agente 3: ricerca legale
 │   │   ├── advisor.ts            # Agente 4: consiglio finale
-│   │   └── corpus-agent.ts      # Agente corpus: Q&A legislativo (Gemini/Haiku)
+│   │   ├── corpus-agent.ts      # Agente corpus: Q&A legislativo (Gemini/Haiku)
+│   │   └── question-prep.ts     # Agente 5: riformulazione domande (colloquiale → legale)
 │   ├── prompts/
 │   │   ├── classifier.ts         # Prompt classificatore
 │   │   ├── analyzer.ts           # Prompt analista
 │   │   ├── investigator.ts       # Prompt investigatore
 │   │   ├── advisor.ts            # Prompt consigliere
-│   │   └── corpus-agent.ts      # Prompt agente corpus
+│   │   ├── corpus-agent.ts      # Prompt agente corpus
+│   │   └── question-prep.ts    # Prompt riformulazione domande
 │   └── supabase/
 │       ├── client.ts             # Client browser
 │       ├── server.ts             # Client SSR
@@ -216,6 +220,26 @@ Documento
    -> Salva conoscenza nel vector DB per analisi future
 ```
 
+### Pipeline Corpus Agent (Q&A legislativo)
+
+```
+Domanda utente (colloquiale)
+   |
+[1] QUESTION-PREP (Gemini Flash / Haiku fallback, ~1-2s)
+   -> Riformula domanda colloquiale in linguaggio giuridico
+   -> Es. "restituire spazzolino" → "diritto di recesso consumatore restituzione bene"
+   |
+[2] RETRIEVAL (Vector DB, ~2s)
+   -> searchArticles(legalQuery) — top 8 articoli per similarita'
+   -> searchLegalKnowledge(legalQuery) — top 4 knowledge entries
+   |
+[3] CORPUS-AGENT (Gemini Flash / Haiku fallback, ~5-12s)
+   -> Risponde alla domanda ORIGINALE usando articoli trovati
+   -> Output: answer, citedArticles (con ID verificabili), confidence, followUp
+```
+
+Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda originale**.
+
 ### Scelta dei modelli
 
 | Agente | Modello | Perche |
@@ -224,6 +248,8 @@ Documento
 | Analyzer | `claude-sonnet-4-5-20250929` | Analisi profonda con contesto normativo |
 | Investigator | `claude-sonnet-4-5-20250929` | Upgrade da Haiku: query migliori, copertura completa |
 | Advisor | `claude-sonnet-4-5-20250929` | Output finale + scoring multidimensionale |
+| Question-Prep | `gemini-2.5-flash` / Haiku fallback | Leggero (~1024 token), solo riformulazione |
+| Corpus Agent | `gemini-2.5-flash` / Haiku fallback | Risposta strutturata con articoli citati |
 
 ### Regole dei prompt
 
@@ -745,7 +771,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 7. CI/CD — Nessuna GitHub Action
 8. ~~Corpus legislativo~~ — **COMPLETATO**: 3548 articoli caricati (1000 Codice Civile), embeddings Voyage AI attivi, pagina UI `/corpus` operativa
 9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
-10. Corpus Agent UI — Backend `POST /api/corpus/ask` operativo (Gemini + Haiku fallback), nessuna pagina frontend
+10. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati
 
 ---
 
