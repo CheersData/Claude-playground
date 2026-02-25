@@ -135,25 +135,28 @@ export async function ingestArticles(
   let errors = 0;
 
   for (const article of articles) {
+    const row: Record<string, unknown> = {
+      law_source: article.lawSource,
+      article_reference: article.articleReference,
+      article_title: article.articleTitle,
+      article_text: article.articleText,
+      hierarchy: article.hierarchy ?? {},
+      keywords: article.keywords ?? [],
+      related_institutes: article.relatedInstitutes ?? [],
+      embedding: JSON.stringify(article.embedding),
+      source_url: article.sourceUrl,
+      is_in_force: article.isInForce ?? true,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Only include domain if set (column may not exist before migration 004)
+    if (article.domain) {
+      row.domain = article.domain;
+    }
+
     const { error } = await admin
       .from("legal_articles")
-      .upsert(
-        {
-          law_source: article.lawSource,
-          article_reference: article.articleReference,
-          article_title: article.articleTitle,
-          article_text: article.articleText,
-          hierarchy: article.hierarchy ?? {},
-          keywords: article.keywords ?? [],
-          related_institutes: article.relatedInstitutes ?? [],
-          embedding: JSON.stringify(article.embedding),
-          source_url: article.sourceUrl,
-          is_in_force: article.isInForce ?? true,
-          domain: article.domain ?? "legal",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "law_source,article_reference" }
-      );
+      .upsert(row, { onConflict: "law_source,article_reference" });
 
     if (error) {
       console.error(

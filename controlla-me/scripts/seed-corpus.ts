@@ -16,11 +16,22 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+
+// Load env from .env.local (must be before any imports that use env)
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+
+// ─── Proxy setup (for containerized environments) ───
+import { ProxyAgent, setGlobalDispatcher } from "undici";
+
+const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+if (proxyUrl) {
+  console.log(`  [PROXY] Using proxy: ${proxyUrl.replace(/jwt_[^@]+/, "jwt_***")}`);
+  const proxyAgent = new ProxyAgent(proxyUrl);
+  setGlobalDispatcher(proxyAgent);
+}
+
 import { loadCorpusFromConfig } from "../lib/corpus-loader";
 import type { CorpusConfig } from "../lib/types/corpus-config";
-
-// Load env from .env.local
-dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 // ─── Parse args ───
 
