@@ -10,6 +10,60 @@
       "configPath": "corpus-configs/legal.json",
       "sourceUrl": "https://huggingface.co/datasets/AndreaSimeri/Italian_Civil_Code",
       "note": "Integrated directly in LOAD via dataSource type=huggingface"
+    },
+    {
+      "id": "normattiva-consumo",
+      "name": "Codice del Consumo (D.Lgs. 206/2005)",
+      "domain": "legal",
+      "status": "validated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206",
+      "note": "Via Normattiva URN access — ~146 articoli"
+    },
+    {
+      "id": "normattiva-cpc",
+      "name": "Codice di Procedura Civile",
+      "domain": "legal",
+      "status": "validated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443",
+      "note": "Via Normattiva URN access — ~840 articoli"
+    },
+    {
+      "id": "normattiva-equo-canone",
+      "name": "Equo Canone (L. 392/1978)",
+      "domain": "legal",
+      "status": "validated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392",
+      "note": "Via Normattiva URN access — ~84 articoli"
+    },
+    {
+      "id": "normattiva-assicurazioni",
+      "name": "Codice delle Assicurazioni (D.Lgs. 209/2005)",
+      "domain": "legal",
+      "status": "validated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-07;209",
+      "note": "Via Normattiva URN access — ~355 articoli"
+    },
+    {
+      "id": "normattiva-tu-bancario",
+      "name": "TU Bancario (D.Lgs. 385/1993)",
+      "domain": "legal",
+      "status": "validated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1993-09-01;385",
+      "note": "Via Normattiva URN access — ~162 articoli"
+    },
+    {
+      "id": "normattiva-crisi",
+      "name": "Codice della Crisi (D.Lgs. 14/2019)",
+      "domain": "legal",
+      "status": "validated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14",
+      "note": "Via Normattiva URN access — ~391 articoli"
     }
   ]
 }
