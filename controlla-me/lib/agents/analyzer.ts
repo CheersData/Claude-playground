@@ -1,33 +1,49 @@
-import { anthropic, MODEL, parseAgentJSON, extractTextContent } from "../anthropic";
+import { runAgent } from "../ai-sdk/agent-runner";
 import { ANALYZER_SYSTEM_PROMPT } from "../prompts/analyzer";
 import type { ClassificationResult, AnalysisResult } from "../types";
 
+/**
+ * @param legalContext - Contesto normativo formattato dal vector DB (opzionale).
+ *   Se presente, viene iniettato nel prompt per guidare l'analisi con norme verificate.
+ */
 export async function runAnalyzer(
   documentText: string,
   classification: ClassificationResult,
-  userContext?: string
+  legalContext?: string
 ): Promise<AnalysisResult> {
-  const contextBlock = userContext
-    ? `\nRICHIESTA DELL'UTENTE: "${userContext}"\nDai priorità a questa richiesta nell'analisi delle clausole e dei rischi.\n`
-    : "";
+  // Build enriched classification info with institutes and focus areas
+  const classificationInfo = [
+    `Tipo: ${classification.documentTypeLabel}`,
+    classification.documentSubType ? `Sotto-tipo: ${classification.documentSubType}` : null,
+    classification.relevantInstitutes?.length
+      ? `Istituti giuridici: ${classification.relevantInstitutes.join(", ")}`
+      : null,
+    classification.legalFocusAreas?.length
+      ? `Aree di focus: ${classification.legalFocusAreas.join(", ")}`
+      : null,
+    `Giurisdizione: ${classification.jurisdiction}`,
+    `Leggi applicabili: ${classification.applicableLaws.map((l) => l.reference).join(", ")}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 8192,
-    system: ANALYZER_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `CLASSIFICAZIONE: ${JSON.stringify(classification)}
-${contextBlock}
-DOCUMENTO:
-${documentText}
+  const userMessage = [
+    `CLASSIFICAZIONE:\n${classificationInfo}`,
+    legalContext ? `\n${legalContext}` : null,
+    `\nDOCUMENTO:\n${documentText}`,
+    `\nAnalizza clausole, rischi e elementi mancanti.`,
+    classification.relevantInstitutes?.length
+      ? `\nATTENZIONE: Il documento contiene i seguenti istituti giuridici: ${classification.relevantInstitutes.join(", ")}. Applica il framework normativo CORRETTO per ciascun istituto.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-Analizza clausole, rischi e elementi mancanti.`,
-      },
-    ],
-  });
+  const { parsed } = await runAgent<AnalysisResult>(
+    "analyzer",
+    userMessage,
+    { systemPrompt: ANALYZER_SYSTEM_PROMPT }
+  );
 
-  const text = extractTextContent(response);
-  return parseAgentJSON<AnalysisResult>(text);
+  return parsed;
 }

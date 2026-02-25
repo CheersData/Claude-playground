@@ -1,6 +1,12 @@
 # CLAUDE.md — Istruzioni per agenti AI
 
 > Tutto ciò che un agente AI deve sapere per sviluppare, deployare e mantenere **controlla.me** — app di analisi legale AI con 4 agenti specializzati.
+>
+> **Controlla.me è il primo prototipo** di una piattaforma madre per molteplici team di agenti AI. I servizi devono essere scalabili e parametrizzabili.
+>
+> Per l'architettura completa, fragilità, security status e roadmap: vedi **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+>
+> Per il censimento modelli AI, prezzi e scelta per agente: vedi **[docs/MODEL-CENSUS.md](docs/MODEL-CENSUS.md)**
 
 ---
 
@@ -15,6 +21,11 @@
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
+| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
+| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 5.x |
+| AI Registry | lib/models.ts — 22 modelli, 7 provider | — |
+| Embeddings | Voyage AI (voyage-law-2) | API HTTP |
+| Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
 | Database | Supabase (PostgreSQL + RLS) | 2.97.0 |
 | Auth | Supabase Auth (OAuth) | via @supabase/ssr |
 | Pagamenti | Stripe | 20.3.1 |
@@ -61,6 +72,27 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_PRO_PRICE_ID=price_...
 STRIPE_SINGLE_PRICE_ID=price_...
 
+# Voyage AI (embeddings per vector DB — opzionale)
+VOYAGE_API_KEY=pa-...
+
+# Google Gemini (opzionale, fallback a Haiku)
+GEMINI_API_KEY=...
+
+# OpenAI (opzionale — subscription ChatGPT Plus NON include crediti API)
+OPENAI_API_KEY=sk-proj-...
+
+# Mistral (opzionale, free tier: tutti i modelli, 2 RPM)
+MISTRAL_API_KEY=...
+
+# Groq (opzionale, free tier: Llama 4, 1000 req/giorno)
+GROQ_API_KEY=gsk_...
+
+# Cerebras (opzionale, free tier: 1M token/giorno)
+CEREBRAS_API_KEY=csk-...
+
+# DeepSeek (opzionale — ⚠️ server in Cina, non usare per dati sensibili)
+DEEPSEEK_API_KEY=...
+
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -101,10 +133,16 @@ controlla-me/
 │   ├── dashboard/page.tsx         # Storico analisi utente
 │   ├── pricing/page.tsx           # Piani (Free/Pro/Single)
 │   ├── analysis/[id]/page.tsx     # Dettaglio analisi
+│   ├── corpus/page.tsx            # Navigazione corpus legislativo + Q&A
+│   ├── corpus/article/[id]/page.tsx # Dettaglio articolo legislativo
 │   └── api/
 │       ├── analyze/route.ts       # CORE - SSE streaming analisi
 │       ├── upload/route.ts        # Estrazione testo da file
 │       ├── deep-search/route.ts   # Ricerca approfondita clausole
+│       ├── vector-search/route.ts # Ricerca semantica vector DB
+│       ├── corpus/route.ts           # Gestione corpus legislativo
+│       ├── corpus/hierarchy/route.ts # Fonti e albero navigabile
+│       ├── corpus/ask/route.ts      # Corpus Agent Q&A (Gemini/Haiku)
 │       ├── session/[sessionId]/route.ts  # Cache sessioni
 │       ├── user/usage/route.ts    # Limiti utilizzo
 │       ├── auth/callback/route.ts # OAuth Supabase
@@ -112,9 +150,9 @@ controlla-me/
 │       ├── stripe/portal/route.ts
 │       └── webhook/route.ts       # Webhook Stripe
 │
-├── components/                    # 17 componenti React
+├── components/                    # 18 componenti React
 │   ├── Navbar.tsx                # Nav + menu mobile
-│   ├── HeroSection.tsx           # Typewriter hero + elementi flottanti
+│   ├── HeroSection.tsx           # 3 hero: HeroVerifica, HeroDubbi (CorpusChat live), HeroBrand
 │   ├── MissionSection.tsx        # Come funziona (4 step)
 │   ├── TeamSection.tsx           # 4 avatar agenti (SVG)
 │   ├── VideoShowcase.tsx         # Player video con autoplay
@@ -125,6 +163,7 @@ controlla-me/
 │   ├── ResultsView.tsx           # Vista risultati
 │   ├── RiskCard.tsx              # Card rischio + deep search
 │   ├── DeepSearchChat.tsx        # Chat Q&A su clausole
+│   ├── CorpusChat.tsx            # Chat Q&A corpus legislativo (hero + /corpus)
 │   ├── FairnessScore.tsx         # Indicatore circolare 1-10
 │   ├── LawyerCTA.tsx             # Raccomandazione avvocato
 │   ├── PaywallBanner.tsx         # Banner limite utilizzo
@@ -133,6 +172,16 @@ controlla-me/
 │
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
+│   ├── gemini.ts                 # Client Gemini 2.5 Flash + retry
+│   ├── models.ts                 # Registry centralizzato: 22 modelli, 7 provider
+│   ├── ai-sdk/                   # Infrastruttura AI riusabile (astraibile)
+│   │   ├── types.ts              # Interfacce GenerateConfig, GenerateResult
+│   │   ├── openai-compat.ts      # 1 funzione per 5 provider OpenAI-compatibili
+│   │   ├── generate.ts           # Router universale: generate(modelKey) → provider
+│   │   └── agent-runner.ts       # runAgent(agentName) con auto-fallback da AGENT_MODELS
+│   ├── embeddings.ts             # Client Voyage AI per embeddings
+│   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
+│   ├── legal-corpus.ts           # Ingest e query corpus legislativo
 │   ├── extract-text.ts           # Estrazione PDF/DOCX/TXT
 │   ├── analysis-cache.ts         # Cache analisi su filesystem
 │   ├── stripe.ts                 # Config Stripe + piani
@@ -142,12 +191,16 @@ controlla-me/
 │   │   ├── classifier.ts         # Agente 1: classificazione
 │   │   ├── analyzer.ts           # Agente 2: analisi rischi
 │   │   ├── investigator.ts       # Agente 3: ricerca legale
-│   │   └── advisor.ts            # Agente 4: consiglio finale
+│   │   ├── advisor.ts            # Agente 4: consiglio finale
+│   │   ├── corpus-agent.ts      # Agente corpus: Q&A legislativo (Gemini/Haiku)
+│   │   └── question-prep.ts     # Agente 5: riformulazione domande (colloquiale → legale)
 │   ├── prompts/
 │   │   ├── classifier.ts         # Prompt classificatore
 │   │   ├── analyzer.ts           # Prompt analista
 │   │   ├── investigator.ts       # Prompt investigatore
-│   │   └── advisor.ts            # Prompt consigliere
+│   │   ├── advisor.ts            # Prompt consigliere
+│   │   ├── corpus-agent.ts      # Prompt agente corpus
+│   │   └── question-prep.ts    # Prompt riformulazione domande
 │   └── supabase/
 │       ├── client.ts             # Client browser
 │       ├── server.ts             # Client SSR
@@ -162,32 +215,87 @@ controlla-me/
 
 ## 4. SISTEMA MULTI-AGENTE (IL CUORE)
 
-### Pipeline sequenziale
+### Pipeline con RAG
 
 ```
 Documento
    |
 [1] CLASSIFIER (Haiku 4.5, ~12s)
-   -> Tipo documento, parti, giurisdizione, leggi applicabili
+   -> Tipo, sotto-tipo, istituti giuridici, focus areas, leggi
    |
-[2] ANALYZER (Sonnet 4.5, ~25s)
-   -> Clausole rischiose, elementi mancanti, rischio complessivo
+[1.5] RETRIEVAL (Vector DB, ~2s)
+   -> Lookup diretto per leggi identificate
+   -> Ricerca per istituti giuridici
+   -> Ricerca semantica per clausole
+   -> Contesto da analisi precedenti (knowledge base)
    |
-[3] INVESTIGATOR (Haiku 4.5 + web_search, ~22s)
-   -> Norme vigenti, sentenze Cassazione, opinioni legali
+[2] ANALYZER (Sonnet 4.5, ~25s) + contesto normativo verificato
+   -> Clausole rischiose con framework normativo corretto
    |
-[4] ADVISOR (Sonnet 4.5, ~18s)
-   -> Score equita 1-10, rischi in italiano semplice, azioni concrete
+[2.5] RETRIEVAL (Vector DB, ~1s)
+   -> Ricerca semantica per clausole problematiche trovate
+   |
+[3] INVESTIGATOR (Sonnet 4.5 + web_search, ~30s) + contesto legale + RAG
+   -> Copre TUTTE le clausole critical e high
+   |
+[4] ADVISOR (Sonnet 4.5, ~18s) + RAG per calibrazione mercato
+   -> Scoring multidimensionale (4 dimensioni), max 3 rischi, max 3 azioni
+   |
+[5] AUTO-INDEX (background, ~5s)
+   -> Salva conoscenza nel vector DB per analisi future
 ```
+
+### Pipeline Corpus Agent (Q&A legislativo)
+
+```
+Domanda utente (colloquiale)
+   |
+[1] QUESTION-PREP (Gemini Flash / Haiku fallback, ~1-2s)
+   -> Riformula domanda colloquiale in linguaggio giuridico
+   -> Es. "restituire spazzolino" → "diritto di recesso consumatore restituzione bene"
+   |
+[2] RETRIEVAL (Vector DB, ~2s)
+   -> searchArticles(legalQuery) — top 8 articoli per similarita'
+   -> searchLegalKnowledge(legalQuery) — top 4 knowledge entries
+   |
+[3] CORPUS-AGENT (Gemini Flash / Haiku fallback, ~5-12s)
+   -> Risponde alla domanda ORIGINALE usando articoli trovati
+   -> Output: answer, citedArticles (con ID verificabili), confidence, followUp
+```
+
+Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda originale**.
 
 ### Scelta dei modelli
 
-| Agente | Modello | Perche |
-|--------|---------|--------|
-| Classifier | `claude-haiku-4-5-20251001` | Task semplice, velocita |
-| Analyzer | `claude-sonnet-4-5-20250929` | Analisi profonda |
-| Investigator | `claude-haiku-4-5-20251001` | Ha web_search, serve velocita |
-| Advisor | `claude-sonnet-4-5-20250929` | Output finale di qualita |
+Configurazione centralizzata in `lib/models.ts`. Per cambiare modello a un agente basta modificare una riga.
+
+| Agente | Modello attuale | Fallback | Perche |
+|--------|----------------|----------|--------|
+| Classifier | Claude Haiku 4.5 | Gemini Flash | Prompt profondo compensa, velocita |
+| Analyzer | Claude Sonnet 4.5 | Gemini Pro | Analisi profonda con contesto normativo |
+| Investigator | Claude Sonnet 4.5 | Claude Sonnet 4.5 | Usa web_search Anthropic, richiede Claude |
+| Advisor | Claude Sonnet 4.5 | Claude Sonnet 4.5 | Output finale + scoring multidimensionale |
+| Question-Prep | Gemini Flash | Claude Haiku 4.5 | Leggero (~1024 token), solo riformulazione |
+| Corpus Agent | Gemini Flash | Claude Haiku 4.5 | Risposta strutturata con articoli citati |
+
+### Provider disponibili (7)
+
+Architettura a 3 livelli: `lib/models.ts` (registry) → `lib/ai-sdk/generate.ts` (router) → provider client.
+Anthropic e Gemini hanno SDK nativi dedicati. Gli altri 5 usano `lib/ai-sdk/openai-compat.ts` (1 funzione per tutti).
+
+| Provider | Implementazione | Modelli | Free tier |
+|----------|----------------|---------|-----------|
+| Anthropic | `lib/anthropic.ts` (SDK nativo) | Sonnet 4.5, Haiku 4.5 | No |
+| Google Gemini | `lib/gemini.ts` (SDK nativo) | Flash, Pro | 250 req/giorno |
+| OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-4o, 4.1, 4.1 Mini, 4.1 Nano, 4o Mini | $5 crediti |
+| Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo ($0.02!) | Tutti i modelli, 2 RPM |
+| Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B | 1000 req/giorno |
+| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B | 1M tok/giorno |
+| DeepSeek | `lib/ai-sdk/openai-compat.ts` | V3, R1 | 5M tok (30gg) |
+
+Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts`. Per cambiare modello: modificare `AGENT_MODELS` in `lib/models.ts`, zero codice agente da toccare.
+
+Vedi `docs/MODEL-CENSUS.md` per pricing completo e configurazioni raccomandate.
 
 ### Regole dei prompt
 
@@ -595,7 +703,110 @@ vercel deploy    # O collega repo GitHub a Vercel
 
 ---
 
-## 15. FEATURE INCOMPLETE
+## 15. DATABASE VETTORIALE E RAG
+
+### Architettura a 3 layer
+
+```
+┌─────────────────────────────────────────────────────┐
+│              SUPABASE pgvector                       │
+│                                                      │
+│  1. legal_articles    → Corpus legislativo italiano  │
+│     - Codice Civile, D.Lgs., DPR, Leggi            │
+│     - Ricerca semantica + lookup diretto            │
+│     - Embedding: Voyage AI (voyage-law-2, 1024d)    │
+│                                                      │
+│  2. document_chunks   → Chunk documenti analizzati  │
+│     - Ogni analisi spezza il doc in chunk           │
+│     - Trova documenti simili a quelli passati       │
+│                                                      │
+│  3. legal_knowledge   → Intelligenza collettiva     │
+│     - Norme, sentenze, pattern di clausole/rischi   │
+│     - Arricchita da OGNI analisi completata         │
+│     - Più usi l'app, più diventa intelligente       │
+└─────────────────────────────────────────────────────┘
+```
+
+### Pipeline RAG nella pipeline agenti
+
+```
+[1] CLASSIFIER → identifica tipo, sotto-tipo, istituti giuridici
+         ↓
+[1.5] RETRIEVAL → query al vector DB:
+      - Lookup diretto: leggi identificate dal Classifier
+      - Per istituto: Art. collegati agli istituti giuridici
+      - Semantico: norme simili alle clausole
+         ↓
+[2] ANALYZER → riceve il contesto normativo verificato
+         ↓
+[2.5] RETRIEVAL → ricerca semantica per clausole problematiche
+         ↓
+[3] INVESTIGATOR → riceve contesto legale + RAG da analisi precedenti
+         ↓
+[4] ADVISOR → riceve RAG per calibrare scoring sul mercato
+         ↓
+[5] AUTO-INDEX → salva conoscenza nel vector DB (background)
+```
+
+### Variabili d'ambiente aggiuntive
+
+```env
+# Voyage AI (per embeddings — raccomandato voyage-law-2 per testi legali)
+VOYAGE_API_KEY=pa-...
+```
+
+Se `VOYAGE_API_KEY` non è configurata, tutte le feature vector DB vengono saltate silenziosamente. L'app funziona comunque.
+
+### API Routes
+
+- `POST /api/vector-search` — Ricerca semantica (query, type, category, limit)
+- `GET /api/vector-search` — Statistiche vector DB
+- `POST /api/corpus` — Caricamento articoli nel corpus
+- `GET /api/corpus` — Statistiche corpus legislativo
+- `GET /api/corpus/hierarchy` — Lista fonti o albero navigabile per fonte
+- `GET /corpus` — Pagina UI navigazione corpus
+
+### Migrazione database
+
+```bash
+# Esegui su Supabase SQL Editor:
+# 3. supabase/migrations/003_vector_db.sql → pgvector, document_chunks, legal_knowledge, legal_articles
+```
+
+### File chiave
+
+```
+lib/
+├── embeddings.ts        # Client Voyage AI per generare embeddings
+├── vector-store.ts      # RAG pipeline: chunking, indexing, search, buildRAGContext
+├── legal-corpus.ts      # Ingest e query corpus legislativo
+```
+
+### ClassificationResult arricchito
+
+Il Classifier ora identifica:
+- `documentSubType`: sotto-tipo specifico (es. "vendita_a_corpo", "locazione_4+4")
+- `relevantInstitutes`: istituti giuridici nel documento (es. ["vendita_a_corpo", "caparra_confirmatoria"])
+- `legalFocusAreas`: aree di diritto per guidare l'analisi
+
+### Scoring multidimensionale (Advisor)
+
+```typescript
+scores: {
+  contractEquity: number;      // Bilanciamento tra le parti
+  legalCoherence: number;      // Coerenza interna clausole
+  practicalCompliance: number;  // Aderenza alla prassi
+  completeness: number;         // Copertura situazioni tipiche
+}
+```
+
+### Limiti output Advisor enforced
+
+Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il modello ne produce di più.
+
+---
+
+## 16. FEATURE INCOMPLETE
 
 1. OCR immagini — tesseract.js importato ma non implementato
 2. Dashboard reale — Usa mock data, servono query Supabase
@@ -604,6 +815,9 @@ vercel deploy    # O collega repo GitHub a Vercel
 5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
 6. Test — Nessun test unitario/integrazione/E2E
 7. CI/CD — Nessuna GitHub Action
+8. ~~Corpus legislativo~~ — **COMPLETATO**: 3548 articoli caricati (1000 Codice Civile), embeddings Voyage AI attivi, pagina UI `/corpus` operativa
+9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
+10. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati
 
 ---
 

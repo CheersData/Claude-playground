@@ -11,12 +11,13 @@ import {
   Globe,
   FileText,
   ArrowLeft,
-  ExternalLink,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LegalBreadcrumb from "@/components/LegalBreadcrumb";
+import CorpusChat from "@/components/CorpusChat";
 
 // ─── Types ───
 
@@ -57,6 +58,7 @@ interface ArticleDetail {
   article_title: string | null;
   article_text: string;
   hierarchy: Record<string, string>;
+  keywords: string[];
   url: string | null;
 }
 
@@ -340,21 +342,17 @@ export default function CorpusPage() {
                     )}
                   </div>
 
-                  {/* Link alla fonte originale — prominente in alto */}
-                  {selectedArticle.url && (
-                    <div className="mb-6 flex items-center gap-3">
-                      <a
-                        href={selectedArticle.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#A78BFA]/10 text-[#A78BFA] text-sm font-medium border border-[#A78BFA]/20 hover:bg-[#A78BFA]/15 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Vedi su {selectedArticle.source_name?.includes("Dir.") || selectedArticle.source_name?.includes("Reg.") || selectedArticle.source_name?.includes("GDPR") || selectedArticle.source_name?.includes("DSA") ? "EUR-Lex" : "Normattiva"}
-                      </a>
-                      <span className="text-xs text-foreground-tertiary">
-                        Testo ufficiale vigente
-                      </span>
+                  {/* Keywords come tag */}
+                  {selectedArticle.keywords && selectedArticle.keywords.length > 0 && (
+                    <div className="mb-6 flex flex-wrap gap-2">
+                      {selectedArticle.keywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="px-2.5 py-1 text-xs rounded-lg bg-[#A78BFA]/8 text-[#A78BFA] border border-[#A78BFA]/15"
+                        >
+                          {kw.replace(/_/g, " ")}
+                        </span>
+                      ))}
                     </div>
                   )}
 
@@ -377,23 +375,12 @@ export default function CorpusPage() {
                     </div>
                   </div>
 
-                  {/* Link in fondo per chi scrolla */}
-                  {selectedArticle.url && (
-                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                      <a
-                        href={selectedArticle.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-[#A78BFA] hover:underline"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Apri fonte originale
-                      </a>
-                      <span className="text-xs text-foreground-tertiary">
-                        Art. {selectedArticle.article_number} — {selectedArticle.source_name}
-                      </span>
-                    </div>
-                  )}
+                  {/* Fonte */}
+                  <div className="mt-6 pt-4 border-t border-border flex items-center justify-end">
+                    <span className="text-xs text-foreground-tertiary">
+                      Fonte: {selectedArticle.source_name} — Art. {selectedArticle.article_number}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -540,6 +527,31 @@ export default function CorpusPage() {
           )}
         </div>
       </main>
+
+      {/* Q&A Section */}
+      <section className="relative z-10 px-4 md:px-8 pb-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="rounded-2xl border border-[#A78BFA]/20 bg-[#A78BFA]/[0.03] p-6 md:p-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-[#A78BFA]/15 flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-[#A78BFA]" />
+              </div>
+              <h2 className="text-2xl font-serif font-bold">
+                Hai un dubbio legale?
+              </h2>
+            </div>
+            <p className="text-foreground-secondary mb-6 ml-[52px]">
+              Interroga il corpus normativo italiano con l&apos;AI
+            </p>
+            <div className="max-w-2xl ml-[52px]">
+              <CorpusChat
+                variant="purple"
+                placeholder="Es. Cosa prevede il codice civile sulla vendita a corpo?"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>

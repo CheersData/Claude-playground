@@ -1,384 +1,698 @@
 /**
- * Utility per query sul corpus giuridico.
- * Usato sia dall'API hierarchy che dagli agenti per filtro gerarchico.
+ * Legal Corpus — Gestione del corpus legislativo italiano in pgvector.
+ *
+ * Tre tipi di query:
+ * 1. Lookup diretto: "dammi tutti gli articoli del D.Lgs. 122/2005"
+ * 2. Ricerca per istituto: "vendita_a_corpo" → Art. 1537, 1538, 1539 c.c.
+ * 3. Ricerca semantica: "tolleranza superficie vendita" → Art. 1538 c.c.
+ *
+ * La ricerca semantica è quella che avrebbe corretto l'errore sulla vendita a corpo:
+ * il modello ha citato Art. 34-bis DPR 380/2001 (2% edilizio) perché non aveva
+ * il testo di Art. 1538 c.c. sotto gli occhi. Con il vector DB lo trova.
  */
 
 import { createAdminClient } from "./supabase/admin";
+import {
+  generateEmbedding,
+  generateEmbeddings,
+  isVectorDBEnabled,
+} from "./embeddings";
 
 // ─── Tipi ───
 
-export interface ArticleSummary {
-  id: string;
-  article_number: string;
-  article_title: string | null;
-  hierarchy: Record<string, string>;
+export interface LegalArticle {
+  id?: string;
+  lawSource: string;
+  articleReference: string;
+  articleTitle: string | null;
+  articleText: string;
+  hierarchy?: Record<string, string>;
+  keywords?: string[];
+  relatedInstitutes?: string[];
+  sourceUrl?: string;
+  isInForce?: boolean;
 }
 
-export interface HierarchyNode {
+export interface LegalArticleSearchResult extends LegalArticle {
+  similarity: number;
+}
+
+// ─── Query: Lookup singolo articolo per ID ───
+
+/**
+ * Recupera un singolo articolo per UUID.
+ * Formato compatibile con la UI di /corpus (ArticleDetail).
+ */
+export async function getArticleById(
+  id: string
+): Promise<{
+  id: string;
+  source_id: string;
+  source_name: string;
+  article_number: string;
+  article_title: string | null;
+  article_text: string;
+  hierarchy: Record<string, string>;
+  keywords: string[];
+  url: string | null;
+} | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("legal_articles")
+    .select("id, law_source, article_reference, article_title, article_text, hierarchy, keywords, source_url")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    console.error(`[CORPUS] Errore getArticleById("${id}"): ${error?.message}`);
+    return null;
+  }
+
+  const r = data as {
+    id: string;
+    law_source: string;
+    article_reference: string;
+    article_title: string | null;
+    article_text: string;
+    hierarchy: Record<string, string> | null;
+    keywords: string[] | null;
+    source_url: string | null;
+  };
+
+  return {
+    id: r.id,
+    source_id: sourceToId(r.law_source),
+    source_name: r.law_source,
+    article_number: r.article_reference,
+    article_title: r.article_title,
+    article_text: r.article_text,
+    hierarchy: r.hierarchy ?? {},
+    keywords: r.keywords ?? [],
+    url: r.source_url,
+  };
+}
+
+// ─── Query: Lookup diretto per fonte ───
+
+/**
+ * Recupera tutti gli articoli di una specifica fonte legislativa.
+ * Esempio: getArticlesBySource("D.Lgs. 122/2005") → tutti gli articoli del decreto
+ */
+export async function getArticlesBySource(
+  lawSource: string,
+  limit: number = 50
+): Promise<LegalArticle[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("get_articles_by_source", {
+    p_law_source: lawSource,
+    p_limit: limit,
+  });
+
+  if (error) {
+    console.error(`[CORPUS] Errore lookup per fonte "${lawSource}": ${error.message}`);
+    return [];
+  }
+
+  return (data ?? []).map(mapRowToArticle);
+}
+
+// ─── Query: Ricerca per istituto giuridico ───
+
+/**
+ * Trova articoli correlati a un istituto giuridico specifico.
+ * Esempio: getArticlesByInstitute("vendita_a_corpo") → Art. 1537, 1538, 1539 c.c.
+ */
+export async function getArticlesByInstitute(
+  institute: string,
+  limit: number = 20
+): Promise<LegalArticle[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("get_articles_by_institute", {
+    p_institute: institute,
+    p_limit: limit,
+  });
+
+  if (error) {
+    console.error(`[CORPUS] Errore lookup per istituto "${institute}": ${error.message}`);
+    return [];
+  }
+
+  return (data ?? []).map(mapRowToArticle);
+}
+
+// ─── Query: Ricerca semantica ───
+
+/**
+ * Cerca articoli per similarità semantica con una query testuale.
+ * Questo è il metodo che corregge le hallucination normative.
+ *
+ * Esempio: searchArticles("tolleranza superficie vendita immobile")
+ *   → Art. 1537 c.c. (Vendita a corpo), Art. 1538 c.c. (Eccedenza/deficienza),
+ *     Art. 1539 c.c. (Vendita a misura)
+ */
+export async function searchArticles(
+  query: string,
+  options: {
+    lawSource?: string;
+    institutes?: string[];
+    threshold?: number;
+    limit?: number;
+  } = {}
+): Promise<LegalArticleSearchResult[]> {
+  if (!isVectorDBEnabled()) return [];
+
+  const { lawSource, institutes, threshold = 0.6, limit = 10 } = options;
+
+  const embedding = await generateEmbedding(query, "query");
+  if (!embedding) return [];
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("match_legal_articles", {
+    query_embedding: JSON.stringify(embedding),
+    filter_law_source: lawSource ?? null,
+    filter_institutes: institutes ?? null,
+    match_threshold: threshold,
+    match_count: limit,
+  });
+
+  if (error) {
+    console.error(`[CORPUS] Errore ricerca semantica: ${error.message}`);
+    return [];
+  }
+
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    ...mapRowToArticle(row),
+    similarity: row.similarity as number,
+  }));
+}
+
+// ─── Query combinata per la pipeline ───
+
+/**
+ * Recupera contesto normativo completo per un documento analizzato.
+ * Combina:
+ * 1. Lookup diretto per le leggi identificate dal Classifier
+ * 2. Ricerca per istituti giuridici identificati
+ * 3. Ricerca semantica per le clausole problematiche
+ *
+ * Questo è il punto di inserimento tra Classifier e Analyzer.
+ */
+export async function retrieveLegalContext(params: {
+  applicableLaws: Array<{ reference: string; name: string }>;
+  relevantInstitutes?: string[];
+  clauseTexts?: string[];
+  maxArticles?: number;
+}): Promise<{
+  bySource: Record<string, LegalArticle[]>;
+  byInstitute: Record<string, LegalArticle[]>;
+  bySemantic: LegalArticleSearchResult[];
+}> {
+  const {
+    applicableLaws,
+    relevantInstitutes = [],
+    clauseTexts = [],
+    maxArticles = 30,
+  } = params;
+
+  const bySource: Record<string, LegalArticle[]> = {};
+  const byInstitute: Record<string, LegalArticle[]> = {};
+  let bySemantic: LegalArticleSearchResult[] = [];
+
+  // 1. Lookup diretto per ogni fonte legislativa
+  const sourcePromises = applicableLaws.map(async (law) => {
+    // Normalizza il riferimento: "D.Lgs. 122/2005" o "Art. 1538 c.c."
+    const source = normalizeLawSource(law.reference);
+    if (source) {
+      const articles = await getArticlesBySource(source, 20);
+      if (articles.length > 0) {
+        bySource[source] = articles;
+      }
+    }
+  });
+
+  // 2. Ricerca per istituti giuridici
+  const institutePromises = relevantInstitutes.map(async (institute) => {
+    const articles = await getArticlesByInstitute(institute, 10);
+    if (articles.length > 0) {
+      byInstitute[institute] = articles;
+    }
+  });
+
+  // Esegui lookup diretto e per istituto in parallelo
+  await Promise.all([...sourcePromises, ...institutePromises]);
+
+  // 3. Ricerca semantica per clausole (se il vector DB è attivo)
+  if (clauseTexts.length > 0 && isVectorDBEnabled()) {
+    // Combina le clausole in una query unica per efficienza
+    const combinedQuery = clauseTexts.slice(0, 5).join("\n\n");
+    bySemantic = await searchArticles(combinedQuery, {
+      threshold: 0.55,
+      limit: maxArticles,
+    });
+  }
+
+  const totalArticles =
+    Object.values(bySource).flat().length +
+    Object.values(byInstitute).flat().length +
+    bySemantic.length;
+
+  console.log(
+    `[CORPUS] Contesto normativo recuperato | ` +
+      `${Object.keys(bySource).length} fonti (${Object.values(bySource).flat().length} art.) | ` +
+      `${Object.keys(byInstitute).length} istituti (${Object.values(byInstitute).flat().length} art.) | ` +
+      `${bySemantic.length} semantici | totale: ${totalArticles}`
+  );
+
+  return { bySource, byInstitute, bySemantic };
+}
+
+/**
+ * Formatta il contesto normativo in un blocco di testo per il prompt dell'Analyzer.
+ * Produce un output strutturato che l'agente può usare direttamente.
+ */
+export function formatLegalContextForPrompt(context: {
+  bySource: Record<string, LegalArticle[]>;
+  byInstitute: Record<string, LegalArticle[]>;
+  bySemantic: LegalArticleSearchResult[];
+}, maxChars: number = 6000): string {
+  const sections: string[] = [];
+  let totalChars = 0;
+
+  // Sezione 1: Articoli per fonte legislativa
+  for (const [source, articles] of Object.entries(context.bySource)) {
+    if (totalChars >= maxChars) break;
+    const section = `\n══ ${source} ══\n` +
+      articles
+        .map((a) => `${a.articleReference}${a.articleTitle ? ` — ${a.articleTitle}` : ""}\n${a.articleText}`)
+        .join("\n\n");
+    if (totalChars + section.length <= maxChars) {
+      sections.push(section);
+      totalChars += section.length;
+    }
+  }
+
+  // Sezione 2: Articoli per istituto giuridico
+  for (const [institute, articles] of Object.entries(context.byInstitute)) {
+    if (totalChars >= maxChars) break;
+    const section = `\n── Istituto: ${institute.replace(/_/g, " ")} ──\n` +
+      articles
+        .map((a) => `${a.lawSource} ${a.articleReference}${a.articleTitle ? ` — ${a.articleTitle}` : ""}\n${a.articleText}`)
+        .join("\n\n");
+    if (totalChars + section.length <= maxChars) {
+      sections.push(section);
+      totalChars += section.length;
+    }
+  }
+
+  // Sezione 3: Articoli trovati per similarità semantica (i più rilevanti)
+  if (context.bySemantic.length > 0) {
+    const semanticSection = `\n── Norme correlate (ricerca semantica) ──\n` +
+      context.bySemantic
+        .filter((a) => totalChars + a.articleText.length < maxChars)
+        .map((a) => `${a.lawSource} ${a.articleReference} (pertinenza: ${(a.similarity * 100).toFixed(0)}%)\n${a.articleText}`)
+        .join("\n\n");
+    if (semanticSection.length > 50) {
+      sections.push(semanticSection);
+    }
+  }
+
+  if (sections.length === 0) return "";
+
+  return `\n╔══════════════════════════════════════════════╗
+║  CONTESTO NORMATIVO (dal corpus legislativo)  ║
+╚══════════════════════════════════════════════╝
+${sections.join("\n")}
+╔══════════════════════════════════════════════╗
+║  FINE CONTESTO NORMATIVO                     ║
+╚══════════════════════════════════════════════╝\n`;
+}
+
+// ─── Ingest: caricamento articoli nel DB ───
+
+/**
+ * Carica un batch di articoli nel vector DB con embeddings.
+ * Usato dallo script di ingest per popolare il corpus iniziale.
+ */
+export async function ingestArticles(
+  articles: LegalArticle[]
+): Promise<{ inserted: number; errors: number }> {
+  if (!isVectorDBEnabled()) {
+    console.log("[CORPUS] Voyage API non configurata — skip ingest");
+    return { inserted: 0, errors: 0 };
+  }
+
+  const admin = createAdminClient();
+  let inserted = 0;
+  let errors = 0;
+
+  // Genera embeddings in batch
+  const texts = articles.map((a) =>
+    `${a.lawSource} ${a.articleReference}${a.articleTitle ? ` — ${a.articleTitle}` : ""}\n${a.articleText}`
+  );
+  const embeddings = await generateEmbeddings(texts);
+
+  if (!embeddings) {
+    console.error("[CORPUS] Errore generazione embeddings per ingest");
+    return { inserted: 0, errors: articles.length };
+  }
+
+  // Inserisci in batch con upsert
+  for (let i = 0; i < articles.length; i++) {
+    const article = articles[i];
+    const { error } = await admin
+      .from("legal_articles")
+      .upsert(
+        {
+          law_source: article.lawSource,
+          article_reference: article.articleReference,
+          article_title: article.articleTitle,
+          article_text: article.articleText,
+          hierarchy: article.hierarchy ?? {},
+          keywords: article.keywords ?? [],
+          related_institutes: article.relatedInstitutes ?? [],
+          embedding: JSON.stringify(embeddings[i]),
+          source_url: article.sourceUrl,
+          is_in_force: article.isInForce ?? true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "law_source,article_reference" }
+      );
+
+    if (error) {
+      console.error(
+        `[CORPUS] Errore ingest ${article.lawSource} ${article.articleReference}: ${error.message}`
+      );
+      errors++;
+    } else {
+      inserted++;
+    }
+  }
+
+  console.log(
+    `[CORPUS] Ingest completato | ${inserted} inseriti | ${errors} errori | ${articles.length} totali`
+  );
+
+  return { inserted, errors };
+}
+
+/**
+ * Statistiche sul corpus caricato.
+ */
+export async function getCorpusStats(): Promise<{
+  totalArticles: number;
+  bySource: Record<string, number>;
+  hasEmbeddings: number;
+}> {
+  const admin = createAdminClient();
+
+  const { count: totalArticles } = await admin
+    .from("legal_articles")
+    .select("*", { count: "exact", head: true });
+
+  const bySource: Record<string, number> = {};
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(offset, offset + pageSize - 1);
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const src = (row as { law_source: string }).law_source;
+      bySource[src] = (bySource[src] ?? 0) + 1;
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
+  }
+
+  const { count: hasEmbeddings } = await admin
+    .from("legal_articles")
+    .select("*", { count: "exact", head: true })
+    .not("embedding", "is", null);
+
+  return {
+    totalArticles: totalArticles ?? 0,
+    bySource,
+    hasEmbeddings: hasEmbeddings ?? 0,
+  };
+}
+
+// ─── Query: fonti e gerarchia (per API /corpus/hierarchy) ───
+
+interface SourceInfo {
+  source_id: string;
+  source_name: string;
+  source_type: string;
+  article_count: number;
+}
+
+interface HierarchyNode {
   key: string;
   label: string;
   children: HierarchyNode[];
-  articles: ArticleSummary[];
+  articles: Array<{
+    id: string;
+    article_number: string;
+    article_title: string | null;
+    hierarchy: Record<string, string>;
+  }>;
 }
 
-export interface SourceHierarchy {
+/**
+ * Determina il tipo di fonte (normattiva per italiane, eurlex per EU).
+ */
+function detectSourceType(lawSource: string): string {
+  if (/Dir\.|Reg\.|GDPR|DSA|DMA|EUR/i.test(lawSource)) return "eurlex";
+  return "normattiva";
+}
+
+/**
+ * Genera un ID slug dalla fonte.
+ */
+function sourceToId(lawSource: string): string {
+  return lawSource
+    .toLowerCase()
+    .replace(/[.\s/]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+/**
+ * Lista tutte le fonti legislative nel corpus con conteggio articoli.
+ * Formato compatibile con la UI di /corpus.
+ */
+export async function getCorpusSources(): Promise<SourceInfo[]> {
+  const admin = createAdminClient();
+  const counts: Record<string, number> = {};
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page, error } = await admin
+      .from("legal_articles")
+      .select("law_source")
+      .range(offset, offset + pageSize - 1);
+    if (error) {
+      console.error(`[CORPUS] Errore getCorpusSources: ${error.message}`);
+      break;
+    }
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const src = (row as { law_source: string }).law_source;
+      counts[src] = (counts[src] ?? 0) + 1;
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
+  }
+
+  return Object.entries(counts)
+    .map(([source, count]) => ({
+      source_id: sourceToId(source),
+      source_name: source,
+      source_type: detectSourceType(source),
+      article_count: count,
+    }))
+    .sort((a, b) => b.article_count - a.article_count);
+}
+
+/**
+ * Restituisce l'albero navigabile di una fonte legislativa.
+ * Raggruppa gli articoli per hierarchy (libro, titolo, capo, sezione).
+ * Formato compatibile con la UI di /corpus (HierarchyNode[]).
+ */
+export async function getSourceHierarchy(
+  sourceId: string
+): Promise<{
   source_id: string;
   source_name: string;
   source_type: string;
   article_count: number;
   tree: HierarchyNode[];
-}
+} | null> {
+  // sourceId può essere uno slug o il nome diretto della fonte
+  const admin = createAdminClient();
+  const fields = "id, law_source, article_reference, article_title, hierarchy";
 
-export interface ArticleDetail {
-  id: string;
-  source_id: string;
-  source_name: string;
-  source_type: string;
-  article_number: string;
-  article_title: string | null;
-  article_text: string;
-  hierarchy: Record<string, string>;
-  url: string | null;
-  in_force: boolean;
-}
-
-// ─── Helpers ───
-
-/** Ordinamento numerico per article_number ("2" prima di "10", "2 bis" dopo "2") */
-function compareArticleNumber(a: string, b: string): number {
-  const numA = parseInt(a, 10);
-  const numB = parseInt(b, 10);
-  if (!isNaN(numA) && !isNaN(numB)) {
-    if (numA !== numB) return numA - numB;
-    // Stesso numero: "2" < "2 bis" < "2 ter"
-    return a.localeCompare(b, "it", { numeric: true });
+  // Funzione helper per fetch paginato
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function fetchAllPages(queryBuilder: () => any) {
+    const allRows: Record<string, unknown>[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: page } = await queryBuilder().range(offset, offset + pageSize - 1);
+      if (!page || page.length === 0) break;
+      allRows.push(...(page as Record<string, unknown>[]));
+      offset += page.length;
+      if (page.length < pageSize) break;
+    }
+    return allRows;
   }
-  return a.localeCompare(b, "it", { numeric: true });
-}
 
-/** Pulisci etichette gerarchiche malformate (parentesi extra, spazi, ecc.) */
-function cleanHierarchyLabel(label: string): string {
-  return label
-    .replace(/\)+\s*$/, "")     // rimuovi parentesi chiuse finali orfane
-    .replace(/\(\s*$/, "")       // rimuovi parentesi aperte finali orfane
-    .replace(/\s{2,}/g, " ")     // normalizza spazi multipli
-    .trim();
-}
+  // Prova prima un match esatto
+  let data = await fetchAllPages(() =>
+    admin.from("legal_articles").select(fields).eq("law_source", sourceId).order("article_reference")
+  );
 
-// ─── Query Functions ───
+  // Se non trova, prova con ilike (slug → nome originale)
+  if (data.length === 0) {
+    const pattern = sourceId.replace(/_/g, "%");
+    data = await fetchAllPages(() =>
+      admin.from("legal_articles").select(fields).ilike("law_source", `%${pattern}%`).order("article_reference")
+    );
+  }
 
-/** Ottieni tutte le fonti con conteggio articoli */
-export async function getCorpusSources() {
-  const supabase = createAdminClient();
+  if (data.length === 0) return null;
 
-  // Scopri tutte le fonti paginando (Supabase torna max 1000 righe per query)
-  const PAGE_SIZE = 1000;
-  const sourcesMap = new Map<string, { source_name: string; source_type: string }>();
-  let offset = 0;
+  const sourceName = (data[0] as { law_source: string }).law_source;
 
-  while (true) {
-    const { data, error } = await supabase
-      .from("legal_articles")
-      .select("source_id, source_name, source_type")
-      .eq("in_force", true)
-      .range(offset, offset + PAGE_SIZE - 1);
+  // Costruisci albero HierarchyNode[] dai dati
+  const rootMap = new Map<string, HierarchyNode>();
 
-    if (error) throw new Error(`Errore query fonti: ${error.message}`);
-    if (!data || data.length === 0) break;
+  for (const row of data) {
+    const r = row as {
+      id: string;
+      law_source: string;
+      article_reference: string;
+      article_title: string | null;
+      hierarchy: Record<string, string> | null;
+    };
 
-    for (const row of data) {
-      if (!sourcesMap.has(row.source_id)) {
-        sourcesMap.set(row.source_id, {
-          source_name: row.source_name,
-          source_type: row.source_type,
+    const h = r.hierarchy ?? {};
+    const keys = Object.keys(h);
+    const articleEntry = {
+      id: r.id,
+      article_number: r.article_reference,
+      article_title: r.article_title,
+      hierarchy: h,
+    };
+
+    if (keys.length === 0) {
+      // Articolo senza gerarchia → nodo radice fittizio
+      const rootKey = "__root__";
+      if (!rootMap.has(rootKey)) {
+        rootMap.set(rootKey, {
+          key: rootKey,
+          label: "Articoli",
+          children: [],
+          articles: [],
         });
       }
-    }
-
-    if (data.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-
-  // Per ogni fonte, ottieni il conteggio esatto con head: true
-  const results = [];
-  for (const [source_id, info] of sourcesMap) {
-    const { count } = await supabase
-      .from("legal_articles")
-      .select("*", { count: "exact", head: true })
-      .eq("source_id", source_id)
-      .eq("in_force", true);
-
-    results.push({
-      source_id,
-      source_name: info.source_name,
-      source_type: info.source_type,
-      article_count: count ?? 0,
-    });
-  }
-
-  return results;
-}
-
-/** Ottieni la gerarchia navigabile per una fonte specifica */
-export async function getSourceHierarchy(sourceId: string): Promise<SourceHierarchy | null> {
-  const supabase = createAdminClient();
-
-  // Pagina per superare il limite di 1000 righe di Supabase
-  const PAGE_SIZE = 1000;
-  const allData: Array<{
-    id: string;
-    source_id: string;
-    source_name: string;
-    source_type: string;
-    article_number: string;
-    article_title: string | null;
-    hierarchy: Record<string, string>;
-  }> = [];
-
-  let offset = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from("legal_articles")
-      .select("id, source_id, source_name, source_type, article_number, article_title, hierarchy")
-      .eq("source_id", sourceId)
-      .eq("in_force", true)
-      .range(offset, offset + PAGE_SIZE - 1);
-
-    if (error) throw new Error(`Errore query gerarchia: ${error.message}`);
-    if (!data || data.length === 0) break;
-    allData.push(...data);
-    if (data.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-
-  if (allData.length === 0) return null;
-
-  // Ordina per numero articolo (numerico)
-  allData.sort((a, b) => compareArticleNumber(a.article_number, b.article_number));
-
-  const first = allData[0];
-
-  // Costruisci albero gerarchico
-  const tree = buildHierarchyTree(allData);
-
-  return {
-    source_id: first.source_id,
-    source_name: first.source_name,
-    source_type: first.source_type,
-    article_count: allData.length,
-    tree,
-  };
-}
-
-// ─── Tipi interni per il tree builder ───
-
-type RawArticle = {
-  id: string;
-  article_number: string;
-  article_title: string | null;
-  hierarchy: Record<string, string>;
-};
-
-function toSummary(a: RawArticle): ArticleSummary {
-  return {
-    id: a.id,
-    article_number: a.article_number,
-    article_title: a.article_title,
-    hierarchy: a.hierarchy,
-  };
-}
-
-/** Costruisci un albero navigabile dagli articoli */
-function buildHierarchyTree(articles: RawArticle[]): HierarchyNode[] {
-  // Determina i livelli gerarchici usati (solo quelli con almeno 1 articolo)
-  const levelOrder = ["book", "part", "title", "chapter", "section"];
-  const usedLevels = new Set<string>();
-  for (const art of articles) {
-    for (const key of Object.keys(art.hierarchy || {})) {
-      if (art.hierarchy[key]) usedLevels.add(key);
-    }
-  }
-  const orderedLevels = levelOrder.filter((l) => usedLevels.has(l));
-
-  if (orderedLevels.length === 0) {
-    // Nessuna gerarchia: lista piatta di articoli
-    return [{
-      key: "root",
-      label: "Articoli",
-      children: [],
-      articles: articles.map(toSummary),
-    }];
-  }
-
-  // Costruisci albero ricorsivo
-  const result = buildLevel(articles, orderedLevels, 0);
-
-  // Se ci sono articoli senza nessun livello gerarchico, aggiungili come nodo separato
-  if (result.directArticles.length > 0) {
-    if (result.nodes.length > 0) {
-      result.nodes.push({
-        key: "root:_altri",
-        label: "Altre disposizioni",
-        children: [],
-        articles: result.directArticles,
-      });
+      rootMap.get(rootKey)!.articles.push(articleEntry);
     } else {
-      // Solo articoli senza gerarchia
-      return [{
-        key: "root",
-        label: "Articoli",
-        children: [],
-        articles: result.directArticles,
-      }];
+      // Naviga/crea i nodi per ogni livello di hierarchy
+      const topKey = h[keys[0]];
+      if (!rootMap.has(topKey)) {
+        rootMap.set(topKey, {
+          key: topKey,
+          label: topKey,
+          children: [],
+          articles: [],
+        });
+      }
+
+      let currentNode = rootMap.get(topKey)!;
+
+      for (let i = 1; i < keys.length; i++) {
+        const val = h[keys[i]];
+        let child = currentNode.children.find((c) => c.key === val);
+        if (!child) {
+          child = { key: val, label: val, children: [], articles: [] };
+          currentNode.children.push(child);
+        }
+        currentNode = child;
+      }
+
+      currentNode.articles.push(articleEntry);
     }
   }
 
-  return result.nodes;
+  return {
+    source_id: sourceToId(sourceName),
+    source_name: sourceName,
+    source_type: detectSourceType(sourceName),
+    article_count: data.length,
+    tree: Array.from(rootMap.values()),
+  };
 }
 
-interface BuildResult {
-  nodes: HierarchyNode[];
-  directArticles: ArticleSummary[];
+// ─── Utility ───
+
+function mapRowToArticle(row: Record<string, unknown>): LegalArticle {
+  return {
+    id: row.id as string,
+    lawSource: row.law_source as string,
+    articleReference: row.article_reference as string,
+    articleTitle: row.article_title as string | null,
+    articleText: row.article_text as string,
+    hierarchy: row.hierarchy as Record<string, string>,
+    keywords: row.keywords as string[],
+    relatedInstitutes: row.related_institutes as string[],
+    sourceUrl: row.source_url as string,
+    isInForce: row.is_in_force as boolean,
+  };
 }
 
 /**
- * Costruisce ricorsivamente l'albero.
- * Logica: per il livello corrente, se un articolo ha un valore per quel livello
- * viene raggruppato; se non ce l'ha, viene passato ai livelli successivi.
- * Niente piu "(senza classificazione)" annidato.
+ * Normalizza un riferimento legislativo in un nome di fonte.
+ * "Art. 1538 c.c." → "Codice Civile"
+ * "D.Lgs. 122/2005" → "D.Lgs. 122/2005"
+ * "Art. 6 D.Lgs. 122/2005" → "D.Lgs. 122/2005"
  */
-function buildLevel(articles: RawArticle[], levels: string[], depth: number): BuildResult {
-  // Salta livelli dove NESSUN articolo del gruppo ha un valore
-  while (depth < levels.length) {
-    const level = levels[depth];
-    if (articles.some((a) => a.hierarchy?.[level])) break;
-    depth++;
+function normalizeLawSource(reference: string): string | null {
+  const ref = reference.trim();
+
+  // Codice Civile
+  if (/c\.c\./i.test(ref) || /codice\s+civile/i.test(ref)) {
+    return "Codice Civile";
   }
 
-  if (depth >= levels.length) {
-    // Nessun livello rimasto: tutti gli articoli sono foglie
-    return { nodes: [], directArticles: articles.map(toSummary) };
+  // Codice di Procedura Civile
+  if (/c\.p\.c\./i.test(ref) || /procedura\s+civile/i.test(ref)) {
+    return "Codice di Procedura Civile";
   }
 
-  const currentLevel = levels[depth];
+  // D.Lgs. / Decreto Legislativo
+  const dlgs = ref.match(/D\.?\s*Lgs\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (dlgs) return `D.Lgs. ${dlgs[1]}/${dlgs[2]}`;
 
-  // Separa: articoli con valore per questo livello vs senza
-  const grouped = new Map<string, RawArticle[]>();
-  const ungrouped: RawArticle[] = [];
+  // DPR
+  const dpr = ref.match(/D\.?P\.?R\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (dpr) return `DPR ${dpr[1]}/${dpr[2]}`;
 
-  for (const art of articles) {
-    const val = art.hierarchy?.[currentLevel];
-    if (val) {
-      const cleanVal = cleanHierarchyLabel(val);
-      if (!grouped.has(cleanVal)) grouped.set(cleanVal, []);
-      grouped.get(cleanVal)!.push(art);
-    } else {
-      ungrouped.push(art);
-    }
+  // Legge
+  const legge = ref.match(/L\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (legge) return `L. ${legge[1]}/${legge[2]}`;
+
+  // Codice del Consumo
+  if (/consumo/i.test(ref) || /206\/2005/i.test(ref)) {
+    return "D.Lgs. 206/2005";
   }
 
-  const nodes: HierarchyNode[] = [];
-
-  // Costruisci nodi per ogni gruppo
-  for (const [label, groupArticles] of grouped) {
-    const result = buildLevel(groupArticles, levels, depth + 1);
-    nodes.push({
-      key: `${currentLevel}:${label}`,
-      label,
-      children: result.nodes,
-      articles: result.directArticles,
-    });
+  // TU Edilizia
+  if (/edilizia/i.test(ref) || /380\/2001/i.test(ref)) {
+    return "DPR 380/2001";
   }
 
-  // Articoli senza questo livello: prova livelli piu profondi
-  let directArticles: ArticleSummary[] = [];
-  if (ungrouped.length > 0) {
-    const result = buildLevel(ungrouped, levels, depth + 1);
-    if (result.nodes.length > 0) {
-      // Hanno trovato struttura piu in profondita — aggiungili come nodi fratelli
-      nodes.push(...result.nodes);
-    }
-    // Articoli davvero senza struttura: risalgono al genitore
-    directArticles = result.directArticles;
-  }
-
-  return { nodes, directArticles };
-}
-
-/** Ottieni un singolo articolo per ID */
-export async function getArticleById(id: string): Promise<ArticleDetail | null> {
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .from("legal_articles")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) return null;
-  return data;
-}
-
-/** Cerca articoli per testo (full-text search) */
-export async function searchArticles(query: string, sourceId?: string, limit = 20) {
-  const supabase = createAdminClient();
-
-  let q = supabase
-    .from("legal_articles")
-    .select("id, source_id, source_name, article_number, article_title, hierarchy, article_text")
-    .eq("in_force", true)
-    .ilike("article_text", `%${query}%`)
-    .limit(limit);
-
-  if (sourceId) {
-    q = q.eq("source_id", sourceId);
-  }
-
-  const { data, error } = await q;
-  if (error) throw new Error(`Errore ricerca: ${error.message}`);
-  return data || [];
-}
-
-/** Cerca articoli filtrati per gerarchia (per gli agenti) */
-export async function searchByHierarchy(
-  sourceId: string,
-  hierarchyFilter: Record<string, string>,
-  limit = 50
-) {
-  const supabase = createAdminClient();
-
-  let q = supabase
-    .from("legal_articles")
-    .select("id, source_id, source_name, article_number, article_title, article_text, hierarchy, url")
-    .eq("source_id", sourceId)
-    .eq("in_force", true)
-    .limit(limit);
-
-  // Filtra per campi gerarchia
-  for (const [key, value] of Object.entries(hierarchyFilter)) {
-    q = q.contains("hierarchy", { [key]: value });
-  }
-
-  const { data, error } = await q;
-  if (error) throw new Error(`Errore ricerca gerarchica: ${error.message}`);
-  return data || [];
-}
-
-/** Genera breadcrumb da un campo hierarchy */
-export function hierarchyToBreadcrumb(
-  hierarchy: Record<string, string>,
-  sourceName?: string
-): string[] {
-  const levelOrder = ["book", "part", "title", "chapter", "section"];
-  const crumbs: string[] = [];
-
-  if (sourceName) crumbs.push(sourceName);
-
-  for (const level of levelOrder) {
-    if (hierarchy[level]) {
-      crumbs.push(hierarchy[level]);
-    }
-  }
-
-  return crumbs;
+  return null;
 }

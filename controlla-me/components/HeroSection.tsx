@@ -1,34 +1,125 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Shield, Upload, FileText, Lock, Globe, Sparkles, ArrowRight } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Lock,
+  Globe,
+  Sparkles,
+  ArrowRight,
+  MessageCircle,
+  ArrowDown,
+  BookOpen,
+} from "lucide-react";
+import CorpusChat from "@/components/CorpusChat";
 
-/* ── Scan line — sweeps across the hero ── */
-function HeroScanLine() {
+/* ══════════════════════════════════════════════════════
+   Animated text — words appear, get circled in red,
+   struck through, then fade out
+   ══════════════════════════════════════════════════════ */
+
+const STRIKE_WORDS = [
+  "clausola vessatoria",
+  "penale eccessiva",
+  "recesso impossibile",
+  "garanzia esclusa",
+  "termine decadenziale",
+  "rinnovo tacito",
+];
+
+function TextStrikeAnimation() {
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState<"enter" | "circle" | "strike" | "exit">("enter");
+
+  useEffect(() => {
+    const timings = { enter: 800, circle: 1000, strike: 1000, exit: 600 };
+    const timer = setTimeout(() => {
+      if (phase === "enter") setPhase("circle");
+      else if (phase === "circle") setPhase("strike");
+      else if (phase === "strike") setPhase("exit");
+      else {
+        setIndex((i) => (i + 1) % STRIKE_WORDS.length);
+        setPhase("enter");
+      }
+    }, timings[phase]);
+    return () => clearTimeout(timer);
+  }, [phase, index]);
+
   return (
-    <motion.div
-      className="absolute left-0 right-0 pointer-events-none z-[2]"
-      style={{
-        height: "3px",
-        background: "linear-gradient(90deg, transparent 5%, rgba(255,107,53,0.9) 30%, #FF6B35 50%, rgba(255,107,53,0.9) 70%, transparent 95%)",
-        boxShadow: "0 0 20px 6px rgba(255,107,53,0.4), 0 0 60px 15px rgba(255,107,53,0.15)",
-      }}
-      animate={{ top: ["0%", "100%"] }}
-      transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-    />
+    <span className="relative inline-block min-w-[200px] text-center">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={`${index}-${phase}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{
+            opacity: phase === "exit" ? 0 : 1,
+            y: 0,
+          }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+          className="relative inline-block"
+        >
+          <span
+            className={`relative transition-all duration-500 ${
+              phase === "strike"
+                ? "line-through decoration-red-500 decoration-[3px] text-red-500/70"
+                : ""
+            }`}
+          >
+            {STRIKE_WORDS[index]}
+          </span>
+
+          {/* Red circle SVG overlay */}
+          {(phase === "circle" || phase === "strike") && (
+            <motion.svg
+              className="absolute -inset-x-3 -inset-y-2 pointer-events-none"
+              viewBox="0 0 200 50"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <motion.ellipse
+                cx="100"
+                cy="25"
+                rx="95"
+                ry="20"
+                fill="none"
+                stroke="#EF4444"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                style={{
+                  strokeDasharray: 1,
+                  strokeDashoffset: 0,
+                }}
+              />
+            </motion.svg>
+          )}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }
 
-/* ── Main Hero ── */
-export default function HeroSection({
+/* ══════════════════════════════════════════════════════
+   Section 1 — "Ti verifico il documento"
+   ══════════════════════════════════════════════════════ */
+
+function HeroVerifica({
   onFileSelected,
+  contextPrompt,
+  onContextChange,
 }: {
-  onFileSelected: (file: File, userContext?: string) => void;
+  onFileSelected: (file: File) => void;
+  contextPrompt: string;
+  onContextChange: (value: string) => void;
 }) {
   const [dragOver, setDragOver] = useState(false);
-  const [userContext, setUserContext] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback(
@@ -36,271 +127,456 @@ export default function HeroSection({
       e.preventDefault();
       setDragOver(false);
       const f = e.dataTransfer.files[0];
-      if (f) onFileSelected(f, userContext.trim() || undefined);
+      if (f) onFileSelected(f);
     },
-    [onFileSelected, userContext]
+    [onFileSelected]
   );
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const f = e.target.files?.[0];
-      if (f) onFileSelected(f, userContext.trim() || undefined);
+      if (f) onFileSelected(f);
     },
-    [onFileSelected, userContext]
+    [onFileSelected]
   );
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* ═══ Layer 0: Background image ═══ */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/Hero.webp"
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          quality={90}
-        />
-        {/* Dark overlay — heavy center for text readability, lighter at edges */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: [
-              "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 60%, rgba(255,255,255,0.65) 100%)",
-            ].join(", "),
-          }}
-        />
-        {/* Bottom fade to seamless section transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
-      </div>
+    <section className="relative min-h-[100vh] flex items-center bg-white overflow-hidden">
+      <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 pt-24 pb-12">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
 
-      {/* ═══ Layer 1: Animated gradient glow (on top of image) ═══ */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-        {/* Primary orange glow */}
-        <motion.div
-          className="absolute rounded-full"
-          style={{
-            width: 900,
-            height: 900,
-            left: "50%",
-            top: "45%",
-            x: "-50%",
-            y: "-50%",
-            background:
-              "radial-gradient(circle, rgba(255,107,53,0.20) 0%, rgba(255,107,53,0.06) 40%, transparent 65%)",
-            filter: "blur(60px)",
-          }}
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.5, 0.9, 0.5],
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Amber accent, top-right */}
-        <motion.div
-          className="absolute rounded-full"
-          style={{
-            width: 500,
-            height: 500,
-            left: "68%",
-            top: "25%",
-            x: "-50%",
-            y: "-50%",
-            background:
-              "radial-gradient(circle, rgba(255,160,40,0.12) 0%, transparent 70%)",
-            filter: "blur(50px)",
-          }}
-          animate={{
-            scale: [1.1, 0.9, 1.1],
-            opacity: [0.3, 0.7, 0.3],
-          }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
+          {/* LEFT — Text & CTA on clean white */}
+          <div className="flex-1 w-full md:w-1/2 text-left">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/25 mb-6 text-sm text-foreground font-medium"
+            >
+              <Sparkles className="w-4 h-4 text-accent" />
+              4 agenti AI al tuo servizio
+            </motion.div>
 
-      <HeroScanLine />
+            {/* Headline — poche parole, MOLTO BOLD */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="font-serif font-black text-[clamp(42px,6vw,80px)] leading-[1.02] tracking-[-0.03em] text-foreground mb-4"
+            >
+              Ti verifico
+              <br />
+              <span className="italic bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent">
+                il documento.
+              </span>
+            </motion.h1>
 
-      {/* ═══ Layer 2: Content ═══ */}
-      <div className="relative z-10 flex flex-col items-center text-center px-6 pt-28 pb-20 w-full max-w-[680px]">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-accent/25 mb-8 text-sm text-foreground font-medium"
-        >
-          <Shield className="w-4 h-4 text-accent" />
-          4 agenti AI · Risultati in 30 secondi
-        </motion.div>
+            {/* Animated strike words */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-lg text-foreground-secondary mb-6 h-10 flex items-center"
+            >
+              <span className="mr-2">Troviamo</span>
+              <TextStrikeAnimation />
+            </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.7 }}
-          className="font-serif text-[clamp(42px,8vw,88px)] leading-[1.02] tracking-[-0.02em] max-w-[800px] mb-5"
-          style={{ textShadow: "0 4px 30px rgba(255,255,255,0.8)" }}
-        >
-          Non firmare nulla
-          <br />
-          <span className="italic bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent">
-            che non capisci.
-          </span>
-        </motion.h1>
+            {/* Sub — una riga sola */}
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-base text-foreground-secondary max-w-[460px] mb-8 leading-relaxed"
+            >
+              Carica un contratto, una bolletta, qualsiasi documento.
+              <br className="hidden md:block" />
+              I nostri agenti lo analizzano e ti spiegano tutto.
+            </motion.p>
 
-        {/* Subheadline */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="text-lg md:text-xl leading-relaxed text-foreground max-w-[520px] mb-10"
-          style={{ textShadow: "0 2px 20px rgba(255,255,255,0.8)" }}
-        >
-          Carica un contratto, una bolletta, qualsiasi documento legale.
-          <br className="hidden md:block" />
-          Quattro agenti AI lo analizzano e ti dicono cosa rischi.
-        </motion.p>
+            {/* Context prompt */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="w-full max-w-[480px] mb-4"
+            >
+              <textarea
+                value={contextPrompt}
+                onChange={(e) => onContextChange(e.target.value)}
+                placeholder="Descrivi il contesto: che tipo di documento e'? Hai dubbi specifici? (opzionale)"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-border text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all"
+                rows={2}
+                maxLength={500}
+              />
+              {contextPrompt.trim() && (
+                <p className="text-[11px] text-foreground-tertiary mt-1 text-right">
+                  {contextPrompt.length}/500
+                </p>
+              )}
+            </motion.div>
 
-        {/* ═══ User Context — optional pre-upload input ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6 }}
-          className="w-full max-w-[520px] mb-4"
-        >
-          <textarea
-            value={userContext}
-            onChange={(e) => setUserContext(e.target.value)}
-            placeholder="Cosa vuoi controllare? (opzionale) — es. &quot;Cerco clausole vessatorie&quot;, &quot;Voglio capire i termini di recesso&quot;..."
-            className="w-full px-4 py-3 rounded-xl border border-border bg-white/80 backdrop-blur-sm text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition-all"
-            rows={2}
-            maxLength={500}
-          />
-          {userContext.trim() && (
-            <p className="text-[11px] text-foreground-tertiary mt-1 text-right">
-              {userContext.length}/500
-            </p>
-          )}
-        </motion.div>
-
-        {/* ═══ Upload Card — prominent, glowing ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.7 }}
-          className="relative w-full max-w-[520px]"
-        >
-          {/* Outer glow */}
-          <div className="absolute -inset-4 rounded-3xl bg-accent/15 blur-3xl" />
-          <div className="absolute -inset-1 rounded-2xl bg-gradient-to-b from-accent/20 via-accent/5 to-transparent blur-xl" />
-
-          {/* Card */}
-          <div
-            className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
-              dragOver
-                ? "border-accent/70 bg-white/80 backdrop-blur-sm scale-[1.02] shadow-[0_0_80px_rgba(255,107,53,0.2)]"
-                : "border-border bg-white/80 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_60px_rgba(255,107,53,0.1)]"
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {/* Top accent line */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-
-            <div className="flex flex-col items-center gap-4 px-8 py-8">
-              {/* Icon */}
-              <motion.div
-                className="w-12 h-12 rounded-xl flex items-center justify-center bg-accent/[0.12] border border-accent/25"
-                animate={dragOver ? { scale: 1.15, rotate: 5 } : { scale: 1, rotate: 0 }}
-              >
-                {dragOver ? (
-                  <FileText className="w-5 h-5 text-accent" />
-                ) : (
-                  <Upload className="w-5 h-5 text-accent" />
-                )}
-              </motion.div>
-
-              {/* Text */}
-              <p className="text-sm text-foreground">
-                {dragOver ? "Rilascia per analizzare" : "Trascina qui il tuo documento oppure"}
-              </p>
-
-              {/* CTA Button — THE main action */}
-              <button
-                className="relative w-full max-w-[360px] px-8 py-4 rounded-xl text-base font-bold text-white overflow-hidden bg-gradient-to-r from-accent to-amber-500 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                style={{ boxShadow: "0 8px 32px rgba(255,107,53,0.35), 0 0 0 1px rgba(255,107,53,0.1)" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
+            {/* Upload card */}
+            <motion.div
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="relative w-full max-w-[480px]"
+            >
+              <div
+                className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
+                  dragOver
+                    ? "border-accent/70 bg-white scale-[1.02] shadow-lg"
+                    : "border-border bg-white hover:border-accent/40 hover:shadow-md"
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
                 }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
               >
-                {/* Shimmer */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12"
-                  animate={{ x: ["-200%", "200%"] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
-                <span className="relative z-10">Analizza il tuo documento</span>
-                <ArrowRight className="w-4 h-4 relative z-10" />
-              </button>
 
-              {/* Formats */}
-              <p className="text-xs text-foreground-tertiary tracking-wide">
-                PDF · Word · Immagini · TXT · max 20MB
-              </p>
-            </div>
+                <div className="flex flex-col items-center gap-3 px-6 py-6">
+                  <motion.div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center bg-accent/[0.12] border border-accent/25"
+                    animate={
+                      dragOver
+                        ? { scale: 1.15, rotate: 5 }
+                        : { scale: 1, rotate: 0 }
+                    }
+                  >
+                    {dragOver ? (
+                      <FileText className="w-5 h-5 text-accent" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-accent" />
+                    )}
+                  </motion.div>
+
+                  <p className="text-sm text-foreground">
+                    {dragOver
+                      ? "Rilascia per analizzare"
+                      : "Trascina qui il tuo documento oppure"}
+                  </p>
+
+                  <button
+                    className="relative w-full max-w-[360px] px-8 py-3.5 rounded-xl text-base font-bold text-white overflow-hidden bg-gradient-to-r from-accent to-amber-500 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    style={{
+                      boxShadow:
+                        "0 8px 32px rgba(255,107,53,0.35), 0 0 0 1px rgba(255,107,53,0.1)",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12"
+                      animate={{ x: ["-200%", "200%"] }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        repeatDelay: 2,
+                      }}
+                    />
+                    <span className="relative z-10">Analizza il tuo documento</span>
+                    <ArrowRight className="w-4 h-4 relative z-10" />
+                  </button>
+
+                  <p className="text-xs text-foreground-tertiary tracking-wide">
+                    PDF · Word · Immagini · TXT · max 20MB
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Trust signals */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="flex gap-6 flex-wrap mt-5 text-foreground-tertiary text-xs"
+            >
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" /> Dati protetti
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5" /> Server in EU
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> 3 analisi gratis
+              </span>
+            </motion.div>
           </div>
-        </motion.div>
 
-        {/* ═══ Trust signals ═══ */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="flex gap-6 flex-wrap justify-center mt-8 text-foreground-tertiary text-xs"
-        >
-          <span className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" /> Dati protetti
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5" /> Server in EU
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> 3 analisi gratis
-          </span>
-        </motion.div>
-
-        {/* ═══ Scroll hint ═══ */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-12 flex flex-col items-center gap-2 text-foreground-tertiary"
-        >
-          <span className="text-[10px] tracking-[2px] uppercase">Scopri come funziona</span>
+          {/* RIGHT — Immagine a metà schermo, nessun overlay */}
           <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="flex-1 w-full md:w-1/2 relative"
           >
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-              <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <div className="relative w-full aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="/images/about-legal.png"
+                alt="Analisi documenti legali"
+                fill
+                priority
+                className="object-cover object-center"
+                quality={90}
+              />
+            </div>
           </motion.div>
-        </motion.div>
+
+        </div>
       </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   Section 2 — "Parlami dei tuoi dubbi"
+   ══════════════════════════════════════════════════════ */
+
+function HeroDubbi() {
+  return (
+    <section className="relative min-h-[90vh] flex items-center bg-white overflow-hidden">
+      <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-20">
+        <div className="flex flex-col md:flex-row-reverse items-center gap-8 md:gap-12">
+
+          {/* RIGHT — Text & chatbox on clean white */}
+          <div className="flex-1 w-full md:w-1/2 text-left">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-300/30 mb-6 text-sm text-foreground font-medium"
+            >
+              <MessageCircle className="w-4 h-4 text-purple-500" />
+              Corpus normativo
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h2
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="font-serif font-black text-[clamp(38px,5.5vw,72px)] leading-[1.02] tracking-[-0.03em] text-foreground mb-4"
+            >
+              Parlami dei
+              <br />
+              <span className="italic bg-gradient-to-br from-purple-500 via-purple-400 to-violet-400 bg-clip-text text-transparent">
+                tuoi dubbi.
+              </span>
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-base text-foreground-secondary max-w-[460px] mb-8 leading-relaxed"
+            >
+              Interroga il corpus normativo italiano.
+              <br className="hidden md:block" />
+              Norme, sentenze, prassi — tutto a portata di domanda.
+            </motion.p>
+
+            {/* Chat */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="w-full max-w-[480px]"
+            >
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                {/* Chat header */}
+                <div className="px-5 py-3 border-b border-border bg-purple-50/50 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-xs font-medium text-purple-600">
+                    Assistente legale AI
+                  </span>
+                </div>
+
+                {/* Welcome message */}
+                <div className="px-5 pt-5 pb-2">
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-3.5 h-3.5 text-purple-500" />
+                    </div>
+                    <div className="bg-purple-50 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%]">
+                      <p className="text-sm text-foreground-secondary">
+                        Ciao! Chiedimi qualsiasi dubbio legale. Consultero&apos; il
+                        corpus normativo per darti una risposta fondata.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CorpusChat */}
+                <div className="px-4 pb-4 pt-2">
+                  <CorpusChat variant="hero" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* LEFT — Immagine a metà schermo */}
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="flex-1 w-full md:w-1/2 relative"
+          >
+            <div className="relative w-full aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="/images/Hero.webp"
+                alt="Assistente legale AI"
+                fill
+                className="object-cover object-center"
+                quality={90}
+              />
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   Section 3 — "La legge compresa da tutti"
+   ══════════════════════════════════════════════════════ */
+
+function HeroBrand() {
+  return (
+    <section className="relative min-h-[90vh] flex items-center bg-white overflow-hidden">
+      <div className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-20">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+
+          {/* LEFT — Brand text on clean white */}
+          <div className="flex-1 w-full md:w-1/2 text-left">
+            {/* Brand mark */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+              className="mb-4"
+            >
+              <span className="font-serif font-black text-[clamp(48px,8vw,96px)] leading-none tracking-[-0.03em]">
+                <span className="text-foreground">controlla</span>
+                <span className="text-accent">.me</span>
+              </span>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="font-serif italic text-[clamp(22px,4vw,40px)] leading-snug bg-gradient-to-br from-accent via-orange-400 to-amber-400 bg-clip-text text-transparent mb-6"
+            >
+              La legge, compresa da tutti.
+            </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="text-base text-foreground-secondary max-w-[440px] mb-10 leading-relaxed"
+            >
+              Un team di intelligenze artificiali specializzate che leggono,
+              analizzano e ti spiegano i tuoi documenti legali — prima che sia
+              troppo tardi.
+            </motion.p>
+
+            {/* CTA scroll */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                document
+                  .getElementById("mission")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="px-8 py-3.5 rounded-full text-sm font-medium text-foreground-secondary border border-border hover:border-accent/40 hover:text-foreground transition-all inline-flex items-center gap-2"
+            >
+              Scopri come funziona
+              <ArrowDown className="w-4 h-4" />
+            </motion.button>
+          </div>
+
+          {/* RIGHT — Immagine a metà schermo */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="flex-1 w-full md:w-1/2 relative"
+          >
+            <div className="relative w-full aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="/images/law-references.png"
+                alt="Riferimenti normativi"
+                fill
+                className="object-cover object-center"
+                quality={90}
+              />
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   Main Hero — combines all 3 sections
+   ══════════════════════════════════════════════════════ */
+
+export default function HeroSection({
+  onFileSelected,
+  contextPrompt,
+  onContextChange,
+}: {
+  onFileSelected: (file: File) => void;
+  contextPrompt: string;
+  onContextChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <HeroVerifica
+        onFileSelected={onFileSelected}
+        contextPrompt={contextPrompt}
+        onContextChange={onContextChange}
+      />
+      <div className="section-divider" />
+      <HeroDubbi />
+      <div className="section-divider" />
+      <HeroBrand />
     </div>
   );
 }

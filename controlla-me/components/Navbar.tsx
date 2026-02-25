@@ -124,11 +124,7 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-10 py-4 transition-all duration-300 ${
-          scrolled
-            ? "bg-background/90 backdrop-blur-xl border-b border-border py-3 shadow-sm"
-            : "bg-transparent border-b border-transparent py-5"
-        }`}
+        className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-10 py-3 bg-white border-b border-border shadow-sm"
       >
         {/* Logo — always clickable to go home */}
         <Link

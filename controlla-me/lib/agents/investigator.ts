@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODEL, MODEL_FAST, parseAgentJSON } from "../anthropic";
+import { anthropic, parseAgentJSON } from "../anthropic";
+import { AGENT_MODELS, MODELS } from "../models";
 import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
 import type {
   ClassificationResult,
@@ -7,43 +8,65 @@ import type {
   InvestigationResult,
 } from "../types";
 
+// Read model from centralized config instead of hardcoded constant
+const INVESTIGATOR_MODEL = MODELS[AGENT_MODELS["investigator"].primary].model;
+
+/**
+ * Investigator aggressivo: copre TUTTE le clausole critical e high.
+ * Usa web_search Anthropic — richiede Claude, non migra a runAgent().
+ *
+ * @param legalContext - Contesto normativo dal corpus legislativo (opzionale).
+ * @param ragContext - Contesto da analisi precedenti nella knowledge base (opzionale).
+ */
 export async function runInvestigator(
   classification: ClassificationResult,
   analysis: AnalysisResult,
-  userContext?: string
+  legalContext?: string,
+  ragContext?: string
 ): Promise<InvestigationResult> {
-  // Filter only problematic clauses (medium risk or higher)
-  const problematicClauses = analysis.clauses.filter((c) =>
-    ["critical", "high", "medium"].includes(c.riskLevel)
+  // ALL critical and high clauses are MANDATORY, medium if possible
+  const criticalAndHigh = analysis.clauses.filter((c) =>
+    ["critical", "high"].includes(c.riskLevel)
   );
+  const medium = analysis.clauses.filter((c) => c.riskLevel === "medium");
 
-  if (problematicClauses.length === 0) {
+  if (criticalAndHigh.length === 0 && medium.length === 0) {
     return { findings: [] };
   }
 
-  const contextBlock = userContext
-    ? `\nRichiesta specifica dell'utente: "${userContext}"\nCerca norme e sentenze anche in relazione a questa richiesta.\n`
-    : "";
+  // Build enriched user message
+  const userMessageParts = [
+    `Documento: ${classification.documentTypeLabel} (${classification.jurisdiction})`,
+    classification.documentSubType
+      ? `Sotto-tipo: ${classification.documentSubType}`
+      : null,
+    classification.relevantInstitutes?.length
+      ? `Istituti giuridici: ${classification.relevantInstitutes.join(", ")}`
+      : null,
+    `Leggi applicabili: ${classification.applicableLaws.map((l) => l.reference).join(", ")}`,
+    legalContext ? `\n${legalContext}` : null,
+    ragContext ? `\n${ragContext}` : null,
+    `\nClausole CRITICAL e HIGH (obbligatorio coprire TUTTE): ${JSON.stringify(criticalAndHigh)}`,
+    medium.length > 0
+      ? `\nClausole MEDIUM (coprire se possibile): ${JSON.stringify(medium)}`
+      : null,
+    `\nCerca norme e sentenze per OGNI clausola critical e high. Non saltarne nessuna.`,
+  ];
 
-  const userMessage = `Documento: ${classification.documentTypeLabel} (${classification.jurisdiction})
-Leggi: ${classification.applicableLaws.map((l) => l.reference).join(", ")}
-${contextBlock}
-Clausole da investigare: ${JSON.stringify(problematicClauses)}
+  const userMessage = userMessageParts.filter(Boolean).join("\n");
 
-Cerca norme e sentenze. Priorità: critical e high prima.`;
-
-  // Use an agentic loop to handle tool use for web search
+  // Agentic loop with web search
   const messages: Anthropic.Messages.MessageParam[] = [
     { role: "user", content: userMessage },
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 5;
+  const MAX_ITERATIONS = 8;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
-      model: MODEL_FAST,
-      max_tokens: 6144,
+      model: INVESTIGATOR_MODEL,
+      max_tokens: AGENT_MODELS["investigator"].maxTokens,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
         {
@@ -54,7 +77,6 @@ Cerca norme e sentenze. Priorità: critical e high prima.`;
       messages,
     });
 
-    // Collect all text blocks from the response
     const textBlocks = response.content
       .filter(
         (block): block is Anthropic.Messages.TextBlock => block.type === "text"
@@ -65,14 +87,10 @@ Cerca norme e sentenze. Priorità: critical e high prima.`;
       finalText = textBlocks.join("\n");
     }
 
-    // If the model has stopped (no more tool use), break
     if (response.stop_reason === "end_turn") {
       break;
     }
 
-    // If there are tool use blocks, we need to continue the loop
-    // The web_search tool is handled by the API automatically,
-    // but we add the assistant response and continue
     const hasToolUse = response.content.some(
       (block) => block.type === "tool_use"
     );
@@ -81,10 +99,8 @@ Cerca norme e sentenze. Priorità: critical e high prima.`;
       break;
     }
 
-    // Add assistant's response to messages
     messages.push({ role: "assistant", content: response.content });
 
-    // Add tool results for each tool use block
     const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
       response.content
         .filter(
@@ -136,7 +152,7 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
-      model: MODEL,
+      model: INVESTIGATOR_MODEL,
       max_tokens: 4096,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [

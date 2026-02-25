@@ -1,4 +1,4 @@
-import { anthropic, MODEL, parseAgentJSON, extractTextContent } from "../anthropic";
+import { runAgent } from "../ai-sdk/agent-runner";
 import { ADVISOR_SYSTEM_PROMPT } from "../prompts/advisor";
 import type {
   ClassificationResult,
@@ -7,34 +7,48 @@ import type {
   AdvisorResult,
 } from "../types";
 
+/**
+ * @param ragContext - Contesto da analisi precedenti nella knowledge base (opzionale).
+ */
 export async function runAdvisor(
   classification: ClassificationResult,
   analysis: AnalysisResult,
   investigation: InvestigationResult,
-  userContext?: string
+  ragContext?: string
 ): Promise<AdvisorResult> {
-  const contextBlock = userContext
-    ? `\nRichiesta dell'utente: "${userContext}"\nNel report finale, rispondi in modo specifico a questa richiesta e mettila in evidenza.\n`
-    : "";
+  const userMessageParts = [
+    `Classificazione: ${JSON.stringify(classification)}`,
+    `\nAnalisi clausole: ${JSON.stringify(analysis)}`,
+    `\nRicerca normativa: ${JSON.stringify(investigation)}`,
+    ragContext ? `\n${ragContext}` : null,
+    `\nProduci il report finale con scoring multidimensionale.`,
+    `\nRICORDA: MASSIMO 3 risks e MASSIMO 3 actions. Scegli solo i più importanti.`,
+  ];
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 4096,
-    system: ADVISOR_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `Classificazione: ${JSON.stringify(classification)}
+  const { parsed: result } = await runAgent<AdvisorResult>(
+    "advisor",
+    userMessageParts.filter(Boolean).join("\n"),
+    { systemPrompt: ADVISOR_SYSTEM_PROMPT }
+  );
 
-Analisi clausole: ${JSON.stringify(analysis)}
+  // Enforce output limits — truncate if model ignores them
+  if (result.risks && result.risks.length > 3) {
+    console.warn(`[ADVISOR] ${result.risks.length} risks trovati, troncato a 3`);
+    result.risks = result.risks.slice(0, 3);
+  }
+  if (result.actions && result.actions.length > 3) {
+    console.warn(`[ADVISOR] ${result.actions.length} actions trovate, troncato a 3`);
+    result.actions = result.actions.slice(0, 3);
+  }
 
-Ricerca normativa: ${JSON.stringify(investigation)}
-${contextBlock}
-Produci il report finale.`,
-      },
-    ],
-  });
+  // Ensure scores field exists with defaults
+  if (!result.scores) {
+    result.scores = {
+      legalCompliance: result.fairnessScore,
+      contractBalance: result.fairnessScore,
+      industryPractice: result.fairnessScore,
+    };
+  }
 
-  const text = extractTextContent(response);
-  return parseAgentJSON<AdvisorResult>(text);
+  return result;
 }

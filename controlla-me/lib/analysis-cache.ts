@@ -51,7 +51,9 @@ export async function createSession(documentText: string): Promise<string> {
   await ensureCacheDir();
 
   const docHash = hashDocument(documentText);
-  const sessionId = `${docHash}-${Date.now().toString(36)}`;
+  // UUID v4 random per rendere il sessionId non prevedibile
+  const randomPart = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  const sessionId = `${docHash}-${randomPart}`;
   const now = new Date().toISOString();
 
   const cache: CachedAnalysis = {
