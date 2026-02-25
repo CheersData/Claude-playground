@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { profiles } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   if (!stripe) {
@@ -32,8 +32,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = createAdminClient();
-
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;
@@ -41,13 +39,7 @@ export async function POST(req: NextRequest) {
       const userId = session.metadata?.user_id;
 
       if (userId) {
-        await supabase
-          .from("profiles")
-          .update({
-            plan: "pro",
-            stripe_customer_id: customerId,
-          })
-          .eq("id", userId);
+        await profiles.updatePlan(userId, "pro", customerId);
       }
       break;
     }
@@ -55,11 +47,7 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
       const customerId = subscription.customer as string;
-
-      await supabase
-        .from("profiles")
-        .update({ plan: "free" })
-        .eq("stripe_customer_id", customerId);
+      await profiles.downgradeByStripeId(customerId);
       break;
     }
 
@@ -67,11 +55,7 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object;
       const customerId = subscription.customer as string;
       const isActive = ["active", "trialing"].includes(subscription.status);
-
-      await supabase
-        .from("profiles")
-        .update({ plan: isActive ? "pro" : "free" })
-        .eq("stripe_customer_id", customerId);
+      await profiles.updatePlanByStripeId(customerId, isActive ? "pro" : "free");
       break;
     }
   }

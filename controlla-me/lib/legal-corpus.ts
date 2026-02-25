@@ -11,31 +11,18 @@
  * il testo di Art. 1538 c.c. sotto gli occhi. Con il vector DB lo trova.
  */
 
-import { createAdminClient } from "./supabase/admin";
+import { corpus } from "./db";
+import type { CorpusArticle, CorpusArticleSearchResult } from "./db/corpus";
 import {
   generateEmbedding,
   generateEmbeddings,
   isVectorDBEnabled,
 } from "./embeddings";
 
-// ─── Tipi ───
+// ─── Tipi (re-export per backward compatibility) ───
 
-export interface LegalArticle {
-  id?: string;
-  lawSource: string;
-  articleReference: string;
-  articleTitle: string | null;
-  articleText: string;
-  hierarchy?: Record<string, string>;
-  keywords?: string[];
-  relatedInstitutes?: string[];
-  sourceUrl?: string;
-  isInForce?: boolean;
-}
-
-export interface LegalArticleSearchResult extends LegalArticle {
-  similarity: number;
-}
+export type LegalArticle = CorpusArticle;
+export type LegalArticleSearchResult = CorpusArticleSearchResult;
 
 // ─── Query: Lookup diretto per fonte ───
 
@@ -47,18 +34,7 @@ export async function getArticlesBySource(
   lawSource: string,
   limit: number = 50
 ): Promise<LegalArticle[]> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("get_articles_by_source", {
-    p_law_source: lawSource,
-    p_limit: limit,
-  });
-
-  if (error) {
-    console.error(`[CORPUS] Errore lookup per fonte "${lawSource}": ${error.message}`);
-    return [];
-  }
-
-  return (data ?? []).map(mapRowToArticle);
+  return corpus.getArticlesBySource(lawSource, limit);
 }
 
 // ─── Query: Ricerca per istituto giuridico ───
@@ -71,18 +47,7 @@ export async function getArticlesByInstitute(
   institute: string,
   limit: number = 20
 ): Promise<LegalArticle[]> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("get_articles_by_institute", {
-    p_institute: institute,
-    p_limit: limit,
-  });
-
-  if (error) {
-    console.error(`[CORPUS] Errore lookup per istituto "${institute}": ${error.message}`);
-    return [];
-  }
-
-  return (data ?? []).map(mapRowToArticle);
+  return corpus.getArticlesByInstitute(institute, limit);
 }
 
 // ─── Query: Ricerca semantica ───
@@ -111,24 +76,12 @@ export async function searchArticles(
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("match_legal_articles", {
-    query_embedding: JSON.stringify(embedding),
-    filter_law_source: lawSource ?? null,
-    filter_institutes: institutes ?? null,
-    match_threshold: threshold,
-    match_count: limit,
+  return corpus.searchArticlesBySemantic(embedding, {
+    lawSource,
+    institutes,
+    threshold,
+    limit,
   });
-
-  if (error) {
-    console.error(`[CORPUS] Errore ricerca semantica: ${error.message}`);
-    return [];
-  }
-
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    ...mapRowToArticle(row),
-    similarity: row.similarity as number,
-  }));
 }
 
 // ─── Query combinata per la pipeline ───
@@ -286,10 +239,6 @@ export async function ingestArticles(
     return { inserted: 0, errors: 0 };
   }
 
-  const admin = createAdminClient();
-  let inserted = 0;
-  let errors = 0;
-
   // Genera embeddings in batch
   const texts = articles.map((a) =>
     `${a.lawSource} ${a.articleReference}${a.articleTitle ? ` — ${a.articleTitle}` : ""}\n${a.articleText}`
@@ -301,43 +250,19 @@ export async function ingestArticles(
     return { inserted: 0, errors: articles.length };
   }
 
-  // Inserisci in batch con upsert
-  for (let i = 0; i < articles.length; i++) {
-    const article = articles[i];
-    const { error } = await admin
-      .from("legal_articles")
-      .upsert(
-        {
-          law_source: article.lawSource,
-          article_reference: article.articleReference,
-          article_title: article.articleTitle,
-          article_text: article.articleText,
-          hierarchy: article.hierarchy ?? {},
-          keywords: article.keywords ?? [],
-          related_institutes: article.relatedInstitutes ?? [],
-          embedding: JSON.stringify(embeddings[i]),
-          source_url: article.sourceUrl,
-          is_in_force: article.isInForce ?? true,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "law_source,article_reference" }
-      );
+  // Ingest via DAL
+  const articlesWithEmbeddings = articles.map((article, i) => ({
+    ...article,
+    embedding: embeddings[i],
+  }));
 
-    if (error) {
-      console.error(
-        `[CORPUS] Errore ingest ${article.lawSource} ${article.articleReference}: ${error.message}`
-      );
-      errors++;
-    } else {
-      inserted++;
-    }
-  }
+  const result = await corpus.ingestArticles(articlesWithEmbeddings);
 
   console.log(
-    `[CORPUS] Ingest completato | ${inserted} inseriti | ${errors} errori | ${articles.length} totali`
+    `[CORPUS] Ingest completato | ${result.inserted} inseriti | ${result.errors} errori | ${articles.length} totali`
   );
 
-  return { inserted, errors };
+  return result;
 }
 
 /**
@@ -348,49 +273,7 @@ export async function getCorpusStats(): Promise<{
   bySource: Record<string, number>;
   hasEmbeddings: number;
 }> {
-  const admin = createAdminClient();
-
-  const { count: totalArticles } = await admin
-    .from("legal_articles")
-    .select("*", { count: "exact", head: true });
-
-  const { data: sourceStats } = await admin
-    .from("legal_articles")
-    .select("law_source");
-
-  const bySource: Record<string, number> = {};
-  for (const row of sourceStats ?? []) {
-    const src = (row as { law_source: string }).law_source;
-    bySource[src] = (bySource[src] ?? 0) + 1;
-  }
-
-  const { count: hasEmbeddings } = await admin
-    .from("legal_articles")
-    .select("*", { count: "exact", head: true })
-    .not("embedding", "is", null);
-
-  return {
-    totalArticles: totalArticles ?? 0,
-    bySource,
-    hasEmbeddings: hasEmbeddings ?? 0,
-  };
-}
-
-// ─── Utility ───
-
-function mapRowToArticle(row: Record<string, unknown>): LegalArticle {
-  return {
-    id: row.id as string,
-    lawSource: row.law_source as string,
-    articleReference: row.article_reference as string,
-    articleTitle: row.article_title as string | null,
-    articleText: row.article_text as string,
-    hierarchy: row.hierarchy as Record<string, string>,
-    keywords: row.keywords as string[],
-    relatedInstitutes: row.related_institutes as string[],
-    sourceUrl: row.source_url as string,
-    isInForce: row.is_in_force as boolean,
-  };
+  return corpus.getCorpusStats();
 }
 
 /**

@@ -12,7 +12,7 @@
  *   legal_knowledge  → norme, sentenze, pattern (intelligenza collettiva)
  */
 
-import { createAdminClient } from "./supabase/admin";
+import { knowledge } from "./db";
 import {
   generateEmbedding,
   generateEmbeddings,
@@ -130,29 +130,16 @@ export async function indexDocument(
     return null;
   }
 
-  // Salva in Supabase
-  const admin = createAdminClient();
-
-  // Prima elimina chunk esistenti per questa analisi (re-index)
-  await admin.from("document_chunks").delete().eq("analysis_id", analysisId);
-
-  // Inserisci i nuovi chunk
-  const rows = chunks.map((chunk, i) => ({
-    analysis_id: analysisId,
-    chunk_index: chunk.index,
+  // Salva via DAL
+  const chunkRows = chunks.map((chunk, i) => ({
+    analysisId,
+    chunkIndex: chunk.index,
     content: chunk.content,
     metadata: chunk.metadata,
-    embedding: JSON.stringify(embeddings[i]),
+    embedding: embeddings[i],
   }));
 
-  // Inserisci in batch da 50
-  for (let i = 0; i < rows.length; i += 50) {
-    const batch = rows.slice(i, i + 50);
-    const { error } = await admin.from("document_chunks").insert(batch);
-    if (error) {
-      console.error(`[VECTOR] Errore inserimento chunk batch ${i}: ${error.message}`);
-    }
-  }
+  await knowledge.indexDocumentChunks(analysisId, chunkRows);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(
@@ -305,28 +292,21 @@ export async function indexAnalysisKnowledge(
     return null;
   }
 
-  // Upsert nella knowledge base
-  const admin = createAdminClient();
+  // Upsert nella knowledge base via DAL
   let indexed = 0;
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
-    const { error } = await admin.rpc("upsert_legal_knowledge", {
-      p_category: entry.category,
-      p_title: entry.title,
-      p_content: entry.content,
-      p_metadata: entry.metadata,
-      p_embedding: JSON.stringify(embeddings[i]),
-      p_source_analysis_id: analysisId,
+    const ok = await knowledge.upsertKnowledge({
+      category: entry.category,
+      title: entry.title,
+      content: entry.content,
+      metadata: entry.metadata,
+      embedding: embeddings[i],
+      sourceAnalysisId: analysisId,
     });
 
-    if (error) {
-      console.error(
-        `[VECTOR] Errore upsert knowledge "${entry.title}": ${error.message}`
-      );
-    } else {
-      indexed++;
-    }
+    if (ok) indexed++;
   }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -363,24 +343,7 @@ export async function searchSimilarDocuments(
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("match_document_chunks", {
-    query_embedding: JSON.stringify(embedding),
-    match_threshold: threshold,
-    match_count: limit,
-  });
-
-  if (error) {
-    console.error(`[VECTOR] Errore ricerca documenti: ${error.message}`);
-    return [];
-  }
-
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    content: row.content as string,
-    metadata: row.metadata as Record<string, unknown>,
-    similarity: row.similarity as number,
-  }));
+  return knowledge.searchDocumentChunks(embedding, { threshold, limit });
 }
 
 /**
@@ -402,28 +365,7 @@ export async function searchLegalKnowledge(
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("match_legal_knowledge", {
-    query_embedding: JSON.stringify(embedding),
-    filter_category: category ?? null,
-    match_threshold: threshold,
-    match_count: limit,
-  });
-
-  if (error) {
-    console.error(`[VECTOR] Errore ricerca knowledge: ${error.message}`);
-    return [];
-  }
-
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    content: row.content as string,
-    metadata: row.metadata as Record<string, unknown>,
-    similarity: row.similarity as number,
-    category: row.category as string,
-    title: row.title as string,
-    timesSeen: row.times_seen as number,
-  }));
+  return knowledge.searchKnowledge(embedding, { category, threshold, limit });
 }
 
 /**

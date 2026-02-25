@@ -2,9 +2,8 @@ import { NextRequest } from "next/server";
 import { extractText } from "@/lib/extract-text";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
 import { getAverageTimings } from "@/lib/analysis-cache";
-import { createClient } from "@/lib/supabase/server";
+import { auth, profiles } from "@/lib/db";
 import { PLANS } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
@@ -15,21 +14,14 @@ export async function POST(req: NextRequest) {
   // Check usage limits before starting the stream
   let userId: string | null = null;
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await auth.getAuthenticatedUser();
 
     if (user) {
       userId = user.id;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan, analyses_count")
-        .eq("id", user.id)
-        .single();
+      const profile = await profiles.getProfile(user.id);
 
-      const plan = (profile?.plan as "free" | "pro") || "free";
-      const used = profile?.analyses_count ?? 0;
+      const plan = profile?.plan ?? "free";
+      const used = profile?.analysesCount ?? 0;
 
       if (plan === "free" && used >= PLANS.free.analysesPerMonth) {
         return new Response(
@@ -132,8 +124,7 @@ export async function POST(req: NextRequest) {
         // Increment analyses_count for authenticated users
         if (userId) {
           try {
-            const admin = createAdminClient();
-            await admin.rpc("increment_analyses_count", { uid: userId });
+            await profiles.incrementAnalysesCount(userId);
           } catch {
             // Non-critical — don't fail the analysis
             console.error("[ANALYZE] Failed to increment analyses_count");

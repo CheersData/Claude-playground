@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/server";
+import { auth, profiles } from "@/lib/db";
 
 export async function POST() {
   if (!stripe) {
@@ -10,10 +10,7 @@ export async function POST() {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await auth.getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json(
@@ -22,14 +19,9 @@ export async function POST() {
     );
   }
 
-  // Get the user's stripe_customer_id from their profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .single();
+  const profile = await profiles.getProfile(user.id);
 
-  if (!profile?.stripe_customer_id) {
+  if (!profile?.stripeCustomerId) {
     return NextResponse.json(
       { error: "Nessun abbonamento attivo" },
       { status: 400 }
@@ -39,7 +31,7 @@ export async function POST() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const portalSession = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
+    customer: profile.stripeCustomerId,
     return_url: `${appUrl}/pricing`,
   });
 
