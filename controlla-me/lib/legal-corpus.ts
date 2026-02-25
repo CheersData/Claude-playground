@@ -32,9 +32,10 @@ export type LegalArticleSearchResult = CorpusArticleSearchResult;
  */
 export async function getArticlesBySource(
   lawSource: string,
-  limit: number = 50
+  limit: number = 50,
+  domain?: string
 ): Promise<LegalArticle[]> {
-  return corpus.getArticlesBySource(lawSource, limit);
+  return corpus.getArticlesBySource(lawSource, limit, domain);
 }
 
 // ─── Query: Ricerca per istituto giuridico ───
@@ -45,9 +46,10 @@ export async function getArticlesBySource(
  */
 export async function getArticlesByInstitute(
   institute: string,
-  limit: number = 20
+  limit: number = 20,
+  domain?: string
 ): Promise<LegalArticle[]> {
-  return corpus.getArticlesByInstitute(institute, limit);
+  return corpus.getArticlesByInstitute(institute, limit, domain);
 }
 
 // ─── Query: Ricerca semantica ───
@@ -65,13 +67,14 @@ export async function searchArticles(
   options: {
     lawSource?: string;
     institutes?: string[];
+    domain?: string;
     threshold?: number;
     limit?: number;
   } = {}
 ): Promise<LegalArticleSearchResult[]> {
   if (!isVectorDBEnabled()) return [];
 
-  const { lawSource, institutes, threshold = 0.6, limit = 10 } = options;
+  const { lawSource, institutes, domain, threshold = 0.6, limit = 10 } = options;
 
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
@@ -79,6 +82,7 @@ export async function searchArticles(
   return corpus.searchArticlesBySemantic(embedding, {
     lawSource,
     institutes,
+    domain,
     threshold,
     limit,
   });
@@ -100,6 +104,7 @@ export async function retrieveLegalContext(params: {
   relevantInstitutes?: string[];
   clauseTexts?: string[];
   maxArticles?: number;
+  domain?: string;
 }): Promise<{
   bySource: Record<string, LegalArticle[]>;
   byInstitute: Record<string, LegalArticle[]>;
@@ -110,6 +115,7 @@ export async function retrieveLegalContext(params: {
     relevantInstitutes = [],
     clauseTexts = [],
     maxArticles = 30,
+    domain,
   } = params;
 
   const bySource: Record<string, LegalArticle[]> = {};
@@ -121,7 +127,7 @@ export async function retrieveLegalContext(params: {
     // Normalizza il riferimento: "D.Lgs. 122/2005" o "Art. 1538 c.c."
     const source = normalizeLawSource(law.reference);
     if (source) {
-      const articles = await getArticlesBySource(source, 20);
+      const articles = await getArticlesBySource(source, 20, domain);
       if (articles.length > 0) {
         bySource[source] = articles;
       }
@@ -130,7 +136,7 @@ export async function retrieveLegalContext(params: {
 
   // 2. Ricerca per istituti giuridici
   const institutePromises = relevantInstitutes.map(async (institute) => {
-    const articles = await getArticlesByInstitute(institute, 10);
+    const articles = await getArticlesByInstitute(institute, 10, domain);
     if (articles.length > 0) {
       byInstitute[institute] = articles;
     }
@@ -146,6 +152,7 @@ export async function retrieveLegalContext(params: {
     bySemantic = await searchArticles(combinedQuery, {
       threshold: 0.55,
       limit: maxArticles,
+      domain,
     });
   }
 

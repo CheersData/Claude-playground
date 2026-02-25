@@ -20,6 +20,7 @@ export interface CorpusArticle {
   relatedInstitutes?: string[];
   sourceUrl?: string;
   isInForce?: boolean;
+  domain?: string;
 }
 
 export interface CorpusArticleSearchResult extends CorpusArticle {
@@ -40,12 +41,14 @@ export interface CorpusStats {
  */
 export async function getArticlesBySource(
   lawSource: string,
-  limit: number = 50
+  limit: number = 50,
+  domain?: string
 ): Promise<CorpusArticle[]> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("get_articles_by_source", {
     p_law_source: lawSource,
     p_limit: limit,
+    p_domain: domain ?? null,
   });
 
   if (error) {
@@ -62,12 +65,14 @@ export async function getArticlesBySource(
  */
 export async function getArticlesByInstitute(
   institute: string,
-  limit: number = 20
+  limit: number = 20,
+  domain?: string
 ): Promise<CorpusArticle[]> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("get_articles_by_institute", {
     p_institute: institute,
     p_limit: limit,
+    p_domain: domain ?? null,
   });
 
   if (error) {
@@ -88,17 +93,19 @@ export async function searchArticlesBySemantic(
   opts: {
     lawSource?: string;
     institutes?: string[];
+    domain?: string;
     threshold?: number;
     limit?: number;
   } = {}
 ): Promise<CorpusArticleSearchResult[]> {
-  const { lawSource, institutes, threshold = 0.6, limit = 10 } = opts;
+  const { lawSource, institutes, domain, threshold = 0.6, limit = 10 } = opts;
   const admin = createAdminClient();
 
   const { data, error } = await admin.rpc("match_legal_articles", {
     query_embedding: JSON.stringify(embedding),
     filter_law_source: lawSource ?? null,
     filter_institutes: institutes ?? null,
+    filter_domain: domain ?? null,
     match_threshold: threshold,
     match_count: limit,
   });
@@ -142,6 +149,7 @@ export async function ingestArticles(
           embedding: JSON.stringify(article.embedding),
           source_url: article.sourceUrl,
           is_in_force: article.isInForce ?? true,
+          domain: article.domain ?? "legal",
           updated_at: new Date().toISOString(),
         },
         { onConflict: "law_source,article_reference" }
