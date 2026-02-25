@@ -38,13 +38,14 @@ export function isVectorDBEnabled(): boolean {
  */
 export async function generateEmbedding(
   text: string,
-  inputType: "document" | "query" = "document"
+  inputType: "document" | "query" = "document",
+  model?: string
 ): Promise<number[] | null> {
   if (!process.env.VOYAGE_API_KEY) {
     return null;
   }
 
-  const result = await generateEmbeddings([text], inputType);
+  const result = await generateEmbeddings([text], inputType, model);
   return result ? result[0] : null;
 }
 
@@ -54,7 +55,8 @@ export async function generateEmbedding(
  */
 export async function generateEmbeddings(
   texts: string[],
-  inputType: "document" | "query" = "document"
+  inputType: "document" | "query" = "document",
+  model?: string
 ): Promise<number[][] | null> {
   if (!process.env.VOYAGE_API_KEY) {
     console.log("[EMBEDDINGS] Voyage API key non configurata — skip");
@@ -64,6 +66,8 @@ export async function generateEmbeddings(
   if (texts.length === 0) return [];
 
   const allEmbeddings: number[][] = [];
+
+  const useModel = model ?? DEFAULT_MODEL;
 
   // Process in batches
   for (let i = 0; i < texts.length; i += MAX_BATCH_SIZE) {
@@ -76,7 +80,7 @@ export async function generateEmbeddings(
         Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: DEFAULT_MODEL,
+        model: useModel,
         input: batch,
         input_type: inputType,
       }),
@@ -100,7 +104,7 @@ export async function generateEmbeddings(
             Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
           },
           body: JSON.stringify({
-            model: DEFAULT_MODEL,
+            model: useModel,
             input: batch,
             input_type: inputType,
           }),

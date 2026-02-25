@@ -1,0 +1,87 @@
+{
+  "version": "1.1",
+  "connectors": [
+    {
+      "id": "codice-civile-hf",
+      "name": "Codice Civile (HuggingFace)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": null,
+      "configPath": "corpus-configs/legal.json",
+      "sourceUrl": "https://huggingface.co/datasets/AndreaSimeri/Italian_Civil_Code",
+      "note": "Integrated directly in LOAD via dataSource type=huggingface"
+    },
+    {
+      "id": "normattiva-opendata",
+      "name": "Normattiva Open Data — All Sources",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Official REST API (Feb 2026). CC BY 4.0. Replaces HTML scraping connector."
+    },
+    {
+      "id": "normattiva-opendata-consumo",
+      "name": "Codice del Consumo (D.Lgs. 206/2005)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Via Open Data API — async JSON export"
+    },
+    {
+      "id": "normattiva-opendata-cpc",
+      "name": "Codice di Procedura Civile",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Via Open Data API — async JSON export"
+    },
+    {
+      "id": "normattiva-opendata-equo-canone",
+      "name": "Equo Canone (L. 392/1978)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Via Open Data API — async JSON export"
+    },
+    {
+      "id": "normattiva-opendata-assicurazioni",
+      "name": "Codice delle Assicurazioni (D.Lgs. 209/2005)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Via Open Data API — async JSON export"
+    },
+    {
+      "id": "normattiva-opendata-tu-bancario",
+      "name": "TU Bancario (D.Lgs. 385/1993)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Via Open Data API — async JSON export"
+    },
+    {
+      "id": "normattiva-opendata-crisi",
+      "name": "Codice della Crisi (D.Lgs. 14/2019)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": "connectors/normattiva-opendata.ts",
+      "sourceUrl": "https://dati.normattiva.it/",
+      "note": "Via Open Data API — async JSON export"
+    },
+    {
+      "id": "normattiva-legacy",
+      "name": "Normattiva — HTML Scraping (deprecated)",
+      "domain": "legal",
+      "status": "deprecated",
+      "filePath": "connectors/normattiva.ts",
+      "sourceUrl": "https://www.normattiva.it/",
+      "note": "Legacy URN-based HTML scraper. Replaced by normattiva-opendata connector."
+    }
+  ]
+}

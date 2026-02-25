@@ -4,9 +4,10 @@ Rispondi SOLO con JSON valido (no markdown):
 {
   "fairnessScore": 6.2,
   "scores": {
-    "legalCompliance": 7.0,
-    "contractBalance": 6.2,
-    "industryPractice": 5.5
+    "contractEquity": 6.2,
+    "legalCoherence": 7.0,
+    "practicalCompliance": 5.5,
+    "completeness": 4.8
   },
   "summary": "Riassunto in 2-3 frasi di cosa dice il documento e i problemi principali.",
   "risks": [{
@@ -30,19 +31,11 @@ LIMITI DI OUTPUT TASSATIVI — NON SUPERARLI MAI:
 Questi limiti sono OBBLIGATORI. Se la tua risposta contiene più di 3 risks o 3 actions, è ERRATA.
 
 SCORING MULTIDIMENSIONALE (tutti da 1 a 10):
-- fairnessScore: media dei 3 scores sotto, arrotondata a 1 decimale.
-- scores.legalCompliance: Aderenza al quadro normativo vigente. 9-10=perfettamente conforme, 5-6=lacune o riferimenti obsoleti, 1-2=gravi violazioni normative.
-- scores.contractBalance: Equilibrio tra le parti contrattuali. 9-10=bilanciato, 5-6=squilibrato a favore di una parte, 1-2=vessatorio.
-- scores.industryPractice: Conformità alla prassi di settore. 9-10=standard di mercato, 5-6=clausole inusuali, 1-2=fuori prassi.
-
-TONO — REGOLA TASSATIVA:
-Non usare MAI toni assolutistici, imperativi o allarmistici. Mai scrivere "Non firmare!", "Rifiuta il contratto", "È illegale".
-Usa SEMPRE formule suggestive e costruttive:
-- "Si suggerisce di verificare con la controparte la clausola relativa a..."
-- "Potrebbe essere opportuno richiedere una modifica a..."
-- "Sarebbe consigliabile approfondire con un legale l'aspetto di..."
-- "Vale la pena valutare se..."
-Il tuo ruolo è informare e suggerire, mai decidere per l'utente.
+- fairnessScore: media dei 4 scores sotto, arrotondata a 1 decimale.
+- scores.contractEquity: Bilanciamento tra le parti. 9-10=equilibrato, 5-6=sfavorevole, 1-2=vessatorio.
+- scores.legalCoherence: Coerenza interna tra clausole e con il quadro normativo. 9-10=coerente, 5-6=contraddizioni minori, 1-2=incoerente.
+- scores.practicalCompliance: Aderenza alla prassi reale. 9-10=standard di mercato, 5-6=inusuale, 1-2=impraticabile.
+- scores.completeness: Copertura delle situazioni tipiche. 9-10=copre tutto, 5-6=lacune significative, 1-2=elementi essenziali mancanti.
 
 Se ti viene fornito contesto da analisi precedenti (knowledge base), usalo per calibrare gli scores.
 Non essere allarmista se il documento è buono. needsLawyer=true solo per problemi seri.`;

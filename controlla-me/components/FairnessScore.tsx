@@ -13,9 +13,10 @@ const SCORE_DIMENSIONS: Array<{
   label: string;
   labelShort: string;
 }> = [
-  { key: "legalCompliance", label: "Aderenza legale", labelShort: "Aderenza" },
-  { key: "contractBalance", label: "Equilibrio contratto", labelShort: "Equilibrio" },
-  { key: "industryPractice", label: "Prassi di settore", labelShort: "Prassi" },
+  { key: "contractEquity", label: "Equità contrattuale", labelShort: "Equità" },
+  { key: "legalCoherence", label: "Coerenza giuridica", labelShort: "Coerenza" },
+  { key: "practicalCompliance", label: "Conformità pratica", labelShort: "Conformità" },
+  { key: "completeness", label: "Completezza", labelShort: "Completezza" },
 ];
 
 function getColor(value: number): string {

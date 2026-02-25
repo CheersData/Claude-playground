@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "@/lib/extract-text";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
 import { getAverageTimings } from "@/lib/analysis-cache";
-import { createClient } from "@/lib/supabase/server";
+import { auth, profiles } from "@/lib/db";
 import { PLANS } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { checkRateLimit } from "@/lib/middleware/rate-limit";
-import { sanitizeDocumentText } from "@/lib/middleware/sanitize";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
@@ -17,19 +14,14 @@ export async function POST(req: NextRequest) {
   // Auth: richiede utente autenticato
   let userId: string | null = null;
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await auth.getAuthenticatedUser();
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Autenticazione richiesta" },
-        { status: 401 }
-      );
-    }
+    if (user) {
+      userId = user.id;
+      const profile = await profiles.getProfile(user.id);
 
-    userId = user.id;
+      const plan = profile?.plan ?? "free";
+      const used = profile?.analysesCount ?? 0;
 
     // Rate limit (dopo auth per avere userId)
     const limited = checkRateLimit(req, userId);
@@ -151,8 +143,7 @@ export async function POST(req: NextRequest) {
         // Increment analyses_count for authenticated users
         if (userId) {
           try {
-            const admin = createAdminClient();
-            await admin.rpc("increment_analyses_count", { uid: userId });
+            await profiles.incrementAnalysesCount(userId);
           } catch {
             // Non-critical — don't fail the analysis
             console.error("[ANALYZE] Failed to increment analyses_count");

@@ -109,17 +109,19 @@ export interface Action {
 
 /** Scoring multidimensionale — ogni dimensione è 1-10. */
 export interface MultiDimensionalScore {
-  /** Aderenza al quadro normativo vigente */
-  legalCompliance: number;
-  /** Equilibrio tra le parti contrattuali */
-  contractBalance: number;
-  /** Conformità alla prassi di settore */
-  industryPractice: number;
+  /** Equità complessiva tra le parti (il vecchio fairnessScore) */
+  contractEquity: number;
+  /** Coerenza interna tra le clausole del documento */
+  legalCoherence: number;
+  /** Aderenza alla prassi reale e praticità delle clausole */
+  practicalCompliance: number;
+  /** Copertura delle situazioni tipiche della materia */
+  completeness: number;
 }
 
 export interface AdvisorResult {
   fairnessScore: number;
-  /** Scoring dettagliato su 3 dimensioni */
+  /** Scoring dettagliato su 4 dimensioni */
   scores: MultiDimensionalScore | null;
   summary: string;
   risks: Risk[];

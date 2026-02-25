@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestArticles, getCorpusStats } from "@/lib/legal-corpus";
 import { isVectorDBEnabled } from "@/lib/embeddings";
-import { requireAuth, isAuthError } from "@/lib/middleware/auth";
-import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import type { LegalArticle } from "@/lib/legal-corpus";
 
 /**
@@ -11,29 +9,9 @@ import type { LegalArticle } from "@/lib/legal-corpus";
  * Body:
  *   { "articles": [{ "lawSource": "Codice Civile", "articleReference": "Art. 1538", ... }] }
  *
- * Protetto: richiede autenticazione + header admin secret (se configurato).
+ * Richiede SUPABASE_SERVICE_ROLE_KEY (server-side only).
  */
 export async function POST(req: NextRequest) {
-  // Auth: richiede utente autenticato
-  const auth = await requireAuth();
-  if (isAuthError(auth)) return auth;
-
-  // Admin check: se ADMIN_API_SECRET e' configurato, verifica header
-  const adminSecret = process.env.ADMIN_API_SECRET;
-  if (adminSecret) {
-    const provided = req.headers.get("x-admin-secret");
-    if (provided !== adminSecret) {
-      return NextResponse.json(
-        { error: "Accesso riservato agli amministratori" },
-        { status: 403 }
-      );
-    }
-  }
-
-  // Rate limit
-  const limited = checkRateLimit(req, auth.user.id);
-  if (limited) return limited;
-
   if (!isVectorDBEnabled()) {
     return NextResponse.json(
       { error: "Vector DB non configurato. Aggiungi VOYAGE_API_KEY al .env.local." },

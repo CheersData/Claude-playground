@@ -25,11 +25,20 @@ export async function runAdvisor(
     `\nRICORDA: MASSIMO 3 risks e MASSIMO 3 actions. Scegli solo i più importanti.`,
   ];
 
-  const { parsed: result } = await runAgent<AdvisorResult>(
-    "advisor",
-    userMessageParts.filter(Boolean).join("\n"),
-    { systemPrompt: ADVISOR_SYSTEM_PROMPT }
-  );
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    system: ADVISOR_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: userMessageParts.filter(Boolean).join("\n"),
+      },
+    ],
+  });
+
+  const text = extractTextContent(response);
+  const result = parseAgentJSON<AdvisorResult>(text);
 
   // Enforce output limits — truncate if model ignores them
   if (result.risks && result.risks.length > 3) {
@@ -44,9 +53,10 @@ export async function runAdvisor(
   // Ensure scores field exists with defaults
   if (!result.scores) {
     result.scores = {
-      legalCompliance: result.fairnessScore,
-      contractBalance: result.fairnessScore,
-      industryPractice: result.fairnessScore,
+      contractEquity: result.fairnessScore,
+      legalCoherence: result.fairnessScore,
+      practicalCompliance: result.fairnessScore,
+      completeness: result.fairnessScore,
     };
   }
 
