@@ -40,6 +40,7 @@
     { "from": 1027, "to": 1099, "hierarchy": { "book": "Libro III", "title": "Titolo V \u2014 Delle servit\u00f9 prediali" } },
     { "from": 1100, "to": 1139, "hierarchy": { "book": "Libro III", "title": "Titolo VII \u2014 Della comunione" } },
     { "from": 1117, "to": 1139, "hierarchy": { "book": "Libro III", "title": "Titolo VII \u2014 Del condominio negli edifici" } },
+    { "from": 1140, "to": 1172, "hierarchy": { "book": "Libro III", "title": "Titolo VIII \u2014 Del possesso" } },
     { "from": 1173, "to": 1217, "hierarchy": { "book": "Libro IV \u2014 Delle obbligazioni", "title": "Titolo I \u2014 Delle obbligazioni in generale" } },
     { "from": 1218, "to": 1276, "hierarchy": { "book": "Libro IV", "title": "Titolo I", "chapter": "Dell'adempimento" } },
     { "from": 1277, "to": 1320, "hierarchy": { "book": "Libro IV", "title": "Titolo I", "chapter": "Dell'inadempimento" } },
@@ -84,6 +85,25 @@
     { "from": 2934, "to": 2969, "hierarchy": { "book": "Libro VI", "title": "Titolo V \u2014 Della prescrizione e della decadenza" } }
   ],
   "institutes": [
+    { "from": 1, "to": 10, "institutes": ["persona_fisica", "capacit\u00e0_giuridica", "capacit\u00e0_agire"], "keywords": ["persona", "capacit\u00e0", "giuridica", "agire", "maggiore", "et\u00e0", "nascita", "diritti"] },
+    { "from": 11, "to": 35, "institutes": ["persona_giuridica", "associazione", "fondazione", "comitato"], "keywords": ["persona_giuridica", "associazione", "fondazione", "comitato", "riconoscimento", "statuto"] },
+    { "from": 79, "to": 230, "institutes": ["matrimonio", "regime_patrimoniale", "separazione_beni", "comunione_legale"], "keywords": ["matrimonio", "coniuge", "separazione", "comunione", "beni", "regime", "patrimoniale"] },
+    { "from": 231, "to": 314, "institutes": ["filiazione", "riconoscimento_figlio", "responsabilit\u00e0_genitoriale"], "keywords": ["figlio", "filiazione", "riconoscimento", "genitore", "responsabilit\u00e0"] },
+    { "from": 433, "to": 455, "institutes": ["alimenti", "obbligo_alimentare"], "keywords": ["alimenti", "obbligo", "alimentare", "mantenimento", "bisogno"] },
+    { "from": 456, "to": 564, "institutes": ["successione", "eredit\u00e0", "vocazione_ereditaria", "accettazione_eredit\u00e0"], "keywords": ["successione", "eredit\u00e0", "erede", "accettazione", "rinuncia", "vocazione", "legittima"] },
+    { "from": 587, "to": 712, "institutes": ["testamento", "legato", "successione_testamentaria"], "keywords": ["testamento", "legato", "testatore", "disposizione", "revoca", "esecutore"] },
+    { "from": 769, "to": 809, "institutes": ["donazione", "liberalit\u00e0"], "keywords": ["donazione", "donante", "donatario", "liberalit\u00e0", "revoca"] },
+    { "from": 810, "to": 831, "institutes": ["beni", "classificazione_beni", "beni_immobili", "beni_mobili"], "keywords": ["beni", "immobili", "mobili", "demanio", "pertinenza", "frutto"] },
+    { "from": 832, "to": 951, "institutes": ["propriet\u00e0", "diritto_propriet\u00e0", "azioni_petitorie"], "keywords": ["propriet\u00e0", "proprietario", "espropriazione", "accessione", "specificazione", "rivendicazione"] },
+    { "from": 952, "to": 956, "institutes": ["superficie", "diritto_superficie"], "keywords": ["superficie", "costruzione", "suolo", "propriet\u00e0"] },
+    { "from": 957, "to": 1026, "institutes": ["enfiteusi"], "keywords": ["enfiteusi", "enfiteuta", "canone", "affrancazione", "devoluzione"] },
+    { "from": 1027, "to": 1099, "institutes": ["servit\u00f9_prediale", "servit\u00f9"], "keywords": ["servit\u00f9", "fondo", "dominante", "servente", "passaggio", "veduta", "distanze"] },
+    { "from": 1100, "to": 1139, "institutes": ["comunione", "condominio"], "keywords": ["comunione", "compropriet\u00e0", "condominio", "parti_comuni", "regolamento", "assemblea"] },
+    { "from": 1140, "to": 1172, "institutes": ["possesso", "detenzione", "usucapione", "azioni_possessorie"], "keywords": ["possesso", "possessore", "detenzione", "usucapione", "reintegrazione", "manutenzione", "spoglio"] },
+    { "from": 2060, "to": 2081, "institutes": ["attivit\u00e0_professionale", "impresa"], "keywords": ["professione", "attivit\u00e0", "impresa", "lavoro"] },
+    { "from": 2082, "to": 2134, "institutes": ["imprenditore", "impresa", "azienda", "registro_imprese"], "keywords": ["imprenditore", "impresa", "azienda", "registro", "piccolo_imprenditore", "impresa_familiare"] },
+    { "from": 2135, "to": 2246, "institutes": ["lavoro_subordinato", "contratto_lavoro", "licenziamento"], "keywords": ["lavoro", "lavoratore", "datore", "retribuzione", "licenziamento", "dimissioni", "preavviso"] },
+    { "from": 2740, "to": 2783, "institutes": ["responsabilit\u00e0_patrimoniale", "garanzia_generica"], "keywords": ["responsabilit\u00e0", "patrimonio", "debitore", "creditore", "garanzia", "par_condicio"] },
     { "from": 1321, "to": 1352, "institutes": ["contratto", "requisiti_contratto", "consenso", "oggetto_contratto", "causa"], "keywords": ["contratto", "consenso", "oggetto", "forma", "causa"] },
     { "from": 1353, "to": 1381, "institutes": ["proposta", "accettazione", "conclusione_contratto", "contratto_preliminare"], "keywords": ["proposta", "accettazione", "preliminare", "opzione", "prelazione"] },
     { "from": 1382, "to": 1405, "institutes": ["caparra_confirmatoria", "caparra_penitenziale", "clausola_penale"], "keywords": ["caparra", "confirmatoria", "penitenziale", "penale", "recesso"] },
@@ -162,6 +182,10 @@
     { "pattern": "successione", "term": "successione" },
     { "pattern": "testamento", "term": "testamento" },
     { "pattern": "legato", "term": "legato" },
-    { "pattern": "donazione", "term": "donazione" }
+    { "pattern": "donazione", "term": "donazione" },
+    { "pattern": "propriet[\\u00e0a]", "term": "propriet\u00e0" },
+    { "pattern": "possesso", "term": "possesso" },
+    { "pattern": "obbligazione", "term": "obbligazione" },
+    { "pattern": "contratto", "term": "contratto" }
   ]
 }
