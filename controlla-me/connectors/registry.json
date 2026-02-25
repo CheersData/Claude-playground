@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "connectors": [
+    {
+      "id": "codice-civile-hf",
+      "name": "Codice Civile (HuggingFace)",
+      "domain": "legal",
+      "status": "production",
+      "filePath": null,
+      "configPath": "corpus-configs/legal.json",
+      "sourceUrl": "https://huggingface.co/datasets/AndreaSimeri/Italian_Civil_Code",
+      "note": "Integrated directly in LOAD via dataSource type=huggingface"
+    }
+  ]
+}
