@@ -135,28 +135,41 @@ export async function ingestArticles(
   let errors = 0;
 
   for (const article of articles) {
-    const row: Record<string, unknown> = {
-      law_source: article.lawSource,
-      article_reference: article.articleReference,
-      article_title: article.articleTitle,
-      article_text: article.articleText,
-      hierarchy: article.hierarchy ?? {},
-      keywords: article.keywords ?? [],
-      related_institutes: article.relatedInstitutes ?? [],
-      embedding: JSON.stringify(article.embedding),
-      source_url: article.sourceUrl,
-      is_in_force: article.isInForce ?? true,
-      updated_at: new Date().toISOString(),
-    };
+    // Extract article number from reference (e.g. "Art. 123" → "123")
+    const artNumMatch = article.articleReference.match(/Art\.\s*(\d+(?:-\w+)?)/);
+    const articleNumber = artNumMatch ? artNumMatch[1] : article.articleReference;
 
-    // Only include domain if set (column may not exist before migration 004)
-    if (article.domain) {
-      row.domain = article.domain;
-    }
+    // Build source_id from lawSource (e.g. "Codice Civile" → "codice_civile")
+    const sourceId = article.lawSource
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .replace(/\s+/g, "_");
 
     const { error } = await admin
       .from("legal_articles")
-      .upsert(row, { onConflict: "law_source,article_reference" });
+      .upsert(
+        {
+          law_source: article.lawSource,
+          article_reference: article.articleReference,
+          article_title: article.articleTitle,
+          article_text: article.articleText,
+          hierarchy: article.hierarchy ?? {},
+          keywords: article.keywords ?? [],
+          related_institutes: article.relatedInstitutes ?? [],
+          embedding: JSON.stringify(article.embedding),
+          source_url: article.sourceUrl,
+          is_in_force: article.isInForce ?? true,
+          domain: article.domain ?? "legal",
+          updated_at: new Date().toISOString(),
+          source_id: sourceId,
+          source_name: article.lawSource,
+          source_type: "huggingface",
+          article_number: articleNumber,
+          in_force: article.isInForce ?? true,
+          url: article.sourceUrl,
+        },
+        { onConflict: "law_source,article_reference" }
+      );
 
     if (error) {
       console.error(
