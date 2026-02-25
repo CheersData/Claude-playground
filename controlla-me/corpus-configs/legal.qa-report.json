@@ -1,0 +1,209 @@
+{
+  "domain": "legal",
+  "configPath": "/home/user/Claude-playground/controlla-me/corpus-configs/legal.json",
+  "timestamp": "2026-02-25T10:49:33.225Z",
+  "summary": {
+    "total": 14,
+    "critical": 0,
+    "high": 1,
+    "medium": 6,
+    "low": 1,
+    "info": 6,
+    "score": 67
+  },
+  "issues": [
+    {
+      "id": "HIER-GAP-1140-1172",
+      "severity": "medium",
+      "category": "hierarchy_gap",
+      "message": "Hierarchy gap: articles 1140-1172 (33 articles) have no hierarchy rule",
+      "details": {
+        "from": 1140,
+        "to": 1172,
+        "size": 33
+      },
+      "remediation": "Add hierarchy rule(s) covering articles 1140-1172"
+    },
+    {
+      "id": "INST-LANDMARK-1",
+      "severity": "medium",
+      "category": "institute_missing_landmark",
+      "message": "Landmark Art. 1 (Capacità giuridica) has no institute mapping",
+      "details": {
+        "articleNum": 1,
+        "description": "Capacità giuridica"
+      },
+      "remediation": "Add institute rule covering Art. 1"
+    },
+    {
+      "id": "INST-LANDMARK-2",
+      "severity": "medium",
+      "category": "institute_missing_landmark",
+      "message": "Landmark Art. 2 (Maggiore età) has no institute mapping",
+      "details": {
+        "articleNum": 2,
+        "description": "Maggiore età"
+      },
+      "remediation": "Add institute rule covering Art. 2"
+    },
+    {
+      "id": "INST-LANDMARK-832",
+      "severity": "medium",
+      "category": "institute_missing_landmark",
+      "message": "Landmark Art. 832 (Contenuto del diritto di proprietà) has no institute mapping",
+      "details": {
+        "articleNum": 832,
+        "description": "Contenuto del diritto di proprietà"
+      },
+      "remediation": "Add institute rule covering Art. 832"
+    },
+    {
+      "id": "INST-LANDMARK-1140",
+      "severity": "medium",
+      "category": "institute_missing_landmark",
+      "message": "Landmark Art. 1140 (Possesso) has no institute mapping",
+      "details": {
+        "articleNum": 1140,
+        "description": "Possesso"
+      },
+      "remediation": "Add institute rule covering Art. 1140"
+    },
+    {
+      "id": "INST-LANDMARK-2082",
+      "severity": "medium",
+      "category": "institute_missing_landmark",
+      "message": "Landmark Art. 2082 (Imprenditore) has no institute mapping",
+      "details": {
+        "articleNum": 2082,
+        "description": "Imprenditore"
+      },
+      "remediation": "Add institute rule covering Art. 2082"
+    },
+    {
+      "id": "TERM-MISSING",
+      "severity": "low",
+      "category": "term_pattern_missing",
+      "message": "Missing term patterns: proprietà, possesso, obbligazione, contratto",
+      "details": {
+        "missing": [
+          "proprietà",
+          "possesso",
+          "obbligazione",
+          "contratto"
+        ]
+      },
+      "remediation": "Add patterns for commonly searched legal terms"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs2062005",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice del Consumo (D.Lgs. 206/2005) not in corpus — Spesso citato come parte del CC ma è legge separata",
+      "details": {
+        "law": {
+          "name": "Codice del Consumo",
+          "ref": "D.Lgs. 206/2005",
+          "note": "Spesso citato come parte del CC ma è legge separata"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-del-consumo legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-RD14431940",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice di Procedura Civile (R.D. 1443/1940) not in corpus — Norme processuali, non sostanziali",
+      "details": {
+        "law": {
+          "name": "Codice di Procedura Civile",
+          "ref": "R.D. 1443/1940",
+          "note": "Norme processuali, non sostanziali"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-di-procedura-civile legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-L3921978",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Legge sull'equo canone (L. 392/1978) not in corpus — Locazioni abitative, integra art. 1571+ CC",
+      "details": {
+        "law": {
+          "name": "Legge sull'equo canone",
+          "ref": "L. 392/1978",
+          "note": "Locazioni abitative, integra art. 1571+ CC"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh legge-sull'equo-canone legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs2092005",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice delle Assicurazioni (D.Lgs. 209/2005) not in corpus — Integra art. 1882+ CC",
+      "details": {
+        "law": {
+          "name": "Codice delle Assicurazioni",
+          "ref": "D.Lgs. 209/2005",
+          "note": "Integra art. 1882+ CC"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-delle-assicurazioni legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs3851993",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Testo Unico Bancario (D.Lgs. 385/1993) not in corpus — Integra disciplina mutuo/credito",
+      "details": {
+        "law": {
+          "name": "Testo Unico Bancario",
+          "ref": "D.Lgs. 385/1993",
+          "note": "Integra disciplina mutuo/credito"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh testo-unico-bancario legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs142019",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice della Crisi (D.Lgs. 14/2019) not in corpus — Sostituisce legge fallimentare",
+      "details": {
+        "law": {
+          "name": "Codice della Crisi",
+          "ref": "D.Lgs. 14/2019",
+          "note": "Sostituisce legge fallimentare"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-della-crisi legal"
+    },
+    {
+      "id": "SRC-FETCH-ERR-Codice Civile",
+      "severity": "high",
+      "category": "source_fetch_error",
+      "message": "Failed to fetch sample from \"Codice Civile\": fetch failed",
+      "remediation": "Check network connectivity and dataset availability"
+    }
+  ],
+  "coverage": {
+    "hierarchyRanges": 65,
+    "hierarchyGaps": [
+      {
+        "from": 1140,
+        "to": 1172
+      }
+    ],
+    "hierarchyCoverage": "98.9%",
+    "instituteRanges": 32,
+    "instituteCoverage": "39.9%",
+    "termPatterns": 45,
+    "dataSources": 1
+  },
+  "recommendations": [
+    "PRIORITÀ ALTA: Espandere hierarchy rules per coprire tutti i 6 Libri del Codice Civile. Attualmente ci sono gap significativi. Eseguire il workflow remediate per generare le regole mancanti.",
+    "PRIORITÀ MEDIA: Aggiungere institute mapping per Libri I, II, III. Attualmente solo gli articoli del Libro IV e V hanno istituti giuridici assegnati.",
+    "CRESCITA CORPUS: Integrare fonti legislative complementari: Codice del Consumo, Codice di Procedura Civile, Legge sull'equo canone, Codice delle Assicurazioni, Testo Unico Bancario, Codice della Crisi. Usare il connector workflow per ciascuna fonte.",
+    "RESILIENZA: Il corpus dipende da una singola fonte dati. Aggiungere almeno una fonte alternativa (es. Normattiva) per cross-validazione."
+  ]
+}
