@@ -435,7 +435,7 @@ export default function ConsolePage() {
           );
         })}
 
-        {/* Reasoning Graph — shows institutes + articles as they're found */}
+        {/* Reasoning Graph — shows detected institutes as chips */}
         {leaderDecision?.route === "corpus-qa" && collectedContext.institutes.length > 0 && (() => {
           // Determine graph phase based on pipeline state
           const corpusAgentStatus = agentStatuses.get("corpus-agent")?.status;
@@ -447,19 +447,16 @@ export default function ConsolePage() {
                 ? "corpus-search"
                 : "question-prep";
 
-          // Extract cited article refs from corpus-agent output
-          const corpusOutput = agentStatuses.get("corpus-agent")?.output;
-          const citedRefs: string[] =
-            corpusOutput?.citedArticles?.map(
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (a: any) => a.reference
-            ) ?? [];
+          // Extract scope flags from question-prep output
+          const prepOutput = agentStatuses.get("question-prep")?.output;
 
           return (
             <ReasoningGraph
               institutes={collectedContext.institutes}
-              articles={collectedContext.articles}
-              citedRefs={citedRefs}
+              needsProceduralLaw={prepOutput?.needsProceduralLaw}
+              needsCaseLaw={prepOutput?.needsCaseLaw}
+              scopeNotes={prepOutput?.scopeNotes}
+              questionType={prepOutput?.questionType}
               phase={graphPhase}
             />
           );
