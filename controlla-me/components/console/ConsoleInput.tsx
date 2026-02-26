@@ -5,9 +5,10 @@ import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 interface ConsoleInputProps {
   onSubmit: (message: string, file: File | null) => void;
   disabled: boolean;
+  placeholder?: string;
 }
 
-export default function ConsoleInput({ onSubmit, disabled }: ConsoleInputProps) {
+export default function ConsoleInput({ onSubmit, disabled, placeholder }: ConsoleInputProps) {
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -35,48 +36,42 @@ export default function ConsoleInput({ onSubmit, disabled }: ConsoleInputProps) 
   };
 
   return (
-    <div className="pipboy-glow rounded-md bg-[var(--pb-bg-panel)] p-3">
+    <div className="pipboy-glow rounded-lg bg-[var(--pb-bg-panel)] p-4">
       {/* File indicator */}
       {file && (
-        <div className="flex items-center gap-2 mb-2 text-xs text-[var(--pb-amber)]">
-          <span>[FILE]</span>
-          <span className="truncate max-w-[300px]">{file.name}</span>
+        <div className="flex items-center gap-2 mb-3 text-xs text-[var(--pb-amber)]">
+          <span className="font-medium">Documento:</span>
+          <span className="truncate max-w-[300px] text-[var(--pb-text)]">{file.name}</span>
           <button
             onClick={() => {
               setFile(null);
               if (fileRef.current) fileRef.current.value = "";
             }}
-            className="text-[var(--pb-red)] hover:underline ml-1"
+            className="text-[var(--pb-red)] hover:underline ml-1 text-[10px]"
           >
-            [X]
+            Rimuovi
           </button>
         </div>
       )}
 
       {/* Input area */}
-      <div className="flex items-start gap-2">
-        <span className="text-[var(--pb-green)] mt-1 select-none">&gt;</span>
-        <textarea
-          ref={textareaRef}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          placeholder={
-            disabled
-              ? "Elaborazione in corso..."
-              : "Scrivi una domanda o incolla un testo..."
-          }
-          rows={3}
-          className="flex-1 bg-transparent text-[var(--pb-text)] placeholder:text-[var(--pb-text-dim)] resize-none outline-none text-sm leading-relaxed"
-        />
-        {!disabled && (
-          <span className="text-[var(--pb-green)] mt-1 pipboy-cursor">_</span>
-        )}
-      </div>
+      <textarea
+        ref={textareaRef}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={disabled}
+        placeholder={
+          disabled
+            ? "Elaborazione in corso..."
+            : placeholder ?? "Scrivi una domanda o incolla un testo..."
+        }
+        rows={3}
+        className="w-full bg-transparent text-[var(--pb-text)] placeholder:text-[var(--pb-text-dim)] resize-none outline-none text-sm leading-relaxed"
+      />
 
       {/* Action bar */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-[var(--pb-border)]">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--pb-border)]">
         <div className="flex items-center gap-3">
           <input
             ref={fileRef}
@@ -91,9 +86,9 @@ export default function ConsoleInput({ onSubmit, disabled }: ConsoleInputProps) 
             disabled={disabled}
             className="text-xs text-[var(--pb-text-dim)] hover:text-[var(--pb-green)] transition-colors disabled:opacity-40"
           >
-            [ALLEGA FILE]
+            Allega documento
           </button>
-          <span className="text-xs text-[var(--pb-text-dim)] opacity-50">
+          <span className="text-[10px] text-[var(--pb-text-dim)] opacity-40">
             PDF, DOCX, TXT
           </span>
         </div>
@@ -101,13 +96,13 @@ export default function ConsoleInput({ onSubmit, disabled }: ConsoleInputProps) 
         <button
           onClick={handleSubmit}
           disabled={disabled || (!message.trim() && !file)}
-          className="text-xs font-bold tracking-wider px-4 py-1.5 border border-[var(--pb-green)] text-[var(--pb-green)] hover:bg-[var(--pb-green)] hover:text-[var(--pb-bg)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="text-xs font-medium tracking-wider px-5 py-2 rounded border border-[var(--pb-green)] text-[var(--pb-green)] hover:bg-[var(--pb-green)] hover:text-[var(--pb-bg)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          [ESEGUI]
+          Invia
         </button>
       </div>
 
-      <div className="text-[10px] text-[var(--pb-text-dim)] opacity-40 mt-1 text-right">
+      <div className="text-[10px] text-[var(--pb-text-dim)] opacity-30 mt-1 text-right">
         Ctrl+Enter per inviare
       </div>
     </div>

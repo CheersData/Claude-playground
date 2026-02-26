@@ -4,8 +4,9 @@
  * Fast-path per casi ovvi (zero costo LLM):
  * - Solo testo breve senza file → corpus-qa
  * - Solo file senza messaggio → document-analysis
+ * - Messaggio troppo corto/vago → clarification
  *
- * LLM call solo per casi ambigui (file + messaggio, testo lungo).
+ * LLM call solo per casi ambigui (file + messaggio, testo medio).
  */
 
 import { runAgent } from "../ai-sdk/agent-runner";
@@ -19,6 +20,13 @@ export interface LeaderInput {
   /** Length of document text if already extracted */
   textLength?: number;
 }
+
+/** Parole troppo vaghe per procedere senza chiarimento */
+const VAGUE_INPUTS = [
+  /^(ciao|salve|buongiorno|hey|help|aiuto|aiutami)$/i,
+  /^contratto$/i,
+  /^(ho un problema|ho bisogno)$/i,
+];
 
 /**
  * Decide la pipeline da attivare.
@@ -40,13 +48,52 @@ export async function runLeaderAgent(
     };
   }
 
-  // Fast-path: solo testo breve, nessun file → corpus-qa
+  // Fast-path: niente file, niente messaggio
+  if (!trimmedMessage && !hasFile) {
+    return {
+      route: "clarification",
+      reasoning: "Nessun input ricevuto",
+      question: null,
+      userContext: null,
+      clarificationQuestion:
+        "Come posso aiutarti? Puoi farmi una domanda sulla legge o caricare un contratto da analizzare.",
+    };
+  }
+
+  // Fast-path: messaggio troppo vago
+  if (
+    trimmedMessage.length < 10 ||
+    VAGUE_INPUTS.some((re) => re.test(trimmedMessage))
+  ) {
+    return {
+      route: "clarification",
+      reasoning: "Input troppo vago per procedere",
+      question: null,
+      userContext: null,
+      clarificationQuestion:
+        "Puoi dirmi di più? Vuoi analizzare un contratto o hai una domanda su una legge specifica?",
+    };
+  }
+
+  // Fast-path: solo testo breve, nessun file → corpus-qa (no deep search)
   if (trimmedMessage && !hasFile && trimmedMessage.length < 500) {
     return {
       route: "corpus-qa",
-      reasoning: "Solo domanda testuale breve",
+      reasoning: "Domanda testuale",
       question: trimmedMessage,
       userContext: null,
+      needsDeepSearch: false,
+    };
+  }
+
+  // Fast-path: testo medio senza file → corpus-qa con deep search
+  if (trimmedMessage && !hasFile && trimmedMessage.length >= 500 && trimmedMessage.length < 2000) {
+    return {
+      route: "corpus-qa",
+      reasoning: "Testo medio — caso concreto probabile",
+      question: trimmedMessage,
+      userContext: null,
+      needsDeepSearch: true,
     };
   }
 
@@ -79,5 +126,7 @@ export async function runLeaderAgent(
     reasoning: parsed.reasoning ?? "Decisione LLM",
     question: parsed.question ?? null,
     userContext: parsed.userContext ?? null,
+    clarificationQuestion: parsed.clarificationQuestion ?? null,
+    needsDeepSearch: parsed.needsDeepSearch ?? false,
   };
 }

@@ -52,11 +52,8 @@ export default function AgentPanel({ agents, leaderDecision }: AgentPanelProps) 
 
   return (
     <aside className="pipboy-glow rounded-md bg-[var(--pb-bg-panel)] p-3">
-      <h2
-        className="text-xs font-bold tracking-wider mb-3 text-[var(--pb-text-dim)]"
-        style={{ fontFamily: "'Space Mono', monospace" }}
-      >
-        AGENTI
+      <h2 className="text-xs font-serif tracking-wider mb-3 text-[var(--pb-text-dim)]">
+        Agenti
       </h2>
 
       {/* Leader — always visible */}

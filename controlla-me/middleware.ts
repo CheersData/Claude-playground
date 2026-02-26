@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") ?? "";
 
-  // lexmea.it → serve /console
-  if (hostname.includes("lexmea.it") || hostname.includes("lexmea.")) {
+  // lexmea.studio → serve /console
+  if (hostname.includes("lexmea.studio")) {
     const { pathname } = request.nextUrl;
 
     // Passthrough for API, static, and console assets

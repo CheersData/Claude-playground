@@ -4,13 +4,15 @@ import { runLeaderAgent } from "@/lib/agents/leader";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
 import { prepareQuestion } from "@/lib/agents/question-prep";
 import { formatArticlesForContext } from "@/lib/agents/corpus-agent";
-import { searchArticles } from "@/lib/legal-corpus";
+import { searchArticles, getArticlesByInstitute } from "@/lib/legal-corpus";
 import { searchLegalKnowledge } from "@/lib/vector-store";
+import type { LegalArticle } from "@/lib/legal-corpus";
 import { isVectorDBEnabled } from "@/lib/embeddings";
-import { generate } from "@/lib/ai-sdk/generate";
-import { parseAgentJSON } from "@/lib/anthropic";
+import { runAgent } from "@/lib/ai-sdk/agent-runner";
+import { runDeepSearch } from "@/lib/agents/investigator";
 import { CORPUS_AGENT_SYSTEM_PROMPT } from "@/lib/prompts/corpus-agent";
 import { sanitizeDocumentText, sanitizeUserQuestion } from "@/lib/middleware/sanitize";
+import { MODELS, AGENT_MODELS, type ModelKey } from "@/lib/models";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300;
@@ -30,7 +32,11 @@ export async function POST(req: NextRequest) {
         }
       };
 
-      const sendAgent = (phase: ConsoleAgentPhase, status: ConsolePhaseStatus, extra?: Record<string, unknown>) => {
+      const sendAgent = (
+        phase: ConsoleAgentPhase,
+        status: ConsolePhaseStatus,
+        extra?: Record<string, unknown>
+      ) => {
         send("agent", { phase, status, ...extra });
       };
 
@@ -53,7 +59,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ── LEADER ──
-        sendAgent("leader", "running");
+        sendAgent("leader", "running", { modelInfo: getModelInfo("leader") });
         const leaderStart = Date.now();
 
         const decision = await runLeaderAgent({
@@ -65,14 +71,30 @@ export async function POST(req: NextRequest) {
 
         const leaderMs = Date.now() - leaderStart;
         sendAgent("leader", "done", {
-          summary: `${decision.route} — ${decision.reasoning}`,
+          summary: `Route: ${decision.route}`,
           timing: leaderMs,
+          modelInfo: getModelInfo("leader"),
+          output: {
+            route: decision.route,
+            reasoning: decision.reasoning,
+            question: decision.question,
+          },
           decision,
         });
 
         console.log(
           `[CONSOLE] Leader: ${decision.route} | ${decision.reasoning} | ${leaderMs}ms`
         );
+
+        // ── ROUTE: clarification ──
+        if (decision.route === "clarification") {
+          send("clarification", {
+            question: decision.clarificationQuestion ?? "Puoi darmi più dettagli?",
+            reasoning: decision.reasoning,
+          });
+          send("complete", { route: "clarification" });
+          return;
+        }
 
         // ── ROUTE: corpus-qa ──
         if (decision.route === "corpus-qa") {
@@ -83,7 +105,8 @@ export async function POST(req: NextRequest) {
             return;
           }
 
-          await runCorpusQA(question, sendAgent, send);
+          // Deep search disabilitato per ora (usa Sonnet a pagamento)
+          await runCorpusQA(question, sendAgent, send, false);
         }
 
         // ── ROUTE: document-analysis ──
@@ -91,7 +114,9 @@ export async function POST(req: NextRequest) {
           const text = documentText || message;
 
           if (!text || text.trim().length < 50) {
-            send("error", { message: "Testo insufficiente per l'analisi (minimo 50 caratteri)" });
+            send("error", {
+              message: "Testo insufficiente per l'analisi (minimo 50 caratteri)",
+            });
             return;
           }
 
@@ -108,20 +133,25 @@ export async function POST(req: NextRequest) {
             return;
           }
 
-          // Run both pipelines in parallel
           const [corpusResult] = await Promise.allSettled([
-            question ? runCorpusQA(question, sendAgent, send) : Promise.resolve(null),
+            question
+              ? runCorpusQA(question, sendAgent, send)
+              : Promise.resolve(null),
             runDocumentAnalysis(text, decision.userContext, sendAgent, send),
           ]);
 
           if (corpusResult.status === "rejected") {
-            console.error("[CONSOLE] Corpus QA failed in hybrid:", corpusResult.reason);
+            console.error(
+              "[CONSOLE] Corpus QA failed in hybrid:",
+              corpusResult.reason
+            );
           }
         }
 
         send("complete", { route: decision.route });
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Errore sconosciuto";
+        const message =
+          error instanceof Error ? error.message : "Errore sconosciuto";
         send("error", { message });
       } finally {
         try {
@@ -142,101 +172,286 @@ export async function POST(req: NextRequest) {
   });
 }
 
-// ─── Corpus Q&A Pipeline (granular events) ───
+// ─── Model Info helper ───
+
+function getModelInfo(agent: string): { displayName: string; tier: "free" | "budget" | "premium" } {
+  const agentKey = agent as keyof typeof AGENT_MODELS;
+  if (!(agentKey in AGENT_MODELS)) return { displayName: agent, tier: "free" };
+  const modelKey = AGENT_MODELS[agentKey].primary;
+  const model = MODELS[modelKey];
+  if (!model) return { displayName: agent, tier: "free" };
+  const tier = getModelTier(modelKey);
+  return { displayName: model.displayName, tier };
+}
+
+function getModelTier(key: ModelKey): "free" | "budget" | "premium" {
+  const m = MODELS[key];
+  // Free: Gemini Flash, all Groq, Cerebras, Mistral Small/Ministral, DeepSeek, GPT-4.1 Nano, GPT-5 Nano
+  if (m.provider === "groq" || m.provider === "cerebras") return "free";
+  if (key === "gemini-2.5-flash") return "free";
+  if (key === "mistral-small-3" || key === "ministral-8b" || key === "ministral-3b") return "free";
+  if (key === "gpt-4.1-nano" || key === "gpt-5-nano") return "free";
+  // Budget: Haiku, Gemini Pro, GPT-4o Mini, GPT-4.1 Mini, Mistral Medium, GPT-5 Mini
+  if (key === "claude-haiku-4.5") return "budget";
+  if (key === "gemini-2.5-pro") return "budget";
+  if (key === "gpt-4o-mini" || key === "gpt-4.1-mini" || key === "gpt-5-mini") return "budget";
+  if (key === "mistral-medium-3") return "budget";
+  // Premium: everything else (Sonnet, GPT-4o, GPT-4.1, GPT-5, Mistral Large, DeepSeek R1)
+  return "premium";
+}
+
+// ─── Corpus Q&A Pipeline (granular events + output per agent) ───
 
 async function runCorpusQA(
   question: string,
-  sendAgent: (phase: ConsoleAgentPhase, status: ConsolePhaseStatus, extra?: Record<string, unknown>) => void,
+  sendAgent: (
+    phase: ConsoleAgentPhase,
+    status: ConsolePhaseStatus,
+    extra?: Record<string, unknown>
+  ) => void,
   send: (event: string, data: unknown) => void,
+  deep: boolean = false
 ) {
-  // 1. Question-Prep
-  sendAgent("question-prep", "running");
+  // 1. Question-Prep — identifica istituti giuridici + query legale
+  sendAgent("question-prep", "running", { modelInfo: getModelInfo("question-prep") });
   const prepStart = Date.now();
 
   const prep = await prepareQuestion(question);
 
   sendAgent("question-prep", "done", {
-    summary: prep.legalQuery.slice(0, 120),
+    summary: prep.targetArticles
+      ? `Target: ${prep.targetArticles}`
+      : prep.mechanismQuery
+        ? "Domanda riformulata (2 assi)"
+        : "Domanda riformulata",
     timing: Date.now() - prepStart,
+    modelInfo: getModelInfo("question-prep"),
+    output: {
+      originalQuestion: question,
+      legalQuery: prep.legalQuery,
+      mechanismQuery: prep.mechanismQuery,
+      suggestedInstitutes: prep.suggestedInstitutes,
+      targetArticles: prep.targetArticles,
+      keywords: prep.keywords,
+    },
   });
 
-  // 2. Vector search
-  sendAgent("corpus-search", "running");
+  // 2. Corpus search — institute lookup + semantic search combinati
+  sendAgent("corpus-search", "running", { modelInfo: { displayName: "pgvector", tier: "free" as const } });
   const searchStart = Date.now();
 
   if (!isVectorDBEnabled()) {
-    sendAgent("corpus-search", "error", { summary: "Vector DB non disponibile" });
-    send("error", { message: "Vector DB non configurato (VOYAGE_API_KEY mancante)" });
-    return;
-  }
-
-  const [articles, knowledge] = await Promise.all([
-    searchArticles(prep.legalQuery, { threshold: 0.40, limit: 8 }),
-    searchLegalKnowledge(prep.legalQuery, { threshold: 0.6, limit: 4 }),
-  ]);
-
-  sendAgent("corpus-search", "done", {
-    summary: `${articles.length} articoli + ${knowledge.length} knowledge`,
-    timing: Date.now() - searchStart,
-  });
-
-  // 3. Build context + LLM call
-  const context = formatArticlesForContext(articles, knowledge);
-
-  if (!context) {
-    sendAgent("corpus-agent", "skipped", { summary: "Nessun articolo pertinente trovato" });
-    send("result", {
-      type: "corpus-qa",
-      answer: "Non ho trovato articoli di legge pertinenti alla tua domanda nel corpus legislativo disponibile.",
-      citedArticles: [],
-      confidence: 0,
+    sendAgent("corpus-search", "error", {
+      summary: "Vector DB non disponibile",
+    });
+    send("error", {
+      message: "Vector DB non configurato (VOYAGE_API_KEY mancante)",
     });
     return;
   }
 
-  sendAgent("corpus-agent", "running");
+  // Ricerca parallela su 2 assi: tema (legalQuery) + meccanismo (mechanismQuery)
+  const institutePromises = prep.suggestedInstitutes.map((inst) =>
+    getArticlesByInstitute(inst, 10)
+  );
+
+  // Primary search (tema) + secondary search (meccanismo) + knowledge
+  const searchPromises: Promise<Array<LegalArticle & { similarity: number }>>[] = [
+    searchArticles(prep.legalQuery, {
+      threshold: 0.4,
+      limit: 8,
+      institutes: prep.suggestedInstitutes.length > 0
+        ? prep.suggestedInstitutes
+        : undefined,
+    }),
+  ];
+
+  // Secondary axis: search for legal mechanism (interpretation, nullity, etc.)
+  if (prep.mechanismQuery) {
+    searchPromises.push(
+      searchArticles(prep.mechanismQuery, {
+        threshold: 0.4,
+        limit: 6,
+      })
+    );
+  }
+
+  const [primaryResults, mechanismResults, knowledge, ...instituteResults] = await Promise.all([
+    ...searchPromises,
+    // Pad with empty array if no mechanismQuery
+    ...(prep.mechanismQuery ? [] : [Promise.resolve([] as Array<LegalArticle & { similarity: number }>)]),
+    searchLegalKnowledge(prep.legalQuery, { threshold: 0.6, limit: 4 }),
+    ...institutePromises,
+  ]) as [
+    Array<LegalArticle & { similarity: number }>,
+    Array<LegalArticle & { similarity: number }>,
+    Awaited<ReturnType<typeof searchLegalKnowledge>>,
+    ...Array<LegalArticle[]>,
+  ];
+
+  // Merge: institute lookup (prioritari) + semantic primary + semantic mechanism (deduplica)
+  const seenRefs = new Set<string>();
+  const allArticles: Array<LegalArticle & { similarity: number }> = [];
+
+  // Prima: articoli da lookup diretto per istituto (similarity = 1.0, sono match esatti)
+  for (const batch of instituteResults) {
+    for (const art of batch) {
+      const key = `${art.lawSource}:${art.articleReference}`;
+      if (!seenRefs.has(key)) {
+        seenRefs.add(key);
+        allArticles.push({ ...art, similarity: 1.0 });
+      }
+    }
+  }
+
+  // Poi: articoli da ricerca semantica primaria (tema)
+  for (const art of primaryResults) {
+    const key = `${art.lawSource}:${art.articleReference}`;
+    if (!seenRefs.has(key)) {
+      seenRefs.add(key);
+      allArticles.push(art);
+    }
+  }
+
+  // Poi: articoli da ricerca semantica secondaria (meccanismo giuridico)
+  if (mechanismResults) {
+    for (const art of mechanismResults) {
+      const key = `${art.lawSource}:${art.articleReference}`;
+      if (!seenRefs.has(key)) {
+        seenRefs.add(key);
+        allArticles.push(art);
+      }
+    }
+  }
+
+  // Limita a 15 articoli totali (aumentato da 12 per doppia ricerca)
+  const articles = allArticles.slice(0, 15);
+
+  const instituteCount = instituteResults.reduce((sum, batch) => sum + batch.length, 0);
+  const mechanismCount = mechanismResults?.length ?? 0;
+
+  sendAgent("corpus-search", "done", {
+    summary: `${articles.length} articoli (${instituteCount} istituto, ${primaryResults.length} tema${mechanismCount > 0 ? `, ${mechanismCount} meccanismo` : ""})`,
+    timing: Date.now() - searchStart,
+    modelInfo: { displayName: "pgvector", tier: "free" as const },
+    output: {
+      articles: articles.map((a) => ({
+        reference: a.articleReference,
+        source: a.lawSource,
+        title: a.articleTitle,
+        similarity: a.similarity === 1.0 ? "istituto" : `${(a.similarity * 100).toFixed(0)}%`,
+      })),
+      institutes: prep.suggestedInstitutes,
+      mechanismQuery: prep.mechanismQuery,
+      knowledgeEntries: knowledge.length,
+    },
+  });
+
+  // 3. Build context + optional deep search
+  const context = formatArticlesForContext(articles, knowledge);
+
+  if (!context) {
+    sendAgent("corpus-agent", "skipped", {
+      summary: "Nessun articolo pertinente trovato",
+      output: { reason: "Nessun articolo con similarità sufficiente" },
+    });
+    return;
+  }
+
+  // 3.5 Deep Search (optional) — Investigator with web_search for case law
+  let investigatorContext = "";
+  if (deep && articles.length > 0) {
+    try {
+      sendAgent("investigator", "running", { modelInfo: getModelInfo("investigator") });
+      const invStart = Date.now();
+
+      const clauseContext = articles
+        .slice(0, 5)
+        .map((a) => `${a.articleReference} (${a.lawSource}): ${a.articleTitle}`)
+        .join("\n");
+
+      const deepResult = await runDeepSearch(clauseContext, "", question);
+
+      sendAgent("investigator", "done", {
+        summary: `${deepResult.sources?.length ?? 0} fonti trovate`,
+        timing: Date.now() - invStart,
+        modelInfo: getModelInfo("investigator"),
+        output: {
+          response: deepResult.response,
+          sources: deepResult.sources ?? [],
+        },
+      });
+
+      if (deepResult.response) {
+        investigatorContext = `\n\nGIURISPRUDENZA E APPROFONDIMENTI:\n${deepResult.response}`;
+        if (deepResult.sources?.length) {
+          investigatorContext += `\n\nFONTI WEB:\n${deepResult.sources.map((s) => `- ${s.title}: ${s.excerpt}`).join("\n")}`;
+        }
+      }
+    } catch (err) {
+      console.error("[CONSOLE] Investigator failed:", err);
+      sendAgent("investigator", "error", {
+        summary: err instanceof Error ? err.message : "Errore investigator",
+        modelInfo: getModelInfo("investigator"),
+      });
+      // Non fatale: continua senza giurisprudenza
+    }
+  }
+
+  sendAgent("corpus-agent", "running", { modelInfo: getModelInfo("corpus-agent") });
   const llmStart = Date.now();
 
-  const llmPrompt = `CONTESTO NORMATIVO:\n${context}\n\nDOMANDA:\n${question}`;
+  const llmPrompt = `CONTESTO NORMATIVO:\n${context}${investigatorContext}\n\nDOMANDA:\n${question}`;
 
-  const result = await generate("gemini-2.5-flash", llmPrompt, {
-    systemPrompt: CORPUS_AGENT_SYSTEM_PROMPT,
-    maxTokens: 4096,
-    agentName: "CORPUS-AGENT",
-  });
-
-  const parsed = parseAgentJSON<{
+  // Usa runAgent con fallback automatico (fix JSON parse)
+  const { parsed, provider } = await runAgent<{
     answer?: string;
-    citedArticles?: Array<{ id: string; reference: string; source: string; relevance: string }>;
+    citedArticles?: Array<{
+      id: string;
+      reference: string;
+      source: string;
+      relevance: string;
+    }>;
+    missingArticles?: string[];
     confidence?: number;
     followUpQuestions?: string[];
-  }>(result.text);
-
-  sendAgent("corpus-agent", "done", {
-    summary: `confidence: ${parsed.confidence ?? "N/A"}`,
-    timing: Date.now() - llmStart,
+  }>("corpus-agent", llmPrompt, {
+    systemPrompt: CORPUS_AGENT_SYSTEM_PROMPT,
   });
 
-  send("result", {
-    type: "corpus-qa",
-    answer: parsed.answer ?? "Errore nella generazione della risposta.",
-    citedArticles: parsed.citedArticles ?? [],
-    confidence: parsed.confidence ?? 0.5,
-    followUpQuestions: parsed.followUpQuestions ?? [],
-    articlesRetrieved: articles.length,
-    provider: result.provider,
+  const answer = parsed.answer ?? "Errore nella generazione della risposta.";
+  const citedArticles = parsed.citedArticles ?? [];
+  const missingArticles = parsed.missingArticles ?? [];
+  const confidence = parsed.confidence ?? 0.5;
+
+  sendAgent("corpus-agent", "done", {
+    summary: `Confidence: ${(confidence * 100).toFixed(0)}%${missingArticles.length > 0 ? ` | ${missingArticles.length} art. mancanti` : ""}`,
+    timing: Date.now() - llmStart,
+    modelInfo: getModelInfo("corpus-agent"),
+    output: {
+      answer,
+      citedArticles,
+      missingArticles,
+      confidence,
+      followUpQuestions: parsed.followUpQuestions ?? [],
+      provider,
+      hasDeepSearch: deep && investigatorContext.length > 0,
+    },
   });
 }
 
-// ─── Document Analysis Pipeline (wraps orchestrator) ───
+// ─── Document Analysis Pipeline (wraps orchestrator + sends output) ───
 
 async function runDocumentAnalysis(
   documentText: string,
   userContext: string | null | undefined,
-  sendAgent: (phase: ConsoleAgentPhase, status: ConsolePhaseStatus, extra?: Record<string, unknown>) => void,
-  send: (event: string, data: unknown) => void,
+  sendAgent: (
+    phase: ConsoleAgentPhase,
+    status: ConsolePhaseStatus,
+    extra?: Record<string, unknown>
+  ) => void,
+  send: (event: string, data: unknown) => void
 ) {
-  const phaseTimings: Record<string, number> = {};
   const phaseStarts: Record<string, number> = {};
 
   const result = await runOrchestrator(
@@ -248,29 +463,31 @@ async function runDocumentAnalysis(
           phaseStarts[phase] = Date.now();
           sendAgent(consolePhase, "running");
         } else if (status === "done") {
-          const timing = phaseStarts[phase] ? Date.now() - phaseStarts[phase] : undefined;
-          if (timing) phaseTimings[phase] = timing;
-          sendAgent(consolePhase, "done", { timing });
+          const timing = phaseStarts[phase]
+            ? Date.now() - phaseStarts[phase]
+            : undefined;
+          // Send the actual output data for each phase
+          sendAgent(consolePhase, "done", {
+            timing,
+            output: data ?? null,
+          });
         }
       },
       onError: (phase: AgentPhase, error: string) => {
         sendAgent(phase as ConsoleAgentPhase, "error", { summary: error });
       },
       onComplete: () => {
-        // Complete event sent by caller
+        // noop
       },
     },
     undefined,
     userContext ?? undefined
   );
 
+  // Final result event
   send("result", {
     type: "document-analysis",
-    classification: result.classification,
-    analysis: result.analysis,
-    investigation: result.investigation,
     advice: result.advice,
     sessionId: result.sessionId,
-    timings: phaseTimings,
   });
 }

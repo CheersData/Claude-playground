@@ -298,20 +298,29 @@ export interface AgentModelConfig {
  * Questo è il SINGOLO punto di configurazione per tutti gli agenti.
  */
 export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
+  // ── Corpus Q&A Pipeline — distribuito su 3 provider free ──
   leader: {
-    primary: "gemini-2.5-flash",
-    fallback: "claude-haiku-4.5",
+    primary: "groq-llama3-8b",
+    fallback: "cerebras-llama3-8b",
     maxTokens: 512,
     temperature: 0,
-    notes: "Routing veloce. Output minimo (~100 token). Flash costa $0.15/1M input.",
+    notes: "Routing veloce. Groq 8B (~0.05s). Fallback: Cerebras 8B. Zero costi.",
   },
   "question-prep": {
-    primary: "gemini-2.5-flash",
-    fallback: "claude-haiku-4.5",
+    primary: "cerebras-llama3-8b",
+    fallback: "mistral-small-3",
     maxTokens: 1024,
     temperature: 0.2,
-    notes: "Task leggero: riformulazione domanda. Flash è più che sufficiente.",
+    notes: "Riformulazione leggera. Cerebras 8B (24M tok/day). Fallback: Mistral Small (1B tok/mese).",
   },
+  "corpus-agent": {
+    primary: "groq-llama3-70b",
+    fallback: "cerebras-gpt-oss-120b",
+    maxTokens: 4096,
+    temperature: 0.2,
+    notes: "Risposta legale. Groq 70B per qualità. Fallback: Cerebras 120B.",
+  },
+  // ── Document Analysis Pipeline — Anthropic/Gemini (a pagamento) ──
   classifier: {
     primary: "claude-haiku-4.5",
     fallback: "gemini-2.5-flash",
@@ -339,13 +348,6 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     maxTokens: 4096,
     temperature: 0,
     notes: "Output finale utente. Serve qualità massima, zero errori.",
-  },
-  "corpus-agent": {
-    primary: "gemini-2.5-flash",
-    fallback: "claude-haiku-4.5",
-    maxTokens: 4096,
-    temperature: 0.2,
-    notes: "Q&A corpus legislativo. Flash economico e veloce, Haiku come fallback.",
   },
 };
 

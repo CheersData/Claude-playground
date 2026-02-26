@@ -132,7 +132,7 @@ export interface AdvisorResult {
 
 // ─── Console / Leader Types ───
 
-export type LeaderRoute = "corpus-qa" | "document-analysis" | "hybrid";
+export type LeaderRoute = "corpus-qa" | "document-analysis" | "hybrid" | "clarification";
 
 export interface LeaderDecision {
   route: LeaderRoute;
@@ -141,6 +141,10 @@ export interface LeaderDecision {
   question: string | null;
   /** Contesto utente da passare all'orchestrator */
   userContext: string | null;
+  /** Domanda di chiarimento da porre all'utente (solo per route=clarification) */
+  clarificationQuestion?: string | null;
+  /** Se true, attiva l'Investigator (web_search) per giurisprudenza e approfondimenti */
+  needsDeepSearch?: boolean;
 }
 
 export type ConsoleAgentPhase =

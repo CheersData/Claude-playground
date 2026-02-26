@@ -1,31 +1,118 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import PipBoyShell from "@/components/console/PipBoyShell";
+import { useState, useRef, useCallback, useEffect } from "react";
+import StudioShell from "@/components/console/StudioShell";
 import ConsoleHeader from "@/components/console/ConsoleHeader";
 import ConsoleInput from "@/components/console/ConsoleInput";
-import AgentPanel from "@/components/console/AgentPanel";
-import OutputPanel from "@/components/console/OutputPanel";
-import type { ConsoleAgentPhase, ConsolePhaseStatus, LeaderDecision } from "@/lib/types";
+import AgentOutput from "@/components/console/AgentOutput";
+import CorpusTreePanel from "@/components/console/CorpusTreePanel";
+import type {
+  ConsoleAgentPhase,
+  ConsolePhaseStatus,
+  LeaderDecision,
+} from "@/lib/types";
 
-type PageStatus = "idle" | "processing" | "done" | "error";
+type PageStatus = "idle" | "processing" | "done" | "error" | "clarification";
+type AuthPhase = "idle" | "pending" | "authenticated" | "denied";
 
-interface AgentStatus {
+export interface AgentStatus {
   status: ConsolePhaseStatus | "idle";
   summary?: string;
   timing?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  output?: any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ConsoleResult = any;
+interface ActiveEvent {
+  phase: ConsoleAgentPhase;
+  status: ConsolePhaseStatus;
+  summary?: string;
+  timing?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  output?: any;
+}
+
+interface CollectedContext {
+  institutes: string[];
+  articles: Array<{ reference: string; source: string; title?: string }>;
+  targetArticles: string | null;
+}
+
+interface AuthUser {
+  nome: string;
+  cognome: string;
+  ruolo: string;
+}
+
+const AGENT_DISPLAY_NAMES: Record<ConsoleAgentPhase, string> = {
+  leader: "Leader",
+  "question-prep": "Question Prep",
+  "corpus-search": "Ricerca Corpus",
+  "corpus-agent": "Corpus Agent",
+  classifier: "Classificatore",
+  retrieval: "Retrieval",
+  analyzer: "Analista",
+  investigator: "Investigatore",
+  advisor: "Consulente",
+};
+
+const AUTH_PROMPT = `Buongiorno. Sono il sistema lexmea.\nPer procedere, ho bisogno di identificarla.\n\nInserisca: Nome Cognome, Ruolo\n(Esempio: Mario Rossi, Avvocato)`;
+
+const CORPUS_PHASES: ConsoleAgentPhase[] = [
+  "question-prep",
+  "corpus-search",
+  "corpus-agent",
+];
+
+const DOC_PHASES: ConsoleAgentPhase[] = [
+  "classifier",
+  "retrieval",
+  "analyzer",
+  "investigator",
+  "advisor",
+];
 
 export default function ConsolePage() {
+  // ── Auth state ──
+  const [authPhase, setAuthPhase] = useState<AuthPhase>("idle");
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authMessage, setAuthMessage] = useState<string>(AUTH_PROMPT);
+
+  // ── Pipeline state ──
   const [status, setStatus] = useState<PageStatus>("idle");
   const [leaderDecision, setLeaderDecision] = useState<LeaderDecision | null>(null);
-  const [agentStatuses, setAgentStatuses] = useState<Map<ConsoleAgentPhase, AgentStatus>>(new Map());
-  const [results, setResults] = useState<ConsoleResult[]>([]);
+  const [agentStatuses, setAgentStatuses] = useState<
+    Map<ConsoleAgentPhase, AgentStatus>
+  >(new Map());
+  const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
+  const [collectedContext, setCollectedContext] = useState<CollectedContext>({
+    institutes: [],
+    articles: [],
+    targetArticles: null,
+  });
+  // Ref keeps context in sync for use inside processEvent (avoids stale closure)
+  const contextRef = useRef<CollectedContext>({ institutes: [], articles: [], targetArticles: null });
+  const [clarificationQ, setClarificationQ] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [corpusOpen, setCorpusOpen] = useState(false);
+
+  // ── Session persistence ──
+  useEffect(() => {
+    const stored = sessionStorage.getItem("lexmea-auth");
+    if (stored) {
+      try {
+        const user = JSON.parse(stored) as AuthUser;
+        setAuthUser(user);
+        setAuthPhase("authenticated");
+        setAuthMessage(
+          `Bentornata, ${user.ruolo} ${user.cognome}. Come posso aiutarla?`
+        );
+      } catch {
+        sessionStorage.removeItem("lexmea-auth");
+      }
+    }
+  }, []);
 
   const updateAgent = useCallback(
     (phase: ConsoleAgentPhase, update: AgentStatus) => {
@@ -38,16 +125,53 @@ export default function ConsolePage() {
     []
   );
 
+  // ── Auth handler ──
+  const handleAuth = useCallback(async (input: string) => {
+    setAuthPhase("pending");
+    setAuthMessage("Verifico le credenziali...");
+
+    try {
+      const res = await fetch("/api/console/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
+
+      const data = await res.json();
+
+      if (data.authorized) {
+        setAuthUser(data.user);
+        setAuthPhase("authenticated");
+        setAuthMessage(data.message);
+        sessionStorage.setItem("lexmea-auth", JSON.stringify(data.user));
+      } else {
+        setAuthPhase("denied");
+        setAuthMessage(data.message);
+      }
+    } catch {
+      setAuthPhase("idle");
+      setAuthMessage("Errore di connessione. Riprovare.\n\n" + AUTH_PROMPT);
+    }
+  }, []);
+
+  // ── Pipeline submit ──
   const handleSubmit = useCallback(
     async (message: string, file: File | null) => {
-      // Reset state
+      // Auth gate
+      if (authPhase !== "authenticated") {
+        handleAuth(message);
+        return;
+      }
+
       setStatus("processing");
       setLeaderDecision(null);
       setAgentStatuses(new Map());
-      setResults([]);
+      setActiveEvent(null);
+      setCollectedContext({ institutes: [], articles: [], targetArticles: null });
+      contextRef.current = { institutes: [], articles: [], targetArticles: null };
+      setClarificationQ(null);
       setError(null);
 
-      // Abort previous request
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -79,7 +203,6 @@ export default function ConsolePage() {
 
           buffer += decoder.decode(value, { stream: true });
 
-          // Parse SSE events from buffer
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
 
@@ -96,9 +219,9 @@ export default function ConsolePage() {
               if (eventType && eventData) {
                 try {
                   const data = JSON.parse(eventData);
-                  handleSSEEvent(eventType, data);
+                  processEvent(eventType, data);
                 } catch {
-                  // Skip malformed JSON
+                  // Skip malformed
                 }
                 eventType = "";
                 eventData = "";
@@ -107,21 +230,21 @@ export default function ConsolePage() {
           }
         }
 
-        // If we reach here without explicit complete/error, mark as done
         setStatus((prev) => (prev === "processing" ? "done" : prev));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        const msg = err instanceof Error ? err.message : "Errore di connessione";
+        const msg =
+          err instanceof Error ? err.message : "Errore di connessione";
         setError(msg);
         setStatus("error");
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [authPhase, handleAuth]
   );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSSEEvent = useCallback((eventType: string, data: any) => {
+  const processEvent = useCallback((eventType: string, data: any) => {
     switch (eventType) {
       case "agent": {
         const phase = data.phase as ConsoleAgentPhase;
@@ -129,19 +252,56 @@ export default function ConsolePage() {
           status: data.status,
           summary: data.summary,
           timing: data.timing,
+          output: data.output,
         });
 
-        // Capture leader decision
+        setActiveEvent({
+          phase,
+          status: data.status,
+          summary: data.summary,
+          timing: data.timing,
+          output: data.output,
+        });
+
+        // Accumulate context using ref (sync) + state (render)
+        if (data.status === "done") {
+          if (phase === "question-prep" && data.output) {
+            const updated = {
+              ...contextRef.current,
+              institutes: data.output.suggestedInstitutes ?? contextRef.current.institutes,
+              targetArticles: data.output.targetArticles ?? contextRef.current.targetArticles,
+            };
+            contextRef.current = updated;
+            setCollectedContext(updated);
+          }
+
+          if (phase === "corpus-search" && data.output?.articles?.length) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const arts = data.output.articles.map((a: any) => ({
+              reference: a.reference,
+              source: a.source,
+              title: a.title,
+            }));
+            const updated = { ...contextRef.current, articles: arts };
+            contextRef.current = updated;
+            setCollectedContext(updated);
+          }
+        }
+
         if (phase === "leader" && data.decision) {
           setLeaderDecision(data.decision);
         }
         break;
       }
-      case "result":
-        setResults((prev) => [...prev, data]);
+      case "clarification":
+        setClarificationQ(data.question);
+        setActiveEvent(null);
+        setStatus("clarification");
         break;
       case "complete":
-        setStatus("done");
+        if (status !== "clarification") {
+          setStatus("done");
+        }
         break;
       case "error":
         if (data.message) {
@@ -150,49 +310,142 @@ export default function ConsolePage() {
         }
         break;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isProcessing = status === "processing";
+  const isAuthenticated = authPhase === "authenticated";
+  const headerUserName = authUser
+    ? `${authUser.ruolo} ${authUser.cognome}`
+    : null;
+
+  // Determine pipeline phase order based on leader route
+  const pipelinePhases: ConsoleAgentPhase[] = leaderDecision
+    ? leaderDecision.route === "corpus-qa"
+      ? CORPUS_PHASES
+      : DOC_PHASES
+    : [];
 
   return (
-    <PipBoyShell>
-      <ConsoleHeader status={status} />
+    <StudioShell>
+      <ConsoleHeader
+        status={status}
+        userName={headerUserName}
+        onCorpusToggle={isAuthenticated ? () => setCorpusOpen((v) => !v) : undefined}
+      />
 
-      <main className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4 p-4 max-w-7xl mx-auto">
-        {/* Left: Input + Output */}
-        <div className="space-y-4 min-w-0">
-          <ConsoleInput onSubmit={handleSubmit} disabled={isProcessing} />
-
-          {/* Status bar when processing */}
-          {isProcessing && (
-            <div className="text-xs text-[var(--pb-green)] flex items-center gap-2">
-              <span className="pipboy-cursor">&gt;</span>
-              <span>Elaborazione in corso...</span>
+      <main className="p-4 max-w-3xl mx-auto space-y-3">
+        {/* Auth message — shown before authentication or as welcome */}
+        {authMessage && (!isAuthenticated || (isAuthenticated && status === "idle" && !activeEvent)) && (
+          <div className="pipboy-panel rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="pipboy-led pipboy-led-done" />
+              <span className="text-xs font-serif italic text-[var(--pb-green)]">
+                lexmea
+              </span>
             </div>
-          )}
+            <p className="text-sm whitespace-pre-wrap leading-relaxed text-[var(--pb-text)]">
+              {authMessage}
+            </p>
+            {authPhase === "denied" && (
+              <button
+                onClick={() => {
+                  setAuthPhase("idle");
+                  setAuthMessage(AUTH_PROMPT);
+                }}
+                className="mt-3 text-xs text-[var(--pb-green)] hover:underline"
+              >
+                Riprovare
+              </button>
+            )}
+          </div>
+        )}
 
-          {/* Done status */}
-          {status === "done" && results.length > 0 && (
-            <div className="text-xs text-[var(--pb-green)]">
-              &gt; Analisi completata.
-            </div>
-          )}
-
-          <OutputPanel results={results} error={error} />
-        </div>
-
-        {/* Right: Agent Panel */}
-        <AgentPanel
-          agents={agentStatuses}
-          leaderDecision={leaderDecision}
+        <ConsoleInput
+          onSubmit={handleSubmit}
+          disabled={isProcessing || authPhase === "pending"}
+          placeholder={
+            !isAuthenticated
+              ? "Inserisca nome, cognome e ruolo..."
+              : clarificationQ
+                ? "Rispondi alla domanda sopra..."
+                : undefined
+          }
         />
+
+        {error && (
+          <div className="pipboy-panel rounded-lg p-3 border-[var(--pb-red)]">
+            <span className="text-xs text-[var(--pb-red)] font-medium">
+              Errore
+            </span>
+            <p className="text-sm text-[var(--pb-red)] mt-1">{error}</p>
+          </div>
+        )}
+
+        {/* Clarification question from Leader */}
+        {status === "clarification" && clarificationQ && (
+          <div className="pipboy-panel rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="pipboy-led pipboy-led-running" />
+              <span className="text-xs font-medium">Leader</span>
+            </div>
+            <p className="text-sm text-[var(--pb-amber)]">
+              {clarificationQ}
+            </p>
+          </div>
+        )}
+
+        {/* Leader — always first when present */}
+        {agentStatuses.has("leader") && (() => {
+          const s = agentStatuses.get("leader")!;
+          return (
+            <AgentOutput
+              key="leader"
+              phase="leader"
+              phaseName={AGENT_DISPLAY_NAMES.leader}
+              status={s.status === "idle" ? "running" : s.status as ConsolePhaseStatus}
+              summary={s.summary}
+              timing={s.timing}
+              output={s.output}
+            />
+          );
+        })()}
+
+        {/* Pipeline steps — all started agents shown inline */}
+        {pipelinePhases.map((phase) => {
+          const s = agentStatuses.get(phase);
+          if (!s || s.status === "idle") return null;
+
+          const isRunning = s.status === "running";
+          const showContext =
+            (phase === "corpus-agent" || phase === "investigator") && isRunning;
+
+          return (
+            <AgentOutput
+              key={phase}
+              phase={phase}
+              phaseName={AGENT_DISPLAY_NAMES[phase]}
+              status={s.status as ConsolePhaseStatus}
+              summary={s.summary}
+              timing={s.timing}
+              output={s.output}
+              context={showContext ? contextRef.current : undefined}
+            />
+          );
+        })}
+
+        {status === "done" && activeEvent?.status !== "done" && (
+          <div className="text-xs text-[var(--pb-green)] py-2">
+            Elaborazione completata.
+          </div>
+        )}
       </main>
 
-      {/* Footer */}
       <footer className="text-center text-[10px] text-[var(--pb-text-dim)] opacity-30 py-4">
-        LEXMEA CONSOLE v1.0 — Powered by AI agents
+        lexmea v1.0
       </footer>
-    </PipBoyShell>
+
+      <CorpusTreePanel open={corpusOpen} onClose={() => setCorpusOpen(false)} />
+    </StudioShell>
   );
 }

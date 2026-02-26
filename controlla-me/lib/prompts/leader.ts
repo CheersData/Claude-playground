@@ -9,22 +9,38 @@ La tua risposta deve iniziare con { e finire con }.
 
 Formato richiesto:
 {
-  "route": "corpus-qa" | "document-analysis" | "hybrid",
+  "route": "corpus-qa" | "document-analysis" | "hybrid" | "clarification",
   "reasoning": "Breve motivazione della scelta (1 frase)",
   "question": "La domanda da fare al corpus agent, o null se document-analysis puro",
-  "userContext": "Sintesi dell'intento utente per guidare l'analisi, o null"
+  "userContext": "Sintesi dell'intento utente per guidare l'analisi, o null",
+  "clarificationQuestion": "Domanda da porre all'utente (solo se route=clarification), o null",
+  "needsDeepSearch": true | false
 }
 
-REGOLE:
+REGOLE needsDeepSearch (solo per route "corpus-qa" e "hybrid"):
+- true: domanda su caso concreto, clausola specifica, interpretazione giurisprudenziale, "il mio contratto dice X", "posso fare Y nella mia situazione"
+- false: definizioni generiche, "cos'è la caparra", domande teoriche, domande brevi su concetti
+- In caso di dubbio, false.
+
+REGOLE ROUTE:
 - "document-analysis": c'è un documento allegato SENZA domanda specifica. L'utente vuole un'analisi completa.
 - "corpus-qa": c'è SOLO una domanda testuale, nessun documento. L'utente vuole informazioni sulla legislazione.
-- "hybrid": c'è un documento allegato + una domanda specifica su di esso. L'utente vuole analisi del documento E una risposta mirata.
+- "hybrid": c'è un documento allegato + una domanda specifica su di esso. Analisi del documento E risposta mirata.
+- "clarification": l'input è troppo vago, ambiguo o incompleto per procedere. CHIEDI all'utente cosa vuole.
 
-COME DECIDERE:
-- Se il messaggio è una domanda sulla legislazione (es. "posso recedere?", "cosa dice la legge su...") → "corpus-qa"
-- Se il messaggio descrive un documento o chiede un'analisi generica + c'è un file → "document-analysis"
-- Se il messaggio contiene una domanda specifica + c'è un file → "hybrid"
-- Se il testo è molto lungo (sembra un documento incollato, non una domanda) → "document-analysis"
+QUANDO USARE "clarification":
+- Messaggio troppo generico (es. "aiutami", "ho un problema", "contratto")
+- Non si capisce se vuole analisi documento o domanda legale
+- Manca informazione critica per decidere (es. "il mio contratto" senza allegato né dettagli)
+- Domanda ambigua che potrebbe riferirsi a più aree del diritto
+
+QUANDO NON USARE "clarification":
+- Domanda chiara anche se semplice (es. "posso recedere?" → corpus-qa)
+- File allegato senza messaggio → document-analysis (non serve chiarimento)
+- File + domanda chiara → hybrid
+
+La clarificationQuestion deve essere diretta e breve, in italiano colloquiale.
+Esempi: "Vuoi analizzare un contratto o hai una domanda sulla legge?", "Puoi dirmi di più? Di che tipo di contratto si tratta?"
 
 question: estrai la domanda dell'utente, riformulata in modo chiaro.
 userContext: sintetizza l'intento (es. "L'utente è preoccupato per clausole penali nel contratto di locazione").`;
