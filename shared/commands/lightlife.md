@@ -9,16 +9,16 @@ Sei un design system architect. Devi creare e/o applicare il design system "ligh
 
 ## STEP 1: Verifica se il preset esiste già
 
-Cerca `../okmom-design/tailwind-preset.ts` relativo alla root del progetto.
+Cerca `../design/tailwind-preset.ts` relativo alla root del progetto.
 
 - Se **esiste** → vai a STEP 3 (applica al progetto)
 - Se **non esiste** → vai a STEP 2 (crea il preset)
 
 ## STEP 2: Crea il design system
 
-Crea la cartella `../okmom-design/` (fratello del progetto corrente, nella stessa directory padre).
+Crea la cartella `../design/` (fratello del progetto corrente, nella stessa directory padre).
 
-### Crea `../okmom-design/tailwind-preset.ts`:
+### Crea `../design/tailwind-preset.ts`:
 
 ```typescript
 import type { Config } from "tailwindcss";
@@ -203,7 +203,7 @@ const lightlife: Partial<Config> = {
 export default lightlife;
 ```
 
-### Crea `../okmom-design/README.md`:
+### Crea `../design/README.md`:
 
 ```markdown
 # 💡 Lightlife — okmom.mom Design System
@@ -215,7 +215,7 @@ Design system condiviso per tutti i progetti okmom.mom.
 In qualsiasi progetto, nel `tailwind.config.ts`:
 
 \`\`\`typescript
-import lightlife from "../okmom-design/tailwind-preset";
+import lightlife from "../design/tailwind-preset";
 
 export default {
   presets: [lightlife],
@@ -250,7 +250,7 @@ export default {
 4. **Beauty valida contro questo** — il comando /beauty verifica compliance
 ```
 
-### Crea `../okmom-design/package.json`:
+### Crea `../design/package.json`:
 
 ```json
 {
@@ -267,7 +267,7 @@ export default {
 ### 3a. Aggiorna `tailwind.config.ts` del progetto
 
 Leggi il tailwind.config.ts attuale. Modificalo per:
-1. Importare il preset: `import lightlife from "../okmom-design/tailwind-preset";`
+1. Importare il preset: `import lightlife from "../design/tailwind-preset";`
 2. Aggiungerlo: `presets: [lightlife],`
 3. Rimuovere dal `theme.extend` tutto quello che è già nel preset (colori, font, radius, shadow)
 4. Tenere solo gli override specifici del progetto
@@ -292,7 +292,7 @@ Se esiste qa.config.json, aggiorna la sezione `beauty` con:
 ```json
 {
   "beauty": {
-    "design_system": "../okmom-design/tailwind-preset.ts",
+    "design_system": "../design/tailwind-preset.ts",
     "palette": {
       "background": "#FFFFFF",
       "background_secondary": "#F8F8FA",
@@ -316,7 +316,7 @@ Se esiste qa.config.json, aggiorna la sezione `beauty` con:
 
 Stampa un riepilogo:
 
-1. ✅ Design system creato/trovato in `../okmom-design/`
+1. ✅ Design system creato/trovato in `../design/`
 2. ✅ Tailwind config aggiornato con preset
 3. ✅ qa.config.json beauty aggiornata
 4. ⚠️ [N] colori hardcodati trovati (elenco file:riga) — "Vuoi che li converta ai token lightlife?"
