@@ -1,4 +1,4 @@
-import { anthropic, MODEL, parseAgentJSON, extractTextContent } from "../anthropic";
+import { runAgent } from "../ai-sdk/agent-runner";
 import { ADVISOR_SYSTEM_PROMPT } from "../prompts/advisor";
 import type {
   ClassificationResult,
@@ -25,20 +25,11 @@ export async function runAdvisor(
     `\nRICORDA: MASSIMO 3 risks e MASSIMO 3 actions. Scegli solo i più importanti.`,
   ];
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 4096,
-    system: ADVISOR_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: userMessageParts.filter(Boolean).join("\n"),
-      },
-    ],
-  });
-
-  const text = extractTextContent(response);
-  const result = parseAgentJSON<AdvisorResult>(text);
+  const { parsed: result } = await runAgent<AdvisorResult>(
+    "advisor",
+    userMessageParts.filter(Boolean).join("\n"),
+    { systemPrompt: ADVISOR_SYSTEM_PROMPT }
+  );
 
   // Enforce output limits — truncate if model ignores them
   if (result.risks && result.risks.length > 3) {
@@ -53,10 +44,9 @@ export async function runAdvisor(
   // Ensure scores field exists with defaults
   if (!result.scores) {
     result.scores = {
-      contractEquity: result.fairnessScore,
-      legalCoherence: result.fairnessScore,
-      practicalCompliance: result.fairnessScore,
-      completeness: result.fairnessScore,
+      legalCompliance: result.fairnessScore,
+      contractBalance: result.fairnessScore,
+      industryPractice: result.fairnessScore,
     };
   }
 

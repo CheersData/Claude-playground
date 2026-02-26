@@ -63,7 +63,7 @@ interface LegalArticle {
   articleReference: string;
   articleTitle: string | null;
   articleText: string;
-  hierarchy: Record<string, string>;
+  hierarchy: HierarchyEntry;
   keywords: string[];
   relatedInstitutes: string[];
   sourceUrl?: string;

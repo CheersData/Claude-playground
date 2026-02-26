@@ -1,41 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FileText, Clock, ArrowRight, Plus } from "lucide-react";
+import { FileText, Clock, ArrowRight, Plus, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { createBrowserClient } from "@supabase/ssr";
 
-// Placeholder data for demo — in production, this comes from Supabase
-const MOCK_ANALYSES = [
-  {
-    id: "1",
-    file_name: "contratto_locazione_milano.pdf",
-    document_type: "Contratto di Locazione",
-    status: "completed",
-    fairness_score: 6.2,
-    created_at: "2026-02-18T10:30:00Z",
-  },
-  {
-    id: "2",
-    file_name: "polizza_auto_2026.pdf",
-    document_type: "Polizza Assicurativa",
-    status: "completed",
-    fairness_score: 7.8,
-    created_at: "2026-02-15T14:20:00Z",
-  },
-  {
-    id: "3",
-    file_name: "nda_startup.docx",
-    document_type: "NDA",
-    status: "completed",
-    fairness_score: 4.5,
-    created_at: "2026-02-10T09:15:00Z",
-  },
-];
+interface AnalysisRow {
+  id: string;
+  file_name: string;
+  document_type: string | null;
+  status: string;
+  fairness_score: number | null;
+  created_at: string;
+}
 
-function ScoreDot({ score }: { score: number }) {
+function ScoreDot({ score }: { score: number | null }) {
+  if (score === null) return null;
   const color = score >= 7 ? "#2ECC40" : score >= 5 ? "#FF851B" : "#FF4136";
   return (
     <span className="flex items-center gap-1.5 text-sm font-bold" style={{ color }}>
@@ -48,8 +31,50 @@ function ScoreDot({ score }: { score: number }) {
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; color: string }> = {
+    completed: { label: "Completata", color: "#2ECC40" },
+    processing: { label: "In corso...", color: "#FF851B" },
+    error: { label: "Errore", color: "#FF4136" },
+    pending: { label: "In attesa", color: "#999" },
+  };
+  const { label, color } = config[status] ?? config.pending;
+  return (
+    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ color, backgroundColor: `${color}15` }}>
+      {label}
+    </span>
+  );
+}
+
 export default function Dashboard() {
-  const [analyses] = useState(MOCK_ANALYSES);
+  const [analyses, setAnalyses] = useState<AnalysisRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAnalyses() {
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data, error } = await supabase
+          .from("analyses")
+          .select("id, file_name, document_type, status, fairness_score, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (!error && data) {
+          setAnalyses(data as AnalysisRow[]);
+        }
+      } catch {
+        // Fail silently — empty state is fine
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadAnalyses();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -64,7 +89,7 @@ export default function Dashboard() {
           <div>
             <h1 className="font-serif text-3xl mb-1">I tuoi documenti</h1>
             <p className="text-sm text-foreground-secondary">
-              {analyses.length} analisi effettuate
+              {loading ? "Caricamento..." : `${analyses.length} analisi effettuate`}
             </p>
           </div>
           <Link
@@ -76,45 +101,59 @@ export default function Dashboard() {
           </Link>
         </motion.div>
 
-        <div className="flex flex-col gap-3">
-          {analyses.map((analysis, i) => (
-            <motion.div
-              key={analysis.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Link
-                href={`/analysis/${analysis.id}`}
-                className="group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-sm border border-border hover:bg-surface-hover hover:border-border transition-all"
+        {loading && (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-foreground-tertiary animate-spin" />
+          </div>
+        )}
+
+        {!loading && analyses.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {analyses.map((analysis, i) => (
+              <motion.div
+                key={analysis.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
               >
-                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-accent" />
-                </div>
+                <Link
+                  href={`/analysis/${analysis.id}`}
+                  className="group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-sm border border-border hover:bg-surface-hover hover:border-border transition-all"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-accent" />
+                  </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">
-                    {analysis.file_name}
-                  </p>
-                  <p className="text-xs text-foreground-tertiary flex items-center gap-2 mt-1">
-                    <span>{analysis.document_type}</span>
-                    <span className="text-foreground-tertiary">&#x2022;</span>
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      {new Date(analysis.created_at).toLocaleDateString("it-IT")}
-                    </span>
-                  </p>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">
+                      {analysis.file_name}
+                    </p>
+                    <p className="text-xs text-foreground-tertiary flex items-center gap-2 mt-1">
+                      <span>{analysis.document_type ?? "Documento"}</span>
+                      <span className="text-foreground-tertiary">&#x2022;</span>
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        {new Date(analysis.created_at).toLocaleDateString("it-IT")}
+                      </span>
+                      {analysis.status !== "completed" && (
+                        <>
+                          <span className="text-foreground-tertiary">&#x2022;</span>
+                          <StatusBadge status={analysis.status} />
+                        </>
+                      )}
+                    </p>
+                  </div>
 
-                <ScoreDot score={analysis.fairness_score} />
+                  <ScoreDot score={analysis.fairness_score} />
 
-                <ArrowRight className="w-4 h-4 text-foreground-tertiary group-hover:text-foreground-secondary transition-colors" />
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                  <ArrowRight className="w-4 h-4 text-foreground-tertiary group-hover:text-foreground-secondary transition-colors" />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
-        {analyses.length === 0 && (
+        {!loading && analyses.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

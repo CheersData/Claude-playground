@@ -6,7 +6,7 @@ import { Lock, Zap, Gift, Upload, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import MissionSection from "@/components/MissionSection";
-import TeamSection from "@/components/TeamSection";
+
 import UseCasesSection from "@/components/UseCasesSection";
 import VideoShowcase from "@/components/VideoShowcase";
 import CTASection from "@/components/CTASection";
@@ -40,6 +40,8 @@ export default function Home() {
   const [dragOver, setDragOver] = useState(false);
   const [phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [contextPrompt, setContextPrompt] = useState("");
+  const [phaseResults, setPhaseResults] = useState<Record<string, unknown>>({});
 
   const lastFileRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,22 +77,25 @@ export default function Home() {
     setError(null);
     setSessionId(null);
     setPhaseEstimates(null);
+    setPhaseResults({});
     lastFileRef.current = null;
   }, []);
 
   const startAnalysis = useCallback(
-    async (file: File, resumeId?: string) => {
+    async (file: File, resumeId?: string, context?: string) => {
       setFileName(file.name);
       setView("analyzing");
       setCurrentPhase(null);
       setCompletedPhases([]);
       setError(null);
+      setPhaseResults({});
       lastFileRef.current = file;
 
       try {
         const formData = new FormData();
         formData.append("file", file);
         if (resumeId) formData.append("sessionId", resumeId);
+        if (contextPrompt.trim()) formData.append("context", contextPrompt.trim());
 
         const response = await fetch("/api/analyze", { method: "POST", body: formData });
         if (!response.ok) throw new Error("Errore nella richiesta di analisi");
@@ -119,7 +124,13 @@ export default function Home() {
                 } else if (eventType === "progress") {
                   const phase = data.phase as AgentPhase;
                   if (data.status === "running") setCurrentPhase(phase);
-                  else if (data.status === "done") setCompletedPhases((p) => (p.includes(phase) ? p : [...p, phase]));
+                  else if (data.status === "done") {
+                    setCompletedPhases((p) => (p.includes(phase) ? p : [...p, phase]));
+                    // Save phase result for progressive rendering
+                    if (data.data) {
+                      setPhaseResults((prev) => ({ ...prev, [phase]: data.data }));
+                    }
+                  }
                 } else if (eventType === "complete") {
                   setResult(data.advice || data);
                   setView("results");
@@ -145,10 +156,16 @@ export default function Home() {
         setError(err instanceof Error ? err.message : "Errore durante l'analisi");
       }
     },
-    []
+    [contextPrompt]
   );
 
-  const handleFileSelected = useCallback((file: File) => startAnalysis(file), [startAnalysis]);
+  const handleFileSelected = useCallback(
+    (file: File, ctx?: string) => {
+      const context = ctx || contextPrompt.trim() || undefined;
+      startAnalysis(file, undefined, context);
+    },
+    [startAnalysis, contextPrompt]
+  );
   const handleRetry = useCallback(() => {
     const f = lastFileRef.current;
     if (f) startAnalysis(f, sessionId || undefined);
@@ -178,7 +195,7 @@ export default function Home() {
 
       <Navbar onLogoClick={reset} />
 
-      {/* Floating orbs — ultra-subtle, only visible on dark sections */}
+      {/* Floating orbs — ultra-subtle */}
       <div className="floating-orb" style={{ width: 400, height: 400, left: "5%", top: "15%", opacity: 0.3 }} />
       <div className="floating-orb" style={{ width: 300, height: 300, left: "80%", top: "5%", animationDelay: "2s", animationDuration: "8s", opacity: 0.2 }} />
       <div className="floating-orb" style={{ width: 350, height: 350, left: "65%", top: "65%", animationDelay: "4s", animationDuration: "10s", opacity: 0.25 }} />
@@ -187,8 +204,12 @@ export default function Home() {
       {/* ═══════════ LANDING ═══════════ */}
       {view === "landing" && (
         <>
-          {/* 1. HERO — epic gradient + embedded upload */}
-          <HeroSection onFileSelected={handleFileSelected} />
+          {/* 1. HERO — 3 sezioni scorrevoli con CTA differenziate */}
+          <HeroSection
+            onFileSelected={handleFileSelected}
+            contextPrompt={contextPrompt}
+            onContextChange={setContextPrompt}
+          />
 
           {/* Divider */}
           <div className="section-divider" />
@@ -208,15 +229,7 @@ export default function Home() {
           {/* Divider */}
           <div className="section-divider" />
 
-          {/* 4. IL TEAM AI — interactive agent cards */}
-          <div id="team" className="flex flex-col items-center px-6 py-20 relative z-10">
-            <TeamSection />
-          </div>
-
-          {/* Divider */}
-          <div className="section-divider" />
-
-          {/* 5. CASI D'USO — tabbed examples */}
+          {/* 4. CASI D'USO — tabbed examples */}
           <div id="use-cases">
             <UseCasesSection />
           </div>
@@ -277,6 +290,22 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* User context */}
+                  <textarea
+                    value={contextPrompt}
+                    onChange={(e) => setContextPrompt(e.target.value)}
+                    placeholder="Cosa vuoi controllare? (opzionale) — es. &quot;Cerco clausole vessatorie&quot;, &quot;Voglio capire i termini di recesso&quot;..."
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:outline-none focus:border-[#4ECDC4]/40 focus:ring-2 focus:ring-[#4ECDC4]/10 transition-all mt-2"
+                    rows={2}
+                    maxLength={500}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {contextPrompt.trim() && (
+                    <p className="text-[11px] text-foreground-tertiary mt-1 text-right mb-2">
+                      {contextPrompt.length}/500
+                    </p>
+                  )}
+
                   {/* Upload zone */}
                   <div
                     className={`rounded-2xl border-2 border-dashed transition-all cursor-pointer mt-2
@@ -335,7 +364,7 @@ export default function Home() {
                       <Lock className="w-3 h-3" /> I documenti non vengono salvati
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" /> Risultati in 30 secondi
+                      <Zap className="w-3 h-3" /> Risultati in pochi attimi
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Gift className="w-3 h-3" /> 3 analisi gratuite al mese
@@ -369,6 +398,7 @@ export default function Home() {
             onRetry={handleRetry}
             sessionId={sessionId}
             phaseEstimates={phaseEstimates}
+            phaseResults={phaseResults}
           />
         </div>
       )}

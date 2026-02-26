@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODEL, parseAgentJSON } from "../anthropic";
+import { anthropic, parseAgentJSON } from "../anthropic";
+import { AGENT_MODELS, MODELS } from "../models";
 import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
 import type {
   ClassificationResult,
@@ -7,9 +8,12 @@ import type {
   InvestigationResult,
 } from "../types";
 
+// Read model from centralized config instead of hardcoded constant
+const INVESTIGATOR_MODEL = MODELS[AGENT_MODELS["investigator"].primary].model;
+
 /**
  * Investigator aggressivo: copre TUTTE le clausole critical e high.
- * Usa Sonnet (non Haiku) per query di ricerca più precise.
+ * Usa web_search Anthropic — richiede Claude, non migra a runAgent().
  *
  * @param legalContext - Contesto normativo dal corpus legislativo (opzionale).
  * @param ragContext - Contesto da analisi precedenti nella knowledge base (opzionale).
@@ -51,18 +55,18 @@ export async function runInvestigator(
 
   const userMessage = userMessageParts.filter(Boolean).join("\n");
 
-  // Agentic loop with web search — upgraded to Sonnet for better quality
+  // Agentic loop with web search
   const messages: Anthropic.Messages.MessageParam[] = [
     { role: "user", content: userMessage },
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 8; // Increased from 5 to cover all clauses
+  const MAX_ITERATIONS = 8;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
-      model: MODEL, // Upgraded from MODEL_FAST to MODEL (Sonnet) for better query quality
-      max_tokens: 8192,
+      model: INVESTIGATOR_MODEL,
+      max_tokens: AGENT_MODELS["investigator"].maxTokens,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
         {
@@ -148,7 +152,7 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
-      model: MODEL,
+      model: INVESTIGATOR_MODEL,
       max_tokens: 4096,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [

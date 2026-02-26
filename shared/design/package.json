@@ -1,0 +1,7 @@
+{
+  "name": "okmom-design",
+  "version": "1.0.0",
+  "description": "Lightlife — okmom.mom design system (Tailwind preset)",
+  "main": "tailwind-preset.ts",
+  "private": true
+}
