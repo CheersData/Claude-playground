@@ -1,10 +1,14 @@
 /**
- * Audit e fix completo dei related_institutes in legal_articles.
+ * Tagging sistematico del Codice Civile — v2
  *
- * Problemi identificati:
- * 1. Cross-contaminazione tra istituti adiacenti (nullità/simulazione, nullità/annullabilità)
- * 2. Sub-articoli CdC (33bis, 33ter) ereditano tag del parent
- * 3. Tag troppo larghi su articoli dove non sono il topic primario
+ * Due livelli di tag:
+ * 1. TAG PRIMARI: istituto di cui l'articolo fa parte (dal titolo/capo)
+ * 2. TAG CROSS-REFERENCE: istituti a cui l'articolo è rilevante come
+ *    eccezione, applicazione, o conseguenza
+ *
+ * Esempio: Art. 2126 (prestazione di fatto con violazione di legge)
+ *   Primari: lavoro_subordinato, contratto_lavoro
+ *   Cross-ref: nullità (effetti del contratto di lavoro nullo)
  *
  * Usage: npx tsx scripts/fix-institute-tags.ts
  */
@@ -20,9 +24,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const PAGE_SIZE = 1000;
+// ─── Fetch all with pagination ───
 
-async function fetchAll() {
+async function fetchAll(source?: string) {
+  const PAGE = 1000;
   const all: Array<{
     id: string;
     article_reference: string;
@@ -30,189 +35,302 @@ async function fetchAll() {
     related_institutes: string[];
   }> = [];
   let offset = 0;
-  let hasMore = true;
-  while (hasMore) {
-    const { data } = await supabase
+  while (true) {
+    let q = supabase
       .from("legal_articles")
       .select("id, article_reference, law_source, related_institutes")
       .order("id")
-      .range(offset, offset + PAGE_SIZE - 1);
+      .range(offset, offset + PAGE - 1);
+    if (source) q = q.eq("law_source", source);
+    const { data } = await q;
     all.push(...(data ?? []));
-    hasMore = (data?.length ?? 0) === PAGE_SIZE;
-    offset += PAGE_SIZE;
+    if (!data || data.length < PAGE) break;
+    offset += PAGE;
   }
   return all;
 }
 
-// Parse article number, handling bis/ter/etc.
+// ─── Parse article reference ───
+
 function parseRef(ref: string): { num: number | null; suffix: string } {
-  // "Art. 33bis" → { num: 33, suffix: "bis" }
-  // "Art. 1341" → { num: 1341, suffix: "" }
-  // "Art. 1341-bis" → { num: 1341, suffix: "bis" }
   const cleaned = ref.replace(/^Art\.\s*/, "");
-
-  // Check for -bis, -ter pattern
-  const dashMatch = cleaned.match(/^(\d+)-(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)/i);
-  if (dashMatch) return { num: parseInt(dashMatch[1]), suffix: dashMatch[2].toLowerCase() };
-
-  // Check for attached suffix: "33bis", "33ter"
-  const attachedMatch = cleaned.match(/^(\d+)(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)/i);
-  if (attachedMatch) return { num: parseInt(attachedMatch[1]), suffix: attachedMatch[2].toLowerCase() };
-
-  // Plain number
-  const plainMatch = cleaned.match(/^(\d+)/);
-  if (plainMatch) return { num: parseInt(plainMatch[1]), suffix: "" };
-
+  const dashMatch = cleaned.match(
+    /^(\d+)-(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)/i
+  );
+  if (dashMatch)
+    return { num: parseInt(dashMatch[1]), suffix: dashMatch[2].toLowerCase() };
+  const attachedMatch = cleaned.match(
+    /^(\d+)(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)/i
+  );
+  if (attachedMatch)
+    return {
+      num: parseInt(attachedMatch[1]),
+      suffix: attachedMatch[2].toLowerCase(),
+    };
+  const plain = cleaned.match(/^(\d+)/);
+  if (plain) return { num: parseInt(plain[1]), suffix: "" };
   return { num: null, suffix: "" };
 }
 
-// ─── Codice Civile: mapping preciso per range ───
-// Ogni articolo ottiene SOLO i tag del suo topic primario
-// NO cross-contaminazione con istituti adiacenti
+// ═══════════════════════════════════════════════════════════
+// CODICE CIVILE — Mapping completo per range
+// ═══════════════════════════════════════════════════════════
+//
+// Struttura: { min, max, tags }
+// L'ultimo match vince (più specifico sovrascrive più generico)
+//
+
 interface TagRule {
   min: number;
   max: number;
-  institutes: string[];
+  tags: string[];
 }
 
-const CC_RULES: TagRule[] = [
-  // LIBRO I
-  { min: 1, max: 10, institutes: ["contratto"] },
+const CC: TagRule[] = [
+  // ═══ LIBRO I: Delle persone e della famiglia ═══
 
-  // LIBRO III: Proprietà
-  { min: 832, max: 951, institutes: ["vendita_immobiliare"] },
+  // Tit. I: Persone fisiche
+  { min: 1, max: 10, tags: ["persona_fisica"] },
+  { min: 11, max: 16, tags: ["persona_fisica"] },
+  // Tit. II: Persone giuridiche
+  { min: 11, max: 35, tags: ["persona_giuridica", "associazione", "fondazione"] },
+  { min: 36, max: 42, tags: ["persona_giuridica", "comitato"] },
+  // Tit. V: Parentela e affinità
+  { min: 74, max: 78, tags: ["parentela"] },
+  // Tit. VI: Matrimonio
+  { min: 79, max: 142, tags: ["matrimonio"] },
+  // ★ Art. 128-129: Matrimonio putativo — CROSS-REF: nullità
+  { min: 128, max: 129, tags: ["matrimonio", "nullità"] },
+  { min: 143, max: 158, tags: ["matrimonio", "regime_patrimoniale"] },
+  { min: 159, max: 166, tags: ["matrimonio", "comunione_legale"] },
+  { min: 167, max: 190, tags: ["matrimonio", "comunione_legale"] },
+  { min: 191, max: 230, tags: ["matrimonio", "separazione_beni"] },
+  // Tit. VII: Filiazione
+  { min: 231, max: 290, tags: ["filiazione", "responsabilità_genitoriale"] },
+  // Tit. VIII-IX: Adozione, potestà genitoriale
+  { min: 291, max: 342, tags: ["filiazione", "responsabilità_genitoriale"] },
+  // Tit. X: Tutela e curatela
+  { min: 343, max: 413, tags: ["tutela"] },
+  // Tit. XIII: Alimenti
+  { min: 433, max: 448, tags: ["alimenti", "obbligo_alimentare"] },
 
-  // LIBRO IV, TIT. I: Obbligazioni
-  { min: 1173, max: 1217, institutes: ["obbligazione", "adempimento"] },
-  { min: 1218, max: 1228, institutes: ["inadempimento", "mora", "risarcimento"] },
-  { min: 1229, max: 1229, institutes: ["inadempimento", "clausole_vessatorie", "nullità"] },
-  { min: 1230, max: 1320, institutes: ["obbligazione"] },
+  // ═══ LIBRO II: Delle successioni ═══
 
-  // LIBRO IV, TIT. II: Contratti in generale
-  { min: 1321, max: 1324, institutes: ["contratto", "requisiti_contratto"] },
-  { min: 1325, max: 1335, institutes: ["contratto", "consenso", "proposta", "accettazione"] },
-  { min: 1336, max: 1340, institutes: ["contratto", "clausole_vessatorie"] },
-  { min: 1341, max: 1342, institutes: ["clausole_vessatorie", "contratto", "nullità"] },
-  { min: 1343, max: 1352, institutes: ["contratto", "causa", "oggetto_contratto"] },
-  { min: 1353, max: 1361, institutes: ["contratto", "condizione", "termine"] },
-  // ★ INTERPRETAZIONE
-  { min: 1362, max: 1371, institutes: ["interpretazione_contratto", "contratto", "buona_fede"] },
-  { min: 1372, max: 1381, institutes: ["effetti_contratto", "contratto"] },
-  { min: 1382, max: 1384, institutes: ["clausola_penale", "contratto"] },
-  { min: 1385, max: 1386, institutes: ["caparra_confirmatoria", "caparra_penitenziale"] },
-  { min: 1387, max: 1405, institutes: ["rappresentanza", "mandato", "procura"] },
-  { min: 1406, max: 1413, institutes: ["contratto", "effetti_contratto"] },
-  // ★ SIMULAZIONE — NO nullità
-  { min: 1414, max: 1417, institutes: ["simulazione", "contratto"] },
-  // ★ NULLITÀ — NO annullabilità (sono istituti DIVERSI)
-  { min: 1418, max: 1424, institutes: ["nullità", "contratto"] },
-  // ★ ANNULLABILITÀ — NO nullità
-  { min: 1425, max: 1446, institutes: ["annullabilità", "contratto"] },
-  { min: 1447, max: 1452, institutes: ["rescissione", "contratto"] },
-  // RISOLUZIONE
-  { min: 1453, max: 1462, institutes: ["risoluzione", "contratto", "inadempimento"] },
-  { min: 1463, max: 1466, institutes: ["risoluzione", "contratto"] },
-  { min: 1467, max: 1469, institutes: ["risoluzione", "contratto"] },
+  // Tit. I: Disposizioni generali
+  { min: 456, max: 535, tags: ["successione", "eredità", "vocazione_ereditaria"] },
+  // Tit. II: Successioni legittime
+  { min: 536, max: 586, tags: ["successione", "eredità"] },
+  // Tit. III: Successioni testamentarie
+  { min: 587, max: 712, tags: ["testamento", "successione_testamentaria", "legato"] },
+  // Tit. IV: Divisione
+  { min: 713, max: 768, tags: ["successione", "eredità"] },
+  // Tit. V: Donazioni
+  { min: 769, max: 809, tags: ["donazione", "liberalità"] },
 
-  // LIBRO IV, TIT. III: Singoli contratti
-  { min: 1470, max: 1489, institutes: ["vendita", "compravendita"] },
-  { min: 1490, max: 1497, institutes: ["vendita", "vizi_cosa_venduta", "garanzia_evizione"] },
-  { min: 1498, max: 1536, institutes: ["vendita", "compravendita"] },
-  { min: 1537, max: 1541, institutes: ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"] },
-  { min: 1542, max: 1547, institutes: ["vendita"] },
-  { min: 1548, max: 1570, institutes: ["contratto"] },
-  { min: 1571, max: 1606, institutes: ["locazione", "obblighi_locatore", "obblighi_conduttore"] },
-  { min: 1607, max: 1614, institutes: ["locazione", "sublocazione"] },
-  { min: 1615, max: 1654, institutes: ["locazione"] },
-  { min: 1655, max: 1666, institutes: ["appalto"] },
-  { min: 1667, max: 1668, institutes: ["appalto", "difformità_vizi", "collaudo"] },
-  { min: 1669, max: 1669, institutes: ["appalto", "difformità_vizi", "responsabilità_extracontrattuale"] },
-  { min: 1670, max: 1677, institutes: ["appalto"] },
-  { min: 1678, max: 1702, institutes: ["contratto"] },
-  { min: 1703, max: 1741, institutes: ["mandato", "procura", "rappresentanza"] },
-  { min: 1803, max: 1812, institutes: ["comodato"] },
-  { min: 1813, max: 1814, institutes: ["mutuo", "interessi"] },
-  { min: 1815, max: 1815, institutes: ["mutuo", "interessi", "usura"] },
-  { min: 1816, max: 1822, institutes: ["mutuo", "interessi"] },
-  { min: 1882, max: 1932, institutes: ["assicurazione", "polizza"] },
-  { min: 1936, max: 1957, institutes: ["fideiussione", "garanzia_personale"] },
+  // ═══ LIBRO III: Della proprietà ═══
 
-  // LIBRO IV, TIT. IX: Fatti illeciti
-  { min: 2043, max: 2059, institutes: ["responsabilità_extracontrattuale", "fatto_illecito", "danno", "risarcimento"] },
+  // Tit. I: Beni
+  { min: 810, max: 831, tags: ["beni", "classificazione_beni"] },
+  // Tit. II: Proprietà
+  { min: 832, max: 951, tags: ["vendita_immobiliare"] },
+  // Tit. III: Superficie
+  { min: 952, max: 956, tags: ["superficie", "diritto_superficie"] },
+  // Tit. IV: Enfiteusi
+  { min: 957, max: 977, tags: ["enfiteusi"] },
+  // Tit. V: Usufrutto, uso, abitazione
+  { min: 978, max: 1026, tags: ["usufrutto"] },
+  // Tit. VI: Servitù prediali
+  { min: 1027, max: 1099, tags: ["servitù_prediale", "servitù"] },
+  // Tit. VII: Comunione
+  { min: 1100, max: 1139, tags: ["comunione", "condominio"] },
+  // Tit. VIII: Possesso
+  { min: 1140, max: 1172, tags: ["possesso", "detenzione", "usucapione"] },
 
-  // LIBRO V: Società e lavoro
-  { min: 2222, max: 2238, institutes: ["lavoro_autonomo", "contratto_opera"] },
-  { min: 2247, max: 2324, institutes: ["società_semplice"] },
-  { min: 2325, max: 2461, institutes: ["spa"] },
-  { min: 2462, max: 2510, institutes: ["srl"] },
+  // ═══ LIBRO IV, TIT. I: Obbligazioni in generale ═══
 
-  // LIBRO VI: Tutela dei diritti
-  { min: 2643, max: 2696, institutes: ["trascrizione", "vendita_immobiliare"] },
-  { min: 2784, max: 2807, institutes: ["pegno", "garanzia_reale"] },
-  { min: 2808, max: 2899, institutes: ["ipoteca", "garanzia_reale"] },
-  { min: 2934, max: 2969, institutes: ["prescrizione", "decadenza", "termini"] },
+  { min: 1173, max: 1217, tags: ["obbligazione", "adempimento"] },
+  { min: 1218, max: 1228, tags: ["inadempimento", "mora", "risarcimento"] },
+  // ★ Art. 1229: esonero responsabilità — CROSS-REF: clausole_vessatorie, nullità
+  { min: 1229, max: 1229, tags: ["inadempimento", "clausole_vessatorie", "nullità"] },
+  { min: 1230, max: 1259, tags: ["obbligazione"] },
+  { min: 1260, max: 1320, tags: ["obbligazione"] },
+
+  // ═══ LIBRO IV, TIT. II: Contratti in generale ═══
+
+  { min: 1321, max: 1324, tags: ["contratto", "requisiti_contratto"] },
+  { min: 1325, max: 1335, tags: ["contratto", "consenso", "proposta", "accettazione"] },
+  { min: 1336, max: 1340, tags: ["contratto", "clausole_vessatorie"] },
+  // ★ Clausole vessatorie — CROSS-REF: nullità
+  { min: 1341, max: 1342, tags: ["clausole_vessatorie", "contratto", "nullità"] },
+  { min: 1343, max: 1349, tags: ["contratto", "causa", "oggetto_contratto"] },
+  { min: 1350, max: 1352, tags: ["contratto", "contratto_preliminare"] },
+  { min: 1353, max: 1361, tags: ["contratto", "condizione", "termine"] },
+  // ★ Interpretazione
+  { min: 1362, max: 1371, tags: ["interpretazione_contratto", "contratto", "buona_fede"] },
+  { min: 1372, max: 1381, tags: ["effetti_contratto", "contratto"] },
+  // ★ Art. 1375: esecuzione buona fede
+  { min: 1375, max: 1375, tags: ["effetti_contratto", "buona_fede", "esecuzione_buona_fede"] },
+  { min: 1382, max: 1384, tags: ["clausola_penale", "contratto"] },
+  { min: 1385, max: 1386, tags: ["caparra_confirmatoria", "caparra_penitenziale"] },
+  { min: 1387, max: 1405, tags: ["rappresentanza", "mandato", "procura"] },
+  { min: 1406, max: 1413, tags: ["contratto", "effetti_contratto"] },
+  // ★ Simulazione — NO nullità
+  { min: 1414, max: 1417, tags: ["simulazione", "contratto"] },
+  // ★ Nullità — NO annullabilità
+  { min: 1418, max: 1424, tags: ["nullità", "contratto"] },
+  // ★ Annullabilità — NO nullità
+  { min: 1425, max: 1446, tags: ["annullabilità", "contratto"] },
+  { min: 1447, max: 1452, tags: ["rescissione", "contratto"] },
+  // Risoluzione
+  { min: 1453, max: 1462, tags: ["risoluzione", "contratto", "inadempimento"] },
+  { min: 1463, max: 1466, tags: ["risoluzione", "contratto"] },
+  { min: 1467, max: 1469, tags: ["risoluzione", "contratto"] },
+
+  // ═══ LIBRO IV, TIT. III: Singoli contratti ═══
+
+  { min: 1470, max: 1489, tags: ["vendita", "compravendita"] },
+  { min: 1490, max: 1497, tags: ["vendita", "vizi_cosa_venduta", "garanzia_evizione"] },
+  { min: 1498, max: 1536, tags: ["vendita", "compravendita"] },
+  { min: 1537, max: 1541, tags: ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"] },
+  { min: 1542, max: 1547, tags: ["vendita"] },
+  { min: 1548, max: 1555, tags: ["vendita", "vendita_immobiliare"] },
+  { min: 1556, max: 1570, tags: ["vendita"] },
+  // Locazione
+  { min: 1571, max: 1606, tags: ["locazione", "obblighi_locatore", "obblighi_conduttore"] },
+  { min: 1607, max: 1614, tags: ["locazione", "sublocazione"] },
+  { min: 1615, max: 1654, tags: ["locazione"] },
+  // Appalto
+  { min: 1655, max: 1666, tags: ["appalto"] },
+  { min: 1667, max: 1668, tags: ["appalto", "difformità_vizi", "collaudo"] },
+  { min: 1669, max: 1669, tags: ["appalto", "difformità_vizi", "responsabilità_extracontrattuale"] },
+  { min: 1670, max: 1677, tags: ["appalto"] },
+  // Trasporto
+  { min: 1678, max: 1702, tags: ["trasporto"] },
+  // Mandato
+  { min: 1703, max: 1741, tags: ["mandato", "procura", "rappresentanza"] },
+  // Agenzia
+  { min: 1742, max: 1753, tags: ["agenzia", "contratto"] },
+  // Mediazione
+  { min: 1754, max: 1765, tags: ["mediazione", "contratto"] },
+  // Deposito
+  { min: 1766, max: 1797, tags: ["deposito"] },
+  // Sequestro convenzionale
+  { min: 1798, max: 1802, tags: ["sequestro"] },
+  // Comodato
+  { min: 1803, max: 1812, tags: ["comodato"] },
+  // Mutuo
+  { min: 1813, max: 1814, tags: ["mutuo", "interessi"] },
+  { min: 1815, max: 1815, tags: ["mutuo", "interessi", "usura"] },
+  { min: 1816, max: 1822, tags: ["mutuo", "interessi"] },
+  // Conto corrente
+  { min: 1823, max: 1860, tags: ["conto_corrente"] },
+  // Rendita
+  { min: 1861, max: 1881, tags: ["rendita"] },
+  // Assicurazione
+  { min: 1882, max: 1932, tags: ["assicurazione", "polizza"] },
+  // Gioco e scommessa
+  { min: 1933, max: 1935, tags: ["gioco"] },
+  // Fideiussione
+  { min: 1936, max: 1959, tags: ["fideiussione", "garanzia_personale"] },
+  // Mandato di credito, anticresi
+  { min: 1960, max: 1964, tags: ["fideiussione"] },
+  { min: 1965, max: 1970, tags: ["anticresi"] },
+  // Transazione
+  { min: 1965, max: 1976, tags: ["transazione"] },
+  // Cessione dei beni ai creditori
+  { min: 1977, max: 1986, tags: ["obbligazione"] },
+  // Promessa al pubblico, titoli di credito
+  { min: 1987, max: 1991, tags: ["promessa"] },
+  { min: 1992, max: 2027, tags: ["titoli_credito"] },
+
+  // ═══ LIBRO IV, TIT. VII-IX: Pagamento indebito, arricchimento, fatti illeciti ═══
+
+  // ★ Art. 2028-2032: Gestione di affari
+  { min: 2028, max: 2032, tags: ["gestione_affari", "obbligazione"] },
+  // ★ Art. 2033-2040: Ripetizione dell'indebito — CROSS-REF: nullità
+  { min: 2033, max: 2040, tags: ["indebito", "obbligazione", "nullità"] },
+  // ★ Art. 2041-2042: Arricchimento senza causa
+  { min: 2041, max: 2042, tags: ["arricchimento_senza_causa", "obbligazione"] },
+  // Fatti illeciti
+  { min: 2043, max: 2059, tags: ["responsabilità_extracontrattuale", "fatto_illecito", "danno", "risarcimento"] },
+
+  // ═══ LIBRO V: Del lavoro ═══
+
+  // Tit. I: Disciplina delle attività professionali
+  { min: 2060, max: 2081, tags: ["imprenditore", "impresa"] },
+  { min: 2082, max: 2134, tags: ["imprenditore", "impresa", "azienda"] },
+  // ★ Art. 2126: Prestazione di fatto — CROSS-REF: nullità, lavoro_subordinato
+  { min: 2126, max: 2126, tags: ["lavoro_subordinato", "contratto_lavoro", "nullità"] },
+  // Tit. II: Lavoro subordinato
+  { min: 2094, max: 2129, tags: ["lavoro_subordinato", "contratto_lavoro"] },
+  { min: 2130, max: 2134, tags: ["lavoro_subordinato", "licenziamento"] },
+  // Tit. II, Capo III: Tirocinio, apprendistato
+  { min: 2130, max: 2134, tags: ["lavoro_subordinato"] },
+  // Tit. III: Lavoro autonomo
+  { min: 2222, max: 2238, tags: ["lavoro_autonomo", "contratto_opera"] },
+  // Tit. IV: Lavoro nelle PA (abrogato in gran parte)
+  { min: 2239, max: 2246, tags: ["lavoro_subordinato"] },
+  // Tit. V: Società
+  { min: 2247, max: 2324, tags: ["società_semplice"] },
+  { min: 2325, max: 2461, tags: ["spa"] },
+  { min: 2462, max: 2510, tags: ["srl"] },
+  { min: 2511, max: 2554, tags: ["società_semplice"] },
+  // Tit. VIII-X: Impresa, azienda, concorrenza
+  { min: 2555, max: 2574, tags: ["azienda", "registro_imprese"] },
+  { min: 2575, max: 2601, tags: ["impresa"] },
+  { min: 2602, max: 2642, tags: ["impresa"] },
+
+  // ═══ LIBRO VI: Della tutela dei diritti ═══
+
+  { min: 2643, max: 2696, tags: ["trascrizione", "vendita_immobiliare"] },
+  // ★ Art. 2652 n. 6: trascrizione domanda di nullità — CROSS-REF: nullità
+  { min: 2652, max: 2652, tags: ["trascrizione", "vendita_immobiliare", "nullità"] },
+  { min: 2697, max: 2783, tags: ["responsabilità_patrimoniale", "garanzia_generica"] },
+  { min: 2784, max: 2807, tags: ["pegno", "garanzia_reale"] },
+  { min: 2808, max: 2899, tags: ["ipoteca", "garanzia_reale"] },
+  { min: 2900, max: 2933, tags: ["responsabilità_patrimoniale"] },
+  { min: 2934, max: 2969, tags: ["prescrizione", "decadenza", "termini"] },
 ];
 
-// ─── CdC: tag specifici per articolo (NON per range) ───
-const CDC_ARTICLE_TAGS: Record<string, string[]> = {
-  // Art. 33: clausole vessatorie — definizione
+// ═══ CODICE DEL CONSUMO ═══
+
+const CDC_TAGS: Record<string, string[]> = {
   "33": ["clausole_abusive", "clausole_vessatorie", "tutela_consumatore", "nullità"],
-  // Art. 34: accertamento vessatorietà
   "34": ["clausole_abusive", "clausole_vessatorie", "tutela_consumatore"],
-  // Art. 35: forma e interpretazione
   "35": ["clausole_abusive", "tutela_consumatore"],
-  // Art. 36: nullità di protezione
   "36": ["clausole_abusive", "nullità", "tutela_consumatore"],
-  // Art. 37: azione inibitoria
   "37": ["clausole_abusive", "tutela_consumatore"],
-  // Art. 38: rinvio
   "38": ["clausole_abusive", "tutela_consumatore"],
-  // Art. 45-67: contratti a distanza / diritto di recesso
-  // solo i principali
-  "45": ["tutela_consumatore", "recesso"],
-  "46": ["tutela_consumatore"],
-  "47": ["tutela_consumatore"],
-  "48": ["tutela_consumatore", "informazioni_precontrattuali"],
-  "49": ["tutela_consumatore", "informazioni_precontrattuali"],
-  "50": ["tutela_consumatore"],
-  "51": ["tutela_consumatore", "recesso"],
-  "52": ["tutela_consumatore", "recesso"],
-  "53": ["tutela_consumatore", "recesso"],
-  "54": ["tutela_consumatore", "recesso"],
-  "55": ["tutela_consumatore", "recesso"],
-  "56": ["tutela_consumatore", "recesso"],
-  "57": ["tutela_consumatore", "recesso"],
-  "58": ["tutela_consumatore"],
-  "59": ["tutela_consumatore"],
-  "60": ["tutela_consumatore"],
-  "61": ["tutela_consumatore"],
-  "62": ["tutela_consumatore"],
-  "63": ["tutela_consumatore"],
-  "64": ["tutela_consumatore"],
-  "65": ["tutela_consumatore"],
-  "66": ["tutela_consumatore"],
-  "67": ["tutela_consumatore"],
-  // Art. 128-135: garanzia legale di conformità
-  "128": ["tutela_consumatore", "garanzia_legale", "conformità_beni"],
-  "129": ["tutela_consumatore", "garanzia_legale", "conformità_beni", "vizi_cosa_venduta"],
-  "130": ["tutela_consumatore", "garanzia_legale", "conformità_beni"],
-  "131": ["tutela_consumatore", "garanzia_legale"],
-  "132": ["tutela_consumatore", "garanzia_legale", "prescrizione"],
-  "133": ["tutela_consumatore", "garanzia_legale"],
-  "134": ["tutela_consumatore", "garanzia_legale"],
-  "135": ["tutela_consumatore", "garanzia_legale", "vendita"],
 };
 
+// Sub-articoli CdC: tag ridotti (solo i primi 2 del parent)
+function getCdcTags(num: number, suffix: string): string[] | null {
+  const base = String(num);
+
+  // Exact match for base articles
+  if (!suffix && CDC_TAGS[base]) return CDC_TAGS[base];
+
+  // Sub-articles: reduced tags from parent
+  if (suffix && CDC_TAGS[base]) return CDC_TAGS[base].slice(0, 2);
+
+  // Range-based for articles outside 33-38
+  if (num >= 45 && num <= 67) return ["tutela_consumatore", "recesso"];
+  if (num >= 128 && num <= 135) return ["tutela_consumatore", "garanzia_legale", "vizi_cosa_venduta"];
+
+  return null; // Don't override existing tags
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════
+
 async function run() {
-  console.log("=== Audit & Fix related_institutes ===\n");
+  console.log("=== Tagging sistematico v2 ===\n");
 
   const articles = await fetchAll();
-  console.log(`Totale articoli: ${articles.length}\n`);
+  console.log(`Totale: ${articles.length} articoli\n`);
 
   const updates = new Map<string, string[]>();
-  let ccFixed = 0;
-  let cdcFixed = 0;
-  let skipped = 0;
 
   for (const art of articles) {
     const { num, suffix } = parseRef(art.article_reference);
@@ -220,63 +338,36 @@ async function run() {
 
     // ─── CODICE CIVILE ───
     if (art.law_source === "Codice Civile") {
-      // Solo articoli "base" (no bis/ter per il CC — sono rari)
-      // Trova l'ultimo rule che matcha (più specifico)
-      let bestRule: TagRule | null = null;
-      for (const rule of CC_RULES) {
-        if (num >= rule.min && num <= rule.max) {
-          bestRule = rule;
-        }
+      // Find most specific matching rule (last match wins)
+      let best: TagRule | null = null;
+      for (const rule of CC) {
+        if (num >= rule.min && num <= rule.max) best = rule;
       }
-      if (bestRule) {
-        const current = JSON.stringify(art.related_institutes?.sort() ?? []);
-        const target = JSON.stringify([...bestRule.institutes].sort());
+      if (best) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...best.tags].sort());
         if (current !== target) {
-          updates.set(art.id, [...bestRule.institutes]);
-          ccFixed++;
+          updates.set(art.id, [...best.tags]);
         }
       }
     }
 
     // ─── CODICE DEL CONSUMO ───
     if (art.law_source?.includes("206/2005")) {
-      const baseNum = String(num);
-
-      // Sub-articoli (bis, ter, ecc.): tag più generici del parent
-      if (suffix) {
-        // Sub-articolo: prende tag generici
-        const parentTags = CDC_ARTICLE_TAGS[baseNum];
-        if (parentTags) {
-          // Sub-articolo: solo i primi 2 tag del parent (quelli più generici)
-          const subTags = parentTags.slice(0, 2);
-          const current = JSON.stringify(art.related_institutes?.sort() ?? []);
-          const target = JSON.stringify([...subTags].sort());
-          if (current !== target) {
-            updates.set(art.id, subTags);
-            cdcFixed++;
-          }
-        }
-        // else: sub-articolo fuori dal mapping, lascia come è
-      } else {
-        // Articolo base: tag specifici
-        const tags = CDC_ARTICLE_TAGS[baseNum];
-        if (tags) {
-          const current = JSON.stringify(art.related_institutes?.sort() ?? []);
-          const target = JSON.stringify([...tags].sort());
-          if (current !== target) {
-            updates.set(art.id, [...tags]);
-            cdcFixed++;
-          }
+      const tags = getCdcTags(num, suffix);
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) {
+          updates.set(art.id, tags);
         }
       }
     }
   }
 
-  console.log(`CC da fixare: ${ccFixed}`);
-  console.log(`CdC da fixare: ${cdcFixed}`);
-  console.log(`Totale updates: ${updates.size}\n`);
+  console.log(`Articoli da aggiornare: ${updates.size}\n`);
 
-  // Execute updates
+  // Execute
   let done = 0;
   let errors = 0;
   const entries = [...updates.entries()];
@@ -284,75 +375,107 @@ async function run() {
   for (let i = 0; i < entries.length; i += 50) {
     const batch = entries.slice(i, i + 50);
     const results = await Promise.all(
-      batch.map(([id, institutes]) =>
-        supabase.from("legal_articles").update({ related_institutes: institutes }).eq("id", id)
+      batch.map(([id, tags]) =>
+        supabase.from("legal_articles").update({ related_institutes: tags }).eq("id", id)
       )
     );
     for (const r of results) {
-      if (r.error) { errors++; if (errors <= 3) console.error("  Error:", r.error.message); }
+      if (r.error) { errors++; if (errors <= 5) console.error("  Error:", r.error.message); }
       else done++;
     }
-    process.stdout.write(`  ${done}/${entries.length} updated\r`);
+    process.stdout.write(`  ${done}/${entries.length}\r`);
   }
-
   console.log(`\n✓ ${done} aggiornati (${errors} errori)\n`);
 
-  // ─── Verification ───
-  console.log("=== Verifica post-fix ===\n");
+  // ═══ VERIFICA ═══
 
-  const critical = [
-    { ref: "Art. 1341", expect: "clausole_vessatorie" },
-    { ref: "Art. 1362", expect: "interpretazione_contratto" },
-    { ref: "Art. 1414", expect: "simulazione" },
-    { ref: "Art. 1418", expect: "nullità" },
-    { ref: "Art. 1425", expect: "annullabilità" },
-    { ref: "Art. 1453", expect: "risoluzione" },
-    { ref: "Art. 1537", expect: "vendita_a_corpo" },
-  ];
+  console.log("=== Verifica ===\n");
 
-  for (const { ref, expect } of critical) {
-    const { data } = await supabase
-      .from("legal_articles")
-      .select("article_reference, related_institutes")
-      .eq("law_source", "Codice Civile")
-      .eq("article_reference", ref)
-      .limit(1);
+  // Coverage per libro
+  const allAfter = await fetchAll("Codice Civile");
+  const books: Record<string, { tagged: number; total: number }> = {
+    "I": { tagged: 0, total: 0 },
+    "II": { tagged: 0, total: 0 },
+    "III": { tagged: 0, total: 0 },
+    "IV": { tagged: 0, total: 0 },
+    "V": { tagged: 0, total: 0 },
+    "VI": { tagged: 0, total: 0 },
+  };
+  const bookRanges = [[1, 455], [456, 809], [810, 1172], [1173, 2059], [2060, 2642], [2643, 2969]];
+  const bookNames = ["I", "II", "III", "IV", "V", "VI"];
 
-    const inst = data?.[0]?.related_institutes ?? [];
-    const has = inst.includes(expect);
-    console.log(`${has ? "✓" : "✗"} ${ref} → [${inst.join(", ")}]${has ? "" : ` — MANCA ${expect}!`}`);
+  for (const art of allAfter) {
+    const { num: n } = parseRef(art.article_reference);
+    if (!n) continue;
+    for (let b = 0; b < 6; b++) {
+      if (n >= bookRanges[b][0] && n <= bookRanges[b][1]) {
+        books[bookNames[b]].total++;
+        if (art.related_institutes?.length > 0) books[bookNames[b]].tagged++;
+      }
+    }
   }
 
-  // Check no cross-contamination
-  console.log("\nCross-contaminazione:");
+  console.log("Coverage per Libro:");
+  for (const [name, info] of Object.entries(books)) {
+    const pct = info.total > 0 ? Math.round((info.tagged / info.total) * 100) : 0;
+    console.log(`  Libro ${name}: ${info.tagged}/${info.total} (${pct}%)`);
+  }
 
-  const crossChecks = [
-    { ref: "Art. 1414", bad: "nullità", label: "simulazione ≠ nullità" },
-    { ref: "Art. 1418", bad: "annullabilità", label: "nullità ≠ annullabilità" },
-    { ref: "Art. 1425", bad: "nullità", label: "annullabilità ≠ nullità" },
+  // Cross-reference nullità
+  console.log("\nCross-ref nullità (articoli fuori 1418-1424):");
+  const crossNullita = [
+    { ref: "Art. 128", desc: "matrimonio putativo" },
+    { ref: "Art. 1229", desc: "esonero responsabilità" },
+    { ref: "Art. 1341", desc: "clausole vessatorie" },
+    { ref: "Art. 2033", desc: "ripetizione indebito" },
+    { ref: "Art. 2126", desc: "lavoro nullo" },
+    { ref: "Art. 2652", desc: "trascrizione domanda nullità" },
   ];
 
-  for (const { ref, bad, label } of crossChecks) {
+  for (const { ref, desc } of crossNullita) {
     const { data } = await supabase
       .from("legal_articles")
       .select("related_institutes")
       .eq("law_source", "Codice Civile")
       .eq("article_reference", ref)
       .limit(1);
-
-    const has = data?.[0]?.related_institutes?.includes(bad) ?? false;
-    console.log(`${has ? "✗ PROBLEMA" : "✓ OK"} ${ref}: ${label} — ${bad} ${has ? "PRESENTE" : "assente"}`);
+    const inst = data?.[0]?.related_institutes ?? [];
+    const has = inst.includes("nullità");
+    console.log(`  ${has ? "✓" : "✗"} ${ref} (${desc}): [${inst.join(", ")}]`);
   }
 
-  // Institute counts
-  console.log("\nTop istituti (lookup test):");
-  for (const inst of ["nullità", "clausole_vessatorie", "interpretazione_contratto", "simulazione", "annullabilità", "vendita_a_corpo"]) {
-    const { data } = await supabase.rpc("get_articles_by_institute", { p_institute: inst, p_limit: 20 });
-    console.log(`  ${inst}: ${data?.length ?? 0} articles`);
-    if (data && data.length <= 10) {
-      data.forEach((a: { article_reference: string }) => process.stdout.write(`    ${a.article_reference} `));
-      console.log();
-    }
+  // Cross-contamination check
+  console.log("\nCross-contaminazione:");
+  const checks = [
+    { ref: "Art. 1414", bad: "nullità", label: "simulazione ≠ nullità" },
+    { ref: "Art. 1418", bad: "annullabilità", label: "nullità ≠ annullabilità" },
+    { ref: "Art. 1425", bad: "nullità", label: "annullabilità ≠ nullità" },
+    { ref: "Art. 1447", bad: "nullità", label: "rescissione ≠ nullità" },
+  ];
+  for (const { ref, bad, label } of checks) {
+    const { data } = await supabase
+      .from("legal_articles")
+      .select("related_institutes")
+      .eq("law_source", "Codice Civile")
+      .eq("article_reference", ref)
+      .limit(1);
+    const has = data?.[0]?.related_institutes?.includes(bad) ?? false;
+    console.log(`  ${has ? "✗ PROBLEMA" : "✓ OK"} ${ref}: ${label}`);
+  }
+
+  // Top lookups
+  console.log("\nLookup test:");
+  for (const inst of [
+    "nullità", "interpretazione_contratto", "clausole_vessatorie",
+    "simulazione", "annullabilità", "vendita_a_corpo", "indebito",
+    "lavoro_subordinato",
+  ]) {
+    const { data } = await supabase.rpc("get_articles_by_institute", {
+      p_institute: inst,
+      p_limit: 20,
+    });
+    const refs = (data ?? []).map((a: { article_reference: string }) => a.article_reference);
+    console.log(`  ${inst}: ${refs.length} → ${refs.slice(0, 8).join(", ")}${refs.length > 8 ? "..." : ""}`);
   }
 }
 
