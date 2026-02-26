@@ -52,7 +52,7 @@ export interface CorpusAgentResult {
 
 // ─── Context Building ───
 
-function formatArticlesForContext(
+export function formatArticlesForContext(
   articles: LegalArticleSearchResult[],
   knowledge: SearchResult[]
 ): string {

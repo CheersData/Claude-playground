@@ -130,6 +130,26 @@ export interface AdvisorResult {
   lawyerReason: string;
 }
 
+// ─── Console / Leader Types ───
+
+export type LeaderRoute = "corpus-qa" | "document-analysis" | "hybrid";
+
+export interface LeaderDecision {
+  route: LeaderRoute;
+  reasoning: string;
+  /** Domanda estratta dall'input utente (per corpus-qa o hybrid) */
+  question: string | null;
+  /** Contesto utente da passare all'orchestrator */
+  userContext: string | null;
+}
+
+export type ConsoleAgentPhase =
+  | "leader"
+  | "question-prep" | "corpus-search" | "corpus-agent"
+  | "classifier" | "retrieval" | "analyzer" | "investigator" | "advisor";
+
+export type ConsolePhaseStatus = "running" | "done" | "error" | "skipped";
+
 // ─── SSE Event Types ───
 
 export type AgentPhase = "classifier" | "analyzer" | "investigator" | "advisor";

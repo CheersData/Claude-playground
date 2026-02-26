@@ -271,6 +271,7 @@ export type ModelKey = keyof typeof MODELS;
 // ─── Agent Configuration ───
 
 export type AgentName =
+  | "leader"
   | "question-prep"
   | "classifier"
   | "analyzer"
@@ -297,6 +298,13 @@ export interface AgentModelConfig {
  * Questo è il SINGOLO punto di configurazione per tutti gli agenti.
  */
 export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
+  leader: {
+    primary: "gemini-2.5-flash",
+    fallback: "claude-haiku-4.5",
+    maxTokens: 512,
+    temperature: 0,
+    notes: "Routing veloce. Output minimo (~100 token). Flash costa $0.15/1M input.",
+  },
   "question-prep": {
     primary: "gemini-2.5-flash",
     fallback: "claude-haiku-4.5",

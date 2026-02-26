@@ -165,3 +165,150 @@ html {
 .video-glow {
   box-shadow: 0 0 80px rgba(255,107,53,0.06), 0 0 160px rgba(255,107,53,0.03);
 }
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Pip-Boy Console Theme (scoped to .pipboy-root) ─── */
+/* ═══════════════════════════════════════════════════════ */
+
+.pipboy-root {
+  --pb-green: #33ff66;
+  --pb-green-dim: #1a8033;
+  --pb-green-glow: rgba(51, 255, 102, 0.3);
+  --pb-amber: #ffb000;
+  --pb-amber-dim: #805800;
+  --pb-red: #ff3333;
+  --pb-bg: #0a0e0a;
+  --pb-bg-panel: #0d120d;
+  --pb-border: #1a3a1a;
+  --pb-text: #33ff66;
+  --pb-text-dim: #1a8033;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  color: var(--pb-text);
+}
+
+.pipboy-root *::selection {
+  background: rgba(51, 255, 102, 0.3);
+  color: #fff;
+}
+
+.pipboy-root ::-webkit-scrollbar {
+  width: 6px;
+}
+.pipboy-root ::-webkit-scrollbar-track {
+  background: var(--pb-bg);
+}
+.pipboy-root ::-webkit-scrollbar-thumb {
+  background: var(--pb-green-dim);
+  border-radius: 3px;
+}
+.pipboy-root ::-webkit-scrollbar-thumb:hover {
+  background: var(--pb-green);
+}
+
+/* Scanlines overlay */
+.pipboy-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+}
+
+/* CRT subtle vignette */
+.pipboy-crt {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 49;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* Green glow on panels */
+.pipboy-glow {
+  box-shadow:
+    0 0 1px var(--pb-green-dim),
+    0 0 8px rgba(51, 255, 102, 0.08),
+    inset 0 0 8px rgba(51, 255, 102, 0.03);
+  border: 1px solid var(--pb-border);
+}
+
+/* LED states */
+.pipboy-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.pipboy-led-idle {
+  background: #2a2a2a;
+  box-shadow: none;
+}
+
+.pipboy-led-running {
+  background: var(--pb-green);
+  box-shadow: 0 0 6px var(--pb-green), 0 0 12px var(--pb-green-glow);
+  animation: pipboy-led-pulse 1.2s ease-in-out infinite;
+}
+
+.pipboy-led-done {
+  background: var(--pb-green);
+  box-shadow: 0 0 4px var(--pb-green-dim);
+}
+
+.pipboy-led-error {
+  background: var(--pb-red);
+  box-shadow: 0 0 6px var(--pb-red), 0 0 12px rgba(255, 51, 51, 0.3);
+}
+
+.pipboy-led-skipped {
+  background: var(--pb-amber-dim);
+  box-shadow: none;
+}
+
+@keyframes pipboy-led-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Typing cursor */
+@keyframes pipboy-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.pipboy-cursor {
+  animation: pipboy-blink 1s step-end infinite;
+}
+
+/* Panel hover */
+.pipboy-panel {
+  background: var(--pb-bg-panel);
+  border: 1px solid var(--pb-border);
+  transition: border-color 0.2s ease;
+}
+
+.pipboy-panel:hover {
+  border-color: var(--pb-green-dim);
+}
+
+/* Output text reveal animation */
+@keyframes pipboy-reveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pipboy-reveal {
+  animation: pipboy-reveal 0.3s ease-out forwards;
+}
