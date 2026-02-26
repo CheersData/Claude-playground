@@ -4,9 +4,11 @@
  * Ogni fonte specifica:
  * - ID univoco e nome
  * - Tipo (normattiva / eurlex)
- * - URL base per scraping
+ * - URL base per consultazione
  * - Gerarchia strutturale (come navigare l'albero)
  * - Range articoli stimato
+ * - ConnectorConfig per il Data Connector
+ * - Lifecycle per tracciamento stato pipeline
  */
 
 // ─── Tipi ───
@@ -14,6 +16,22 @@
 export interface HierarchyLevel {
   key: string;        // chiave nel campo JSONB hierarchy (es. "book", "title", "chapter")
   label: string;      // etichetta UI (es. "Libro", "Titolo", "Capo")
+}
+
+export type SourceLifecycle =
+  | "planned"        // Fonte definita, nessun test
+  | "api-tested"     // CONNECT completato: API funziona
+  | "schema-ready"   // MODEL completato: schema DB verificato/creato
+  | "loaded"         // LOAD completato: dati in DB
+  | "delta-active";  // Delta updates automatici attivi
+
+export interface ConnectorConfig {
+  /** Normattiva: termini di ricerca per trovare l'atto */
+  normattivaSearchTerms?: string[];
+  /** Normattiva: tipo atto per filtro (es. "regio.decreto", "decreto.legislativo") */
+  normattivaActType?: string;
+  /** Formato preferito per il download */
+  preferredFormat?: "akn" | "json" | "html" | "xml";
 }
 
 export interface CorpusSource {
@@ -27,6 +45,8 @@ export interface CorpusSource {
   baseUrl: string;                 // URL per consultazione
   hierarchyLevels: HierarchyLevel[];
   estimatedArticles: number;
+  connector?: ConnectorConfig;     // Config specifica per Data Connector
+  lifecycle?: SourceLifecycle;     // Stato pipeline (default: "planned")
 }
 
 // ─── Fonti Italiane (Normattiva) ───
@@ -47,6 +67,12 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 3150,
+    connector: {
+      normattivaSearchTerms: ["codice civile"],
+      normattivaActType: "regio.decreto",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded", // Caricato via HuggingFace (4271 art.)
   },
   {
     id: "codice_penale",
@@ -63,6 +89,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 734,
+    connector: {
+      normattivaSearchTerms: ["codice penale"],
+      normattivaActType: "regio.decreto",
+      preferredFormat: "akn",
+    },
   },
   {
     id: "codice_consumo",
@@ -79,6 +110,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 146,
+    connector: {
+      normattivaSearchTerms: ["codice del consumo", "decreto legislativo 206 2005"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+    },
   },
   {
     id: "codice_proc_civile",
@@ -95,6 +131,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 831,
+    connector: {
+      normattivaSearchTerms: ["codice di procedura civile"],
+      normattivaActType: "regio.decreto",
+      preferredFormat: "akn",
+    },
   },
   {
     id: "dlgs_231_2001",
@@ -109,6 +150,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 85,
+    connector: {
+      normattivaSearchTerms: ["responsabilita amministrativa enti", "decreto legislativo 231 2001"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+    },
   },
   {
     id: "dlgs_122_2005",
@@ -122,6 +168,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 21,
+    connector: {
+      normattivaSearchTerms: ["tutela acquirenti immobili", "decreto legislativo 122 2005"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+    },
   },
   {
     id: "statuto_lavoratori",
@@ -135,6 +186,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "title", label: "Titolo" },
     ],
     estimatedArticles: 41,
+    connector: {
+      normattivaSearchTerms: ["statuto dei lavoratori", "legge 300 1970"],
+      normattivaActType: "legge",
+      preferredFormat: "akn",
+    },
   },
   {
     id: "tu_edilizia",
@@ -151,6 +207,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 138,
+    connector: {
+      normattivaSearchTerms: ["testo unico edilizia", "dpr 380 2001"],
+      normattivaActType: "decreto.del.presidente.della.repubblica",
+      preferredFormat: "akn",
+    },
   },
 ];
 
@@ -170,6 +231,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 99,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dir_93_13_clausole_abusive",
@@ -181,6 +244,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
     baseUrl: "https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:31993L0013",
     hierarchyLevels: [],
     estimatedArticles: 11,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dir_2011_83_consumatori",
@@ -194,6 +259,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 35,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dir_2019_771_vendita_beni",
@@ -207,6 +274,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 28,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "reg_roma_i",
@@ -220,6 +289,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 29,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dsa",
@@ -234,6 +305,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 93,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
 ];
 

@@ -74,6 +74,8 @@ export async function POST(req: NextRequest) {
         );
       };
 
+      let analysisDbId: string | null = null;
+
       try {
         // Parse form data
         const formData = await req.formData();
@@ -115,6 +117,27 @@ export async function POST(req: NextRequest) {
           // Non-critical — client will use defaults
         }
 
+        // Persist analysis record in Supabase (status: processing)
+        const fileName = file?.name ?? "testo-incollato.txt";
+        if (userId) {
+          try {
+            const admin = createAdminClient();
+            const { data: inserted } = await admin
+              .from("analyses")
+              .insert({
+                user_id: userId,
+                file_name: fileName,
+                status: "processing",
+              })
+              .select("id")
+              .single();
+            analysisDbId = inserted?.id ?? null;
+          } catch {
+            // Non-critical — analysis proceeds even without DB record
+            console.error("[ANALYZE] Failed to create analysis record");
+          }
+        }
+
         // Run the 4-agent orchestrator with SSE callbacks
         const result = await runOrchestrator(
           documentText,
@@ -146,22 +169,65 @@ export async function POST(req: NextRequest) {
         });
 
         // Always send the sessionId so the frontend can resume later
-        send("session", { sessionId: result.sessionId });
+        send("session", {
+          sessionId: result.sessionId,
+          analysisId: analysisDbId,
+        });
 
-        // Increment analyses_count for authenticated users
+        // Persist results to Supabase + increment counter
         if (userId) {
           try {
             const admin = createAdminClient();
+
+            // Update analysis record with results
+            if (analysisDbId) {
+              const fairnessScore =
+                result.advice?.fairnessScore ?? null;
+              const docType =
+                result.classification?.documentTypeLabel ?? null;
+              const summary =
+                result.advice?.summary ?? null;
+
+              await admin
+                .from("analyses")
+                .update({
+                  status: "completed",
+                  document_type: docType,
+                  classification: result.classification,
+                  analysis: result.analysis,
+                  investigation: result.investigation,
+                  advice: result.advice,
+                  fairness_score: fairnessScore,
+                  summary,
+                  completed_at: new Date().toISOString(),
+                })
+                .eq("id", analysisDbId);
+            }
+
+            // Increment analyses_count
             await admin.rpc("increment_analyses_count", { uid: userId });
           } catch {
             // Non-critical — don't fail the analysis
-            console.error("[ANALYZE] Failed to increment analyses_count");
+            console.error("[ANALYZE] Failed to persist analysis results");
           }
         }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Errore sconosciuto";
         send("error", { message });
+
+        // Mark analysis as failed in DB
+        if (analysisDbId) {
+          try {
+            const admin = createAdminClient();
+            await admin
+              .from("analyses")
+              .update({ status: "error" })
+              .eq("id", analysisDbId);
+          } catch {
+            // Best-effort
+          }
+        }
       } finally {
         try {
           controller.close();

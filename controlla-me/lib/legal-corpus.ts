@@ -363,6 +363,12 @@ export async function ingestArticles(
       .from("legal_articles")
       .upsert(
         {
+          // Colonne originali (migration 003)
+          source_id: sourceToId(article.lawSource),
+          source_name: article.lawSource,
+          source_type: detectSourceType(article.lawSource),
+          article_number: article.articleReference.replace(/^Art\.\s*/i, ""),
+          // Colonne aggiuntive (usate da ingestArticles/seed-corpus)
           law_source: article.lawSource,
           article_reference: article.articleReference,
           article_title: article.articleTitle,
