@@ -105,8 +105,7 @@ export async function POST(req: NextRequest) {
             return;
           }
 
-          // Deep search disabilitato per ora (usa Sonnet a pagamento)
-          await runCorpusQA(question, sendAgent, send, false);
+          await runCorpusQA(question, sendAgent, send);
         }
 
         // ── ROUTE: document-analysis ──
@@ -210,13 +209,19 @@ async function runCorpusQA(
     extra?: Record<string, unknown>
   ) => void,
   send: (event: string, data: unknown) => void,
-  deep: boolean = false
 ) {
   // 1. Question-Prep — identifica istituti giuridici + query legale
   sendAgent("question-prep", "running", { modelInfo: getModelInfo("question-prep") });
   const prepStart = Date.now();
 
   const prep = await prepareQuestion(question);
+
+  // Auto-enable deep search when question needs case law (giurisprudenza)
+  const deep = prep.needsCaseLaw;
+
+  const scopeFlags: string[] = [];
+  if (prep.needsProceduralLaw) scopeFlags.push("c.p.c.");
+  if (prep.needsCaseLaw) scopeFlags.push("giurisprudenza");
 
   sendAgent("question-prep", "done", {
     summary: prep.targetArticles
@@ -235,6 +240,9 @@ async function runCorpusQA(
       suggestedInstitutes: prep.suggestedInstitutes,
       targetArticles: prep.targetArticles,
       questionType: prep.questionType,
+      needsProceduralLaw: prep.needsProceduralLaw,
+      needsCaseLaw: prep.needsCaseLaw,
+      scopeNotes: prep.scopeNotes,
       keywords: prep.keywords,
     },
   });
@@ -415,7 +423,23 @@ async function runCorpusQA(
   const typeHint = prep.questionType === "systematic"
     ? "\n\nTIPO DOMANDA: sistematica — struttura la risposta come tassonomia di casi (vedi istruzioni DOMANDE SISTEMATICHE)."
     : "";
-  const llmPrompt = `CONTESTO NORMATIVO:\n${context}${investigatorContext}${typeHint}\n\nDOMANDA:\n${question}`;
+
+  // Build scope limitation hints
+  const scopeHints: string[] = [];
+  if (prep.needsProceduralLaw) {
+    scopeHints.push("ATTENZIONE: La domanda richiede norme processuali (c.p.c.) NON presenti nel corpus. Segnala esplicitamente questa limitazione.");
+  }
+  if (prep.needsCaseLaw && !investigatorContext) {
+    scopeHints.push("ATTENZIONE: La domanda richiede giurisprudenza NON disponibile. Segnala la limitazione e indica in missingArticles le fonti giurisprudenziali necessarie.");
+  }
+  if (prep.scopeNotes) {
+    scopeHints.push(`NOTA AMBITO: ${prep.scopeNotes}`);
+  }
+  const scopeBlock = scopeHints.length > 0
+    ? `\n\n${scopeHints.join("\n")}`
+    : "";
+
+  const llmPrompt = `CONTESTO NORMATIVO:\n${context}${investigatorContext}${typeHint}${scopeBlock}\n\nDOMANDA:\n${question}`;
 
   // Usa runAgent con fallback automatico (fix JSON parse)
   const { parsed, provider } = await runAgent<{

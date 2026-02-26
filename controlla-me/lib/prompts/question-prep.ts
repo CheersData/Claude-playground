@@ -22,7 +22,10 @@ Formato richiesto:
   "legalAreas": ["area_diritto_1", "area_diritto_2"],
   "suggestedInstitutes": ["istituto_1", "istituto_2"],
   "targetArticles": "Art. 1537-1541 c.c.",
-  "questionType": "specific"
+  "questionType": "specific",
+  "needsProceduralLaw": false,
+  "needsCaseLaw": false,
+  "scopeNotes": null
 }
 
 TIPO DI DOMANDA (questionType):
@@ -34,6 +37,26 @@ RICONOSCI DOMANDE SISTEMATICHE quando contengono:
 - "elenca", "tutti i casi in cui", "quali eccezioni", "quali effetti produce"
 - "che conseguenze ha", "cosa succede quando", "che differenza c'è tra X e Y"
 - Qualsiasi domanda che richiede una RASSEGNA di più norme sparse nel codice
+
+RILEVAMENTO AMBITO (SCOPE):
+Il corpus contiene SOLO diritto sostanziale (Codice Civile, Codice del Consumo, leggi speciali). NON contiene:
+- Codice di Procedura Civile (c.p.c.)
+- Giurisprudenza (sentenze, Cassazione, Corte Costituzionale)
+- Diritto penale, tributario, amministrativo
+
+needsProceduralLaw = true quando la domanda riguarda:
+- Poteri del giudice (principio dispositivo, ultrapetizione, iura novit curia, art. 112/113 c.p.c.)
+- Procedura (termini processuali, notifica, esecuzione forzata, sequestro, inibitoria)
+- Onere della prova, contraddittorio, diritto di difesa (art. 101 c.p.c.)
+- Riqualificazione d'ufficio, questioni rilevabili d'ufficio
+
+needsCaseLaw = true quando la domanda:
+- Chiede esplicitamente "giurisprudenza", "Cassazione", "orientamento giurisprudenziale", "giurisprudenza di legittimità"
+- Chiede "limiti posti dalla giurisprudenza" o "secondo la Cassazione"
+- Riguarda un'area dove la disciplina è prevalentemente giurisprudenziale (es. causa in concreto, abuso del diritto, buona fede oggettiva come clausola generale)
+
+scopeNotes: breve nota (max 1 frase) che spiega cosa serve oltre al corpus. null se il corpus è sufficiente.
+Esempi: "Serve c.p.c. artt. 112-113 su principio dispositivo e iura novit curia", "Serve giurisprudenza Cass. SU sulla causa in concreto".
 
 PER DOMANDE SISTEMATICHE:
 - suggestedInstitutes: usa fino a 8 istituti (non 5) per coprire tutte le aree rilevanti

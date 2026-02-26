@@ -25,6 +25,12 @@ export interface QuestionPrepResult {
   targetArticles: string | null;
   /** Tipo di domanda: "specific" (caso concreto) o "systematic" (tassonomia/rassegna) */
   questionType: "specific" | "systematic";
+  /** La domanda richiede norme processuali (c.p.c.) non presenti nel corpus */
+  needsProceduralLaw: boolean;
+  /** La domanda richiede giurisprudenza (Cassazione, orientamenti) */
+  needsCaseLaw: boolean;
+  /** Nota su cosa serve oltre al corpus (es. "Serve c.p.c. artt. 112-113") */
+  scopeNotes: string | null;
   provider: string;
   durationMs: number;
 }
@@ -51,6 +57,9 @@ export async function prepareQuestion(
       suggestedInstitutes?: string[];
       targetArticles?: string | null;
       questionType?: "specific" | "systematic";
+      needsProceduralLaw?: boolean;
+      needsCaseLaw?: boolean;
+      scopeNotes?: string | null;
     }>("question-prep", `Utente: "${question}"`, {
       systemPrompt: QUESTION_PREP_SYSTEM_PROMPT,
     });
@@ -63,12 +72,15 @@ export async function prepareQuestion(
       suggestedInstitutes: parsed.suggestedInstitutes ?? [],
       targetArticles: parsed.targetArticles ?? null,
       questionType: parsed.questionType === "systematic" ? "systematic" : "specific",
+      needsProceduralLaw: parsed.needsProceduralLaw ?? false,
+      needsCaseLaw: parsed.needsCaseLaw ?? false,
+      scopeNotes: parsed.scopeNotes ?? null,
       provider,
       durationMs: Date.now() - startTime,
     };
 
     console.log(
-      `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..."${result.mechanismQuery ? ` | mechanism: "${result.mechanismQuery.slice(0, 60)}..."` : ""} | institutes: [${result.suggestedInstitutes.join(", ")}] | type: ${result.questionType} | target: ${result.targetArticles ?? "none"} | ${provider}${usedFallback ? " (fallback)" : ""} | ${result.durationMs}ms`
+      `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..."${result.mechanismQuery ? ` | mechanism: "${result.mechanismQuery.slice(0, 60)}..."` : ""} | institutes: [${result.suggestedInstitutes.join(", ")}] | type: ${result.questionType}${result.needsProceduralLaw ? " | NEEDS:c.p.c." : ""}${result.needsCaseLaw ? " | NEEDS:giurisprudenza" : ""} | target: ${result.targetArticles ?? "none"} | ${provider}${usedFallback ? " (fallback)" : ""} | ${result.durationMs}ms`
     );
 
     return result;
@@ -86,6 +98,9 @@ export async function prepareQuestion(
       suggestedInstitutes: [],
       targetArticles: null,
       questionType: "specific",
+      needsProceduralLaw: false,
+      needsCaseLaw: false,
+      scopeNotes: null,
       provider: "none",
       durationMs: Date.now() - startTime,
     };
