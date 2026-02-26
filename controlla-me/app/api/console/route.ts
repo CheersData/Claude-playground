@@ -250,8 +250,13 @@ async function runCorpusQA(
     return;
   }
 
+  // Normalizza istituti: il modello può restituire "vendita a corpo" invece di "vendita_a_corpo"
+  const normalizedInstitutes = prep.suggestedInstitutes.map((inst) =>
+    inst.trim().replace(/\s+/g, "_").toLowerCase()
+  );
+
   // Ricerca parallela su 2 assi: tema (legalQuery) + meccanismo (mechanismQuery)
-  const institutePromises = prep.suggestedInstitutes.map((inst) =>
+  const institutePromises = normalizedInstitutes.map((inst) =>
     getArticlesByInstitute(inst, 10)
   );
 
@@ -260,8 +265,8 @@ async function runCorpusQA(
     searchArticles(prep.legalQuery, {
       threshold: 0.4,
       limit: 8,
-      institutes: prep.suggestedInstitutes.length > 0
-        ? prep.suggestedInstitutes
+      institutes: normalizedInstitutes.length > 0
+        ? normalizedInstitutes
         : undefined,
     }),
   ];
@@ -341,7 +346,7 @@ async function runCorpusQA(
         title: a.articleTitle,
         similarity: a.similarity === 1.0 ? "istituto" : `${(a.similarity * 100).toFixed(0)}%`,
       })),
-      institutes: prep.suggestedInstitutes,
+      institutes: normalizedInstitutes,
       mechanismQuery: prep.mechanismQuery,
       knowledgeEntries: knowledge.length,
     },
