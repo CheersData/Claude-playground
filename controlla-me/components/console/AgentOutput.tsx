@@ -306,8 +306,8 @@ function TerminalOutput({
           </div>
         )}
         {output.missingArticles?.length > 0 && (
-          <div className="text-xs text-[var(--pb-red)] mt-2 opacity-80">
-            Non nel corpus:{" "}
+          <div className="text-xs text-[var(--pb-text-dim)] mt-2">
+            Vedi anche:{" "}
             {output.missingArticles.join(", ")}
           </div>
         )}
