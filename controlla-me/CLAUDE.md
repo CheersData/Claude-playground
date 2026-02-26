@@ -31,6 +31,7 @@
 | Pagamenti | Stripe | 20.3.1 |
 | PDF | pdf-parse | 2.4.5 |
 | DOCX | mammoth | 1.11.0 |
+| XML Parser | fast-xml-parser (AKN legislativo) | 5.x |
 | OCR | tesseract.js (non ancora implementato) | 7.0.0 |
 | Font | DM Sans + Instrument Serif | Google Fonts |
 
@@ -182,6 +183,25 @@ controlla-me/
 │   ├── embeddings.ts             # Client Voyage AI per embeddings
 │   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
 │   ├── legal-corpus.ts           # Ingest e query corpus legislativo
+│   ├── staff/
+│   │   └── data-connector/       # Staff Service: pipeline CONNECT→MODEL→LOAD
+│   │       ├── index.ts           # Orchestratore pipeline
+│   │       ├── types.ts           # Interfacce generiche
+│   │       ├── registry.ts        # Source registry da corpus-sources.ts
+│   │       ├── sync-log.ts        # CRUD su connector_sync_log
+│   │       ├── connectors/
+│   │       │   ├── base.ts        # BaseConnector (fetch+retry, User-Agent)
+│   │       │   ├── normattiva.ts  # Normattiva Open Data API + collection download
+│   │       │   └── eurlex.ts      # EUR-Lex Cellar REST
+│   │       ├── parsers/
+│   │       │   ├── akn-parser.ts  # Akoma Ntoso XML → articoli (standard + attachment)
+│   │       │   └── html-parser.ts # EUR-Lex HTML → articoli
+│   │       ├── models/
+│   │       │   └── legal-article-model.ts  # Verifica schema legal_articles
+│   │       ├── stores/
+│   │       │   └── legal-corpus-store.ts   # Adattatore per ingestArticles()
+│   │       └── validators/
+│   │           └── article-validator.ts    # Validazione articoli
 │   ├── extract-text.ts           # Estrazione PDF/DOCX/TXT
 │   ├── analysis-cache.ts         # Cache analisi su filesystem
 │   ├── stripe.ts                 # Config Stripe + piani
@@ -205,6 +225,12 @@ controlla-me/
 │       ├── client.ts             # Client browser
 │       ├── server.ts             # Client SSR
 │       └── admin.ts              # Client admin (webhook)
+│
+├── scripts/
+│   ├── data-connector.ts          # CLI: connect, model, load, status, update
+│   ├── corpus-sources.ts          # 14 fonti con ConnectorConfig + lifecycle
+│   ├── seed-corpus.ts             # Seed legacy (HuggingFace)
+│   └── check-data.ts              # QA dati corpus
 │
 ├── supabase/migrations/           # SQL per setup DB
 ├── public/videos/                 # Video generati AI
@@ -711,8 +737,8 @@ vercel deploy    # O collega repo GitHub a Vercel
 ┌─────────────────────────────────────────────────────┐
 │              SUPABASE pgvector                       │
 │                                                      │
-│  1. legal_articles    → Corpus legislativo italiano  │
-│     - Codice Civile, D.Lgs., DPR, Leggi            │
+│  1. legal_articles    → Corpus legislativo ~5600 art │
+│     - 13 fonti IT+EU (Normattiva + EUR-Lex)        │
 │     - Ricerca semantica + lookup diretto            │
 │     - Embedding: Voyage AI (voyage-law-2, 1024d)    │
 │                                                      │
@@ -815,9 +841,10 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
 6. Test — Nessun test unitario/integrazione/E2E
 7. CI/CD — Nessuna GitHub Action
-8. ~~Corpus legislativo~~ — **COMPLETATO**: 3548 articoli caricati (1000 Codice Civile), embeddings Voyage AI attivi, pagina UI `/corpus` operativa
+8. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
 9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
 10. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati
+11. Statuto dei Lavoratori — L'unica fonte IT non ancora caricata (L. 300/1970). API async Normattiva produce ZIP vuoti, serve approccio alternativo
 
 ---
 

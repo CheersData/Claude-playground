@@ -88,12 +88,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 734,
+    estimatedArticles: 767,
     connector: {
       normattivaSearchTerms: ["codice penale"],
       normattivaActType: "regio.decreto",
       preferredFormat: "akn",
     },
+    lifecycle: "loaded",
   },
   {
     id: "codice_consumo",
@@ -109,12 +110,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 146,
+    estimatedArticles: 240,
     connector: {
       normattivaSearchTerms: ["codice del consumo", "decreto legislativo 206 2005"],
       normattivaActType: "decreto.legislativo",
       preferredFormat: "akn",
     },
+    lifecycle: "loaded",
   },
   {
     id: "codice_proc_civile",
@@ -130,12 +132,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 831,
+    estimatedArticles: 887,
     connector: {
       normattivaSearchTerms: ["codice di procedura civile"],
       normattivaActType: "regio.decreto",
       preferredFormat: "akn",
     },
+    lifecycle: "loaded",
   },
   {
     id: "dlgs_231_2001",
@@ -149,12 +152,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 85,
+    estimatedArticles: 109,
     connector: {
       normattivaSearchTerms: ["responsabilita amministrativa enti", "decreto legislativo 231 2001"],
       normattivaActType: "decreto.legislativo",
       preferredFormat: "akn",
     },
+    lifecycle: "loaded",
   },
   {
     id: "dlgs_122_2005",
@@ -167,12 +171,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     hierarchyLevels: [
       { key: "chapter", label: "Capo" },
     ],
-    estimatedArticles: 21,
+    estimatedArticles: 19,
     connector: {
       normattivaSearchTerms: ["tutela acquirenti immobili", "decreto legislativo 122 2005"],
       normattivaActType: "decreto.legislativo",
       preferredFormat: "akn",
     },
+    lifecycle: "loaded",
   },
   {
     id: "statuto_lavoratori",
@@ -206,12 +211,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 138,
+    estimatedArticles: 151,
     connector: {
       normattivaSearchTerms: ["testo unico edilizia", "dpr 380 2001"],
       normattivaActType: "decreto.del.presidente.della.repubblica",
       preferredFormat: "akn",
     },
+    lifecycle: "loaded",
   },
 ];
 

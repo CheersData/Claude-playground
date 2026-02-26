@@ -1,6 +1,6 @@
 # Controlla.me — Architettura, Fragilità e Roadmap
 
-> **Ultimo aggiornamento**: 2026-02-24 — Verificato contro il codebase reale.
+> **Ultimo aggiornamento**: 2026-02-26 — Verificato contro il codebase reale.
 >
 > Controlla.me è il **primo prototipo** di una piattaforma madre per molteplici team
 > di agenti AI. Ogni servizio è progettato per essere **scalabile e parametrizzabile**,
@@ -207,19 +207,38 @@ Utente carica documento (PDF/DOCX/TXT)
 
 ### 1.4 Corpus Legislativo — Stato Operativo
 
-Il corpus legislativo è **caricato e operativo** su Supabase pgvector:
+Il corpus legislativo è **caricato e operativo** su Supabase pgvector, alimentato dal **Data Connector** (pipeline CONNECT→MODEL→LOAD):
 
 | Statistica | Valore |
 |-----------|--------|
-| Articoli totali | ~3548 |
-| Fonti legislative | 13 |
-| Articoli con embeddings | ~3544 (99.9%) |
+| Articoli totali | ~5.600 |
+| Fonti legislative | 13 caricate (14 definite) |
+| Articoli con embeddings | ~5.600 (100%) |
 | Modello embedding | Voyage AI voyage-law-2 (1024 dims) |
+| Sorgente dati IT | Normattiva Open Data API (AKN XML) |
+| Sorgente dati EU | EUR-Lex Cellar REST (HTML) |
 
-**Fonti caricate**:
-Codice Civile (~3018), D.Lgs. 206/2005 Codice del Consumo (~239), GDPR (~99),
-Digital Services Act (~93), D.Lgs. 122/2005 (~29), DPR 380/2001 TU Edilizia,
-L. 392/1978 Equo Canone, L. 431/1998 Locazioni, e altre.
+**Fonti IT caricate** (Normattiva — 7/8):
+
+| Fonte | Articoli | Formato |
+|-------|:--------:|---------|
+| Codice Civile (R.D. 262/1942) | ~3.150 | HuggingFace (legacy) |
+| Codice di Procedura Civile (R.D. 1443/1940) | 887 | AKN attachment |
+| Codice Penale (R.D. 1398/1930) | 767 | AKN attachment |
+| Codice del Consumo (D.Lgs. 206/2005) | 240 | AKN standard |
+| TU Edilizia (DPR 380/2001) | 151 | AKN standard |
+| D.Lgs. 231/2001 (Resp. amm. enti) | 109 | AKN standard |
+| D.Lgs. 122/2005 (Tutela acquirenti) | 19 | AKN standard |
+| Statuto Lavoratori (L. 300/1970) | — | Bloccato (API async rotta) |
+
+**Fonti EU caricate** (EUR-Lex — 6/6):
+GDPR (99), DSA (93), Dir. 2011/83 (35), Roma I (29), Dir. 2019/771 (28), Dir. 93/13 (11)
+
+**Data Connector** (`lib/staff/data-connector/`):
+- Pipeline a 3 fasi: CONNECT (censimento API) → MODEL (verifica schema DB) → LOAD (trasforma + embed + upsert)
+- CLI: `npx tsx scripts/data-connector.ts [connect|model|load|status|update] <source_id>`
+- Connettori: NormattivaConnector (collection download + AKN parsing), EurLexConnector (Cellar REST + HTML parsing)
+- Formati AKN: standard (D.Lgs.) e attachment (Regi Decreti — Codice Penale, Civile, CPC)
 
 **API disponibili**:
 - `POST /api/corpus` — Ingest articoli (richiede auth + admin)
@@ -337,9 +356,10 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 
 | Script | File | Descrizione |
 |--------|------|-------------|
-| **seed-corpus** | `scripts/seed-corpus.ts` | Download corpus da HuggingFace + Normattiva, genera embeddings Voyage AI, upsert in Supabase |
+| **data-connector** | `scripts/data-connector.ts` | **CLI pipeline CONNECT→MODEL→LOAD per fonti Normattiva e EUR-Lex** |
+| **seed-corpus** | `scripts/seed-corpus.ts` | Download corpus legacy da HuggingFace (solo Codice Civile) |
 | **check-data** | `scripts/check-data.ts` | Validazione qualità dati corpus (conteggi, embeddings, campionamento) |
-| **corpus-sources** | `scripts/corpus-sources.ts` | Definizioni 14+ fonti legislative con gerarchie e metadati |
+| **corpus-sources** | `scripts/corpus-sources.ts` | Definizioni 14 fonti legislative con ConnectorConfig + lifecycle |
 | **setup-new-pc** | `scripts/setup-new-pc.ps1` | Setup completo Windows: fnm, Node 22, Python, VS Code, repo |
 | **setup-dev** | `scripts/setup-dev.ps1` | Setup ambiente dev: git, npm install, .env.local, corpus loading |
 | **SETUP_PC_NUOVO.bat** | root | Launcher batch per setup-new-pc.ps1 |
@@ -354,6 +374,7 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 | 003 | `supabase/migrations/003_legal_corpus.sql` | Tabella legal_articles con pgvector, HNSW index |
 | **004** | `supabase/migrations/004_align_legal_articles.sql` | **Allineamento schema: source_id, source_type, article_number, url, hierarchy** |
 | **005** | `supabase/migrations/005_fix_hierarchy_data.sql` | **Normalizzazione JSONB hierarchy (deduplica nodi Libri Codice Civile)** |
+| **006** | `supabase/migrations/006_connector_sync_log.sql` | **Tabella sync log per Data Connector pipeline** |
 
 ### 1.10 Struttura Monorepo
 
@@ -797,9 +818,19 @@ export interface Agent {
 
 ---
 
-## 6. Connect Agent — Design Completo
+## 6. Connect Agent / Data Connector
 
-> **Stato**: ❌ NON IMPLEMENTATO — Proposta di design.
+> **Stato**: ⚠️ PARZIALMENTE IMPLEMENTATO
+>
+> Il **Data Connector** (`lib/staff/data-connector/`) è la prima implementazione concreta
+> del Connect Agent. Gestisce la pipeline CONNECT→MODEL→LOAD per fonti legislative.
+> 13 fonti caricate (~5600 articoli). L'evoluzione verso un agente AI autonomo di discovery
+> resta nella roadmap.
+>
+> **Implementato**: Pipeline 3 fasi, connettori Normattiva + EUR-Lex, parsers AKN/HTML,
+> CLI completa, cron API, sync log DB, validazione articoli.
+>
+> **Non implementato**: Discovery autonomo AI, Integration Catalog DB, Pattern Generator.
 
 ### 6.1 Mission
 
@@ -949,10 +980,10 @@ e mantiene un catalogo di integrazioni.
 
 | Sistema | Tipo | Metodo probabile | Valore |
 |---------|------|-------------------|--------|
-| **Normattiva.it** | DB legislativo | Scraping HTML strutturato | Testo ufficiale leggi italiane |
+| **Normattiva.it** | DB legislativo | ✅ **API Open Data** (AKN XML) | Testo ufficiale leggi italiane — **7/8 fonti caricate** |
 | **Brocardi.it** | Enciclopedia legale | Scraping + RSS | Commenti, massime, correlazioni |
 | **ItalGiure** | Giurisprudenza | Scraping (accesso limitato) | Sentenze Cassazione |
-| **EUR-Lex** | Normativa EU | API REST ufficiale | Regolamenti e direttive EU |
+| **EUR-Lex** | Normativa EU | ✅ **API Cellar REST** (HTML) | Regolamenti e direttive EU — **6/6 fonti caricate** |
 | **Camera.it / Senato.it** | Lavori parlamentari | RSS + Scraping | DDL e iter legislativi |
 | **Agenzia Entrate** | Fiscale | Scraping + API parziali | Risoluzioni, circolari |
 | **CONSOB** | Finanziario | Scraping | Delibere, regolamenti |
@@ -1132,17 +1163,24 @@ create policy "Service role manages runs" on public.integration_runs
 [ ] Refactor dei 4 agenti esistenti sulla nuova interfaccia
 ```
 
-### Fase 5 — Connect Agent (2-3 settimane) — ❌ NON INIZIATA
+### Fase 5 — Data Connector (2-3 settimane) — ⚠️ ~70% COMPLETATA
 
 ```
-[ ] Implementare Connect Agent base
-[ ] Schema DB integration_catalog
-[ ] Discovery engine con strategia gerarchica
-[ ] Primo adapter: Normattiva.it (scraping strutturato)
-[ ] Secondo adapter: EUR-Lex (API REST)
-[ ] Terzo adapter: Brocardi.it (scraping + RSS)
+[x] Pipeline CONNECT→MODEL→LOAD con orchestratore e CLI
+[x] Schema DB connector_sync_log (migration 006)
+[x] Connettore Normattiva Open Data API (collection download + search)
+[x] Connettore EUR-Lex Cellar REST
+[x] Parser AKN (Akoma Ntoso XML — formato standard + attachment Regi Decreti)
+[x] Parser HTML (EUR-Lex italiano)
+[x] Model verifica schema legal_articles
+[x] Store con adattatore per ingestArticles() + Voyage AI embeddings
+[x] Validatore articoli
+[x] Caricamento 13/14 fonti (~5600 articoli con embeddings)
+[x] Cron API per delta updates
+[ ] Statuto Lavoratori (L. 300/1970) — bloccato da API async Normattiva
+[ ] Delta updates testati end-to-end
+[ ] Discovery engine AI autonomo (Connect Agent propriamente detto)
 [ ] Dashboard admin per gestione catalogo integrazioni
-[ ] API per trigger manuale discovery
 ```
 
 ### Fase 6 — Scalabilità (3-4 settimane) — ❌ NON INIZIATA
@@ -1207,6 +1245,7 @@ riutilizzabili per i futuri team di agenti:
 | `lib/vector-store.ts` | ✅ Alta | RAG pipeline generica |
 | `lib/agents/orchestrator.ts` | ⚠️ Media | Pipeline hardcoded, va reso configurabile (Fase 4) |
 | Agent pipeline pattern | ✅ Alta | Classifier → Retrieval → Analyzer → Investigator → Advisor |
+| `lib/staff/data-connector/` | ✅ Alta | Pipeline CONNECT→MODEL→LOAD generica, connettori pluggabili |
 | SSE streaming pattern | ✅ Alta | Progress real-time riutilizzabile |
 | Supabase setup (auth + RLS) | ✅ Alta | Pattern replicabile |
 
@@ -1220,5 +1259,5 @@ riutilizzabili per i futuri team di agenti:
 ---
 
 *Documento di architettura — controlla.me v1.1*
-*Verificato contro il codebase il 2026-02-24*
+*Verificato contro il codebase il 2026-02-26*
 *Per domande o aggiornamenti: aggiornare questo file nel branch di sviluppo.*

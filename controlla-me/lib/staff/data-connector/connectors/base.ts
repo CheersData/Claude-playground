@@ -1,5 +1,8 @@
 /**
  * BaseConnector — Classe astratta con logica condivisa: retry, rate limit, logging.
+ *
+ * NOTA: User-Agent browser obbligatorio per Normattiva (WAF del Poligrafico).
+ * Lo impostiamo su tutte le richieste per uniformita.
  */
 
 import type {
@@ -8,6 +11,10 @@ import type {
   FetchResult,
   DataSource,
 } from "../types";
+
+/** WAF Normattiva blocca richieste senza User-Agent browser */
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
 
 export abstract class BaseConnector<T = unknown>
   implements ConnectorInterface<T>
@@ -35,7 +42,16 @@ export abstract class BaseConnector<T = unknown>
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const response = await fetch(url, options);
+        const mergedHeaders = {
+          "User-Agent": BROWSER_UA,
+          ...Object.fromEntries(
+            new Headers(options?.headers ?? {}).entries()
+          ),
+        };
+        const response = await fetch(url, {
+          ...options,
+          headers: mergedHeaders,
+        });
         return response;
       } catch (err) {
         lastError = err as Error;
@@ -77,18 +93,19 @@ export abstract class BaseConnector<T = unknown>
 
   protected cleanText(text: string): string {
     return text
-      .replace(/&egrave;/gi, "e")
-      .replace(/&agrave;/gi, "a")
-      .replace(/&ograve;/gi, "o")
-      .replace(/&ugrave;/gi, "u")
-      .replace(/&igrave;/gi, "i")
-      .replace(/&Egrave;/gi, "E")
+      .replace(/&egrave;/gi, "è")
+      .replace(/&agrave;/gi, "à")
+      .replace(/&ograve;/gi, "ò")
+      .replace(/&ugrave;/gi, "ù")
+      .replace(/&igrave;/gi, "ì")
+      .replace(/&Egrave;/gi, "È")
       .replace(/&nbsp;/g, " ")
       .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&#039;/g, "'")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[ \t]+/g, " ")
       .trim();
