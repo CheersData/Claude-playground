@@ -23,6 +23,8 @@ export interface QuestionPrepResult {
   suggestedInstitutes: string[];
   /** Sezione target del codice (es. "Art. 1537-1541 c.c.") */
   targetArticles: string | null;
+  /** Tipo di domanda: "specific" (caso concreto) o "systematic" (tassonomia/rassegna) */
+  questionType: "specific" | "systematic";
   provider: string;
   durationMs: number;
 }
@@ -48,6 +50,7 @@ export async function prepareQuestion(
       legalAreas?: string[];
       suggestedInstitutes?: string[];
       targetArticles?: string | null;
+      questionType?: "specific" | "systematic";
     }>("question-prep", `Utente: "${question}"`, {
       systemPrompt: QUESTION_PREP_SYSTEM_PROMPT,
     });
@@ -59,12 +62,13 @@ export async function prepareQuestion(
       legalAreas: parsed.legalAreas ?? [],
       suggestedInstitutes: parsed.suggestedInstitutes ?? [],
       targetArticles: parsed.targetArticles ?? null,
+      questionType: parsed.questionType === "systematic" ? "systematic" : "specific",
       provider,
       durationMs: Date.now() - startTime,
     };
 
     console.log(
-      `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..."${result.mechanismQuery ? ` | mechanism: "${result.mechanismQuery.slice(0, 60)}..."` : ""} | institutes: [${result.suggestedInstitutes.join(", ")}] | target: ${result.targetArticles ?? "none"} | ${provider}${usedFallback ? " (fallback)" : ""} | ${result.durationMs}ms`
+      `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..."${result.mechanismQuery ? ` | mechanism: "${result.mechanismQuery.slice(0, 60)}..."` : ""} | institutes: [${result.suggestedInstitutes.join(", ")}] | type: ${result.questionType} | target: ${result.targetArticles ?? "none"} | ${provider}${usedFallback ? " (fallback)" : ""} | ${result.durationMs}ms`
     );
 
     return result;
@@ -81,6 +85,7 @@ export async function prepareQuestion(
       legalAreas: [],
       suggestedInstitutes: [],
       targetArticles: null,
+      questionType: "specific",
       provider: "none",
       durationMs: Date.now() - startTime,
     };

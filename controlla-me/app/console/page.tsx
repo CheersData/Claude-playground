@@ -5,6 +5,7 @@ import StudioShell from "@/components/console/StudioShell";
 import ConsoleHeader from "@/components/console/ConsoleHeader";
 import ConsoleInput from "@/components/console/ConsoleInput";
 import AgentOutput from "@/components/console/AgentOutput";
+import ReasoningGraph from "@/components/console/ReasoningGraph";
 import CorpusTreePanel from "@/components/console/CorpusTreePanel";
 import type {
   ConsoleAgentPhase,
@@ -433,6 +434,36 @@ export default function ConsolePage() {
             />
           );
         })}
+
+        {/* Reasoning Graph — shows institutes + articles as they're found */}
+        {leaderDecision?.route === "corpus-qa" && collectedContext.institutes.length > 0 && (() => {
+          // Determine graph phase based on pipeline state
+          const corpusAgentStatus = agentStatuses.get("corpus-agent")?.status;
+          const corpusSearchStatus = agentStatuses.get("corpus-search")?.status;
+          const graphPhase: "question-prep" | "corpus-search" | "corpus-agent" =
+            corpusAgentStatus === "done" || corpusAgentStatus === "running"
+              ? "corpus-agent"
+              : corpusSearchStatus === "done" || corpusSearchStatus === "running"
+                ? "corpus-search"
+                : "question-prep";
+
+          // Extract cited article refs from corpus-agent output
+          const corpusOutput = agentStatuses.get("corpus-agent")?.output;
+          const citedRefs: string[] =
+            corpusOutput?.citedArticles?.map(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (a: any) => a.reference
+            ) ?? [];
+
+          return (
+            <ReasoningGraph
+              institutes={collectedContext.institutes}
+              articles={collectedContext.articles}
+              citedRefs={citedRefs}
+              phase={graphPhase}
+            />
+          );
+        })()}
 
         {status === "done" && activeEvent?.status !== "done" && (
           <div className="text-xs text-[var(--pb-green)] py-2">

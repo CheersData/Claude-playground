@@ -221,9 +221,11 @@ async function runCorpusQA(
   sendAgent("question-prep", "done", {
     summary: prep.targetArticles
       ? `Target: ${prep.targetArticles}`
-      : prep.mechanismQuery
-        ? "Domanda riformulata (2 assi)"
-        : "Domanda riformulata",
+      : prep.questionType === "systematic"
+        ? "Domanda sistematica (tassonomia)"
+        : prep.mechanismQuery
+          ? "Domanda riformulata (2 assi)"
+          : "Domanda riformulata",
     timing: Date.now() - prepStart,
     modelInfo: getModelInfo("question-prep"),
     output: {
@@ -232,6 +234,7 @@ async function runCorpusQA(
       mechanismQuery: prep.mechanismQuery,
       suggestedInstitutes: prep.suggestedInstitutes,
       targetArticles: prep.targetArticles,
+      questionType: prep.questionType,
       keywords: prep.keywords,
     },
   });
@@ -256,8 +259,10 @@ async function runCorpusQA(
   );
 
   // Ricerca parallela su 2 assi: tema (legalQuery) + meccanismo (mechanismQuery)
+  // Systematic questions: fewer per institute (we have more institutes), specific: more per institute
+  const perInstituteLimit = prep.questionType === "systematic" ? 6 : 10;
   const institutePromises = normalizedInstitutes.map((inst) =>
-    getArticlesByInstitute(inst, 10)
+    getArticlesByInstitute(inst, perInstituteLimit)
   );
 
   // Primary search (tema) + secondary search (meccanismo) + knowledge
@@ -329,8 +334,9 @@ async function runCorpusQA(
     }
   }
 
-  // Limita a 15 articoli totali (aumentato da 12 per doppia ricerca)
-  const articles = allArticles.slice(0, 15);
+  // Systematic questions need more articles to cover the taxonomy
+  const articleLimit = prep.questionType === "systematic" ? 20 : 15;
+  const articles = allArticles.slice(0, articleLimit);
 
   const instituteCount = instituteResults.reduce((sum, batch) => sum + batch.length, 0);
   const mechanismCount = mechanismResults?.length ?? 0;
@@ -406,7 +412,10 @@ async function runCorpusQA(
   sendAgent("corpus-agent", "running", { modelInfo: getModelInfo("corpus-agent") });
   const llmStart = Date.now();
 
-  const llmPrompt = `CONTESTO NORMATIVO:\n${context}${investigatorContext}\n\nDOMANDA:\n${question}`;
+  const typeHint = prep.questionType === "systematic"
+    ? "\n\nTIPO DOMANDA: sistematica — struttura la risposta come tassonomia di casi (vedi istruzioni DOMANDE SISTEMATICHE)."
+    : "";
+  const llmPrompt = `CONTESTO NORMATIVO:\n${context}${investigatorContext}${typeHint}\n\nDOMANDA:\n${question}`;
 
   // Usa runAgent con fallback automatico (fix JSON parse)
   const { parsed, provider } = await runAgent<{

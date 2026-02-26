@@ -21,8 +21,26 @@ Formato richiesto:
   "keywords": ["termine_legale_1", "termine_legale_2"],
   "legalAreas": ["area_diritto_1", "area_diritto_2"],
   "suggestedInstitutes": ["istituto_1", "istituto_2"],
-  "targetArticles": "Art. 1537-1541 c.c."
+  "targetArticles": "Art. 1537-1541 c.c.",
+  "questionType": "specific"
 }
+
+TIPO DI DOMANDA (questionType):
+- "specific" (default): domanda su un caso concreto, un singolo istituto, una norma precisa
+- "systematic": domanda che chiede una TASSONOMIA, una lista di casi, un elenco di ipotesi
+
+RICONOSCI DOMANDE SISTEMATICHE quando contengono:
+- "in quali casi", "quando si applica", "quali sono le ipotesi di", "quanti tipi di"
+- "elenca", "tutti i casi in cui", "quali eccezioni", "quali effetti produce"
+- "che conseguenze ha", "cosa succede quando", "che differenza c'è tra X e Y"
+- Qualsiasi domanda che richiede una RASSEGNA di più norme sparse nel codice
+
+PER DOMANDE SISTEMATICHE:
+- suggestedInstitutes: usa fino a 8 istituti (non 5) per coprire tutte le aree rilevanti
+- Includi istituti da AREE DIVERSE del codice (non solo dal titolo principale)
+- mechanismQuery è quasi sempre necessario
+- targetArticles = null (non c'è una sezione singola)
+- Aggiungi istituti per eccezioni/applicazioni trasversali (es. per nullità: anche lavoro, famiglia, proprietà)
 
 LOGICA A DUE ASSI:
 Ogni domanda giuridica ha (almeno) due dimensioni:
@@ -63,8 +81,9 @@ ISTITUTI DISPONIBILI NEL CORPUS (usa ESATTAMENTE questi nomi):
 REGOLE:
 - legalQuery: frase con i termini giuridici del TEMA. Il corpus legislativo userebbe questi termini.
 - mechanismQuery: frase con i termini del MECCANISMO giuridico trasversale. null se la domanda è semplice.
-- suggestedInstitutes: MASSIMO 5 istituti. Includi SEMPRE istituti per ENTRAMBI gli assi (tema + meccanismo).
-- targetArticles: indica la sezione del codice dove cercare. Se non sei sicuro, null.
+- suggestedInstitutes: max 5 istituti per domande specifiche, max 8 per domande sistematiche. Includi SEMPRE istituti per ENTRAMBI gli assi (tema + meccanismo).
+- targetArticles: indica la sezione del codice dove cercare. Se non sei sicuro o se sistematica, null.
+- questionType: "specific" o "systematic" (vedi sopra).
 
 ATTENZIONE — ERRORI COMUNI DA EVITARE:
 - "tolleranza 1/20" o "eccedenza/deficienza misura" → vendita_a_corpo (Art. 1538 c.c.), NON appalto
@@ -129,6 +148,30 @@ ESEMPI:
   → mechanismQuery: "clausole vessatorie limitazione responsabilità approvazione specifica art 1341 comma 2 nullità art 1229"
   → suggestedInstitutes: ["clausole_vessatorie", "contratto", "nullità"]
   → targetArticles: "Art. 1229 c.c., Art. 1341-1342 c.c."
+  → questionType: "specific"
+
+ESEMPIO DOMANDA SISTEMATICA:
+
+- "in quali casi un contratto nullo produce comunque effetti?"
+  → legalQuery: "contratto nullo effetti nullità prestazione di fatto restituzione"
+  → mechanismQuery: "nullità contratto eccezioni effetti ripetizione indebito prestazione fatto trascrizione domanda nullità matrimonio putativo"
+  → suggestedInstitutes: ["nullità", "contratto", "lavoro_autonomo", "obbligazione", "prescrizione", "vendita_immobiliare", "trascrizione"]
+  → targetArticles: null
+  → questionType: "systematic"
+
+- "quali sono le garanzie per chi compra un immobile?"
+  → legalQuery: "garanzie acquirente immobile vendita vizi evizione ipoteca trascrizione"
+  → mechanismQuery: "garanzia evizione vizi cosa venduta ipoteca trascrizione priorità acquisto immobiliare tutela acquirente"
+  → suggestedInstitutes: ["vendita_immobiliare", "garanzia_evizione", "vizi_cosa_venduta", "ipoteca", "trascrizione", "vendita", "caparra_confirmatoria"]
+  → targetArticles: null
+  → questionType: "systematic"
+
+- "che differenza c'è tra caparra confirmatoria e penitenziale?"
+  → legalQuery: "caparra confirmatoria penitenziale differenza funzione"
+  → mechanismQuery: "caparra inadempimento recesso risarcimento danno restituzione doppio"
+  → suggestedInstitutes: ["caparra_confirmatoria", "caparra_penitenziale", "contratto", "inadempimento", "risoluzione"]
+  → targetArticles: "Art. 1385-1386 c.c."
+  → questionType: "systematic"
 
 Se la domanda è già in linguaggio giuridico, restituiscila arricchita con sinonimi e termini correlati.
 Non inventare terminologia. Usa solo termini realmente presenti nel diritto italiano.
