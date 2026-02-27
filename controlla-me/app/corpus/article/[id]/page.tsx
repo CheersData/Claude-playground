@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Loader2, Tag } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -18,6 +18,7 @@ interface ArticleDetail {
   article_text: string;
   hierarchy: Record<string, string>;
   keywords: string[];
+  related_institutes: string[];
   url: string | null;
 }
 
@@ -80,7 +81,7 @@ export default function ArticlePage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="bg-white border border-border rounded-2xl p-6 md:p-8">
+              <div className="bg-white border border-border rounded-2xl p-6 md:p-8 min-h-[50vh]">
                 <div className="mb-6">
                   <LegalBreadcrumb
                     hierarchy={article.hierarchy}
@@ -96,8 +97,9 @@ export default function ArticlePage() {
                   )}
                 </div>
 
+                {/* Keywords */}
                 {article.keywords && article.keywords.length > 0 && (
-                  <div className="mb-6 flex flex-wrap gap-2">
+                  <div className="mb-4 flex flex-wrap gap-2">
                     {article.keywords.map((kw) => (
                       <span
                         key={kw}
@@ -109,7 +111,24 @@ export default function ArticlePage() {
                   </div>
                 )}
 
-                <div className="bg-background-secondary/50 rounded-xl border border-border/50 p-5 md:p-6">
+                {/* Istituti giuridici */}
+                {article.related_institutes && article.related_institutes.length > 0 && (
+                  <div className="mb-6 flex flex-wrap gap-2">
+                    {article.related_institutes.map((inst) => (
+                      <Link
+                        key={inst}
+                        href={`/corpus?tab=istituti&institute=${encodeURIComponent(inst)}`}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-[#7C3AED]/8 text-[#7C3AED] border border-[#7C3AED]/15 hover:bg-[#7C3AED]/15 transition-colors"
+                      >
+                        <Tag className="w-3 h-3" />
+                        {inst.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {/* Testo completo dell'articolo */}
+                <div className="bg-background-secondary/50 rounded-xl border border-border/50 p-5 md:p-6 min-h-[40vh] max-h-[70vh] overflow-y-auto">
                   <p className="text-[11px] font-bold tracking-[2px] uppercase text-foreground-tertiary mb-3">
                     Testo completo
                   </p>

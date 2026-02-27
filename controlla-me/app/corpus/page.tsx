@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -13,6 +14,7 @@ import {
   ArrowLeft,
   Loader2,
   MessageCircle,
+  Tag,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -59,12 +61,42 @@ interface ArticleDetail {
   article_text: string;
   hierarchy: Record<string, string>;
   keywords: string[];
+  related_institutes: string[];
   url: string | null;
+}
+
+interface InstituteInfo {
+  name: string;
+  label: string;
+  count: number;
+}
+
+interface InstituteArticle {
+  id: string;
+  article_number: string;
+  article_title: string | null;
+  source_name: string;
+  hierarchy: Record<string, string>;
 }
 
 // ─── Main Page ───
 
 export default function CorpusPage() {
+  return (
+    <Suspense>
+      <CorpusPageContent />
+    </Suspense>
+  );
+}
+
+function CorpusPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const initialTab = searchParams.get("tab") === "istituti" ? "istituti" : "fonti";
+  const initialInstitute = searchParams.get("institute") || null;
+
+  const [activeTab, setActiveTab] = useState<"fonti" | "istituti">(initialTab);
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [selectedSource, setSelectedSource] = useState<SourceHierarchy | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<ArticleDetail | null>(null);
@@ -75,6 +107,13 @@ export default function CorpusPage() {
   const [loadingSource, setLoadingSource] = useState(false);
   const [loadingArticle, setLoadingArticle] = useState(false);
 
+  // Institute tab state
+  const [institutes, setInstitutes] = useState<InstituteInfo[]>([]);
+  const [loadingInstitutes, setLoadingInstitutes] = useState(false);
+  const [selectedInstitute, setSelectedInstitute] = useState<string | null>(initialInstitute);
+  const [instituteArticles, setInstituteArticles] = useState<InstituteArticle[]>([]);
+  const [loadingInstituteArticles, setLoadingInstituteArticles] = useState(false);
+
   // Fetch all sources on mount
   useEffect(() => {
     fetch("/api/corpus/hierarchy")
@@ -84,6 +123,44 @@ export default function CorpusPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  // Fetch institutes when tab is "istituti"
+  useEffect(() => {
+    if (activeTab !== "istituti" || institutes.length > 0) return;
+    setLoadingInstitutes(true);
+    fetch("/api/corpus/institutes")
+      .then((r) => r.json())
+      .then((data) => {
+        setInstitutes(data.institutes || []);
+        setLoadingInstitutes(false);
+      })
+      .catch(() => setLoadingInstitutes(false));
+  }, [activeTab, institutes.length]);
+
+  // Fetch articles when an institute is selected
+  useEffect(() => {
+    if (!selectedInstitute) {
+      setInstituteArticles([]);
+      return;
+    }
+    setLoadingInstituteArticles(true);
+    fetch(`/api/corpus/institutes?institute=${encodeURIComponent(selectedInstitute)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setInstituteArticles(data.articles || []);
+        setLoadingInstituteArticles(false);
+      })
+      .catch(() => setLoadingInstituteArticles(false));
+  }, [selectedInstitute]);
+
+  // Deep link: auto-select institute from URL params on first load
+  useEffect(() => {
+    if (initialTab === "istituti" && initialInstitute) {
+      setActiveTab("istituti");
+      setSelectedInstitute(initialInstitute);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSource = useCallback(async (sourceId: string) => {
@@ -138,6 +215,28 @@ export default function CorpusPage() {
       return next;
     });
   }, []);
+
+  const switchTab = useCallback((tab: "fonti" | "istituti") => {
+    setActiveTab(tab);
+    setSelectedSource(null);
+    setSelectedArticle(null);
+    setSearchResults(null);
+    setSearchQuery("");
+    setSelectedInstitute(null);
+    const url = tab === "istituti" ? "/corpus?tab=istituti" : "/corpus";
+    router.replace(url, { scroll: false });
+  }, [router]);
+
+  const selectInstitute = useCallback((name: string) => {
+    setSelectedInstitute(name);
+    router.replace(`/corpus?tab=istituti&institute=${encodeURIComponent(name)}`, { scroll: false });
+  }, [router]);
+
+  const backToInstitutes = useCallback(() => {
+    setSelectedInstitute(null);
+    setSelectedArticle(null);
+    router.replace("/corpus?tab=istituti", { scroll: false });
+  }, [router]);
 
   const backToSources = useCallback(() => {
     setSelectedSource(null);
@@ -208,8 +307,38 @@ export default function CorpusPage() {
             </div>
           </div>
 
+          {/* Tab bar */}
+          <div className="mb-8 flex gap-1 bg-background-secondary/50 border border-border rounded-xl p-1 w-fit">
+            <button
+              onClick={() => switchTab("fonti")}
+              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+                activeTab === "fonti"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-foreground-secondary hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Per fonte
+              </span>
+            </button>
+            <button
+              onClick={() => switchTab("istituti")}
+              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+                activeTab === "istituti"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-foreground-secondary hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Per istituto
+              </span>
+            </button>
+          </div>
+
           {/* Breadcrumb nav */}
-          {(selectedSource || selectedArticle) && (
+          {(selectedSource || selectedArticle) && activeTab === "fonti" && (
             <div className="mb-6 flex items-center gap-2 text-sm text-foreground-secondary">
               <button
                 onClick={backToSources}
@@ -310,7 +439,7 @@ export default function CorpusPage() {
               </motion.div>
             )}
 
-            {/* Article Detail */}
+            {/* Article Detail (inline, from either tab) */}
             {selectedArticle && searchResults === null && (
               <motion.div
                 key="article"
@@ -319,14 +448,14 @@ export default function CorpusPage() {
                 exit={{ opacity: 0, y: -10 }}
               >
                 <button
-                  onClick={backToTree}
+                  onClick={activeTab === "istituti" ? backToInstitutes : backToTree}
                   className="flex items-center gap-2 text-sm text-foreground-secondary hover:text-foreground mb-4 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Torna all&apos;indice
+                  {activeTab === "istituti" ? "Torna agli istituti" : "Torna all\u0027indice"}
                 </button>
 
-                <div className="bg-white border border-border rounded-2xl p-6 md:p-8">
+                <div className="bg-white border border-border rounded-2xl p-6 md:p-8 min-h-[50vh]">
                   <div className="mb-6">
                     <LegalBreadcrumb
                       hierarchy={selectedArticle.hierarchy}
@@ -342,9 +471,9 @@ export default function CorpusPage() {
                     )}
                   </div>
 
-                  {/* Keywords come tag */}
+                  {/* Keywords */}
                   {selectedArticle.keywords && selectedArticle.keywords.length > 0 && (
-                    <div className="mb-6 flex flex-wrap gap-2">
+                    <div className="mb-4 flex flex-wrap gap-2">
                       {selectedArticle.keywords.map((kw) => (
                         <span
                           key={kw}
@@ -356,8 +485,28 @@ export default function CorpusPage() {
                     </div>
                   )}
 
+                  {/* Istituti giuridici */}
+                  {selectedArticle.related_institutes && selectedArticle.related_institutes.length > 0 && (
+                    <div className="mb-6 flex flex-wrap gap-2">
+                      {selectedArticle.related_institutes.map((inst) => (
+                        <button
+                          key={inst}
+                          onClick={() => {
+                            setSelectedArticle(null);
+                            setActiveTab("istituti");
+                            selectInstitute(inst);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-[#7C3AED]/8 text-[#7C3AED] border border-[#7C3AED]/15 hover:bg-[#7C3AED]/15 transition-colors"
+                        >
+                          <Tag className="w-3 h-3" />
+                          {inst.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Testo completo dell'articolo */}
-                  <div className="bg-background-secondary/50 rounded-xl border border-border/50 p-5 md:p-6">
+                  <div className="bg-background-secondary/50 rounded-xl border border-border/50 p-5 md:p-6 min-h-[40vh] max-h-[70vh] overflow-y-auto">
                     <p className="text-[11px] font-bold tracking-[2px] uppercase text-foreground-tertiary mb-3">
                       Testo completo
                     </p>
@@ -385,8 +534,11 @@ export default function CorpusPage() {
               </motion.div>
             )}
 
+            {/* ═══ TAB: Per fonte ═══ */}
+
             {/* Source Tree */}
-            {selectedSource &&
+            {activeTab === "fonti" &&
+              selectedSource &&
               !selectedArticle &&
               searchResults === null &&
               !loadingSource && (
@@ -449,7 +601,7 @@ export default function CorpusPage() {
             )}
 
             {/* Sources List */}
-            {!selectedSource && !loading && searchResults === null && !loadingSource && (
+            {activeTab === "fonti" && !selectedSource && !loading && searchResults === null && !loadingSource && (
               <motion.div
                 key="sources"
                 initial={{ opacity: 0, y: 10 }}
@@ -510,6 +662,124 @@ export default function CorpusPage() {
                     </pre>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* ═══ TAB: Per istituto ═══ */}
+
+            {/* Institutes Grid */}
+            {activeTab === "istituti" && !selectedArticle && !selectedInstitute && !loading && searchResults === null && (
+              <motion.div
+                key="institutes"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                {loadingInstitutes ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 text-[#A78BFA] animate-spin" />
+                  </div>
+                ) : institutes.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {institutes.map((inst) => (
+                      <button
+                        key={inst.name}
+                        onClick={() => selectInstitute(inst.name)}
+                        className="text-left p-4 bg-white border border-border rounded-xl hover:border-[#7C3AED]/30 hover:shadow-sm hover:-translate-y-0.5 transition-all group"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Tag className="w-4 h-4 text-[#7C3AED] shrink-0" />
+                          <span className="font-semibold text-sm group-hover:text-[#7C3AED] transition-colors line-clamp-2">
+                            {inst.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-foreground-tertiary">
+                          {inst.count} {inst.count === 1 ? "articolo" : "articoli"}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <Tag className="w-16 h-16 text-foreground-tertiary mx-auto mb-4 opacity-30" />
+                    <h3 className="text-xl font-semibold mb-2">Nessun istituto</h3>
+                    <p className="text-foreground-secondary max-w-md mx-auto">
+                      Gli istituti giuridici vengono popolati tramite il tagging degli articoli.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Institute Articles */}
+            {activeTab === "istituti" && selectedInstitute && !selectedArticle && searchResults === null && (
+              <motion.div
+                key="institute-articles"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <button
+                  onClick={backToInstitutes}
+                  className="flex items-center gap-2 text-sm text-foreground-secondary hover:text-foreground mb-4 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Tutti gli istituti
+                </button>
+
+                <div className="bg-white border border-border rounded-2xl overflow-hidden">
+                  <div className="p-6 border-b border-border">
+                    <div className="flex items-center gap-3">
+                      <Tag className="w-5 h-5 text-[#7C3AED]" />
+                      <div>
+                        <h2 className="text-xl font-serif font-bold">
+                          {selectedInstitute.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
+                        </h2>
+                        {!loadingInstituteArticles && (
+                          <p className="text-sm text-foreground-secondary mt-1">
+                            {instituteArticles.length} {instituteArticles.length === 1 ? "articolo" : "articoli"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {loadingInstituteArticles ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-6 h-6 text-[#A78BFA] animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/50">
+                      {instituteArticles.map((art) => (
+                        <button
+                          key={art.id}
+                          onClick={() => loadArticle(art.id)}
+                          className="w-full text-left flex items-center gap-3 py-3 px-6 hover:bg-[#A78BFA]/[0.03] transition-colors"
+                        >
+                          <FileText className="w-4 h-4 text-[#A78BFA] shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-medium text-sm">
+                              Art. {art.article_number}
+                            </span>
+                            {art.article_title && (
+                              <span className="text-foreground-secondary text-sm ml-1">
+                                — {art.article_title}
+                              </span>
+                            )}
+                            <p className="text-xs text-foreground-tertiary mt-0.5">
+                              {art.source_name}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                      {instituteArticles.length === 0 && (
+                        <p className="text-center text-foreground-tertiary py-8">
+                          Nessun articolo per questo istituto
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

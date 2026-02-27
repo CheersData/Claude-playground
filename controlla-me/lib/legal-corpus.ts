@@ -54,12 +54,13 @@ export async function getArticleById(
   article_text: string;
   hierarchy: Record<string, string>;
   keywords: string[];
+  related_institutes: string[];
   url: string | null;
 } | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("legal_articles")
-    .select("id, law_source, article_reference, article_title, article_text, hierarchy, keywords, source_url")
+    .select("id, law_source, article_reference, article_title, article_text, hierarchy, keywords, related_institutes, source_url")
     .eq("id", id)
     .single();
 
@@ -76,6 +77,7 @@ export async function getArticleById(
     article_text: string;
     hierarchy: Record<string, string> | null;
     keywords: string[] | null;
+    related_institutes: string[] | null;
     source_url: string | null;
   };
 
@@ -88,6 +90,7 @@ export async function getArticleById(
     article_text: r.article_text,
     hierarchy: r.hierarchy ?? {},
     keywords: r.keywords ?? [],
+    related_institutes: r.related_institutes ?? [],
     url: r.source_url,
   };
 }
@@ -138,6 +141,39 @@ export async function getArticlesByInstitute(
   }
 
   return (data ?? []).map(mapRowToArticle);
+}
+
+/**
+ * Ricerca per istituto RANKED: filtra per istituto ma ordina per similarità alla query.
+ * Riusa match_legal_articles con filter_institutes e un embedding pre-calcolato.
+ *
+ * A differenza di getArticlesByInstitute (ordine alfabetico), qui i primi N risultati
+ * sono quelli semanticamente più vicini alla domanda. Risolve il problema degli istituti
+ * grandi (78+ articoli) dove quelli rilevanti finivano tagliati dal limit.
+ */
+export async function searchArticlesByInstitute(
+  institute: string,
+  queryEmbedding: number[],
+  limit: number = 30
+): Promise<LegalArticleSearchResult[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("match_legal_articles", {
+    query_embedding: JSON.stringify(queryEmbedding),
+    filter_law_source: null,
+    filter_institutes: [institute],
+    match_threshold: 0.3,
+    match_count: limit,
+  });
+
+  if (error) {
+    console.error(`[CORPUS] Errore ricerca ranked per istituto "${institute}": ${error.message}`);
+    return [];
+  }
+
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    ...mapRowToArticle(row),
+    similarity: row.similarity as number,
+  }));
 }
 
 // ─── Query: Ricerca semantica ───
@@ -442,6 +478,125 @@ export async function getCorpusStats(): Promise<{
     bySource,
     hasEmbeddings: hasEmbeddings ?? 0,
   };
+}
+
+// ─── Query: istituti giuridici (per API /corpus/institutes) ───
+
+export interface InstituteInfo {
+  name: string;
+  label: string;
+  count: number;
+}
+
+/**
+ * Lista tutti gli istituti giuridici distinti con conteggio articoli.
+ * Usa unnest(related_institutes) per espandere gli array.
+ */
+export async function getDistinctInstitutes(): Promise<InstituteInfo[]> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin.rpc("get_distinct_institutes");
+
+  if (error) {
+    console.error(`[CORPUS] Errore getDistinctInstitutes: ${error.message}`);
+    // Fallback: query manuale paginata
+    return getDistinctInstitutesFallback();
+  }
+
+  return ((data as Array<{ institute: string; count: number }>) ?? []).map((row) => ({
+    name: row.institute,
+    label: formatInstituteLabel(row.institute),
+    count: row.count,
+  }));
+}
+
+/**
+ * Fallback per getDistinctInstitutes se la RPC non esiste.
+ * Legge tutti gli articoli e aggrega lato client.
+ */
+async function getDistinctInstitutesFallback(): Promise<InstituteInfo[]> {
+  const admin = createAdminClient();
+  const counts: Record<string, number> = {};
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data: page } = await admin
+      .from("legal_articles")
+      .select("related_institutes")
+      .not("related_institutes", "eq", "{}")
+      .range(offset, offset + pageSize - 1);
+    if (!page || page.length === 0) break;
+    for (const row of page) {
+      const institutes = (row as { related_institutes: string[] | null }).related_institutes;
+      if (institutes) {
+        for (const inst of institutes) {
+          counts[inst] = (counts[inst] ?? 0) + 1;
+        }
+      }
+    }
+    offset += page.length;
+    if (page.length < pageSize) break;
+  }
+
+  return Object.entries(counts)
+    .map(([name, count]) => ({
+      name,
+      label: formatInstituteLabel(name),
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Recupera articoli per un dato istituto (per la UI /corpus).
+ * Restituisce info leggere (no testo completo).
+ */
+export async function getArticlesByInstituteForUI(
+  institute: string,
+  limit: number = 100
+): Promise<Array<{
+  id: string;
+  article_number: string;
+  article_title: string | null;
+  source_name: string;
+  hierarchy: Record<string, string>;
+}>> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("legal_articles")
+    .select("id, article_reference, article_title, law_source, hierarchy")
+    .contains("related_institutes", [institute])
+    .order("law_source")
+    .order("article_reference")
+    .limit(limit);
+
+  if (error) {
+    console.error(`[CORPUS] Errore getArticlesByInstituteForUI("${institute}"): ${error.message}`);
+    return [];
+  }
+
+  return ((data as Array<{
+    id: string;
+    article_reference: string;
+    article_title: string | null;
+    law_source: string;
+    hierarchy: Record<string, string> | null;
+  }>) ?? []).map((r) => ({
+    id: r.id,
+    article_number: r.article_reference,
+    article_title: r.article_title,
+    source_name: r.law_source,
+    hierarchy: r.hierarchy ?? {},
+  }));
+}
+
+/**
+ * Formatta nome istituto: vendita_a_corpo → Vendita a corpo
+ */
+export function formatInstituteLabel(name: string): string {
+  const s = name.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // ─── Query: fonti e gerarchia (per API /corpus/hierarchy) ───
