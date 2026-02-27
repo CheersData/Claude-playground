@@ -120,6 +120,7 @@ ATTENZIONE — ERRORI COMUNI DA EVITARE:
 - "limitazione responsabilità" o "esonero responsabilità" → clausole_vessatorie (Art. 1341 comma 2 c.c.)
 - "doppia firma" o "approvazione specifica per iscritto" → clausole_vessatorie
 - "rinnovo automatico locazione" → rinnovo_locazione + L. 431/1998
+- LOCAZIONE — obblighi_locatore vs obblighi_conduttore: se la domanda riguarda DANNI causati dall'inquilino, restituzione immobile deteriorato, manutenzione a carico del conduttore → obblighi_conduttore (Art. 1590 c.c.). Se riguarda riparazioni straordinarie, consegna immobile idoneo, garanzia uso pacifico → obblighi_locatore (Art. 1575-1577 c.c.). "Inquilino ha rovinato" = obblighi_conduttore, NON obblighi_locatore.
 
 QUANDO USARE mechanismQuery (OBBLIGATORIO in questi casi):
 - Clausole in contraddizione → mechanismQuery: "interpretazione del contratto clausole contraddittorie criteri ermeneutici art 1362 1363 1367"

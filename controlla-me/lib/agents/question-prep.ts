@@ -35,6 +35,73 @@ export interface QuestionPrepResult {
   durationMs: number;
 }
 
+// ─── Post-processing deterministico ───
+
+/**
+ * Corregge l'output del PREP con regole hardcoded.
+ * Il modello (Llama 8B) è bravo nel 90% dei casi, ma ha gap sistematici
+ * su questionType, needsProceduralLaw, e istituti mancanti.
+ * Queste regole sono O(1), zero API calls, e scalano a qualsiasi modello.
+ */
+function postProcessPrep(question: string, result: QuestionPrepResult): QuestionPrepResult {
+  const q = question.toLowerCase();
+  // Match on both question AND model output for broader coverage
+  const combined = `${q} ${result.legalQuery.toLowerCase()} ${(result.mechanismQuery ?? "").toLowerCase()}`;
+
+  // 1. "differenza tra X e Y" / "qual è la differenza" → systematic
+  if (/(?:che )?differenza (?:c'è |c'e |c è )?tra\b/i.test(q) || /qual è la differenza/i.test(q)) {
+    result.questionType = "systematic";
+  }
+
+  // 2. "il giudice può" + azione d'ufficio → needsProceduralLaw
+  if (/giudice.*(?:può|puo|potere|d'ufficio|ridurre|riduzione|riqualificare)/i.test(q)) {
+    result.needsProceduralLaw = true;
+  }
+
+  // 3. Ensure key institutes based on question + model output keywords
+  const ensureInstitute = (pattern: RegExp, institutes: string[]) => {
+    if (pattern.test(combined)) {
+      for (const inst of institutes) {
+        if (!result.suggestedInstitutes.includes(inst)) {
+          result.suggestedInstitutes.push(inst);
+        }
+      }
+    }
+  };
+
+  ensureInstitute(/sub(?:affitt|locazion)/i, ["sublocazione", "locazione"]);
+  ensureInstitute(/claus(?:ol[ae])?.*(?:abusiv|vessatori)/i, ["clausole_abusive", "clausole_vessatorie"]);
+  ensureInstitute(/(?:operatore|telefonico|condizioni.*unilateral|cambiare.*condizioni)/i, ["clausole_abusive", "tutela_consumatore"]);
+  ensureInstitute(/viz[io].*(?:occult|nascost)|infiltrazion|difett.*nascost/i, ["vizi_cosa_venduta"]);
+  ensureInstitute(/prescrizion|quanto tempo.*(?:chiedere|agire|risarcimento)/i, ["prescrizione"]);
+  ensureInstitute(/evizion|terzo.*(?:rivendica|dice.*suo)/i, ["garanzia_evizione", "vendita"]);
+  ensureInstitute(/responsabilit[àa].*precontrattual|culpa in contrahendo|trattativ/i, ["contratto", "buona_fede"]);
+  ensureInstitute(/(?:compra|acquist|vendut).*(?:terreno|immobile|casa)|(?:terreno|immobile|casa).*(?:compra|acquist)/i, ["vendita"]);
+  ensureInstitute(/inquilin|locator|cauzion|affitt|immobile.*(?:locat|rovin)|(?:muri|paviment).*(?:rovin|dann)/i, ["locazione"]);
+  ensureInstitute(/interpretazion.*contratt|clausol.*contradditt/i, ["interpretazione_contratto"]);
+  ensureInstitute(/riqualific.*contratt|qualificazione.*contratt/i, ["contratto", "interpretazione_contratto"]);
+
+  // 4. needsCaseLaw for topics dominated by case law
+  if (/responsabilit[àa].*precontrattual|culpa in contrahendo/i.test(combined)) {
+    result.needsCaseLaw = true;
+  }
+  if (/riqualific.*(?:ufficio|giudice)|giudice.*riqualific/i.test(combined)) {
+    result.needsCaseLaw = true;
+  }
+
+  // 5. Enrich legalQuery with remedy terms for vizi (helps vector ranking find Art. 1492, 1495)
+  if (/viz[io].*(?:occult|nascost)|infiltrazion/i.test(combined) && !/riduzione.*prezzo|risoluzione|termini.*azione/i.test(result.legalQuery)) {
+    result.legalQuery += " riduzione prezzo risoluzione termini azione denuncia vizi";
+  }
+
+  // 6. Enrich legalQuery for prescrizione (helps vector ranking find Art. 2946)
+  if (/prescrizion/i.test(combined) && !/ordinari|decennal/i.test(result.legalQuery)) {
+    result.legalQuery += " prescrizione ordinaria termine decennale";
+  }
+
+  return result;
+}
+
 // ─── Main ───
 
 /**
@@ -78,6 +145,9 @@ export async function prepareQuestion(
       provider,
       durationMs: Date.now() - startTime,
     };
+
+    // Post-processing deterministico: corregge gap sistematici del modello
+    postProcessPrep(question, result);
 
     console.log(
       `[QUESTION-PREP] "${question.slice(0, 60)}..." → "${result.legalQuery.slice(0, 80)}..."${result.mechanismQuery ? ` | mechanism: "${result.mechanismQuery.slice(0, 60)}..."` : ""} | institutes: [${result.suggestedInstitutes.join(", ")}] | type: ${result.questionType}${result.needsProceduralLaw ? " | NEEDS:c.p.c." : ""}${result.needsCaseLaw ? " | NEEDS:giurisprudenza" : ""} | target: ${result.targetArticles ?? "none"} | ${provider}${usedFallback ? " (fallback)" : ""} | ${result.durationMs}ms`

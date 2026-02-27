@@ -4,10 +4,10 @@ import { runLeaderAgent } from "@/lib/agents/leader";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
 import { prepareQuestion } from "@/lib/agents/question-prep";
 import { formatArticlesForContext } from "@/lib/agents/corpus-agent";
-import { searchArticles, getArticlesByInstitute } from "@/lib/legal-corpus";
+import { searchArticles, searchArticlesByInstitute } from "@/lib/legal-corpus";
 import { searchLegalKnowledge } from "@/lib/vector-store";
-import type { LegalArticle } from "@/lib/legal-corpus";
-import { isVectorDBEnabled } from "@/lib/embeddings";
+import { mergeArticleResults } from "@/lib/article-merge";
+import { isVectorDBEnabled, generateEmbedding } from "@/lib/embeddings";
 import { runAgent } from "@/lib/ai-sdk/agent-runner";
 import { runDeepSearch } from "@/lib/agents/investigator";
 import { CORPUS_AGENT_SYSTEM_PROMPT } from "@/lib/prompts/corpus-agent";
@@ -266,15 +266,18 @@ async function runCorpusQA(
     inst.trim().replace(/\s+/g, "_").toLowerCase()
   );
 
-  // Ricerca parallela su 2 assi: tema (legalQuery) + meccanismo (mechanismQuery)
-  // Systematic questions: fewer per institute (we have more institutes), specific: more per institute
-  const perInstituteLimit = prep.questionType === "systematic" ? 6 : 10;
-  const institutePromises = normalizedInstitutes.map((inst) =>
-    getArticlesByInstitute(inst, perInstituteLimit)
-  );
+  // Genera embedding della query una sola volta — usato per ranking vettoriale per istituto
+  const queryEmbedding = await generateEmbedding(prep.legalQuery, "query");
 
-  // Primary search (tema) + secondary search (meccanismo) + knowledge
-  const searchPromises: Promise<Array<LegalArticle & { similarity: number }>>[] = [
+  // Ricerca parallela: istituti ranked + semantic primary + mechanism + knowledge
+  const perInstituteLimit = prep.questionType === "systematic" ? 35 : 30;
+  const institutePromises = queryEmbedding
+    ? normalizedInstitutes.map((inst) =>
+        searchArticlesByInstitute(inst, queryEmbedding, perInstituteLimit)
+      )
+    : [];
+
+  const searchPromises = [
     searchArticles(prep.legalQuery, {
       threshold: 0.4,
       limit: 8,
@@ -282,72 +285,27 @@ async function runCorpusQA(
         ? normalizedInstitutes
         : undefined,
     }),
-  ];
-
-  // Secondary axis: search for legal mechanism (interpretation, nullity, etc.)
-  if (prep.mechanismQuery) {
-    searchPromises.push(
-      searchArticles(prep.mechanismQuery, {
-        threshold: 0.4,
-        limit: 6,
-      })
-    );
-  }
+    prep.mechanismQuery
+      ? searchArticles(prep.mechanismQuery, { threshold: 0.4, limit: 6 })
+      : Promise.resolve([]),
+  ] as const;
 
   const [primaryResults, mechanismResults, knowledge, ...instituteResults] = await Promise.all([
     ...searchPromises,
-    // Pad with empty array if no mechanismQuery
-    ...(prep.mechanismQuery ? [] : [Promise.resolve([] as Array<LegalArticle & { similarity: number }>)]),
     searchLegalKnowledge(prep.legalQuery, { threshold: 0.6, limit: 4 }),
     ...institutePromises,
-  ]) as [
-    Array<LegalArticle & { similarity: number }>,
-    Array<LegalArticle & { similarity: number }>,
-    Awaited<ReturnType<typeof searchLegalKnowledge>>,
-    ...Array<LegalArticle[]>,
-  ];
+  ]);
 
-  // Merge: institute lookup (prioritari) + semantic primary + semantic mechanism (deduplica)
-  const seenRefs = new Set<string>();
-  const allArticles: Array<LegalArticle & { similarity: number }> = [];
-
-  // Prima: articoli da lookup diretto per istituto (similarity = 1.0, sono match esatti)
-  for (const batch of instituteResults) {
-    for (const art of batch) {
-      const key = `${art.lawSource}:${art.articleReference}`;
-      if (!seenRefs.has(key)) {
-        seenRefs.add(key);
-        allArticles.push({ ...art, similarity: 1.0 });
-      }
-    }
-  }
-
-  // Poi: articoli da ricerca semantica primaria (tema)
-  for (const art of primaryResults) {
-    const key = `${art.lawSource}:${art.articleReference}`;
-    if (!seenRefs.has(key)) {
-      seenRefs.add(key);
-      allArticles.push(art);
-    }
-  }
-
-  // Poi: articoli da ricerca semantica secondaria (meccanismo giuridico)
-  if (mechanismResults) {
-    for (const art of mechanismResults) {
-      const key = `${art.lawSource}:${art.articleReference}`;
-      if (!seenRefs.has(key)) {
-        seenRefs.add(key);
-        allArticles.push(art);
-      }
-    }
-  }
-
-  // Systematic questions need more articles to cover the taxonomy
-  const articleLimit = prep.questionType === "systematic" ? 20 : 15;
-  const articles = allArticles.slice(0, articleLimit);
-
-  const instituteCount = instituteResults.reduce((sum, batch) => sum + batch.length, 0);
-  const mechanismCount = mechanismResults?.length ?? 0;
+  // Merge: cap per batch + query-relevance boost + global sort
+  const { articles, instituteCount } = mergeArticleResults({
+    instituteBatches: instituteResults,
+    instituteNames: normalizedInstitutes,
+    legalQuery: prep.legalQuery,
+    semanticPrimary: primaryResults,
+    semanticMechanism: mechanismResults,
+    questionType: prep.questionType,
+  });
+  const mechanismCount = mechanismResults.length;
 
   sendAgent("corpus-search", "done", {
     summary: `${articles.length} articoli (${instituteCount} istituto, ${primaryResults.length} tema${mechanismCount > 0 ? `, ${mechanismCount} meccanismo` : ""})`,
@@ -358,7 +316,7 @@ async function runCorpusQA(
         reference: a.articleReference,
         source: a.lawSource,
         title: a.articleTitle,
-        similarity: a.similarity === 1.0 ? "istituto" : `${(a.similarity * 100).toFixed(0)}%`,
+        similarity: `${(a.similarity * 100).toFixed(0)}%`,
       })),
       institutes: normalizedInstitutes,
       mechanismQuery: prep.mechanismQuery,

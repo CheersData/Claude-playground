@@ -131,8 +131,8 @@ const CC: TagRule[] = [
 
   // Tit. I: Beni
   { min: 810, max: 831, tags: ["beni", "classificazione_beni"] },
-  // Tit. II: Proprietà
-  { min: 832, max: 951, tags: ["vendita_immobiliare"] },
+  // Tit. II: Proprietà (diritti reali, NON compravendita)
+  { min: 832, max: 951, tags: ["proprietà"] },
   // Tit. III: Superficie
   { min: 952, max: 956, tags: ["superficie", "diritto_superficie"] },
   // Tit. IV: Enfiteusi
@@ -159,7 +159,10 @@ const CC: TagRule[] = [
 
   { min: 1321, max: 1324, tags: ["contratto", "requisiti_contratto"] },
   { min: 1325, max: 1335, tags: ["contratto", "consenso", "proposta", "accettazione"] },
-  { min: 1336, max: 1340, tags: ["contratto", "clausole_vessatorie"] },
+  { min: 1336, max: 1336, tags: ["contratto"] },
+  // ★ Art. 1337-1338: buona fede precontrattuale (culpa in contrahendo)
+  { min: 1337, max: 1338, tags: ["contratto", "buona_fede"] },
+  { min: 1339, max: 1340, tags: ["contratto"] },
   // ★ Clausole vessatorie — CROSS-REF: nullità
   { min: 1341, max: 1342, tags: ["clausole_vessatorie", "contratto", "nullità"] },
   { min: 1343, max: 1349, tags: ["contratto", "causa", "oggetto_contratto"] },
@@ -181,23 +184,34 @@ const CC: TagRule[] = [
   // ★ Annullabilità — NO nullità
   { min: 1425, max: 1446, tags: ["annullabilità", "contratto"] },
   { min: 1447, max: 1452, tags: ["rescissione", "contratto"] },
-  // Risoluzione
-  { min: 1453, max: 1462, tags: ["risoluzione", "contratto", "inadempimento"] },
+  // Risoluzione — Art. 1453-1459 core, Art. 1460-1462 eccezioni
+  { min: 1453, max: 1459, tags: ["risoluzione", "contratto", "inadempimento"] },
+  // ★ Art. 1460: eccezione di inadempimento (exceptio inadimpleti contractus)
+  { min: 1460, max: 1462, tags: ["risoluzione", "contratto", "inadempimento"] },
   { min: 1463, max: 1466, tags: ["risoluzione", "contratto"] },
   { min: 1467, max: 1469, tags: ["risoluzione", "contratto"] },
 
   // ═══ LIBRO IV, TIT. III: Singoli contratti ═══
 
-  { min: 1470, max: 1489, tags: ["vendita", "compravendita"] },
-  { min: 1490, max: 1497, tags: ["vendita", "vizi_cosa_venduta", "garanzia_evizione"] },
+  { min: 1470, max: 1482, tags: ["vendita", "compravendita"] },
+  // ★ Art. 1483-1489: garanzia per evizione
+  { min: 1483, max: 1489, tags: ["vendita", "garanzia_evizione"] },
+  { min: 1490, max: 1497, tags: ["vendita", "vizi_cosa_venduta"] },
   { min: 1498, max: 1536, tags: ["vendita", "compravendita"] },
   { min: 1537, max: 1541, tags: ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"] },
   { min: 1542, max: 1547, tags: ["vendita"] },
   { min: 1548, max: 1555, tags: ["vendita", "vendita_immobiliare"] },
   { min: 1556, max: 1570, tags: ["vendita"] },
-  // Locazione
-  { min: 1571, max: 1606, tags: ["locazione", "obblighi_locatore", "obblighi_conduttore"] },
-  { min: 1607, max: 1614, tags: ["locazione", "sublocazione"] },
+  // Locazione — base tag for entire range, then specific sub-ranges override
+  { min: 1571, max: 1654, tags: ["locazione"] },
+  // ★ Obblighi del locatore (Art. 1575-1581)
+  { min: 1575, max: 1581, tags: ["locazione", "obblighi_locatore"] },
+  // ★ Obblighi del conduttore (Art. 1587-1590: custodia, restituzione)
+  { min: 1587, max: 1590, tags: ["locazione", "obblighi_conduttore"] },
+  // ★ Art. 1594-1595: sublocazione / cessione locazione
+  { min: 1594, max: 1595, tags: ["locazione", "sublocazione"] },
+  // ★ Art. 1596-1606: scioglimento locazione
+  { min: 1596, max: 1606, tags: ["locazione", "disdetta"] },
   { min: 1615, max: 1654, tags: ["locazione"] },
   // Appalto
   { min: 1655, max: 1666, tags: ["appalto"] },
@@ -251,8 +265,18 @@ const CC: TagRule[] = [
   { min: 2033, max: 2040, tags: ["indebito", "obbligazione", "nullità"] },
   // ★ Art. 2041-2042: Arricchimento senza causa
   { min: 2041, max: 2042, tags: ["arricchimento_senza_causa", "obbligazione"] },
-  // Fatti illeciti
-  { min: 2043, max: 2059, tags: ["responsabilità_extracontrattuale", "fatto_illecito", "danno", "risarcimento"] },
+  // Fatti illeciti — general
+  { min: 2043, max: 2046, tags: ["responsabilità_extracontrattuale", "fatto_illecito", "danno", "risarcimento"] },
+  // ★ Art. 2047-2048: responsabilità per incapaci/sorveglianti
+  { min: 2047, max: 2048, tags: ["responsabilità_extracontrattuale", "danno", "risarcimento"] },
+  // ★ Art. 2049-2050: responsabilità padrone/committente, attività pericolose
+  { min: 2049, max: 2050, tags: ["responsabilità_extracontrattuale", "danno", "risarcimento"] },
+  // ★ Art. 2051: danno da cose in custodia
+  { min: 2051, max: 2051, tags: ["responsabilità_extracontrattuale", "custodia", "danno", "risarcimento"] },
+  // ★ Art. 2052-2054: animali, rovina edificio, circolazione veicoli
+  { min: 2052, max: 2054, tags: ["responsabilità_extracontrattuale", "danno", "risarcimento"] },
+  // ★ Art. 2055-2059: concorso, risarcimento, quantificazione
+  { min: 2055, max: 2059, tags: ["responsabilità_extracontrattuale", "danno", "risarcimento"] },
 
   // ═══ LIBRO V: Del lavoro ═══
 
@@ -289,7 +313,18 @@ const CC: TagRule[] = [
   { min: 2784, max: 2807, tags: ["pegno", "garanzia_reale"] },
   { min: 2808, max: 2899, tags: ["ipoteca", "garanzia_reale"] },
   { min: 2900, max: 2933, tags: ["responsabilità_patrimoniale"] },
-  { min: 2934, max: 2969, tags: ["prescrizione", "decadenza", "termini"] },
+  // Prescrizione — sub-ranges
+  { min: 2934, max: 2940, tags: ["prescrizione", "termini"] },
+  // ★ Art. 2941-2942: sospensione prescrizione
+  { min: 2941, max: 2942, tags: ["prescrizione", "termini"] },
+  // ★ Art. 2943-2945: interruzione prescrizione
+  { min: 2943, max: 2945, tags: ["prescrizione", "termini"] },
+  // ★ Art. 2946-2953: termini di prescrizione (ordinaria 10 anni, brevi)
+  { min: 2946, max: 2953, tags: ["prescrizione", "termini"] },
+  // ★ Art. 2954-2963: prescrizioni speciali
+  { min: 2954, max: 2963, tags: ["prescrizione", "termini"] },
+  // ★ Art. 2964-2969: decadenza
+  { min: 2964, max: 2969, tags: ["decadenza", "termini"] },
 ];
 
 // ═══ CODICE DEL CONSUMO ═══
@@ -463,12 +498,36 @@ async function run() {
     console.log(`  ${has ? "✗ PROBLEMA" : "✓ OK"} ${ref}: ${label}`);
   }
 
+  // Testbook target articles verification
+  console.log("\nVerifica articoli target testbook:");
+  const targets = [
+    { ref: "Art. 1337", desc: "buona fede precontrattuale (TC10)" },
+    { ref: "Art. 1338", desc: "conoscenza cause invalidità (TC10)" },
+    { ref: "Art. 1460", desc: "eccezione inadempimento (TC15)" },
+    { ref: "Art. 1483", desc: "garanzia evizione (TC12)" },
+    { ref: "Art. 1590", desc: "restituzione immobile (TC13)" },
+    { ref: "Art. 1594", desc: "sublocazione (TC14)" },
+    { ref: "Art. 2051", desc: "cose in custodia (TC17)" },
+    { ref: "Art. 2946", desc: "prescrizione ordinaria (TC19)" },
+  ];
+  for (const { ref, desc } of targets) {
+    const { data } = await supabase
+      .from("legal_articles")
+      .select("related_institutes")
+      .eq("law_source", "Codice Civile")
+      .eq("article_reference", ref)
+      .limit(1);
+    const inst = data?.[0]?.related_institutes ?? [];
+    console.log(`  ${inst.length > 0 ? "✓" : "✗"} ${ref} (${desc}): [${inst.join(", ")}]`);
+  }
+
   // Top lookups
   console.log("\nLookup test:");
   for (const inst of [
     "nullità", "interpretazione_contratto", "clausole_vessatorie",
     "simulazione", "annullabilità", "vendita_a_corpo", "indebito",
-    "lavoro_subordinato",
+    "lavoro_subordinato", "garanzia_evizione", "sublocazione",
+    "obblighi_conduttore", "buona_fede", "prescrizione", "custodia",
   ]) {
     const { data } = await supabase.rpc("get_articles_by_institute", {
       p_institute: inst,
