@@ -273,3 +273,55 @@ html {
 .pipboy-reveal {
   animation: studio-reveal 0.3s ease-out forwards;
 }
+
+/* ─── Print / PDF ─── */
+@media print {
+  /* Nascondi elementi non stampabili */
+  header button,
+  footer,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Forza sfondo bianco e testo nero */
+  body, main {
+    background: white !important;
+    color: #1A1A1A !important;
+  }
+
+  /* Rimuovi bordi e ombre inutili */
+  .rounded-xl {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Intestazione stampabile */
+  header {
+    border-bottom: 1px solid #ccc !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Evita rottura pagina dentro i blocchi agente */
+  main > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Nascondi animazioni */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Input console non stampabile */
+  form, textarea, input {
+    display: none !important;
+  }
+
+  /* Margini pagina */
+  @page {
+    margin: 20mm 15mm;
+    size: A4;
+  }
+}

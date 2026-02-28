@@ -39,10 +39,15 @@ RICONOSCI DOMANDE SISTEMATICHE quando contengono:
 - Qualsiasi domanda che richiede una RASSEGNA di più norme sparse nel codice
 
 RILEVAMENTO AMBITO (SCOPE):
-Il corpus contiene SOLO diritto sostanziale (Codice Civile, Codice del Consumo, leggi speciali). NON contiene:
-- Codice di Procedura Civile (c.p.c.)
+Il corpus contiene diritto sostanziale E penale:
+- Codice Civile (successioni, obbligazioni, contratti, proprietà, famiglia)
+- Codice Penale (reati contro il patrimonio, contro la persona, contro la PA)
+- Codice del Consumo, leggi speciali, regolamenti EU
+
+NON contiene:
+- Codice di Procedura Civile (c.p.c.) / Codice di Procedura Penale (c.p.p.)
 - Giurisprudenza (sentenze, Cassazione, Corte Costituzionale)
-- Diritto penale, tributario, amministrativo
+- Diritto tributario, amministrativo
 
 needsProceduralLaw = true quando la domanda riguarda:
 - Poteri del giudice (principio dispositivo, ultrapetizione, iura novit curia, art. 112/113 c.p.c.)
@@ -100,6 +105,13 @@ ISTITUTI DISPONIBILI NEL CORPUS (usa ESATTAMENTE questi nomi):
 - prescrizione, decadenza, termini
 - obbligazione, inadempimento, mora, adempimento
 - clausole_abusive, tutela_consumatore (D.Lgs. 206/2005)
+- successione, testamento, legittima, eredità, collazione, divisione_ereditaria
+- donazione, revoca_donazione
+- incapacità, interdizione, inabilitazione, amministrazione_sostegno
+- appropriazione_indebita (Art. 646 c.p.), truffa (Art. 640 c.p.)
+- circonvenzione_incapace (Art. 643 c.p.)
+- falsità_ideologica, uso_atto_falso (Artt. 476-493 c.p.)
+- peculato, malversazione (reati contro la PA)
 
 REGOLE:
 - legalQuery: frase con i termini giuridici del TEMA. Il corpus legislativo userebbe questi termini.
@@ -121,6 +133,9 @@ ATTENZIONE — ERRORI COMUNI DA EVITARE:
 - "doppia firma" o "approvazione specifica per iscritto" → clausole_vessatorie
 - "rinnovo automatico locazione" → rinnovo_locazione + L. 431/1998
 - LOCAZIONE — obblighi_locatore vs obblighi_conduttore: se la domanda riguarda DANNI causati dall'inquilino, restituzione immobile deteriorato, manutenzione a carico del conduttore → obblighi_conduttore (Art. 1590 c.c.). Se riguarda riparazioni straordinarie, consegna immobile idoneo, garanzia uso pacifico → obblighi_locatore (Art. 1575-1577 c.c.). "Inquilino ha rovinato" = obblighi_conduttore, NON obblighi_locatore.
+- SUCCESSIONE — "eredità", "morto/deceduto", "fratelli che litigano per soldi" → successione + legittima + divisione_ereditaria. Se c'è una persona anziana non lucida → anche incapacità + circonvenzione_incapace.
+- PENALE + PATRIMONIO — "si è preso i soldi", "ha rubato", "non restituisce" → appropriazione_indebita. Se c'è un anziano/incapace raggirato → circonvenzione_incapace. Se c'è inganno/artificio → truffa.
+- DONAZIONE — "dice che era un regalo", "gli ha regalato", "donazione" → donazione + revoca_donazione + collazione + legittima. Una donazione che lede la legittima si può impugnare.
 
 QUANDO USARE mechanismQuery (OBBLIGATORIO in questi casi):
 - Clausole in contraddizione → mechanismQuery: "interpretazione del contratto clausole contraddittorie criteri ermeneutici art 1362 1363 1367"
@@ -196,6 +211,22 @@ ESEMPIO DOMANDA SISTEMATICA:
   → suggestedInstitutes: ["caparra_confirmatoria", "caparra_penitenziale", "contratto", "inadempimento", "risoluzione"]
   → targetArticles: "Art. 1385-1386 c.c."
   → questionType: "systematic"
+
+- "mia nonna è morta e mio zio si è preso tutti i soldi del conto, dice che era un regalo"
+  → legalQuery: "successione eredità conto corrente appropriazione somme donazione legittima quota"
+  → mechanismQuery: "appropriazione indebita circonvenzione incapace donazione collazione riduzione legittima art 646 643 cp art 553 556 737 cc"
+  → suggestedInstitutes: ["successione", "legittima", "donazione", "collazione", "appropriazione_indebita", "circonvenzione_incapace", "incapacità"]
+  → targetArticles: null
+  → questionType: "systematic"
+  → needsCaseLaw: true
+
+- "quali reati commette chi sottrae denaro a un anziano non lucido?"
+  → legalQuery: "reati patrimonio sottrazione denaro persona anziana incapace"
+  → mechanismQuery: "appropriazione indebita circonvenzione incapace truffa aggravata abuso persona incapace art 640 643 646 cp"
+  → suggestedInstitutes: ["appropriazione_indebita", "circonvenzione_incapace", "truffa", "incapacità"]
+  → targetArticles: "Art. 640, 643, 646 c.p."
+  → questionType: "systematic"
+  → needsCaseLaw: true
 
 Se la domanda è già in linguaggio giuridico, restituiscila arricchita con sinonimi e termini correlati.
 Non inventare terminologia. Usa solo termini realmente presenti nel diritto italiano.

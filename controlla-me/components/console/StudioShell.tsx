@@ -6,7 +6,7 @@ export default function StudioShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="studio-root relative min-h-screen bg-[var(--pb-bg)]">
+    <div className="studio-root relative min-h-screen bg-white">
       {children}
     </div>
   );

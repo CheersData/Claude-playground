@@ -3,23 +3,16 @@
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  BookOpen,
-  ChevronRight,
-  ChevronDown,
-  Search,
-  Scale,
-  Globe,
-  FileText,
-  ArrowLeft,
-  Loader2,
-  MessageCircle,
-  Tag,
-} from "lucide-react";
+import { Search, ArrowLeft, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LegalBreadcrumb from "@/components/LegalBreadcrumb";
 import CorpusChat from "@/components/CorpusChat";
+import AnimatedCount from "@/components/corpus/AnimatedCount";
+import SourcesGrid from "@/components/corpus/SourcesGrid";
+import HierarchyTree from "@/components/corpus/HierarchyTree";
+import ArticleReader from "@/components/corpus/ArticleReader";
+import InstituteGrid from "@/components/corpus/InstituteGrid";
 
 // ─── Types ───
 
@@ -100,61 +93,48 @@ function CorpusPageContent() {
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [selectedSource, setSelectedSource] = useState<SourceHierarchy | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<ArticleDetail | null>(null);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ArticleSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSource, setLoadingSource] = useState(false);
   const [loadingArticle, setLoadingArticle] = useState(false);
 
-  // Institute tab state
+  // Institute state
   const [institutes, setInstitutes] = useState<InstituteInfo[]>([]);
   const [loadingInstitutes, setLoadingInstitutes] = useState(false);
   const [selectedInstitute, setSelectedInstitute] = useState<string | null>(initialInstitute);
   const [instituteArticles, setInstituteArticles] = useState<InstituteArticle[]>([]);
   const [loadingInstituteArticles, setLoadingInstituteArticles] = useState(false);
 
-  // Fetch all sources on mount
+  const totalArticles = sources.reduce((sum, s) => sum + s.article_count, 0);
+
+  // ─── Data fetching ───
+
   useEffect(() => {
     fetch("/api/corpus/hierarchy")
       .then((r) => r.json())
-      .then((data) => {
-        setSources(data.sources || []);
-        setLoading(false);
-      })
+      .then((data) => { setSources(data.sources || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
-  // Fetch institutes when tab is "istituti"
   useEffect(() => {
     if (activeTab !== "istituti" || institutes.length > 0) return;
     setLoadingInstitutes(true);
     fetch("/api/corpus/institutes")
       .then((r) => r.json())
-      .then((data) => {
-        setInstitutes(data.institutes || []);
-        setLoadingInstitutes(false);
-      })
+      .then((data) => { setInstitutes(data.institutes || []); setLoadingInstitutes(false); })
       .catch(() => setLoadingInstitutes(false));
   }, [activeTab, institutes.length]);
 
-  // Fetch articles when an institute is selected
   useEffect(() => {
-    if (!selectedInstitute) {
-      setInstituteArticles([]);
-      return;
-    }
+    if (!selectedInstitute) { setInstituteArticles([]); return; }
     setLoadingInstituteArticles(true);
     fetch(`/api/corpus/institutes?institute=${encodeURIComponent(selectedInstitute)}`)
       .then((r) => r.json())
-      .then((data) => {
-        setInstituteArticles(data.articles || []);
-        setLoadingInstituteArticles(false);
-      })
+      .then((data) => { setInstituteArticles(data.articles || []); setLoadingInstituteArticles(false); })
       .catch(() => setLoadingInstituteArticles(false));
   }, [selectedInstitute]);
 
-  // Deep link: auto-select institute from URL params on first load
   useEffect(() => {
     if (initialTab === "istituti" && initialInstitute) {
       setActiveTab("istituti");
@@ -163,18 +143,17 @@ function CorpusPageContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Actions ───
+
   const loadSource = useCallback(async (sourceId: string) => {
     setLoadingSource(true);
     setSelectedArticle(null);
     setSearchResults(null);
-    setExpandedNodes(new Set());
     try {
       const res = await fetch(`/api/corpus/hierarchy?source=${sourceId}`);
       const data = await res.json();
       setSelectedSource(data);
-    } catch {
-      setSelectedSource(null);
-    }
+    } catch { setSelectedSource(null); }
     setLoadingSource(false);
   }, []);
 
@@ -184,37 +163,21 @@ function CorpusPageContent() {
       const res = await fetch(`/api/corpus/article?id=${articleId}`);
       const data = await res.json();
       setSelectedArticle(data);
-    } catch {
-      setSelectedArticle(null);
-    }
+    } catch { setSelectedArticle(null); }
     setLoadingArticle(false);
   }, []);
 
   const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults(null);
-      return;
-    }
+    if (!searchQuery.trim()) { setSearchResults(null); return; }
     setLoadingSource(true);
     try {
       const sourceParam = selectedSource ? `&source=${selectedSource.source_id}` : "";
       const res = await fetch(`/api/corpus/article?q=${encodeURIComponent(searchQuery)}${sourceParam}`);
       const data = await res.json();
       setSearchResults(data.results || []);
-    } catch {
-      setSearchResults([]);
-    }
+    } catch { setSearchResults([]); }
     setLoadingSource(false);
   }, [searchQuery, selectedSource]);
-
-  const toggleNode = useCallback((key: string) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
 
   const switchTab = useCallback((tab: "fonti" | "istituti") => {
     setActiveTab(tab);
@@ -223,8 +186,7 @@ function CorpusPageContent() {
     setSearchResults(null);
     setSearchQuery("");
     setSelectedInstitute(null);
-    const url = tab === "istituti" ? "/corpus?tab=istituti" : "/corpus";
-    router.replace(url, { scroll: false });
+    router.replace(tab === "istituti" ? "/corpus?tab=istituti" : "/corpus", { scroll: false });
   }, [router]);
 
   const selectInstitute = useCallback((name: string) => {
@@ -249,8 +211,15 @@ function CorpusPageContent() {
     setSelectedArticle(null);
   }, []);
 
-  const italianSources = sources.filter((s) => s.source_type === "normattiva");
-  const euSources = sources.filter((s) => s.source_type === "eurlex");
+  const handleInstituteClick = useCallback((inst: string) => {
+    setSelectedArticle(null);
+    setActiveTab("istituti");
+    selectInstitute(inst);
+  }, [selectInstitute]);
+
+  // ─── Render ───
+
+  const showingArticle = selectedArticle && searchResults === null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -259,30 +228,30 @@ function CorpusPageContent() {
 
       <main className="relative z-10 pt-24 pb-16 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
+
+          {/* ─── Header ─── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-10"
+            className="mb-12"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#A78BFA]/15 flex items-center justify-center">
-                <Scale className="w-6 h-6 text-[#A78BFA]" />
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-serif font-bold">
-                  Corpus Giuridico
-                </h1>
-                <p className="text-foreground-secondary text-sm">
-                  Naviga le fonti normative italiane ed europee
-                </p>
-              </div>
-            </div>
+            <h1 className="font-serif text-4xl md:text-5xl tracking-tight">
+              Corpus Giuridico
+            </h1>
+            {!loading && totalArticles > 0 && (
+              <p className="text-foreground-secondary mt-2 text-lg">
+                <AnimatedCount
+                  value={totalArticles}
+                  className="font-medium text-foreground"
+                />{" "}
+                articoli da {sources.length} fonti normative
+              </p>
+            )}
           </motion.div>
 
-          {/* Search bar */}
-          <div className="mb-8">
-            <div className="flex gap-2">
+          {/* ─── Search ─── */}
+          <div className="mb-10">
+            <div className="flex gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-tertiary" />
                 <input
@@ -295,143 +264,103 @@ function CorpusPageContent() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-border rounded-xl text-base placeholder:text-foreground-tertiary focus:outline-none focus:border-[#A78BFA]/50 focus:ring-2 focus:ring-[#A78BFA]/10 transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-background-secondary/60 border-0 rounded-xl text-base placeholder:text-foreground-tertiary focus:outline-none focus:ring-1 focus:ring-border transition-all"
                 />
               </div>
               <button
                 onClick={handleSearch}
-                className="px-6 py-3 bg-[#A78BFA] text-white font-semibold rounded-xl hover:bg-[#9575E8] transition-colors"
+                className="px-6 py-3 text-sm font-medium text-foreground-secondary hover:text-foreground border border-border rounded-xl hover:bg-surface-hover transition-all"
               >
                 Cerca
               </button>
             </div>
           </div>
 
-          {/* Tab bar */}
-          <div className="mb-8 flex gap-1 bg-background-secondary/50 border border-border rounded-xl p-1 w-fit">
-            <button
-              onClick={() => switchTab("fonti")}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-                activeTab === "fonti"
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-foreground-secondary hover:text-foreground"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                Per fonte
-              </span>
-            </button>
-            <button
-              onClick={() => switchTab("istituti")}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-                activeTab === "istituti"
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-foreground-secondary hover:text-foreground"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Tag className="w-4 h-4" />
-                Per istituto
-              </span>
-            </button>
+          {/* ─── Tab bar ─── */}
+          <div className="flex gap-6 mb-10 border-b border-border relative">
+            {(["fonti", "istituti"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => switchTab(tab)}
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? "text-foreground"
+                    : "text-foreground-tertiary hover:text-foreground-secondary"
+                }`}
+              >
+                {tab === "fonti" ? "Per fonte" : "Per istituto"}
+                {activeTab === tab && (
+                  <motion.div
+                    layoutId="tab-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground"
+                    transition={{ type: "tween", duration: 0.2 }}
+                  />
+                )}
+              </button>
+            ))}
           </div>
 
-          {/* Breadcrumb nav */}
-          {(selectedSource || selectedArticle) && activeTab === "fonti" && (
-            <div className="mb-6 flex items-center gap-2 text-sm text-foreground-secondary">
-              <button
-                onClick={backToSources}
-                className="hover:text-foreground transition-colors"
-              >
-                Corpus
-              </button>
-              {selectedSource && (
-                <>
-                  <ChevronRight className="w-4 h-4" />
-                  <button
-                    onClick={backToTree}
-                    className={`hover:text-foreground transition-colors ${
-                      !selectedArticle ? "text-foreground font-medium" : ""
-                    }`}
-                  >
-                    {selectedSource.source_name}
-                  </button>
-                </>
-              )}
-              {selectedArticle && (
-                <>
-                  <ChevronRight className="w-4 h-4" />
-                  <span className="text-foreground font-medium">
-                    Art. {selectedArticle.article_number}
-                  </span>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Content */}
+          {/* ─── Content ─── */}
           <AnimatePresence mode="wait">
-            {/* Loading */}
+            {/* Loading initial */}
             {loading && (
               <motion.div
                 key="loading"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center justify-center py-20"
+                className="py-20"
               >
-                <Loader2 className="w-8 h-8 text-[#A78BFA] animate-spin" />
+                <Skeleton />
               </motion.div>
             )}
 
-            {/* Search Results */}
+            {/* Search results */}
             {searchResults !== null && !loading && (
               <motion.div
                 key="search"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: -8 }}
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-baseline justify-between mb-6">
                   <h2 className="text-lg font-semibold">
                     {searchResults.length} risultati per &ldquo;{searchQuery}&rdquo;
                   </h2>
                   <button
-                    onClick={() => {
-                      setSearchResults(null);
-                      setSearchQuery("");
-                    }}
-                    className="text-sm text-[#A78BFA] hover:underline"
+                    onClick={() => { setSearchResults(null); setSearchQuery(""); }}
+                    className="text-sm text-foreground-tertiary hover:text-foreground transition-colors"
                   >
-                    Chiudi ricerca
+                    Chiudi
                   </button>
                 </div>
-                <div className="space-y-2">
-                  {searchResults.map((art) => (
-                    <button
+                <div>
+                  {searchResults.map((art, i) => (
+                    <motion.button
                       key={art.id}
                       onClick={() => loadArticle(art.id)}
-                      className="w-full text-left p-4 bg-white border border-border rounded-xl hover:border-[#A78BFA]/30 hover:bg-[#A78BFA]/[0.02] transition-all"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="w-full text-left py-3 border-b border-border-subtle hover:bg-surface-hover transition-colors -mx-2 px-2 rounded-lg"
                     >
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#A78BFA] shrink-0" />
-                        <span className="font-medium">Art. {art.article_number}</span>
-                        {art.article_title && (
-                          <span className="text-foreground-secondary">
-                            — {art.article_title}
-                          </span>
-                        )}
-                      </div>
+                      <span className="font-medium text-sm">
+                        Art. {art.article_number}
+                      </span>
+                      {art.article_title && (
+                        <span className="text-foreground-secondary text-sm ml-1.5">
+                          &mdash; {art.article_title}
+                        </span>
+                      )}
                       {art.hierarchy && Object.keys(art.hierarchy).length > 0 && (
-                        <div className="mt-1 ml-6">
+                        <div className="mt-1">
                           <LegalBreadcrumb hierarchy={art.hierarchy} size="sm" />
                         </div>
                       )}
-                    </button>
+                    </motion.button>
                   ))}
                   {searchResults.length === 0 && (
-                    <p className="text-center text-foreground-tertiary py-8">
+                    <p className="text-center text-foreground-tertiary py-12">
                       Nessun risultato trovato
                     </p>
                   )}
@@ -439,153 +368,45 @@ function CorpusPageContent() {
               </motion.div>
             )}
 
-            {/* Article Detail (inline, from either tab) */}
-            {selectedArticle && searchResults === null && (
+            {/* Article detail (from either tab) */}
+            {showingArticle && (
               <motion.div
                 key="article"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: -8 }}
               >
                 <button
                   onClick={activeTab === "istituti" ? backToInstitutes : backToTree}
-                  className="flex items-center gap-2 text-sm text-foreground-secondary hover:text-foreground mb-4 transition-colors"
+                  className="flex items-center gap-2 text-sm text-foreground-tertiary hover:text-foreground mb-8 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  {activeTab === "istituti" ? "Torna agli istituti" : "Torna all\u0027indice"}
+                  {activeTab === "istituti" ? "Istituti" : "Indice"}
                 </button>
-
-                <div className="bg-white border border-border rounded-2xl p-6 md:p-8 min-h-[50vh]">
-                  <div className="mb-6">
-                    <LegalBreadcrumb
-                      hierarchy={selectedArticle.hierarchy}
-                      sourceName={selectedArticle.source_name}
-                    />
-                    <h2 className="text-2xl font-serif font-bold mt-3">
-                      Articolo {selectedArticle.article_number}
-                    </h2>
-                    {selectedArticle.article_title && (
-                      <p className="text-lg text-foreground-secondary mt-1">
-                        {selectedArticle.article_title}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Keywords */}
-                  {selectedArticle.keywords && selectedArticle.keywords.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-2">
-                      {selectedArticle.keywords.map((kw) => (
-                        <span
-                          key={kw}
-                          className="px-2.5 py-1 text-xs rounded-lg bg-[#A78BFA]/8 text-[#A78BFA] border border-[#A78BFA]/15"
-                        >
-                          {kw.replace(/_/g, " ")}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Istituti giuridici */}
-                  {selectedArticle.related_institutes && selectedArticle.related_institutes.length > 0 && (
-                    <div className="mb-6 flex flex-wrap gap-2">
-                      {selectedArticle.related_institutes.map((inst) => (
-                        <button
-                          key={inst}
-                          onClick={() => {
-                            setSelectedArticle(null);
-                            setActiveTab("istituti");
-                            selectInstitute(inst);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-[#7C3AED]/8 text-[#7C3AED] border border-[#7C3AED]/15 hover:bg-[#7C3AED]/15 transition-colors"
-                        >
-                          <Tag className="w-3 h-3" />
-                          {inst.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Testo completo dell'articolo */}
-                  <div className="bg-background-secondary/50 rounded-xl border border-border/50 p-5 md:p-6 min-h-[40vh] max-h-[70vh] overflow-y-auto">
-                    <p className="text-[11px] font-bold tracking-[2px] uppercase text-foreground-tertiary mb-3">
-                      Testo completo
-                    </p>
-                    <div className="space-y-3">
-                      {selectedArticle.article_text.split("\n").map((paragraph, i) =>
-                        paragraph.trim() ? (
-                          <p
-                            key={i}
-                            className="text-[15px] leading-[1.8] text-foreground-secondary"
-                          >
-                            {paragraph}
-                          </p>
-                        ) : null
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Fonte */}
-                  <div className="mt-6 pt-4 border-t border-border flex items-center justify-end">
-                    <span className="text-xs text-foreground-tertiary">
-                      Fonte: {selectedArticle.source_name} — Art. {selectedArticle.article_number}
-                    </span>
-                  </div>
-                </div>
+                <ArticleReader
+                  article={selectedArticle}
+                  onInstituteClick={handleInstituteClick}
+                />
               </motion.div>
             )}
 
             {/* ═══ TAB: Per fonte ═══ */}
 
-            {/* Source Tree */}
-            {activeTab === "fonti" &&
-              selectedSource &&
-              !selectedArticle &&
-              searchResults === null &&
-              !loadingSource && (
-                <motion.div
-                  key="tree"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                  <div className="bg-white border border-border rounded-2xl overflow-hidden">
-                    <div className="p-6 border-b border-border">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h2 className="text-xl font-serif font-bold">
-                            {selectedSource.source_name}
-                          </h2>
-                          <p className="text-sm text-foreground-secondary mt-1">
-                            {selectedSource.article_count} articoli
-                          </p>
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full ${
-                            selectedSource.source_type === "normattiva"
-                              ? "bg-green-50 text-green-700 border border-green-200"
-                              : "bg-blue-50 text-blue-700 border border-blue-200"
-                          }`}
-                        >
-                          {selectedSource.source_type === "normattiva" ? "IT" : "EU"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="divide-y divide-border/50">
-                      {selectedSource.tree.map((node) => (
-                        <TreeNode
-                          key={node.key}
-                          node={node}
-                          depth={0}
-                          expandedNodes={expandedNodes}
-                          onToggle={toggleNode}
-                          onArticleClick={loadArticle}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+            {/* Source hierarchy tree */}
+            {activeTab === "fonti" && selectedSource && !selectedArticle && searchResults === null && !loadingSource && (
+              <motion.div
+                key="tree"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+              >
+                <HierarchyTree
+                  source={selectedSource}
+                  onArticleClick={loadArticle}
+                  onBack={backToSources}
+                />
+              </motion.div>
+            )}
 
             {/* Loading source */}
             {loadingSource && (
@@ -594,226 +415,78 @@ function CorpusPageContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center justify-center py-20"
+                className="py-20"
               >
-                <Loader2 className="w-8 h-8 text-[#A78BFA] animate-spin" />
+                <Skeleton />
               </motion.div>
             )}
 
-            {/* Sources List */}
+            {/* Sources grid */}
             {activeTab === "fonti" && !selectedSource && !loading && searchResults === null && !loadingSource && (
               <motion.div
                 key="sources"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: -8 }}
               >
-                {/* Normattiva */}
-                {italianSources.length > 0 && (
-                  <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <BookOpen className="w-5 h-5 text-green-600" />
-                      <h2 className="text-lg font-semibold">
-                        Fonti Italiane (Normattiva)
-                      </h2>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {italianSources.map((source) => (
-                        <SourceCard
-                          key={source.source_id}
-                          source={source}
-                          onClick={() => loadSource(source.source_id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* EUR-Lex */}
-                {euSources.length > 0 && (
-                  <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Globe className="w-5 h-5 text-blue-600" />
-                      <h2 className="text-lg font-semibold">Fonti EU (EUR-Lex)</h2>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {euSources.map((source) => (
-                        <SourceCard
-                          key={source.source_id}
-                          source={source}
-                          onClick={() => loadSource(source.source_id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Empty */}
-                {sources.length === 0 && (
-                  <div className="text-center py-16">
-                    <Scale className="w-16 h-16 text-foreground-tertiary mx-auto mb-4 opacity-30" />
-                    <h3 className="text-xl font-semibold mb-2">Corpus vuoto</h3>
-                    <p className="text-foreground-secondary max-w-md mx-auto">
-                      Nessuna fonte caricata. Esegui lo script di seed per
-                      popolare il corpus:
-                    </p>
-                    <pre className="mt-4 bg-background-secondary border border-border rounded-xl p-4 text-sm text-left max-w-lg mx-auto overflow-x-auto">
-                      npx tsx scripts/seed-corpus.ts all
-                    </pre>
-                  </div>
-                )}
+                <SourcesGrid
+                  sources={sources}
+                  onSourceClick={loadSource}
+                />
               </motion.div>
             )}
 
             {/* ═══ TAB: Per istituto ═══ */}
 
-            {/* Institutes Grid */}
-            {activeTab === "istituti" && !selectedArticle && !selectedInstitute && !loading && searchResults === null && (
+            {activeTab === "istituti" && !selectedArticle && searchResults === null && !loading && (
               <motion.div
                 key="institutes"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: -8 }}
               >
-                {loadingInstitutes ? (
-                  <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 text-[#A78BFA] animate-spin" />
-                  </div>
-                ) : institutes.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {institutes.map((inst) => (
-                      <button
-                        key={inst.name}
-                        onClick={() => selectInstitute(inst.name)}
-                        className="text-left p-4 bg-white border border-border rounded-xl hover:border-[#7C3AED]/30 hover:shadow-sm hover:-translate-y-0.5 transition-all group"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Tag className="w-4 h-4 text-[#7C3AED] shrink-0" />
-                          <span className="font-semibold text-sm group-hover:text-[#7C3AED] transition-colors line-clamp-2">
-                            {inst.label}
-                          </span>
-                        </div>
-                        <p className="text-xs text-foreground-tertiary">
-                          {inst.count} {inst.count === 1 ? "articolo" : "articoli"}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <Tag className="w-16 h-16 text-foreground-tertiary mx-auto mb-4 opacity-30" />
-                    <h3 className="text-xl font-semibold mb-2">Nessun istituto</h3>
-                    <p className="text-foreground-secondary max-w-md mx-auto">
-                      Gli istituti giuridici vengono popolati tramite il tagging degli articoli.
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* Institute Articles */}
-            {activeTab === "istituti" && selectedInstitute && !selectedArticle && searchResults === null && (
-              <motion.div
-                key="institute-articles"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <button
-                  onClick={backToInstitutes}
-                  className="flex items-center gap-2 text-sm text-foreground-secondary hover:text-foreground mb-4 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Tutti gli istituti
-                </button>
-
-                <div className="bg-white border border-border rounded-2xl overflow-hidden">
-                  <div className="p-6 border-b border-border">
-                    <div className="flex items-center gap-3">
-                      <Tag className="w-5 h-5 text-[#7C3AED]" />
-                      <div>
-                        <h2 className="text-xl font-serif font-bold">
-                          {selectedInstitute.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}
-                        </h2>
-                        {!loadingInstituteArticles && (
-                          <p className="text-sm text-foreground-secondary mt-1">
-                            {instituteArticles.length} {instituteArticles.length === 1 ? "articolo" : "articoli"}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {loadingInstituteArticles ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-6 h-6 text-[#A78BFA] animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-border/50">
-                      {instituteArticles.map((art) => (
-                        <button
-                          key={art.id}
-                          onClick={() => loadArticle(art.id)}
-                          className="w-full text-left flex items-center gap-3 py-3 px-6 hover:bg-[#A78BFA]/[0.03] transition-colors"
-                        >
-                          <FileText className="w-4 h-4 text-[#A78BFA] shrink-0" />
-                          <div className="min-w-0">
-                            <span className="font-medium text-sm">
-                              Art. {art.article_number}
-                            </span>
-                            {art.article_title && (
-                              <span className="text-foreground-secondary text-sm ml-1">
-                                — {art.article_title}
-                              </span>
-                            )}
-                            <p className="text-xs text-foreground-tertiary mt-0.5">
-                              {art.source_name}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
-                      {instituteArticles.length === 0 && (
-                        <p className="text-center text-foreground-tertiary py-8">
-                          Nessun articolo per questo istituto
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <InstituteGrid
+                  institutes={institutes}
+                  loading={loadingInstitutes}
+                  selectedInstitute={selectedInstitute}
+                  instituteArticles={instituteArticles}
+                  loadingArticles={loadingInstituteArticles}
+                  onInstituteClick={selectInstitute}
+                  onArticleClick={loadArticle}
+                  onBack={backToInstitutes}
+                />
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Loading article overlay */}
+          {/* Loading article (inline skeleton) */}
           {loadingArticle && (
-            <div className="fixed inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-              <div className="bg-white rounded-2xl border border-border p-8 shadow-lg flex items-center gap-4">
-                <Loader2 className="w-6 h-6 text-[#A78BFA] animate-spin" />
-                <span className="text-foreground-secondary">
-                  Caricamento articolo...
-                </span>
+            <div className="max-w-[680px] mx-auto py-12">
+              <div className="space-y-4 animate-pulse">
+                <div className="h-3 w-48 bg-border-subtle rounded" />
+                <div className="h-10 w-80 bg-border-subtle rounded" />
+                <div className="h-5 w-64 bg-border-subtle rounded" />
+                <div className="h-px bg-border mt-8 mb-10" />
+                <div className="h-4 w-full bg-border-subtle rounded" />
+                <div className="h-4 w-full bg-border-subtle rounded" />
+                <div className="h-4 w-3/4 bg-border-subtle rounded" />
               </div>
             </div>
           )}
         </div>
       </main>
 
-      {/* Q&A Section */}
+      {/* ─── Q&A Section ─── */}
       <section className="relative z-10 px-4 md:px-8 pb-16">
         <div className="max-w-6xl mx-auto">
-          <div className="rounded-2xl border border-[#A78BFA]/20 bg-[#A78BFA]/[0.03] p-6 md:p-10">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-[#A78BFA]/15 flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-[#A78BFA]" />
-              </div>
-              <h2 className="text-2xl font-serif font-bold">
-                Hai un dubbio legale?
-              </h2>
-            </div>
-            <p className="text-foreground-secondary mb-6 ml-[52px]">
+          <div className="border-t border-border pt-12">
+            <h2 className="font-serif text-2xl mb-2">
+              Hai un dubbio legale?
+            </h2>
+            <p className="text-foreground-secondary mb-8">
               Interroga il corpus normativo italiano con l&apos;AI
             </p>
-            <div className="max-w-2xl ml-[52px]">
+            <div className="max-w-2xl">
               <CorpusChat
                 variant="purple"
                 placeholder="Es. Cosa prevede il codice civile sulla vendita a corpo?"
@@ -828,156 +501,21 @@ function CorpusPageContent() {
   );
 }
 
-// ─── Source Card ───
+// ─── Skeleton loader ───
 
-function SourceCard({
-  source,
-  onClick,
-}: {
-  source: SourceInfo;
-  onClick: () => void;
-}) {
-  const isIT = source.source_type === "normattiva";
+function Skeleton() {
   return (
-    <button
-      onClick={onClick}
-      className="text-left p-5 bg-white border border-border rounded-xl hover:border-[#A78BFA]/30 hover:shadow-sm hover:-translate-y-0.5 transition-all group"
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            isIT ? "bg-green-50" : "bg-blue-50"
-          }`}
-        >
-          {isIT ? (
-            <BookOpen className="w-5 h-5 text-green-600" />
-          ) : (
-            <Globe className="w-5 h-5 text-blue-600" />
-          )}
+    <div className="space-y-6 animate-pulse">
+      <div className="h-5 w-32 bg-border-subtle rounded" />
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="space-y-2">
+          <div className="flex justify-between">
+            <div className="h-4 bg-border-subtle rounded" style={{ width: `${120 + i * 30}px` }} />
+            <div className="h-4 w-20 bg-border-subtle rounded" />
+          </div>
+          <div className="h-[3px] w-full bg-border-subtle rounded-full" />
         </div>
-        <span
-          className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full ${
-            isIT
-              ? "bg-green-50 text-green-700"
-              : "bg-blue-50 text-blue-700"
-          }`}
-        >
-          {isIT ? "IT" : "EU"}
-        </span>
-      </div>
-      <h3 className="font-semibold text-sm group-hover:text-[#A78BFA] transition-colors">
-        {source.source_name}
-      </h3>
-      <p className="text-xs text-foreground-tertiary mt-1">
-        {source.article_count} articoli
-      </p>
-    </button>
-  );
-}
-
-// ─── Tree Node (recursive) ───
-
-/** Conteggio ricorsivo articoli in un nodo (figli + articoli diretti) */
-function countNodeArticles(node: HierarchyNode): number {
-  let total = node.articles.length;
-  for (const child of node.children) {
-    total += countNodeArticles(child);
-  }
-  return total;
-}
-
-function TreeNode({
-  node,
-  depth,
-  expandedNodes,
-  onToggle,
-  onArticleClick,
-}: {
-  node: HierarchyNode;
-  depth: number;
-  expandedNodes: Set<string>;
-  onToggle: (key: string) => void;
-  onArticleClick: (id: string) => void;
-}) {
-  const isExpanded = expandedNodes.has(node.key);
-  const hasChildren = node.children.length > 0;
-  const hasArticles = node.articles.length > 0;
-  const isExpandable = hasChildren || hasArticles;
-  const totalArticles = countNodeArticles(node);
-
-  return (
-    <div>
-      <button
-        onClick={() => isExpandable && onToggle(node.key)}
-        className={`w-full text-left flex items-center gap-2 py-3 px-4 hover:bg-[#A78BFA]/[0.03] transition-colors ${
-          depth === 0 ? "font-semibold text-base" : "text-sm"
-        }`}
-        style={{ paddingLeft: `${16 + depth * 20}px` }}
-      >
-        {isExpandable ? (
-          isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-[#A78BFA] shrink-0" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-foreground-tertiary shrink-0" />
-          )
-        ) : (
-          <span className="w-4" />
-        )}
-        <span
-          className={
-            depth === 0 ? "text-foreground" : "text-foreground-secondary"
-          }
-        >
-          {node.label}
-        </span>
-        {totalArticles > 0 && (
-          <span className="text-xs text-foreground-tertiary ml-auto">
-            {totalArticles} art.
-          </span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            {node.children.map((child) => (
-              <TreeNode
-                key={child.key}
-                node={child}
-                depth={depth + 1}
-                expandedNodes={expandedNodes}
-                onToggle={onToggle}
-                onArticleClick={onArticleClick}
-              />
-            ))}
-
-            {node.articles.map((art) => (
-              <button
-                key={art.id}
-                onClick={() => onArticleClick(art.id)}
-                className="w-full text-left flex items-center gap-2 py-2 px-4 text-sm hover:bg-[#A78BFA]/[0.03] transition-colors"
-                style={{ paddingLeft: `${36 + (depth + 1) * 20}px` }}
-              >
-                <FileText className="w-3.5 h-3.5 text-[#A78BFA]/60 shrink-0" />
-                <span className="text-foreground-secondary">
-                  Art. {art.article_number}
-                  {art.article_title && (
-                    <span className="text-foreground-tertiary ml-1">
-                      — {art.article_title}
-                    </span>
-                  )}
-                </span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      ))}
     </div>
   );
 }

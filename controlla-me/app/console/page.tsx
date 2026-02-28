@@ -335,144 +335,150 @@ export default function ConsolePage() {
       <ConsoleHeader
         status={status}
         userName={headerUserName}
+        corpusActive={corpusOpen}
         onCorpusToggle={isAuthenticated ? () => setCorpusOpen((v) => !v) : undefined}
         onPowerToggle={isAuthenticated ? () => setPowerOpen((v) => !v) : undefined}
         onPrint={() => window.print()}
       />
 
-      <main className="px-8 py-6 max-w-3xl mx-auto space-y-4">
-        {/* Auth message */}
-        {authMessage && (!isAuthenticated || (isAuthenticated && status === "idle" && !activeEvent)) && (
-          <div className="rounded-xl border border-[#F0F0F0] p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-block w-[7px] h-[7px] rounded-full bg-[#1A1A1A]" />
-              <span className="text-xs font-serif italic text-[#1A1A1A]">
-                lexmea
-              </span>
-            </div>
-            <p className="text-sm whitespace-pre-wrap leading-relaxed text-[#1A1A1A]">
-              {authMessage}
-            </p>
-            {authPhase === "denied" && (
-              <button
-                onClick={() => {
-                  setAuthPhase("idle");
-                  setAuthMessage(AUTH_PROMPT);
-                }}
-                className="mt-3 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] hover:underline transition-colors"
-              >
-                Riprovare
-              </button>
+      {corpusOpen ? (
+        <CorpusTreePanel open={corpusOpen} onClose={() => setCorpusOpen(false)} />
+      ) : (
+        <>
+          <main className="px-8 py-6 max-w-3xl mx-auto space-y-4">
+            {/* Auth message */}
+            {authMessage && (!isAuthenticated || (isAuthenticated && status === "idle" && !activeEvent)) && (
+              <div className="rounded-xl border border-[#F0F0F0] p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-block w-[7px] h-[7px] rounded-full bg-[#1A1A1A]" />
+                  <span className="text-xs font-serif italic text-[#1A1A1A]">
+                    lexmea
+                  </span>
+                </div>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed text-[#1A1A1A]">
+                  {authMessage}
+                </p>
+                {authPhase === "denied" && (
+                  <button
+                    onClick={() => {
+                      setAuthPhase("idle");
+                      setAuthMessage(AUTH_PROMPT);
+                    }}
+                    className="mt-3 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] hover:underline transition-colors"
+                  >
+                    Riprovare
+                  </button>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        <ConsoleInput
-          onSubmit={handleSubmit}
-          disabled={isProcessing || authPhase === "pending"}
-          placeholder={
-            !isAuthenticated
-              ? "Inserisca nome, cognome e ruolo..."
-              : clarificationQ
-                ? "Rispondi alla domanda sopra..."
-                : undefined
-          }
-        />
-
-        {error && (
-          <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
-            <span className="text-xs text-red-500 font-medium">Errore</span>
-            <p className="text-sm text-red-500 mt-1">{error}</p>
-          </div>
-        )}
-
-        {/* Clarification */}
-        {status === "clarification" && clarificationQ && (
-          <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-block w-[7px] h-[7px] rounded-full bg-amber-500 animate-pulse" />
-              <span className="text-xs font-medium text-[#1A1A1A]">Leader</span>
-            </div>
-            <p className="text-sm text-amber-700">{clarificationQ}</p>
-          </div>
-        )}
-
-        {/* Leader */}
-        {agentStatuses.has("leader") && (() => {
-          const s = agentStatuses.get("leader")!;
-          return (
-            <AgentOutput
-              key="leader"
-              phase="leader"
-              phaseName={AGENT_DISPLAY_NAMES.leader}
-              status={s.status === "idle" ? "running" : s.status as ConsolePhaseStatus}
-              summary={s.summary}
-              timing={s.timing}
-              output={s.output}
+            <ConsoleInput
+              onSubmit={handleSubmit}
+              disabled={isProcessing || authPhase === "pending"}
+              placeholder={
+                !isAuthenticated
+                  ? "Inserisca nome, cognome e ruolo..."
+                  : clarificationQ
+                    ? "Rispondi alla domanda sopra..."
+                    : undefined
+              }
             />
-          );
-        })()}
 
-        {/* Pipeline steps */}
-        {pipelinePhases.map((phase) => {
-          const s = agentStatuses.get(phase);
-          if (!s || s.status === "idle") return null;
+            {error && (
+              <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
+                <span className="text-xs text-red-500 font-medium">Errore</span>
+                <p className="text-sm text-red-500 mt-1">{error}</p>
+              </div>
+            )}
 
-          const isRunning = s.status === "running";
-          const showContext =
-            (phase === "corpus-agent" || phase === "investigator") && isRunning;
+            {/* Clarification */}
+            {status === "clarification" && clarificationQ && (
+              <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-block w-[7px] h-[7px] rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-xs font-medium text-[#1A1A1A]">Leader</span>
+                </div>
+                <p className="text-sm text-amber-700">{clarificationQ}</p>
+              </div>
+            )}
 
-          return (
-            <AgentOutput
-              key={phase}
-              phase={phase}
-              phaseName={AGENT_DISPLAY_NAMES[phase]}
-              status={s.status as ConsolePhaseStatus}
-              summary={s.summary}
-              timing={s.timing}
-              output={s.output}
-              context={showContext ? contextRef.current : undefined}
-            />
-          );
-        })}
+            {/* Leader */}
+            {agentStatuses.has("leader") && (() => {
+              const s = agentStatuses.get("leader")!;
+              return (
+                <AgentOutput
+                  key="leader"
+                  phase="leader"
+                  phaseName={AGENT_DISPLAY_NAMES.leader}
+                  status={s.status === "idle" ? "running" : s.status as ConsolePhaseStatus}
+                  summary={s.summary}
+                  timing={s.timing}
+                  output={s.output}
+                />
+              );
+            })()}
 
-        {/* Reasoning Graph */}
-        {leaderDecision?.route === "corpus-qa" && collectedContext.institutes.length > 0 && (() => {
-          const corpusAgentStatus = agentStatuses.get("corpus-agent")?.status;
-          const corpusSearchStatus = agentStatuses.get("corpus-search")?.status;
-          const graphPhase: "question-prep" | "corpus-search" | "corpus-agent" =
-            corpusAgentStatus === "done" || corpusAgentStatus === "running"
-              ? "corpus-agent"
-              : corpusSearchStatus === "done" || corpusSearchStatus === "running"
-                ? "corpus-search"
-                : "question-prep";
+            {/* Pipeline steps */}
+            {pipelinePhases.map((phase) => {
+              const s = agentStatuses.get(phase);
+              if (!s || s.status === "idle") return null;
 
-          const prepOutput = agentStatuses.get("question-prep")?.output;
+              const isRunning = s.status === "running";
+              const showContext =
+                (phase === "corpus-agent" || phase === "investigator") && isRunning;
 
-          return (
-            <ReasoningGraph
-              institutes={collectedContext.institutes}
-              needsProceduralLaw={prepOutput?.needsProceduralLaw}
-              needsCaseLaw={prepOutput?.needsCaseLaw}
-              scopeNotes={prepOutput?.scopeNotes}
-              questionType={prepOutput?.questionType}
-              phase={graphPhase}
-            />
-          );
-        })()}
+              return (
+                <AgentOutput
+                  key={phase}
+                  phase={phase}
+                  phaseName={AGENT_DISPLAY_NAMES[phase]}
+                  status={s.status as ConsolePhaseStatus}
+                  summary={s.summary}
+                  timing={s.timing}
+                  output={s.output}
+                  context={showContext ? contextRef.current : undefined}
+                />
+              );
+            })}
 
-        {status === "done" && activeEvent?.status !== "done" && (
-          <div className="text-xs text-[#9B9B9B] py-2">
-            Elaborazione completata.
-          </div>
-        )}
-      </main>
+            {/* Reasoning Graph */}
+            {leaderDecision?.route === "corpus-qa" && collectedContext.institutes.length > 0 && (() => {
+              const corpusAgentStatus = agentStatuses.get("corpus-agent")?.status;
+              const corpusSearchStatus = agentStatuses.get("corpus-search")?.status;
+              const graphPhase: "question-prep" | "corpus-search" | "corpus-agent" =
+                corpusAgentStatus === "done" || corpusAgentStatus === "running"
+                  ? "corpus-agent"
+                  : corpusSearchStatus === "done" || corpusSearchStatus === "running"
+                    ? "corpus-search"
+                    : "question-prep";
 
-      <footer className="text-center text-[10px] text-[#9B9B9B] opacity-30 py-4">
-        lexmea v1.0
-      </footer>
+              const prepOutput = agentStatuses.get("question-prep")?.output;
 
-      <CorpusTreePanel open={corpusOpen} onClose={() => setCorpusOpen(false)} />
+              return (
+                <ReasoningGraph
+                  institutes={collectedContext.institutes}
+                  needsProceduralLaw={prepOutput?.needsProceduralLaw}
+                  needsCaseLaw={prepOutput?.needsCaseLaw}
+                  scopeNotes={prepOutput?.scopeNotes}
+                  questionType={prepOutput?.questionType}
+                  phase={graphPhase}
+                />
+              );
+            })()}
+
+            {status === "done" && activeEvent?.status !== "done" && (
+              <div className="text-xs text-[#9B9B9B] py-2">
+                Elaborazione completata.
+              </div>
+            )}
+          </main>
+
+          <footer className="text-center text-[10px] text-[#9B9B9B] opacity-30 py-4">
+            lexmea v1.0
+          </footer>
+        </>
+      )}
+
       <PowerPanel open={powerOpen} onClose={() => setPowerOpen(false)} />
     </StudioShell>
   );

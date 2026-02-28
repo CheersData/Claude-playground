@@ -1,7 +1,5 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
-
 interface LegalBreadcrumbProps {
   hierarchy: Record<string, string>;
   sourceName?: string;
@@ -30,15 +28,15 @@ export default function LegalBreadcrumb({
   if (crumbs.length === 0) return null;
 
   const textSize = size === "sm" ? "text-[11px]" : "text-xs";
-  const iconSize = size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5";
-  const gap = size === "sm" ? "gap-1" : "gap-1.5";
 
   return (
-    <div className={`flex flex-wrap items-center ${gap} ${textSize} text-foreground-tertiary ${className}`}>
+    <div className={`flex flex-wrap items-center gap-1.5 ${textSize} ${className}`}>
       {crumbs.map((crumb, i) => (
-        <span key={i} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight className={`${iconSize} opacity-40`} />}
-          <span className={i === 0 ? "font-medium text-[#A78BFA]" : ""}>
+        <span key={i} className="flex items-center gap-1.5">
+          {i > 0 && (
+            <span className="text-foreground-tertiary/40">/</span>
+          )}
+          <span className={i === 0 ? "text-foreground-secondary" : "text-foreground-tertiary"}>
             {crumb}
           </span>
         </span>

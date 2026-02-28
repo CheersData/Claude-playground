@@ -84,13 +84,20 @@ export const MODEL = "claude-sonnet-4-5-20250929";
 export const MODEL_FAST = "claude-haiku-4-5-20251001";
 
 /**
- * Parse JSON from Claude's response, handling markdown fences and surrounding text.
+ * Parse JSON from Claude's response, handling markdown fences, surrounding text,
+ * and truncated responses (max_tokens hit).
  */
 export function parseAgentJSON<T>(text: string): T {
   let cleaned = text.trim();
 
   // Strip markdown code fences (opening and closing independently)
   cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+
+  // Strip any text before the first { (e.g. "Here is the JSON:\n{...")
+  const firstBrace = cleaned.indexOf("{");
+  if (firstBrace > 0) {
+    cleaned = cleaned.slice(firstBrace);
+  }
 
   // Try 1: Direct parse
   try {
@@ -101,6 +108,42 @@ export function parseAgentJSON<T>(text: string): T {
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[1]);
+      } catch {
+        // fall through
+      }
+    }
+
+    // Try 3: Truncated JSON — close unclosed brackets/braces
+    if (cleaned.startsWith("{") || cleaned.startsWith("[")) {
+      let attempt = cleaned;
+      // Remove trailing incomplete string (e.g. `"value": "some text that got cu`)
+      attempt = attempt.replace(/,\s*"[^"]*":\s*"[^"]*$/, "");
+      attempt = attempt.replace(/,\s*"[^"]*$/, "");
+      attempt = attempt.replace(/,\s*$/, "");
+
+      // Count unclosed brackets and close them
+      let openBraces = 0, openBrackets = 0;
+      let inString = false, escaped = false;
+      for (const ch of attempt) {
+        if (escaped) { escaped = false; continue; }
+        if (ch === "\\") { escaped = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === "{") openBraces++;
+        if (ch === "}") openBraces--;
+        if (ch === "[") openBrackets++;
+        if (ch === "]") openBrackets--;
+      }
+
+      // Close unclosed strings if we're inside one
+      if (inString) attempt += '"';
+
+      for (let i = 0; i < openBrackets; i++) attempt += "]";
+      for (let i = 0; i < openBraces; i++) attempt += "}";
+
+      try {
+        console.warn(`[JSON-PARSER] Risposta troncata, tentativo riparazione (chiusi ${openBraces} braces, ${openBrackets} brackets)`);
+        return JSON.parse(attempt);
       } catch {
         // fall through
       }

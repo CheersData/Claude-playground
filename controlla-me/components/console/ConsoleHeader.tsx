@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 interface ConsoleHeaderProps {
   status: "idle" | "processing" | "done" | "error" | "clarification";
   userName?: string | null;
+  corpusActive?: boolean;
   onCorpusToggle?: () => void;
   onPowerToggle?: () => void;
   onPrint?: () => void;
 }
 
-export default function ConsoleHeader({ status, userName, onCorpusToggle, onPowerToggle, onPrint }: ConsoleHeaderProps) {
+export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onPrint }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -76,7 +77,11 @@ export default function ConsoleHeader({ status, userName, onCorpusToggle, onPowe
         {onCorpusToggle && (
           <button
             onClick={onCorpusToggle}
-            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+            className={`transition-colors print:hidden ${
+              corpusActive
+                ? "text-[#A78BFA] font-medium"
+                : "text-[#9B9B9B] hover:text-[#1A1A1A]"
+            }`}
           >
             Corpus
           </button>

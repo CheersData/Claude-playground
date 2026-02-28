@@ -81,11 +81,31 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   ensureInstitute(/interpretazion.*contratt|clausol.*contradditt/i, ["interpretazione_contratto"]);
   ensureInstitute(/riqualific.*contratt|qualificazione.*contratt/i, ["contratto", "interpretazione_contratto"]);
 
+  // Successione / Eredità
+  ensureInstitute(/ereditari|eredit[àa]|succession|de cuius|mort[oae].*lasciando|decedut/i, ["successione", "legittima", "divisione_ereditaria"]);
+  ensureInstitute(/legittima|quota.*riservat|lesione.*legittima/i, ["legittima", "successione"]);
+  ensureInstitute(/testamento|disposizion.*testamentar/i, ["testamento", "successione", "legittima"]);
+  ensureInstitute(/collazion|conferimento.*ereditari/i, ["collazione", "successione", "donazione"]);
+  ensureInstitute(/donazion|regal[oa]t|donato/i, ["donazione", "revoca_donazione", "collazione"]);
+
+  // Penale / Patrimonio
+  ensureInstitute(/pres[oi].*soldi|sottratt.*denaro|appropriat.*indebit|portato via.*soldi/i, ["appropriazione_indebita"]);
+  ensureInstitute(/circonvenz|raggir.*(?:anzian|incapac)|approfitt.*(?:anzian|incapac|non.*lucid)/i, ["circonvenzione_incapace", "incapacità"]);
+  ensureInstitute(/truff|ingann|artifici.*raggir/i, ["truffa"]);
+  ensureInstitute(/reato|fattispecie.*penale|penalment/i, ["appropriazione_indebita", "truffa", "circonvenzione_incapace"]);
+  ensureInstitute(/incapac|non.*lucid|interdett|inabilitat|anzian.*(?:confus|dement)/i, ["incapacità", "circonvenzione_incapace"]);
+
   // 4. needsCaseLaw for topics dominated by case law
   if (/responsabilit[àa].*precontrattual|culpa in contrahendo/i.test(combined)) {
     result.needsCaseLaw = true;
   }
   if (/riqualific.*(?:ufficio|giudice)|giudice.*riqualific/i.test(combined)) {
+    result.needsCaseLaw = true;
+  }
+  if (/circonvenz.*incapac|appropriazione.*indebita|reato|fattispecie.*penale/i.test(combined)) {
+    result.needsCaseLaw = true;
+  }
+  if (/lesione.*legittima|riduzione.*donazione|collazion/i.test(combined)) {
     result.needsCaseLaw = true;
   }
 
