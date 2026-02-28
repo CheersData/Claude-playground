@@ -23,7 +23,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (query) {
-      const results = await searchArticles(query, { lawSource: sourceId || undefined });
+      const raw = await searchArticles(query, {
+        lawSource: sourceId || undefined,
+        threshold: 0.35,
+        limit: 20,
+      });
+      // Normalize to snake_case for UI consumption
+      const results = raw.map((r) => ({
+        id: r.id,
+        article_reference: r.articleReference,
+        article_title: r.articleTitle,
+        law_source: r.lawSource,
+        similarity: r.similarity,
+      }));
       return NextResponse.json({ results, count: results.length });
     }
 
