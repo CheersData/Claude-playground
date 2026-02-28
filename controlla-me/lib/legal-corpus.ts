@@ -222,6 +222,67 @@ export async function searchArticles(
   }));
 }
 
+// ─── Query: Ricerca testuale (fallback per query corte) ───
+
+/**
+ * Cerca articoli con ILIKE su article_title e article_reference.
+ * Usata come fallback quando la ricerca semantica non trova risultati
+ * (es. query molto corte come "vizi" che hanno embedding troppo generico).
+ */
+export async function searchArticlesText(
+  query: string,
+  options: { lawSource?: string; limit?: number } = {}
+): Promise<LegalArticleSearchResult[]> {
+  const { lawSource, limit = 20 } = options;
+  const admin = createAdminClient();
+
+  // Use word-boundary pattern to avoid matching substrings (e.g. "vizi" in "servizio")
+  // PostgreSQL ILIKE doesn't support \b, so we search with spaces/start/end anchors
+  const words = query.trim().toLowerCase().split(/\s+/);
+  const fields = "id, law_source, article_reference, article_title, article_text, hierarchy, keywords, related_institutes, source_url, is_in_force";
+
+  // Search in article_title using word-aware patterns
+  // For each word, require it as a whole word (surrounded by spaces, punctuation, or start/end)
+  // Use PostgreSQL `~*` (case-insensitive regex) via RPC or filter in post
+  const pattern = `%${query}%`;
+
+  let queryBuilder = admin
+    .from("legal_articles")
+    .select(fields)
+    .ilike("article_title", pattern)
+    .order("article_reference")
+    .limit(limit * 3); // Fetch extra to filter
+
+  if (lawSource) {
+    queryBuilder = queryBuilder.eq("law_source", lawSource);
+  }
+
+  const { data: titleData, error: titleError } = await queryBuilder;
+
+  if (titleError) {
+    console.error(`[CORPUS] Errore ricerca testuale titolo: ${titleError.message}`);
+    return [];
+  }
+
+  // Post-filter: require each query word as a whole word in the title
+  const filtered = (titleData ?? []).filter((row: Record<string, unknown>) => {
+    const title = ((row.article_title as string) || "").toLowerCase();
+    return words.every((w) => {
+      // Match word boundaries: start/end of string, space, punctuation
+      const regex = new RegExp(`(^|[\\s.,;:()'"\\-/])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s.,;:()'"\\-/]|$)`, "i");
+      return regex.test(title);
+    });
+  });
+
+  const results = filtered.slice(0, limit).map((row: Record<string, unknown>) => ({
+    ...mapRowToArticle(row),
+    similarity: 1.0, // Text match = max relevance
+  }));
+
+  console.log(`[CORPUS] Ricerca testuale "${query}" → ${results.length} risultati (filtrati da ${(titleData ?? []).length})`);
+  return results;
+}
+
 // ─── Query combinata per la pipeline ───
 
 /**

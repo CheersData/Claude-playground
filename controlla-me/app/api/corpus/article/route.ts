@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArticleById, searchArticles } from "@/lib/legal-corpus";
+import { getArticleById, searchArticles, searchArticlesText } from "@/lib/legal-corpus";
 
 /**
  * GET /api/corpus/article?id=uuid
  *   -> Dettaglio singolo articolo
  *
  * GET /api/corpus/article?q=recesso&source=codice_civile
- *   -> Ricerca articoli
+ *   -> Ricerca ibrida: semantica + fallback testuale
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,20 +23,56 @@ export async function GET(request: NextRequest) {
     }
 
     if (query) {
-      const raw = await searchArticles(query, {
+      // 1. Semantic search (works best for longer, descriptive queries)
+      const semantic = await searchArticles(query, {
         lawSource: sourceId || undefined,
         threshold: 0.35,
         limit: 20,
       });
-      // Normalize to snake_case for UI consumption
-      const results = raw.map((r) => ({
-        id: r.id,
-        article_reference: r.articleReference,
-        article_title: r.articleTitle,
-        law_source: r.lawSource,
-        similarity: r.similarity,
-      }));
-      return NextResponse.json({ results, count: results.length });
+
+      // 2. Text search fallback (works for short keywords like "vizi")
+      const text = await searchArticlesText(query, {
+        lawSource: sourceId || undefined,
+        limit: 20,
+      });
+
+      // 3. Merge: text results first (exact match), then semantic, deduplicated
+      const seen = new Set<string>();
+      const merged: Array<{
+        id: string;
+        article_reference: string;
+        article_title: string | null;
+        law_source: string;
+        similarity: number;
+      }> = [];
+
+      for (const r of text) {
+        if (r.id && !seen.has(r.id)) {
+          seen.add(r.id);
+          merged.push({
+            id: r.id!,
+            article_reference: r.articleReference,
+            article_title: r.articleTitle,
+            law_source: r.lawSource,
+            similarity: r.similarity,
+          });
+        }
+      }
+
+      for (const r of semantic) {
+        if (r.id && !seen.has(r.id)) {
+          seen.add(r.id);
+          merged.push({
+            id: r.id!,
+            article_reference: r.articleReference,
+            article_title: r.articleTitle,
+            law_source: r.lawSource,
+            similarity: r.similarity,
+          });
+        }
+      }
+
+      return NextResponse.json({ results: merged.slice(0, 30), count: merged.length });
     }
 
     return NextResponse.json(
