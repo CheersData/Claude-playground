@@ -6,9 +6,11 @@ interface ConsoleHeaderProps {
   status: "idle" | "processing" | "done" | "error" | "clarification";
   userName?: string | null;
   onCorpusToggle?: () => void;
+  onPowerToggle?: () => void;
+  onPrint?: () => void;
 }
 
-export default function ConsoleHeader({ status, userName, onCorpusToggle }: ConsoleHeaderProps) {
+export default function ConsoleHeader({ status, userName, onCorpusToggle, onPowerToggle, onPrint }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -36,38 +38,54 @@ export default function ConsoleHeader({ status, userName, onCorpusToggle }: Cons
   }[status];
 
   const statusColor = {
-    idle: "text-[var(--pb-text-dim)]",
-    processing: "text-[var(--pb-green)]",
-    done: "text-[var(--pb-green)]",
-    error: "text-[var(--pb-red)]",
-    clarification: "text-[var(--pb-amber)]",
+    idle: "text-[#9B9B9B]",
+    processing: "text-[#1A1A1A]",
+    done: "text-[#1A1A1A]",
+    error: "text-red-500",
+    clarification: "text-amber-600",
   }[status];
 
   return (
-    <header className="pipboy-glow flex items-center justify-between px-6 py-4 bg-[var(--pb-bg-panel)]">
+    <header className="flex items-center justify-between px-8 py-5 border-b border-[#E5E5E5]">
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-serif italic tracking-wide text-[var(--pb-green)]">
+        <h1 className="text-xl font-serif tracking-tight text-[#1A1A1A]">
           lexmea
         </h1>
-        <span className="text-[10px] text-[var(--pb-text-dim)] tracking-wider">
+        <span className="text-[11px] text-[#9B9B9B] tracking-wide hidden md:inline">
           Assistenza a professionisti giuridici
         </span>
       </div>
 
       <div className="flex items-center gap-6 text-xs">
+        {onPrint && status === "done" && (
+          <button
+            onClick={onPrint}
+            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+          >
+            Stampa PDF
+          </button>
+        )}
+        {onPowerToggle && (
+          <button
+            onClick={onPowerToggle}
+            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+          >
+            Power
+          </button>
+        )}
         {onCorpusToggle && (
           <button
             onClick={onCorpusToggle}
-            className="text-[var(--pb-text-dim)] hover:text-[var(--pb-green)] transition-colors tracking-wider"
+            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
           >
             Corpus
           </button>
         )}
         {userName && (
-          <span className="text-[var(--pb-text-dim)]">{userName}</span>
+          <span className="text-[#6B6B6B]">{userName}</span>
         )}
         <span className={statusColor}>{statusLabel}</span>
-        <span className="text-[var(--pb-text-dim)] tabular-nums opacity-60">
+        <span className="text-[#9B9B9B] tabular-nums opacity-50">
           {time}
         </span>
       </div>

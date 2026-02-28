@@ -7,6 +7,7 @@ import ConsoleInput from "@/components/console/ConsoleInput";
 import AgentOutput from "@/components/console/AgentOutput";
 import ReasoningGraph from "@/components/console/ReasoningGraph";
 import CorpusTreePanel from "@/components/console/CorpusTreePanel";
+import PowerPanel from "@/components/console/PowerPanel";
 import type {
   ConsoleAgentPhase,
   ConsolePhaseStatus,
@@ -62,6 +63,7 @@ const AUTH_PROMPT = `Buongiorno. Sono il sistema lexmea.\nPer procedere, ho biso
 const CORPUS_PHASES: ConsoleAgentPhase[] = [
   "question-prep",
   "corpus-search",
+  "investigator",
   "corpus-agent",
 ];
 
@@ -97,6 +99,7 @@ export default function ConsolePage() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [corpusOpen, setCorpusOpen] = useState(false);
+  const [powerOpen, setPowerOpen] = useState(false);
 
   // ── Session persistence ──
   useEffect(() => {
@@ -333,19 +336,21 @@ export default function ConsolePage() {
         status={status}
         userName={headerUserName}
         onCorpusToggle={isAuthenticated ? () => setCorpusOpen((v) => !v) : undefined}
+        onPowerToggle={isAuthenticated ? () => setPowerOpen((v) => !v) : undefined}
+        onPrint={() => window.print()}
       />
 
-      <main className="p-4 max-w-3xl mx-auto space-y-3">
-        {/* Auth message — shown before authentication or as welcome */}
+      <main className="px-8 py-6 max-w-3xl mx-auto space-y-4">
+        {/* Auth message */}
         {authMessage && (!isAuthenticated || (isAuthenticated && status === "idle" && !activeEvent)) && (
-          <div className="pipboy-panel rounded-lg p-4">
+          <div className="rounded-xl border border-[#F0F0F0] p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span className="pipboy-led pipboy-led-done" />
-              <span className="text-xs font-serif italic text-[var(--pb-green)]">
+              <span className="inline-block w-[7px] h-[7px] rounded-full bg-[#1A1A1A]" />
+              <span className="text-xs font-serif italic text-[#1A1A1A]">
                 lexmea
               </span>
             </div>
-            <p className="text-sm whitespace-pre-wrap leading-relaxed text-[var(--pb-text)]">
+            <p className="text-sm whitespace-pre-wrap leading-relaxed text-[#1A1A1A]">
               {authMessage}
             </p>
             {authPhase === "denied" && (
@@ -354,7 +359,7 @@ export default function ConsolePage() {
                   setAuthPhase("idle");
                   setAuthMessage(AUTH_PROMPT);
                 }}
-                className="mt-3 text-xs text-[var(--pb-green)] hover:underline"
+                className="mt-3 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] hover:underline transition-colors"
               >
                 Riprovare
               </button>
@@ -375,28 +380,24 @@ export default function ConsolePage() {
         />
 
         {error && (
-          <div className="pipboy-panel rounded-lg p-3 border-[var(--pb-red)]">
-            <span className="text-xs text-[var(--pb-red)] font-medium">
-              Errore
-            </span>
-            <p className="text-sm text-[var(--pb-red)] mt-1">{error}</p>
+          <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
+            <span className="text-xs text-red-500 font-medium">Errore</span>
+            <p className="text-sm text-red-500 mt-1">{error}</p>
           </div>
         )}
 
-        {/* Clarification question from Leader */}
+        {/* Clarification */}
         {status === "clarification" && clarificationQ && (
-          <div className="pipboy-panel rounded-lg p-4">
+          <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="pipboy-led pipboy-led-running" />
-              <span className="text-xs font-medium">Leader</span>
+              <span className="inline-block w-[7px] h-[7px] rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs font-medium text-[#1A1A1A]">Leader</span>
             </div>
-            <p className="text-sm text-[var(--pb-amber)]">
-              {clarificationQ}
-            </p>
+            <p className="text-sm text-amber-700">{clarificationQ}</p>
           </div>
         )}
 
-        {/* Leader — always first when present */}
+        {/* Leader */}
         {agentStatuses.has("leader") && (() => {
           const s = agentStatuses.get("leader")!;
           return (
@@ -412,7 +413,7 @@ export default function ConsolePage() {
           );
         })()}
 
-        {/* Pipeline steps — all started agents shown inline */}
+        {/* Pipeline steps */}
         {pipelinePhases.map((phase) => {
           const s = agentStatuses.get(phase);
           if (!s || s.status === "idle") return null;
@@ -435,9 +436,8 @@ export default function ConsolePage() {
           );
         })}
 
-        {/* Reasoning Graph — shows detected institutes as chips */}
+        {/* Reasoning Graph */}
         {leaderDecision?.route === "corpus-qa" && collectedContext.institutes.length > 0 && (() => {
-          // Determine graph phase based on pipeline state
           const corpusAgentStatus = agentStatuses.get("corpus-agent")?.status;
           const corpusSearchStatus = agentStatuses.get("corpus-search")?.status;
           const graphPhase: "question-prep" | "corpus-search" | "corpus-agent" =
@@ -447,7 +447,6 @@ export default function ConsolePage() {
                 ? "corpus-search"
                 : "question-prep";
 
-          // Extract scope flags from question-prep output
           const prepOutput = agentStatuses.get("question-prep")?.output;
 
           return (
@@ -463,17 +462,18 @@ export default function ConsolePage() {
         })()}
 
         {status === "done" && activeEvent?.status !== "done" && (
-          <div className="text-xs text-[var(--pb-green)] py-2">
+          <div className="text-xs text-[#9B9B9B] py-2">
             Elaborazione completata.
           </div>
         )}
       </main>
 
-      <footer className="text-center text-[10px] text-[var(--pb-text-dim)] opacity-30 py-4">
+      <footer className="text-center text-[10px] text-[#9B9B9B] opacity-30 py-4">
         lexmea v1.0
       </footer>
 
       <CorpusTreePanel open={corpusOpen} onClose={() => setCorpusOpen(false)} />
+      <PowerPanel open={powerOpen} onClose={() => setPowerOpen(false)} />
     </StudioShell>
   );
 }

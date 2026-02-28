@@ -23,7 +23,8 @@
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
 | AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
 | AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 5.x |
-| AI Registry | lib/models.ts — 22 modelli, 7 provider | — |
+| AI Registry | lib/models.ts — ~40 modelli, 7 provider | — |
+| Tier System | lib/tiers.ts — 3 tier, catene N-fallback | — |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
 | Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
 | Database | Supabase (PostgreSQL + RLS) | 2.97.0 |
@@ -144,6 +145,8 @@ controlla-me/
 │       ├── corpus/route.ts           # Gestione corpus legislativo
 │       ├── corpus/hierarchy/route.ts # Fonti e albero navigabile
 │       ├── corpus/ask/route.ts      # Corpus Agent Q&A (Gemini/Haiku)
+│       ├── console/route.ts         # Console SSE — leader + pipeline routing
+│       ├── console/tier/route.ts    # GET/POST — tier switch + agent toggle
 │       ├── session/[sessionId]/route.ts  # Cache sessioni
 │       ├── user/usage/route.ts    # Limiti utilizzo
 │       ├── auth/callback/route.ts # OAuth Supabase
@@ -151,7 +154,7 @@ controlla-me/
 │       ├── stripe/portal/route.ts
 │       └── webhook/route.ts       # Webhook Stripe
 │
-├── components/                    # 18 componenti React
+├── components/                    # 20+ componenti React
 │   ├── Navbar.tsx                # Nav + menu mobile
 │   ├── HeroSection.tsx           # 3 hero: HeroVerifica, HeroDubbi (CorpusChat live), HeroBrand
 │   ├── MissionSection.tsx        # Come funziona (4 step)
@@ -169,17 +172,26 @@ controlla-me/
 │   ├── LawyerCTA.tsx             # Raccomandazione avvocato
 │   ├── PaywallBanner.tsx         # Banner limite utilizzo
 │   ├── CTASection.tsx            # Call-to-action
-│   └── Footer.tsx                # Footer
+│   ├── Footer.tsx                # Footer
+│   └── console/                  # Componenti console
+│       ├── StudioShell.tsx       # Layout console
+│       ├── ConsoleHeader.tsx     # Header + Power button
+│       ├── ConsoleInput.tsx      # Input chat
+│       ├── AgentOutput.tsx       # Rendering output agenti
+│       ├── ReasoningGraph.tsx    # Visualizzazione reasoning
+│       ├── CorpusTreePanel.tsx   # Pannello laterale corpus
+│       └── PowerPanel.tsx        # Pannello tier + catene fallback + toggle agenti
 │
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
 │   ├── gemini.ts                 # Client Gemini 2.5 Flash + retry
-│   ├── models.ts                 # Registry centralizzato: 22 modelli, 7 provider
+│   ├── models.ts                 # Registry centralizzato: ~40 modelli, 7 provider
+│   ├── tiers.ts                  # Tier system: intern/associate/partner + catene fallback + agent toggle
 │   ├── ai-sdk/                   # Infrastruttura AI riusabile (astraibile)
 │   │   ├── types.ts              # Interfacce GenerateConfig, GenerateResult
 │   │   ├── openai-compat.ts      # 1 funzione per 5 provider OpenAI-compatibili
 │   │   ├── generate.ts           # Router universale: generate(modelKey) → provider
-│   │   └── agent-runner.ts       # runAgent(agentName) con auto-fallback da AGENT_MODELS
+│   │   └── agent-runner.ts       # runAgent(agentName) con catena N-fallback da tiers.ts
 │   ├── embeddings.ts             # Client Voyage AI per embeddings
 │   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
 │   ├── legal-corpus.ts           # Ingest e query corpus legislativo
@@ -229,6 +241,7 @@ controlla-me/
 ├── scripts/
 │   ├── data-connector.ts          # CLI: connect, model, load, status, update
 │   ├── corpus-sources.ts          # 14 fonti con ConnectorConfig + lifecycle
+│   ├── model-census-agent.ts      # CLI: verifica modelli provider (npx tsx scripts/model-census-agent.ts)
 │   ├── seed-corpus.ts             # Seed legacy (HuggingFace)
 │   └── check-data.ts              # QA dati corpus
 │
@@ -291,18 +304,35 @@ Domanda utente (colloquiale)
 
 Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda originale**.
 
-### Scelta dei modelli
+### Tier System e Catene di Fallback
 
-Configurazione centralizzata in `lib/models.ts`. Per cambiare modello a un agente basta modificare una riga.
+Configurazione centralizzata in `lib/tiers.ts`. Ogni agente ha una **catena ordinata di N modelli**. Il tier (Intern/Associate/Partner) determina il punto di partenza nella catena. Su errore 429 o provider non disponibile, il sistema scende automaticamente al modello successivo.
 
-| Agente | Modello attuale | Fallback | Perche |
-|--------|----------------|----------|--------|
-| Classifier | Claude Haiku 4.5 | Gemini Flash | Prompt profondo compensa, velocita |
-| Analyzer | Claude Sonnet 4.5 | Gemini Pro | Analisi profonda con contesto normativo |
-| Investigator | Claude Sonnet 4.5 | Claude Sonnet 4.5 | Usa web_search Anthropic, richiede Claude |
-| Advisor | Claude Sonnet 4.5 | Claude Sonnet 4.5 | Output finale + scoring multidimensionale |
-| Question-Prep | Gemini Flash | Claude Haiku 4.5 | Leggero (~1024 token), solo riformulazione |
-| Corpus Agent | Gemini Flash | Claude Haiku 4.5 | Risposta strutturata con articoli citati |
+```
+Tier Partner:   Sonnet 4.5 → Gemini Pro → Mistral Large → Groq Llama → Cerebras
+Tier Associate: Gemini Pro → Mistral Large → Groq Llama → Cerebras
+Tier Intern:    Mistral Large → Groq Llama → Cerebras
+```
+
+| Tier | Descrizione | Modelli tipici | Costo stimato |
+|------|-------------|---------------|---------------|
+| **Intern** | Modelli gratuiti | Cerebras, Groq, Mistral free | ~gratis |
+| **Associate** | Modelli intermedi | Gemini Flash/Pro, Haiku | ~$0.01 |
+| **Partner** | Modelli top-tier | Sonnet, GPT-5 | ~$0.05 |
+
+**Investigator**: catena limitata a 2 modelli Anthropic (Sonnet → Haiku) perche usa `web_search` che richiede Claude.
+
+### Toggle Agenti
+
+Ogni agente puo essere disabilitato singolarmente dal PowerPanel. Quando disabilitato:
+- **Classifier** → classificazione minimale di default
+- **Analyzer** → `{ clauses: [], missingElements: [], overallRisk: "low" }`
+- **Investigator** → `{ findings: [] }` (stesso pattern del fallback su errore)
+- **Advisor** → skip, nessun output finale
+- **Question-prep** → usa domanda originale come query legale
+- **Corpus-agent** → skip risposta LLM
+
+Stato gestito in `lib/tiers.ts` con `isAgentEnabled()` / `setAgentEnabled()`. API: `POST /api/console/tier` con `{ agent, enabled }`.
 
 ### Provider disponibili (7)
 
@@ -312,16 +342,16 @@ Anthropic e Gemini hanno SDK nativi dedicati. Gli altri 5 usano `lib/ai-sdk/open
 | Provider | Implementazione | Modelli | Free tier |
 |----------|----------------|---------|-----------|
 | Anthropic | `lib/anthropic.ts` (SDK nativo) | Sonnet 4.5, Haiku 4.5 | No |
-| Google Gemini | `lib/gemini.ts` (SDK nativo) | Flash, Pro | 250 req/giorno |
-| OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-4o, 4.1, 4.1 Mini, 4.1 Nano, 4o Mini | $5 crediti |
-| Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo ($0.02!) | Tutti i modelli, 2 RPM |
-| Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B | 1000 req/giorno |
-| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B | 1M tok/giorno |
+| Google Gemini | `lib/gemini.ts` (SDK nativo) | Flash, Flash Lite, Pro | 250 req/giorno |
+| OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-5.1, 5.2, 4.1, 4o, Codex Mini, OSS 20B/120B | $5 crediti |
+| Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo, Ministral, Magistral S/M | Tutti, 2 RPM |
+| Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B, GPT-OSS, Kimi K2 | 1000 req/giorno |
+| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B, Qwen3 235B, GPT-OSS 120B | 1M tok/giorno |
 | DeepSeek | `lib/ai-sdk/openai-compat.ts` | V3, R1 | 5M tok (30gg) |
 
-Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts`. Per cambiare modello: modificare `AGENT_MODELS` in `lib/models.ts`, zero codice agente da toccare.
+Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts` che risolve la catena di fallback dal tier corrente. Per cambiare catena o tier: modificare `AGENT_CHAINS` / `TIER_START` in `lib/tiers.ts`.
 
-Vedi `docs/MODEL-CENSUS.md` per pricing completo e configurazioni raccomandate.
+Vedi `docs/MODEL-CENSUS.md` per pricing completo. Script `scripts/model-census-agent.ts` per verificare modelli nuovi/deprecati dai provider.
 
 ### Regole dei prompt
 
@@ -397,13 +427,14 @@ for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 
 ### Strategie anti-throttling (ordine di importanza)
 
-1. **Retry 60s fisso su 429** — Il rate limit e' per minuto, aspetti 1 minuto esatto
-2. **Distribuisci i modelli** — Haiku per task semplici (classifier, investigator), Sonnet per task complessi (analyzer, advisor). Riduce token consumati
-3. **Cache aggressiva** — SHA256 del documento, se gia analizzato salta le fasi completate. Risparmio 50%+ chiamate API
-4. **Limita le iterazioni** — Investigator: max 5 tool_use loop. Deep search: max 8 iterazioni
-5. **Limita i token output** — Ogni agente ha max_tokens calibrato: 4096, 8192, 6144, 4096
-6. **Usage limits per utente** — Free: 3 analisi/mese. Previene abuso
-7. **Logging dettagliato** — Logga token in/out, tempo, stop_reason per ogni chiamata
+1. **Catene di fallback N-modelli** — Su 429 il sistema scende automaticamente al modello successivo nella catena (lib/tiers.ts). Nessun tempo di attesa se un altro provider e' disponibile
+2. **Retry 60s fisso su 429** — Se tutta la catena fallisce, retry su rate limit con attesa 60s
+3. **Distribuisci i modelli** — Haiku per task semplici (classifier, investigator), Sonnet per task complessi (analyzer, advisor). Riduce token consumati
+4. **Cache aggressiva** — SHA256 del documento, se gia analizzato salta le fasi completate. Risparmio 50%+ chiamate API
+5. **Limita le iterazioni** — Investigator: max 5 tool_use loop. Deep search: max 8 iterazioni
+6. **Limita i token output** — Ogni agente ha max_tokens calibrato: 4096, 8192, 6144, 4096
+7. **Usage limits per utente** — Free: 3 analisi/mese. Previene abuso
+8. **Logging dettagliato** — Logga token in/out, tempo, stop_reason per ogni chiamata
 
 ### Pattern logging API
 
@@ -471,6 +502,9 @@ data: {"phase": "classifier", "status": "running"}
 
 event: progress
 data: {"phase": "classifier", "status": "done", "data": {...}}
+
+event: progress
+data: {"phase": "investigator", "status": "skipped"}
 
 event: error
 data: {"phase": "analyzer", "error": "messaggio"}

@@ -13,6 +13,7 @@ import { runDeepSearch } from "@/lib/agents/investigator";
 import { CORPUS_AGENT_SYSTEM_PROMPT } from "@/lib/prompts/corpus-agent";
 import { sanitizeDocumentText, sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { MODELS, AGENT_MODELS, type ModelKey } from "@/lib/models";
+import { getActiveModel, getCurrentTier, isAgentEnabled } from "@/lib/tiers";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300;
@@ -173,30 +174,30 @@ export async function POST(req: NextRequest) {
 
 // ─── Model Info helper ───
 
-function getModelInfo(agent: string): { displayName: string; tier: "free" | "budget" | "premium" } {
+function getModelInfo(agent: string): { displayName: string; tier: string } {
   const agentKey = agent as keyof typeof AGENT_MODELS;
-  if (!(agentKey in AGENT_MODELS)) return { displayName: agent, tier: "free" };
-  const modelKey = AGENT_MODELS[agentKey].primary;
+  if (!(agentKey in AGENT_MODELS)) return { displayName: agent, tier: getCurrentTier() };
+  const modelKey = getActiveModel(agentKey);
   const model = MODELS[modelKey];
-  if (!model) return { displayName: agent, tier: "free" };
+  if (!model) return { displayName: agent, tier: getCurrentTier() };
   const tier = getModelTier(modelKey);
   return { displayName: model.displayName, tier };
 }
 
-function getModelTier(key: ModelKey): "free" | "budget" | "premium" {
+function getModelTier(key: ModelKey): "intern" | "associate" | "partner" {
   const m = MODELS[key];
-  // Free: Gemini Flash, all Groq, Cerebras, Mistral Small/Ministral, DeepSeek, GPT-4.1 Nano, GPT-5 Nano
-  if (m.provider === "groq" || m.provider === "cerebras") return "free";
-  if (key === "gemini-2.5-flash") return "free";
-  if (key === "mistral-small-3" || key === "ministral-8b" || key === "ministral-3b") return "free";
-  if (key === "gpt-4.1-nano" || key === "gpt-5-nano") return "free";
-  // Budget: Haiku, Gemini Pro, GPT-4o Mini, GPT-4.1 Mini, Mistral Medium, GPT-5 Mini
-  if (key === "claude-haiku-4.5") return "budget";
-  if (key === "gemini-2.5-pro") return "budget";
-  if (key === "gpt-4o-mini" || key === "gpt-4.1-mini" || key === "gpt-5-mini") return "budget";
-  if (key === "mistral-medium-3") return "budget";
-  // Premium: everything else (Sonnet, GPT-4o, GPT-4.1, GPT-5, Mistral Large, DeepSeek R1)
-  return "premium";
+  // Intern: Gemini Flash, all Groq, Cerebras, Mistral Small/Ministral/Nemo, GPT-4.1 Nano, GPT-5 Nano, GPT-OSS
+  if (m.provider === "groq" || m.provider === "cerebras") return "intern";
+  if (key === "gemini-2.5-flash" || key === "gemini-2.5-flash-lite") return "intern";
+  if (key === "mistral-small-3" || key === "ministral-8b" || key === "ministral-3b" || key === "ministral-14b" || key === "mistral-nemo") return "intern";
+  if (key === "gpt-4.1-nano" || key === "gpt-5-nano" || key === "gpt-oss-20b" || key === "gpt-oss-120b") return "intern";
+  // Associate: Haiku, Gemini Pro, GPT-4o Mini, GPT-4.1 Mini, Mistral Medium, GPT-5 Mini, Magistral Small
+  if (key === "claude-haiku-4.5") return "associate";
+  if (key === "gemini-2.5-pro") return "associate";
+  if (key === "gpt-4o-mini" || key === "gpt-4.1-mini" || key === "gpt-5-mini" || key === "gpt-5.1-codex-mini") return "associate";
+  if (key === "mistral-medium-3" || key === "magistral-small") return "associate";
+  // Partner: everything else (Sonnet, GPT-4o, GPT-4.1, GPT-5, 5.1, 5.2, Mistral Large, Magistral Medium)
+  return "partner";
 }
 
 // ─── Corpus Q&A Pipeline (granular events + output per agent) ───
@@ -211,41 +212,61 @@ async function runCorpusQA(
   send: (event: string, data: unknown) => void,
 ) {
   // 1. Question-Prep — identifica istituti giuridici + query legale
-  sendAgent("question-prep", "running", { modelInfo: getModelInfo("question-prep") });
-  const prepStart = Date.now();
+  let prep;
+  if (!isAgentEnabled("question-prep")) {
+    console.log("[CONSOLE] Question-Prep: DISABLED");
+    prep = {
+      legalQuery: question,
+      mechanismQuery: null,
+      suggestedInstitutes: [] as string[],
+      targetArticles: null,
+      questionType: "specific" as const,
+      needsProceduralLaw: false,
+      needsCaseLaw: false,
+      scopeNotes: null,
+      keywords: [],
+    };
+    sendAgent("question-prep", "skipped", {
+      summary: "Agente disabilitato",
+      output: { originalQuestion: question, legalQuery: question },
+    });
+  } else {
+    sendAgent("question-prep", "running", { modelInfo: getModelInfo("question-prep") });
+    const prepStart = Date.now();
 
-  const prep = await prepareQuestion(question);
+    prep = await prepareQuestion(question);
 
-  // Auto-enable deep search when question needs case law (giurisprudenza)
-  const deep = prep.needsCaseLaw;
+    sendAgent("question-prep", "done", {
+      summary: prep.targetArticles
+        ? `Target: ${prep.targetArticles}`
+        : prep.questionType === "systematic"
+          ? "Domanda sistematica (tassonomia)"
+          : prep.mechanismQuery
+            ? "Domanda riformulata (2 assi)"
+            : "Domanda riformulata",
+      timing: Date.now() - prepStart,
+      modelInfo: getModelInfo("question-prep"),
+      output: {
+        originalQuestion: question,
+        legalQuery: prep.legalQuery,
+        mechanismQuery: prep.mechanismQuery,
+        suggestedInstitutes: prep.suggestedInstitutes,
+        targetArticles: prep.targetArticles,
+        questionType: prep.questionType,
+        needsProceduralLaw: prep.needsProceduralLaw,
+        needsCaseLaw: prep.needsCaseLaw,
+        scopeNotes: prep.scopeNotes,
+        keywords: prep.keywords,
+      },
+    });
+  }
+
+  // Deep search: attivo solo se investigator abilitato
+  const deep = isAgentEnabled("investigator");
 
   const scopeFlags: string[] = [];
   if (prep.needsProceduralLaw) scopeFlags.push("c.p.c.");
   if (prep.needsCaseLaw) scopeFlags.push("giurisprudenza");
-
-  sendAgent("question-prep", "done", {
-    summary: prep.targetArticles
-      ? `Target: ${prep.targetArticles}`
-      : prep.questionType === "systematic"
-        ? "Domanda sistematica (tassonomia)"
-        : prep.mechanismQuery
-          ? "Domanda riformulata (2 assi)"
-          : "Domanda riformulata",
-    timing: Date.now() - prepStart,
-    modelInfo: getModelInfo("question-prep"),
-    output: {
-      originalQuestion: question,
-      legalQuery: prep.legalQuery,
-      mechanismQuery: prep.mechanismQuery,
-      suggestedInstitutes: prep.suggestedInstitutes,
-      targetArticles: prep.targetArticles,
-      questionType: prep.questionType,
-      needsProceduralLaw: prep.needsProceduralLaw,
-      needsCaseLaw: prep.needsCaseLaw,
-      scopeNotes: prep.scopeNotes,
-      keywords: prep.keywords,
-    },
-  });
 
   // 2. Corpus search — institute lookup + semantic search combinati
   sendAgent("corpus-search", "running", { modelInfo: { displayName: "pgvector", tier: "free" as const } });
@@ -373,6 +394,15 @@ async function runCorpusQA(
       });
       // Non fatale: continua senza giurisprudenza
     }
+  }
+
+  if (!isAgentEnabled("corpus-agent")) {
+    console.log("[CONSOLE] Corpus-Agent: DISABLED");
+    sendAgent("corpus-agent", "skipped", {
+      summary: "Agente disabilitato",
+      output: { answer: "Corpus Agent disabilitato", citedArticles: [], confidence: 0 },
+    });
+    return;
   }
 
   sendAgent("corpus-agent", "running", { modelInfo: getModelInfo("corpus-agent") });

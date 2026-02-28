@@ -157,7 +157,7 @@ export type ConsolePhaseStatus = "running" | "done" | "error" | "skipped";
 // ─── SSE Event Types ───
 
 export type AgentPhase = "classifier" | "analyzer" | "investigator" | "advisor";
-export type PhaseStatus = "running" | "done" | "error";
+export type PhaseStatus = "running" | "done" | "error" | "skipped";
 
 export interface ProgressEvent {
   phase: AgentPhase;

@@ -19,6 +19,7 @@ import {
   indexAnalysisKnowledge,
 } from "../vector-store";
 import { isVectorDBEnabled } from "../embeddings";
+import { isAgentEnabled } from "../tiers";
 import type {
   ClassificationResult,
   AnalysisResult,
@@ -89,14 +90,29 @@ export async function runOrchestrator(
   };
 
   // Step 1: Classifier
-  if (result.classification) {
+  if (!isAgentEnabled("classifier")) {
+    console.log(`[ORCHESTRATOR] Classifier: DISABLED`);
+    result.classification = {
+      documentType: "contract",
+      documentTypeLabel: "Contratto generico",
+      documentSubType: null,
+      parties: [],
+      jurisdiction: "Italia",
+      applicableLaws: [],
+      relevantInstitutes: [],
+      legalFocusAreas: [],
+      keyDates: [],
+      summary: "Classificazione non eseguita (agente disabilitato)",
+      confidence: 0,
+    };
+    callbacks.onProgress("classifier", "skipped", result.classification);
+  } else if (result.classification) {
     console.log(`[ORCHESTRATOR] Classifier: SKIP (cached)`);
     callbacks.onProgress("classifier", "done", result.classification);
   } else {
     const t0 = Date.now();
     try {
       callbacks.onProgress("classifier", "running");
-      // Prepend user context to guide classification if provided
       const classifierInput = userContext
         ? `CONTESTO UTENTE: ${userContext}\n\nDOCUMENTO:\n${documentText}`
         : documentText;
@@ -163,7 +179,16 @@ export async function runOrchestrator(
   }
 
   // Step 2: Analyzer (now receives legal context from vector DB)
-  if (result.analysis) {
+  if (!isAgentEnabled("analyzer")) {
+    console.log(`[ORCHESTRATOR] Analyzer: DISABLED`);
+    result.analysis = {
+      clauses: [],
+      missingElements: [],
+      overallRisk: "low",
+      positiveAspects: [],
+    };
+    callbacks.onProgress("analyzer", "skipped", result.analysis);
+  } else if (result.analysis) {
     console.log(`[ORCHESTRATOR] Analyzer: SKIP (cached)`);
     callbacks.onProgress("analyzer", "done", result.analysis);
   } else {
@@ -211,7 +236,11 @@ export async function runOrchestrator(
   }
 
   // Step 3: Investigator (now receives legal context + RAG context)
-  if (result.investigation) {
+  if (!isAgentEnabled("investigator")) {
+    console.log(`[ORCHESTRATOR] Investigator: DISABLED`);
+    result.investigation = { findings: [] } as InvestigationResult;
+    callbacks.onProgress("investigator", "skipped", result.investigation);
+  } else if (result.investigation) {
     console.log(`[ORCHESTRATOR] Investigator: SKIP (cached)`);
     callbacks.onProgress("investigator", "done", result.investigation);
   } else {
@@ -240,7 +269,10 @@ export async function runOrchestrator(
   }
 
   // Step 4: Advisor (now receives RAG context for market calibration)
-  if (result.advice) {
+  if (!isAgentEnabled("advisor")) {
+    console.log(`[ORCHESTRATOR] Advisor: DISABLED`);
+    callbacks.onProgress("advisor", "skipped");
+  } else if (result.advice) {
     console.log(`[ORCHESTRATOR] Advisor: SKIP (cached)`);
     callbacks.onProgress("advisor", "done", result.advice);
     callbacks.onComplete(result.advice);
