@@ -95,6 +95,12 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
             Corpus
           </button>
         )}
+        <a
+          href="/ops"
+          className="text-[#9B9B9B] hover:text-[#FF6B35] transition-colors print:hidden"
+        >
+          Ops
+        </a>
         {userName && (
           <span className="text-[#6B6B6B] hidden sm:inline">{userName}</span>
         )}
