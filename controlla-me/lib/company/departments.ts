@@ -1,5 +1,5 @@
 /**
- * Department Registry — Metadati statici per i 9 dipartimenti della virtual company.
+ * Department Registry — Metadati statici per gli 11 dipartimenti della virtual company.
  * Nessuna chiamata DB, nessun async. Importabile ovunque a costo zero.
  */
 
@@ -51,6 +51,34 @@ export const DEPARTMENTS: Record<Department, DepartmentMeta> = {
       "JSON output valido: 100%",
     ],
     departmentFilePath: "company/ufficio-legale/department.md",
+  },
+
+  "trading": {
+    id: "trading",
+    label: "Ufficio Trading",
+    emoji: "📈",
+    mission:
+      "Trading automatizzato su azioni US e ETF via Alpaca Markets per sostenibilità finanziaria. Pipeline 5 agenti: scanner, signal, risk, executor, monitor.",
+    agents: [
+      { id: "trading-lead",      label: "Trading Lead",      filePath: "company/trading/agents/trading-lead.md" },
+      { id: "market-scanner",    label: "Market Scanner",    filePath: "company/trading/agents/market-scanner.md" },
+      { id: "signal-generator",  label: "Signal Generator",  filePath: "company/trading/agents/signal-generator.md" },
+      { id: "risk-manager",      label: "Risk Manager",      filePath: "company/trading/agents/risk-manager.md" },
+      { id: "executor",          label: "Executor",          filePath: "company/trading/agents/executor.md" },
+      { id: "portfolio-monitor", label: "Portfolio Monitor", filePath: "company/trading/agents/portfolio-monitor.md" },
+    ],
+    runbooks: [
+      { id: "trading-pipeline",  label: "Trading Pipeline",  filePath: "company/trading/runbooks/trading-pipeline.md" },
+      { id: "risk-management",   label: "Risk Management",   filePath: "company/trading/runbooks/risk-management.md" },
+      { id: "backtest",          label: "Backtest",           filePath: "company/trading/runbooks/backtest.md" },
+      { id: "go-live",           label: "Go Live",            filePath: "company/trading/runbooks/go-live.md" },
+    ],
+    kpis: [
+      "Paper trading: 30 giorni minimo prima di go-live",
+      "Max daily loss < -2% portfolio",
+      "Sharpe ratio > 1.0 in backtest",
+    ],
+    departmentFilePath: "company/trading/department.md",
   },
 
   "data-engineering": {
@@ -216,6 +244,27 @@ export const DEPARTMENTS: Record<Department, DepartmentMeta> = {
     ],
     departmentFilePath: "company/marketing/department.md",
   },
+
+  "ux-ui": {
+    id: "ux-ui",
+    label: "UX/UI",
+    emoji: "🎨",
+    mission:
+      "Design, implementazione e mantenimento dell'esperienza utente. Coerenza visiva, accessibilità WCAG 2.1 AA, Design System, brand identity. Responsabile del Beauty Report.",
+    agents: [
+      { id: "ui-ux-designer", label: "UI/UX Designer", filePath: "company/ux-ui/agents/ui-ux-designer.md" },
+    ],
+    runbooks: [
+      { id: "implement-ui-change", label: "Implementa UI Change", filePath: "company/ux-ui/runbooks/implement-ui-change.md" },
+      { id: "accessibility-audit",  label: "Audit Accessibilità",  filePath: "company/ux-ui/runbooks/accessibility-audit.md" },
+    ],
+    kpis: [
+      "Beauty Report score >= 8.0/10",
+      "Zero violazioni WCAG AA critiche",
+      "Design System: token coverage 100%",
+    ],
+    departmentFilePath: "company/ux-ui/department.md",
+  },
 };
 
 export function getDepartmentMeta(dept: Department): DepartmentMeta | null {
@@ -224,9 +273,11 @@ export function getDepartmentMeta(dept: Department): DepartmentMeta | null {
 
 export const DEPT_ORDER: Department[] = [
   "ufficio-legale",
+  "trading",
   "data-engineering",
   "quality-assurance",
   "architecture",
+  "ux-ui",
   "security",
   "finance",
   "operations",

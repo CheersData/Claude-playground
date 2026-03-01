@@ -4,6 +4,7 @@
 
 export type Department =
   | "ufficio-legale"
+  | "trading"
   | "data-engineering"
   | "quality-assurance"
   | "architecture"
@@ -11,7 +12,8 @@ export type Department =
   | "operations"
   | "security"
   | "strategy"
-  | "marketing";
+  | "marketing"
+  | "ux-ui";
 
 export type TaskStatus = "open" | "in_progress" | "review" | "done" | "blocked";
 
