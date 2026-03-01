@@ -118,9 +118,10 @@ L'AI SDK, il Model Registry, il Tier System, e i pattern di design sono solidi e
 |----------|-----|-------------|-----------|------------|-----|--------|
 | **Binance** | REST + WS | 0.1% spot (riducibili con BNB) | Sì, streams illimitati | 1200 req/min | Liquidità massima, più paia | Complessità KYC in EU, ban in alcuni paesi |
 | **Kraken** | REST + WS | 0.16% maker / 0.26% taker | Sì | 15 req/s | Regolamentato EU, affidabile | Meno paia, API meno elegante |
-| **Bybit** | REST + WS | 0.1% spot | Sì | 120 req/min | Buoni derivati | Meno regolamentato |
+| **Bybit** | REST + WS | 0.1% spot | Sì | 120 req/min | Buoni derivati, sandbox | Meno regolamentato |
+| **OKX** | REST + WS | Competitive | Sì | Buono | **Licenza MiCA (EU)**, bot nativi, copy trading | Community più piccola |
 
-**Raccomandazione:** Binance come primario (liquidità), Kraken come backup (regolamentato EU).
+**Raccomandazione:** Binance come primario (liquidità), OKX come alternativa (compliance MiCA EU importante per il futuro).
 
 #### Azioni/ETF
 
@@ -128,13 +129,14 @@ L'AI SDK, il Model Registry, il Tier System, e i pattern di design sono solidi e
 |--------|-----|-------------|--------------|-----|--------|
 | **Alpaca** | REST + WS | Commission-free US stocks | ✅ (espansione EU 2025 via WealthKernel) | API eccellente, paper trading, miglior broker per algo EU 2026 (BrokerChooser) | No ETF US per EU (regolamento), crypto solo US |
 | **Interactive Brokers** | ibapi Python | $0.005/share (min $1) | ✅ Pieno supporto | Accesso a 150+ mercati, derivati, forex | API complessa (event-driven, TWS necessario), setup iniziale doloroso |
-| **Trading212** | NO API pubblica | — | ✅ | — | **Non utilizzabile per bot** |
-| **DEGIRO** | NO API ufficiale | — | ✅ | — | Solo scraping non ufficiale — **sconsigliato** |
-| **eToro** | NO API trading | — | ✅ | — | **Non utilizzabile per bot** |
+| **Trading212** | API in BETA (2025) | Commission-free | ✅ | Solo Market Order in live (limit solo in demo), API giovane | **Da monitorare** — troppo immaturo oggi per algo serio |
+| **DEGIRO** | NO API ufficiale | — | ✅ | — | Solo scraping non ufficiale — **sconsigliato**, rischio ban account |
+| **eToro** | API pubblica (ott 2025) | Variabili | ✅ | Trading algo + social analytics + streaming real-time | Accesso iniziale riservato ai "Popular Investors" — **da monitorare** |
 
 **Raccomandazione:**
-- **Alpaca** come primario per azioni US (API migliore, commission-free, paper trading per test)
-- **Interactive Brokers** come secondario per mercati EU/global (più complesso ma accesso universale)
+- **Interactive Brokers** come primario per azioni/ETF EU (UNICO broker con API vera per ETF UCITS su borse europee)
+- **Alpaca** come secondario per azioni US (commission-free, API più semplice, paper trading per test)
+- **Nota IBKR:** richiede TWS o IB Gateway sempre attivo sul VPS. Libreria `ib_insync` semplifica enormemente il codice Python. Fee EU: 3 EUR/trade fino a 6.000 EUR, poi 0.05%
 
 ### 3.2 Market Data APIs — Dati in Near Real-Time
 
@@ -142,7 +144,7 @@ L'AI SDK, il Model Registry, il Tier System, e i pattern di design sono solidi e
 |-----|-----------|--------|--------|---------|------------|----------|
 | **Finnhub** | Generoso (60 req/min) | ✅ Global | ✅ | <100ms | $49/mese | All-around gratuito |
 | **Alpha Vantage** | 25 call/giorno | ✅ 30+ paesi | ✅ | Moderata | $49.99/mese | Beginner, indicatori |
-| **Polygon.io** | Limitato | ✅ US | ✅ | <10ms | $29/mese | Bassa latenza |
+| **Polygon.io** | Quasi inutile (5 call/min) | ✅ US | ✅ | <10ms | **$199/mese** | Troppo costoso |
 | **CoinGecko** | Generoso | ❌ | ✅ 24M+ token | Moderata | $129/mese | Crypto-first |
 | **Twelve Data** | 8 req/min | ✅ | ✅ | Buona | $29/mese | Time-series multi-asset |
 
@@ -150,12 +152,15 @@ L'AI SDK, il Model Registry, il Tier System, e i pattern di design sono solidi e
 - **Finnhub** (free tier generoso per stocks + crypto)
 - **CoinGecko free** per dati crypto addizionali
 - Exchange WebSocket nativi (Binance/Kraken) per dati real-time crypto — **gratis e più veloci di qualsiasi API**
+- **IBKR market data** per azioni EU (già incluso se hai account — evita di pagare un'API separata)
+- **yfinance** SOLO per backtesting locale una tantum — **MAI in produzione** (si rompe quando Yahoo cambia l'API, HTTP 401 frequenti da VPS)
+- **Polygon.io** — ESCLUSO, $199/mese per uso serio, free tier inutilizzabile
 
 ### 3.3 Librerie Python Chiave
 
 | Libreria | Scopo | Perché questa |
 |----------|-------|---------------|
-| **ccxt** | API unificata 107+ exchange | Una sola interfaccia per Binance, Kraken, Alpaca, ecc. Elimina la complessità di N API diverse |
+| **ccxt** | API unificata 107+ exchange | Una sola interfaccia per Binance, Kraken, Alpaca, ecc. ⚠️ Disabilita builder fee: `exchange.options['builderFee'] = False` |
 | **pandas + pandas-ta** | Dati + indicatori tecnici | RSI, MACD, Bollinger, 130+ indicatori. Più semplice di ta-lib (no C dependency) |
 | **vectorbt** | Backtesting veloce | Vectorizzato (NumPy), 100x più veloce di backtrader per strategie semplici |
 | **websockets** / **aiohttp** | Streaming real-time | Async WebSocket per feed dati exchange |
@@ -436,6 +441,19 @@ Capitale di trading:
   Iniziale:                 €500 (paper) → €500-2000 (live)
   ──────────────────────────
   TOTALE MENSILE:           ~€6/mese + capitale di trading
+```
+
+**Costi operativi reali (trading fee incluse):**
+
+```
+Scenario: €1000 crypto + 5 trade azioni/mese
+  Infrastruttura:              €3.49
+  API AI:                      €2.50
+  Fee Binance (€1000 vol):     ~€0.75 (con sconto BNB)
+  Fee IBKR (5 trade × 3€):    ~€15
+  ──────────────────────────
+  TOTALE REALE:                ~€22/mese
+  Break-even su €2000:         ~1.1% mensile
 ```
 
 ---
