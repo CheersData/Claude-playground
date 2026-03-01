@@ -11,8 +11,14 @@
  *   partner   = modelli top-tier (Sonnet, GPT-5)
  *
  * Per cambiare catena o tier start: modifica SOLO questo file.
+ *
+ * SEC-004: Il tier state per la console usa AsyncLocalStorage per isolamento
+ * per-request. Le variabili globali rimangono per backward compatibility
+ * (orchestrator standard, test, scripts). Le route console wrappano
+ * l'esecuzione con sessionTierStore.run(ctx, fn).
  */
 
+import { AsyncLocalStorage } from "async_hooks";
 import { type AgentName, type ModelKey, MODELS, isProviderEnabled } from "./models";
 
 // ─── Types ───
@@ -28,6 +34,23 @@ export interface TierInfo {
     enabled: boolean;
   }>;
 }
+
+/** Contesto per-sessione iniettato via AsyncLocalStorage nelle route console. */
+export interface SessionTierContext {
+  tier: TierName;
+  disabledAgents: Set<AgentName>;
+  /** Session ID per logging e correlazione */
+  sid: string;
+}
+
+/**
+ * AsyncLocalStorage per isolare il tier state per-request nelle route console.
+ * Le route wrappano l'esecuzione con:
+ *   await sessionTierStore.run(ctx, async () => { ... })
+ * Tutte le funzioni getCurrentTier(), isAgentEnabled(), getAgentChain() leggono
+ * automaticamente dal context di questo store se presente.
+ */
+export const sessionTierStore = new AsyncLocalStorage<SessionTierContext>();
 
 // ─── Fallback Chains ───
 
@@ -104,7 +127,8 @@ let currentTier: TierName = "partner";
 const disabledAgents: Set<AgentName> = new Set();
 
 export function getCurrentTier(): TierName {
-  return currentTier;
+  // Legge dal context di sessione se disponibile (route console)
+  return sessionTierStore.getStore()?.tier ?? currentTier;
 }
 
 export function setCurrentTier(tier: TierName): void {
@@ -114,6 +138,9 @@ export function setCurrentTier(tier: TierName): void {
 
 /** Check if an agent is enabled (not in the disabled set). */
 export function isAgentEnabled(agent: AgentName): boolean {
+  // Legge dal context di sessione se disponibile (route console)
+  const store = sessionTierStore.getStore();
+  if (store) return !store.disabledAgents.has(agent);
   return !disabledAgents.has(agent);
 }
 
@@ -205,6 +232,51 @@ export function getTierInfo(): TierInfo {
 }
 
 /**
+ * Versione per-sessione di getTierInfo: usa tier e disabledAgents espliciti.
+ * Usata dalle route console per costruire la risposta basata sul token JWT.
+ */
+export function getTierInfoForSession(
+  tier: TierName,
+  disabled: Set<AgentName>
+): TierInfo {
+  const agents = {} as TierInfo["agents"];
+  const allAgents: AgentName[] = [
+    "leader", "question-prep", "classifier", "corpus-agent",
+    "analyzer", "investigator", "advisor",
+  ];
+
+  for (const agent of allAgents) {
+    const fullChain = AGENT_CHAINS[agent];
+    const startIndex = TIER_START[agent][tier];
+    const chain = fullChain.slice(startIndex);
+
+    const chainWithMeta = chain.map((key) => ({
+      key,
+      displayName: MODELS[key].displayName,
+      provider: MODELS[key].provider,
+      available: isProviderEnabled(MODELS[key].provider),
+    }));
+
+    let activeIndex = 0;
+    for (let i = 0; i < chain.length; i++) {
+      if (isProviderEnabled(MODELS[chain[i]].provider)) {
+        activeIndex = i;
+        break;
+      }
+    }
+
+    agents[agent] = {
+      chain: chainWithMeta,
+      activeIndex,
+      activeModel: chain[activeIndex],
+      enabled: !disabled.has(agent),
+    };
+  }
+
+  return { current: tier, agents };
+}
+
+/**
  * Stima costo per una query completa (tutti gli agenti) nel tier corrente.
  * Basato su token medi tipici per agente.
  */
@@ -223,6 +295,41 @@ export function estimateTierCost(): { perQuery: number; label: string } {
   for (const agent of Object.keys(TYPICAL_TOKENS) as AgentName[]) {
     if (!isAgentEnabled(agent)) continue;
     const model = MODELS[getActiveModel(agent)];
+    const tokens = TYPICAL_TOKENS[agent];
+    total +=
+      (tokens.input / 1_000_000) * model.inputCostPer1M +
+      (tokens.output / 1_000_000) * model.outputCostPer1M;
+  }
+
+  if (total < 0.001) return { perQuery: 0, label: "~gratis" };
+  if (total < 0.01) return { perQuery: total, label: `~$${(total * 100).toFixed(1)}c` };
+  return { perQuery: total, label: `~$${total.toFixed(3)}` };
+}
+
+/**
+ * Versione per-sessione di estimateTierCost: usa tier e disabledAgents espliciti.
+ */
+export function estimateTierCostForSession(
+  tier: TierName,
+  disabled: Set<AgentName>
+): { perQuery: number; label: string } {
+  const TYPICAL_TOKENS: Record<AgentName, { input: number; output: number }> = {
+    leader:          { input: 800,   output: 200 },
+    "question-prep": { input: 1000,  output: 400 },
+    classifier:      { input: 5000,  output: 1200 },
+    "corpus-agent":  { input: 8000,  output: 2000 },
+    analyzer:        { input: 10000, output: 4000 },
+    investigator:    { input: 6000,  output: 3000 },
+    advisor:         { input: 8000,  output: 2000 },
+  };
+
+  let total = 0;
+  for (const agent of Object.keys(TYPICAL_TOKENS) as AgentName[]) {
+    if (disabled.has(agent)) continue;
+    const startIndex = TIER_START[agent][tier];
+    const chain = AGENT_CHAINS[agent].slice(startIndex);
+    const activeKey = chain.find((k) => isProviderEnabled(MODELS[k].provider)) ?? chain[0];
+    const model = MODELS[activeKey];
     const tokens = TYPICAL_TOKENS[agent];
     total +=
       (tokens.input / 1_000_000) * model.inputCostPer1M +

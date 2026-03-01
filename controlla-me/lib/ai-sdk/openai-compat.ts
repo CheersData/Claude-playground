@@ -1,9 +1,10 @@
 /**
- * OpenAI-Compatible Provider — 1 funzione per 5 provider.
+ * OpenAI-Compatible Provider — 1 funzione per 4 provider.
  *
- * Sostituisce lib/openai.ts, lib/groq.ts, lib/mistral.ts,
- * lib/cerebras.ts, lib/deepseek.ts con una sola implementazione
- * parametrizzata. Tutti usano l'SDK OpenAI con baseURL diversa.
+ * Sostituisce lib/openai.ts, lib/groq.ts, lib/mistral.ts, lib/cerebras.ts
+ * con una sola implementazione parametrizzata.
+ * Tutti usano l'SDK OpenAI con baseURL diversa.
+ * ⚠️  DeepSeek RIMOSSO (SEC-001): server in Cina, non conforme GDPR/SCHREMS II.
  */
 
 import OpenAI from "openai";
@@ -11,7 +12,7 @@ import type { GenerateConfig, GenerateResult } from "./types";
 
 // ─── Provider Configuration ───
 
-type OpenAICompatProvider = "openai" | "groq" | "mistral" | "cerebras" | "deepseek";
+type OpenAICompatProvider = "openai" | "groq" | "mistral" | "cerebras";
 
 interface ProviderConfig {
   baseURL?: string;
@@ -42,12 +43,6 @@ const PROVIDER_CONFIGS: Record<OpenAICompatProvider, ProviderConfig> = {
     baseURL: "https://api.cerebras.ai/v1",
     envKey: "CEREBRAS_API_KEY",
     retryWaitMs: 10_000,
-    maxRetries: 3,
-  },
-  deepseek: {
-    baseURL: "https://api.deepseek.com",
-    envKey: "DEEPSEEK_API_KEY",
-    retryWaitMs: 15_000,
     maxRetries: 3,
   },
 };

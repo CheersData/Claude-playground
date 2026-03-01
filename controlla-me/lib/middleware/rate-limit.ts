@@ -55,6 +55,10 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/stripe": { windowSec: 60, max: 5 },
   // Usage check — polled frequentemente dall'UI (SEC-003)
   "api/user/usage": { windowSec: 60, max: 60 },
+  // Console — (SEC-003) match più specifico vince su "api/console"
+  "api/console/auth": { windowSec: 60, max: 10 },   // max 10 tentativi auth/min
+  "api/console/tier": { windowSec: 60, max: 30 },   // max 30 switch tier/min
+  "api/console": { windowSec: 60, max: 10 },         // max 10 query AI/min (costose)
   // Default per endpoint non specificati
   default: { windowSec: 60, max: 30 },
 };

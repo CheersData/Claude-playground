@@ -93,22 +93,7 @@ export function parseAuthInput(input: string): {
     };
   }
 
-  // Partial match: se l'input contiene anche solo il nome di un utente autorizzato, matcha
-  const inputLower = trimmed.toLowerCase();
-  const partialMatch = AUTHORIZED_USERS.find(
-    (u) =>
-      inputLower.includes(u.nome.toLowerCase()) ||
-      inputLower.includes(u.cognome.toLowerCase()) ||
-      inputLower === u.nome.toLowerCase() ||
-      inputLower === u.cognome.toLowerCase()
-  );
-  if (partialMatch) {
-    return {
-      nome: partialMatch.nome,
-      cognome: partialMatch.cognome,
-      ruolo: partialMatch.ruolo,
-    };
-  }
-
+  // SEC-002: nessun partial match — richiede struttura completa per evitare bypass
+  // "Ciao Manuela" o "Manuela" da soli NON concedono accesso.
   return null;
 }

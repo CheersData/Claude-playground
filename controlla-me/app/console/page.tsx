@@ -106,8 +106,22 @@ export default function ConsolePage() {
   // ── Session persistence ──
   useEffect(() => {
     const stored = sessionStorage.getItem("lexmea-auth");
-    if (stored) {
+    const token = sessionStorage.getItem("lexmea-token");
+    if (stored && token) {
       try {
+        // Verifica client-side che il token non sia scaduto (decodifica base64url payload)
+        const payloadB64 = token.split(".")[0];
+        const payload = JSON.parse(
+          atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/").padEnd(
+            payloadB64.length + ((4 - (payloadB64.length % 4)) % 4), "="
+          ))
+        );
+        if (Date.now() > payload.exp) {
+          // Token scaduto: pulisci e richiedi nuova autenticazione
+          sessionStorage.removeItem("lexmea-auth");
+          sessionStorage.removeItem("lexmea-token");
+          return;
+        }
         const user = JSON.parse(stored) as AuthUser;
         setAuthUser(user);
         setAuthPhase("authenticated");
@@ -116,6 +130,7 @@ export default function ConsolePage() {
         );
       } catch {
         sessionStorage.removeItem("lexmea-auth");
+        sessionStorage.removeItem("lexmea-token");
       }
     }
   }, []);
@@ -150,6 +165,8 @@ export default function ConsolePage() {
         setAuthPhase("authenticated");
         setAuthMessage(data.message);
         sessionStorage.setItem("lexmea-auth", JSON.stringify(data.user));
+        // SEC-004: salva il token HMAC per le chiamate successive
+        if (data.token) sessionStorage.setItem("lexmea-token", data.token);
       } else {
         setAuthPhase("denied");
         setAuthMessage(data.message);
@@ -187,13 +204,26 @@ export default function ConsolePage() {
         if (message.trim()) formData.append("message", message);
         if (file) formData.append("file", file);
 
+        // SEC-004: invia token JWT nell'header Authorization
+        const token = sessionStorage.getItem("lexmea-token");
         const response = await fetch("/api/console", {
           method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
           signal: controller.signal,
         });
 
         if (!response.ok) {
+          // SEC-004: token scaduto → reset auth e richiedi nuova autenticazione
+          if (response.status === 401) {
+            sessionStorage.removeItem("lexmea-auth");
+            sessionStorage.removeItem("lexmea-token");
+            setAuthUser(null);
+            setAuthPhase("idle");
+            setAuthMessage(AUTH_PROMPT);
+            setStatus("idle");
+            return;
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 

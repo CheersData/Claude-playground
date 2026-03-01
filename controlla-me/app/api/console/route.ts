@@ -13,8 +13,11 @@ import { runDeepSearch } from "@/lib/agents/investigator";
 import { CORPUS_AGENT_SYSTEM_PROMPT } from "@/lib/prompts/corpus-agent";
 import { sanitizeDocumentText, sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { MODELS, AGENT_MODELS, type ModelKey } from "@/lib/models";
-import { getActiveModel, getCurrentTier, isAgentEnabled } from "@/lib/tiers";
+import { getActiveModel, getCurrentTier, isAgentEnabled, sessionTierStore, type SessionTierContext } from "@/lib/tiers";
 import { checkCsrf } from "@/lib/middleware/csrf";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import type { AgentName } from "@/lib/models";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300;
@@ -23,6 +26,27 @@ export async function POST(req: NextRequest) {
   // CSRF — prima di entrare nello stream
   const csrf = checkCsrf(req);
   if (csrf) return csrf;
+
+  // Rate limiting (SEC-003)
+  const rl = checkRateLimit(req);
+  if (rl) return rl;
+
+  // Auth (SEC-004) — richiede Bearer token valido
+  const tokenPayload = requireConsoleAuth(req);
+  if (!tokenPayload) {
+    return new Response(
+      JSON.stringify({ error: "Non autorizzato" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // Costruisce il context di sessione dal token (tier + disabledAgents)
+  const sessionCtx: SessionTierContext = {
+    tier: tokenPayload.tier,
+    disabledAgents: new Set(tokenPayload.disabledAgents as AgentName[]),
+    sid: tokenPayload.sid,
+  };
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -45,6 +69,10 @@ export async function POST(req: NextRequest) {
         send("agent", { phase, status, ...extra });
       };
 
+      // SEC-004: Wrappa l'intera pipeline nel context di sessione.
+      // getCurrentTier() e isAgentEnabled() leggeranno dal context
+      // invece delle variabili globali, garantendo isolamento per-request.
+      await sessionTierStore.run(sessionCtx, async () => {
       try {
         // Parse FormData
         const formData = await req.formData();
@@ -164,6 +192,7 @@ export async function POST(req: NextRequest) {
           // Already closed
         }
       }
+      }); // end sessionTierStore.run()
     },
   });
 

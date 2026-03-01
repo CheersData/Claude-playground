@@ -73,7 +73,6 @@ const PROVIDER_COLORS: Record<string, string> = {
   mistral: "bg-orange-50 text-orange-600",
   groq: "bg-purple-50 text-purple-600",
   cerebras: "bg-cyan-50 text-cyan-700",
-  deepseek: "bg-slate-100 text-slate-600",
 };
 
 // ─── Component ───
@@ -83,16 +82,35 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
   const [loading, setLoading] = useState(false);
   const [switching, setSwitching] = useState(false);
 
+  // SEC-004: legge il token HMAC da sessionStorage per autenticare le chiamate
+  const getAuthHeaders = (): HeadersInit => {
+    const token = sessionStorage.getItem("lexmea-token");
+    return token
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      : { "Content-Type": "application/json" };
+  };
+
+  // Salva il nuovo token quando la route tier ne emette uno aggiornato (tier/agent change)
+  const saveToken = (json: Record<string, unknown>) => {
+    if (json.token && typeof json.token === "string") {
+      sessionStorage.setItem("lexmea-token", json.token);
+    }
+  };
+
   const fetchTierData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/console/tier");
+      const res = await fetch("/api/console/tier", {
+        headers: getAuthHeaders(),
+      });
+      if (res.status === 401) return; // token scaduto, skip silenzioso
       const json = await res.json();
       setData(json);
     } catch {
       // ignore
     }
     setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -105,29 +123,35 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
     try {
       const res = await fetch("/api/console/tier", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ tier }),
       });
+      if (res.status === 401) return;
       const json = await res.json();
+      saveToken(json);
       setData(json);
     } catch {
       // ignore
     }
     setSwitching(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.current]);
 
   const toggleAgent = useCallback(async (agent: string, enabled: boolean) => {
     try {
       const res = await fetch("/api/console/tier", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ agent, enabled }),
       });
+      if (res.status === 401) return;
       const json = await res.json();
+      saveToken(json);
       setData(json);
     } catch {
       // ignore
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!open) return null;

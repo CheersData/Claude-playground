@@ -36,7 +36,6 @@ export async function generate(
     case "groq":
     case "mistral":
     case "cerebras":
-    case "deepseek":
       return generateWithOpenAICompat(
         modelConfig.provider,
         modelConfig.model,

@@ -4,16 +4,17 @@
  * Un unico file per configurare quale modello usa ogni agente.
  * Per cambiare modello a un agente, modifica SOLO questo file.
  *
- * Provider disponibili (7):
+ * Provider disponibili (6):
  * - anthropic:  Claude Sonnet 4.5, Haiku 4.5
  * - gemini:     Gemini 2.5 Flash, Flash Lite, Pro
  * - openai:     GPT-5.2, 5.1, 5, 5 Mini/Nano, 4.1, 4.1 Mini/Nano, 4o, 4o Mini, OSS 120B/20B, Codex Mini
  * - mistral:    Large, Medium, Small, Nemo, Ministral 14B/8B/3B, Magistral Small/Medium, Codestral
  * - groq:       Llama 4 Scout, 3.3 70B, 3.1 8B, Qwen 3 32B, GPT-OSS 120B/20B, Kimi K2
  * - cerebras:   GPT-OSS 120B, Qwen 3 235B, Llama 3.1 8B
- * - deepseek:   DeepSeek V3, R1 (⚠️ server in Cina)
  *
- * ~40 modelli registrati, 7 provider.
+ * ⚠️  DeepSeek RIMOSSO (SEC-001): server in Cina, non coperto da accordo di adeguatezza EU.
+ *
+ * ~38 modelli registrati, 6 provider.
  * Vedi docs/MODEL-CENSUS.md per pricing e confronto completo.
  */
 
@@ -25,8 +26,7 @@ export type Provider =
   | "openai"
   | "mistral"
   | "groq"
-  | "cerebras"
-  | "deepseek";
+  | "cerebras";
 
 export interface ModelConfig {
   provider: Provider;
@@ -368,23 +368,6 @@ export const MODELS = {
     contextWindow: 128_000,
   },
 
-  // ── DeepSeek (⚠️ server in Cina — non usare per dati legali sensibili) ──
-  "deepseek-v3": {
-    provider: "deepseek" as const,
-    model: "deepseek-chat",
-    displayName: "DeepSeek V3.2",
-    inputCostPer1M: 0.28,
-    outputCostPer1M: 0.42,
-    contextWindow: 128_000,
-  },
-  "deepseek-r1": {
-    provider: "deepseek" as const,
-    model: "deepseek-reasoner",
-    displayName: "DeepSeek R1",
-    inputCostPer1M: 0.55,
-    outputCostPer1M: 2.19,
-    contextWindow: 128_000,
-  },
 } as const satisfies Record<string, ModelConfig>;
 
 export type ModelKey = keyof typeof MODELS;
@@ -501,15 +484,13 @@ export function isProviderEnabled(provider: Provider): boolean {
       return !!process.env.GROQ_API_KEY;
     case "cerebras":
       return !!process.env.CEREBRAS_API_KEY;
-    case "deepseek":
-      return !!process.env.DEEPSEEK_API_KEY;
   }
 }
 
 /** Get a summary of all enabled providers. */
 export function getEnabledProviders(): Provider[] {
   return (
-    ["anthropic", "gemini", "openai", "mistral", "groq", "cerebras", "deepseek"] as const
+    ["anthropic", "gemini", "openai", "mistral", "groq", "cerebras"] as const
   ).filter(isProviderEnabled);
 }
 
