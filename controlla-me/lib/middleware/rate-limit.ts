@@ -51,6 +51,10 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/upload": { windowSec: 60, max: 10 },
   "api/vector-search": { windowSec: 60, max: 20 },
   "api/session": { windowSec: 60, max: 30 },
+  // Payment endpoints — limite stretto anti-abuse (SEC-003)
+  "api/stripe": { windowSec: 60, max: 5 },
+  // Usage check — polled frequentemente dall'UI (SEC-003)
+  "api/user/usage": { windowSec: 60, max: 60 },
   // Default per endpoint non specificati
   default: { windowSec: 60, max: 30 },
 };

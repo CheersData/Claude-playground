@@ -135,6 +135,19 @@ export class NormattivaConnector extends BaseConnector<ParsedArticle> {
           const msg = err instanceof Error ? err.message : String(err);
           this.log(`[NORMATTIVA] Sample Codici fallito (non bloccante): ${msg}`);
         }
+      } else if (this.source.config.directAkn) {
+        // Strategia 3: caricaAKN diretto — testa il sample scaricando l'atto completo
+        const hardcodedCodice = this.source.config.codiceRedazionale as string | undefined;
+        try {
+          this.log(`[NORMATTIVA] Sample via caricaAKN diretto (${hardcodedCodice ?? codiceRed})...`);
+          const articles = await this.fetchViaDirectAkn(hardcodedCodice ?? codiceRed);
+          estimatedItems = articles.length;
+          sampleData.push(...articles.slice(0, 3));
+          this.log(`[NORMATTIVA] Parsati ${articles.length} articoli via caricaAKN`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.log(`[NORMATTIVA] Sample caricaAKN fallito (non bloccante): ${msg}`);
+        }
       }
 
       return {
@@ -181,10 +194,17 @@ export class NormattivaConnector extends BaseConnector<ParsedArticle> {
     let articles: ParsedArticle[];
 
     const collectionName = SOURCE_COLLECTION_MAP[this.source.id];
+    const directAkn = this.source.config.directAkn as boolean | undefined;
+    const hardcodedCodice = this.source.config.codiceRedazionale as string | undefined;
+
     if (collectionName) {
       // Strategia 1: Collezione preconfezionata
       this.log(`[NORMATTIVA] Download da "${collectionName}"...`);
       articles = await this.fetchFromCollection(collectionName, codiceRed);
+    } else if (directAkn) {
+      // Strategia 3: caricaAKN diretto (per leggi con ZIP asincroni vuoti)
+      this.log(`[NORMATTIVA] Download via caricaAKN diretto...`);
+      articles = await this.fetchViaDirectAkn(hardcodedCodice ?? codiceRed);
     } else {
       // Strategia 2: Ricerca asincrona
       this.log(`[NORMATTIVA] Download via ricerca asincrona...`);
@@ -532,6 +552,31 @@ export class NormattivaConnector extends BaseConnector<ParsedArticle> {
     }
 
     return this.extractAknFromZip(buffer);
+  }
+
+  // ─── Strategia 3: caricaAKN diretto ───
+
+  /**
+   * Scarica un atto direttamente via /atto/caricaAKN (senza ricerca asincrona).
+   * Usato per leggi che producono ZIP vuoti con la ricerca asincrona (es. L. 300/1970).
+   * URL: GET /atto/caricaAKN?codiceRedazionale=...&formatoRichiesta=V
+   */
+  private async fetchViaDirectAkn(codiceRedazionale: string): Promise<ParsedArticle[]> {
+    const url = `${API_BASE}/atto/caricaAKN?codiceRedazionale=${encodeURIComponent(codiceRedazionale)}&formatoRichiesta=V`;
+    this.log(`[NORMATTIVA] Download via caricaAKN diretto: ${codiceRedazionale}...`);
+    const response = await this.fetchWithRetry(url, { redirect: "follow" });
+
+    if (!response.ok) {
+      throw new Error(`caricaAKN HTTP ${response.status} per "${codiceRedazionale}"`);
+    }
+
+    const xml = await response.text();
+    if (!xml.trim().startsWith("<") || xml.length < 100) {
+      throw new Error(`caricaAKN risposta non XML: "${xml.slice(0, 100)}"`);
+    }
+    this.log(`[NORMATTIVA] AKN ricevuto: ${xml.length} chars`);
+
+    return parseAkn(xml, this.source.shortName);
   }
 
   // ─── ZIP handling ───

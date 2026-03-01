@@ -41,7 +41,7 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
       {file && (
         <div className="flex items-center gap-2 mb-3 text-xs text-[#6B6B6B]">
           <span className="font-medium">Documento:</span>
-          <span className="truncate max-w-[300px] text-[#1A1A1A]">{file.name}</span>
+          <span className="truncate max-w-[160px] sm:max-w-[300px] text-[#1A1A1A]">{file.name}</span>
           <button
             onClick={() => {
               setFile(null);

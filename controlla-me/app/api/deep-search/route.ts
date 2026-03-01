@@ -3,11 +3,16 @@ import { runDeepSearch } from "@/lib/agents/investigator";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
+  // CSRF
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
   // Auth
   const auth = await requireAuth();
   if (isAuthError(auth)) return auth;

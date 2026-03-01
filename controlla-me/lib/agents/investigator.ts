@@ -2,6 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { anthropic, parseAgentJSON } from "../anthropic";
 import { AGENT_MODELS, MODELS } from "../models";
 import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
+import { searchLegalKnowledge } from "../vector-store";
+import { searchArticles } from "../legal-corpus";
+import { isVectorDBEnabled } from "../embeddings";
 import type {
   ClassificationResult,
   AnalysisResult,
@@ -10,6 +13,83 @@ import type {
 
 // Read model from centralized config instead of hardcoded constant
 const INVESTIGATOR_MODEL = MODELS[AGENT_MODELS["investigator"].primary].model;
+
+// ─── Self-Retrieval ───
+
+/**
+ * Recupera contesto RAG per clausola specifica dal vector DB.
+ * Combina: knowledge base (analisi passate) + corpus legislativo.
+ * Limitato a 3 clausole x 3 risultati ciascuna per evitare token bloat.
+ */
+async function selfRetrieveForClauses(
+  clauses: Array<{ title: string; issue: string; originalText?: string | null }>,
+  maxClauses = 3,
+  maxResultsPerClause = 3
+): Promise<string> {
+  if (!isVectorDBEnabled()) return "";
+
+  const topClauses = clauses.slice(0, maxClauses);
+  const sections: string[] = [];
+
+  await Promise.all(
+    topClauses.map(async (clause) => {
+      const query = `${clause.title}: ${clause.originalText?.slice(0, 150) ?? clause.issue}`;
+
+      const [knowledgeResults, articleResults] = await Promise.all([
+        searchLegalKnowledge(query, {
+          limit: maxResultsPerClause,
+          threshold: 0.60,
+        }),
+        searchArticles(query, {
+          threshold: 0.55,
+          limit: maxResultsPerClause,
+        }),
+      ]);
+
+      const parts: string[] = [];
+
+      if (knowledgeResults.length > 0) {
+        parts.push(
+          knowledgeResults
+            .map(
+              (r) =>
+                `[${r.category?.toUpperCase()}] ${r.title} (${(r.similarity * 100).toFixed(0)}%, visto ${r.timesSeen ?? 1}x)\n${r.content.slice(0, 300)}`
+            )
+            .join("\n")
+        );
+      }
+
+      if (articleResults.length > 0) {
+        parts.push(
+          articleResults
+            .map(
+              (a) =>
+                `[CORPUS] ${a.lawSource} ${a.articleReference}${a.articleTitle ? ` — ${a.articleTitle}` : ""}\n${a.articleText.slice(0, 300)}`
+            )
+            .join("\n")
+        );
+      }
+
+      if (parts.length > 0) {
+        sections.push(`── Clausola: ${clause.title} ──\n${parts.join("\n")}`);
+      }
+    })
+  );
+
+  if (sections.length === 0) return "";
+
+  const result = `\n╔══════════════════════════════════════════════╗
+║  SELF-RETRIEVAL: norme e pattern per clausola ║
+╚══════════════════════════════════════════════╝\n${sections.join("\n\n")}\n╔══════════════════════════════════════════════╗
+║  FINE SELF-RETRIEVAL                         ║
+╚══════════════════════════════════════════════╝\n`;
+
+  console.log(
+    `[INVESTIGATOR] Self-retrieval: ${topClauses.length} clausole | ${sections.length} sezioni | ${result.length} chars`
+  );
+
+  return result;
+}
 
 /**
  * Investigator aggressivo: copre TUTTE le clausole critical e high.
@@ -34,6 +114,18 @@ export async function runInvestigator(
     return { findings: [] };
   }
 
+  // P2: Self-retrieval — Investigator queries vector DB autonomously for each critical/high clause
+  // This supplements the legalContext/ragContext from the orchestrator with per-clause precision.
+  let selfRAGContext = "";
+  try {
+    selfRAGContext = await selfRetrieveForClauses(criticalAndHigh);
+  } catch (err) {
+    // Non-fatal: self-retrieval failure doesn't block the investigator
+    console.error(
+      `[INVESTIGATOR] Errore self-retrieval: ${err instanceof Error ? err.message : "Unknown"}`
+    );
+  }
+
   // Build enriched user message
   const userMessageParts = [
     `Documento: ${classification.documentTypeLabel} (${classification.jurisdiction})`,
@@ -46,6 +138,7 @@ export async function runInvestigator(
     `Leggi applicabili: ${classification.applicableLaws.map((l) => l.reference).join(", ")}`,
     legalContext ? `\n${legalContext}` : null,
     ragContext ? `\n${ragContext}` : null,
+    selfRAGContext ? `\n${selfRAGContext}` : null,
     `\nClausole CRITICAL e HIGH (obbligatorio coprire TUTTE): ${JSON.stringify(criticalAndHigh)}`,
     medium.length > 0
       ? `\nClausole MEDIUM (coprire se possibile): ${JSON.stringify(medium)}`
@@ -61,7 +154,7 @@ export async function runInvestigator(
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 8;
+  const MAX_ITERATIONS = 5; // CLAUDE.md: max 5 tool_use loop
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
@@ -148,7 +241,7 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 8;
+  const MAX_ITERATIONS = 5; // CLAUDE.md: max 5 tool_use loop
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({

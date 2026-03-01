@@ -151,13 +151,13 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
-        className="relative w-[480px] max-w-[90vw] h-full bg-white flex flex-col shadow-2xl"
+        className="relative w-[480px] max-w-full sm:max-w-[90vw] h-full bg-white flex flex-col shadow-2xl"
       >
         {/* Header */}
-        <div className="px-8 pt-7 pb-5 border-b border-[#E5E5E5]">
+        <div className="px-4 pt-5 pb-4 md:px-8 md:pt-7 md:pb-5 border-b border-[#E5E5E5]">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-serif text-2xl text-[#1A1A1A] tracking-tight">
+              <h2 className="font-serif text-xl md:text-2xl text-[#1A1A1A] tracking-tight">
                 Power
               </h2>
               <p className="text-sm text-[#6B6B6B] mt-1">
@@ -176,7 +176,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {loading && !data ? (
-            <div className="px-8 py-8">
+            <div className="px-4 md:px-8 py-4 md:py-8">
               <div className="space-y-4 animate-pulse">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-16 bg-[#F0F0F0] rounded-xl" />
@@ -186,7 +186,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
           ) : (
             <>
               {/* Tier selector */}
-              <div className="px-8 pt-6 pb-4">
+              <div className="px-4 md:px-8 pt-4 md:pt-6 pb-4">
                 <p className="text-[10px] tracking-[2px] uppercase text-[#9B9B9B] font-medium mb-3">
                   Tier
                 </p>
@@ -239,7 +239,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
               </div>
 
               {/* Agent chains */}
-              <div className="px-8 pb-6">
+              <div className="px-4 md:px-8 pb-4 md:pb-6">
                 <p className="text-[10px] tracking-[2px] uppercase text-[#9B9B9B] font-medium mb-3">
                   Agenti
                 </p>
@@ -262,7 +262,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-4 border-t border-[#E5E5E5] text-center">
+        <div className="px-4 md:px-8 py-3 md:py-4 border-t border-[#E5E5E5] text-center">
           <p className="text-[10px] text-[#9B9B9B]">
             Su errore 429, il sistema scende automaticamente al modello successivo nella catena
           </p>

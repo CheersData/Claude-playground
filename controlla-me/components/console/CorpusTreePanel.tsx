@@ -287,7 +287,7 @@ export default function CorpusTreePanel({ open, onClose }: CorpusTreePanelProps)
     <div className="flex-1 flex flex-col min-h-0">
 
       {/* ─── Toolbar (top) ─── */}
-      <div className="flex items-center gap-4 px-6 py-3 border-b border-[#E5E5E5] bg-[#FAFAFA] shrink-0">
+      <div className="flex flex-wrap items-center gap-2 md:gap-4 px-3 md:px-6 py-2 md:py-3 border-b border-[#E5E5E5] bg-[#FAFAFA] shrink-0">
         {/* Tabs */}
         <div className="flex gap-1">
           {(["fonti", "istituti"] as const).map((tab) => (
@@ -306,7 +306,7 @@ export default function CorpusTreePanel({ open, onClose }: CorpusTreePanelProps)
         </div>
 
         {/* Search */}
-        <div className="flex-1 max-w-md relative">
+        <div className="flex-1 min-w-[140px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9B9B9B]" />
           <input
             type="text"
@@ -324,15 +324,15 @@ export default function CorpusTreePanel({ open, onClose }: CorpusTreePanelProps)
         </div>
 
         {/* Stats */}
-        <span className="text-[11px] text-[#9B9B9B] shrink-0">
+        <span className="text-[11px] text-[#9B9B9B] shrink-0 hidden sm:inline">
           <PanelCount value={totalArticles} /> articoli &middot; {sources.length} fonti
         </span>
       </div>
 
-      {/* ─── Columns area ─── */}
+      {/* ─── Columns area: snap-scroll on mobile, side-by-side on desktop ─── */}
       <div
         ref={columnsContainerRef}
-        className="flex-1 flex min-h-0 overflow-x-auto"
+        className="flex-1 flex min-h-0 overflow-x-auto snap-x snap-mandatory md:snap-none"
       >
 
         {/* Search results mode */}
@@ -362,7 +362,7 @@ export default function CorpusTreePanel({ open, onClose }: CorpusTreePanelProps)
 
             {/* Loading indicator */}
             {treeLoading && (
-              <div className="w-[220px] shrink-0 border-r border-[#F0F0F0] flex items-center justify-center">
+              <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex items-center justify-center">
                 <div className="space-y-3 animate-pulse w-full px-4">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="h-4 bg-[#F0F0F0] rounded" style={{ width: `${60 + i * 8}%` }} />
@@ -454,7 +454,7 @@ function SourceColumn({
   onSelect: (source: SourceInfo) => void;
 }) {
   return (
-    <div className="w-[220px] shrink-0 border-r border-[#F0F0F0] flex flex-col min-h-0">
+    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
           Fonti
@@ -530,7 +530,7 @@ function HierarchyColumn({
   const maxCount = Math.max(...column.nodes.map(countArticles), 1);
 
   return (
-    <div className="w-[220px] shrink-0 border-r border-[#F0F0F0] flex flex-col min-h-0">
+    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium truncate block">
           {column.label}
@@ -615,7 +615,7 @@ function InstituteColumn({
   onSelect: (name: string) => void;
 }) {
   return (
-    <div className="w-[240px] shrink-0 border-r border-[#F0F0F0] flex flex-col min-h-0">
+    <div className="w-[calc(100vw-2px)] md:w-[240px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
           Istituti Giuridici
@@ -670,7 +670,7 @@ function InstituteArticlesColumn({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="w-[260px] shrink-0 border-r border-[#F0F0F0] flex flex-col min-h-0">
+    <div className="w-[calc(100vw-2px)] md:w-[260px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
           Articoli ({articles.length})
@@ -728,7 +728,7 @@ function SearchResultsColumn({
   onClose: () => void;
 }) {
   return (
-    <div className="w-[300px] shrink-0 border-r border-[#F0F0F0] flex flex-col min-h-0">
+    <div className="w-[calc(100vw-2px)] md:w-[300px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA] flex items-center justify-between">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
           {results.length} risultati
@@ -790,7 +790,7 @@ function ArticlePreview({ article, loading }: {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 min-w-[320px] flex flex-col min-h-0 bg-white"
+      className="flex-1 min-w-[calc(100vw-2px)] md:min-w-[320px] snap-start flex flex-col min-h-0 bg-white"
     >
       <div className="px-6 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">

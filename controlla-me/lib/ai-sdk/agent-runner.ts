@@ -16,6 +16,7 @@ import {
 import { getAgentChain } from "../tiers";
 import { generate } from "./generate";
 import { parseAgentJSON } from "../anthropic";
+import { logAgentCost } from "../company/cost-logger";
 import type { GenerateConfig, GenerateResult } from "./types";
 
 export interface AgentRunResult<T> extends GenerateResult {
@@ -83,6 +84,9 @@ export async function runAgent<T>(
         );
       }
 
+      // Fire-and-forget cost logging
+      logAgentCost({ agentName, modelKey, inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, durationMs: result.durationMs, usedFallback: i > 0 }).catch(() => {});
+
       return {
         ...result,
         parsed,
@@ -102,10 +106,13 @@ export async function runAgent<T>(
         isProviderEnabled(MODELS[k].provider)
       );
 
+      if (!nextAvailable) {
+        // No more available providers in chain — rethrow original error immediately
+        throw err;
+      }
+
       console.warn(
-        `[AGENT-RUNNER] ${agentName} chain[${i}] ${modelKey} fallito → ${
-          nextAvailable ?? "nessun fallback"
-        }: ${errorMsg}`
+        `[AGENT-RUNNER] ${agentName} chain[${i}] ${modelKey} fallito → ${nextAvailable}: ${errorMsg}`
       );
     }
   }

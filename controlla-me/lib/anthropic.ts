@@ -93,10 +93,15 @@ export function parseAgentJSON<T>(text: string): T {
   // Strip markdown code fences (opening and closing independently)
   cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
 
-  // Strip any text before the first { (e.g. "Here is the JSON:\n{...")
+  // Strip any text before the first { or [ (preserving arrays)
   const firstBrace = cleaned.indexOf("{");
-  if (firstBrace > 0) {
-    cleaned = cleaned.slice(firstBrace);
+  const firstBracket = cleaned.indexOf("[");
+  const firstJson =
+    firstBracket !== -1 && (firstBracket < firstBrace || firstBrace === -1)
+      ? firstBracket
+      : firstBrace;
+  if (firstJson > 0) {
+    cleaned = cleaned.slice(firstJson);
   }
 
   // Try 1: Direct parse

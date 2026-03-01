@@ -7,6 +7,7 @@ import {
   type TierName,
 } from "@/lib/tiers";
 import { AGENT_MODELS, type AgentName } from "@/lib/models";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 const VALID_TIERS: TierName[] = ["intern", "associate", "partner"];
 
@@ -23,6 +24,10 @@ export async function GET() {
 
 /** POST — switch tier oppure toggle agente */
 export async function POST(req: NextRequest) {
+  // CSRF
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
   const body = await req.json();
 
   // Toggle singolo agente: { agent: "investigator", enabled: false }

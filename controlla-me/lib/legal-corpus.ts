@@ -216,10 +216,27 @@ export async function searchArticles(
     return [];
   }
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  const semanticResults = (data ?? []).map((row: Record<string, unknown>) => ({
     ...mapRowToArticle(row),
     similarity: row.similarity as number,
   }));
+
+  // Fallback testuale: se la ricerca semantica trova <3 risultati, integra con keyword search
+  const MIN_SEMANTIC_RESULTS = 3;
+  if (semanticResults.length < MIN_SEMANTIC_RESULTS) {
+    const textResults = await searchArticlesText(query, { lawSource, limit });
+    const existingRefs = new Set(semanticResults.map((r: LegalArticleSearchResult) => r.articleReference));
+    const newResults = textResults.filter((r: LegalArticleSearchResult) => !existingRefs.has(r.articleReference));
+    const merged = [...semanticResults, ...newResults].slice(0, limit);
+    if (newResults.length > 0) {
+      console.log(
+        `[CORPUS] Fallback testuale "${query}" | semantici: ${semanticResults.length} | testo: +${newResults.length} | totale: ${merged.length}`
+      );
+    }
+    return merged;
+  }
+
+  return semanticResults;
 }
 
 // ─── Query: Ricerca testuale (fallback per query corte) ───
@@ -878,9 +895,27 @@ function mapRowToArticle(row: Record<string, unknown>): LegalArticle {
 /**
  * Normalizza un riferimento legislativo in un nome di fonte.
  * "Art. 1538 c.c." → "Codice Civile"
- * "D.Lgs. 122/2005" → "D.Lgs. 122/2005"
- * "Art. 6 D.Lgs. 122/2005" → "D.Lgs. 122/2005"
+ * "D.Lgs. 122/2005" → "Tutela acquirenti immobili da costruire"
+ * "Art. 6 D.Lgs. 122/2005" → "Tutela acquirenti immobili da costruire"
+ * "GDPR" → "GDPR (Reg. 2016/679)"
+ * "Dir. 93/13" → "Direttiva clausole abusive (93/13/CEE)"
  */
+
+// Mappa D.Lgs./DPR/L. numeri → nomi canonici (da corpus-sources.ts)
+const DECREE_TO_CANONICAL: Record<string, string> = {
+  "206/2005": "Codice del Consumo",
+  "122/2005": "Tutela acquirenti immobili da costruire",
+  "231/2001": "Responsabilita amministrativa enti",
+};
+
+const DPR_TO_CANONICAL: Record<string, string> = {
+  "380/2001": "Testo Unico Edilizia",
+};
+
+const LEGGE_TO_CANONICAL: Record<string, string> = {
+  "300/1970": "Statuto dei Lavoratori",
+};
+
 function normalizeLawSource(reference: string): string | null {
   const ref = reference.trim();
 
@@ -889,31 +924,80 @@ function normalizeLawSource(reference: string): string | null {
     return "Codice Civile";
   }
 
+  // Codice Penale
+  if (/c\.p\.\s*[^c]/i.test(ref) || /c\.p\.$/i.test(ref) || /codice\s+penale/i.test(ref)) {
+    return "Codice Penale";
+  }
+
   // Codice di Procedura Civile
   if (/c\.p\.c\./i.test(ref) || /procedura\s+civile/i.test(ref)) {
     return "Codice di Procedura Civile";
   }
 
-  // D.Lgs. / Decreto Legislativo
-  const dlgs = ref.match(/D\.?\s*Lgs\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
-  if (dlgs) return `D.Lgs. ${dlgs[1]}/${dlgs[2]}`;
-
-  // DPR
-  const dpr = ref.match(/D\.?P\.?R\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
-  if (dpr) return `DPR ${dpr[1]}/${dpr[2]}`;
-
-  // Legge
-  const legge = ref.match(/L\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
-  if (legge) return `L. ${legge[1]}/${legge[2]}`;
-
-  // Codice del Consumo
-  if (/consumo/i.test(ref) || /206\/2005/i.test(ref)) {
-    return "D.Lgs. 206/2005";
+  // Codice del Consumo (check prima dei D.Lgs. generici)
+  if (/consumo/i.test(ref) || /206\/2005/.test(ref)) {
+    return "Codice del Consumo";
   }
 
-  // TU Edilizia
-  if (/edilizia/i.test(ref) || /380\/2001/i.test(ref)) {
-    return "DPR 380/2001";
+  // TU Edilizia (check prima dei DPR generici)
+  if (/edilizia/i.test(ref) || /380\/2001/.test(ref)) {
+    return "Testo Unico Edilizia";
+  }
+
+  // Statuto dei Lavoratori
+  if (/statuto\s+dei\s+lavoratori/i.test(ref) || /300\/1970/.test(ref)) {
+    return "Statuto dei Lavoratori";
+  }
+
+  // GDPR / Regolamento privacy
+  if (/gdpr/i.test(ref) || /2016\/679/.test(ref) || /protezione\s+dati/i.test(ref)) {
+    return "GDPR (Reg. 2016/679)";
+  }
+
+  // DSA / Digital Services Act
+  if (/\bdsa\b/i.test(ref) || /2022\/2065/.test(ref) || /digital\s+services/i.test(ref)) {
+    return "Digital Services Act (Reg. 2022/2065)";
+  }
+
+  // Direttiva clausole abusive
+  if (/93\/13/i.test(ref) || /clausole\s+abusive/i.test(ref)) {
+    return "Direttiva clausole abusive (93/13/CEE)";
+  }
+
+  // Direttiva consumatori
+  if (/2011\/83/i.test(ref) || /diritti\s+dei\s+consumatori/i.test(ref)) {
+    return "Direttiva diritti dei consumatori (2011/83/UE)";
+  }
+
+  // Direttiva vendita beni
+  if (/2019\/771/i.test(ref) || /vendita\s+beni/i.test(ref)) {
+    return "Direttiva vendita beni (2019/771/UE)";
+  }
+
+  // Regolamento Roma I
+  if (/roma\s*i/i.test(ref) || /593\/2008/i.test(ref)) {
+    return "Regolamento Roma I (593/2008)";
+  }
+
+  // D.Lgs. / Decreto Legislativo — con lookup canonico
+  const dlgs = ref.match(/D\.?\s*Lgs\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (dlgs) {
+    const key = `${dlgs[1]}/${dlgs[2]}`;
+    return DECREE_TO_CANONICAL[key] || `D.Lgs. ${dlgs[1]}/${dlgs[2]}`;
+  }
+
+  // DPR — con lookup canonico
+  const dpr = ref.match(/D\.?P\.?R\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (dpr) {
+    const key = `${dpr[1]}/${dpr[2]}`;
+    return DPR_TO_CANONICAL[key] || `DPR ${dpr[1]}/${dpr[2]}`;
+  }
+
+  // Legge — con lookup canonico
+  const legge = ref.match(/L\.?\s*(?:n\.?\s*)?(\d+)\s*\/\s*(\d+)/i);
+  if (legge) {
+    const key = `${legge[1]}/${legge[2]}`;
+    return LEGGE_TO_CANONICAL[key] || `L. ${legge[1]}/${legge[2]}`;
   }
 
   return null;

@@ -45,6 +45,14 @@ export interface ModelConfig {
 
 export const MODELS = {
   // ── Anthropic ──
+  "claude-opus-4.5": {
+    provider: "anthropic" as const,
+    model: "claude-opus-4-5-20251101",
+    displayName: "Claude Opus 4.5",
+    inputCostPer1M: 15.0,
+    outputCostPer1M: 75.0,
+    contextWindow: 200_000,
+  },
   "claude-sonnet-4.5": {
     provider: "anthropic" as const,
     model: "claude-sonnet-4-5-20250929",

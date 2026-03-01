@@ -6,7 +6,7 @@ export default function StudioShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="studio-root relative min-h-screen bg-white">
+    <div className="studio-root relative min-h-screen bg-white flex flex-col">
       {children}
     </div>
   );

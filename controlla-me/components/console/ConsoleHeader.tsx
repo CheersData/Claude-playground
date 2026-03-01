@@ -8,10 +8,11 @@ interface ConsoleHeaderProps {
   corpusActive?: boolean;
   onCorpusToggle?: () => void;
   onPowerToggle?: () => void;
+  onCompanyToggle?: () => void;
   onPrint?: () => void;
 }
 
-export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onPrint }: ConsoleHeaderProps) {
+export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onCompanyToggle, onPrint }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -47,9 +48,9 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
   }[status];
 
   return (
-    <header className="flex items-center justify-between px-8 py-5 border-b border-[#E5E5E5]">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-serif tracking-tight text-[#1A1A1A]">
+    <header className="flex items-center justify-between px-4 py-3 md:px-8 md:py-5 border-b border-[#E5E5E5]">
+      <div className="flex items-center gap-3 md:gap-4">
+        <h1 className="text-lg md:text-xl font-serif tracking-tight text-[#1A1A1A]">
           lexmea
         </h1>
         <span className="text-[11px] text-[#9B9B9B] tracking-wide hidden md:inline">
@@ -57,13 +58,21 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         </span>
       </div>
 
-      <div className="flex items-center gap-6 text-xs">
+      <div className="flex items-center gap-3 md:gap-6 text-xs">
         {onPrint && status === "done" && (
           <button
             onClick={onPrint}
-            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden hidden sm:inline"
           >
             Stampa PDF
+          </button>
+        )}
+        {onCompanyToggle && (
+          <button
+            onClick={onCompanyToggle}
+            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+          >
+            Company
           </button>
         )}
         {onPowerToggle && (
@@ -87,10 +96,10 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
           </button>
         )}
         {userName && (
-          <span className="text-[#6B6B6B]">{userName}</span>
+          <span className="text-[#6B6B6B] hidden sm:inline">{userName}</span>
         )}
         <span className={statusColor}>{statusLabel}</span>
-        <span className="text-[#9B9B9B] tabular-nums opacity-50">
+        <span className="text-[#9B9B9B] tabular-nums opacity-50 hidden sm:inline">
           {time}
         </span>
       </div>

@@ -13,6 +13,7 @@ export interface AuthorizedUser {
 
 export const AUTHORIZED_USERS: AuthorizedUser[] = [
   { nome: "Manuela", cognome: "Lo Buono", ruolo: "Notaio" },
+  { nome: "Boss", cognome: "Boss", ruolo: "Boss" },
 ];
 
 /**

@@ -71,13 +71,19 @@ describe("runClassifier", () => {
 
   it("warns when response is truncated (max_tokens)", async () => {
     const warnSpy = vi.spyOn(console, "warn");
+    // Use actually truncated JSON (mid-key cut off) to trigger parseAgentJSON repair path
+    const truncatedJson =
+      '{"documentType":"contratto_locazione_abitativa","documentTypeLabel":"Contratto di';
     mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(classificationFixture), {
-        stop_reason: "max_tokens",
-      })
+      makeAnthropicResponse(truncatedJson, { stop_reason: "max_tokens" })
     );
 
-    await runClassifier(SAMPLE_RENTAL_CONTRACT);
+    // Truncated JSON after repair may fail or succeed; we only care that the warn fired
+    try {
+      await runClassifier(SAMPLE_RENTAL_CONTRACT);
+    } catch {
+      // JSON repair may still fail — that's OK for this test
+    }
 
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining("troncata")

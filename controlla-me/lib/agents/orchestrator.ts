@@ -20,6 +20,7 @@ import {
 } from "../vector-store";
 import { isVectorDBEnabled } from "../embeddings";
 import { isAgentEnabled } from "../tiers";
+import { onPipelineComplete } from "../company/hooks";
 import type {
   ClassificationResult,
   AnalysisResult,
@@ -298,7 +299,16 @@ export async function runOrchestrator(
     }
   }
 
-  // Step 5: Auto-index in vector DB (background, non-blocking)
+  // Step 5: Company hooks — fire-and-forget task creation
+  const phasesCompleted = [
+    result.classification && "classifier",
+    result.analysis && "analyzer",
+    result.investigation && "investigator",
+    result.advice && "advisor",
+  ].filter(Boolean) as string[];
+  onPipelineComplete({ sessionId, totalDurationMs: Date.now() - (cached ? 0 : Date.now()), phasesCompleted }).catch(() => {});
+
+  // Step 6: Auto-index in vector DB (background, non-blocking)
   // Every completed analysis enriches the collective intelligence.
   if (
     result.classification &&

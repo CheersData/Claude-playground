@@ -415,7 +415,7 @@ export async function searchLegalKnowledge(
     return [];
   }
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  const results = (data ?? []).map((row: Record<string, unknown>) => ({
     id: row.id as string,
     content: row.content as string,
     metadata: row.metadata as Record<string, unknown>,
@@ -424,6 +424,16 @@ export async function searchLegalKnowledge(
     title: row.title as string,
     timesSeen: row.times_seen as number,
   }));
+
+  // Re-rank: boost articoli visti spesso (log scale, peso 20%)
+  // Formula: score = similarity * 0.8 + min(log10(timesSeen+1)/2, 0.25)
+  results.sort((a: SearchResult, b: SearchResult) => {
+    const scoreA = a.similarity * 0.8 + Math.min(Math.log10((a.timesSeen ?? 1) + 1) / 2, 0.25);
+    const scoreB = b.similarity * 0.8 + Math.min(Math.log10((b.timesSeen ?? 1) + 1) / 2, 0.25);
+    return scoreB - scoreA;
+  });
+
+  return results;
 }
 
 /**

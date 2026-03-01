@@ -433,28 +433,31 @@ Claude-playground/
 | ~~`/api/session/[id]` GET senza auth~~ | ~~ALTA~~ | ✅ **RISOLTO** — `requireAuth()` + `sanitizeSessionId` |
 | ~~`/api/upload` POST senza auth~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkRateLimit` |
 | ~~`/api/vector-search` POST senza auth~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkRateLimit` |
-| `/api/analyze` graceful degradation (auth inline) | MEDIA | ⚠️ Parziale — auth inline, non usa `requireAuth()` |
+| ~~`/api/analyze` graceful degradation (auth inline)~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkCsrf()` (SEC-002/004) |
 | ~~Nessun rate limiting~~ | ~~ALTA~~ | ✅ **RISOLTO** — `lib/middleware/rate-limit.ts` (in-memory, sliding window) |
 | ~~`eval("require")` in extract-text.ts~~ | ~~BASSA~~ | ✅ **RISOLTO** — Usa `createRequire(import.meta.url)` |
-| **Nessuna protezione CSRF** | MEDIA | ❌ Aperto |
+| ~~Nessuna protezione CSRF~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `lib/middleware/csrf.ts` (Origin check) su FormData endpoints (SEC-004) |
 | ~~Nessuna sanitizzazione input~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `lib/middleware/sanitize.ts` (document, question, sessionId) |
 | ~~SessionId prevedibile (hash + timestamp)~~ | ~~BASSA~~ | ✅ **RISOLTO** — Hash + `crypto.randomUUID()` (28 char entropia) |
-| **Security headers incompleti** | BASSA | ⚠️ Parziale — 5/8 header (mancano CSP, HSTS) |
+| ~~Security headers incompleti~~ | ~~BASSA~~ | ✅ **RISOLTO** — 7/7 header: aggiunti CSP + HSTS (SEC-003) |
+| ~~`/api/stripe/*` auth inline~~ | ~~MEDIA~~ | ✅ **RISOLTO** — `requireAuth()` + `checkRateLimit()` (SEC-002) |
+| ~~`/api/user/usage` senza rate limit~~ | ~~BASSA~~ | ✅ **RISOLTO** — `checkRateLimit()` 60 req/min (SEC-003) |
 
-**Copertura auth sulle API routes**:
+**Copertura auth sulle API routes** (aggiornato 2026-02-28):
 
-| Route | Auth | Rate Limit | Sanitization |
-|-------|------|-----------|--------------|
-| `/api/analyze` | ⚠️ Inline | ✅ | ✅ `sanitizeDocumentText` |
-| `/api/upload` | ✅ `requireAuth` | ✅ | — |
-| `/api/deep-search` | ✅ `requireAuth` | ✅ | ✅ `sanitizeUserQuestion` |
-| `/api/vector-search` | ✅ `requireAuth` | ✅ | — |
-| `/api/corpus` | ✅ `requireAuth` + admin | ✅ | — |
-| `/api/session/[id]` | ✅ `requireAuth` | ✅ | ✅ `sanitizeSessionId` |
-| `/api/user/usage` | — (pubblico) | — | — |
-| `/api/stripe/*` | ⚠️ Inline | — | — |
-| `/api/webhook` | — (Stripe signature) | — | — |
-| `/api/auth/callback` | — (OAuth) | — | — |
+| Route | Auth | Rate Limit | Sanitization | CSRF |
+|-------|------|-----------|--------------|------|
+| `/api/analyze` | ✅ `requireAuth` | ✅ | ✅ `sanitizeDocumentText` | ✅ |
+| `/api/upload` | ✅ `requireAuth` | ✅ | — | ✅ |
+| `/api/deep-search` | ✅ `requireAuth` | ✅ | ✅ `sanitizeUserQuestion` | — |
+| `/api/vector-search` | ✅ `requireAuth` | ✅ | — | — |
+| `/api/corpus` | ✅ `requireAuth` + admin | ✅ | — | — |
+| `/api/session/[id]` | ✅ `requireAuth` | ✅ | ✅ `sanitizeSessionId` | — |
+| `/api/user/usage` | — (pubblico, by design) | ✅ | — | — |
+| `/api/stripe/checkout` | ✅ `requireAuth` | ✅ | — | — |
+| `/api/stripe/portal` | ✅ `requireAuth` | ✅ | — | — |
+| `/api/webhook` | — (Stripe signature) | — | — | — |
+| `/api/auth/callback` | — (OAuth) | — | — | — |
 
 ### 2.4 PARAMETRIZZAZIONE
 

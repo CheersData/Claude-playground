@@ -7,6 +7,8 @@ import { PLANS } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { sanitizeDocumentText } from "@/lib/middleware/sanitize";
+import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
@@ -14,55 +16,44 @@ export const maxDuration = 300; // 5 minutes for long-running analysis
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
 
-  // Auth: richiede utente autenticato
-  let userId: string | null = null;
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  // CSRF check (FormData endpoint — SEC-004)
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Autenticazione richiesta" },
-        { status: 401 }
-      );
-    }
+  // Auth: usa requireAuth centralizzato (Security dept standard)
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult as NextResponse;
+  const { user } = authResult as AuthResult;
+  const userId = user.id;
 
-    userId = user.id;
+  // Rate limit (dopo auth per avere userId)
+  const limited = checkRateLimit(req, userId);
+  if (limited) return limited;
 
-    // Rate limit (dopo auth per avere userId)
-    const limited = checkRateLimit(req, userId);
-    if (limited) return limited;
+  // Piano e utilizzo
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan, analyses_count")
+    .eq("id", userId)
+    .single();
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("plan, analyses_count")
-      .eq("id", user.id)
-      .single();
+  const plan = (profile?.plan as "free" | "pro") || "free";
+  const used = profile?.analyses_count ?? 0;
 
-    const plan = (profile?.plan as "free" | "pro") || "free";
-    const used = profile?.analyses_count ?? 0;
-
-    if (plan === "free" && used >= PLANS.free.analysesPerMonth) {
-      return new Response(
-        `event: error\ndata: ${JSON.stringify({
-          message: "Hai raggiunto il limite di analisi gratuite per questo mese.",
-          code: "LIMIT_REACHED",
-        })}\n\n`,
-        {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-          },
-        }
-      );
-    }
-  } catch {
-    return NextResponse.json(
-      { error: "Errore di autenticazione" },
-      { status: 401 }
+  if (plan === "free" && used >= PLANS.free.analysesPerMonth) {
+    return new Response(
+      `event: error\ndata: ${JSON.stringify({
+        message: "Hai raggiunto il limite di analisi gratuite per questo mese.",
+        code: "LIMIT_REACHED",
+      })}\n\n`,
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      }
     );
   }
 

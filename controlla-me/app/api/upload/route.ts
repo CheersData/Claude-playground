@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "@/lib/extract-text";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 export async function POST(req: NextRequest) {
+  // CSRF check (FormData endpoint — SEC-004)
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
   // Auth
   const auth = await requireAuth();
   if (isAuthError(auth)) return auth;

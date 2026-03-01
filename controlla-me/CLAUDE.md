@@ -1,5 +1,35 @@
 # CLAUDE.md — Istruzioni per agenti AI
 
+---
+
+## ⚠️ REGOLA ASSOLUTA — AMBIENTE DEMO
+
+**Questo è un ambiente di demo. I crediti API Anthropic NON sono disponibili.**
+
+### Per gli script interni (`scripts/`, `company/`)
+
+Gli script di company operations (architect-review, model-census, data-connector, ecc.) devono usare **esclusivamente il CLI `claude -p`** per invocare LLM, MAI il SDK `@anthropic-ai/sdk` direttamente.
+
+```typescript
+// ✅ CORRETTO — usa CLI
+import { execSync } from "child_process";
+const output = execSync(`claude -p ${JSON.stringify(prompt)}`, { encoding: "utf-8" });
+
+// ❌ VIETATO — usa API con crediti
+import Anthropic from "@anthropic-ai/sdk";
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+```
+
+**Nota:** il CLI non può girare dentro una sessione Claude Code attiva (nested session). Gli script vanno eseguiti dal terminale esterno.
+
+### Per l'app runtime (`app/`, `lib/agents/`, `lib/ai-sdk/`)
+
+L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.ts` (tier system + fallback). Questa regola NON si applica al codice runtime dell'app.
+
+**Salvo esplicito ordine contrario del boss, questa regola è permanente e non negoziabile.**
+
+---
+
 > Tutto ciò che un agente AI deve sapere per sviluppare, deployare e mantenere **controlla.me** — app di analisi legale AI con 4 agenti specializzati.
 >
 > **Controlla.me è il primo prototipo** di una piattaforma madre per molteplici team di agenti AI. I servizi devono essere scalabili e parametrizzabili.
@@ -853,11 +883,11 @@ Il Classifier ora identifica:
 
 ```typescript
 scores: {
-  contractEquity: number;      // Bilanciamento tra le parti
-  legalCoherence: number;      // Coerenza interna clausole
-  practicalCompliance: number;  // Aderenza alla prassi
-  completeness: number;         // Copertura situazioni tipiche
+  legalCompliance: number;   // Aderenza al quadro normativo vigente (9-10=conforme, 1-2=violazioni gravi)
+  contractBalance: number;   // Equilibrio tra le parti (9-10=bilanciato, 1-2=vessatorio)
+  industryPractice: number;  // Conformità alla prassi di settore (9-10=standard mercato, 1-2=fuori prassi)
 }
+// fairnessScore = media dei 3 scores, arrotondata a 1 decimale
 ```
 
 ### Limiti output Advisor enforced
@@ -894,3 +924,61 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 - **State**: React useState/useRef, nessun store globale
 - **API routes**: App Router route handlers, FormData per upload
 - **Error messages**: Sempre in italiano per l'utente
+
+---
+
+## 17. VIRTUAL COMPANY (CME)
+
+All'avvio di ogni sessione Claude Code su questo progetto, leggi `company/cme.md`.
+Comportati come **CME** (CEO virtuale):
+
+1. **Check task board**: `npx tsx scripts/company-tasks.ts board`
+2. **Reporta stato** all'utente in 3-5 righe
+3. **Chiedi**: "Su cosa vuoi che ci concentriamo?"
+4. **Delega** ai dipartimenti — non scrivere codice direttamente senza passare dal dipartimento competente
+
+### Per lavorare come un dipartimento specifico
+
+Leggi il `company/<dept>/department.md` + il runbook pertinente in `company/<dept>/runbooks/`.
+
+### Struttura company/
+
+```
+company/
+├── cme.md                    # CEO prompt
+├── process-designer.md       # Protocolli inter-dipartimento
+├── contracts.md              # Contratti I/O
+├── <dept>/department.md      # Identità dipartimento
+├── <dept>/agents/*.md        # Identity card agenti
+└── <dept>/runbooks/*.md      # Procedure operative
+```
+
+### Task System
+
+**REGOLA: `--desc` è obbligatorio alla creazione.** Ogni task deve avere una descrizione esplicativa che chiarisca cosa fare e perché. Senza `--desc` il CLI rifiuta il task. La descrizione appare nel `board` e nel `list` per consentire lettura rapida senza aprire il dettaglio.
+
+```bash
+npx tsx scripts/company-tasks.ts board                     # stato azienda (mostra desc nei task recenti)
+npx tsx scripts/company-tasks.ts list --dept qa --status open   # mostra desc per ogni task
+npx tsx scripts/company-tasks.ts create --title "..." --dept qa --priority high --by cme --desc "Cosa fare e perché, in modo che chiunque legga il board capisca senza aprire il dettaglio"
+npx tsx scripts/company-tasks.ts claim <id> --agent test-runner
+npx tsx scripts/company-tasks.ts done <id> --summary "..."
+```
+
+### Cost Tracking
+
+Ogni chiamata agente viene loggata automaticamente in `agent_cost_log`.
+Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
+
+### Dipartimenti
+
+| Dipartimento | Missione | File |
+|-------------|----------|------|
+| Ufficio Legale | 7 agenti runtime | `company/ufficio-legale/` |
+| Data Engineering | Pipeline dati legislativi e nuovi corpus | `company/data-engineering/` |
+| Quality Assurance | Test e validazione | `company/quality-assurance/` |
+| Architecture | Soluzioni tecniche | `company/architecture/` |
+| Finance | Costi API | `company/finance/` |
+| Operations | Dashboard e monitoring | `company/operations/` |
+| Strategy | Vision: opportunita di business, nuovi agenti/servizi/domini, analisi competitiva, OKR | `company/strategy/` |
+| Marketing | Vision: market intelligence, segnali di mercato, validazione opportunita, acquisizione | `company/marketing/` |

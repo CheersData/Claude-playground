@@ -8,6 +8,7 @@ import AgentOutput from "@/components/console/AgentOutput";
 import ReasoningGraph from "@/components/console/ReasoningGraph";
 import CorpusTreePanel from "@/components/console/CorpusTreePanel";
 import PowerPanel from "@/components/console/PowerPanel";
+import CompanyPanel from "@/components/console/CompanyPanel";
 import type {
   ConsoleAgentPhase,
   ConsolePhaseStatus,
@@ -100,6 +101,7 @@ export default function ConsolePage() {
   const abortRef = useRef<AbortController | null>(null);
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [powerOpen, setPowerOpen] = useState(false);
+  const [companyOpen, setCompanyOpen] = useState(false);
 
   // ── Session persistence ──
   useEffect(() => {
@@ -336,16 +338,19 @@ export default function ConsolePage() {
         status={status}
         userName={headerUserName}
         corpusActive={corpusOpen}
-        onCorpusToggle={isAuthenticated ? () => setCorpusOpen((v) => !v) : undefined}
+        onCorpusToggle={isAuthenticated ? () => { setCorpusOpen((v) => !v); setCompanyOpen(false); } : undefined}
         onPowerToggle={isAuthenticated ? () => setPowerOpen((v) => !v) : undefined}
+        onCompanyToggle={isAuthenticated ? () => { setCompanyOpen((v) => !v); setCorpusOpen(false); } : undefined}
         onPrint={() => window.print()}
       />
 
-      {corpusOpen ? (
+      {companyOpen ? (
+        <CompanyPanel open={companyOpen} onClose={() => setCompanyOpen(false)} />
+      ) : corpusOpen ? (
         <CorpusTreePanel open={corpusOpen} onClose={() => setCorpusOpen(false)} />
       ) : (
         <>
-          <main className="px-8 py-6 max-w-3xl mx-auto space-y-4">
+          <main className="px-4 py-4 md:px-8 md:py-6 max-w-3xl mx-auto space-y-4">
             {/* Auth message */}
             {authMessage && (!isAuthenticated || (isAuthenticated && status === "idle" && !activeEvent)) && (
               <div className="rounded-xl border border-[#F0F0F0] p-5">

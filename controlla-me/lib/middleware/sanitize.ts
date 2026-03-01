@@ -52,17 +52,18 @@ export function sanitizeUserQuestion(question: string): string {
  * Accetta solo caratteri alfanumerici e trattini.
  */
 export function sanitizeSessionId(sessionId: string): string | null {
-  const cleaned = sessionId.trim();
+  // Nessun trim: gli spazi sono caratteri non validi per un sessionId.
+  // I sessionId legittimi non hanno spazi (vengono da URL path o query string).
 
-  // Solo alfanumerici, trattini e underscore
-  if (!/^[a-zA-Z0-9_-]+$/.test(cleaned)) {
+  // Solo alfanumerici, trattini e underscore (spazi → null)
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
     return null;
   }
 
   // Lunghezza ragionevole
-  if (cleaned.length < 5 || cleaned.length > 100) {
+  if (sessionId.length < 5 || sessionId.length > 100) {
     return null;
   }
 
-  return cleaned;
+  return sessionId;
 }

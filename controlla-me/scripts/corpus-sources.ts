@@ -32,6 +32,10 @@ export interface ConnectorConfig {
   normattivaActType?: string;
   /** Formato preferito per il download */
   preferredFormat?: "akn" | "json" | "html" | "xml";
+  /** Normattiva: usa caricaAKN diretto invece della ricerca asincrona (ZIP spesso vuoti) */
+  directAkn?: boolean;
+  /** Normattiva: codiceRedazionale hardcoded per caricaAKN diretto (es. "070U0300") */
+  codiceRedazionale?: string;
 }
 
 export interface CorpusSource {
@@ -195,6 +199,8 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       normattivaSearchTerms: ["statuto dei lavoratori", "legge 300 1970"],
       normattivaActType: "legge",
       preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "070U0300",
     },
   },
   {

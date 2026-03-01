@@ -3,6 +3,7 @@ import { ingestArticles, getCorpusStats } from "@/lib/legal-corpus";
 import { isVectorDBEnabled } from "@/lib/embeddings";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import type { LegalArticle } from "@/lib/legal-corpus";
 
 /**
@@ -14,6 +15,10 @@ import type { LegalArticle } from "@/lib/legal-corpus";
  * Protetto: richiede autenticazione + header admin secret (se configurato).
  */
 export async function POST(req: NextRequest) {
+  // CSRF
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
   // Auth: richiede utente autenticato
   const auth = await requireAuth();
   if (isAuthError(auth)) return auth;

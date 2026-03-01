@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "@/lib/extract-text";
 import { runLeaderAgent } from "@/lib/agents/leader";
 import { runOrchestrator } from "@/lib/agents/orchestrator";
@@ -14,11 +14,15 @@ import { CORPUS_AGENT_SYSTEM_PROMPT } from "@/lib/prompts/corpus-agent";
 import { sanitizeDocumentText, sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { MODELS, AGENT_MODELS, type ModelKey } from "@/lib/models";
 import { getActiveModel, getCurrentTier, isAgentEnabled } from "@/lib/tiers";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus } from "@/lib/types";
 
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
+  // CSRF — prima di entrare nello stream
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

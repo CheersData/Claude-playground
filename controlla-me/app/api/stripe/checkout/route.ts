@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, PLANS } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
 
 export async function POST(req: NextRequest) {
   if (!stripe) {
@@ -10,17 +11,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Auth centralizzato (SEC-002)
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult as NextResponse;
+  const { user } = authResult as AuthResult;
 
-  if (!user) {
-    return NextResponse.json(
-      { error: "Devi effettuare il login" },
-      { status: 401 }
-    );
-  }
+  // Rate limit anti-abuse pagamenti (SEC-003)
+  const limited = checkRateLimit(req, user.id);
+  if (limited) return limited;
 
   const { plan } = (await req.json()) as { plan: "pro" | "single" };
 
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${appUrl}/?checkout=success`,
     cancel_url: `${appUrl}/pricing?checkout=cancel`,
-    customer_email: user.email,
+    customer_email: user.email ?? undefined,
     metadata: {
       user_id: user.id,
       plan,

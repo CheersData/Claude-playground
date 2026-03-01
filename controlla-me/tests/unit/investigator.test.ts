@@ -141,7 +141,7 @@ describe("runInvestigator", () => {
     expect(result.findings).toEqual([]);
   });
 
-  it("uses MODEL_FAST and web_search tool in API call", async () => {
+  it("uses MODEL (Sonnet) and web_search tool in API call", async () => {
     mockCreate.mockResolvedValue(
       makeAnthropicResponse(JSON.stringify(makeInvestigation()))
     );
@@ -150,7 +150,7 @@ describe("runInvestigator", () => {
     await runInvestigator(classification, analysis);
 
     const params = mockCreate.mock.calls[0][0];
-    expect(params.model).toBe(MODEL_FAST);
+    expect(params.model).toBe(MODEL);
     expect(params.tools).toEqual([
       { type: "web_search_20250305", name: "web_search" },
     ]);

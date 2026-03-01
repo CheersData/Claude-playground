@@ -4,6 +4,7 @@ import { searchArticles, getCorpusStats } from "@/lib/legal-corpus";
 import { isVectorDBEnabled } from "@/lib/embeddings";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 /**
  * POST /api/vector-search — Ricerca semantica nel vector DB.
@@ -18,6 +19,10 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
  *   { "documents": [...], "knowledge": [...], "articles": [...] }
  */
 export async function POST(req: NextRequest) {
+  // CSRF
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
   // Auth
   const auth = await requireAuth();
   if (isAuthError(auth)) return auth;
