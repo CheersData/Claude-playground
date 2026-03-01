@@ -221,6 +221,19 @@ async function main() {
       if (summary) console.log(`  Summary: ${summary}`);
       if (resultData) console.log(`  Data: ${JSON.stringify(resultData, null, 2)}`);
       console.log("");
+
+      // ─── Hook: controlla se il board è vuoto dopo la chiusura ───
+      try {
+        const board = await getTaskBoard();
+        const activeCount = board.byStatus.open + board.byStatus.in_progress;
+        if (activeCount === 0) {
+          console.log("⚡ Board vuoto (0 open, 0 in_progress).");
+          console.log("   Genera il prossimo piano: npx tsx scripts/company-plan.ts check\n");
+        }
+      } catch {
+        // Non bloccare se il check fallisce
+      }
+
       break;
     }
 
