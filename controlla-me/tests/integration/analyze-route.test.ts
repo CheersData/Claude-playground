@@ -6,17 +6,36 @@ import { makeAdvisorResult } from "../fixtures/advisor";
 import { SAMPLE_RENTAL_CONTRACT, SHORT_TEXT } from "../fixtures/documents";
 import { makeMockSupabaseClient } from "../mocks/supabase";
 
-// Mock supabase
-const mockSupabaseClient = makeMockSupabaseClient();
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => mockSupabaseClient),
+// ── Hoisted mock references ──────────────────────────────────────────────────
+// vi.hoisted() garantisce che questi vi.fn() siano accessibili nei factory di vi.mock()
+// e che vi.clearAllMocks() li resetti correttamente (senza perdere il riferimento).
+
+const mockRequireAuth = vi.hoisted(() => vi.fn());
+const mockCreateClient = vi.hoisted(() => vi.fn());
+const mockCreateAdminClient = vi.hoisted(() => vi.fn());
+
+// Mock del middleware auth — mocked direttamente per evitare la catena Supabase/cookies()
+// requireAuth() chiama createClient() → cookies() da next/headers (non disponibile in test).
+// Mockando requireAuth direttamente, evitiamo questa dipendenza.
+vi.mock("@/lib/middleware/auth", () => ({
+  requireAuth: mockRequireAuth,
+  isAuthError: (result: unknown) => result instanceof Response,
 }));
 
+// Mock supabase (usato per la query profiles e la route — NON per requireAuth che è mockato)
+const mockSupabaseClient = makeMockSupabaseClient();
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: mockCreateClient,
+}));
+
+// Riferimento stabile all'admin client — vi.clearAllMocks() pulisce le implementazioni
+// ma non l'oggetto stesso. Ripristiniamo le implementazioni in beforeEach.
 const mockAdminClient = {
-  rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+  from: vi.fn(),
+  rpc: vi.fn(),
 };
 vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: vi.fn(() => mockAdminClient),
+  createAdminClient: mockCreateAdminClient,
 }));
 
 // Mock orchestrator
@@ -29,6 +48,12 @@ vi.mock("@/lib/agents/orchestrator", () => ({
 const mockExtractText = vi.fn();
 vi.mock("@/lib/extract-text", () => ({
   extractText: (...args: unknown[]) => mockExtractText(...args),
+}));
+
+// Mock rate-limit — evita che l'in-memory store accumulato blocchi le richieste successive
+const mockCheckRateLimit = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  checkRateLimit: mockCheckRateLimit,
 }));
 
 // Mock analysis-cache
@@ -95,6 +120,31 @@ function makeRequest(body: Record<string, string | Blob>): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
 
+  // ── Ripristina mock di moduli cancellati da vi.clearAllMocks() ──────────────
+  // vi.clearAllMocks() cancella le implementazioni di vi.fn() — dobbiamo ripristinarle.
+
+  // requireAuth: mock diretto del middleware (evita catena Supabase/cookies)
+  mockRequireAuth.mockResolvedValue({ user: { id: "user-123", email: "test@test.com" } });
+  // checkRateLimit: sempre null (no blocking) — l'in-memory store persiste tra test
+  mockCheckRateLimit.mockResolvedValue(null);
+
+  // createClient: usato per la query profiles (DOPO requireAuth)
+  mockCreateClient.mockResolvedValue(mockSupabaseClient);
+
+  // createAdminClient: usato per insert/update "analyses" e increment_analyses_count
+  mockCreateAdminClient.mockReturnValue(mockAdminClient);
+  mockAdminClient.rpc.mockResolvedValue({ data: null, error: null });
+  mockAdminClient.from.mockReturnValue({
+    insert: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: { id: "analysis-db-id" }, error: null }),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    }),
+  });
+
   // Default: orchestrator succeeds and calls callbacks
   mockRunOrchestrator.mockImplementation(
     async (
@@ -128,12 +178,6 @@ beforeEach(() => {
       };
     }
   );
-
-  // Default: auth returns a user
-  mockSupabaseClient.auth.getUser.mockResolvedValue({
-    data: { user: { id: "user-123" } },
-    error: null,
-  });
 
   // Default: profile is free with 0 analyses
   const singleFn = vi
@@ -213,17 +257,19 @@ describe("POST /api/analyze", () => {
       expect(completeEvent).toBeDefined();
     });
 
-    it("allows analysis when auth check fails (graceful degradation)", async () => {
-      mockSupabaseClient.auth.getUser.mockRejectedValue(
-        new Error("auth down")
+    it("ritorna 401 quando requireAuth fallisce (auth error handling)", async () => {
+      // Il route NON fa graceful degradation: se requireAuth fallisce, ritorna 401.
+      // Usiamo il NextResponse importato per simulare il comportamento di requireAuth.
+      const { NextResponse } = await import("next/server");
+      mockRequireAuth.mockResolvedValue(
+        NextResponse.json({ error: "Autenticazione richiesta" }, { status: 401 })
       );
 
       const req = makeRequest({ text: SAMPLE_RENTAL_CONTRACT });
       const response = await POST(req);
-      const events = await consumeSSE(response);
 
-      const completeEvent = events.find((e) => e.event === "complete");
-      expect(completeEvent).toBeDefined();
+      // Il route deve ritornare il NextResponse 401 direttamente (non SSE)
+      expect(response.status).toBe(401);
     });
   });
 
