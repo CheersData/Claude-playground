@@ -216,7 +216,61 @@ Il dept apre task `[ARCH-REVIEW]`. Architecture ha **24 ore** per rispondere —
 
 ---
 
-## 5. NEXT ACTIONS
+## 5. CONSOLE — VALUTAZIONE COME PRODOTTO
+
+### Strategy: confermato il reframe, con una qualifica
+
+**Il pattern "entra verticale, vendi orizzontale" è documentato**: Twilio (SMS come primo verticale), Relevance AI ($24M Bessemer), Flowise (acquisita da Workday 2025). Il TAM della piattaforma di orchestrazione agenti è **$7B nel 2025 → $93B entro il 2032** (CAGR 44.6%) — 10-25x il solo LegalTech.
+
+La console non è una canvas drag-drop (Dify, n8n, Copilot Studio). È una **cockpit operativa** per chi comanda agenti, non per chi li assembla. Nessun competitor ha: tier switch real-time + toggle agenti + N-fallback multi-provider + auto-improvement via RAG su dominio verticale verificato.
+
+**La qualifica critica**: il reframe è corretto come frame interno. Non deve diventare posizionamento pubblico prima di avere 3-5 verticali funzionanti o un partner B2B che paga. "Analizziamo i tuoi contratti" converte. "Piattaforma di orchestrazione agenti" non converte con nessuno specificamente.
+
+> La console è il prodotto. Il legale è la dimostrazione. Il posizionamento pubblico cambia solo quando abbiamo i numeri per dimostrarlo.
+
+### QA: **BETA CHIUSA** — la console è il 30% di un prodotto serio
+
+**Pro**: UI eccellente (Framer Motion, TypeScript strict), SSE streaming robusto, PowerPanel elegante, Miller columns corpus tra le UI migliori della codebase, routing agenti corretto.
+
+**Contro (blocca production)**:
+- State machine incompleta: nessun retry, nessun abort, nessuna queue, nessun timeout handling → crash su disconnessione di rete
+- Zero persistenza: sessioni perse su refresh, nessuna cronologia, nessun export
+- Zero policy enforcement: nessun rate limit per utente sulla console, nessuna quota
+- Zero test (unit / E2E)
+- Accessibilità non WCAG
+
+**Roadmap production: 8 settimane** (state machine → auth DB → persistenza → policy → monitoring).
+
+### Security: **NON commercializzabile** senza fix critici
+
+**4 vulnerabilità critiche identificate**:
+
+| # | Vulnerabilità | File | Severity |
+|---|--------------|------|----------|
+| SEC-001 | Auth bypassabile via substring: `"Ciao Manuela"` → accesso concesso | `lib/console-auth.ts` r.96-111 | 🔴 CRITICA |
+| SEC-002 | sessionStorage spoofing: DevTools → `setItem("lexmea-auth", ...)` → autenticato | `app/console/page.tsx` r.107-152 | 🔴 CRITICA |
+| SEC-003 | `/api/console/tier` senza auth: chiunque può disabilitare agenti per tutti | `app/api/console/tier/route.ts` r.26-71 | 🔴 CRITICA |
+| SEC-004 | Tier state globale in-memory: Operatore A cambia tier → impatta Operatore B | `lib/tiers.ts` r.103-104 | 🟠 ALTA |
+| SEC-005 | `/api/console` senza auth + senza rate limit: DoS gratuito, costi illimitati | `app/api/console/route.ts` r.22-177 | 🔴 CRITICA |
+
+**Fix priorità 1 (2 settimane)**:
+1. JWT server-side firmato al posto di sessionStorage
+2. `requireAuth()` su `/api/console` e `/api/console/tier`
+3. Tier/agent state per-user (Redis key: `user:${userId}:tier`) invece di variabile globale
+4. Rate limiting su console endpoints
+5. Exact match su `console-auth.ts` (rimuovere substring matching)
+
+**Verdict finale per uso**:
+
+| Scenario | Sicuro? |
+|----------|---------|
+| Staff interno (2-3 persone fidate) | ⚠️ Marginale — OK per ora |
+| Beta chiusa (10-50 utenti) | ❌ NO — richiede Priorità 1 fix |
+| Lancio pubblico / PMI commerciale | ❌ VIETATO |
+
+---
+
+## 6. NEXT ACTIONS
 
 | # | Azione | Owner | Deadline | Bloccante per |
 |---|--------|-------|----------|---------------|
