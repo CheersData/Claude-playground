@@ -1,6 +1,6 @@
 # Controlla.me — Architettura, Fragilità e Roadmap
 
-> **Ultimo aggiornamento**: 2026-02-26 — Verificato contro il codebase reale.
+> **Ultimo aggiornamento**: 2026-03-01 — Audit completo: Security, Architecture, QA, Strategy.
 >
 > Controlla.me è il **primo prototipo** di una piattaforma madre per molteplici team
 > di agenti AI. Ogni servizio è progettato per essere **scalabile e parametrizzabile**,
@@ -1261,6 +1261,45 @@ riutilizzabili per i futuri team di agenti:
 
 ---
 
-*Documento di architettura — controlla.me v1.1*
-*Verificato contro il codebase il 2026-02-26*
+## Appendice C: Security Status & Tech Debt (2026-03-01)
+
+### Security — Stato GIALLO
+
+Nessun finding critico. 4 finding medi aperti (vedi CLAUDE.md § 17 per dettaglio completo).
+
+**Fix prioritari:**
+1. Aggiungere `requireConsoleAuth` a `/api/company/*` e `/api/console/company*`
+2. Rendere `CRON_SECRET` obbligatorio con fail-fast (ora opzionale → bypass silenzioso)
+3. Rate limiting IP su route corpus READ pubbliche (`/hierarchy`, `/institutes`, `/article`)
+4. Documentare `CONSOLE_JWT_SECRET` e `CRON_SECRET` in `.env.local.example` (ora fatto)
+
+### Tech Debt Critici
+
+| ID | Problema | Impatto | Effort |
+|----|---------|---------|--------|
+| **TD-1** | `savePhaseTiming`: 2 roundtrip Supabase/fase → 8 totali/pipeline | +100-200ms × 4 fasi | Basso — `jsonb_set` atomico |
+| **TD-2** | `let currentTier` global mutable in `lib/tiers.ts` — condiviso tra richieste sullo stesso worker serverless | Race condition sotto carico | Basso — request-scoped |
+| **TD-3** | Migration 003-007 duplicate (ogni numero ha 2 file) | **Bloccante per CI/CD automatico** | Medio — rinumerare |
+
+### Gap Test Coverage
+
+File critici senza test (priorità):
+1. `lib/ai-sdk/agent-runner.ts` — fallback chain (P1 CRITICA)
+2. `lib/tiers.ts` — logica tier (P2 ALTA)
+3. `lib/middleware/console-token.ts` — HMAC security (P3 ALTA)
+4. `lib/analysis-cache.ts` — migrata Supabase (P4 ALTA)
+5. `lib/ai-sdk/generate.ts` — router provider (P5 MEDIA)
+
+### Verticali Strategici (OKR Q2 2026)
+
+| Verticale | TAM IT | Difficoltà | Corpus necessario |
+|-----------|--------|-----------|------------------|
+| **HRTech** (priorità 1) | €180M | Bassa-media | D.Lgs. 81/2008 + Statuto Lavoratori |
+| **PropTech pro** (priorità 2) | €45-60M | Bassa | Decreto Salva-casa 2024 |
+| **PMI Compliance B2B** (priorità 3) | €280M | Media | D.Lgs. 36/2023 Codice Contratti |
+
+---
+
+*Documento di architettura — controlla.me v1.2*
+*Verificato contro il codebase il 2026-03-01*
 *Per domande o aggiornamenti: aggiornare questo file nel branch di sviluppo.*

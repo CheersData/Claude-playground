@@ -136,6 +136,14 @@ CEREBRAS_API_KEY=csk-...
 # DeepSeek (opzionale — ⚠️ server in Cina, non usare per dati sensibili)
 DEEPSEEK_API_KEY=...
 
+# Console (obbligatorio in produzione)
+CONSOLE_JWT_SECRET=...           # min 32 chars — se assente usa fallback hardcoded pubblico (RISCHIO SICUREZZA)
+CRON_SECRET=...                  # obbligatorio se cron attivi — se assente i cron endpoint sono aperti a chiunque
+
+# Upstash Redis (necessario per rate limiting distribuito in produzione)
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
+
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -909,21 +917,76 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ## 16. FEATURE INCOMPLETE
 
-1. OCR immagini — tesseract.js importato ma non implementato
-2. Dashboard reale — Usa mock data, servono query Supabase
-3. Pagina dettaglio analisi — Usa mock, serve fetch da Supabase
-4. Deep search limit — Modello dati supporta, non enforced in UI
-5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
-6. Test — Nessun test unitario/integrazione/E2E
-7. CI/CD — Nessuna GitHub Action
-8. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
-9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
-10. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati
-11. Statuto dei Lavoratori — L'unica fonte IT non ancora caricata (L. 300/1970). API async Normattiva produce ZIP vuoti, serve approccio alternativo
+1. OCR immagini — tesseract.js installato ma mai importato (~50MB inutili in produzione). **Rimuovere da `dependencies` finché non implementato concretamente.**
+2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
+3. Deep search limit — Modello dati supporta, **non enforced in UI**. `PaywallBanner.tsx` e `DeepSearchChat.tsx` esistono — manca solo il check pre-apertura chat. Effort: 2-3h. Impatto revenue diretto.
+4. Sistema referral avvocati — Tabelle DB esistono (`lawyer_referrals`), nessuna UI. Prerequisito: ADR GDPR su quali dati condividere con l'avvocato e con quale base giuridica.
+5. Test — **PARZIALMENTE COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, agenti core coperti (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + nuova suite `e2e/` (auth, upload, analysis, console). **Gap critici rimasti**: `lib/ai-sdk/agent-runner.ts` (P1), `lib/tiers.ts` (P2), `lib/middleware/console-token.ts` (P3), `lib/analysis-cache.ts` (P4), `lib/ai-sdk/generate.ts` (P5).
+6. CI/CD — `.github/` presente ma pipeline non completamente configurata. **Bloccato da**: migration duplicate 003-007 (TD-3) che rendono il DB push automatico non deterministico.
+7. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
+8. UI scoring multidimensionale — Backend pronto (`legalCompliance`, `contractBalance`, `industryPractice`), frontend mostra solo `fairnessScore`. Effort minimo.
+9. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati.
+10. Statuto dei Lavoratori — L'unica fonte IT non ancora caricata (L. 300/1970). API async Normattiva produce ZIP vuoti. Approcci alternativi: HTML scraping Normattiva web, o testo consolidato via EUR-Lex.
+11. Verticale HR — Non avviato. Fonti mappate in `hr-sources.ts`: D.Lgs. 81/2008 (306 art., pipeline standard, nessun blocco), D.Lgs. 276/2003, D.Lgs. 23/2015. Prerequisito corpus: punto 10.
 
 ---
 
-## 16. CONVENZIONI DI CODICE
+## 17. SECURITY STATUS (aggiornato 2026-03-01)
+
+**Stato complessivo: 🟡 GIALLO** — Nessun finding critico. 4 finding medi aperti.
+
+### Infrastruttura security esistente (SEC-001..006)
+
+- Headers HTTP completi (CSP, HSTS, X-Frame-Options, Permissions-Policy) in `next.config.ts`
+- Middleware centralizzato: `lib/middleware/` (auth, rate-limit, CSRF, sanitization, audit-log, console-token)
+- Token HMAC-SHA256 per console operators (`lib/middleware/console-token.ts`)
+- RLS attivo su tutte le tabelle Supabase
+- TTL GDPR per dati sensibili
+- Audit log strutturato (EU AI Act compliance)
+
+### Finding medi aperti
+
+| ID | Route/File | Problema | Fix |
+|----|-----------|---------|-----|
+| M1 | `/api/company/*` | Board, tasks, status, cron esposti senza auth | Aggiungere `requireConsoleAuth` |
+| M2 | `/api/console/company`, `/message`, `/stop` | Spawn process senza `requireConsoleAuth` | Aggiungere `requireConsoleAuth` |
+| M3 | Cron endpoints | `CRON_SECRET` opzionale → bypass silenzioso se non configurato | Rendere obbligatorio con fail-fast al boot |
+| M4 | `/api/corpus/hierarchy`, `/institutes`, `/article` | Route READ pubbliche senza rate-limit → abuso crediti Voyage AI | Aggiungere `checkRateLimit` per IP |
+
+### Finding bassi aperti
+
+- `CONSOLE_JWT_SECRET` non in `.env.local.example` → fallback chiave default hardcoded in produzione
+- Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente invece che in env/DB
+- CSP include `'unsafe-eval'` anche in produzione (necessario per Next.js dev, rimovibile in prod con nonce-based CSP)
+
+---
+
+## 18. TECH DEBT CRITICO (aggiornato 2026-03-01)
+
+### Tech Debt attivi
+
+| ID | File | Problema | Impatto | Effort fix |
+|----|------|---------|---------|-----------|
+| TD-1 | `lib/analysis-cache.ts` | `savePhaseTiming`: 2 roundtrip Supabase per fase (8 totali nella pipeline). Race condition teorica. | Latenza +100-200ms × 4 fasi | Basso — `jsonb_set` atomico |
+| TD-2 | `lib/tiers.ts` | `let currentTier` = global mutable state. In serverless, condiviso tra richieste sullo stesso worker. | Bomba a orologeria sotto carico multi-utente | Basso — request-scoped via cookie/session |
+| TD-3 | `supabase/migrations/` | Numeri 003-007 hanno tutti doppioni (es. `003_legal_corpus.sql` + `003_vector_db.sql`). Ordine di applicazione ambiguo. | **Bloccante per CI/CD automatico** | Medio — rinumerare con sequenza continua |
+
+### Debiti tecnici minori
+
+- `tesseract.js` in `dependencies` ma mai importato — ~50MB di build inutili. Spostare in `devDependencies` o rimuovere.
+- `openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x). Verificare breaking changes.
+- `@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.
+- `@upstash/ratelimit` + `@upstash/redis` usati in `lib/middleware/rate-limit.ts` ma `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` non erano documentate in `.env.local.example` (ora aggiunte).
+
+### Rischi architetturali (non urgenti)
+
+- **SSE + Edge Runtime**: `ReadableStream` con `maxDuration=300` non funziona su Vercel Edge Runtime (limite 30s). Oggi gira su Node.js — OK. Da monitorare se si migra a Edge.
+- **getAverageTimings() fire-and-forget**: il cleanup TTL viene triggerato ad ogni analisi. In alta concorrenza genera RPC Supabase parallele inutili. Meglio un cron job dedicato (Edge Function schedulata).
+- **Pipeline multi-verticale**: l'approccio `app/[verticale]/page.tsx` con logica inline non scala oltre 2-3 verticali. Serve un sistema config-driven per i verticali.
+
+---
+
+## 19. CONVENZIONI DI CODICE
 
 - **Lingua UI**: Italiano
 - **Lingua codice**: Inglese (variabili, funzioni, commenti tecnici)
@@ -938,7 +1001,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 17. VIRTUAL COMPANY (CME)
+## 20. VIRTUAL COMPANY (CME)
 
 All'avvio di ogni sessione Claude Code su questo progetto, leggi `company/cme.md`.
 Comportati come **CME** (CEO virtuale):
