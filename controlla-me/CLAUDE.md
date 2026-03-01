@@ -140,6 +140,11 @@ DEEPSEEK_API_KEY=...
 CONSOLE_JWT_SECRET=...           # min 32 chars — se assente usa fallback hardcoded pubblico (RISCHIO SICUREZZA)
 CRON_SECRET=...                  # obbligatorio se cron attivi — se assente i cron endpoint sono aperti a chiunque
 
+# Telegram (per Company Scheduler — approvazione piani via bot)
+# Setup: @BotFather → /newbot → copia token. Poi: api.telegram.org/bot{TOKEN}/getUpdates → prendi "chat.id"
+TELEGRAM_BOT_TOKEN=...           # es. 1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ
+TELEGRAM_CHAT_ID=...             # ID numerico della chat con il bot
+
 # Upstash Redis (necessario per rate limiting distribuito in produzione)
 UPSTASH_REDIS_REST_URL=https://...
 UPSTASH_REDIS_REST_TOKEN=...
@@ -294,9 +299,26 @@ controlla-me/
 │   ├── seed-corpus.ts             # Seed legacy (HuggingFace)
 │   └── check-data.ts              # QA dati corpus
 │
-├── supabase/migrations/           # SQL per setup DB
+├── supabase/migrations/           # SQL per setup DB (001-019)
 ├── public/videos/                 # Video generati AI
-└── .analysis-cache/               # Cache analisi (gitignored)
+├── .analysis-cache/               # Cache analisi (gitignored)
+│
+├── trading/                       # Ufficio Trading (Python, stesso localhost)
+│   ├── pyproject.toml             # Python 3.11+, alpaca-py, pandas, ta
+│   ├── src/
+│   │   ├── config/settings.py     # Pydantic settings (26 parametri)
+│   │   ├── connectors/alpaca_client.py  # Alpaca trading + market data
+│   │   ├── models/                # signals.py, orders.py, portfolio.py
+│   │   ├── agents/base.py         # BaseAgent ABC
+│   │   ├── strategies/            # (futuro)
+│   │   ├── backtest/              # (Fase 2)
+│   │   └── utils/                 # db.py (CRUD Supabase), logging.py
+│   └── tests/
+│
+└── company/trading/               # Org structure trading
+    ├── department.md              # Identità ufficio + vincoli architetturali
+    ├── agents/                    # 5 identity cards + trading-lead
+    └── runbooks/                  # pipeline, risk, backtest, go-live
 ```
 
 ---
@@ -915,7 +937,164 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 16. FEATURE INCOMPLETE
+## 16. UFFICIO TRADING (Swing Trading Automatizzato)
+
+### Missione
+
+Trading automatizzato su azioni US e ETF via Alpaca Markets per sostenibilità finanziaria di Controlla.me. Infrastruttura Python autonoma, comunicazione con il resto via Supabase condiviso.
+
+### Vincolo architetturale (direttiva boss)
+
+- **Stesso localhost**: Trading gira sulla stessa macchina dell'app Next.js, non è un microservizio remoto
+- **Comunicazione inter-dipartimentale**: via Supabase condiviso (tabelle `trading_*`)
+- **CME unico interlocutore**: nessun dipartimento parla direttamente col Trading, tutto passa da CME
+- **Orchestrazione locale**: CME invoca gli agenti Python localmente (es. `cd trading && python -m src.agents.market_scanner`)
+
+### Stack
+
+| Livello | Tecnologia | Versione |
+|---------|-----------|----------|
+| Linguaggio | Python | 3.11+ |
+| Broker | alpaca-py | 0.28+ |
+| Analisi Tecnica | ta | 0.11+ |
+| Data | pandas + numpy | 2.2+ / 1.26+ |
+| Database | supabase-py | 2.9+ |
+| Config | pydantic-settings | 2.6+ |
+| Logging | structlog | 24.4+ |
+
+### Architettura directory
+
+```
+trading/
+├── pyproject.toml                 # Python project config
+├── src/
+│   ├── config/
+│   │   └── settings.py            # Pydantic settings (Alpaca, Risk, Scanner, Signal)
+│   ├── connectors/
+│   │   └── alpaca_client.py       # Alpaca trading + market data client
+│   ├── models/
+│   │   ├── signals.py             # ScanResult, Signal, RiskDecision
+│   │   ├── orders.py              # Order, OrderStatus
+│   │   └── portfolio.py           # Position, PortfolioSnapshot, RiskEvent
+│   ├── agents/
+│   │   ├── base.py                # BaseAgent ABC (async, structured logging)
+│   │   ├── market_scanner.py      # [1] Daily pre-market screening
+│   │   ├── signal_generator.py    # [2] Technical analysis + signals
+│   │   ├── risk_manager.py        # [3] Risk validation + kill switch
+│   │   ├── executor.py            # [4] Order execution on Alpaca
+│   │   └── portfolio_monitor.py   # [5] P&L monitoring + alerts
+│   ├── strategies/                # Strategy configurations (future)
+│   ├── backtest/                  # Backtesting framework (Phase 2)
+│   ├── utils/
+│   │   ├── logging.py             # structlog setup
+│   │   └── db.py                  # TradingDB (CRUD Supabase)
+│   └── pipeline.py                # Orchestratore pipeline 5 agenti
+├── tests/
+│   ├── unit/
+│   │   └── test_models.py         # Model validation tests
+│   └── integration/               # Integration tests (future)
+└── company/trading/               # Company structure (department.md, agents/, runbooks/)
+```
+
+### Pipeline 5 agenti
+
+```
+[1] MARKET SCANNER (daily, pre-market)
+    → Filtra S&P 500 + NASDAQ 100 + ETF: volume, ATR, trend SMA
+    → Output: watchlist 20-30 candidati
+    |
+[2] SIGNAL GENERATOR (daily, post-scan)
+    → RSI + MACD + Bollinger + Trend + Volume → score composito
+    → Output: segnali BUY/SELL con confidence > 0.6
+    |
+[3] RISK MANAGER (pre-trade)
+    → Position sizing (half-Kelly, max 10% portfolio)
+    → Correlazione, esposizione settoriale, R/R ratio
+    → KILL SWITCH su -2% daily o -5% weekly
+    → Output: ordini APPROVED/REJECTED
+    |
+[4] EXECUTOR (on-signal)
+    → Bracket orders su Alpaca (entry + stop loss + take profit)
+    → Retry 3x su errore, logging completo
+    |
+[5] PORTFOLIO MONITOR (continuous + daily report)
+    → P&L tracking, alert system, daily snapshot
+    → Trigger stop loss/take profit
+```
+
+### Risk Management (NON NEGOZIABILE)
+
+| Parametro | Valore |
+|-----------|--------|
+| Max daily loss | -2% portfolio → KILL SWITCH |
+| Max weekly loss | -5% portfolio → KILL SWITCH |
+| Max position size | 10% portfolio |
+| Max positions | 10 simultanee |
+| Max sector exposure | 30% |
+| Stop loss per trade | -5% |
+| Min risk/reward | 1:2 |
+| Paper trading minimo | 30 giorni |
+
+### Schema Database (Migration 019)
+
+```sql
+trading_config        -- Singleton: mode, enabled, risk params, kill switch state
+trading_signals       -- Scan results, trade signals, risk checks (TTL 90gg)
+trading_orders        -- Ordini eseguiti su Alpaca
+portfolio_positions   -- Posizioni correnti (upsert)
+portfolio_snapshots   -- Snapshot giornalieri P&L
+risk_events           -- Kill switch, stop loss, warning, alerts
+```
+
+RLS: solo `service_role` (il Python trading system usa `SUPABASE_SERVICE_ROLE_KEY`).
+
+### Variabili d'ambiente
+
+```env
+# Alpaca (obbligatorie per trading)
+ALPACA_API_KEY=...
+ALPACA_SECRET_KEY=...
+ALPACA_BASE_URL=https://paper-api.alpaca.markets  # paper default, live dopo approvazione
+
+# Trading config
+TRADING_MODE=paper          # paper | live | backtest
+TRADING_ENABLED=true
+
+# Federal Reserve Economic Data (opzionale, macro)
+FRED_API_KEY=...
+```
+
+### Fasi di deployment
+
+| Fase | Durata | Stato |
+|------|--------|-------|
+| 1. Fondamenta | 1-2 settimane | **IN CORSO** — infrastruttura Python, schema DB |
+| 2. Backtest | 1-2 settimane | Pending — dati storici 2 anni, Sharpe > 1.0 |
+| 3. Paper Trading | 30 giorni min | Pending — risultati consistenti col backtest |
+| 4. Go Live | Indefinito | Pending — approvazione boss |
+
+### Company structure
+
+```
+company/trading/
+├── department.md                  # Identità ufficio
+├── agents/
+│   ├── trading-lead.md            # Leader ufficio trading
+│   ├── market-scanner.md          # Identity card scanner
+│   ├── signal-generator.md        # Identity card signal gen
+│   ├── risk-manager.md            # Identity card risk mgr
+│   ├── executor.md                # Identity card executor
+│   └── portfolio-monitor.md       # Identity card monitor
+└── runbooks/
+    ├── trading-pipeline.md        # Pipeline giornaliera
+    ├── risk-management.md         # Kill switch e procedure risk
+    ├── backtest.md                # Come eseguire backtest
+    └── go-live.md                 # Checklist go-live
+```
+
+---
+
+## 17. FEATURE INCOMPLETE (Ufficio Legale / App)
 
 1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
 2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
@@ -931,7 +1110,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 17. SECURITY STATUS (aggiornato 2026-03-01)
+## 18. SECURITY STATUS (aggiornato 2026-03-01)
 
 **Stato complessivo: 🟢 VERDE** — Tutti i finding medi risolti (commit 2c7648f). Finding bassi residui non bloccanti.
 
@@ -962,7 +1141,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 18. TECH DEBT CRITICO (aggiornato 2026-03-01)
+## 19. TECH DEBT CRITICO (aggiornato 2026-03-01)
 
 ### Tech Debt attivi
 
@@ -987,7 +1166,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 19. CONVENZIONI DI CODICE
+## 20. CONVENZIONI DI CODICE
 
 - **Lingua UI**: Italiano
 - **Lingua codice**: Inglese (variabili, funzioni, commenti tecnici)
@@ -1002,7 +1181,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 20. VIRTUAL COMPANY (CME)
+## 21. VIRTUAL COMPANY (CME)
 
 All'avvio di ogni sessione Claude Code su questo progetto, leggi `company/cme.md`.
 Comportati come **CME** (CEO virtuale):
@@ -1045,16 +1224,23 @@ npx tsx scripts/company-tasks.ts done <id> --summary "..."
 Ogni chiamata agente viene loggata automaticamente in `agent_cost_log`.
 Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 
-### Dipartimenti
+### Uffici (Revenue)
+
+| Ufficio | Missione | Stack | File |
+|---------|----------|-------|------|
+| Ufficio Legale | 7 agenti AI analisi legale | TypeScript/Next.js | `company/ufficio-legale/` |
+| Ufficio Trading | 5 agenti swing trading | Python/Alpaca | `company/trading/` |
+
+### Dipartimenti (Staff)
 
 | Dipartimento | Missione | File |
 |-------------|----------|------|
-| Ufficio Legale | 7 agenti runtime | `company/ufficio-legale/` |
+| Architecture | Soluzioni tecniche | `company/architecture/` |
 | Data Engineering | Pipeline dati legislativi e nuovi corpus | `company/data-engineering/` |
 | | ⚠️ **Scraping = ULTIMA risorsa. Ordine: API ufficiali → repo/dataset open → fonti alternative → scraping (con approvazione boss).** | |
 | Quality Assurance | Test e validazione | `company/quality-assurance/` |
-| Architecture | Soluzioni tecniche | `company/architecture/` |
-| Finance | Costi API | `company/finance/` |
+| Finance | Costi API e P&L trading | `company/finance/` |
 | Operations | Dashboard e monitoring | `company/operations/` |
+| Security | Audit e protezione dati | `company/security/` |
 | Strategy | Vision: opportunita di business, nuovi agenti/servizi/domini, analisi competitiva, OKR | `company/strategy/` |
 | Marketing | Vision: market intelligence, segnali di mercato, validazione opportunita, acquisizione | `company/marketing/` |

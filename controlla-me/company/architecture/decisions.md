@@ -137,3 +137,50 @@ Per ogni agente: creare identity card `company/<dept>/agents/<nome>.md`. Aggiorn
 **Cosa NON fare**: BigQuery, Snowflake, o data lake dedicati. Siamo un prodotto SaaS legale, non un data warehouse. Il volume prevedibile non lo giustifica nemmeno a 10x la scala attuale.
 
 **Conseguenze**: (+) agent_cost_log coperto, roadmap chiara per scaling. (-) Fase 3 richiede script di export (effort: 2h). Nessuna complessità aggiunta ora.
+
+### ADR-012: Processo Documentazione e Change Tracking
+
+**Data**: 2026-03-01
+**Stato**: accepted
+**Contesto**: Non esiste un processo che garantisca che ogni modifica sia documentata prima del deploy. CLAUDE.md, ARCHITECTURE.md e le decisioni in decisions.md vengono aggiornati ad hoc. Nessun CHANGELOG. Nessun pre-commit hook. La CI verifica solo lint/test/build.
+**Decisione**:
+1. **CHANGELOG.md** — formato Keep a Changelog. Sezione `[Unreleased]` per work in progress. Al release: rinominare con data.
+2. **docs/DEPLOY-CHECKLIST.md** — checklist obbligatoria pre-deploy (documentazione, quality, security, deploy, post-deploy).
+3. **CI step `docs-check`** — su PR verifica che CHANGELOG.md sia stato modificato. Warning (non blocking) per non bloccare hotfix urgenti.
+4. **CME responsabile** — alla chiusura di ogni task che modifica codice, CME aggiorna CHANGELOG.md. Alla chiusura di uno sprint, verifica DEPLOY-CHECKLIST.md.
+**Conseguenze**: (+) Tracciabilità completa, onboarding facilitato, audit trail per compliance. (-) Overhead marginale (~2 min per task). Warning CI non blocking — se bloccante, i hotfix vengono rallentati.
+
+### ADR-014: Company Scheduler — Piano su Board Vuoto + Approvazione Telegram
+
+**Data**: 2026-03-04
+**Stato**: accepted
+**Contesto**: CME non aveva un meccanismo automatico per rilevare quando il board si svuotava e pianificare il prossimo sprint. La pianificazione era 100% manuale ad ogni sessione. Il boss vuole: (1) piani generati automaticamente quando open=0 e in_progress=0, (2) approvazione esplicita prima dell'esecuzione, (3) canale di comunicazione asincrono (Telegram) per non richiedere la presenza nella sessione Claude Code, (4) i piani devono includere ragionamento sull'ufficio trading.
+
+**Decisione**:
+- Script `scripts/company-scheduler.ts` — processo continuo (come il trading scheduler). Loop principale: Telegram polling ogni 5 secondi + board check ogni 30 minuti.
+- Trigger: board vuoto (open=0, in_progress=0) E nessun piano in stato `pending` → genera piano
+- Generazione piano: `claude -p` con contesto aziendale + contesto trading. Fallback template se CLI non disponibile.
+- Ogni piano include: summary, azioni per dipartimenti (3-5), sezione trading con status + improvements specifiche.
+- Invio via Telegram Bot API (fetch nativo, nessun npm package) con bottoni inline ✅ Approva / ❌ Rifiuta.
+- Approvazione → task creati automaticamente via `company-tasks.ts create`. Rifiuto → piano scartato, nuovo al prossimo check.
+- Piani salvati su filesystem: `company/plans/{id}.json` con status: pending | approved | rejected.
+- Senza Telegram (variabili non configurate): piano stampato a console, approvazione manuale.
+- Helper Telegram: `scripts/lib/telegram.ts` (sendMessage, editMessage, answerCallback, getUpdates, removeKeyboard).
+- Avvio: `AVVIA_COMPANY_SCHEDULER.bat` — disabilita standby Windows, ripristina alla chiusura.
+- Variabili necessarie: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+
+**Conseguenze**: (+) Pianificazione automatica, boss approva da telefono, include sempre ragionamento trading, più piani al giorno possibili. (-) Richiede processo Windows separato sempre attivo; senza Telegram torna a workflow manuale; `claude -p` funziona solo fuori dalla sessione Claude Code (fallback template in-session).
+
+### ADR-013: Dipartimento UX/UI Autonomo
+
+**Data**: 2026-03-01
+**Stato**: accepted
+**Contesto**: L'agente UI/UX Designer era sotto Architecture (ADR-006) ma non aveva autonomia operativa. Le modifiche UI venivano gestite come sotto-task di Architecture, senza un processo dedicato per design system, accessibilita e brand identity. Con la crescita dell'app (landing, console, dashboard, corpus, pricing) serve un dipartimento focalizzato.
+**Decisione**:
+1. Creare `company/ux-ui/` come dipartimento autonomo (10° dipartimento)
+2. Migrare l'agente `ui-ux-designer` da Architecture a UX/UI
+3. Aggiungere `"ux-ui"` al type `Department` in `lib/company/types.ts`
+4. Runbook dedicati: `implement-ui-change.md` e `accessibility-audit.md`
+5. Il dipartimento e responsabile del Beauty Report (`docs/BEAUTY-REPORT.md`)
+6. Flusso: richiesta UI → UX/UI propone mockup → CME approva → UX/UI implementa → QA valida accessibilita
+**Conseguenze**: (+) Responsabilita chiara, design system manutenuto, accessibilita come processo. (-) 1 dipartimento in piu da coordinare. L'agente ora implementa codice direttamente (non solo propone), riducendo i passaggi.

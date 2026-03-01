@@ -1,216 +1,546 @@
 /**
- * company-scheduler.ts — Scheduler CME per capacity management (ADR-010)
+ * company-scheduler.ts — Company Scheduler CME con approvazione Telegram
  *
- * Legge il task board, identifica dipartimenti idle, propone 1-2 task sensati
- * per ogni dipartimento senza lavoro attivo.
+ * Logica:
+ *   - Ogni 30 minuti controlla il task board
+ *   - Se board vuoto (open=0, in_progress=0) E nessun piano pending → genera piano
+ *   - Piano inviato al boss via Telegram per approvazione
+ *   - Boss preme ✅ Approva → task creati automaticamente
+ *   - Boss preme ❌ Rifiuta → piano scartato, nuovo piano al prossimo check
+ *   - Più piani al giorno: ogni volta che il board si svuota viene generato un nuovo piano
  *
- * Output: report testuale per CME. Non crea task automaticamente — CME approva.
- * Modello: Groq Llama (free tier) o Cerebras via openai-compat.ts
+ * Telegram polling ogni 5 secondi → risposta quasi istantanea ai bottoni.
+ *
+ * Senza Telegram: stampa il piano a console, attende input manuale.
  *
  * Usage: npx tsx scripts/company-scheduler.ts
+ * O via AVVIA_COMPANY_SCHEDULER.bat
  */
 
 import { execSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
 import * as dotenv from "dotenv";
-import { resolve } from "path";
 
-dotenv.config({ path: resolve(__dirname, "../.env.local") });
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
-// ─── Struttura task board ───
+import {
+  isTelegramConfigured,
+  sendMessage,
+  editMessage,
+  answerCallback,
+  getUpdates,
+  type InlineButton,
+} from "./lib/telegram";
 
-interface Task {
-  id: string;
-  title: string;
+const ROOT = path.resolve(__dirname, "..");
+const PLANS_DIR = path.join(ROOT, "company", "plans");
+const BOARD_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minuti
+const TELEGRAM_POLL_INTERVAL_MS = 5_000; // 5 secondi
+
+// Crea directory plans se non esiste
+if (!fs.existsSync(PLANS_DIR)) {
+  fs.mkdirSync(PLANS_DIR, { recursive: true });
+}
+
+// ─── Types ───
+
+interface PlanAction {
   dept: string;
-  status: string;
-  priority: string;
-  description?: string;
+  title: string;
+  priority: "low" | "medium" | "high" | "critical";
+  desc: string;
 }
 
-// ─── Leggi board via CLI ───
-
-function readBoard(): { byDept: Record<string, Task[]>; allOpen: Task[] } {
-  try {
-    const raw = execSync(
-      "npx tsx scripts/company-tasks.ts list --status open",
-      { encoding: "utf-8", cwd: resolve(__dirname, "..") }
-    );
-
-    // Parse basic info from CLI output
-    const tasks: Task[] = [];
-    const lines = raw.split("\n");
-    for (const line of lines) {
-      const match = line.match(/\[(open|in_progress)\]\s+(LOW|MEDIUM|HIGH|CRITICAL)\s+\|\s+(.+)/i);
-      if (match) {
-        const deptMatch = line.match(/dept:\s+(\S+)/);
-        const idMatch = line.match(/id:\s+([a-f0-9]{8})/);
-        tasks.push({
-          id: idMatch?.[1] ?? "unknown",
-          title: match[3].trim(),
-          dept: deptMatch?.[1] ?? "unknown",
-          status: match[1],
-          priority: match[2],
-        });
-      }
-    }
-
-    const byDept: Record<string, Task[]> = {};
-    for (const t of tasks) {
-      if (!byDept[t.dept]) byDept[t.dept] = [];
-      byDept[t.dept].push(t);
-    }
-
-    return { byDept, allOpen: tasks };
-  } catch {
-    return { byDept: {}, allOpen: [] };
-  }
+interface TradingSection {
+  pipelineStatus: string;
+  improvements: string[];
 }
 
-// ─── Dipartimenti attivi ───
+interface Plan {
+  id: string;
+  timestamp: string;
+  status: "pending" | "approved" | "rejected";
+  telegramMessageId?: number;
+  summary: string;
+  actions: PlanAction[];
+  trading: TradingSection;
+  rejectionReason?: string;
+}
 
-const ALL_DEPTS = [
-  "architecture",
-  "data-engineering",
-  "quality-assurance",
-  "security",
-  "finance",
-  "operations",
-  "strategy",
-  "marketing",
-  "ufficio-legale",
-  "trading",
-  "ux-ui",
-];
+interface BoardState {
+  open: number;
+  inProgress: number;
+  done: number;
+  recentDone: string[];
+}
 
-// ─── Contesto aziendale per il modello ───
+// ─── Board ───
 
-const COMPANY_CONTEXT = `
-Controlla.me è un'app di analisi legale AI (contratti) con 4 agenti: Classifier, Analyzer, Investigator, Advisor.
-Stack: Next.js 15, Supabase, Claude/Gemini/Groq, vector DB pgvector.
-Fase attuale: pre-lancio commerciale PMI. Priorità: EU AI Act compliance, DPA provider AI, qualità corpus legislativo, test coverage.
-
-Dipartimenti attivi: Architecture, Data Engineering, Quality Assurance, Security, Finance, Operations, Strategy, Marketing, Ufficio Legale.
-
-Backlog noto:
-- QA: gap test su agent-runner.ts, tiers.ts, generate.ts
-- Security: DPA con Anthropic/Mistral/Google, rimozione DeepSeek da tier Partner
-- Architecture: UI scoring multidimensionale (legalCompliance, contractBalance, industryPractice)
-- Data Engineering: Statuto dei Lavoratori (L. 300/1970) — fonte non ancora caricata
-- Strategy: Opportunity Brief verticale HR
-- Marketing: SEO articoli legali, landing page verticale affitti
-- Finance: Cost report mensile marzo 2026
-- Operations: Health check agenti runtime, monitoring
-- Ufficio Legale: Revisione prompt advisor per limitare falsi positivi needsLawyer
-`;
-
-// ─── Genera suggerimenti con modello free ───
-
-async function generateSuggestions(idleDepts: string[]): Promise<string> {
-  const groqKey = process.env.GROQ_API_KEY;
-  const cerebrasKey = process.env.CEREBRAS_API_KEY;
-  const mistralKey = process.env.MISTRAL_API_KEY;
-
-  const apiKey = groqKey || cerebrasKey || mistralKey;
-  const baseUrl = groqKey
-    ? "https://api.groq.com/openai/v1"
-    : cerebrasKey
-    ? "https://api.cerebras.ai/v1"
-    : "https://api.mistral.ai/v1";
-  const model = groqKey
-    ? "llama-3.3-70b-versatile"
-    : cerebrasKey
-    ? "llama-3.3-70b"
-    : "mistral-small-latest";
-
-  if (!apiKey) {
-    return idleDepts
-      .map((d) => `[${d}] Nessuna API key free disponibile — suggerimento manuale richiesto.`)
-      .join("\n");
-  }
-
-  const prompt = `${COMPANY_CONTEXT}
-
-I seguenti dipartimenti sono IDLE (nessun task aperto):
-${idleDepts.join(", ")}
-
-Per ciascuno proponi 1-2 task concreti e utili per Controlla.me in questo momento.
-Formato:
-
-## [NOME_DIPARTIMENTO]
-- **Task**: titolo breve (max 10 parole)
-  **Perché**: motivazione in 1 frase
-  **Priorità**: LOW/MEDIUM/HIGH
-
-Sii specifico. No task generici. Basati sul backlog noto.`;
-
+function readBoardState(): BoardState {
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1024,
-        temperature: 0.3,
-      }),
+    const raw = execSync("npx tsx scripts/company-tasks.ts board", {
+      encoding: "utf-8",
+      cwd: ROOT,
+      timeout: 30_000,
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-    return data.choices[0]?.message?.content ?? "Nessuna risposta dal modello.";
+    const openMatch = raw.match(/Open:\s*(\d+)/);
+    const inProgMatch = raw.match(/In Progress:\s*(\d+)/);
+    const doneMatch = raw.match(/Done:\s*(\d+)/);
+
+    // Estrai task recenti completati
+    const recentDone: string[] = [];
+    const doneLines = raw.match(/\[done\][^\n]+/g) ?? [];
+    for (const line of doneLines.slice(0, 5)) {
+      const m = line.match(/\|\s*(.+?)\s*\(/);
+      if (m) recentDone.push(m[1].trim());
+    }
+
+    return {
+      open: parseInt(openMatch?.[1] ?? "0"),
+      inProgress: parseInt(inProgMatch?.[1] ?? "0"),
+      done: parseInt(doneMatch?.[1] ?? "0"),
+      recentDone,
+    };
   } catch (e) {
-    const errMsg = e instanceof Error ? e.message : String(e);
-    // Fallback: suggerimenti statici
-    return idleDepts
-      .map((d) => `[${d}] Errore API (${errMsg}) — controlla backlog manualmente.`)
-      .join("\n");
+    console.error(`[board] Errore lettura board: ${e}`);
+    return { open: 0, inProgress: 0, done: 0, recentDone: [] };
   }
 }
 
-// ─── MAIN ───
+// ─── Plan storage ───
 
-async function main() {
-  console.log("=== CME Scheduler — Capacity Management ===\n");
-  console.log(`Data: ${new Date().toISOString().split("T")[0]}\n`);
+function getPendingPlan(): Plan | null {
+  try {
+    const files = fs
+      .readdirSync(PLANS_DIR)
+      .filter((f) => f.endsWith(".json"))
+      .sort()
+      .reverse();
 
-  const { byDept, allOpen } = readBoard();
-
-  console.log(`Task aperti totali: ${allOpen.length}\n`);
-
-  // Identifica dipartimenti idle
-  const activeDepts = new Set(Object.keys(byDept));
-  const idleDepts = ALL_DEPTS.filter((d) => !activeDepts.has(d));
-  const busyDepts = ALL_DEPTS.filter((d) => activeDepts.has(d));
-
-  if (busyDepts.length > 0) {
-    console.log("Dipartimenti con lavoro attivo:");
-    for (const d of busyDepts) {
-      console.log(`  ${d}: ${byDept[d].length} task (${byDept[d].map((t) => t.priority).join(", ")})`);
+    for (const file of files) {
+      const plan = JSON.parse(
+        fs.readFileSync(path.join(PLANS_DIR, file), "utf-8")
+      ) as Plan;
+      if (plan.status === "pending") return plan;
     }
-    console.log();
+  } catch {
+    // directory vuota o file corrotto
+  }
+  return null;
+}
+
+function savePlan(plan: Plan): void {
+  fs.writeFileSync(
+    path.join(PLANS_DIR, `${plan.id}.json`),
+    JSON.stringify(plan, null, 2)
+  );
+}
+
+// ─── Plan generation ───
+
+const COMPANY_CONTEXT = `Controlla.me — app analisi legale AI con 4 agenti specializzati (Classifier, Analyzer, Investigator, Advisor).
+Stack: Next.js 15, Supabase pgvector, Claude/Gemini/Groq, TypeScript strict.
+Fase: pre-lancio commerciale PMI. Priorità aziendali correnti:
+- Test coverage gap: agent-runner.ts (P1), tiers.ts (P2), generate.ts (P5)
+- EU AI Act compliance (deadline agosto 2026)
+- DPA con provider AI (Anthropic, Mistral, Google) — prerequisito lancio PMI
+- Corpus: Statuto dei Lavoratori (L. 300/1970) non ancora caricato
+- UI scoring multidimensionale (backend pronto, frontend mancante — effort minimo)
+- Vertical HR: opportunità mappata, prerequisito corpus punto precedente`;
+
+const TRADING_CONTEXT = `Ufficio Trading (Python/Alpaca) — stato attuale:
+- Fase 1 (infrastruttura): completata — scheduler attivo, 5 agenti operativi
+- Fase 2 (backtest): non avviata — richiede dati storici 2 anni, target Sharpe > 1.0
+- Paper trading: scheduler gira (09:00 ET pre-market, 16:30 ET post-market)
+- Go-live: minimo 30 giorni paper trading consistenti dopo Fase 2
+- Risk management: kill switch -2% daily / -5% weekly — NON NEGOZIABILE
+- Gap conosciuti: no P&L reale su /ops dashboard, intraday disabilitato (Phase 2)`;
+
+function generatePlan(board: BoardState): Plan {
+  const id = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .slice(0, 19);
+  const timestamp = new Date().toISOString();
+
+  const prompt = `Sei CME, CEO virtuale di Controlla.me. Il task board è appena diventato vuoto (open=0, in_progress=0).
+È il momento di pianificare il prossimo sprint di lavoro.
+
+CONTESTO AZIENDALE:
+${COMPANY_CONTEXT}
+
+CONTESTO TRADING:
+${TRADING_CONTEXT}
+
+TASK RECENTI COMPLETATI:
+${board.recentDone.length > 0 ? board.recentDone.map((t) => `- ${t}`).join("\n") : "- Nessuno disponibile"}
+
+Genera un piano concreto per il prossimo sprint. Rispondi ESCLUSIVAMENTE con JSON puro (niente markdown, niente backtick).
+La risposta deve iniziare con { e finire con }.
+
+Formato:
+{
+  "summary": "1-2 frasi: situazione attuale e focus di questo sprint",
+  "actions": [
+    {
+      "dept": "quality-assurance",
+      "title": "Coprire agent-runner.ts con test unitari",
+      "priority": "high",
+      "desc": "Descrizione concreta di cosa fare e perché — max 100 caratteri"
+    }
+  ],
+  "trading": {
+    "pipelineStatus": "Descrizione dello stato attuale del trading",
+    "improvements": [
+      "Suggerimento specifico 1 per migliorare l'ufficio trading",
+      "Suggerimento specifico 2"
+    ]
+  }
+}
+
+Regole:
+- Proponi 3-5 actions per i dipartimenti che hanno backlog noto
+- Includi SEMPRE 2-3 miglioramenti concreti per il Trading
+- Le improvements trading devono essere specifiche e tecniche (no generici)
+- priority deve essere: low | medium | high | critical
+- dept validi: quality-assurance, security, architecture, data-engineering, strategy, marketing, finance, operations, ufficio-legale, ux-ui`;
+
+  // Tenta claude -p (funziona fuori dalla sessione Claude Code)
+  try {
+    const output = execSync(`claude -p ${JSON.stringify(prompt)}`, {
+      encoding: "utf-8",
+      cwd: ROOT,
+      timeout: 90_000,
+    });
+
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const data = JSON.parse(jsonMatch[0]) as {
+        summary?: string;
+        actions?: PlanAction[];
+        trading?: TradingSection;
+      };
+      return {
+        id,
+        timestamp,
+        status: "pending",
+        summary: data.summary ?? "Piano generato da AI.",
+        actions: data.actions ?? [],
+        trading: data.trading ?? {
+          pipelineStatus: "N/A",
+          improvements: [],
+        },
+      };
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.log(`[plan-gen] claude -p non disponibile: ${msg.slice(0, 80)}`);
+    console.log("[plan-gen] Uso piano template.");
   }
 
-  if (idleDepts.length === 0) {
-    console.log("✓ Tutti i dipartimenti hanno lavoro. Nessuna azione necessaria.\n");
+  // Fallback: piano template basato su backlog noto
+  return {
+    id,
+    timestamp,
+    status: "pending",
+    summary:
+      "Board vuoto — piano generato con template. claude -p non disponibile in questa sessione.",
+    actions: [
+      {
+        dept: "quality-assurance",
+        title: "Coprire agent-runner.ts con test unitari",
+        priority: "high",
+        desc: "Gap critico P1: nessun test su lib/ai-sdk/agent-runner.ts — catena fallback e gestione 429",
+      },
+      {
+        dept: "security",
+        title: "Avviare DPA con Anthropic",
+        priority: "high",
+        desc: "Prerequisito lancio commerciale PMI — contattare legal@anthropic.com con DPA template",
+      },
+      {
+        dept: "data-engineering",
+        title: "Caricare Statuto dei Lavoratori L. 300/1970",
+        priority: "medium",
+        desc: "Unica fonte IT non ancora nel corpus — approccio HTML scraping Normattiva web",
+      },
+      {
+        dept: "architecture",
+        title: "UI scoring multidimensionale in ResultsView",
+        priority: "medium",
+        desc: "Backend pronto (legalCompliance, contractBalance, industryPractice) — effort frontend minimo",
+      },
+    ],
+    trading: {
+      pipelineStatus:
+        "Fase 1 completata — scheduler attivo, paper trading configurato",
+      improvements: [
+        "Avviare Fase 2 backtest su dati storici 2 anni (obiettivo Sharpe > 1.0, max drawdown < 15%)",
+        "Aggiungere sezione P&L real-time su dashboard /ops (positions + daily snapshot)",
+        "Implementare monitoring automatico degli stop loss attivati in portfolio_monitor",
+      ],
+    },
+  };
+}
+
+// ─── Plan formatting ───
+
+function formatPlanForTelegram(plan: Plan): string {
+  const date = new Date(plan.timestamp).toLocaleString("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const actionsText = plan.actions
+    .map(
+      (a, i) =>
+        `${i + 1}. <b>[${a.dept}]</b> ${a.title}\n   <i>${a.priority.toUpperCase()}</i> — ${a.desc}`
+    )
+    .join("\n\n");
+
+  const improvementsText = plan.trading.improvements
+    .map((t) => `  • ${t}`)
+    .join("\n");
+
+  return (
+    `🏢 <b>PIANO CME</b> — ${date}\n\n` +
+    `${plan.summary}\n\n` +
+    `🎯 <b>AZIONI PROPOSTE:</b>\n\n${actionsText}\n\n` +
+    `📈 <b>UFFICIO TRADING:</b>\n` +
+    `<b>Stato:</b> ${plan.trading.pipelineStatus}\n` +
+    `${improvementsText}\n\n` +
+    `<code>Piano: ${plan.id}</code>`
+  );
+}
+
+function formatPlanForConsole(plan: Plan): string {
+  const line = "─".repeat(60);
+  const actionsText = plan.actions
+    .map(
+      (a, i) =>
+        `  ${i + 1}. [${a.dept}] ${a.title} (${a.priority})\n     ${a.desc}`
+    )
+    .join("\n\n");
+
+  const improvementsText = plan.trading.improvements
+    .map((t) => `  • ${t}`)
+    .join("\n");
+
+  return (
+    `\n${line}\n` +
+    `PIANO CME — ${new Date(plan.timestamp).toLocaleString("it-IT")}\n` +
+    `${line}\n\n` +
+    `${plan.summary}\n\n` +
+    `AZIONI PROPOSTE:\n\n${actionsText}\n\n` +
+    `UFFICIO TRADING:\n` +
+    `  Stato: ${plan.trading.pipelineStatus}\n` +
+    `${improvementsText}\n\n` +
+    `Piano ID: ${plan.id}\n` +
+    `${line}\n` +
+    `Per approvare: npx tsx scripts/company-tasks.ts create ... (per ogni action)\n` +
+    `Oppure configura TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID per approvazione automatica.\n`
+  );
+}
+
+// ─── Plan execution ───
+
+function executePlan(plan: Plan): void {
+  console.log("[plan-executor] Creazione task dal piano approvato...");
+
+  for (const action of plan.actions) {
+    try {
+      const cmd = [
+        "npx tsx scripts/company-tasks.ts create",
+        `--title ${JSON.stringify(action.title)}`,
+        `--dept ${action.dept}`,
+        `--priority ${action.priority}`,
+        `--by cme`,
+        `--desc ${JSON.stringify(action.desc)}`,
+      ].join(" ");
+
+      execSync(cmd, { encoding: "utf-8", cwd: ROOT, timeout: 30_000 });
+      console.log(`[plan-executor] ✓ [${action.dept}] ${action.title}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(
+        `[plan-executor] ✗ [${action.dept}] ${action.title}: ${msg.slice(0, 100)}`
+      );
+    }
+  }
+
+  console.log("[plan-executor] Done.");
+}
+
+// ─── Telegram handlers ───
+
+async function handleApproval(
+  planId: string,
+  messageId: number
+): Promise<void> {
+  const planFile = path.join(PLANS_DIR, `${planId}.json`);
+  if (!fs.existsSync(planFile)) {
+    console.warn(`[telegram] Piano non trovato: ${planId}`);
     return;
   }
 
-  console.log(`Dipartimenti IDLE (${idleDepts.length}):`);
-  for (const d of idleDepts) {
-    console.log(`  - ${d}`);
-  }
-  console.log();
+  const plan = JSON.parse(fs.readFileSync(planFile, "utf-8")) as Plan;
+  if (plan.status !== "pending") return;
 
-  console.log("Generazione suggerimenti...\n");
-  const suggestions = await generateSuggestions(idleDepts);
+  plan.status = "approved";
+  plan.telegramMessageId = messageId;
+  savePlan(plan);
 
-  console.log("=== SUGGERIMENTI CME ===\n");
-  console.log(suggestions);
-  console.log("\n=== FINE SCHEDULER ===");
-  console.log("\nNota: questi sono suggerimenti. CME approva prima di creare i task.");
+  console.log(`[telegram] Piano approvato: ${planId}`);
+
+  // Aggiorna messaggio Telegram
+  await editMessage(
+    messageId,
+    formatPlanForTelegram(plan) + "\n\n✅ <b>APPROVATO</b> — task in creazione..."
+  );
+
+  // Crea i task
+  executePlan(plan);
+
+  // Conferma finale
+  await editMessage(
+    messageId,
+    formatPlanForTelegram(plan) +
+      `\n\n✅ <b>APPROVATO</b> — ${plan.actions.length} task creati`
+  );
 }
 
-main().catch(console.error);
+async function handleRejection(
+  planId: string,
+  messageId: number
+): Promise<void> {
+  const planFile = path.join(PLANS_DIR, `${planId}.json`);
+  if (!fs.existsSync(planFile)) {
+    console.warn(`[telegram] Piano non trovato: ${planId}`);
+    return;
+  }
+
+  const plan = JSON.parse(fs.readFileSync(planFile, "utf-8")) as Plan;
+  if (plan.status !== "pending") return;
+
+  plan.status = "rejected";
+  savePlan(plan);
+
+  console.log(`[telegram] Piano rifiutato: ${planId}`);
+
+  await editMessage(
+    messageId,
+    formatPlanForTelegram(plan) +
+      "\n\n❌ <b>RIFIUTATO</b> — nuovo piano al prossimo check board (30 min)"
+  );
+}
+
+// ─── Main scheduler loop ───
+
+async function run(): Promise<void> {
+  const telegramOk = isTelegramConfigured();
+
+  console.log("=== CME Company Scheduler ===");
+  console.log(`Data: ${new Date().toLocaleString("it-IT")}`);
+  console.log(`Telegram: ${telegramOk ? "✓ configurato" : "✗ non configurato (modalità console)"}`);
+  console.log(`Check board ogni: 30 minuti`);
+  console.log(`Telegram polling: ${telegramOk ? "ogni 5 secondi" : "disabilitato"}`);
+  console.log("─".repeat(40));
+  console.log("Scheduler avviato. Ctrl+C per uscire.\n");
+
+  let lastCallbackOffset = 0;
+  let lastBoardCheck = 0; // 0 = forza check immediato all'avvio
+
+  while (true) {
+    const now = Date.now();
+
+    // ── Telegram callback polling ──
+    if (telegramOk) {
+      try {
+        const updates = await getUpdates(lastCallbackOffset);
+        for (const update of updates) {
+          lastCallbackOffset = Math.max(
+            lastCallbackOffset,
+            update.update_id + 1
+          );
+
+          if (update.callback_query) {
+            const { id: callbackId, data, message } = update.callback_query;
+            await answerCallback(callbackId, "Ricevuto ✓");
+
+            if (data.startsWith("approve:")) {
+              const planId = data.replace("approve:", "");
+              await handleApproval(planId, message.message_id);
+            } else if (data.startsWith("reject:")) {
+              const planId = data.replace("reject:", "");
+              await handleRejection(planId, message.message_id);
+            }
+          }
+        }
+      } catch (e) {
+        // Errore Telegram non bloccante — logga e continua
+        console.error(`[telegram] Errore polling: ${e}`);
+      }
+    }
+
+    // ── Board check (ogni 30 min) ──
+    if (now - lastBoardCheck >= BOARD_CHECK_INTERVAL_MS) {
+      lastBoardCheck = now;
+
+      const board = readBoardState();
+      const pending = getPendingPlan();
+
+      console.log(
+        `[${new Date().toLocaleTimeString("it-IT")}] Board: open=${board.open} in_progress=${board.inProgress} | pending plan: ${pending ? "sì" : "no"}`
+      );
+
+      if (board.open === 0 && board.inProgress === 0 && !pending) {
+        console.log("[scheduler] Board vuoto — genero piano...");
+
+        const plan = generatePlan(board);
+        savePlan(plan);
+
+        if (telegramOk) {
+          const keyboard: InlineButton[][] = [
+            [
+              { text: "✅ Approva", callback_data: `approve:${plan.id}` },
+              { text: "❌ Rifiuta", callback_data: `reject:${plan.id}` },
+            ],
+          ];
+          try {
+            const msgId = await sendMessage(
+              formatPlanForTelegram(plan),
+              keyboard
+            );
+            plan.telegramMessageId = msgId;
+            savePlan(plan);
+            console.log(
+              `[scheduler] Piano inviato via Telegram (msg_id: ${msgId})`
+            );
+          } catch (e) {
+            console.error(`[scheduler] Errore Telegram send: ${e}`);
+            console.log(formatPlanForConsole(plan));
+          }
+        } else {
+          console.log(formatPlanForConsole(plan));
+        }
+      } else if (board.open === 0 && board.inProgress === 0 && pending) {
+        console.log(
+          "[scheduler] Board vuoto ma piano già in attesa di approvazione."
+        );
+      }
+    }
+
+    // ── Wait ──
+    await new Promise((resolve) => setTimeout(resolve, TELEGRAM_POLL_INTERVAL_MS));
+  }
+}
+
+run().catch((e) => {
+  console.error("[fatal]", e);
+  process.exit(1);
+});
