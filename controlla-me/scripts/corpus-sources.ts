@@ -36,6 +36,13 @@ export interface ConnectorConfig {
   directAkn?: boolean;
   /** Normattiva: codiceRedazionale hardcoded per caricaAKN diretto (es. "070U0300") */
   codiceRedazionale?: string;
+  /**
+   * Normattiva: data GU (Gazzetta Ufficiale) in formato YYYYMMDD per il portale web.
+   * Usato da fetchViaWebCaricaAKN quando l'API Open Data produce ZIP vuoti (es. leggi storiche).
+   * Es. "19700527" per L. 300/1970 (Statuto dei Lavoratori).
+   * Richiede anche directAkn: true e codiceRedazionale.
+   */
+  normattivaDataGU?: string;
 }
 
 export interface CorpusSource {
@@ -203,7 +210,12 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       preferredFormat: "akn",
       directAkn: true,
       codiceRedazionale: "070U0300",
+      // caricaAKN web endpoint: l'API asincrona Open Data produce ZIP vuoti per leggi storiche.
+      // Workaround confermato 2026-03-01: www.normattiva.it/do/atto/caricaAKN?dataGU=...
+      // dataGU = data pubblicazione GU (27 maggio 1970), diversa dalla data del provvedimento.
+      normattivaDataGU: "19700527",
     },
+    lifecycle: "api-tested",
   },
   {
     id: "tu_edilizia",

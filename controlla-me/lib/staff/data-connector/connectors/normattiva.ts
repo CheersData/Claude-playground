@@ -557,25 +557,107 @@ export class NormattivaConnector extends BaseConnector<ParsedArticle> {
   // ─── Strategia 3: caricaAKN diretto ───
 
   /**
-   * Scarica un atto direttamente via /atto/caricaAKN (senza ricerca asincrona).
+   * Scarica un atto direttamente via caricaAKN (senza ricerca asincrona).
    * Usato per leggi che producono ZIP vuoti con la ricerca asincrona (es. L. 300/1970).
-   * URL: GET /atto/caricaAKN?codiceRedazionale=...&formatoRichiesta=V
+   *
+   * Due modalità:
+   * - normattivaDataGU presente → usa portale web www.normattiva.it/do/atto/caricaAKN
+   *   (confermato funzionante per leggi storiche, richiede session cookie + Referer)
+   * - altrimenti → usa Open Data API (per leggi più recenti)
    */
   private async fetchViaDirectAkn(codiceRedazionale: string): Promise<ParsedArticle[]> {
+    const dataGU = this.source.config.normattivaDataGU as string | undefined;
+
+    if (dataGU) {
+      return this.fetchViaWebCaricaAKN(codiceRedazionale, dataGU);
+    }
+
+    // Open Data API endpoint (leggi più recenti)
     const url = `${API_BASE}/atto/caricaAKN?codiceRedazionale=${encodeURIComponent(codiceRedazionale)}&formatoRichiesta=V`;
-    this.log(`[NORMATTIVA] Download via caricaAKN diretto: ${codiceRedazionale}...`);
+    this.log(`[NORMATTIVA] Download via caricaAKN API: ${codiceRedazionale}...`);
     const response = await this.fetchWithRetry(url, { redirect: "follow" });
 
     if (!response.ok) {
-      throw new Error(`caricaAKN HTTP ${response.status} per "${codiceRedazionale}"`);
+      throw new Error(`caricaAKN API HTTP ${response.status} per "${codiceRedazionale}"`);
     }
 
     const xml = await response.text();
     if (!xml.trim().startsWith("<") || xml.length < 100) {
-      throw new Error(`caricaAKN risposta non XML: "${xml.slice(0, 100)}"`);
+      throw new Error(`caricaAKN API risposta non XML: "${xml.slice(0, 100)}"`);
     }
     this.log(`[NORMATTIVA] AKN ricevuto: ${xml.length} chars`);
 
+    return parseAkn(xml, this.source.shortName);
+  }
+
+  /**
+   * Scarica AKN dal portale web www.normattiva.it tramite l'endpoint /do/atto/caricaAKN.
+   * Usato per leggi storiche dove l'API Open Data asincrona produce ZIP vuoti.
+   *
+   * Flusso:
+   * 1. Carica la pagina principale dell'atto per ottenere il session cookie dal WAF.
+   * 2. Chiama caricaAKN con Referer + Cookie per ricevere l'XML AKN consolidato.
+   *
+   * URL confermato funzionante (2026-03-01, CC BY 4.0):
+   *   https://www.normattiva.it/do/atto/caricaAKN?dataGU=19700527&codiceRedaz=070U0300&dataVigenza=20260301
+   *
+   * @param codiceRedazionale - es. "070U0300" per L. 300/1970
+   * @param dataGU - data pubblicazione GU in formato YYYYMMDD (es. "19700527")
+   */
+  private async fetchViaWebCaricaAKN(
+    codiceRedazionale: string,
+    dataGU: string
+  ): Promise<ParsedArticle[]> {
+    const urn = this.source.config.urn as string | undefined;
+    const pageUrl = urn
+      ? `https://www.normattiva.it/uri-res/N2Ls?${urn}`
+      : `https://www.normattiva.it`;
+
+    // Step 1: carica pagina dell'atto per il session cookie del WAF
+    this.log(`[NORMATTIVA-WEB] Carico pagina per session cookie: ${pageUrl}`);
+    const pageResp = await this.fetchWithRetry(pageUrl, { redirect: "follow" });
+
+    // Estrai cookie: ogni Set-Cookie è separato da "," a livello di header multipli,
+    // ma headers.get() li restituisce come stringa singola. Prendiamo solo nome=valore
+    // (prima del primo ";") per ciascun cookie.
+    const rawCookie = pageResp.headers.get("set-cookie") ?? "";
+    const cookieValue = rawCookie
+      .split(/,(?=[^;]+=[^;]*)/) // split su virgole tra cookie distinti
+      .map((c) => c.split(";")[0].trim())
+      .filter(Boolean)
+      .join("; ");
+
+    // Step 2: chiama caricaAKN con cookie e Referer
+    const dataVigenza = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const aknUrl =
+      `https://www.normattiva.it/do/atto/caricaAKN` +
+      `?dataGU=${encodeURIComponent(dataGU)}` +
+      `&codiceRedaz=${encodeURIComponent(codiceRedazionale)}` +
+      `&dataVigenza=${dataVigenza}`;
+
+    this.log(`[NORMATTIVA-WEB] Fetch AKN: ${aknUrl}`);
+    const aknResp = await this.fetchWithRetry(aknUrl, {
+      redirect: "follow",
+      headers: {
+        Referer: pageUrl,
+        ...(cookieValue ? { Cookie: cookieValue } : {}),
+      },
+    });
+
+    if (!aknResp.ok) {
+      throw new Error(
+        `caricaAKN web HTTP ${aknResp.status} per "${codiceRedazionale}"`
+      );
+    }
+
+    const xml = await aknResp.text();
+    if (!xml.trim().startsWith("<") || xml.length < 500) {
+      throw new Error(
+        `caricaAKN web risposta non XML (${xml.length} chars): "${xml.slice(0, 200)}"`
+      );
+    }
+
+    this.log(`[NORMATTIVA-WEB] AKN ricevuto: ${xml.length} chars`);
     return parseAkn(xml, this.source.shortName);
   }
 

@@ -35,7 +35,9 @@ export const HR_SOURCES: CorpusSource[] = [
     estimatedArticles: 306,
     connector: {
       normattivaActType: "decreto.legislativo",
-      normattivaSearchTerms: ["sicurezza lavoro 81 2008", "testo unico sicurezza"],
+      normattivaSearchTerms: ["decreto legislativo 81 2008", "sicurezza lavoro 81 2008", "testo unico sicurezza"],
+      codiceRedazionale: "008G0104",   // codice verificato via API Normattiva 2026-03-01
+      directAkn: true,                 // ZIP async vuoti → usa caricaAKN diretto
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -79,8 +81,11 @@ export const HR_SOURCES: CorpusSource[] = [
       directAkn: true,
       codiceRedazionale: "070U0300",
       preferredFormat: "akn",
+      // caricaAKN web endpoint: ZIP asincroni Open Data vuoti per leggi storiche.
+      // dataGU = data pubblicazione GU (27 maggio 1970).
+      normattivaDataGU: "19700527",
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",
     vertical: "hr",
   },
   {
