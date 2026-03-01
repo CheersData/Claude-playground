@@ -109,11 +109,11 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     if (open) inputRef.current?.focus();
   }, [open]);
 
-  // Fetch dashboard data
-  const fetchDashboard = useCallback(async () => {
+  // Fetch dashboard data — silent=true for auto-refresh (no error noise)
+  const fetchDashboard = useCallback(async (silent = false) => {
     setDashLoading(true);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
       const res = await fetch("/api/company/status", {
         headers: getConsoleAuthHeaders(),
@@ -121,14 +121,14 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
       });
       if (res.ok) {
         setDashboard(await res.json());
-      } else {
-        console.warn("[CompanyPanel] Dashboard fetch failed:", res.status);
+      } else if (!silent) {
         setDebugLog((prev) => [...prev, { type: "error", msg: `Dashboard: HTTP ${res.status}`, ts: Date.now() }]);
       }
     } catch (err) {
-      const msg = err instanceof DOMException && err.name === "AbortError" ? "Timeout 30s — il server sta compilando, riprova" : String(err);
-      console.warn("[CompanyPanel] Dashboard error:", msg);
-      setDebugLog((prev) => [...prev, { type: "error", msg: `Dashboard: ${msg}`, ts: Date.now() }]);
+      if (!silent) {
+        const msg = err instanceof DOMException && err.name === "AbortError" ? "Dashboard timeout — riprova" : String(err);
+        setDebugLog((prev) => [...prev, { type: "error", msg: `Dashboard: ${msg}`, ts: Date.now() }]);
+      }
     } finally {
       clearTimeout(timeout);
       setDashLoading(false);
@@ -148,10 +148,10 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Auto-refresh dashboard every 30 seconds while open
+  // Auto-refresh dashboard every 60 seconds while open (silent — no error noise)
   useEffect(() => {
     if (!open) return;
-    const interval = setInterval(fetchDashboard, 30_000);
+    const interval = setInterval(() => fetchDashboard(true), 60_000);
     return () => clearInterval(interval);
   }, [open, fetchDashboard]);
 
@@ -185,16 +185,22 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     const effectiveTarget = overrideTarget ?? target;
 
     try {
-      const token = sessionStorage.getItem("lexmea-token");
+      const headers = getConsoleJsonHeaders();
+      // Check token before calling — avoid 401
+      if (!sessionStorage.getItem("lexmea-token")) {
+        throw new Error("Sessione scaduta — ricarica la pagina e accedi di nuovo.");
+      }
+
       const res = await fetch("/api/console/company", {
         method: "POST",
-        headers: token
-          ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-          : { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ message: text, target: effectiveTarget }),
         signal: controller.signal,
       });
 
+      if (res.status === 401) {
+        throw new Error("Sessione scaduta — ricarica la pagina e accedi di nuovo.");
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const reader = res.body?.getReader();
@@ -354,12 +360,9 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     setDebugLog((prev) => [...prev, { type: "stdin", msg: `Follow-up inviato: "${text.slice(0, 80)}" → sessione ${sessionId.slice(-8)}`, ts: Date.now() }]);
 
     try {
-      const token = sessionStorage.getItem("lexmea-token");
       const res = await fetch("/api/console/company/message", {
         method: "POST",
-        headers: token
-          ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-          : { "Content-Type": "application/json" },
+        headers: getConsoleJsonHeaders(),
         body: JSON.stringify({ sessionId, message: text }),
       });
 
@@ -669,7 +672,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
           </div>
 
           <button
-            onClick={fetchDashboard}
+            onClick={() => fetchDashboard(false)}
             disabled={dashLoading}
             className="flex items-center gap-1.5 text-[10px] text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
           >

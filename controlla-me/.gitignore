@@ -42,3 +42,19 @@ next-env.d.ts
 
 # analysis cache (local agent results)
 .analysis-cache/
+
+# Windows reserved device names (Turbopack crash)
+nul
+
+# Playwright reports
+playwright-report/
+
+# Test run results (ephemeral)
+scripts/testbook-results-*.json
+scripts/adversarial-results-*.json
+
+# Supabase temp
+supabase/.temp/
+
+# Claude Code local config
+.claude/

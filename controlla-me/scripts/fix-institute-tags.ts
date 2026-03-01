@@ -356,6 +356,195 @@ function getCdcTags(num: number, suffix: string): string[] | null {
 }
 
 // ═══════════════════════════════════════════════════════════
+// CODICE PENALE — Mapping per range articolo
+// Rilevanti per analisi contrattuale: truffa, usura, falso, reati societari
+// ═══════════════════════════════════════════════════════════
+
+const CP: TagRule[] = [
+  // Parte Generale
+  { min: 1, max: 16, tags: ["principio_legalità", "diritto_penale"] },
+  { min: 17, max: 44, tags: ["pene", "sanzione_penale"] },
+  { min: 45, max: 70, tags: ["imputabilità", "colpevolezza"] },
+  { min: 85, max: 98, tags: ["imputabilità"] },
+  { min: 99, max: 109, tags: ["recidiva", "diritto_penale"] },
+  { min: 110, max: 119, tags: ["concorso_persone", "diritto_penale"] },
+  { min: 150, max: 168, tags: ["estinzione_reato", "prescrizione_penale"] },
+  // Misure di sicurezza
+  { min: 199, max: 240, tags: ["misure_sicurezza"] },
+  // Reati contro lo Stato / PA
+  { min: 241, max: 313, tags: ["reati_contro_stato"] },
+  // ★ Corruzione, concussione, peculato (rilevanti per contratti PA)
+  { min: 314, max: 360, tags: ["reati_contro_pa", "corruzione", "concussione"] },
+  // Reati contro amministrazione della giustizia
+  { min: 361, max: 384, tags: ["reati_contro_giustizia"] },
+  // Reati contro ordine pubblico
+  { min: 385, max: 432, tags: ["ordine_pubblico"] },
+  // ★ Reati contro incolumità pubblica — rilevanti per contratti edilizia/lavori
+  { min: 434, max: 452, tags: ["incolumità_pubblica"] },
+  // Reati ambientali
+  { min: 452, max: 452, tags: ["reati_ambientali"] },
+  // ★ Reati contro economia / industria / commercio
+  { min: 513, max: 518, tags: ["reati_economici", "concorrenza_sleale"] },
+  // ★ Usura — FONDAMENTALE per analisi contrattuale
+  { min: 644, max: 644, tags: ["usura", "reati_economici", "interessi"] },
+  // ★ Truffa — rilevante per contratti e clausole abusive
+  { min: 640, max: 640, tags: ["truffa", "reati_economici"] },
+  { min: 640, max: 643, tags: ["reati_economici", "truffa"] },
+  // ★ Estorsione
+  { min: 629, max: 629, tags: ["estorsione", "reati_economici"] },
+  // ★ Appropriazione indebita
+  { min: 646, max: 646, tags: ["appropriazione_indebita", "reati_economici"] },
+  // ★ Ricettazione / riciclaggio
+  { min: 648, max: 648, tags: ["ricettazione", "reati_economici"] },
+  { min: 648, max: 649, tags: ["reati_economici"] },
+  // ★ Falso documentale — rilevante per contratti
+  { min: 467, max: 498, tags: ["falso", "documento_falso"] },
+  // Delitti contro famiglia
+  { min: 552, max: 574, tags: ["reati_famiglia"] },
+  // ★ Delitti contro persona — omicidio, lesioni (rilevanti per responsabilità)
+  { min: 575, max: 623, tags: ["reati_contro_persona", "responsabilità_penale"] },
+  // Delitti contro patrimonio
+  { min: 624, max: 649, tags: ["reati_contro_patrimonio"] },
+  // Contravvenzioni
+  { min: 650, max: 734, tags: ["contravvenzioni"] },
+];
+
+function getCpTags(num: number): string[] | null {
+  let best: TagRule | null = null;
+  for (const rule of CP) {
+    if (num >= rule.min && num <= rule.max) best = rule;
+  }
+  return best ? [...best.tags] : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CODICE DI PROCEDURA CIVILE — Mapping per range articolo
+// Rilevanti per analisi contrattuale: competenza, prove, esecuzione, arbitrato
+// ═══════════════════════════════════════════════════════════
+
+const CPC: TagRule[] = [
+  // Libro I: Disposizioni generali — Competenza
+  { min: 1, max: 30, tags: ["competenza", "giurisdizione"] },
+  // ★ Foro speciale per contratti e obbligazioni
+  { min: 18, max: 30, tags: ["competenza", "foro_contrattuale"] },
+  { min: 31, max: 68, tags: ["competenza"] },
+  { min: 69, max: 111, tags: ["giurisdizione"] },
+  // Astensione, ricusazione
+  { min: 51, max: 62, tags: ["astensione_ricusazione"] },
+  // Parti e difensori
+  { min: 75, max: 111, tags: ["parti_processo", "rappresentanza_processuale"] },
+  // Atti processuali
+  { min: 121, max: 162, tags: ["atti_processuali", "termini_processuali"] },
+  // Libro II: Processo di cognizione — Citazione
+  { min: 163, max: 188, tags: ["citazione", "processo_cognizione"] },
+  // Istruzione probatoria
+  { min: 189, max: 207, tags: ["istruzione_probatoria", "prove"] },
+  // ★ Prove documentali — rilevantissime per contratti
+  { min: 214, max: 232, tags: ["prova_documentale", "prove", "documento"] },
+  // Prove testimoniali
+  { min: 244, max: 257, tags: ["testimonianza", "prove"] },
+  // Giuramento
+  { min: 233, max: 243, tags: ["giuramento", "prove"] },
+  // CTU
+  { min: 258, max: 276, tags: ["consulenza_tecnica", "prove"] },
+  // Decisione — cosa giudicata
+  { min: 277, max: 322, tags: ["decisione", "sentenza"] },
+  // ★ Cosa giudicata
+  { min: 324, max: 340, tags: ["cosa_giudicata", "efficacia_sentenza"] },
+  // Impugnazioni
+  { min: 323, max: 403, tags: ["impugnazioni", "appello", "cassazione"] },
+  { min: 341, max: 359, tags: ["appello"] },
+  { min: 360, max: 394, tags: ["ricorso_cassazione"] },
+  { min: 395, max: 403, tags: ["revocazione"] },
+  // Libro III: Processo di esecuzione
+  { min: 474, max: 632, tags: ["esecuzione_forzata"] },
+  // ★ Titolo esecutivo — fondamentale
+  { min: 474, max: 488, tags: ["titolo_esecutivo", "esecuzione_forzata"] },
+  // Pignoramento
+  { min: 491, max: 549, tags: ["pignoramento", "esecuzione_forzata"] },
+  // Libro IV: Procedimenti speciali
+  // ★ Procedimento monitorio/ingiunzione — rilevante per contratti con crediti
+  { min: 633, max: 656, tags: ["decreto_ingiuntivo", "procedimento_monitorio"] },
+  // ★ Opposizione a decreto ingiuntivo
+  { min: 645, max: 656, tags: ["opposizione_decreto_ingiuntivo"] },
+  // Sequestro e provvedimenti cautelari
+  { min: 669, max: 705, tags: ["provvedimenti_cautelari", "sequestro"] },
+  // ★ Procedimento per convalida di sfratto
+  { min: 657, max: 668, tags: ["sfratto", "locazione"] },
+  // Diritto di famiglia
+  { min: 706, max: 796, tags: ["processo_famiglia"] },
+  // ★ Arbitrato — rilevante per clausole arbitrali nei contratti
+  { min: 806, max: 840, tags: ["arbitrato", "clausola_arbitrale"] },
+  // Arbitrato rituale
+  { min: 806, max: 827, tags: ["arbitrato_rituale"] },
+  // Arbitrato irrituale
+  { min: 828, max: 840, tags: ["arbitrato_irrituale"] },
+  // Procedimento lavoro (Art. 409+)
+  { min: 409, max: 473, tags: ["processo_lavoro", "lavoro_subordinato"] },
+];
+
+function getCpcTags(num: number): string[] | null {
+  let best: TagRule | null = null;
+  for (const rule of CPC) {
+    if (num >= rule.min && num <= rule.max) best = rule;
+  }
+  return best ? [...best.tags] : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// D.LGS. 81/2008 — Testo Unico Sicurezza sul Lavoro
+// ~306 articoli + allegati. Prerequisito: caricato in DB con fonte HR.
+// law_source atteso: verificare valore esatto nel DB prima di eseguire.
+// ═══════════════════════════════════════════════════════════
+
+const DLGS81: TagRule[] = [
+  // Tit. I: Principi comuni (Art. 1-61)
+  { min: 1, max: 10, tags: ["sicurezza_lavoro", "principi_generali_sicurezza"] },
+  // Definizioni (Art. 2)
+  { min: 2, max: 2, tags: ["sicurezza_lavoro", "datore_lavoro", "lavoratore"] },
+  // Obblighi datore di lavoro (Art. 17-18)
+  { min: 17, max: 18, tags: ["sicurezza_lavoro", "obblighi_datore_lavoro"] },
+  // Documento valutazione rischi (DVR) — Art. 17, 28-29
+  { min: 28, max: 29, tags: ["sicurezza_lavoro", "valutazione_rischi", "dvr"] },
+  // RSPP, preposto, RLS (Art. 31-37)
+  { min: 31, max: 37, tags: ["sicurezza_lavoro", "rspp", "rls"] },
+  // Obblighi del lavoratore (Art. 20)
+  { min: 20, max: 20, tags: ["sicurezza_lavoro", "obblighi_lavoratore"] },
+  // Formazione e informazione (Art. 36-37)
+  { min: 36, max: 37, tags: ["sicurezza_lavoro", "formazione_sicurezza"] },
+  // Sorveglianza sanitaria (Art. 38-42)
+  { min: 38, max: 42, tags: ["sicurezza_lavoro", "sorveglianza_sanitaria", "medico_competente"] },
+  // Cantieri temporanei (Tit. IV, Art. 88+)
+  { min: 88, max: 160, tags: ["sicurezza_lavoro", "cantieri", "appalto"] },
+  // Appalti — obblighi committente/appaltatore (Art. 26)
+  { min: 26, max: 26, tags: ["sicurezza_lavoro", "appalto", "obblighi_committente"] },
+  // Sanzioni (Art. 55+)
+  { min: 55, max: 61, tags: ["sicurezza_lavoro", "sanzioni_sicurezza"] },
+  // Tit. II: Luoghi di lavoro (Art. 62-68)
+  { min: 62, max: 68, tags: ["sicurezza_lavoro", "luoghi_lavoro"] },
+  // Tit. III: Attrezzature di lavoro (Art. 69-87)
+  { min: 69, max: 87, tags: ["sicurezza_lavoro", "attrezzature_lavoro", "dpi"] },
+  // Tit. V: Segnaletica (Art. 161-166)
+  { min: 161, max: 166, tags: ["sicurezza_lavoro", "segnaletica_sicurezza"] },
+  // Tit. VI: Movimentazione manuale carichi (Art. 167-171)
+  { min: 167, max: 171, tags: ["sicurezza_lavoro", "movimentazione_carichi"] },
+  // Tit. VII: Videoterminali (Art. 172-179)
+  { min: 172, max: 179, tags: ["sicurezza_lavoro", "videoterminali"] },
+  // Tit. X: Agenti biologici (Art. 266-286)
+  { min: 266, max: 286, tags: ["sicurezza_lavoro", "agenti_biologici"] },
+  // Tit. XI: Atmosfere esplosive (Art. 287-297)
+  { min: 287, max: 297, tags: ["sicurezza_lavoro", "atmosfere_esplosive"] },
+];
+
+function getDlgs81Tags(num: number): string[] | null {
+  let best: TagRule | null = null;
+  for (const rule of DLGS81) {
+    if (num >= rule.min && num <= rule.max) best = rule;
+  }
+  return best ? [...best.tags] : null;
+}
+
+// ═══════════════════════════════════════════════════════════
 // MAIN
 // ═══════════════════════════════════════════════════════════
 
@@ -395,6 +584,43 @@ async function run() {
         const target = JSON.stringify([...tags].sort());
         if (current !== target) {
           updates.set(art.id, tags);
+        }
+      }
+    }
+
+    // ─── CODICE PENALE ───
+    if (art.law_source === "Codice Penale") {
+      const cpTags = getCpTags(num);
+      if (cpTags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...cpTags].sort());
+        if (current !== target) {
+          updates.set(art.id, cpTags);
+        }
+      }
+    }
+
+    // ─── CODICE DI PROCEDURA CIVILE ───
+    if (art.law_source === "Codice di Procedura Civile") {
+      const cpcTags = getCpcTags(num);
+      if (cpcTags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...cpcTags].sort());
+        if (current !== target) {
+          updates.set(art.id, cpcTags);
+        }
+      }
+    }
+
+    // ─── D.LGS. 81/2008 (Sicurezza sul lavoro) ───
+    // Nota: verificare che law_source in DB sia "D.Lgs. 81/2008" prima di eseguire
+    if (art.law_source?.includes("81/2008") || art.law_source?.includes("81-2008")) {
+      const dlgs81Tags = getDlgs81Tags(num);
+      if (dlgs81Tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...dlgs81Tags].sort());
+        if (current !== target) {
+          updates.set(art.id, dlgs81Tags);
         }
       }
     }

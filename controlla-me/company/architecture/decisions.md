@@ -109,3 +109,31 @@ Per ogni agente: creare identity card `company/<dept>/agents/<nome>.md`. Aggiorn
 - Modello: Groq Llama (free tier) via `lib/ai-sdk/openai-compat.ts` per generare i suggerimenti
 - Integrazione: aggiunto al daily standup come step opzionale
 **Conseguenze**: (+) CME sempre con lavoro sensato proposto, zero idle. (-) Richiede GROQ_API_KEY configurata; suggerimenti potrebbero non essere sempre rilevanti.
+
+### ADR-011: Strategia Storage — Supabase + Tier di Archiviazione
+
+**Data**: 2026-03-01
+**Stato**: accepted
+**Contesto**: Supabase PostgreSQL ospita 17 tabelle. 4 crescono senza limite: `audit_logs` (50+/analisi), `agent_cost_log` (4+/analisi, NESSUN TTL), `legal_knowledge` (6+/analisi), `document_chunks` (20+/analisi). A 1000 utenti attivi/mese si stimano ~1.7M righe/mese. Supabase Free Tier ha 500MB di DB e 1GB di storage. A crescita sostenuta si supera in 6-12 mesi. La domanda: serve un data lake?
+
+**Analisi opzioni**:
+
+| Opzione | Pro | Contro | Costo |
+|---------|-----|--------|-------|
+| **A) Restare su Supabase + TTL aggressivi** | Zero complessità aggiunta | Perde dati storici, audit_logs limitati a 12 mesi | Free → $25/mese (Pro) |
+| **B) Supabase + Supabase Storage (S3)** | Archivio cold su object storage nativo | Richiede export periodico, query non possibile | $0.021/GB/mese |
+| **C) Supabase + Cloudflare R2** | Zero egress cost, S3-compatible, 10GB free | Provider esterno, setup aggiuntivo | Free fino a 10GB |
+| **D) Supabase + SQLite locale** | Zero costo, backup locale dei log | Non distribuito, no query in prod | Gratis |
+| **E) Full data lake (BigQuery/Snowflake)** | Query potenti su terabyte | Over-engineering massivo, costo significativo | $5+/mese minimo |
+
+**Decisione**: **Opzione A + C in roadmap**.
+
+**Fase 1 (ora)**: Aggiungere TTL a `agent_cost_log` (6 mesi — oltre non serve per analytics operativo). Creare RPC `cleanup_old_cost_logs()` con lo stesso pattern di `cleanup_old_audit_logs()`. Questo è l'unico gap attivo — le altre 3 tabelle hanno già TTL funzionanti.
+
+**Fase 2 (quando Supabase Free si riempie)**: Upgrade a Supabase Pro ($25/mese, 8GB DB) — sufficiente per ~2 anni di crescita a 1000 utenti.
+
+**Fase 3 (se servono analytics storici)**: Export mensile su Cloudflare R2 (JSON/Parquet) delle righe scadute prima del cleanup. R2 ha 10GB free e zero costi di egress. Non serve un data lake: le query analitiche le facciamo su Supabase con finestra rolling (ultimi 6-12 mesi).
+
+**Cosa NON fare**: BigQuery, Snowflake, o data lake dedicati. Siamo un prodotto SaaS legale, non un data warehouse. Il volume prevedibile non lo giustifica nemmeno a 10x la scala attuale.
+
+**Conseguenze**: (+) agent_cost_log coperto, roadmap chiara per scaling. (-) Fase 3 richiede script di export (effort: 2h). Nessuna complessità aggiunta ora.

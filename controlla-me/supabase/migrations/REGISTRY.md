@@ -24,10 +24,13 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 013 | `013_company_tasks.sql` | Tabella `company_tasks`: task system per la virtual company (CME + dipartimenti) | `1e3bdae` |
 | 014 | `014_cost_tracking.sql` | Tabella `agent_cost_log`: tracking costi reali per ogni chiamata agente | `1e3bdae` |
 | 015 | `015_department_analyses.sql` | Tabella `department_analyses`: analisi AI per-dipartimento dal daily standup | `1e3bdae` |
+| 016 | `016_savephasetiming_rpc.sql` | RPC `update_phase_timing` con `jsonb_set` atomico (ADR-005, TD-1 fix) | — |
+| 017 | `017_lawyer_referrals_contact.sql` | Campi contatto per `lawyer_referrals` | — |
+| 018 | `018_cost_log_ttl.sql` | TTL 6 mesi per `agent_cost_log` + view `cost_summary_30d` (ADR-011) | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 015) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 018) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -48,6 +51,9 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 013 → indipendente
 014 → indipendente
 015 → indipendente
+016 → dipende da 011 (opera su analysis_sessions)
+017 → dipende da 001 (alter table lawyer_referrals)
+018 → dipende da 014 (opera su agent_cost_log)
 ```
 
 ## Storico rinumerazione

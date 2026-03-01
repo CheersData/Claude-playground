@@ -52,6 +52,7 @@ const SOURCE_COLLECTION_MAP: Record<string, string> = {
   tu_edilizia: "Testi Unici",
   dlgs_231_2001: "Decreti Legislativi",
   dlgs_122_2005: "Decreti Legislativi",
+  dlgs_81_2008: "Decreti Legislativi",
 };
 
 // ─── Tipi risposta API ───

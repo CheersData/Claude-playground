@@ -41,6 +41,9 @@ interface OpsData {
 }
 
 export default function OpsPage() {
+  const [authed, setAuthed] = useState(false);
+  const [authInput, setAuthInput] = useState("");
+  const [authError, setAuthError] = useState("");
   const [data, setData] = useState<OpsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -49,6 +52,34 @@ export default function OpsPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [showReports, setShowReports] = useState(false);
   const [showCME, setShowCME] = useState(false);
+
+  // Check existing token on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
+      setAuthed(true);
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    try {
+      const res = await fetch("/api/console/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: authInput }),
+      });
+      const json = await res.json();
+      if (json.authorized && json.token) {
+        sessionStorage.setItem("lexmea-token", json.token);
+        setAuthed(true);
+      } else {
+        setAuthError(json.message ?? "Accesso negato");
+      }
+    } catch {
+      setAuthError("Errore di connessione");
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -69,14 +100,41 @@ export default function OpsPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (authed) fetchData();
+  }, [authed, fetchData]);
 
   const timeSinceRefresh = () => {
     const diff = Math.floor((Date.now() - lastRefresh.getTime()) / 1000);
     if (diff < 60) return `${diff}s ago`;
     return `${Math.floor(diff / 60)}m ago`;
   };
+
+  if (!authed) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <form onSubmit={handleLogin} className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-8 w-full max-w-sm space-y-4">
+          <h2 className="text-lg font-semibold text-white">Operations Center</h2>
+          <p className="text-sm text-zinc-400">Inserisci le credenziali per accedere.</p>
+          <input
+            type="text"
+            value={authInput}
+            onChange={(e) => setAuthInput(e.target.value)}
+            placeholder="Nome Cognome, Ruolo"
+            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 outline-none focus:border-[#FF6B35] transition-colors"
+            autoFocus
+          />
+          {authError && <p className="text-xs text-red-400">{authError}</p>}
+          <button
+            type="submit"
+            disabled={!authInput.trim()}
+            className="w-full px-4 py-2 bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            Accedi
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

@@ -63,7 +63,7 @@ L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.t
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
 | AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
-| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 5.x |
+| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 6.x |
 | AI Registry | lib/models.ts — ~40 modelli, 7 provider | — |
 | Tier System | lib/tiers.ts — 3 tier, catene N-fallback | — |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
@@ -975,7 +975,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 ### Debiti tecnici minori
 
 - ~~`tesseract.js` in `dependencies` ma mai importato~~  — **RISOLTO**: rimosso da `dependencies` il 2026-03-01 (TD-2).
-- `openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x). Verificare breaking changes.
+- ~~`openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x)~~ — **RISOLTO**: CLAUDE.md aggiornato a 6.x. Breaking changes v5→v6 verificati: nessun impatto sul nostro uso (solo `chat.completions.create`).
 - `@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.
 - `@upstash/ratelimit` + `@upstash/redis` usati in `lib/middleware/rate-limit.ts` ma `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` non erano documentate in `.env.local.example` (ora aggiunte).
 
