@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
 import {
   X, User, Calendar, Tag, FileText, Loader2,
   CheckCheck, Play, AlertTriangle, RotateCcw,
@@ -94,7 +95,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
   useEffect(() => {
     setFetchingFull(true);
-    fetch(`/api/company/tasks/${initialTask.id}`)
+    fetch(`/api/company/tasks/${initialTask.id}`, { headers: getConsoleAuthHeaders() })
       .then((r) => r.ok ? r.json() : null)
       .then((json) => {
         if (json?.task) setTask(json.task as TaskItem);
@@ -133,7 +134,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
     try {
       const res = await fetch(`/api/company/tasks/${task.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getConsoleJsonHeaders(),
         body: JSON.stringify(body),
       });
       if (!res.ok) {

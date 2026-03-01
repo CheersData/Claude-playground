@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Send, Square, RefreshCw, AlertCircle } from "lucide-react";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";
+import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
 
 // ── Types ──
 
@@ -112,7 +113,9 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
   const fetchDashboard = useCallback(async () => {
     setDashLoading(true);
     try {
-      const res = await fetch("/api/company/status");
+      const res = await fetch("/api/company/status", {
+        headers: getConsoleAuthHeaders(),
+      });
       if (res.ok) setDashboard(await res.json());
     } catch {
       // Silent
@@ -142,11 +145,11 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
   const startSession = async (text: string, isAuto = false, overrideTarget?: TargetKey) => {
     // Kill existing session
     if (abortRef.current) abortRef.current.abort();
-    if (childPid) {
+    if (sessionId) {
       fetch("/api/console/company/stop", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pid: childPid }),
+        headers: getConsoleJsonHeaders(),
+        body: JSON.stringify({ sessionId }),
       }).catch(() => {});
     }
 
@@ -168,9 +171,12 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     const effectiveTarget = overrideTarget ?? target;
 
     try {
+      const token = sessionStorage.getItem("lexmea-token");
       const res = await fetch("/api/console/company", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: token
+          ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+          : { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, target: effectiveTarget }),
         signal: controller.signal,
       });
@@ -332,9 +338,12 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     setDebugLog((prev) => [...prev, { type: "stdin", msg: `Follow-up inviato: "${text.slice(0, 80)}" → sessione ${sessionId.slice(-8)}`, ts: Date.now() }]);
 
     try {
+      const token = sessionStorage.getItem("lexmea-token");
       const res = await fetch("/api/console/company/message", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: token
+          ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+          : { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, message: text }),
       });
 
@@ -372,12 +381,12 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
 
   const handleStop = async () => {
     if (abortRef.current) abortRef.current.abort();
-    if (childPid) {
+    if (sessionId) {
       try {
         await fetch("/api/console/company/stop", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pid: childPid }),
+          headers: getConsoleJsonHeaders(),
+          body: JSON.stringify({ sessionId }),
         });
       } catch {
         // Best effort

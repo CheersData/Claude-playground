@@ -4,13 +4,19 @@
  * Combina: task board + costi + pipeline + agent config
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
 import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
 import { AGENT_MODELS, MODELS, type AgentName } from "@/lib/models";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const payload = requireConsoleAuth(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const [board, costs, pipeline] = await Promise.all([
       getTaskBoard(),

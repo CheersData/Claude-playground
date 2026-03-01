@@ -3,6 +3,7 @@ import {
   getDistinctInstitutes,
   getArticlesByInstituteForUI,
 } from "@/lib/legal-corpus";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/corpus/institutes
@@ -12,6 +13,9 @@ import {
  *   -> Articoli per un istituto specifico
  */
 export async function GET(request: NextRequest) {
+  const rateLimitError = await checkRateLimit(request);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const institute = request.nextUrl.searchParams.get("institute");
 

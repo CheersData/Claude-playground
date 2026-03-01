@@ -9,8 +9,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
 export async function GET(req: NextRequest) {
+  const payload = requireConsoleAuth(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const url = new URL(req.url);
   const filePath = url.searchParams.get("path");
 

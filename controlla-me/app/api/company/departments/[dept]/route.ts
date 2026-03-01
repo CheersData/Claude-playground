@@ -16,6 +16,7 @@ import { getOpenTasks } from "@/lib/company/tasks";
 import { getLatestDepartmentAnalysis } from "@/lib/company/department-analyses";
 import { getDepartmentMeta } from "@/lib/company/departments";
 import type { Department } from "@/lib/company/types";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
 const ACTIVE_STATUSES = new Set(["open", "in_progress", "blocked", "review"]);
 
@@ -23,6 +24,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ dept: string }> }
 ) {
+  const payload = requireConsoleAuth(_req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { dept } = await params;
     const department = dept as Department;

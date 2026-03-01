@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getArticleById, searchArticles, searchArticlesText } from "@/lib/legal-corpus";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/corpus/article?id=uuid
@@ -9,6 +10,9 @@ import { getArticleById, searchArticles, searchArticlesText } from "@/lib/legal-
  *   -> Ricerca ibrida: semantica + fallback testuale
  */
 export async function GET(request: NextRequest) {
+  const rateLimitError = await checkRateLimit(request);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const id = request.nextUrl.searchParams.get("id");
     const query = request.nextUrl.searchParams.get("q");

@@ -107,6 +107,13 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/analyze": { windowSec: 60, max: 3 },
   "api/deep-search": { windowSec: 60, max: 10 },
   "api/corpus/ask": { windowSec: 60, max: 10 },
+  // SEC-M4: route pubbliche corpus — limiti per IP per evitare abuso crediti Voyage AI
+  // Rotte semantiche (generano embeddings Voyage AI): limite stretto
+  "api/corpus/article": { windowSec: 60, max: 30 },
+  // Rotte di navigazione (no AI cost): limite più largo
+  "api/corpus/hierarchy": { windowSec: 60, max: 60 },
+  "api/corpus/institutes": { windowSec: 60, max: 60 },
+  // Caricamento corpus — molto restrittivo (operazione admin)
   "api/corpus": { windowSec: 3600, max: 20 },
   "api/upload": { windowSec: 60, max: 10 },
   "api/vector-search": { windowSec: 60, max: 20 },

@@ -3,8 +3,18 @@
  */
 
 import { deleteSession } from "@/lib/company/sessions";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import type { NextRequest } from "next/server";
 
 export async function POST(req: Request) {
+  const authPayload = requireConsoleAuth(req as unknown as NextRequest);
+  if (!authPayload) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { sessionId } = await req.json();
 

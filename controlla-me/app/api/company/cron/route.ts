@@ -7,16 +7,22 @@
  * - Costo giornaliero > soglia → alert Finance
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getOpenTasks, createTask } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
 import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
 const STALE_DAYS = 7;
 const SYNC_GAP_DAYS = 7;
 const DAILY_COST_THRESHOLD = 1.0;
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const payload = requireConsoleAuth(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const alerts: string[] = [];
 
   try {

@@ -5,8 +5,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createTask, getOpenTasks } from "@/lib/company/tasks";
 import type { Department, TaskStatus } from "@/lib/company/types";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
 export async function GET(req: NextRequest) {
+  const payload = requireConsoleAuth(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const url = new URL(req.url);
     const department = url.searchParams.get("dept") as Department | null;
@@ -29,6 +35,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const payload = requireConsoleAuth(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
 

@@ -18,15 +18,35 @@ import type { AgentName } from "@/lib/models";
 
 // ─── Secret ───
 
-const SECRET =
-  process.env.CONSOLE_JWT_SECRET ||
-  "dev-console-secret-CHANGE-IN-PRODUCTION-min32chars!!";
+/**
+ * In produzione: CONSOLE_JWT_SECRET obbligatorio.
+ * Se mancante, usa un segreto casuale per-processo:
+ *   - Nessun token hardcoded esterno può essere valido (sicuro)
+ *   - I token scadono ad ogni restart (limitazione accettabile vs bypass silenzioso)
+ *   - Logga un errore critico per segnalare la misconfiguration
+ *
+ * In sviluppo: fallback su stringa hardcoded (ok per dev locale).
+ */
+function buildSecret(): string {
+  const envSecret = process.env.CONSOLE_JWT_SECRET;
+  if (envSecret) return envSecret;
 
-if (process.env.NODE_ENV === "production" && !process.env.CONSOLE_JWT_SECRET) {
-  console.error(
-    "[SECURITY] CONSOLE_JWT_SECRET non configurato in produzione! Impostare subito."
-  );
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "[SECURITY CRITICAL] CONSOLE_JWT_SECRET non configurato in produzione! " +
+      "Usando segreto casuale per-processo — i token scadranno ad ogni restart. " +
+      "Configurare CONSOLE_JWT_SECRET immediatamente."
+    );
+    // Segreto casuale: invalida token hardcoded, nessun bypass possibile
+    return createHmac("sha256", Date.now().toString())
+      .update(Math.random().toString())
+      .digest("hex");
+  }
+
+  return "dev-console-secret-CHANGE-IN-PRODUCTION-min32chars!!";
 }
+
+const SECRET = buildSecret();
 
 // ─── Token TTL ───
 

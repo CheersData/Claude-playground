@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
 import {
   ArrowLeft,
   Loader2,
@@ -153,7 +154,9 @@ export function DepartmentDetailPanel({
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/company/departments/${department}`);
+      const res = await fetch(`/api/company/departments/${department}`, {
+        headers: getConsoleAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -179,7 +182,9 @@ export function DepartmentDetailPanel({
   const openFile = async (filePath: string, label: string) => {
     setDrawerLoading(true);
     try {
-      const res = await fetch(`/api/company/files?path=${encodeURIComponent(filePath)}`);
+      const res = await fetch(`/api/company/files?path=${encodeURIComponent(filePath)}`, {
+        headers: getConsoleAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setDrawerContent({ title: label, content: json.content });
@@ -200,7 +205,7 @@ export function DepartmentDetailPanel({
     try {
       const res = await fetch("/api/company/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getConsoleJsonHeaders(),
         body: JSON.stringify({
           title: createTitle.trim(),
           description: createDesc.trim() || undefined,

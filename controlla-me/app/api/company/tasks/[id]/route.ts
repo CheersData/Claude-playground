@@ -4,11 +4,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getTask, updateTask, claimTask } from "@/lib/company/tasks";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const payload = requireConsoleAuth(_req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
     const task = await getTask(id);
@@ -26,6 +32,11 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const payload = requireConsoleAuth(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
     const body = await req.json();

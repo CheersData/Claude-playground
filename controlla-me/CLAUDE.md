@@ -74,7 +74,7 @@ L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.t
 | PDF | pdf-parse | 2.4.5 |
 | DOCX | mammoth | 1.11.0 |
 | XML Parser | fast-xml-parser (AKN legislativo) | 5.x |
-| OCR | tesseract.js (non ancora implementato) | 7.0.0 |
+| OCR | tesseract.js (NON implementato — rimosso da dependencies) | — |
 | Font | DM Sans + Instrument Serif | Google Fonts |
 
 ---
@@ -644,7 +644,7 @@ Il componente piu complesso (643 righe): cerchio progress con gradiente, timelin
 | PDF | pdf-parse | Richiede serverExternalPackages in next.config |
 | DOCX/DOC | mammoth | Estrazione raw text |
 | TXT | Built-in | UTF-8 decode |
-| Immagini | tesseract.js | NON ancora implementato |
+| Immagini | tesseract.js | NON implementato — libreria rimossa da dependencies, reinstallare quando necessario |
 
 Validazione: file max 20MB, testo estratto min 50 caratteri, messaggi errore in italiano.
 
@@ -917,7 +917,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ## 16. FEATURE INCOMPLETE
 
-1. OCR immagini — tesseract.js installato ma mai importato (~50MB inutili in produzione). **Rimuovere da `dependencies` finché non implementato concretamente.**
+1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
 2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
 3. Deep search limit — Modello dati supporta, **non enforced in UI**. `PaywallBanner.tsx` e `DeepSearchChat.tsx` esistono — manca solo il check pre-apertura chat. Effort: 2-3h. Impatto revenue diretto.
 4. Sistema referral avvocati — Tabelle DB esistono (`lawyer_referrals`), nessuna UI. Prerequisito: ADR GDPR su quali dati condividere con l'avvocato e con quale base giuridica.
@@ -968,12 +968,12 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 | ID | File | Problema | Impatto | Effort fix |
 |----|------|---------|---------|-----------|
 | TD-1 | `lib/analysis-cache.ts` | `savePhaseTiming`: 2 roundtrip Supabase per fase (8 totali nella pipeline). Race condition teorica. | Latenza +100-200ms × 4 fasi | Basso — `jsonb_set` atomico |
-| TD-2 | `lib/tiers.ts` | `let currentTier` = global mutable state. In serverless, condiviso tra richieste sullo stesso worker. | Bomba a orologeria sotto carico multi-utente | Basso — request-scoped via cookie/session |
-| TD-3 | `supabase/migrations/` | Numeri 003-007 hanno tutti doppioni (es. `003_legal_corpus.sql` + `003_vector_db.sql`). Ordine di applicazione ambiguo. | **Bloccante per CI/CD automatico** | Medio — rinumerare con sequenza continua |
+| TD-2 | `lib/tiers.ts` | `let currentTier` = global mutable state. `setCurrentTier()` non è chiamato da `/api/analyze` — rischio teorico, non attuale. `getAgentChain()` ora usa `getCurrentTier()` (AsyncLocalStorage-aware). Documentato con TODO. | Teorico (nessun caller attuale) | Basso — `withRequestTier()` via sessionTierStore quando si implementa tier per-utente |
+| TD-3 | `supabase/migrations/` | ~~Numeri 003-007 hanno tutti doppioni~~ **RISOLTO 2026-03-01**: rinumerati 001-015 con sequenza continua, aggiunto REGISTRY.md | — | — |
 
 ### Debiti tecnici minori
 
-- `tesseract.js` in `dependencies` ma mai importato — ~50MB di build inutili. Spostare in `devDependencies` o rimuovere.
+- ~~`tesseract.js` in `dependencies` ma mai importato~~  — **RISOLTO**: rimosso da `dependencies` il 2026-03-01 (TD-2).
 - `openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x). Verificare breaking changes.
 - `@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.
 - `@upstash/ratelimit` + `@upstash/redis` usati in `lib/middleware/rate-limit.ts` ma `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` non erano documentate in `.env.local.example` (ora aggiunte).

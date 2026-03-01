@@ -131,6 +131,10 @@ export function getCurrentTier(): TierName {
   return sessionTierStore.getStore()?.tier ?? currentTier;
 }
 
+// TODO TD-2: setCurrentTier non è chiamato da /api/analyze — rischio di shared state
+// tra worker serverless è teorico ma non attuale. Prima di implementare tier dinamico
+// per-utente in /api/analyze, wrappare con withRequestTier() usando sessionTierStore
+// (già presente e usato dalle route console). Effort stimato: 1h.
 export function setCurrentTier(tier: TierName): void {
   currentTier = tier;
   console.log(`[TIER] Switched to: ${tier}`);
@@ -163,10 +167,12 @@ export function getDisabledAgents(): AgentName[] {
 
 /**
  * Ritorna la sotto-catena dal punto di partenza del tier corrente.
+ * Legge il tier tramite getCurrentTier() per rispettare il context AsyncLocalStorage
+ * nelle route console (sessionTierStore.run).
  */
 export function getAgentChain(agent: AgentName): ModelKey[] {
   const chain = AGENT_CHAINS[agent];
-  const startIndex = TIER_START[agent][currentTier];
+  const startIndex = TIER_START[agent][getCurrentTier()];
   return chain.slice(startIndex);
 }
 

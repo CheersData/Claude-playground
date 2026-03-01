@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
+import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 import { TaskBoard } from "@/components/ops/TaskBoard";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";
 import { CostSummary } from "@/components/ops/CostSummary";
@@ -48,7 +49,9 @@ export default function OpsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/company/status");
+      const res = await fetch("/api/company/status", {
+        headers: getConsoleAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setData(json);

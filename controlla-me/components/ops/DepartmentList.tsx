@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Building2, ChevronRight, Loader2 } from "lucide-react";
+import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 interface TaskItem {
   id: string;
@@ -94,7 +95,9 @@ export function DepartmentList({
 
     setLoading(dept);
     try {
-      const res = await fetch(`/api/company/tasks?dept=${dept}&limit=20`);
+      const res = await fetch(`/api/company/tasks?dept=${dept}&limit=20`, {
+        headers: getConsoleAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         const enriched = (json.tasks ?? []).map((t: TaskItem) => ({

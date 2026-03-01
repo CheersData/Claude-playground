@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { X, Search, Loader2 } from "lucide-react";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
+import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 interface TaskBoardFullscreenProps {
   initialStatus?: string; // "all" | "open" | "in_progress" | "done" | ...
@@ -57,7 +58,9 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
     try {
       const params = new URLSearchParams({ limit: "200" });
       if (status !== "all") params.set("status", status);
-      const res = await fetch(`/api/company/tasks?${params}`);
+      const res = await fetch(`/api/company/tasks?${params}`, {
+        headers: getConsoleAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setTasks(json.tasks ?? []);
