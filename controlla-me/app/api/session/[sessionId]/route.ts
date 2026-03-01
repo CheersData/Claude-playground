@@ -13,7 +13,7 @@ export async function GET(
   if (isAuthError(auth)) return auth;
 
   // Rate limit
-  const limited = checkRateLimit(req, auth.user.id);
+  const limited = await checkRateLimit(req, auth.user.id);
   if (limited) return limited;
 
   const { sessionId: rawSessionId } = await params;

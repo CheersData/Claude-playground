@@ -17,7 +17,7 @@ const VALID_TIERS: TierName[] = ["intern", "associate", "partner"];
 /** GET — stato tier della sessione corrente + mappa agenti/modelli */
 export async function GET(req: NextRequest) {
   // Rate limiting (SEC-003)
-  const rl = checkRateLimit(req);
+  const rl = await checkRateLimit(req);
   if (rl) return rl;
 
   // Auth (SEC-004) — richiede Bearer token valido
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (csrf) return csrf;
 
   // Rate limiting (SEC-003)
-  const rl = checkRateLimit(req);
+  const rl = await checkRateLimit(req);
   if (rl) return rl;
 
   // Auth (SEC-004)

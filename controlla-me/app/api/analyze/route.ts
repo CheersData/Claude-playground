@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const userId = user.id;
 
   // Rate limit (dopo auth per avere userId)
-  const limited = checkRateLimit(req, userId);
+  const limited = await checkRateLimit(req, userId);
   if (limited) return limited;
 
   // Piano e utilizzo

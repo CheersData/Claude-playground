@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   // Rate limit solo per utenti autenticati
   if (userId) {
-    const limited = checkRateLimit(req, userId);
+    const limited = await checkRateLimit(req, userId);
     if (limited) return limited;
   }
 

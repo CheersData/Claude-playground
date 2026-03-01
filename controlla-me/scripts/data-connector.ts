@@ -34,6 +34,13 @@ import {
   getSyncHistory,
 } from "@/lib/staff/data-connector";
 
+// ─── Verticali: import per auto-registrazione ───
+// Ogni verticale registra le proprie fonti all'import (side-effect).
+// Per aggiungere un nuovo verticale: creare il file e importarlo qui.
+import "@/scripts/hr-sources";
+// import "@/scripts/real-estate-sources";  // futuro
+// import "@/scripts/consumer-sources";      // futuro
+
 // ─── Helpers ───
 
 function log(msg: string) {

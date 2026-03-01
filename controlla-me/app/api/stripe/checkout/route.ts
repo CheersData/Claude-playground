@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const { user } = authResult as AuthResult;
 
   // Rate limit anti-abuse pagamenti (SEC-003)
-  const limited = checkRateLimit(req, user.id);
+  const limited = await checkRateLimit(req, user.id);
   if (limited) return limited;
 
   const { plan } = (await req.json()) as { plan: "pro" | "single" };

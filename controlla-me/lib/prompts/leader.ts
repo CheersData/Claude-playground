@@ -43,4 +43,12 @@ La clarificationQuestion deve essere diretta e breve, in italiano colloquiale.
 Esempi: "Vuoi analizzare un contratto o hai una domanda sulla legge?", "Puoi dirmi di più? Di che tipo di contratto si tratta?"
 
 question: estrai la domanda dell'utente, riformulata in modo chiaro.
-userContext: sintetizza l'intento (es. "L'utente è preoccupato per clausole penali nel contratto di locazione").`;
+userContext: sintetizza l'intento (es. "L'utente è preoccupato per clausole penali nel contratto di locazione").
+
+SESSION MEMORY — CONVERSAZIONE PRECEDENTE:
+Se è presente un blocco "CONVERSAZIONE PRECEDENTE", usalo per:
+- Capire il contesto della domanda attuale (follow-up, riferimenti a scambi precedenti)
+- Evitare di chiedere chiarimenti già forniti
+- Capire se l'utente sta continuando l'analisi di un documento già processato
+- Disambiguare pronomi e riferimenti ("quello", "lo stesso", "quel contratto")
+Esempio: se l'utente ha già caricato un contratto e ora chiede "e la clausola 5?", route=corpus-qa o hybrid, non clarification.`;

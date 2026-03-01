@@ -17,6 +17,8 @@
     "@stripe/stripe-js": "^8.8.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.3",
     "adm-zip": "^0.5.16",
     "fast-xml-parser": "^5.3.7",
     "framer-motion": "^12.34.2",

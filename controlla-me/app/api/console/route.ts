@@ -18,7 +18,7 @@ import { checkCsrf } from "@/lib/middleware/csrf";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import type { AgentName } from "@/lib/models";
-import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus } from "@/lib/types";
+import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus, ConversationTurn } from "@/lib/types";
 
 export const maxDuration = 300;
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   if (csrf) return csrf;
 
   // Rate limiting (SEC-003)
-  const rl = checkRateLimit(req);
+  const rl = await checkRateLimit(req);
   if (rl) return rl;
 
   // Auth (SEC-004) — richiede Bearer token valido
@@ -83,6 +83,28 @@ export async function POST(req: NextRequest) {
         const hasFile = !!file;
         const fileName = file?.name;
 
+        // Parse conversation history (session memory)
+        const rawHistory = formData.get("history") as string | null;
+        let history: ConversationTurn[] = [];
+        if (rawHistory) {
+          try {
+            const parsed = JSON.parse(rawHistory);
+            if (Array.isArray(parsed)) {
+              // Keep last 5 turns max, validate shape
+              history = parsed
+                .filter(
+                  (t) =>
+                    t &&
+                    typeof t.role === "string" &&
+                    typeof t.content === "string"
+                )
+                .slice(-5);
+            }
+          } catch {
+            // Invalid history JSON — ignore silently
+          }
+        }
+
         // Extract text from file if present
         let documentText = "";
         if (file) {
@@ -100,6 +122,7 @@ export async function POST(req: NextRequest) {
           hasFile,
           fileName,
           textLength: documentText.length,
+          history: history.length > 0 ? history : undefined,
         });
 
         const leaderMs = Date.now() - leaderStart;

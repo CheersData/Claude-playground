@@ -6,9 +6,16 @@
 
 import { getSourceById, getAllSources } from "./registry";
 import { startSync, completeSync, getLastSuccessfulSync } from "./sync-log";
-import { LegalArticleModel } from "./models/legal-article-model";
-import { LegalCorpusStore } from "./stores/legal-corpus-store";
 import { validateBatch } from "./validators/article-validator";
+import {
+  resolveConnector,
+  resolveModel,
+  resolveStore,
+  registerConnector,
+  registerModel,
+  registerStore,
+  listRegistered,
+} from "./plugin-registry";
 import type { LegalArticle } from "@/lib/legal-corpus";
 import type {
   DataSource,
@@ -23,54 +30,28 @@ import type {
   ParsedArticle,
 } from "./types";
 
-// ─── Factory per i componenti ───
+// Re-export per permettere a verticali esterni di registrare plugin senza
+// modificare questo file (open/closed principle).
+export { registerConnector, registerModel, registerStore, listRegistered };
+
+// ─── Factory (ora via plugin registry — nessuno switch hardcoded) ───
 
 function createConnector(
   source: DataSource,
   log: (msg: string) => void
 ): ConnectorInterface<ParsedArticle> {
-  switch (source.connector) {
-    case "normattiva": {
-      // Lazy import per evitare dipendenze circolari
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { NormattivaConnector } = require("./connectors/normattiva");
-      return new NormattivaConnector(source, log);
-    }
-    case "eurlex": {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { EurLexConnector } = require("./connectors/eurlex");
-      return new EurLexConnector(source, log);
-    }
-    default:
-      throw new Error(
-        `Connettore non implementato: "${source.connector}" per fonte "${source.id}"`
-      );
-  }
+  return resolveConnector(source, log);
 }
 
 function createModel(source: DataSource): ModelInterface {
-  switch (source.dataType) {
-    case "legal-articles":
-      return new LegalArticleModel();
-    default:
-      throw new Error(
-        `Model non implementato per dataType: "${source.dataType}"`
-      );
-  }
+  return resolveModel(source);
 }
 
 function createStore(
   source: DataSource,
   log: (msg: string) => void
 ): StoreInterface<LegalArticle> {
-  switch (source.dataType) {
-    case "legal-articles":
-      return new LegalCorpusStore(log);
-    default:
-      throw new Error(
-        `Store non implementato per dataType: "${source.dataType}"`
-      );
-  }
+  return resolveStore(source, log);
 }
 
 // ─── Pipeline orchestrata ───

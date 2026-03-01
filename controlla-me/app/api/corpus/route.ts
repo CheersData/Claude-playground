@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Rate limit
-  const limited = checkRateLimit(req, auth.user.id);
+  const limited = await checkRateLimit(req, auth.user.id);
   if (limited) return limited;
 
   if (!isVectorDBEnabled()) {

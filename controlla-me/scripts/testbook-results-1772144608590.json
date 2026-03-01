@@ -1,0 +1,2813 @@
+[
+  {
+    "id": 1,
+    "name": "Clausole contraddittorie rinnovo/risoluzione",
+    "question": "Il contratto ha una clausola di rinnovo automatico e una di risoluzione alla scadenza, quale prevale?",
+    "prep": {
+      "result": {
+        "legalQuery": "rinnovo automatico locazione risoluzione scadenza naturale contrasto clausole",
+        "mechanismQuery": "interpretazione del contratto clausole contraddittorie conservazione contratto interpretazione sistematica art 1362 1363 1367 1371",
+        "keywords": [
+          "rinnovo automatico",
+          "risoluzione",
+          "clausole contraddittorie",
+          "interpretazione sistematica"
+        ],
+        "legalAreas": [
+          "locazione",
+          "contratto"
+        ],
+        "suggestedInstitutes": [
+          "locazione",
+          "rinnovo_locazione",
+          "interpretazione_contratto",
+          "risoluzione"
+        ],
+        "targetArticles": "Art. 1362-1371 c.c., L. 431/1998",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 3868
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m interpretazione_contratto",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 24,
+      "semanticCount": 11,
+      "articles": [
+        {
+          "ref": "Art. 1571",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1572",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1573",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1574",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1575",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1576",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1577",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1578",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1362",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1363",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1364",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1365",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1366",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1367",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1368",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[32m✓\u001b[0m Art.1362"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 2,
+    "name": "Rinuncia azione legale nel contratto",
+    "question": "Nel contratto c'è scritto che rinuncio a fare causa, è valido?",
+    "prep": {
+      "result": {
+        "legalQuery": "rinuncia preventiva azione legale clausola limitazione facoltà agire giudizio",
+        "mechanismQuery": "clausole vessatorie condizioni generali contratto approvazione specifica per iscritto doppia firma art 1341 1342 nullità art 1418",
+        "keywords": [
+          "rinuncia",
+          "causa",
+          "clausola",
+          "limitazione",
+          "facoltà",
+          "giudizio"
+        ],
+        "legalAreas": [
+          "contratto",
+          "clausole_vessatorie",
+          "nullità"
+        ],
+        "suggestedInstitutes": [
+          "clausole_vessatorie",
+          "nullità",
+          "clausole_abusive",
+          "tutela_consumatore"
+        ],
+        "targetArticles": "Art. 1341-1342 c.c., Art. 1418-1419 c.c., Art. 33 D.Lgs. 206/2005",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 2236
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m clausole_vessatorie",
+          "\u001b[32m✓\u001b[0m nullità",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 10,
+      "articles": [
+        {
+          "ref": "Art. 1229",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1336",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1337",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1338",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1339",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1340",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1341",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1342",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129-bis",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1418",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1419",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 33",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 33bis",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[32m✓\u001b[0m Art.1341"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 3,
+    "name": "Tolleranza 1/20 vendita a corpo",
+    "question": "Il costruttore ha sforato la tolleranza dell'1/20, che fare?",
+    "prep": {
+      "result": {
+        "legalQuery": "tolleranza ventesimo eccedenza deficienza misura vendita a corpo superficie",
+        "mechanismQuery": null,
+        "keywords": [
+          "tolleranza",
+          "ventesimo",
+          "eccedenza",
+          "deficienza",
+          "misura",
+          "vendita",
+          "a corpo",
+          "superficie"
+        ],
+        "legalAreas": [
+          "vendita",
+          "vendita_a_corpo"
+        ],
+        "suggestedInstitutes": [
+          "vendita_a_corpo",
+          "vendita_a_misura",
+          "rettifica_prezzo"
+        ],
+        "targetArticles": "Art. 1537-1541 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 2509
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m vendita_a_corpo",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 5,
+      "instituteCount": 15,
+      "semanticCount": 2,
+      "articles": [
+        {
+          "ref": "Art. 1537",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1538",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1539",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1540",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1541",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 5 articoli (min 2)",
+          "\u001b[32m✓\u001b[0m Art.1537",
+          "\u001b[32m✓\u001b[0m Art.1538"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 4,
+    "name": "Differenza nullità e simulazione",
+    "question": "Che differenza c'è tra un contratto nullo e uno simulato?",
+    "prep": {
+      "result": {
+        "legalQuery": "contratto nullo simulato differenza",
+        "mechanismQuery": "nullità contratto eccezioni effetti ripetizione indebito prestazione fatto trascrizione domanda nullità matrimonio putativo",
+        "keywords": [
+          "contratto",
+          "nullità",
+          "simulazione",
+          "eccezioni",
+          "effetti"
+        ],
+        "legalAreas": [
+          "diritto_contrattuale",
+          "diritto_civile"
+        ],
+        "suggestedInstitutes": [
+          "nullità",
+          "simulazione",
+          "contratto",
+          "eccezioni",
+          "effetti",
+          "requisiti_contratto",
+          "consenso"
+        ],
+        "targetArticles": "Art. 1414-1446 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 3658
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[31m✗\u001b[0m type:specific (expected systematic)",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m nullità",
+          "\u001b[32m✓\u001b[0m simulazione",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 7,
+      "articles": [
+        {
+          "ref": "Art. 1229",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129-bis",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1341",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1342",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1418",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1419",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1414",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1415",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1416",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1417",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1321",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1322",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1323",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 4)",
+          "\u001b[32m✓\u001b[0m Art.1414",
+          "\u001b[32m✓\u001b[0m Art.1418"
+        ]
+      }
+    },
+    "total": 55,
+    "max": 60,
+    "percentage": 92
+  },
+  {
+    "id": 5,
+    "name": "Effetti contratto nullo",
+    "question": "In quali casi un contratto nullo produce comunque effetti giuridici?",
+    "prep": {
+      "result": {
+        "legalQuery": "contratto nullo effetti nullità prestazione di fatto restituzione",
+        "mechanismQuery": "nullità contratto eccezioni effetti ripetizione indebito prestazione fatto trascrizione domanda nullità matrimonio putativo",
+        "keywords": [
+          "contratto",
+          "nullità",
+          "effetti",
+          "prestazione",
+          "fatto",
+          "restituzione"
+        ],
+        "legalAreas": [
+          "diritto_contrattuale",
+          "nullità_contratto"
+        ],
+        "suggestedInstitutes": [
+          "nullità",
+          "contratto",
+          "lavoro_autonomo",
+          "obbligazione",
+          "prescrizione",
+          "vendita_immobiliare",
+          "trascrizione"
+        ],
+        "targetArticles": null,
+        "questionType": "systematic",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": "Serve giurisprudenza Cass. SU sulla nullità contratto e suoi effetti",
+        "provider": "cerebras",
+        "durationMs": 448
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:systematic",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m nullità",
+          "\u001b[32m✓\u001b[0m contratto",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 20,
+      "instituteCount": 56,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1229",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129-bis",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1341",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1342",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1418",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1419",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1321",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1322",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1323",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1324",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1325",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1326",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1327",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1328",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2224",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2225",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 20 articoli (min 3)",
+          "\u001b[32m✓\u001b[0m Art.1418"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 6,
+    "name": "Riqualificazione d'ufficio del contratto",
+    "question": "Il giudice civile può riqualificare d'ufficio un contratto senza violare il principio dispositivo e il divieto di ultrapetizione?",
+    "prep": {
+      "result": {
+        "legalQuery": "principio dispositivo ultrapetizione giudice civile riqualificazione d'ufficio contratto",
+        "mechanismQuery": "interpretazione contratto riqualificazione d'ufficio principio dispositivo art 101 c.p.c.",
+        "keywords": [
+          "principio dispositivo",
+          "ultrapetizione",
+          "giudice civile",
+          "riqualificazione d'ufficio",
+          "contratto"
+        ],
+        "legalAreas": [
+          "diritto processuale civile",
+          "diritto sostanziale"
+        ],
+        "suggestedInstitutes": [
+          "principio dispositivo",
+          "ultrapetizione",
+          "iura novit curia",
+          "diritto di difesa",
+          "contratto"
+        ],
+        "targetArticles": "Art. 101 c.p.c., Art. 1362-1371 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": true,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 4318
+      },
+      "score": {
+        "total": 20,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:true",
+          "\u001b[31m✗\u001b[0m giurispr.:false (expected true)",
+          "\u001b[31m✗\u001b[0m interpretazione_contratto missing",
+          "\u001b[32m✓\u001b[0m contratto",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 14,
+      "instituteCount": 8,
+      "semanticCount": 6,
+      "articles": [
+        {
+          "ref": "Art. 1321",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1322",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1323",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1324",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1325",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1326",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1327",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1328",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1371",
+          "source": "Codice Civile",
+          "similarity": "45%"
+        },
+        {
+          "ref": "Art. 2103",
+          "source": "Codice Civile",
+          "similarity": "44%"
+        },
+        {
+          "ref": "Art. 1367",
+          "source": "Codice Civile",
+          "similarity": "44%"
+        },
+        {
+          "ref": "Art. 100",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "42%"
+        },
+        {
+          "ref": "Art. 37",
+          "source": "c.p.c.",
+          "similarity": "42%"
+        },
+        {
+          "ref": "Art. 2071",
+          "source": "Codice Civile",
+          "similarity": "42%"
+        }
+      ],
+      "score": {
+        "total": 15,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 14 articoli (min 2)",
+          "\u001b[31m✗\u001b[0m Art.1362 missing"
+        ]
+      }
+    },
+    "total": 35,
+    "max": 60,
+    "percentage": 58
+  },
+  {
+    "id": 7,
+    "name": "Riduzione giudiziale clausola penale",
+    "question": "La clausola penale è troppo alta. Il giudice può ridurla anche se non lo chiedo esplicitamente?",
+    "prep": {
+      "result": {
+        "legalQuery": "riduzione clausola penale importo eccessivo giudice equità",
+        "mechanismQuery": "riduzione clausola penale potere giudice equità art 1384",
+        "keywords": [
+          "clausola penale",
+          "riduzione",
+          "giudice",
+          "equità"
+        ],
+        "legalAreas": [
+          "contratto",
+          "obbligazione",
+          "risoluzione"
+        ],
+        "suggestedInstitutes": [
+          "clausola_penale",
+          "contratto",
+          "risoluzione",
+          "equità",
+          "obbligazione"
+        ],
+        "targetArticles": "Art. 1382-1384 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 2797
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[31m✗\u001b[0m c.p.c.:false (expected true)",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m clausola_penale",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 27,
+      "semanticCount": 8,
+      "articles": [
+        {
+          "ref": "Art. 1382",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1383",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1384",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1321",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1322",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1323",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1324",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1325",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1326",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1327",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1328",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1453",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1454",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1455",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1456",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[32m✓\u001b[0m Art.1382",
+          "\u001b[32m✓\u001b[0m Art.1384"
+        ]
+      }
+    },
+    "total": 55,
+    "max": 60,
+    "percentage": 92
+  },
+  {
+    "id": 8,
+    "name": "Differenza caparra confirmatoria e penitenziale",
+    "question": "Che differenza c'è tra caparra confirmatoria e caparra penitenziale?",
+    "prep": {
+      "result": {
+        "legalQuery": "caparra confirmatoria penitenziale differenza funzione",
+        "mechanismQuery": "caparra inadempimento recesso risarcimento danno restituzione doppio",
+        "keywords": [
+          "caparra",
+          "confirmatoria",
+          "penitenziale"
+        ],
+        "legalAreas": [
+          "contratto",
+          "obbligazione",
+          "inadempimento"
+        ],
+        "suggestedInstitutes": [
+          "caparra_confirmatoria",
+          "caparra_penitenziale",
+          "contratto",
+          "inadempimento",
+          "risoluzione"
+        ],
+        "targetArticles": "Art. 1385-1386 c.c.",
+        "questionType": "systematic",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 2287
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:systematic",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m caparra_confirmatoria",
+          "\u001b[32m✓\u001b[0m caparra_penitenziale",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 20,
+      "instituteCount": 28,
+      "semanticCount": 7,
+      "articles": [
+        {
+          "ref": "Art. 1385",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1386",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1321",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1322",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1323",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1324",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1325",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1326",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1327",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1328",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1218",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1219",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1220",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1221",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1224",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1225",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1453",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1454",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 20 articoli (min 2)",
+          "\u001b[32m✓\u001b[0m Art.1385",
+          "\u001b[32m✓\u001b[0m Art.1386"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 9,
+    "name": "Recesso consumatore vs recesso civile",
+    "question": "Qual è la differenza tra il recesso del consumatore e il recesso previsto dal codice civile?",
+    "prep": {
+      "result": {
+        "legalQuery": "recesso consumatore differenza recesso codice civile",
+        "mechanismQuery": "interpretazione del contratto clausole contraddittorie conservazione contratto interpretazione sistematica art 1362 1363 1367 1371",
+        "keywords": [
+          "recesso",
+          "consumatore",
+          "codice civile"
+        ],
+        "legalAreas": [
+          "vendita",
+          "tutela consumatore"
+        ],
+        "suggestedInstitutes": [
+          "tutela_consumatore",
+          "vendita",
+          "recesso",
+          "contratto"
+        ],
+        "targetArticles": "Art. 1490-1497 c.c., D.Lgs. 206/2005",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 3532
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[31m✗\u001b[0m type:specific (expected systematic)",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m tutela_consumatore",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 100",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128bis",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128quater",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128quinquies",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128sexies",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128ter",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1470",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1471",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1472",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1473",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1474",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1475",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1476",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[2m~ no required refs\u001b[0m"
+        ]
+      }
+    },
+    "total": 55,
+    "max": 60,
+    "percentage": 92
+  },
+  {
+    "id": 10,
+    "name": "Responsabilità precontrattuale",
+    "question": "Quando sorge la responsabilità precontrattuale e quali sono i rimedi?",
+    "prep": {
+      "result": {
+        "legalQuery": "responsabilità precontrattuale sorgere rimedi",
+        "mechanismQuery": "responsabilità precontrattuale inadempimento obbligazione risoluzione contratto art 1453 1455 1460",
+        "keywords": [
+          "responsabilità",
+          "precontrattuale",
+          "inadempimento",
+          "obbligazione",
+          "risoluzione",
+          "contratto"
+        ],
+        "legalAreas": [
+          "obbligazione",
+          "contratto"
+        ],
+        "suggestedInstitutes": [
+          "responsabilità_extracontrattuale",
+          "obbligazione",
+          "inadempimento",
+          "risoluzione",
+          "contratto"
+        ],
+        "targetArticles": "Art. 1223-1225 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 3815
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[31m✗\u001b[0m giurispr.:false (expected true)",
+          "\u001b[32m✓\u001b[0m contratto",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 40,
+      "semanticCount": 9,
+      "articles": [
+        {
+          "ref": "Art. 1669",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2043",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2044",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2045",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2046",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2047",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2048",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2049",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1173",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1174",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1175",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1176",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1177",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1178",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1179",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 15,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[31m✗\u001b[0m Art.1337 missing",
+          "\u001b[31m✗\u001b[0m Art.1338 missing"
+        ]
+      }
+    },
+    "total": 40,
+    "max": 60,
+    "percentage": 67
+  },
+  {
+    "id": 11,
+    "name": "Vizi occulti nella compravendita",
+    "question": "Ho comprato una casa e dopo un mese ho scoperto infiltrazioni d'acqua nascoste. Posso fare qualcosa?",
+    "prep": {
+      "result": {
+        "legalQuery": "vendita immobiliare vizi cosa venduta infiltrazioni acqua nascoste",
+        "mechanismQuery": "garanzia evizione vizi cosa venduta ipoteca trascrizione priorità acquisto immobiliare tutela acquirente",
+        "keywords": [
+          "vendita_immobiliare",
+          "vizi_cosa_venduta",
+          "garanzia_evizione",
+          "ipoteca",
+          "trascrizione"
+        ],
+        "legalAreas": [
+          "vendita_immobiliare",
+          "vizi_cosa_venduta"
+        ],
+        "suggestedInstitutes": [
+          "vendita_immobiliare",
+          "vizi_cosa_venduta",
+          "garanzia_evizione",
+          "ipoteca",
+          "trascrizione"
+        ],
+        "targetArticles": "Art. 1490-1497 c.c., Art. 1529-1531 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 3262
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m vizi_cosa_venduta",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 40,
+      "semanticCount": 10,
+      "articles": [
+        {
+          "ref": "Art. 1548",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1549",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1550",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1551",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1552",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1553",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1554",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1555",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1490",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1491",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1492",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1493",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1494",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1495",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1496",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[32m✓\u001b[0m Art.1490",
+          "\u001b[32m✓\u001b[0m Art.1492",
+          "\u001b[32m✓\u001b[0m Art.1495"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 12,
+    "name": "Garanzia per evizione",
+    "question": "Ho comprato un terreno ma un terzo dice che è suo. Il venditore deve risarcirmi?",
+    "prep": {
+      "result": {
+        "legalQuery": "risarcimento danni venditore terreno proprietà terzo",
+        "mechanismQuery": "risarcimento danno inadempimento contrattuale art 1223 1225 1227",
+        "keywords": [
+          "risarcimento danni",
+          "venditore",
+          "terreno",
+          "proprietà",
+          "terzo"
+        ],
+        "legalAreas": [
+          "vendita",
+          "proprietà",
+          "responsabilità extracontrattuale"
+        ],
+        "suggestedInstitutes": [
+          "vendita",
+          "proprietà",
+          "responsabilità_extracontrattuale",
+          "danno",
+          "risarcimento"
+        ],
+        "targetArticles": "Art. 1490-1497 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 4400
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[31m✗\u001b[0m garanzia_evizione missing",
+          "\u001b[32m✓\u001b[0m vendita",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1470",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1471",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1472",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1473",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1474",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1475",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1476",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1477",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1669",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2043",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2044",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2045",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2046",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2047",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2048",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 15,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[31m✗\u001b[0m Art.1483 missing"
+        ]
+      }
+    },
+    "total": 40,
+    "max": 60,
+    "percentage": 67
+  },
+  {
+    "id": 13,
+    "name": "Danni all'immobile locato",
+    "question": "L'inquilino ha rovinato i muri e il pavimento. Posso trattenere la cauzione?",
+    "prep": {
+      "result": {
+        "legalQuery": "diritto di trattenere cauzione inquilino danni muri pavimento",
+        "mechanismQuery": "inadempimento contratto locazione risoluzione contratto art 1453 1455 1460",
+        "keywords": [
+          "cauzione",
+          "inquilino",
+          "danni",
+          "muri",
+          "pavimento"
+        ],
+        "legalAreas": [
+          "locazione",
+          "obblighi_locatore",
+          "obblighi_conduttore"
+        ],
+        "suggestedInstitutes": [
+          "locazione",
+          "obblighi_locatore",
+          "obblighi_conduttore",
+          "risoluzione",
+          "inadempimento"
+        ],
+        "targetArticles": "Art. 1571-1574 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 2655
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m locazione",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 40,
+      "semanticCount": 9,
+      "articles": [
+        {
+          "ref": "Art. 1571",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1572",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1573",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1574",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1575",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1576",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1577",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1578",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1453",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1454",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1455",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1456",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1457",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1458",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1459",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 15,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[31m✗\u001b[0m Art.1590 missing"
+        ]
+      }
+    },
+    "total": 45,
+    "max": 60,
+    "percentage": 75
+  },
+  {
+    "id": 14,
+    "name": "Sublocazione senza consenso",
+    "question": "L'inquilino ha subaffittato l'appartamento senza il mio permesso. Posso risolvere il contratto?",
+    "prep": {
+      "result": {
+        "legalQuery": "risoluzione contratto locazione subaffitto senza permesso",
+        "mechanismQuery": "risoluzione contratto inadempimento obbligazione locatore conduttore subaffitto",
+        "keywords": [
+          "risoluzione",
+          "contratto",
+          "locazione",
+          "subaffitto",
+          "inadempimento"
+        ],
+        "legalAreas": [
+          "locazione",
+          "obblighi_locatore",
+          "obblighi_conduttore"
+        ],
+        "suggestedInstitutes": [
+          "risoluzione",
+          "inadempimento",
+          "obbligazione",
+          "locazione"
+        ],
+        "targetArticles": "Art. 1573-1576 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 4243
+      },
+      "score": {
+        "total": 27,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[31m✗\u001b[0m sublocazione missing",
+          "\u001b[32m✓\u001b[0m locazione",
+          "\u001b[32m✓\u001b[0m risoluzione",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1453",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1454",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1455",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1456",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1457",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1458",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1459",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1460",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1218",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1219",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1220",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1221",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1224",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 15,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[31m✗\u001b[0m Art.1594 missing"
+        ]
+      }
+    },
+    "total": 42,
+    "max": 60,
+    "percentage": 70
+  },
+  {
+    "id": 15,
+    "name": "Eccezione di inadempimento",
+    "question": "Il fornitore non ha consegnato la merce. Posso rifiutarmi di pagare?",
+    "prep": {
+      "result": {
+        "legalQuery": "inadempimento contratto obbligazione pagamento merce non consegnata",
+        "mechanismQuery": "inadempimento contrattuale risoluzione contratto art 1453 1455 1460",
+        "keywords": [
+          "inadempimento",
+          "contratto",
+          "obbligazione",
+          "pagamento",
+          "merce"
+        ],
+        "legalAreas": [
+          "vendita",
+          "contratto",
+          "obbligazione"
+        ],
+        "suggestedInstitutes": [
+          "inadempimento",
+          "risoluzione",
+          "contratto",
+          "obbligazione"
+        ],
+        "targetArticles": "Art. 1453-1460 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 3939
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m inadempimento",
+          "\u001b[32m✓\u001b[0m mechanism"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1218",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1219",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1220",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1221",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1224",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1225",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1453",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1454",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1455",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1456",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1457",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1458",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1459",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 23,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[32m✓\u001b[0m Art.1453",
+          "\u001b[31m✗\u001b[0m Art.1460 missing"
+        ]
+      }
+    },
+    "total": 53,
+    "max": 60,
+    "percentage": 88
+  },
+  {
+    "id": 16,
+    "name": "Mora del debitore",
+    "question": "Quando scatta la mora del debitore e quali sono le conseguenze?",
+    "prep": {
+      "result": {
+        "legalQuery": "mora debitore scadenza obbligazione inadempimento",
+        "mechanismQuery": "inadempimento obbligazione mora interessi mora contrattuale art 1281 1282 1283",
+        "keywords": [
+          "mora",
+          "debitore",
+          "inadempimento",
+          "obbligazione"
+        ],
+        "legalAreas": [
+          "obbligazione",
+          "contratto"
+        ],
+        "suggestedInstitutes": [
+          "inadempimento",
+          "obbligazione",
+          "mora",
+          "contratto",
+          "risoluzione"
+        ],
+        "targetArticles": "Art. 1218-1225 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 4592
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m mora",
+          "\u001b[32m✓\u001b[0m inadempimento",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 40,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1218",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1219",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1220",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1221",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1224",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1225",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1173",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1174",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1175",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1176",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1177",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1178",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1179",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[32m✓\u001b[0m Art.1219"
+        ]
+      }
+    },
+    "total": 60,
+    "max": 60,
+    "percentage": 100
+  },
+  {
+    "id": 17,
+    "name": "Danno da cose in custodia",
+    "question": "Un vaso è caduto dal mio balcone e ha ferito un passante. Sono responsabile?",
+    "prep": {
+      "result": {
+        "legalQuery": "responsabilità danni terzo vaso caduto balcone",
+        "mechanismQuery": "responsabilità extracontrattuale fatto illecito danno risarcimento",
+        "keywords": [
+          "responsabilità",
+          "danni",
+          "terzo",
+          "vaso",
+          "balcone"
+        ],
+        "legalAreas": [
+          "responsabilità_extracontrattuale",
+          "danno"
+        ],
+        "suggestedInstitutes": [
+          "responsabilità_extracontrattuale",
+          "fatto_illecito",
+          "danno",
+          "risarcimento"
+        ],
+        "targetArticles": "Art. 2043-2044 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 4061
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m responsabilità_extracontrattuale",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 7,
+      "articles": [
+        {
+          "ref": "Art. 1669",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2043",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2044",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2045",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2046",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2047",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2048",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2049",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2050",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1218",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1219",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1220",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1221",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 23,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[32m✓\u001b[0m Art.2043",
+          "\u001b[31m✗\u001b[0m Art.2051 missing"
+        ]
+      }
+    },
+    "total": 53,
+    "max": 60,
+    "percentage": 88
+  },
+  {
+    "id": 18,
+    "name": "Differenza ipoteca e pegno",
+    "question": "Che differenza c'è tra ipoteca e pegno come garanzia per un prestito?",
+    "prep": {
+      "result": {
+        "legalQuery": "ipoteca pegno garanzia prestito differenza",
+        "mechanismQuery": "garanzia reale ipoteca pegno differenza effetti",
+        "keywords": [
+          "ipoteca",
+          "pegno",
+          "garanzia",
+          "prestito"
+        ],
+        "legalAreas": [
+          "vendita_immobiliare",
+          "garanzia_reale"
+        ],
+        "suggestedInstitutes": [
+          "ipoteca",
+          "pegno",
+          "garanzia_reale",
+          "vendita_immobiliare",
+          "contratto"
+        ],
+        "targetArticles": "Art. 2827-2834 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 2324
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[31m✗\u001b[0m type:specific (expected systematic)",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m ipoteca",
+          "\u001b[32m✓\u001b[0m pegno",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 40,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 2808",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2809",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2810",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2811",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2812",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2813",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2814",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2815",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2784",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2785",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2786",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2787",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2788",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2789",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 2790",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 3)",
+          "\u001b[32m✓\u001b[0m Art.2784",
+          "\u001b[32m✓\u001b[0m Art.2808"
+        ]
+      }
+    },
+    "total": 55,
+    "max": 60,
+    "percentage": 92
+  },
+  {
+    "id": 19,
+    "name": "Prescrizione del diritto al risarcimento",
+    "question": "Quanto tempo ho per chiedere il risarcimento danni da inadempimento contrattuale?",
+    "prep": {
+      "result": {
+        "legalQuery": "risarcimento danni inadempimento contrattuale termini prescrizione",
+        "mechanismQuery": "inadempimento obbligazione risoluzione contratto art 1453 1455 1460",
+        "keywords": [
+          "risarcimento danni",
+          "inadempimento contrattuale",
+          "prescrizione"
+        ],
+        "legalAreas": [
+          "obbligazione",
+          "inadempimento",
+          "risoluzione"
+        ],
+        "suggestedInstitutes": [
+          "obbligazione",
+          "inadempimento",
+          "risoluzione",
+          "prescrizione"
+        ],
+        "targetArticles": "Art. 1223-1225 c.c.",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 468
+      },
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[32m✓\u001b[0m prescrizione",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 32,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1173",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1174",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1175",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1176",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1177",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1178",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1179",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1180",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1218",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1219",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1220",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1221",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1222",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1223",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1224",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 15,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[31m✗\u001b[0m Art.2946 missing"
+        ]
+      }
+    },
+    "total": 45,
+    "max": 60,
+    "percentage": 75
+  },
+  {
+    "id": 20,
+    "name": "Clausola abusiva in contratto consumatore",
+    "question": "Il contratto con l'operatore telefonico prevede che possono cambiare le condizioni quando vogliono. È legale?",
+    "prep": {
+      "result": {
+        "legalQuery": "condizioni contratto operatore telefonico clausole vessatorie",
+        "mechanismQuery": "interpretazione contratto clausole vessatorie condizioni generali approvazione specifica per iscritto doppia firma art 1341 1342 nullità art 1418",
+        "keywords": [
+          "clausole_vessatorie",
+          "contratto",
+          "operatore telefonico"
+        ],
+        "legalAreas": [
+          "diritto civile",
+          "diritto dei consumatori"
+        ],
+        "suggestedInstitutes": [
+          "clausole_vessatorie",
+          "nullità",
+          "tutela_consumatore"
+        ],
+        "targetArticles": "Art. 1341-1342 c.c., Art. 1418-1419 c.c., Art. 33 D.Lgs. 206/2005",
+        "questionType": "specific",
+        "needsProceduralLaw": false,
+        "needsCaseLaw": false,
+        "scopeNotes": null,
+        "provider": "cerebras",
+        "durationMs": 562
+      },
+      "score": {
+        "total": 25,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m type:specific",
+          "\u001b[32m✓\u001b[0m c.p.c.:false",
+          "\u001b[32m✓\u001b[0m giurispr.:false",
+          "\u001b[31m✗\u001b[0m clausole_abusive missing",
+          "\u001b[32m✓\u001b[0m tutela_consumatore",
+          "\u001b[2m~ mechanism n/a\u001b[0m"
+        ]
+      }
+    },
+    "search": {
+      "articleCount": 15,
+      "instituteCount": 24,
+      "semanticCount": 14,
+      "articles": [
+        {
+          "ref": "Art. 1229",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1336",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1337",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1338",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1339",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1340",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1341",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1342",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 129-bis",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1418",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 1419",
+          "source": "Codice Civile",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 100",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        },
+        {
+          "ref": "Art. 128",
+          "source": "D.Lgs. 206/2005",
+          "similarity": "istituto"
+        }
+      ],
+      "score": {
+        "total": 30,
+        "max": 30,
+        "details": [
+          "\u001b[32m✓\u001b[0m 15 articoli (min 2)",
+          "\u001b[32m✓\u001b[0m Art.33"
+        ]
+      }
+    },
+    "total": 55,
+    "max": 60,
+    "percentage": 92
+  }
+]

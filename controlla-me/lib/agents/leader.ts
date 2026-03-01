@@ -11,7 +11,7 @@
 
 import { runAgent } from "../ai-sdk/agent-runner";
 import { LEADER_SYSTEM_PROMPT } from "../prompts/leader";
-import type { LeaderDecision } from "../types";
+import type { LeaderDecision, ConversationTurn } from "../types";
 
 export interface LeaderInput {
   message?: string;
@@ -19,6 +19,8 @@ export interface LeaderInput {
   fileName?: string;
   /** Length of document text if already extracted */
   textLength?: number;
+  /** Ultimi N turni della conversazione — usati per session memory */
+  history?: ConversationTurn[];
 }
 
 /** Parole troppo vaghe per procedere senza chiarimento */
@@ -108,10 +110,25 @@ export async function runLeaderAgent(
   }
 
   // Ambiguo: chiedi al LLM
+  const { history } = input;
+
+  const historyBlock =
+    history && history.length > 0
+      ? `CONVERSAZIONE PRECEDENTE (ultimi ${history.length} turni):\n${history
+          .map(
+            (t) =>
+              `[${t.role === "user" ? "Utente" : "Sistema"}${t.fileName ? ` (doc: ${t.fileName})` : ""}]: ${t.content}`
+          )
+          .join("\n")}\n\n`
+      : "";
+
   const prompt = [
+    historyBlock,
     `FILE ALLEGATO: ${hasFile ? `Sì (${fileName ?? "file"})` : "No"}`,
     `MESSAGGIO UTENTE:\n${trimmedMessage || "(nessun messaggio)"}`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   console.log(
     `[LEADER] Caso ambiguo — hasFile: ${hasFile}, message: ${trimmedMessage.length} chars → LLM call`

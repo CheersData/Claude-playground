@@ -10,7 +10,12 @@
 
 // ─── Data Source ───
 
-export type DataType = "legal-articles" | "market-data" | "model-benchmark" | "feed-items";
+export type DataType =
+  | "legal-articles"
+  | "hr-articles"          // Diritto del lavoro + sicurezza — stesso stack di legal-articles
+  | "market-data"
+  | "model-benchmark"
+  | "feed-items";
 
 export type SourceLifecycle =
   | "planned"        // Fonte definita, nessun test
@@ -24,6 +29,8 @@ export interface DataSource {
   name: string;
   shortName: string;
   dataType: DataType;
+  /** Dominio verticale: "legal" | "hr" | "real-estate" | ... (default: "legal") */
+  vertical: string;
   connector: string;                       // "normattiva" | "eurlex" | "rss" | "api"
   config: Record<string, unknown>;         // config specifica del connettore
   lifecycle: SourceLifecycle;

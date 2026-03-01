@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateUser, parseAuthInput } from "@/lib/console-auth";
 import { generateToken } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { auditLog, extractRequestMeta } from "@/lib/middleware/audit-log";
 
 export async function POST(req: NextRequest) {
   // Rate limiting (SEC-003)
-  const rl = checkRateLimit(req);
+  const rl = await checkRateLimit(req);
   if (rl) return rl;
 
   const body = await req.json();
@@ -30,10 +31,20 @@ export async function POST(req: NextRequest) {
 
   const result = authenticateUser(parsed.nome, parsed.cognome, parsed.ruolo);
 
+  const { ipAddress, userAgent } = extractRequestMeta(req);
+
   if (result.authorized && result.user) {
     const u = result.user;
     // SEC-004: genera token HMAC-SHA256 con tier default e sid univoco
     const token = generateToken({ nome: u.nome, cognome: u.cognome, ruolo: u.ruolo });
+    // SEC-006: audit log accesso riuscito
+    void auditLog({
+      eventType: "auth.login",
+      ipAddress,
+      userAgent,
+      payload: { ruolo: u.ruolo, cognome: u.cognome },
+      result: "success",
+    });
     return NextResponse.json({
       authorized: true,
       user: { nome: u.nome, cognome: u.cognome, ruolo: u.ruolo },
@@ -42,6 +53,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // SEC-006: audit log accesso negato
+  void auditLog({
+    eventType: "auth.failed",
+    ipAddress,
+    userAgent,
+    payload: { ruolo: parsed.ruolo, nome: parsed.nome },
+    result: "failure",
+  });
   return NextResponse.json({
     authorized: false,
     message: `Accesso non autorizzato per ${parsed.ruolo} ${parsed.nome} ${parsed.cognome}.\nQuesta console è riservata agli utenti autorizzati.`,

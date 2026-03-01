@@ -22,6 +22,17 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 **Nota:** il CLI non può girare dentro una sessione Claude Code attiva (nested session). Gli script vanno eseguiti dal terminale esterno.
 
+### Task-runner e demo environment — COMPORTAMENTO ATTESO
+
+`scripts/task-runner.ts` è lo script di esecuzione autonoma dei task aziendali. Usa correttamente `spawnSync('claude', ['-p'])` (CLI, non SDK). **In ambiente demo fallisce sempre** per uno di questi motivi:
+
+1. `spawnSync claude ENOENT` — `claude` non è nel PATH del terminale che esegue lo script
+2. `claude -p exit 1 | Credit balance is too low` — crediti API insufficienti (ambiente demo)
+
+**Conseguenza:** il task-runner lascia i task in stato `in_progress` (o `blocked`) con messaggio di errore nel campo `result`. Questi task NON sono stati eseguiti.
+
+**Soluzione obbligatoria in ambiente demo:** CME (Claude Code) esegue i task MANUALMENTE leggendo description e department.md del dipartimento, senza delegare al task-runner. Il task-runner è riservato ad ambienti con crediti API attivi e `claude` nel PATH.
+
 ### Per l'app runtime (`app/`, `lib/agents/`, `lib/ai-sdk/`)
 
 L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.ts` (tier system + fallback). Questa regola NON si applica al codice runtime dell'app.

@@ -5,7 +5,7 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
   // Rate limit per IP (route pubblica — anche anonimi possono chiamarla)
-  const limited = checkRateLimit(req);
+  const limited = await checkRateLimit(req);
   if (limited) return limited;
 
   const supabase = await createClient();

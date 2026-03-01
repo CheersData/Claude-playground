@@ -55,7 +55,7 @@ export default function Home() {
       .then((data) => {
         if (data?.advice) {
           setResult(data.advice);
-          setFileName(data.documentTextPreview?.slice(0, 30) + "..." || "cached");
+          setFileName(data.sessionId ? `sessione-${data.sessionId.slice(0, 8)}` : "cached");
           setSessionId(data.sessionId);
           setView("results");
         }

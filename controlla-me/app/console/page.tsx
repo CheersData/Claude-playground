@@ -13,6 +13,7 @@ import type {
   ConsoleAgentPhase,
   ConsolePhaseStatus,
   LeaderDecision,
+  ConversationTurn,
 } from "@/lib/types";
 
 type PageStatus = "idle" | "processing" | "done" | "error" | "clarification";
@@ -99,6 +100,14 @@ export default function ConsolePage() {
   const [clarificationQ, setClarificationQ] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Session Memory ──
+  const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
+  // Store last submit params for retry
+  const retryParamsRef = useRef<{ message: string; file: File | null } | null>(null);
+  // Queue: message waiting while processing
+  const queuedRef = useRef<{ message: string; file: File | null } | null>(null);
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [powerOpen, setPowerOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
@@ -186,6 +195,15 @@ export default function ConsolePage() {
         return;
       }
 
+      // Queue: se sta già elaborando, accoda il messaggio e aspetta
+      if (status === "processing") {
+        queuedRef.current = { message, file };
+        return;
+      }
+
+      // Salva per retry
+      retryParamsRef.current = { message, file };
+
       setStatus("processing");
       setLeaderDecision(null);
       setAgentStatuses(new Map());
@@ -199,10 +217,32 @@ export default function ConsolePage() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      // Timeout 5 minuti (matching server maxDuration=300)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        controller.abort();
+        setError("Timeout: elaborazione superata 5 minuti. Riprova.");
+        setStatus("error");
+      }, 300_000);
+
+      // Appende turno utente alla history
+      const userTurn: ConversationTurn = {
+        role: "user",
+        content: message || (file ? `[Documento: ${file.name}]` : ""),
+        fileName: file?.name,
+        timestamp: Date.now(),
+      };
+
       try {
         const formData = new FormData();
         if (message.trim()) formData.append("message", message);
         if (file) formData.append("file", file);
+
+        // Session memory: invia gli ultimi 5 turni
+        const historyToSend = conversationHistory.slice(-5);
+        if (historyToSend.length > 0) {
+          formData.append("history", JSON.stringify(historyToSend));
+        }
 
         // SEC-004: invia token JWT nell'header Authorization
         const token = sessionStorage.getItem("lexmea-token");
@@ -232,6 +272,7 @@ export default function ConsolePage() {
 
         const decoder = new TextDecoder();
         let buffer = "";
+        let finalRoute: string | undefined;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -255,6 +296,9 @@ export default function ConsolePage() {
               if (eventType && eventData) {
                 try {
                   const data = JSON.parse(eventData);
+                  if (eventType === "complete" && data.route) {
+                    finalRoute = data.route;
+                  }
                   processEvent(eventType, data);
                 } catch {
                   // Skip malformed
@@ -266,18 +310,57 @@ export default function ConsolePage() {
           }
         }
 
+        // Appende turno assistant alla history con sintesi
+        const assistantTurn: ConversationTurn = {
+          role: "assistant",
+          content: finalRoute
+            ? `Pipeline completata: ${finalRoute}`
+            : "Elaborazione completata",
+          route: finalRoute as ConversationTurn["route"],
+          timestamp: Date.now(),
+        };
+        setConversationHistory((prev) => [...prev, userTurn, assistantTurn].slice(-10));
+
         setStatus((prev) => (prev === "processing" ? "done" : prev));
+
+        // Esegui messaggio in coda (se presente)
+        const queued = queuedRef.current;
+        if (queued) {
+          queuedRef.current = null;
+          setTimeout(() => handleSubmit(queued.message, queued.file), 100);
+        }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         const msg =
           err instanceof Error ? err.message : "Errore di connessione";
         setError(msg);
         setStatus("error");
+      } finally {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [authPhase, handleAuth]
+    [authPhase, handleAuth, status, conversationHistory]
   );
+
+  // ── Abort handler ──
+  const handleAbort = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort();
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    queuedRef.current = null;
+    setStatus("idle");
+    setError(null);
+  }, []);
+
+  // ── Retry handler ──
+  const handleRetry = useCallback(() => {
+    if (retryParamsRef.current) {
+      handleSubmit(retryParamsRef.current.message, retryParamsRef.current.file);
+    }
+  }, [handleSubmit]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const processEvent = useCallback((eventType: string, data: any) => {
@@ -419,10 +502,30 @@ export default function ConsolePage() {
               }
             />
 
+            {/* Abort button while processing */}
+            {status === "processing" && (
+              <div className="flex justify-end">
+                <button
+                  onClick={handleAbort}
+                  className="text-xs text-[#9B9B9B] hover:text-red-500 hover:underline transition-colors"
+                >
+                  Interrompi elaborazione
+                </button>
+              </div>
+            )}
+
             {error && (
               <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
                 <span className="text-xs text-red-500 font-medium">Errore</span>
                 <p className="text-sm text-red-500 mt-1">{error}</p>
+                {retryParamsRef.current && (
+                  <button
+                    onClick={handleRetry}
+                    className="mt-3 text-xs text-red-500 hover:text-red-700 hover:underline transition-colors"
+                  >
+                    Riprova
+                  </button>
+                )}
               </div>
             )}
 

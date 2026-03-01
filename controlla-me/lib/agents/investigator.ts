@@ -5,6 +5,7 @@ import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
 import { searchLegalKnowledge } from "../vector-store";
 import { searchArticles } from "../legal-corpus";
 import { isVectorDBEnabled } from "../embeddings";
+import { logAgentCost } from "../company/cost-logger";
 import type {
   ClassificationResult,
   AnalysisResult,
@@ -12,7 +13,9 @@ import type {
 } from "../types";
 
 // Read model from centralized config instead of hardcoded constant
-const INVESTIGATOR_MODEL = MODELS[AGENT_MODELS["investigator"].primary].model;
+// ARCH-refactor: salviamo anche la ModelKey per il cost tracking (parity con agent-runner)
+const INVESTIGATOR_MODEL_KEY = AGENT_MODELS["investigator"].primary;
+const INVESTIGATOR_MODEL = MODELS[INVESTIGATOR_MODEL_KEY].model;
 
 // ─── Self-Retrieval ───
 
@@ -155,6 +158,10 @@ export async function runInvestigator(
 
   let finalText = "";
   const MAX_ITERATIONS = 5; // CLAUDE.md: max 5 tool_use loop
+  // ARCH-refactor: cumulative token tracking per cost parity con agent-runner
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  const t0 = Date.now();
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
@@ -169,6 +176,10 @@ export async function runInvestigator(
       ],
       messages,
     });
+
+    // Accumula token per cost tracking
+    totalInputTokens += response.usage.input_tokens;
+    totalOutputTokens += response.usage.output_tokens;
 
     const textBlocks = response.content
       .filter(
@@ -208,6 +219,16 @@ export async function runInvestigator(
 
     messages.push({ role: "user", content: toolResults });
   }
+
+  // ARCH-refactor: fire-and-forget cost log (parity con runAgent in agent-runner.ts)
+  logAgentCost({
+    agentName: "investigator",
+    modelKey: INVESTIGATOR_MODEL_KEY,
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
+    durationMs: Date.now() - t0,
+    usedFallback: false,
+  }).catch(() => {});
 
   return parseAgentJSON<InvestigationResult>(finalText);
 }

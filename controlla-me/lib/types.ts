@@ -132,6 +132,17 @@ export interface AdvisorResult {
 
 // ─── Console / Leader Types ───
 
+/** Un turno della conversazione — usato dal Leader per session memory */
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  /** User: messaggio inviato. Assistant: sintesi del risultato (route + risposta breve) */
+  content: string;
+  route?: LeaderRoute;
+  /** Nome del documento allegato (se presente) */
+  fileName?: string;
+  timestamp: number;
+}
+
 export type LeaderRoute = "corpus-qa" | "document-analysis" | "hybrid" | "clarification";
 
 export interface LeaderDecision {

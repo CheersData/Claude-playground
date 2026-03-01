@@ -22,23 +22,23 @@ describe("checkRateLimit", () => {
     vi.useRealTimers();
   });
 
-  it("restituisce null (ok) per le prime richieste sotto il limite", () => {
+  it("restituisce null (ok) per le prime richieste sotto il limite", async () => {
     const req = makeRequest("/api/corpus/ask", "10.0.0.1");
     // Limite corpus/ask: 10 req / 60s
     for (let i = 0; i < 9; i++) {
-      const result = checkRateLimit(req, "user-a");
+      const result = await checkRateLimit(req, "user-a");
       expect(result).toBeNull();
     }
   });
 
-  it("restituisce 429 quando il limite viene superato", () => {
+  it("restituisce 429 quando il limite viene superato", async () => {
     const req = makeRequest("/api/corpus/ask", "10.0.0.2");
     // Consuma tutte le 10 richieste consentite
     for (let i = 0; i < 10; i++) {
-      checkRateLimit(req, "user-b");
+      await checkRateLimit(req, "user-b");
     }
     // La prossima deve essere bloccata
-    const result = checkRateLimit(req, "user-b");
+    const result = await checkRateLimit(req, "user-b");
     expect(result).not.toBeNull();
     expect(result!.status).toBe(429);
   });
@@ -46,25 +46,25 @@ describe("checkRateLimit", () => {
   it("include header Retry-After nella response 429", async () => {
     const req = makeRequest("/api/corpus/ask", "10.0.0.3");
     for (let i = 0; i < 10; i++) {
-      checkRateLimit(req, "user-c");
+      await checkRateLimit(req, "user-c");
     }
-    const result = checkRateLimit(req, "user-c");
+    const result = await checkRateLimit(req, "user-c");
     expect(result).not.toBeNull();
     expect(result!.headers.get("Retry-After")).toBeTruthy();
   });
 
-  it("isola utenti diversi sullo stesso IP", () => {
+  it("isola utenti diversi sullo stesso IP", async () => {
     const req = makeRequest("/api/corpus/ask", "10.0.0.4");
     // user-d consuma il limite
     for (let i = 0; i < 10; i++) {
-      checkRateLimit(req, "user-d");
+      await checkRateLimit(req, "user-d");
     }
     // user-e non è limitato (chiave diversa)
-    const result = checkRateLimit(req, "user-e");
+    const result = await checkRateLimit(req, "user-e");
     expect(result).toBeNull();
   });
 
-  it("applica il match longest-prefix corretto (corpus/ask vs corpus)", () => {
+  it("applica il match longest-prefix corretto (corpus/ask vs corpus)", async () => {
     const askLimit = RATE_LIMITS["api/corpus/ask"];
     const corpusLimit = RATE_LIMITS["api/corpus"];
     // Verifica che le config siano diverse
@@ -74,24 +74,24 @@ describe("checkRateLimit", () => {
     const req = makeRequest("/api/corpus/ask", "10.0.0.5");
     // Consuma fino al limite di corpus/ask (10)
     for (let i = 0; i < askLimit.max; i++) {
-      checkRateLimit(req, "user-f");
+      await checkRateLimit(req, "user-f");
     }
-    const blocked = checkRateLimit(req, "user-f");
+    const blocked = await checkRateLimit(req, "user-f");
     expect(blocked).not.toBeNull();
     expect(blocked!.status).toBe(429);
   });
 
-  it("permette nuove richieste dopo la scadenza della finestra temporale", () => {
+  it("permette nuove richieste dopo la scadenza della finestra temporale", async () => {
     const req = makeRequest("/api/corpus/ask", "10.0.0.6");
     for (let i = 0; i < 10; i++) {
-      checkRateLimit(req, "user-g");
+      await checkRateLimit(req, "user-g");
     }
 
     // Avanza il tempo oltre la finestra (60 secondi)
     vi.advanceTimersByTime(61_000);
 
     // Ora il limite deve essere resettato
-    const result = checkRateLimit(req, "user-g");
+    const result = await checkRateLimit(req, "user-g");
     expect(result).toBeNull();
   });
 });

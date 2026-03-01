@@ -51,6 +51,8 @@ export interface CorpusSource {
   estimatedArticles: number;
   connector?: ConnectorConfig;     // Config specifica per Data Connector
   lifecycle?: SourceLifecycle;     // Stato pipeline (default: "planned")
+  /** Dominio verticale: "legal" | "hr" | "real-estate" | ... (default: "legal") */
+  vertical?: string;
 }
 
 // ─── Fonti Italiane (Normattiva) ───
@@ -332,6 +334,60 @@ export function getSourceById(id: string): CorpusSource | undefined {
 
 export function getSourcesByType(type: "normattiva" | "eurlex"): CorpusSource[] {
   return ALL_SOURCES.filter((s) => s.type === type);
+}
+
+// ─── Vertical Registry ───
+// Mappa verticali → fonti. Ogni verticale è un dominio di conoscenza indipendente.
+// Per aggiungere un verticale: creare le CorpusSource nel file del verticale,
+// poi registrarle qui con registerVertical() o aggiungendo direttamente a SOURCES_BY_VERTICAL.
+
+export type Vertical = string; // Stringa per extensibility — "legal" | "hr" | "real-estate" | ...
+
+/** Mappa verticale → fonti. Mutabile per supporto registrazione dinamica. */
+const _sourcesByVertical: Map<Vertical, CorpusSource[]> = new Map([
+  ["legal", ALL_SOURCES],  // tutte le fonti correnti appartengono al verticale "legal"
+]);
+
+/**
+ * Registra un nuovo verticale con le sue fonti.
+ * Chiamato dai file verticale-specifici (es. hr-sources.ts) all'avvio.
+ * Se il verticale esiste già, le fonti vengono aggiunte (non sostituite).
+ */
+export function registerVertical(vertical: Vertical, sources: CorpusSource[]): void {
+  const existing = _sourcesByVertical.get(vertical) ?? [];
+  _sourcesByVertical.set(vertical, [...existing, ...sources]);
+}
+
+/**
+ * Restituisce tutte le fonti di un verticale.
+ * Se il verticale non esiste, restituisce [].
+ */
+export function getSourcesByVertical(vertical: Vertical): CorpusSource[] {
+  return _sourcesByVertical.get(vertical) ?? [];
+}
+
+/**
+ * Tutti i verticali registrati.
+ */
+export function getVerticals(): Vertical[] {
+  return Array.from(_sourcesByVertical.keys());
+}
+
+/**
+ * Tutte le fonti di tutti i verticali (de-duplicata per id).
+ */
+export function getAllSourcesAcrossVerticals(): CorpusSource[] {
+  const seen = new Set<string>();
+  const result: CorpusSource[] = [];
+  for (const sources of _sourcesByVertical.values()) {
+    for (const s of sources) {
+      if (!seen.has(s.id)) {
+        seen.add(s.id);
+        result.push(s);
+      }
+    }
+  }
+  return result;
 }
 
 // Gerarchia statica del Codice Civile (per il seed)
