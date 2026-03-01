@@ -1050,6 +1050,7 @@ Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 |-------------|----------|------|
 | Ufficio Legale | 7 agenti runtime | `company/ufficio-legale/` |
 | Data Engineering | Pipeline dati legislativi e nuovi corpus | `company/data-engineering/` |
+| | ⚠️ **Scraping = ULTIMA risorsa. Ordine: API ufficiali → repo/dataset open → fonti alternative → scraping (con approvazione boss).** | |
 | Quality Assurance | Test e validazione | `company/quality-assurance/` |
 | Architecture | Soluzioni tecniche | `company/architecture/` |
 | Finance | Costi API | `company/finance/` |
