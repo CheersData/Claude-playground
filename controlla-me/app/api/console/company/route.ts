@@ -28,6 +28,7 @@ const TARGETS: Record<string, { promptFile: string; label: string; model: string
   security:           { promptFile: "security/department.md",           label: "Security TL",          model: "sonnet" },
   marketing:          { promptFile: "marketing/department.md",          label: "Marketing TL",         model: "sonnet" },
   strategy:           { promptFile: "strategy/department.md",           label: "Strategy TL",          model: "sonnet" },
+  trading:            { promptFile: "trading/department.md",            label: "Trading TL",           model: "sonnet" },
 };
 
 export async function POST(req: Request) {

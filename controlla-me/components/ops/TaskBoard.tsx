@@ -41,6 +41,7 @@ const DEPT_EMOJI: Record<string, string> = {
   security: "🛡️",
   strategy: "🎯",
   marketing: "📣",
+  trading: "📈",
 };
 
 export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {

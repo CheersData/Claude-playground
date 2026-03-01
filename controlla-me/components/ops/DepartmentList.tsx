@@ -34,6 +34,7 @@ const DEPT_LABELS: Record<string, string> = {
   security: "Security",
   strategy: "Strategy",
   marketing: "Marketing",
+  trading: "Trading",
 };
 
 const DEPT_ICONS: Record<string, string> = {
@@ -46,6 +47,7 @@ const DEPT_ICONS: Record<string, string> = {
   security: "🛡️",
   strategy: "🎯",
   marketing: "📣",
+  trading: "📈",
 };
 
 const ALL_DEPTS = [
@@ -58,6 +60,7 @@ const ALL_DEPTS = [
   "operations",
   "strategy",
   "marketing",
+  "trading",
 ];
 
 const STATUS_COLORS: Record<string, string> = {

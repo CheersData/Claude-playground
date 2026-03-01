@@ -54,6 +54,7 @@ const DEPT_LABELS: Record<string, string> = {
   security: "Security",
   strategy: "Strategy",
   marketing: "Marketing",
+  trading: "Ufficio Trading",
 };
 
 const DEPT_ICONS: Record<string, string> = {
@@ -66,6 +67,7 @@ const DEPT_ICONS: Record<string, string> = {
   security: "🛡️",
   strategy: "🎯",
   marketing: "📣",
+  trading: "📈",
 };
 
 function formatDate(iso: string) {

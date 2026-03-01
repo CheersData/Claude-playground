@@ -78,6 +78,8 @@ const ALL_DEPTS = [
   "strategy",
   "marketing",
   "ufficio-legale",
+  "trading",
+  "ux-ui",
 ];
 
 // ─── Contesto aziendale per il modello ───

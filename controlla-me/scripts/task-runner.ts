@@ -53,6 +53,8 @@ const DEPARTMENTS: Department[] = [
   "security",
   "strategy",
   "marketing",
+  "trading",
+  "ux-ui",
 ];
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = {

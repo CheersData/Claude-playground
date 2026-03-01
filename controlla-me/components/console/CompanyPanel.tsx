@@ -23,7 +23,8 @@ type TargetKey =
   | "operations"
   | "security"
   | "marketing"
-  | "strategy";
+  | "strategy"
+  | "trading";
 
 interface DashboardData {
   board: {
@@ -66,6 +67,7 @@ const TARGETS: { key: TargetKey; label: string; short: string }[] = [
   { key: "security", label: "Security TL", short: "Security" },
   { key: "marketing", label: "Marketing TL", short: "Marketing" },
   { key: "strategy", label: "Strategy TL", short: "Strategy" },
+  { key: "trading", label: "Trading TL", short: "Trading" },
 ];
 
 const DEPT_NAMES: Record<string, string> = {
@@ -78,6 +80,7 @@ const DEPT_NAMES: Record<string, string> = {
   security: "Security",
   marketing: "Marketing",
   strategy: "Strategy",
+  trading: "Trading",
 };
 
 // ── Component ──

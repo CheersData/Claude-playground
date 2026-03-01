@@ -37,6 +37,8 @@ const DEPT_LABELS: Record<string, { emoji: string; label: string }> = {
   "security":         { emoji: "🛡️",  label: "Security" },
   "strategy":         { emoji: "🎯",  label: "Strategy" },
   "marketing":        { emoji: "📣",  label: "Marketing" },
+  "ux-ui":            { emoji: "🎨",  label: "UX/UI" },
+  "trading":          { emoji: "📈",  label: "Ufficio Trading" },
 };
 
 const PRIORITY_ICON: Record<string, string> = {
@@ -177,6 +179,8 @@ async function generatePlan(date: string): Promise<string> {
         "finance":   "💡 Suggerimento: considera generare il cost report mensile.",
         "operations":"💡 Suggerimento: considera verificare lo status degli agenti runtime.",
         "security":  "💡 Suggerimento: considera schedulare un security audit periodico.",
+        "ux-ui":     "💡 Suggerimento: considera eseguire un audit accessibilità o verificare il Beauty Report.",
+        "trading":   "💡 Suggerimento: considera verificare il portfolio status o lanciare la pipeline di trading.",
       };
       if (suggestions[dp.dept]) {
         lines.push("");

@@ -44,6 +44,7 @@ const DEPT_EMOJI: Record<string, string> = {
   security: "🛡️",
   strategy: "🎯",
   marketing: "📣",
+  trading: "📈",
 };
 
 export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoardFullscreenProps) {
