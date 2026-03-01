@@ -30,7 +30,9 @@ ENV/
 *.swo
 
 # Backtest output
+backtest-results/
 backtest_results/
+.backtest-cache/
 
 # Env
 .env
