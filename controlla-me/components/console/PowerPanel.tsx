@@ -103,13 +103,14 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
       const res = await fetch("/api/console/tier", {
         headers: getAuthHeaders(),
       });
-      if (res.status === 401) return; // token scaduto, skip silenzioso
+      if (!res.ok) return; // 401/429/500 — skip silenzioso
       const json = await res.json();
-      setData(json);
+      if (json?.current) setData(json); // ignora risposte senza current (errori JSON)
     } catch {
       // ignore
+    } finally {
+      setLoading(false); // garantito sempre, anche su early return
     }
-    setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -126,14 +127,17 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         headers: getAuthHeaders(),
         body: JSON.stringify({ tier }),
       });
-      if (res.status === 401) return;
+      if (!res.ok) return; // 401/429/500 — skip silenzioso
       const json = await res.json();
-      saveToken(json);
-      setData(json);
+      if (json?.current) { // ignora risposte senza current (errori JSON)
+        saveToken(json);
+        setData(json);
+      }
     } catch {
       // ignore
+    } finally {
+      setSwitching(false); // garantito sempre, anche su early return
     }
-    setSwitching(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.current]);
 
@@ -144,10 +148,12 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         headers: getAuthHeaders(),
         body: JSON.stringify({ agent, enabled }),
       });
-      if (res.status === 401) return;
+      if (!res.ok) return; // 401/429/500 — skip silenzioso
       const json = await res.json();
-      saveToken(json);
-      setData(json);
+      if (json?.current) { // ignora risposte senza current (errori JSON)
+        saveToken(json);
+        setData(json);
+      }
     } catch {
       // ignore
     }

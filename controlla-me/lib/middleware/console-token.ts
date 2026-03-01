@@ -76,6 +76,19 @@ export interface ConsoleTokenPayload {
 // ─── Core ───
 
 /**
+ * Tier di default per nuove sessioni console.
+ * Configurabile via env var CONSOLE_DEFAULT_TIER.
+ * Valori validi: "intern" | "associate" | "partner"
+ * Default: "partner" (backward compat).
+ * Su poimandres.work (piano free): impostare CONSOLE_DEFAULT_TIER=intern.
+ */
+function getDefaultTier(): TierName {
+  const env = process.env.CONSOLE_DEFAULT_TIER as TierName | undefined;
+  if (env === "intern" || env === "associate" || env === "partner") return env;
+  return "partner";
+}
+
+/**
  * Genera un token firmato per un utente autenticato.
  * Il sid è stabile per tutta la durata della sessione;
  * tier e disabledAgents cambiano con refreshToken().
@@ -94,7 +107,7 @@ export function generateToken(
     cognome: user.cognome,
     ruolo: user.ruolo,
     sid: options.sid ?? randomBytes(16).toString("hex"),
-    tier: options.tier ?? "partner",
+    tier: options.tier ?? getDefaultTier(),
     disabledAgents: options.disabledAgents ?? [],
     iat: Date.now(),
     exp: Date.now() + TOKEN_TTL_MS,

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Loader2, Lock } from "lucide-react";
+import Link from "next/link";
 import type { Risk } from "@/lib/types";
 import DeepSearchChat from "./DeepSearchChat";
 
@@ -10,6 +11,14 @@ interface RiskCardProps {
   risk: Risk;
   index: number;
   analysisId?: string;
+}
+
+interface UsageData {
+  authenticated: boolean;
+  plan: "free" | "pro";
+  canDeepSearch: boolean;
+  deepSearchUsed: number;
+  deepSearchLimit: number;
 }
 
 const severityStyles = {
@@ -35,7 +44,40 @@ const severityStyles = {
 
 export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
   const [showDeepSearch, setShowDeepSearch] = useState(false);
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
   const style = severityStyles[risk.severity] || severityStyles.media;
+
+  const handleDeepSearchClick = async () => {
+    if (showDeepSearch) {
+      setShowDeepSearch(false);
+      return;
+    }
+
+    // Se abbiamo già il dato e il deep search è consentito, apri subito
+    if (usageData?.canDeepSearch) {
+      setShowDeepSearch(true);
+      return;
+    }
+
+    // Check usage prima di aprire il chat
+    setUsageLoading(true);
+    try {
+      const res = await fetch("/api/user/usage");
+      if (res.ok) {
+        const data = await res.json() as UsageData;
+        setUsageData(data);
+        setShowDeepSearch(true); // mostra il pannello (con paywall o chat)
+      } else {
+        // In caso di errore, mostra la chat (fail-open, il backend gesta i limiti)
+        setShowDeepSearch(true);
+      }
+    } catch {
+      setShowDeepSearch(true);
+    } finally {
+      setUsageLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -65,10 +107,15 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
       )}
 
       <button
-        onClick={() => setShowDeepSearch(!showDeepSearch)}
-        className="flex items-center gap-1.5 text-xs font-medium text-accent/70 hover:text-accent transition-colors"
+        onClick={handleDeepSearchClick}
+        disabled={usageLoading}
+        className="flex items-center gap-1.5 text-xs font-medium text-accent/70 hover:text-accent transition-colors disabled:opacity-50"
       >
-        <Search className="w-3.5 h-3.5" />
+        {usageLoading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Search className="w-3.5 h-3.5" />
+        )}
         Approfondisci questo punto
       </button>
 
@@ -78,11 +125,57 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
           animate={{ opacity: 1, height: "auto" }}
           className="mt-3 pt-3 border-t border-border"
         >
-          <DeepSearchChat
-            clauseContext={`${risk.title}: ${risk.detail}`}
-            existingAnalysis={`Base legale: ${risk.legalBasis || "N/A"}. Sentenza: ${risk.courtCase || "N/A"}`}
-            analysisId={analysisId}
-          />
+          {/* Paywall: utente non autenticato */}
+          {usageData && !usageData.authenticated && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-accent/5 border border-accent/20">
+              <Lock className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">
+                  Accedi per approfondire
+                </p>
+                <p className="text-xs text-foreground-secondary mb-3">
+                  La ricerca approfondita richiede un account.
+                </p>
+                <Link
+                  href="/dashboard"
+                  className="inline-block px-4 py-1.5 rounded-full text-xs font-bold text-white bg-accent hover:bg-accent/90 transition-colors"
+                >
+                  Accedi
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Paywall: limite deep search gratuito esaurito */}
+          {usageData && usageData.authenticated && !usageData.canDeepSearch && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-accent/5 border border-accent/20">
+              <Lock className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">
+                  Limite ricerche approfondite raggiunto
+                </p>
+                <p className="text-xs text-foreground-secondary mb-3">
+                  Hai usato {usageData.deepSearchUsed}/{usageData.deepSearchLimit} ricerche gratuite questo mese.
+                  Passa a Pro per ricerche illimitate.
+                </p>
+                <Link
+                  href="/pricing"
+                  className="inline-block px-4 py-1.5 rounded-full text-xs font-bold text-white bg-accent hover:bg-accent/90 transition-colors"
+                >
+                  Upgrade a Pro &mdash; &euro;4,99/mese
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Deep search chat: utente autenticato e dentro i limiti */}
+          {(!usageData || (usageData.authenticated && usageData.canDeepSearch)) && (
+            <DeepSearchChat
+              clauseContext={`${risk.title}: ${risk.detail}`}
+              existingAnalysis={`Base legale: ${risk.legalBasis || "N/A"}. Sentenza: ${risk.courtCase || "N/A"}`}
+              analysisId={analysisId}
+            />
+          )}
         </motion.div>
       )}
     </motion.div>

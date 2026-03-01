@@ -19,28 +19,30 @@ const SCORE_ITEMS: Array<{
 }> = [
   {
     key: "legalCompliance",
-    label: "Aderenza legale",
-    description: "Conformità al quadro normativo vigente",
+    label: "Conformità Legale",
+    description: "Aderenza al quadro normativo vigente",
     Icon: Gavel,
   },
   {
     key: "contractBalance",
-    label: "Equilibrio contratto",
+    label: "Equilibrio Contrattuale",
     description: "Bilanciamento tra le parti contrattuali",
     Icon: Scale,
   },
   {
     key: "industryPractice",
-    label: "Prassi di settore",
+    label: "Prassi di Settore",
     description: "Conformità agli standard di mercato",
     Icon: TrendingUp,
   },
 ];
 
 function getScoreColor(value: number): string {
-  if (value >= 7) return "#2ECC40";
-  if (value >= 5) return "#FF851B";
-  return "#FF4136";
+  if (value >= 9) return "#2ECC40";   // verde — conforme / equilibrato
+  if (value >= 7) return "#7BC67E";   // giallo-verde — buono
+  if (value >= 5) return "#FF851B";   // giallo/arancione — problemi
+  if (value >= 3) return "#E8601C";   // arancione — critico
+  return "#FF4136";                   // rosso — gravemente squilibrato
 }
 
 function ScoreBreakdown({ scores }: { scores: MultiDimensionalScore }) {

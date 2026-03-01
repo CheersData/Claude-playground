@@ -25,6 +25,12 @@ Endpoint: `/ops`
 | QAStatus | Test pass/fail | ultimo run QA |
 | PipelineStatus | Stato sync per fonte | `connector_sync_log` |
 
+## Agenti
+
+| Agente | Ruolo |
+|--------|-------|
+| sistemista | Dependency audit, performance profiling, infra monitoring, build health |
+
 ## Runbooks
 
 - `runbooks/status-report.md` — Come generare un report di stato

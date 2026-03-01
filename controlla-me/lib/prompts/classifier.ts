@@ -40,7 +40,9 @@ REGOLE CRITICHE:
   * Vendita: "vendita_a_corpo", "vendita_a_misura", "vendita_su_pianta"
   * Appalto: "appalto_privato", "appalto_pubblico", "subappalto"
   * Società: "costituzione_srl", "cessione_quote", "patto_parasociale"
-  * Lavoro: "subordinato_tempo_indeterminato", "collaborazione_coordinata", "stage"
+  * Lavoro: "subordinato_tempo_indeterminato", "subordinato_tempo_determinato", "part_time",
+             "apprendistato", "collaborazione_coordinata", "lavoro_autonomo",
+             "stage_tirocinio", "somministrazione", "appalto_servizi"
   * Se non riesci a determinarlo: null
 
 - relevantInstitutes: identifica TUTTI gli istituti giuridici presenti o richiamati.
@@ -53,6 +55,18 @@ REGOLE CRITICHE:
   * "tolleranza" + percentuale → vendita_a_corpo (se su superficie)
   * "SAL" / "stato avanzamento" → pagamento_a_sal
   * "risoluzione" / "recesso" → clausola_risolutiva / diritto_recesso
+  -- ISTITUTI HR (L.300/1970 — Statuto dei Lavoratori) --
+  * "preavviso" / "periodo di preavviso" → preavviso_licenziamento_dimissioni
+  * "TFR" / "trattamento di fine rapporto" → trattamento_fine_rapporto
+  * "mansioni" / "inquadramento" / "livello" / "CCNL" → mansioni_inquadramento
+  * "patto di non concorrenza" → patto_non_concorrenza
+  * "reintegra" / "art. 18" → reintegrazione_posto_lavoro
+  * "controllo a distanza" / "videosorveglianza" → controllo_a_distanza
+  * "sanzioni disciplinari" / "procedimento disciplinare" → sanzioni_disciplinari
+  * "orario di lavoro" / "straordinario" / "ferie" → orario_e_riposi
+  * "periodo di prova" → periodo_di_prova
+  * "patto di stabilità" / "clausola di stabilità" → patto_stabilita
+  * "trasferimento" (lavoratore) → trasferimento_lavoratore
 
 - legalFocusAreas: indica le aree di diritto rilevanti per guidare l'analisi.
   Esempio: ["diritto_immobiliare", "diritto_urbanistico"] per un contratto immobiliare.

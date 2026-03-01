@@ -38,6 +38,7 @@ export const HR_SOURCES: CorpusSource[] = [
       normattivaSearchTerms: ["decreto legislativo 81 2008", "sicurezza lavoro 81 2008", "testo unico sicurezza"],
       codiceRedazionale: "008G0104",   // codice verificato via API Normattiva 2026-03-01
       directAkn: true,                 // ZIP async vuoti → usa caricaAKN diretto
+      normattivaDataGU: "20080430",    // G.U. n. 101 del 30 aprile 2008 (Suppl. Ord. n. 108)
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -59,6 +60,9 @@ export const HR_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.legislativo",
       normattivaSearchTerms: ["decreto legislativo 276 2003", "legge biagi"],
+      codiceRedazionale: "003G0297",   // codice verificato via API Normattiva 2026-03-01
+      directAkn: true,                 // ZIP async vuoti → usa caricaAKN diretto
+      normattivaDataGU: "20031009",    // G.U. n. 235 del 9 ottobre 2003
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -103,6 +107,9 @@ export const HR_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.legislativo",
       normattivaSearchTerms: ["tutele crescenti 2015", "jobs act licenziamento"],
+      codiceRedazionale: "15G00037",   // codice verificato via API Normattiva 2026-03-01
+      directAkn: true,                 // ZIP async vuoti → usa caricaAKN diretto
+      normattivaDataGU: "20150306",    // G.U. n. 54 del 6 marzo 2015
       preferredFormat: "akn",
     },
     lifecycle: "planned",

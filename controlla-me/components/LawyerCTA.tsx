@@ -30,18 +30,33 @@ export default function LawyerCTA({
     e.preventDefault();
     setIsLoading(true);
 
-    // In a full implementation, this would save to Supabase
-    // For now, simulate a submission
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await fetch("/api/lawyer-referrals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisId,
+          specialization,
+          region: formData.region,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          description: formData.description,
+        }),
+      });
 
-    console.log("Lawyer referral submitted:", {
-      analysisId,
-      specialization,
-      ...formData,
-    });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Errore nel salvataggio della richiesta.");
+      }
 
-    setIsLoading(false);
-    setSubmitted(true);
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Errore invio referral:", err);
+      alert(err instanceof Error ? err.message : "Si è verificato un errore. Riprova.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (submitted) {

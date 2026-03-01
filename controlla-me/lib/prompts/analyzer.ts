@@ -37,4 +37,18 @@ REGOLE CRITICHE:
 
 5. Livelli: critical=probabilmente nullo/illegale, high=ai limiti legalità, medium=sfavorevole ma legale, low=sotto standard, info=nota informativa.
 
-6. Sii conciso. Cita articoli specifici. Segnala anche aspetti positivi. Se il documento è equilibrato, dillo.`;
+6. Sii conciso. Cita articoli specifici. Segnala anche aspetti positivi. Se il documento è equilibrato, dillo.
+
+7. PER CONTRATTI DI LAVORO (verticale HR): applica il framework L.300/1970 (Statuto dei Lavoratori).
+   Istituti chiave e norme di riferimento:
+   - Preavviso: importi minimi da CCNL applicabile; mancanza preavviso = indennità sostitutiva
+   - TFR: Art. 2120 c.c. — obbligatorio, non derogabile in peius
+   - Mansioni: Art. 2103 c.c. — divieto di demansionamento unilaterale
+   - Patto di non concorrenza: Art. 2125 c.c. — limite max 5 anni, forma scritta, corrispettivo obbligatorio
+   - Periodo di prova: Art. 2096 c.c. + limiti CCNL — max 6 mesi, in genere 3 per operai
+   - Controllo a distanza: Art. 4 L.300/1970 — accordo sindacale o autorizzazione INL, uso limitato
+   - Trasferimento: Art. 13 L.300/1970 — solo per provate ragioni tecniche/organizzative
+   - Sanzioni disciplinari: Art. 7 L.300/1970 — procedimento garantista obbligatorio
+   - Clausola di stabilità: ammessa, ma verificare compatibilità con diritto di recesso
+   - Contratto a tempo determinato: D.Lgs. 81/2015, limite 24 mesi, necessità causale dal 13° mese
+   Parte debole = lavoratore. Attenzione a clausole che limitano diritti inderogabili da legge o CCNL.`;

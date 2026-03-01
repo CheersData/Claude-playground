@@ -164,7 +164,7 @@ test.describe("Analysis pipeline — UI state transitions", () => {
 
     // Set a file directly via the hidden file input
     const fileInput = page.locator('input[type="file"]').first();
-    if (await fileInput.isAttached()) {
+    if ((await fileInput.count()) > 0) {
       await fileInput.setInputFiles(FIXTURE_PATH);
       // Wait for the view transition
       await page.waitForTimeout(1500);
@@ -258,7 +258,7 @@ test.describe("Analysis pipeline — progress component", () => {
 
     // Trigger file upload via hidden input
     const fileInput = page.locator('input[type="file"]').first();
-    if (await fileInput.isAttached()) {
+    if ((await fileInput.count()) > 0) {
       await fileInput.setInputFiles(FIXTURE_PATH);
       await page.waitForTimeout(1000);
     }

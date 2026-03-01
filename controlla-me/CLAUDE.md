@@ -919,10 +919,10 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
 2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
-3. Deep search limit — Modello dati supporta, **non enforced in UI**. `PaywallBanner.tsx` e `DeepSearchChat.tsx` esistono — manca solo il check pre-apertura chat. Effort: 2-3h. Impatto revenue diretto.
+3. ~~Deep search limit~~ — **COMPLETATO**: Gate paywall implementato in `RiskCard.tsx`. `/api/user/usage` esteso con `deepSearchUsed/deepSearchLimit/canDeepSearch`. Paywall differenziato per non-auth vs limite raggiunto.
 4. Sistema referral avvocati — Tabelle DB esistono (`lawyer_referrals`), nessuna UI. Prerequisito: ADR GDPR su quali dati condividere con l'avvocato e con quale base giuridica.
 5. Test — **PARZIALMENTE COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, agenti core coperti (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + nuova suite `e2e/` (auth, upload, analysis, console). **Gap critici rimasti**: `lib/ai-sdk/agent-runner.ts` (P1), `lib/tiers.ts` (P2), `lib/middleware/console-token.ts` (P3), `lib/analysis-cache.ts` (P4), `lib/ai-sdk/generate.ts` (P5).
-6. CI/CD — `.github/` presente ma pipeline non completamente configurata. **Bloccato da**: migration duplicate 003-007 (TD-3) che rendono il DB push automatico non deterministico.
+6. CI/CD — `.github/` presente ma pipeline non completamente configurata. ~~**Bloccato da**: migration duplicate 003-007 (TD-3)~~ — TD-3 risolto (migrations 001-015). Rimane da configurare: test automatici su PR, build check, deploy preview.
 7. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
 8. UI scoring multidimensionale — Backend pronto (`legalCompliance`, `contractBalance`, `industryPractice`), frontend mostra solo `fairnessScore`. Effort minimo.
 9. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati.
@@ -933,7 +933,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ## 17. SECURITY STATUS (aggiornato 2026-03-01)
 
-**Stato complessivo: 🟡 GIALLO** — Nessun finding critico. 4 finding medi aperti.
+**Stato complessivo: 🟢 VERDE** — Tutti i finding medi risolti (commit 2c7648f). Finding bassi residui non bloccanti.
 
 ### Infrastruttura security esistente (SEC-001..006)
 
@@ -944,20 +944,21 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 - TTL GDPR per dati sensibili
 - Audit log strutturato (EU AI Act compliance)
 
-### Finding medi aperti
+### Finding medi — tutti risolti ✅
 
-| ID | Route/File | Problema | Fix |
-|----|-----------|---------|-----|
-| M1 | `/api/company/*` | Board, tasks, status, cron esposti senza auth | Aggiungere `requireConsoleAuth` |
-| M2 | `/api/console/company`, `/message`, `/stop` | Spawn process senza `requireConsoleAuth` | Aggiungere `requireConsoleAuth` |
-| M3 | Cron endpoints | `CRON_SECRET` opzionale → bypass silenzioso se non configurato | Rendere obbligatorio con fail-fast al boot |
-| M4 | `/api/corpus/hierarchy`, `/institutes`, `/article` | Route READ pubbliche senza rate-limit → abuso crediti Voyage AI | Aggiungere `checkRateLimit` per IP |
+| ID | Problema | Stato |
+|----|---------|-------|
+| M1 | `/api/company/*` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
+| M2 | `/api/console/company` + `/message` + `/stop` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
+| M3 | `CRON_SECRET` opzionale | ✅ Fail-closed: 500 se non configurato (commit 2c7648f) |
+| M4 | Route corpus READ senza rate-limit | ✅ `checkRateLimit` per IP su hierarchy/institutes/article (commit 2c7648f) |
 
-### Finding bassi aperti
+### Finding bassi residui
 
-- `CONSOLE_JWT_SECRET` non in `.env.local.example` → fallback chiave default hardcoded in produzione
-- Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente invece che in env/DB
-- CSP include `'unsafe-eval'` anche in produzione (necessario per Next.js dev, rimovibile in prod con nonce-based CSP)
+- Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente — bassa priorità
+- CSP include `'unsafe-eval'` — necessario per Next.js, rimovibile in prod con nonce-based CSP
+- DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI (task CME aperto)
+- Consulente EU AI Act — scadenza agosto 2026 (task CME aperto)
 
 ---
 
@@ -967,7 +968,7 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 | ID | File | Problema | Impatto | Effort fix |
 |----|------|---------|---------|-----------|
-| TD-1 | `lib/analysis-cache.ts` | `savePhaseTiming`: 2 roundtrip Supabase per fase (8 totali nella pipeline). Race condition teorica. | Latenza +100-200ms × 4 fasi | Basso — `jsonb_set` atomico |
+| TD-1 | `lib/analysis-cache.ts` | ~~`savePhaseTiming`: 2 roundtrip Supabase per fase (8 totali nella pipeline). Race condition teorica.~~ **RISOLTO 2026-03-01**: RPC `update_phase_timing` con `jsonb_set` atomico (migration 016). 1 roundtrip per fase, race condition eliminata. | — | — |
 | TD-2 | `lib/tiers.ts` | `let currentTier` = global mutable state. `setCurrentTier()` non è chiamato da `/api/analyze` — rischio teorico, non attuale. `getAgentChain()` ora usa `getCurrentTier()` (AsyncLocalStorage-aware). Documentato con TODO. | Teorico (nessun caller attuale) | Basso — `withRequestTier()` via sessionTierStore quando si implementa tier per-utente |
 | TD-3 | `supabase/migrations/` | ~~Numeri 003-007 hanno tutti doppioni~~ **RISOLTO 2026-03-01**: rinumerati 001-015 con sequenza continua, aggiunto REGISTRY.md | — | — |
 

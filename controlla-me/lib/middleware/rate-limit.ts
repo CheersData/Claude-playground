@@ -17,8 +17,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 // ─── Upstash (produzione) ────────────────────────────────────────────────────
 
-let upstashClient: import("@upstash/ratelimit").Ratelimit | null = null;
-
 function getUpstashRatelimiter(
   windowSec: number,
   max: number

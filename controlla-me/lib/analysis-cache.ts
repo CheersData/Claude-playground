@@ -175,32 +175,20 @@ export async function listSessions(): Promise<CachedAnalysis[]> {
   return data.map(rowToCache);
 }
 
-/** Save timing info for a single phase */
+/** Save timing info for a single phase — ADR-005 / TD-1: jsonb_set atomico via RPC */
 export async function savePhaseTiming(
   sessionId: string,
   phase: AgentPhase,
   timing: PhaseTiming
 ): Promise<void> {
-  // Leggi phase_timing corrente, aggiorna la fase, riscrivi
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("analysis_sessions")
-    .select("phase_timing")
-    .eq("session_id", sessionId)
-    .single();
-
-  const currentTiming: Partial<Record<AgentPhase, PhaseTiming>> =
-    (data?.phase_timing as Partial<Record<AgentPhase, PhaseTiming>>) ?? {};
-
-  currentTiming[phase] = timing;
-
-  const { error } = await supabase
-    .from("analysis_sessions")
-    .update({
-      phase_timing: currentTiming,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("session_id", sessionId);
+  // 1 solo UPDATE atomico (migration 016_savephasetiming_rpc.sql)
+  // Sostituisce il precedente SELECT + UPDATE (2 roundtrip → 1, -50-100ms per fase)
+  const { error } = await supabase.rpc("update_phase_timing", {
+    p_session_id: sessionId,
+    p_phase: phase,
+    p_timing: timing,
+  });
 
   if (error) {
     console.error(`[CACHE] Errore salvataggio timing ${phase}: ${error.message}`);

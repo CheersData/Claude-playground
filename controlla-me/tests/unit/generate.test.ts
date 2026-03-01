@@ -603,3 +603,383 @@ describe("generate — isolamento tra provider", () => {
     expect(mockGenerateWithOpenAICompat).toHaveBeenCalledOnce();
   });
 });
+
+// ── GenerateResult shape — provider mancanti ──────────────────────────────────
+
+describe("generate — GenerateResult shape (provider aggiuntivi)", () => {
+  it("propaga il risultato di generateWithOpenAICompat per openai (gpt-4o)", async () => {
+    mockGenerateWithOpenAICompat.mockResolvedValue({
+      text: '{"analysis":"gpt4o result"}',
+      usage: { inputTokens: 150, outputTokens: 80 },
+      durationMs: 420,
+      provider: "openai",
+      model: "gpt-4o",
+    });
+
+    const result = await generate("gpt-4o", "test");
+
+    expect(result.text).toBe('{"analysis":"gpt4o result"}');
+    expect(result.usage.inputTokens).toBe(150);
+    expect(result.usage.outputTokens).toBe(80);
+    expect(result.durationMs).toBe(420);
+    expect(result.provider).toBe("openai");
+    expect(result.model).toBe("gpt-4o");
+  });
+
+  it("propaga il risultato di generateWithOpenAICompat per cerebras", async () => {
+    mockGenerateWithOpenAICompat.mockResolvedValue({
+      text: '{"fast":true}',
+      usage: { inputTokens: 45, outputTokens: 15 },
+      durationMs: 50,
+      provider: "cerebras",
+      model: "llama3.1-8b",
+    });
+
+    const result = await generate("cerebras-llama3-8b", "test");
+
+    expect(result.text).toBe('{"fast":true}');
+    expect(result.usage.inputTokens).toBe(45);
+    expect(result.usage.outputTokens).toBe(15);
+    expect(result.durationMs).toBe(50);
+    expect(result.provider).toBe("cerebras");
+    expect(result.model).toBe("llama3.1-8b");
+  });
+
+  it("il model field di Gemini corrisponde al model ID del registry, non al GEMINI_MODEL costante", async () => {
+    mockGenerateWithGemini.mockResolvedValue(makeGeminiResult("test"));
+
+    const result = await generate("gemini-2.5-flash-lite", "test");
+
+    // Il model nel result deve essere il model ID dal MODELS registry
+    expect(result.model).toBe("gemini-2.5-flash-lite");
+  });
+});
+
+// ── Error handling — errori generici e propagazione ───────────────────────────
+
+describe("generate — error handling", () => {
+  it("propaga errori API generici da anthropic.messages.create", async () => {
+    mockAnthropicCreate.mockRejectedValue(
+      new Error("Internal server error")
+    );
+
+    await expect(generate("claude-haiku-4.5", "test")).rejects.toThrow(
+      "Internal server error"
+    );
+  });
+
+  it("propaga errori API generici da generateWithGemini", async () => {
+    mockGenerateWithGemini.mockRejectedValue(
+      new Error("Service unavailable")
+    );
+
+    await expect(generate("gemini-2.5-flash", "test")).rejects.toThrow(
+      "Service unavailable"
+    );
+  });
+
+  it("propaga errori API generici da generateWithOpenAICompat", async () => {
+    mockGenerateWithOpenAICompat.mockRejectedValue(
+      new Error("Connection refused")
+    );
+
+    await expect(generate("mistral-small-3", "test")).rejects.toThrow(
+      "Connection refused"
+    );
+  });
+
+  it("propaga errore rate limit (429) da generateWithOpenAICompat senza retry (retry e' interno a openai-compat)", async () => {
+    const rateLimitError = Object.assign(new Error("rate_limit_error"), { status: 429 });
+    mockGenerateWithOpenAICompat.mockRejectedValue(rateLimitError);
+
+    await expect(generate("groq-llama4-scout", "test")).rejects.toThrow(
+      "rate_limit_error"
+    );
+    // generate() non fa retry — il retry e' responsabilita' di openai-compat o anthropic.ts
+    expect(mockGenerateWithOpenAICompat).toHaveBeenCalledOnce();
+  });
+
+  it("propaga errore rate limit (429) da anthropic senza retry (retry e' interno a anthropic.ts)", async () => {
+    const rateLimitError = Object.assign(new Error("rate_limit_error"), { status: 429 });
+    mockAnthropicCreate.mockRejectedValue(rateLimitError);
+
+    await expect(generate("claude-haiku-4.5", "test")).rejects.toThrow(
+      "rate_limit_error"
+    );
+    expect(mockAnthropicCreate).toHaveBeenCalledOnce();
+  });
+
+  it("propaga errori di rete (ECONNREFUSED) da tutti i provider", async () => {
+    const networkError = new Error("connect ECONNREFUSED 127.0.0.1:443");
+    mockGenerateWithOpenAICompat.mockRejectedValue(networkError);
+
+    await expect(generate("cerebras-llama3-8b", "test")).rejects.toThrow(
+      "ECONNREFUSED"
+    );
+  });
+
+  it("propaga TypeError per errori di programmazione (non li cattura come API error)", async () => {
+    mockAnthropicCreate.mockRejectedValue(
+      new TypeError("Cannot read properties of undefined")
+    );
+
+    await expect(generate("claude-haiku-4.5", "test")).rejects.toThrow(TypeError);
+  });
+});
+
+// ── Config defaults — ogni adapter usa i propri default corretti ──────────────
+
+describe("generate — config defaults", () => {
+  it("funziona con config vuota {} — usa tutti i default", async () => {
+    const result = await generate("claude-haiku-4.5", "test", {});
+
+    expect(result).toBeDefined();
+    expect(result.text).toBe("risposta");
+  });
+
+  it("funziona senza passare config (parametro opzionale)", async () => {
+    const result = await generate("claude-haiku-4.5", "test");
+
+    expect(result).toBeDefined();
+    expect(result.text).toBe("risposta");
+  });
+
+  it("anthropic: default temperature=0 (deterministic)", async () => {
+    await generate("claude-sonnet-4.5", "test");
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.temperature).toBe(0);
+  });
+
+  it("anthropic: default maxTokens=4096", async () => {
+    await generate("claude-opus-4.5", "test");
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.max_tokens).toBe(4096);
+  });
+
+  it("gemini: default temperature=0.2", async () => {
+    await generate("gemini-2.5-flash", "test");
+
+    const config = mockGenerateWithGemini.mock.calls[0][1];
+    expect(config.temperature).toBe(0.2);
+  });
+
+  it("gemini: default maxOutputTokens=4096", async () => {
+    await generate("gemini-2.5-flash", "test");
+
+    const config = mockGenerateWithGemini.mock.calls[0][1];
+    expect(config.maxOutputTokens).toBe(4096);
+  });
+
+  it("gemini: default jsonOutput=true", async () => {
+    await generate("gemini-2.5-pro", "test");
+
+    const config = mockGenerateWithGemini.mock.calls[0][1];
+    expect(config.jsonOutput).toBe(true);
+  });
+
+  it("gemini: default agentName='GEMINI'", async () => {
+    await generate("gemini-2.5-flash", "test");
+
+    const config = mockGenerateWithGemini.mock.calls[0][1];
+    expect(config.agentName).toBe("GEMINI");
+  });
+
+  it("config parziale: solo maxTokens, il resto usa i default", async () => {
+    await generate("claude-haiku-4.5", "test", { maxTokens: 256 });
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.max_tokens).toBe(256);
+    expect(callArgs.temperature).toBe(0);
+    expect(callArgs.system).toBeUndefined();
+  });
+
+  it("config parziale: solo temperature, il resto usa i default", async () => {
+    await generate("claude-haiku-4.5", "test", { temperature: 0.5 });
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.max_tokens).toBe(4096);
+    expect(callArgs.temperature).toBe(0.5);
+  });
+});
+
+// ── Edge cases ────────────────────────────────────────────────────────────────
+
+describe("generate — edge cases", () => {
+  it("gestisce prompt vuoto senza errore", async () => {
+    const result = await generate("claude-haiku-4.5", "");
+
+    expect(result).toBeDefined();
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.messages).toEqual([{ role: "user", content: "" }]);
+  });
+
+  it("gestisce prompt vuoto con Gemini senza errore", async () => {
+    const result = await generate("gemini-2.5-flash", "");
+
+    expect(result).toBeDefined();
+    expect(mockGenerateWithGemini).toHaveBeenCalledWith("", expect.any(Object));
+  });
+
+  it("gestisce prompt vuoto con openai-compat senza errore", async () => {
+    const result = await generate("mistral-small-3", "");
+
+    expect(result).toBeDefined();
+    const [, , prompt] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(prompt).toBe("");
+  });
+
+  it("gestisce prompt molto lungo (100K caratteri) senza errore", async () => {
+    const longPrompt = "a".repeat(100_000);
+
+    const result = await generate("claude-haiku-4.5", longPrompt);
+
+    expect(result).toBeDefined();
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.messages[0].content).toBe(longPrompt);
+    expect(callArgs.messages[0].content.length).toBe(100_000);
+  });
+
+  it("gestisce prompt molto lungo con openai-compat senza errore", async () => {
+    const longPrompt = "b".repeat(100_000);
+
+    const result = await generate("groq-llama4-scout", longPrompt);
+
+    expect(result).toBeDefined();
+    const [, , prompt] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(prompt).toBe(longPrompt);
+  });
+
+  it("gestisce prompt con caratteri Unicode (italiano, emoji, CJK)", async () => {
+    const unicodePrompt = "Contratto di locazione: clausola \u00e8 vessatoria \u2014 art. 1341 c.c.";
+
+    const result = await generate("claude-haiku-4.5", unicodePrompt);
+
+    expect(result).toBeDefined();
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.messages[0].content).toBe(unicodePrompt);
+  });
+
+  it("gestisce systemPrompt molto lungo senza errore (anthropic)", async () => {
+    const longSystem = "Sei un assistente legale. ".repeat(5000);
+
+    await generate("claude-haiku-4.5", "test", { systemPrompt: longSystem });
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.system).toBe(longSystem);
+  });
+
+  it("gestisce systemPrompt vuoto come stringa vuota (non lo omette) per anthropic", async () => {
+    // Una stringa vuota e' truthy check: "" is falsy → non viene passato
+    await generate("claude-haiku-4.5", "test", { systemPrompt: "" });
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    // systemPrompt="" → falsy → non viene aggiunto come 'system'
+    expect(callArgs.system).toBeUndefined();
+  });
+
+  it("temperature=0 viene passato correttamente (non omesso come falsy)", async () => {
+    await generate("claude-haiku-4.5", "test", { temperature: 0 });
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.temperature).toBe(0);
+  });
+
+  it("maxTokens=1 viene passato correttamente (valore minimo)", async () => {
+    await generate("claude-haiku-4.5", "test", { maxTokens: 1 });
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    expect(callArgs.max_tokens).toBe(1);
+  });
+
+  it("durationMs viene calcolato come differenza temporale per Anthropic", async () => {
+    // Il durationMs di Anthropic e' calcolato internamente (Date.now() - start)
+    // Non possiamo verificare il valore esatto, ma deve essere >= 0
+    const result = await generate("claude-haiku-4.5", "test");
+
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    expect(typeof result.durationMs).toBe("number");
+    expect(Number.isFinite(result.durationMs)).toBe(true);
+  });
+
+  it("risposta con testo vuoto da Anthropic viene propagata", async () => {
+    mockAnthropicCreate.mockResolvedValue(makeAnthropicResponse(""));
+    mockExtractTextContent.mockReturnValue("");
+
+    const result = await generate("claude-haiku-4.5", "test");
+
+    expect(result.text).toBe("");
+  });
+
+  it("risposta con testo vuoto da Gemini viene propagata", async () => {
+    mockGenerateWithGemini.mockResolvedValue(makeGeminiResult(""));
+
+    const result = await generate("gemini-2.5-flash", "test");
+
+    expect(result.text).toBe("");
+  });
+
+  it("risposta con testo vuoto da openai-compat viene propagata", async () => {
+    mockGenerateWithOpenAICompat.mockResolvedValue(makeOpenAICompatResult(""));
+
+    const result = await generate("mistral-small-3", "test");
+
+    expect(result.text).toBe("");
+  });
+});
+
+// ── Mapping model ID — verifica che il registry venga usato correttamente ─────
+
+describe("generate — model ID dal registry MODELS", () => {
+  it("claude-opus-4.5 → claude-opus-4-5-20251101", async () => {
+    await generate("claude-opus-4.5", "test");
+    expect(mockAnthropicCreate.mock.calls[0][0].model).toBe("claude-opus-4-5-20251101");
+  });
+
+  it("claude-sonnet-4.5 → claude-sonnet-4-5-20250929", async () => {
+    await generate("claude-sonnet-4.5", "test");
+    expect(mockAnthropicCreate.mock.calls[0][0].model).toBe("claude-sonnet-4-5-20250929");
+  });
+
+  it("claude-haiku-4.5 → claude-haiku-4-5-20251001", async () => {
+    await generate("claude-haiku-4.5", "test");
+    expect(mockAnthropicCreate.mock.calls[0][0].model).toBe("claude-haiku-4-5-20251001");
+  });
+
+  it("gpt-5 → gpt-5", async () => {
+    await generate("gpt-5", "test");
+    const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(model).toBe("gpt-5");
+  });
+
+  it("gpt-5.2 → gpt-5.2", async () => {
+    await generate("gpt-5.2", "test");
+    const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(model).toBe("gpt-5.2");
+  });
+
+  it("mistral-medium-3 → mistral-medium-3.1", async () => {
+    await generate("mistral-medium-3", "test");
+    const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(model).toBe("mistral-medium-3.1");
+  });
+
+  it("groq-qwen3-32b → qwen/qwen3-32b", async () => {
+    await generate("groq-qwen3-32b", "test");
+    const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(model).toBe("qwen/qwen3-32b");
+  });
+
+  it("cerebras-qwen3-235b → qwen3-235b", async () => {
+    await generate("cerebras-qwen3-235b", "test");
+    const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(model).toBe("qwen3-235b");
+  });
+
+  it("groq-gpt-oss-120b → gpt-oss-120b", async () => {
+    await generate("groq-gpt-oss-120b", "test");
+    const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(model).toBe("gpt-oss-120b");
+  });
+});

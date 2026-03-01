@@ -215,7 +215,7 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       // dataGU = data pubblicazione GU (27 maggio 1970), diversa dalla data del provvedimento.
       normattivaDataGU: "19700527",
     },
-    lifecycle: "api-tested",
+    lifecycle: "loaded", // Caricato via seed-statuto-lavoratori.ts (41 art., testo di pubblico dominio)
   },
   {
     id: "tu_edilizia",
@@ -331,6 +331,38 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 93,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
+  },
+  {
+    id: "ai_act",
+    name: "AI Act — Regolamento (UE) 2024/1689",
+    shortName: "AI Act",
+    type: "eurlex",
+    description: "Regolamento del Parlamento europeo e del Consiglio che stabilisce norme armonizzate sull'intelligenza artificiale",
+    celexId: "32024R1689",
+    baseUrl: "https://eur-lex.europa.eu/eli/reg/2024/1689/oj/ita",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 113,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
+  },
+  {
+    id: "nis2",
+    name: "NIS2 — Direttiva (UE) 2022/2555",
+    shortName: "NIS2",
+    type: "eurlex",
+    description: "Direttiva relativa a misure per un livello comune elevato di cybersicurezza nell'Unione",
+    celexId: "32022L2555",
+    baseUrl: "https://eur-lex.europa.eu/eli/dir/2022/2555/oj/ita",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 46,
     connector: { preferredFormat: "html" },
     lifecycle: "loaded",
   },
