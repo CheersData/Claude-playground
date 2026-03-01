@@ -7,7 +7,7 @@
  *   npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> [--priority <p>] --by <creator> [--desc "..."]
  *   npx tsx scripts/company-tasks.ts get <id>
  *   npx tsx scripts/company-tasks.ts claim <id> --agent <agent>
- *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."]
+ *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}']
  *   npx tsx scripts/company-tasks.ts update <id> --status <status>
  */
 
@@ -166,7 +166,15 @@ async function main() {
       console.log(`  Created by: ${task.createdBy}`);
       console.log(`  Assigned to: ${task.assignedTo ?? "-"}`);
       console.log(`  Created: ${task.createdAt}`);
+      if (task.startedAt) console.log(`  Started: ${task.startedAt}`);
+      if (task.completedAt) console.log(`  Completed: ${task.completedAt}`);
+      if (task.startedAt && task.completedAt) {
+        const durationMs = new Date(task.completedAt).getTime() - new Date(task.startedAt).getTime();
+        const durationMin = (durationMs / 60000).toFixed(1);
+        console.log(`  Duration: ${durationMin} min`);
+      }
       if (task.description) console.log(`  Description: ${task.description}`);
+      if (task.labels && task.labels.length > 0) console.log(`  Labels: ${task.labels.join(", ")}`);
       if (task.resultSummary) console.log(`  Result: ${task.resultSummary}`);
       if (task.resultData) console.log(`  Data: ${JSON.stringify(task.resultData, null, 2)}`);
       console.log("");
@@ -189,17 +197,29 @@ async function main() {
     case "done": {
       const rawId = args[1];
       const summary = getFlag("summary");
+      const dataRaw = getFlag("data");
       if (!rawId) {
-        console.error("Usage: done <task-id> [--summary '...']");
+        console.error("Usage: done <task-id> [--summary '...'] [--data '{\"key\":\"value\"}']");
         process.exit(1);
+      }
+      let resultData: Record<string, unknown> | undefined;
+      if (dataRaw) {
+        try {
+          resultData = JSON.parse(dataRaw);
+        } catch {
+          console.error("ERRORE: --data deve essere JSON valido.");
+          process.exit(1);
+        }
       }
       const id = await resolveId(rawId);
       const task = await updateTask(id, {
         status: "done",
         resultSummary: summary ?? undefined,
+        resultData,
       });
       console.log(`\n✓ Task ${task.id.slice(0, 8)} completato`);
       if (summary) console.log(`  Summary: ${summary}`);
+      if (resultData) console.log(`  Data: ${JSON.stringify(resultData, null, 2)}`);
       console.log("");
       break;
     }
@@ -227,7 +247,7 @@ Commands:
   create --title "..." --dept X --by Y --desc "..." [--priority Z] [--assign <agent>]
   get <id>                       Dettaglio task
   claim <id> --agent <name>      Prendi in carico un task
-  done <id> [--summary "..."]    Completa un task
+  done <id> [--summary "..."] [--data '{"k":"v"}']  Completa un task con risposta tracciata
   update <id> --status <status>  Aggiorna stato
       `);
   }
