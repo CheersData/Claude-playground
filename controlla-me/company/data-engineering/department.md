@@ -5,6 +5,13 @@
 Gestione pipeline dati legislativi: connessione a fonti, parsing, validazione e caricamento nel corpus.
 Obiettivo: corpus completo e aggiornato delle leggi italiane ed europee.
 
+## Agenti
+
+| Agente | Ruolo |
+|--------|-------|
+| data-connector | Leader: pipeline CONNECT→MODEL→LOAD, corpus legislativo |
+| data-analyst | Qualità dati, ottimizzazione query, statistiche corpus |
+
 ## Agenti / Componenti
 
 | Componente | Ruolo | File |

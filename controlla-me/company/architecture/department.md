@@ -30,6 +30,12 @@ Problema/Feature → Architecture propone → Finance stima costi → CME approv
 
 Vedi `decisions.md` per il log completo delle decisioni prese.
 
+## Agenti
+
+| Agente | Ruolo |
+|--------|-------|
+| ui-ux-designer | Design system, accessibilità, component review, user flows |
+
 ## Runbooks
 
 - `runbooks/evaluate-solution.md` — Come valutare una proposta tecnica
