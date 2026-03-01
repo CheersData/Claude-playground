@@ -18,7 +18,7 @@ import type { NextRequest } from "next/server";
 export const maxDuration = 300; // Sessioni interattive possono durare di più
 
 const TARGETS: Record<string, { promptFile: string; label: string; model: string }> = {
-  cme:                { promptFile: "cme.md",                           label: "CME (CEO)",            model: "sonnet" },
+  cme:                { promptFile: "cme.md",                           label: "CME (CEO)",            model: "opus" },
   "ufficio-legale":   { promptFile: "ufficio-legale/department.md",     label: "Ufficio Legale TL",    model: "sonnet" },
   "data-engineering": { promptFile: "data-engineering/department.md",   label: "Data Engineering TL",  model: "sonnet" },
   "quality-assurance":{ promptFile: "quality-assurance/department.md",  label: "Quality Assurance TL", model: "sonnet" },

@@ -56,7 +56,7 @@ interface CompanyPanelProps {
 // ── Constants ──
 
 const TARGETS: { key: TargetKey; label: string; short: string }[] = [
-  { key: "cme", label: "CME (CEO) — Sonnet", short: "CME" },
+  { key: "cme", label: "CME (CEO) — Opus", short: "CME" },
   { key: "ufficio-legale", label: "Ufficio Legale TL", short: "Legale" },
   { key: "data-engineering", label: "Data Engineering TL", short: "Data" },
   { key: "quality-assurance", label: "Quality Assurance TL", short: "QA" },
@@ -112,24 +112,38 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
   // Fetch dashboard data
   const fetchDashboard = useCallback(async () => {
     setDashLoading(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
       const res = await fetch("/api/company/status", {
         headers: getConsoleAuthHeaders(),
+        signal: controller.signal,
       });
-      if (res.ok) setDashboard(await res.json());
-    } catch {
-      // Silent
+      if (res.ok) {
+        setDashboard(await res.json());
+      } else {
+        console.warn("[CompanyPanel] Dashboard fetch failed:", res.status);
+        setDebugLog((prev) => [...prev, { type: "error", msg: `Dashboard: HTTP ${res.status}`, ts: Date.now() }]);
+      }
+    } catch (err) {
+      const msg = err instanceof DOMException && err.name === "AbortError" ? "Timeout 30s — il server sta compilando, riprova" : String(err);
+      console.warn("[CompanyPanel] Dashboard error:", msg);
+      setDebugLog((prev) => [...prev, { type: "error", msg: `Dashboard: ${msg}`, ts: Date.now() }]);
     } finally {
+      clearTimeout(timeout);
       setDashLoading(false);
     }
   }, []);
 
-  // Init on first open
+  // Init on first open — serialize: dashboard first, then chat
+  // Webpack needs time to compile each route on first access
   useEffect(() => {
     if (open && !initialized) {
       setInitialized(true);
-      fetchDashboard();
-      startSession("Buongiorno, qual è la situazione?", true);
+      (async () => {
+        await fetchDashboard();
+        startSession("Buongiorno, qual è la situazione?", true);
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -313,9 +327,11 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
         return;
       }
       const errMsg = err instanceof Error ? err.message : "Errore";
+      console.error("[CompanyPanel] startSession error:", errMsg);
+      setDebugLog((prev) => [...prev, { type: "error", msg: `Chat: ${errMsg}`, ts: Date.now() }]);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Errore di comunicazione: ${errMsg}` },
+        { role: "assistant", content: `Errore di comunicazione: ${errMsg}\n\nControlla che il server sia attivo e riprova.` },
       ]);
       setSessionId(null);
       setResponding(false);

@@ -12,6 +12,8 @@ import { QAStatus } from "@/components/ops/QAStatus";
 import { PipelineStatus } from "@/components/ops/PipelineStatus";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { DepartmentDetailPanel } from "@/components/ops/DepartmentDetailPanel";
+import { ReportsPanel } from "@/components/ops/ReportsPanel";
+import { CMEChatPanel } from "@/components/ops/CMEChatPanel";
 import type { Department, Task } from "@/lib/company/types";
 
 interface OpsData {
@@ -45,6 +47,8 @@ export default function OpsPage() {
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [showReports, setShowReports] = useState(false);
+  const [showCME, setShowCME] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -86,14 +90,29 @@ export default function OpsPage() {
             Controlla.me — Virtual Company Dashboard
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          {timeSinceRefresh()}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setShowCME(true); setShowReports(false); setSelectedDepartment(null); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showCME ? "bg-[#FF6B35] text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
+          >
+            <span className="w-2 h-2 rounded-full bg-current opacity-80" />
+            CME
+          </button>
+          <button
+            onClick={() => { setShowReports(true); setShowCME(false); setSelectedDepartment(null); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showReports ? "bg-zinc-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
+          >
+            Reports
+          </button>
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            {timeSinceRefresh()}
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -118,6 +137,10 @@ export default function OpsPage() {
               onBack={() => setSelectedDepartment(null)}
               onSelectTask={(task: Task) => setSelectedTask(task as TaskItem)}
             />
+          ) : showCME ? (
+            <CMEChatPanel onBack={() => setShowCME(false)} />
+          ) : showReports ? (
+            <ReportsPanel onBack={() => setShowReports(false)} />
           ) : (
             <>
               <TaskBoard
