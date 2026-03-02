@@ -1036,7 +1036,12 @@ function printSummary(results: AdversarialTestResult[], opusEvalActive = false) 
   console.log(`  Gap detection corretta: ${C}${gapCorrect}/${valid.length}${RESET} casi`);
   if (best) console.log(`  Best: TC${best.id} (${G}${best.percentage}%${RESET}) ${best.name}`);
   if (worst) console.log(`  Worst: TC${worst.id} (${R}${worst.percentage}%${RESET}) ${worst.name}`);
-  console.log(`  ${Y}⏳ ${pendingManual} test in attesa di valutazione umana (slot manualEval vuoti)${RESET}`);
+  if (opusEvalActive) {
+    console.log(`  ${G}\u2713 Opus eval attiva: manualBonus calcolato automaticamente da claude-opus-4-5${RESET}`);
+  } else {
+    console.log(`  ${Y}⏳ ${pendingManual} test in attesa di valutazione umana (slot manualEval vuoti)${RESET}`);
+    console.log(`  ${DIM}Suggerimento: aggiungi --opus-eval per valutazione legale automatica${RESET}`);
+  }
   console.log();
 }
 
