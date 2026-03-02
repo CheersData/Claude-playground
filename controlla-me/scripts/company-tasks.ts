@@ -7,7 +7,7 @@
  *   npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> [--priority <p>] --by <creator> [--desc "..."]
  *   npx tsx scripts/company-tasks.ts get <id>
  *   npx tsx scripts/company-tasks.ts claim <id> --agent <agent>
- *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."]
+ *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "path1 path2"]
  *   npx tsx scripts/company-tasks.ts update <id> --status <status>
  */
 
@@ -284,8 +284,10 @@ async function main() {
       const benefitStatusRaw = getFlag("benefit-status") as 'achieved' | 'partial' | 'missed' | undefined;
       const benefitNotes = getFlag("benefit-notes");
       const suggestedNext = getFlag("next");
+      const doCommit = hasFlag("commit");
+      const commitFiles = getFlag("files");
       if (!rawId) {
-        console.error("Usage: done <task-id> [--summary '...'] [--data '{\"key\":\"value\"}'] [--benefit-status achieved|partial|missed] [--benefit-notes '...'] [--next '...']");
+        console.error("Usage: done <task-id> [--summary '...'] [--data '{\"key\":\"value\"}'] [--benefit-status achieved|partial|missed] [--benefit-notes '...'] [--next '...'] [--commit] [--files 'path1 path2']");
         process.exit(1);
       }
       let resultData: Record<string, unknown> | undefined;
@@ -314,6 +316,27 @@ async function main() {
       console.log(`  Outcome: ${resolvedBenefitStatus}${benefitNotes ? ` — ${benefitNotes}` : ''}`);
       if (suggestedNext) console.log(`  Next: ${suggestedNext}`);
       console.log("");
+
+      // ─── Hook: --commit automatico ───
+      if (doCommit) {
+        const { execSync } = await import("child_process");
+        const shortId = task.id.slice(0, 8);
+        const dept = task.department;
+        const commitMsg = `[${dept}/${shortId}] ${task.title}`;
+        try {
+          if (commitFiles) {
+            execSync(`git add ${commitFiles}`, { stdio: "inherit" });
+          } else {
+            execSync("git add -A", { stdio: "inherit" });
+          }
+          execSync(`git commit -m ${JSON.stringify(commitMsg)}`, { stdio: "inherit" });
+          console.log(`  git: "${commitMsg}"\n`);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(`  WARN: commit fallito — ${msg}`);
+          console.warn(`  Esegui manualmente: git add -A && git commit -m ${JSON.stringify(commitMsg)}\n`);
+        }
+      }
 
       // ─── Hook: controlla se il board è vuoto dopo la chiusura ───
       try {
@@ -354,7 +377,7 @@ Commands:
   create ... --routing-exempt --routing-reason "motivo"   Bypass routing (escape hatch)
   get <id|#N>                    Dettaglio task (mostra routing, tags, benefit, outcome, next)
   claim <id|#N> --agent <name>   Prendi in carico un task
-  done <id|#N> [--summary "..."] [--data '{"k":"v"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."]
+  done <id|#N> [--summary "..."] [--data '{"k":"v"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "f1 f2"]
   update <id|#N> --status <status>  Aggiorna stato
 
 Routing obbligatorio (--routing):

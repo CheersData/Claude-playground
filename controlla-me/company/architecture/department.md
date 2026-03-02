@@ -37,3 +37,4 @@ _L'agente ui-ux-designer e stato spostato nel nuovo dipartimento UX/UI (company/
 ## Runbooks
 
 - `runbooks/evaluate-solution.md` — Come valutare una proposta tecnica
+- `runbooks/commit-strategy.md` — Convenzione commit e merge policy (task-linked vs convenzionale)
