@@ -36,6 +36,11 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
       parent_task_id: input.parentTaskId ?? null,
       blocked_by: input.blockedBy ?? [],
       labels: input.labels ?? [],
+      routing: input.routing ?? null,
+      routing_exempt: input.routingExempt ?? false,
+      routing_reason: input.routingReason ?? null,
+      tags: input.tags ?? [],
+      expected_benefit: input.expectedBenefit ?? null,
     })
     .select("*")
     .single();
@@ -88,6 +93,11 @@ export async function updateTask(
   if (update.resultSummary !== undefined) payload.result_summary = update.resultSummary;
   if (update.resultData !== undefined) payload.result_data = update.resultData;
   if (update.labels !== undefined) payload.labels = update.labels;
+  if (update.tags !== undefined) payload.tags = update.tags;
+  if (update.expectedBenefit !== undefined) payload.expected_benefit = update.expectedBenefit;
+  if (update.benefitStatus !== undefined) payload.benefit_status = update.benefitStatus;
+  if (update.benefitNotes !== undefined) payload.benefit_notes = update.benefitNotes;
+  if (update.suggestedNext !== undefined) payload.suggested_next = update.suggestedNext;
 
   const { data, error } = await admin
     .from("company_tasks")
@@ -221,5 +231,14 @@ function mapRow(row: Record<string, unknown>): Task {
     createdAt: row.created_at as string,
     startedAt: (row.started_at as string) ?? null,
     completedAt: (row.completed_at as string) ?? null,
+    routing: (row.routing as string) ?? null,
+    routingExempt: (row.routing_exempt as boolean) ?? false,
+    routingReason: (row.routing_reason as string) ?? null,
+    seqNum: row.seq_num != null ? (row.seq_num as number) : undefined,
+    tags: (row.tags as string[]) ?? [],
+    expectedBenefit: (row.expected_benefit as string) ?? undefined,
+    benefitStatus: (row.benefit_status as Task['benefitStatus']) ?? 'pending',
+    benefitNotes: (row.benefit_notes as string) ?? undefined,
+    suggestedNext: (row.suggested_next as string) ?? undefined,
   };
 }

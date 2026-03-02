@@ -7,7 +7,7 @@
  *   npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> [--priority <p>] --by <creator> [--desc "..."]
  *   npx tsx scripts/company-tasks.ts get <id>
  *   npx tsx scripts/company-tasks.ts claim <id> --agent <agent>
- *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}']
+ *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."]
  *   npx tsx scripts/company-tasks.ts update <id> --status <status>
  */
 
@@ -35,8 +35,22 @@ function getFlag(name: string): string | undefined {
   return args[idx + 1];
 }
 
-/** Resolve partial UUID (prefix match) to full UUID. */
+/** Controlla se un flag booleano è presente (es. --routing-exempt, senza valore). */
+function hasFlag(name: string): boolean {
+  return args.includes(`--${name}`);
+}
+
+/** Resolve partial UUID (prefix match), full UUID, or #N (seq_num) to full UUID. */
 async function resolveId(partial: string): Promise<string> {
+  // Support #N format (sequential number)
+  if (partial.startsWith('#')) {
+    const seqNum = parseInt(partial.slice(1), 10);
+    if (isNaN(seqNum)) throw new Error(`Numero sequenziale non valido: "${partial}"`);
+    const all = await getOpenTasks({ limit: 500 });
+    const match = all.find((t) => t.seqNum === seqNum);
+    if (match) return match.id;
+    throw new Error(`Nessun task trovato con seq_num ${seqNum}`);
+  }
   if (partial.length >= 36) return partial;
   const all = await getOpenTasks({ limit: 200 });
   const matches = all.filter((t) => t.id.startsWith(partial));
@@ -63,6 +77,17 @@ async function main() {
       console.log(
         `  Open: ${board.byStatus.open} | In Progress: ${board.byStatus.in_progress} | Review: ${board.byStatus.review} | Done: ${board.byStatus.done} | Blocked: ${board.byStatus.blocked}`
       );
+      // Outcome counter from benefit_status
+      {
+        const allTasks = await getOpenTasks({ limit: 1000 });
+        const outcomeAchieved = allTasks.filter((t) => t.benefitStatus === 'achieved').length;
+        const outcomePartial = allTasks.filter((t) => t.benefitStatus === 'partial').length;
+        const outcomeMissed = allTasks.filter((t) => t.benefitStatus === 'missed').length;
+        const outcomePending = allTasks.filter((t) => !t.benefitStatus || t.benefitStatus === 'pending').length;
+        console.log(
+          `  Outcome: ${outcomeAchieved} achieved | ${outcomePartial} partial | ${outcomeMissed} missed | ${outcomePending} pending`
+        );
+      }
       console.log("\nPer dipartimento:");
       for (const [dept, info] of Object.entries(board.byDepartment)) {
         const status = info.open > 0 ? "⚠" : "✓";
@@ -74,8 +99,9 @@ async function main() {
         console.log("\nTask recenti:");
         for (const task of board.recent.slice(0, 5)) {
           const pri = task.priority === "critical" ? "🔴" : task.priority === "high" ? "🟠" : task.priority === "medium" ? "🟡" : "⚪";
+          const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
           console.log(
-            `  ${pri} [${task.status}] ${task.title} (${task.department}) — ${task.id.slice(0, 8)}`
+            `  ${pri} [${task.status}] ${seqLabel}${task.title} (${task.department}) — ${task.id.slice(0, 8)}`
           );
           if (task.description) {
             const preview = task.description.length > 100 ? task.description.slice(0, 100) + "…" : task.description;
@@ -108,6 +134,8 @@ async function main() {
           const preview = task.description.length > 120 ? task.description.slice(0, 120) + "…" : task.description;
           console.log(`    desc: ${preview}`);
         }
+        if (task.routing) console.log(`    routing: ${task.routing}`);
+        if (task.routingExempt) console.log(`    routing: EXEMPT — ${task.routingReason ?? "(no reason)"}`);
         if (task.resultSummary) console.log(`    result: ${task.resultSummary}`);
         console.log("");
       }
@@ -121,9 +149,15 @@ async function main() {
       const by = getFlag("by");
       const desc = getFlag("desc");
       const assign = getFlag("assign");
+      const routing = getFlag("routing");
+      const routingExempt = hasFlag("routing-exempt");
+      const routingReason = getFlag("routing-reason");
+      const tagsRaw = getFlag("tags");
+      const benefit = getFlag("benefit");
 
       if (!title || !dept || !by) {
-        console.error("Usage: create --title '...' --dept <dept> --by <creator> --desc '...' [--priority <p>] [--assign <agent>]");
+        console.error("Usage: create --title '...' --dept <dept> --by <creator> --desc '...' --routing 'tree:class' [--priority <p>] [--assign <agent>] [--tags 'tag1,tag2'] [--benefit 'testo']");
+        console.error("       create --title '...' --dept <dept> --by <creator> --desc '...' --routing-exempt --routing-reason 'motivo'");
         process.exit(1);
       }
       if (!desc) {
@@ -131,6 +165,34 @@ async function main() {
         console.error("Esempio: --desc 'Analizzare le fragilità del retrieval RAG e proporre miglioramenti architetturali'");
         process.exit(1);
       }
+      if (!benefit) {
+        console.warn("ATTENZIONE: --benefit non specificato. Raccomandato: descrivere il beneficio concreto atteso.");
+      }
+
+      // ─── Routing enforcement ───
+      if (routingExempt) {
+        if (!routingReason) {
+          console.error("ERRORE: --routing-exempt richiede --routing-reason 'motivo del bypass'.");
+          console.error("Esempio: --routing-exempt --routing-reason 'task operativo routine pre-approvato'");
+          process.exit(1);
+        }
+      } else {
+        if (!routing) {
+          console.error("ERRORE: --routing è obbligatorio. Specifica la classificazione dal decision tree.");
+          console.error("Esempi:");
+          console.error("  --routing 'feature-request:medium'");
+          console.error("  --routing 'trading-operations:routine'");
+          console.error("  --routing 'data-operations:corpus-update'");
+          console.error("  --routing 'infrastructure:maintenance'");
+          console.error("  --routing 'company-operations:prompt-change'");
+          console.error("Per bypassare (solo se autorizzato): --routing-exempt --routing-reason 'motivo'");
+          process.exit(1);
+        }
+      }
+
+      const parsedTags = tagsRaw
+        ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)
+        : undefined;
 
       const task = await createTask({
         title,
@@ -139,10 +201,21 @@ async function main() {
         createdBy: by,
         description: desc,
         assignedTo: assign ?? undefined,
+        routing: routing ?? undefined,
+        routingExempt,
+        routingReason: routingReason ?? undefined,
+        tags: parsedTags,
+        expectedBenefit: benefit ?? undefined,
       });
       const statusLabel = task.assignedTo ? `in_progress → ${task.assignedTo}` : "open";
-      console.log(`\n✓ Task creato: ${task.id.slice(0, 8)} [${statusLabel}]`);
-      console.log(`  "${task.title}" → ${task.department} [${task.priority}]\n`);
+      const seqLabel = task.seqNum != null ? ` #${task.seqNum}` : '';
+      console.log(`\n✓ Task creato:${seqLabel} ${task.id.slice(0, 8)} [${statusLabel}]`);
+      console.log(`  "${task.title}" → ${task.department} [${task.priority}]`);
+      if (task.routing) console.log(`  routing: ${task.routing}`);
+      if (task.routingExempt) console.log(`  routing: EXEMPT — ${task.routingReason}`);
+      if (task.tags && task.tags.length > 0) console.log(`  tags: ${task.tags.join(', ')}`);
+      if (task.expectedBenefit) console.log(`  benefit: ${task.expectedBenefit}`);
+      console.log("");
       break;
     }
 
@@ -158,7 +231,8 @@ async function main() {
         console.error(`Task ${id} non trovato`);
         process.exit(1);
       }
-      console.log(`\nTask: ${task.title}`);
+      const seqPrefix = task.seqNum != null ? `#${task.seqNum} — ` : '';
+      console.log(`\n${seqPrefix}${task.title}`);
       console.log(`  ID: ${task.id}`);
       console.log(`  Status: ${task.status}`);
       console.log(`  Department: ${task.department}`);
@@ -175,6 +249,15 @@ async function main() {
       }
       if (task.description) console.log(`  Description: ${task.description}`);
       if (task.labels && task.labels.length > 0) console.log(`  Labels: ${task.labels.join(", ")}`);
+      if (task.tags && task.tags.length > 0) console.log(`  Tags: ${task.tags.join(', ')}`);
+      if (task.routing) console.log(`  Routing: ${task.routing}`);
+      if (task.routingExempt) console.log(`  Routing: EXEMPT — ${task.routingReason ?? "(no reason)"}`);
+      if (task.expectedBenefit) console.log(`  Beneficio atteso: ${task.expectedBenefit}`);
+      if (task.benefitStatus && task.benefitStatus !== 'pending') {
+        const outcomeStr = task.benefitNotes ? `${task.benefitStatus} — ${task.benefitNotes}` : task.benefitStatus;
+        console.log(`  Outcome: ${outcomeStr}`);
+      }
+      if (task.suggestedNext) console.log(`  Next: ${task.suggestedNext}`);
       if (task.resultSummary) console.log(`  Result: ${task.resultSummary}`);
       if (task.resultData) console.log(`  Data: ${JSON.stringify(task.resultData, null, 2)}`);
       console.log("");
@@ -198,8 +281,11 @@ async function main() {
       const rawId = args[1];
       const summary = getFlag("summary");
       const dataRaw = getFlag("data");
+      const benefitStatusRaw = getFlag("benefit-status") as 'achieved' | 'partial' | 'missed' | undefined;
+      const benefitNotes = getFlag("benefit-notes");
+      const suggestedNext = getFlag("next");
       if (!rawId) {
-        console.error("Usage: done <task-id> [--summary '...'] [--data '{\"key\":\"value\"}']");
+        console.error("Usage: done <task-id> [--summary '...'] [--data '{\"key\":\"value\"}'] [--benefit-status achieved|partial|missed] [--benefit-notes '...'] [--next '...']");
         process.exit(1);
       }
       let resultData: Record<string, unknown> | undefined;
@@ -211,15 +297,22 @@ async function main() {
           process.exit(1);
         }
       }
+      // Default benefit_status to 'achieved' when closing a task
+      const resolvedBenefitStatus = benefitStatusRaw ?? 'achieved';
       const id = await resolveId(rawId);
       const task = await updateTask(id, {
         status: "done",
         resultSummary: summary ?? undefined,
         resultData,
+        benefitStatus: resolvedBenefitStatus,
+        benefitNotes: benefitNotes ?? undefined,
+        suggestedNext: suggestedNext ?? undefined,
       });
       console.log(`\n✓ Task ${task.id.slice(0, 8)} completato`);
       if (summary) console.log(`  Summary: ${summary}`);
       if (resultData) console.log(`  Data: ${JSON.stringify(resultData, null, 2)}`);
+      console.log(`  Outcome: ${resolvedBenefitStatus}${benefitNotes ? ` — ${benefitNotes}` : ''}`);
+      if (suggestedNext) console.log(`  Next: ${suggestedNext}`);
       console.log("");
 
       // ─── Hook: controlla se il board è vuoto dopo la chiusura ───
@@ -255,13 +348,23 @@ async function main() {
 Company Tasks CLI — Gestione task per la virtual company
 
 Commands:
-  board                          Stato azienda (riepilogo)
+  board                          Stato azienda (riepilogo + outcome counter)
   list [--dept X] [--status Y]   Lista task con filtri
-  create --title "..." --dept X --by Y --desc "..." [--priority Z] [--assign <agent>]
-  get <id>                       Dettaglio task
-  claim <id> --agent <name>      Prendi in carico un task
-  done <id> [--summary "..."] [--data '{"k":"v"}']  Completa un task con risposta tracciata
-  update <id> --status <status>  Aggiorna stato
+  create --title "..." --dept X --by Y --desc "..." --routing "tree:class" [--priority Z] [--assign <agent>] [--tags "t1,t2"] [--benefit "..."]
+  create ... --routing-exempt --routing-reason "motivo"   Bypass routing (escape hatch)
+  get <id|#N>                    Dettaglio task (mostra routing, tags, benefit, outcome, next)
+  claim <id|#N> --agent <name>   Prendi in carico un task
+  done <id|#N> [--summary "..."] [--data '{"k":"v"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."]
+  update <id|#N> --status <status>  Aggiorna stato
+
+Routing obbligatorio (--routing):
+  feature-request:low/medium/high    Nuove feature
+  trading-operations:routine/critical Trading pipeline
+  data-operations:corpus-update      Pipeline dati
+  infrastructure:maintenance/upgrade Infrastruttura
+  company-operations:prompt-change   Modifiche prompt/config
+
+ID format: UUID completo, prefisso UUID (es. "abc12345"), o #N (es. "#42")
       `);
   }
 }

@@ -28,10 +28,14 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 017 | `017_lawyer_referrals_contact.sql` | Campi contatto per `lawyer_referrals` | — |
 | 018 | `018_cost_log_ttl.sql` | TTL 6 mesi per `agent_cost_log` + view `cost_summary_30d` (ADR-011) | — |
 | 019 | `019_trading_schema.sql` | Schema Ufficio Trading: `trading_config`, `trading_signals`, `trading_orders`, `portfolio_positions`, `portfolio_snapshots`, `risk_events` + RLS service_role + TTL signals 90gg | — |
+| 020 | `020_company_vision.sql` | Company Vision/Mission (singleton), Scheduler Plans (audit trail), Decision Audit Log + RLS service_role | — |
+| 021 | `021_trailing_stop.sql` | Trailing stop state per posizioni live: `trailing_stop_state` con 4-tier tracking (breakeven→lock→trail→tight) + RLS service_role | — |
+| 022 | `022_routing_enforcement.sql` | Routing audit trail su `company_tasks`: colonne `routing`, `routing_exempt`, `routing_reason` + indici | — |
+| 023 | `023_task_enhancements.sql` | Task enhancements: `seq_num` (numerazione sequenziale), `tags` (GIN index), `expected_benefit`, `benefit_status`, `benefit_notes`, `suggested_next` | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 019) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 023) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -56,6 +60,10 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 017 → dipende da 001 (alter table lawyer_referrals)
 018 → dipende da 014 (opera su agent_cost_log)
 019 → indipendente (schema trading, nessuna FK a tabelle esistenti)
+020 → indipendente (company governance, nessuna FK a tabelle esistenti)
+021 → dipende da 019 (schema trading, trailing stop per posizioni)
+022 → dipende da 013 (alter table company_tasks)
+023 → dipende da 013 (alter table company_tasks)
 ```
 
 ## Storico rinumerazione

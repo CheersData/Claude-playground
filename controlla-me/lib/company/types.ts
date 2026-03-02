@@ -36,6 +36,24 @@ export interface Task {
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
+  /** Decision-tree routing classification (es. 'feature-request:medium'). Obbligatorio alla creazione salvo routing_exempt. */
+  routing: string | null;
+  /** true se il task ha bypassato l'obbligo di routing (escape hatch con --routing-exempt) */
+  routingExempt: boolean;
+  /** Motivo del bypass, obbligatorio quando routingExempt = true */
+  routingReason: string | null;
+  /** Numero sequenziale leggibile (non sostituisce UUID) */
+  seqNum?: number;
+  /** Tag free-form per categorizzare il task (es. ['rag', 'performance']) */
+  tags?: string[];
+  /** Beneficio concreto atteso dal task (max 200 char) */
+  expectedBenefit?: string;
+  /** Stato del beneficio, valutato da CME + dept owner dopo il done */
+  benefitStatus?: 'pending' | 'achieved' | 'partial' | 'missed';
+  /** Annotazione libera sull'esito del beneficio */
+  benefitNotes?: string;
+  /** Hint testuale per il task successivo (creazione rimane manuale) */
+  suggestedNext?: string;
 }
 
 export interface CreateTaskInput {
@@ -49,6 +67,16 @@ export interface CreateTaskInput {
   parentTaskId?: string;
   blockedBy?: string[];
   labels?: string[];
+  /** Decision-tree routing classification. Obbligatorio salvo routingExempt=true. */
+  routing?: string;
+  /** Se true, bypassa l'obbligo di routing (richiede routingReason). */
+  routingExempt?: boolean;
+  /** Motivo del bypass, obbligatorio quando routingExempt = true. */
+  routingReason?: string;
+  /** Tag free-form per categorizzare il task (es. ['rag', 'performance']) */
+  tags?: string[];
+  /** Beneficio concreto atteso dal task (max 200 char) */
+  expectedBenefit?: string;
 }
 
 export interface UpdateTaskInput {
@@ -57,6 +85,16 @@ export interface UpdateTaskInput {
   resultSummary?: string;
   resultData?: Record<string, unknown>;
   labels?: string[];
+  /** Tag free-form per categorizzare il task */
+  tags?: string[];
+  /** Beneficio concreto atteso dal task */
+  expectedBenefit?: string;
+  /** Stato del beneficio, valutato dopo il done */
+  benefitStatus?: 'pending' | 'achieved' | 'partial' | 'missed';
+  /** Annotazione libera sull'esito del beneficio */
+  benefitNotes?: string;
+  /** Hint testuale per il task successivo */
+  suggestedNext?: string;
 }
 
 export interface TaskBoard {
