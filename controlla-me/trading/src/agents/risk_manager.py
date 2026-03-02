@@ -171,12 +171,24 @@ class RiskManager(BaseAgent):
         stop_loss = signal.get("stop_loss")
         take_profit = signal.get("take_profit")
 
-        # SELL signals always approved (reducing risk is good)
+        # SELL signals: find existing position to get qty
+        # Without position_size, executor silently skips the order (line 77)
         if action == SignalAction.SELL:
+            open_position = next(
+                (p for p in positions if p["symbol"] == symbol), None
+            )
+            if not open_position or open_position.get("qty", 0) <= 0:
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason="No open position to sell",
+                )
             return RiskDecision(
                 symbol=symbol,
                 action=action,
                 status=RiskDecisionStatus.APPROVED,
+                position_size=int(open_position["qty"]),
                 reason=None,
             )
 
