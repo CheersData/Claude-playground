@@ -56,6 +56,27 @@ function getCleanEnv(): NodeJS.ProcessEnv {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface TelegramChat {
+  id: number;
+}
+
+interface TelegramMessage {
+  chat: TelegramChat;
+  text?: string;
+}
+
+interface TelegramCallbackQuery {
+  id: string;
+  data?: string;
+  message?: TelegramMessage;
+}
+
+interface TelegramUpdate {
+  update_id: number;
+  callback_query?: TelegramCallbackQuery;
+  message?: TelegramMessage;
+}
+
 interface TaskProposal {
   dept: string;
   title: string;
@@ -202,15 +223,15 @@ async function getTradingStatus(): Promise<string> {
     }
 
     if (signals.length > 0) {
-      const sigSummary = signals.map((s: any) => {
-        const d = s.data ?? {};
+      const sigSummary = signals.map((s: Record<string, unknown>) => {
+        const d = (s.data ?? {}) as Record<string, unknown>;
         return `${s.signal_type}${d.symbol ? `(${d.symbol})` : ""}`;
       }).join(", ");
       lines.push(`Segnali recenti: ${sigSummary}`);
     }
 
     if (riskEvents.length > 0) {
-      lines.push(`Eventi risk: ${riskEvents.map((r: any) => r.event_type).join(", ")}`);
+      lines.push(`Eventi risk: ${riskEvents.map((r: Record<string, unknown>) => r.event_type).join(", ")}`);
     }
 
     return lines.join("\n");
@@ -376,7 +397,7 @@ function createTasks(tasks: TaskProposal[]): number {
 
 // ─── Telegram API (fetch nativa Node 18+) ────────────────────────────────────
 
-async function telegramRequest(method: string, body: object): Promise<any> {
+async function telegramRequest(method: string, body: object): Promise<Record<string, unknown>> {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN non configurato");
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
   const res = await fetch(url, {
@@ -384,9 +405,9 @@ async function telegramRequest(method: string, body: object): Promise<any> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json() as any;
+  const data = await res.json() as Record<string, unknown>;
   if (!data.ok) throw new Error(`Telegram ${method}: ${data.description}`);
-  return data.result;
+  return (data.result as Record<string, unknown>) ?? {};
 }
 
 async function sendMessage(text: string, replyMarkup?: object): Promise<number | null> {
@@ -397,7 +418,7 @@ async function sendMessage(text: string, replyMarkup?: object): Promise<number |
       parse_mode: "Markdown",
       ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     });
-    return result?.message_id ?? null;
+    return (result?.message_id as number) ?? null;
   } catch (e) {
     log(`sendMessage error: ${(e as Error).message}`);
     return null;
@@ -425,13 +446,13 @@ async function answerCallback(callbackQueryId: string, text: string): Promise<vo
   } catch {}
 }
 
-async function getUpdates(offset: number): Promise<any[]> {
+async function getUpdates(offset: number): Promise<TelegramUpdate[]> {
   if (!BOT_TOKEN) return [];
   try {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=${TELEGRAM_POLL_TIMEOUT_S}&offset=${offset}`;
     const res = await fetch(url);
-    const data = await res.json() as any;
-    return data.result ?? [];
+    const data = await res.json() as Record<string, unknown>;
+    return (data.result as TelegramUpdate[]) ?? [];
   } catch {
     return [];
   }
@@ -614,7 +635,7 @@ async function handleCallback(
         plan_content: { planText: state.pendingPlan.planText, tasks: state.pendingPlan.tasks },
         vision_snapshot: vision?.vision ?? undefined,
         mission_snapshot: vision?.mission ?? undefined,
-        recommendations: (state.pendingPlan as any).recommendations ?? [],
+        recommendations: (state.pendingPlan as PendingPlan & { recommendations?: string[] }).recommendations ?? [],
         plan_number: planNum,
       });
       if (planId) {

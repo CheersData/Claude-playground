@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 import { getOpenTasks, updateTask } from "../lib/company/tasks";
 
 async function main() {
-  const blocked = await getOpenTasks({ status: "blocked" as any, limit: 100 });
+  const blocked = await getOpenTasks({ status: "blocked", limit: 100 });
   console.log(`\nTask blocked trovati: ${blocked.length}\n`);
 
   for (const task of blocked) {

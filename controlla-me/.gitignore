@@ -52,6 +52,7 @@ playwright-report/
 # Test run results (ephemeral)
 scripts/testbook-results-*.json
 scripts/adversarial-results-*.json
+scripts/*-articles.json
 
 # Supabase temp
 supabase/.temp/
