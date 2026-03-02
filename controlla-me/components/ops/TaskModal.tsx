@@ -109,6 +109,8 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
   const [actionMode, setActionMode] = useState<ActionMode>(null);
   const [agentName, setAgentName] = useState(task.assignedTo ?? "");
   const [resultText, setResultText] = useState("");
+  const [benefitStatus, setBenefitStatus] = useState<string>("achieved");
+  const [benefitNotes, setBenefitNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,7 +159,12 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
     patchTask({ claim: true, agent: agentName.trim() });
   }
   function handleDone() {
-    patchTask({ status: "done", resultSummary: resultText.trim() || null });
+    patchTask({
+      status: "done",
+      resultSummary: resultText.trim() || null,
+      benefitStatus: task.expectedBenefit ? benefitStatus : null,
+      benefitNotes: benefitNotes.trim() || null,
+    });
   }
   function handleStatusChange(newStatus: string) {
     patchTask({ status: newStatus });
@@ -406,6 +413,36 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
                 autoFocus
               />
+              {task.expectedBenefit && (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide">Beneficio raggiunto?</p>
+                  <div className="flex gap-2">
+                    {(["achieved", "partial", "missed"] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setBenefitStatus(s)}
+                        className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${
+                          benefitStatus === s
+                            ? s === "achieved" ? "bg-green-500/25 text-green-300 border-green-500/50"
+                            : s === "partial"  ? "bg-yellow-500/25 text-yellow-300 border-yellow-500/50"
+                            : "bg-red-500/25 text-red-300 border-red-500/50"
+                            : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-500"
+                        }`}
+                      >
+                        {s === "achieved" ? "Raggiunto" : s === "partial" ? "Parziale" : "Mancato"}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={benefitNotes}
+                    onChange={(e) => setBenefitNotes(e.target.value)}
+                    placeholder="Note sul beneficio (opzionale)..."
+                    rows={2}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                  />
+                </div>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDone(); }}
