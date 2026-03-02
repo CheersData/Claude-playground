@@ -105,12 +105,13 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "groq-llama3-70b",
     "cerebras-gpt-oss-120b",
   ],
-  // ── Company Tasks — solo modelli free (ADR-009) ──
+  // ── Company Tasks (dipartimenti + CME) — Opus con fallback ──
   "task-executor": [
-    "gemini-2.5-flash",       // partner + associate (free 250 req/giorno)
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
-    "mistral-small-3",
+    "claude-opus-4.5",        // partner
+    "claude-sonnet-4.5",      // associate
+    "claude-haiku-4.5",       // intern
+    "gemini-2.5-flash",
+    "cerebras-gpt-oss-120b",
   ],
 };
 
@@ -126,7 +127,7 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   analyzer:       { partner: 0, associate: 1, intern: 2 },
   investigator:   { partner: 0, associate: 1, intern: 1 },  // intern = associate per investigator (solo Anthropic)
   advisor:        { partner: 0, associate: 1, intern: 2 },
-  "task-executor": { partner: 0, associate: 0, intern: 1 },  // tutti i tier partono da free
+  "task-executor": { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
 };
 
 // ─── State ───
