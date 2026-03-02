@@ -34,6 +34,9 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 | 19 | Protocols | qualsiasi | richiesta parere | consultazione da decision tree |
 | 20 | Protocols | CME | routing + recommendation | risultato classificazione |
 | 21 | Protocols | Boss (Telegram) | richiesta approvazione | decisioni L3/L4 |
+| 22 | Acceleration | Architecture | proposta refactoring strutturale | per interventi che cambiano interfacce |
+| 23 | Acceleration | QA | richiesta test regressione | dopo ogni pulizia significativa |
+| 24 | CME | Acceleration | audit periodico | dopo ogni sprint completato |
 
 ## Flussi VIETATI
 
@@ -67,3 +70,4 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 | Strategy | Task "quarterly review" o "feature prioritization" | OKR, roadmap, RICE scores, competitor snapshot |
 | Marketing | Task "content calendar", "growth report", "partnership outreach" | Piano contenuti, report metriche, stato partnership |
 | Protocols | Richiesta da classificare + pareri da raccogliere | Routing (dept + livello approvazione) + recommendation |
+| Acceleration | Task "codebase audit", "performance audit dept", "cleanup X" | Report audit con lista interventi, PR diff, metriche before/after |

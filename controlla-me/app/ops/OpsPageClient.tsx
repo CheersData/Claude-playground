@@ -15,6 +15,7 @@ import { DepartmentDetailPanel } from "@/components/ops/DepartmentDetailPanel";
 import { ReportsPanel } from "@/components/ops/ReportsPanel";
 import { CMEChatPanel } from "@/components/ops/CMEChatPanel";
 import { LegalQATestPanel } from "@/components/ops/LegalQATestPanel";
+import { ArchivePanel } from "@/components/ops/ArchivePanel";
 import { VisionMissionPanel } from "@/components/ops/VisionMissionPanel";
 import type { Department, Task } from "@/lib/company/types";
 
@@ -56,6 +57,7 @@ export default function OpsPageClient() {
   const [showCME, setShowCME] = useState(false);
   const [showLegalQA, setShowLegalQA] = useState(false);
   const [showVision, setShowVision] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
 
   // Check existing token on mount
   useEffect(() => {
@@ -154,32 +156,38 @@ export default function OpsPageClient() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setShowCME(true); setShowReports(false); setShowLegalQA(false); setShowVision(false); setSelectedDepartment(null); }}
+            onClick={() => { setShowCME(true); setShowReports(false); setShowLegalQA(false); setShowVision(false); setShowArchive(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showCME ? "bg-[#FF6B35] text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
             <span className="w-2 h-2 rounded-full bg-current opacity-80" />
             CME
           </button>
           <button
-            onClick={() => { setShowVision(true); setShowCME(false); setShowReports(false); setShowLegalQA(false); setSelectedDepartment(null); }}
+            onClick={() => { setShowVision(true); setShowCME(false); setShowReports(false); setShowLegalQA(false); setShowArchive(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showVision ? "bg-[#FF6B35]/80 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
             🎯 Vision
           </button>
           <button
-            onClick={() => { setSelectedDepartment("trading"); setShowCME(false); setShowReports(false); setShowLegalQA(false); setShowVision(false); }}
+            onClick={() => { setSelectedDepartment("trading"); setShowCME(false); setShowReports(false); setShowLegalQA(false); setShowVision(false); setShowArchive(false); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${selectedDepartment === "trading" ? "bg-zinc-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
             📈 Trading
           </button>
           <button
-            onClick={() => { setShowLegalQA(true); setShowReports(false); setShowCME(false); setShowVision(false); setSelectedDepartment(null); }}
+            onClick={() => { setShowLegalQA(true); setShowReports(false); setShowCME(false); setShowVision(false); setShowArchive(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showLegalQA ? "bg-purple-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
             ⚖️ Legal Q&A
           </button>
           <button
-            onClick={() => { setShowReports(true); setShowCME(false); setShowLegalQA(false); setShowVision(false); setSelectedDepartment(null); }}
+            onClick={() => { setShowArchive(true); setShowReports(false); setShowCME(false); setShowVision(false); setShowLegalQA(false); setSelectedDepartment(null); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showArchive ? "bg-zinc-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
+          >
+            📦 Archivio
+          </button>
+          <button
+            onClick={() => { setShowReports(true); setShowCME(false); setShowLegalQA(false); setShowVision(false); setShowArchive(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showReports ? "bg-zinc-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
             Reports
@@ -220,9 +228,9 @@ export default function OpsPageClient() {
           ) : showCME ? (
             <CMEChatPanel onBack={() => setShowCME(false)} />
           ) : showVision ? (
-            <div className="bg-zinc-900/50 border border-zinc-700/50 rounded-xl p-6">
-              <VisionMissionPanel onBack={() => setShowVision(false)} />
-            </div>
+            <VisionMissionPanel />
+          ) : showArchive ? (
+            <ArchivePanel onBack={() => setShowArchive(false)} />
           ) : showLegalQA ? (
             <LegalQATestPanel />
           ) : showReports ? (
