@@ -30,6 +30,10 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 | 15 | Uff. Trading | CME | risk alert (kill switch) | immediatamente |
 | 16 | Finance | CME | alert P&L trading | quando loss > soglia |
 | 17 | QA | Uff. Trading | backtest validation | prima di go-live |
+| 18 | CME | Protocols | richiesta routing | ogni decisione non-triviale |
+| 19 | Protocols | qualsiasi | richiesta parere | consultazione da decision tree |
+| 20 | Protocols | CME | routing + recommendation | risultato classificazione |
+| 21 | Protocols | Boss (Telegram) | richiesta approvazione | decisioni L3/L4 |
 
 ## Flussi VIETATI
 
@@ -38,6 +42,8 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 - Operations → modifiche codice (solo monitoring)
 - Marketing → modificare prompt o codice (passa da CME → Ufficio Legale / Architecture)
 - Strategy → implementare feature direttamente (passa da CME → Architecture)
+- Qualsiasi → bypassare Protocols per decisioni strategiche/critiche (L3/L4 richiedono sempre routing)
+- Protocols → implementare codice (solo governance e routing, mai esecuzione)
 
 ## Formati I/O per unità organizzativa
 
@@ -60,3 +66,4 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 | Operations | Task "status report" | Dashboard data (health, latency, pipeline status) |
 | Strategy | Task "quarterly review" o "feature prioritization" | OKR, roadmap, RICE scores, competitor snapshot |
 | Marketing | Task "content calendar", "growth report", "partnership outreach" | Piano contenuti, report metriche, stato partnership |
+| Protocols | Richiesta da classificare + pareri da raccogliere | Routing (dept + livello approvazione) + recommendation |

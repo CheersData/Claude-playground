@@ -30,8 +30,8 @@ L'utente parla al **CME** (il CEO), non micro-gestisce ogni riga.
                            │ 7 agenti AI     │    │ Data Eng.     │Finance │
                            │ analisi legale  │    │ Security      │Ops     │
                            ├─────────────────┤    │ Strategy      │Mktg    │
-                           │ Uff. Trading    │    └────────────────────────┘
-                           │ 5 agenti Python │
+                           │ Uff. Trading    │    │ Protocols     │UX/UI   │
+                           │ 7 agenti Python │    └────────────────────────┘
                            │ swing trading   │
                            └─────────────────┘
 ```
@@ -60,6 +60,7 @@ L'utente parla al **CME** (il CEO), non micro-gestisce ogni riga.
 | Security | Audit e protezione dati | security-auditor |
 | Strategy | Vision, OKR, analisi competitiva | strategist |
 | Marketing | Market intelligence, acquisizione | growth-hacker |
+| Protocols | Decision trees, routing, audit decisioni | protocol-router |
 
 ## Come funziona
 

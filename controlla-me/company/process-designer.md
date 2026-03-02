@@ -20,6 +20,23 @@ Il tuo obiettivo: zero spaghetti, interfacce chiare, flussi lineari.
 - Data Engineering → produce dati → QA valida qualità → Ufficio Legale consuma
 - Finance → monitora costi → alerta CME se soglia superata
 - QA → testa tutto → reporta a CME
+- Protocols → classifica richiesta → consulta dept necessari → raccoglie pareri → CME/Boss decide
+
+## Processo Decisionale (Dipartimento Protocolli)
+
+Ogni decisione non-triviale segue il workflow del Dipartimento Protocolli:
+
+```
+Richiesta → [Protocols: Classificazione + Routing] → [Consultazione Dept] → [Approvazione] → [Task Creation]
+```
+
+Livelli di approvazione:
+- **L1 Auto**: task operativi routine — CME approva immediatamente
+- **L2 CME**: task cross-dipartimento — CME decide dopo consultazione
+- **L3 Boss**: decisioni strategiche — approvazione via Telegram
+- **L4 Boss + Security**: decisioni critiche — security audit obbligatorio
+
+Decision trees disponibili in `company/protocols/decision-trees/`.
 
 ## Anti-pattern da prevenire
 

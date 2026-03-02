@@ -1,0 +1,42 @@
+{
+  "updateOffset": 431372334,
+  "pendingPlan": {
+    "planNumber": 1,
+    "generatedAt": "2026-03-02T06:59:57.654Z",
+    "messageId": null,
+    "planText": "*Piano #1 — Errore generazione AI*\n\nBoard vuoto. Errore: Command failed: claude -p \"Sei CME, il CEO virtuale di Controlla.me. Il task board è ora COMPLETAMENTE VUOTO.\\nDevi generare il Piano #1 (02/03/2026, 07:59:57).\\n\\nCONTESTO:\\nControlla.me — app analisi legale AI (pre-lancio commerciale PMI).\\nStack: Next.js 15, Supabase, Claude/Gemini/Groq, pgvector.\\nTask board: VUOTO (open=0, in_progress=0, done=0 totali).\\n\\nUfficio Trading:\\nModalità: PAPER\\nPosizioni aperte: 0\\nSegnali recenti: trade, trade, trade\\n\\nBacklog storico noto (da considerare per i task):\\n- QA: gap test su agent-runner.ts, tiers.ts, generate.ts (P1-P2-P5)\\n- Security: DPA con Anthropic/Mistral/Google, consulente EU AI Act (agosto 2026)\\n- Architecture: UI scoring multidimensionale, TD-2 (tiers.ts global state)\\n- Data Engineering: Statuto dei Lavoratori (L. 300/1970) — non ancora caricato\\n- Strategy: Opportunity Brief verticale HR, analisi competitor\\n- Marketing: SEO articoli legali, landing page verticale affitti\\n- Finance: Cost report mensile, monitoraggio costi Groq/Cerebras\\n- Operations: Health check agenti runtime, monitoring dashboard /ops\\n- Ufficio Legale: Revisione prompt advisor (falsi positivi needsLawyer)\\n- Trading: Backtest (Fase 2), ottimizzazione filtri scanner, riduzione falsi segnali\\n\\nDashboard /ops — sezione Trading: mostrare posizioni attuali + P&L ultimo giorno + P&L ultima ora.\\n\\nGenera un piano CONCRETO. Output ESCLUSIVAMENTE JSON puro. Inizia con { e finisci con }.\\n\\n{\\n  \\\"planText\\\": \\\"Testo markdown del piano leggibile dal boss su Telegram (max 2000 caratteri). Include: titolo, priorità immediata, analisi Ufficio Trading con miglioramenti concreti, elenco dipartimenti con task proposti. Tono diretto, no legalese.\\\",\\n  \\\"tasks\\\": [\\n    {\\n      \\\"dept\\\": \\\"nome-dipartimento\\\",\\n      \\\"title\\\": \\\"Titolo task breve (max 10 parole)\\\",\\n      \\\"priority\\\": \\\"low|medium|high|critical\\\",\\n      \\\"desc\\\": \\\"Cosa fare e perché, in modo che chiunque legga capisca senza aprire il dettaglio (max 150 char)\\\"\\n    }\\n  ]\\n}\\n\\nDipartimenti validi: architecture, data-engineering, quality-assurance, security, finance, operations, strategy, marketing, ufficio-legale, trading, ux-ui\\n\\nRegole:\\n- 1-3 task per dipartimento, solo per quelli dove c'è davvero lavoro utile\\n- Trading: SEMPRE includi almeno 2 task specifici per migliorare la pipeline\\n- planText deve essere leggibile su Telegram con Markdown (*grassetto*, _corsivo_)\\n- NON inventare task generici — usa il backlog noto sopra\\n- Priorità task: almeno 2 HIGH nel piano\\n- JSON valido, no backtick\"\n\nApprova per creare task di default.",
+    "tasks": [
+      {
+        "dept": "architecture",
+        "title": "Review backlog e priorità sprint",
+        "priority": "medium",
+        "desc": "Board vuoto — definire prossime attività."
+      },
+      {
+        "dept": "quality-assurance",
+        "title": "Completa test coverage gap critici",
+        "priority": "high",
+        "desc": "agent-runner.ts e tiers.ts non coperti — P1/P2."
+      },
+      {
+        "dept": "trading",
+        "title": "Analisi performance scanner ultima settimana",
+        "priority": "high",
+        "desc": "Verificare qualità segnali e metriche P&L."
+      }
+    ]
+  },
+  "planCountToday": 1,
+  "lastPlanDate": "2026-03-02",
+  "lastCancelledAt": null,
+  "lastApprovedAt": null,
+  "lastPlanGeneratedAt": null,
+  "chatHistory": [],
+  "startupInterview": {
+    "date": "2026-03-02",
+    "status": "q1_sent",
+    "focus": null,
+    "urgenze": null,
+    "trading": null
+  }
+}
