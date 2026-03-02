@@ -21,7 +21,6 @@ interface NavbarProps {
 export default function Navbar({ onLogoClick }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -29,7 +28,6 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
   // Track scroll position for navbar background + active section
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
       setShowScrollTop(window.scrollY > 600);
 
       // Only track sections on home page

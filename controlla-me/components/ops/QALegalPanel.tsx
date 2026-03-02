@@ -99,12 +99,6 @@ const SEVERITY_COLORS: Record<string, string> = {
   medium: "text-yellow-400",
 };
 
-const SEVERITY_BG: Record<string, string> = {
-  critical: "bg-red-500/10 border-red-500/20",
-  high: "bg-orange-500/10 border-orange-500/20",
-  medium: "bg-yellow-500/10 border-yellow-500/20",
-};
-
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ result }: { result: LastResult | null }) {

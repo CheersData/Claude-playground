@@ -21,6 +21,27 @@ export interface TaskItem {
   resultSummary?: string | null;
   resultData?: Record<string, unknown> | null;
   labels?: string[] | null;
+  /** Numero sequenziale leggibile (migration 023) */
+  seqNum?: number | null;
+  /** Tag free-form (migration 023) */
+  tags?: string[] | null;
+  /** Beneficio atteso (migration 023) */
+  expectedBenefit?: string | null;
+  /** Stato valutazione beneficio (migration 023) */
+  benefitStatus?: "pending" | "achieved" | "partial" | "missed" | null;
+}
+
+/** Badge colorato per tag free-form */
+export function TagBadge({ tag, size = "sm" }: { tag: string; size?: "xs" | "sm" }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono ${
+        size === "xs" ? "text-[9px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+      }`}
+    >
+      {tag}
+    </span>
+  );
 }
 
 interface TaskModalProps {

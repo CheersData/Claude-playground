@@ -82,7 +82,7 @@ export default function HomePageClient() {
   }, []);
 
   const startAnalysis = useCallback(
-    async (file: File, resumeId?: string, context?: string) => {
+    async (file: File, resumeId?: string, _context?: string) => {
       setFileName(file.name);
       setView("analyzing");
       setCurrentPhase(null);

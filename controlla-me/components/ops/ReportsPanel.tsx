@@ -309,7 +309,6 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
     } finally {
       setLoadingList(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

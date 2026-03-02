@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "cross-env NODE_ENV=production TURBOPACK= next build --webpack",
+    "dev": "next dev --turbopack",
+    "build": "cross-env NODE_ENV=production next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -18,7 +18,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.77.0",
     "@google/genai": "^1.42.0",
-    "@stripe/stripe-js": "^8.8.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@upstash/ratelimit": "^2.0.8",
@@ -43,7 +42,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
     "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",

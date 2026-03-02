@@ -99,7 +99,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [debugLog, setDebugLog] = useState<Array<{ type: string; msg: string; ts: number }>>([]);
   const [showDebug, setShowDebug] = useState(true);
-  const [childPid, setChildPid] = useState<number | null>(null);
+  const [_childPid, setChildPid] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // debugEndRef removed — newest debug entries are at top, no auto-scroll

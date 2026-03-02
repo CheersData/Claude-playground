@@ -111,7 +111,6 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
     } finally {
       setLoading(false); // garantito sempre, anche su early return
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -157,7 +156,6 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
     } catch {
       // ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!open) return null;

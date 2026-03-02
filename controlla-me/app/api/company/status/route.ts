@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
 import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
-import { AGENT_MODELS, MODELS, type AgentName } from "@/lib/models";
+import { AGENT_MODELS, MODELS } from "@/lib/models";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 

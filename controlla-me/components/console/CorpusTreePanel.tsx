@@ -103,13 +103,13 @@ function PanelCount({ value, suffix }: { value: number; suffix?: string }) {
 
 // ─── Main Component ───
 
-export default function CorpusTreePanel({ open, onClose }: CorpusTreePanelProps) {
+export default function CorpusTreePanel({ open, onClose: _onClose }: CorpusTreePanelProps) {
   const [activeTab, setActiveTab] = useState<"fonti" | "istituti">("fonti");
 
   // Sources
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [selectedSource, setSelectedSource] = useState<SourceInfo | null>(null);
-  const [fullTree, setFullTree] = useState<TreeNode[]>([]);
+  const [_fullTree, setFullTree] = useState<TreeNode[]>([]);
   const [treeLoading, setTreeLoading] = useState(false);
 
   // Miller columns state
@@ -527,8 +527,6 @@ function HierarchyColumn({
   onNodeSelect: (colIndex: number, node: TreeNode) => void;
   onArticleSelect: (id: string, colIndex: number) => void;
 }) {
-  const maxCount = Math.max(...column.nodes.map(countArticles), 1);
-
   return (
     <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">

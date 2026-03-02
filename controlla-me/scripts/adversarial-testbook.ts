@@ -72,8 +72,7 @@ RISPOSTA DELL'AGENTE:
 ${result.answer}
 
 ARTICOLI CITATI:
-${result.citedArticles?.map((a) => `- ${a.reference}: ${(a as { reference?: string; title?: string }).title ?? ""}`).join("
-") || "Nessuno"}
+${result.citedArticles?.map((a) => `- ${a.reference}: ${(a as { reference?: string; title?: string }).title ?? ""}`).join("\n") || "Nessuno"}
 
 CONTESTO TEST:
 - Categoria: ${tc.category}

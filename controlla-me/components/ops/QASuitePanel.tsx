@@ -40,12 +40,6 @@ interface Suggestion {
   description: string;
 }
 
-interface SuggestionsData {
-  suggestions: Suggestion[];
-  generatedAt: string;
-  note: string;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function ScoreBadge({ score }: { score: number }) {
@@ -210,7 +204,7 @@ export function QASuitePanel() {
       const json = await res.json();
       setSuggestions(json.suggestions ?? []);
       setSuggestionsNote(json.note ?? null);
-    } catch (err) {
+    } catch {
       setSuggestions([]);
     } finally {
       setLoadingSuggestions(false);
