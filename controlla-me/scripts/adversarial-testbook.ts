@@ -99,8 +99,8 @@ NOTE: [1-2 frasi di motivazione]`;
     ).trim();
 
     // Parse PUNTEGGIO: X and NOTE: ...
-    const scoreMatch = raw.match(/PUNTEGGIO:s*([0-9](?:.[0-9])?|10)/i);
-    const noteMatch = raw.match(/NOTE:s*(.+)/is);
+    const scoreMatch = raw.match(/PUNTEGGIO:\s*([0-9](?:\.[0-9])?|10)/i);
+    const noteMatch = raw.match(/NOTE:\s*(.+)/is);
 
     const score = scoreMatch ? Math.min(10, Math.max(0, parseFloat(scoreMatch[1]))) : 0;
     const notes = noteMatch ? noteMatch[1].trim().slice(0, 300) : raw.slice(0, 200);
