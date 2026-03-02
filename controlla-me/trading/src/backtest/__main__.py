@@ -42,6 +42,13 @@ DEFAULT_UNIVERSE = [
     "SPY", "QQQ", "IWM", "XLF", "XLK", "XLE", "XLV", "XLI",
 ]
 
+# Sector ETF universe for 15-min mean reversion strategy
+MEAN_REVERSION_UNIVERSE = [
+    "XLF", "XLK", "XLE", "XLV", "XLI",
+    "XLU", "XLY", "XLP", "XLRE", "XLB", "XLC",
+    "SPY",  # benchmark + macro ETF
+]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -73,8 +80,8 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated symbols (default: S&P 500 subset + ETFs)",
     )
     grid_parser.add_argument(
-        "--timeframe", type=str, choices=["1Day", "1Hour"], default="1Day",
-        help="Timeframe: 1Day or 1Hour (default: 1Day)",
+        "--timeframe", type=str, choices=["1Day", "1Hour", "15Min"], default="1Day",
+        help="Timeframe: 1Day, 1Hour, or 15Min (default: 1Day)",
     )
     grid_parser.add_argument(
         "--output", type=str, default=None,
@@ -131,8 +138,8 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Disable SMA trend filter",
     )
     parser.add_argument(
-        "--timeframe", type=str, choices=["1Day", "1Hour"], default="1Day",
-        help="Timeframe: 1Day or 1Hour (default: 1Day)",
+        "--timeframe", type=str, choices=["1Day", "1Hour", "15Min"], default="1Day",
+        help="Timeframe: 1Day, 1Hour, or 15Min (default: 1Day)",
     )
     parser.add_argument(
         "--output", type=str, default=None,
@@ -159,11 +166,16 @@ def cmd_run(args: argparse.Namespace) -> None:
         print("Error: Start date must be before end date")
         sys.exit(1)
 
-    # Parse universe
+    # Parse universe — auto-select mean reversion universe for 15Min
     if args.universe:
         symbols = [s.strip().upper() for s in args.universe.split(",")]
+    elif args.timeframe == "15Min":
+        symbols = MEAN_REVERSION_UNIVERSE
     else:
         symbols = DEFAULT_UNIVERSE
+
+    # Derive strategy from timeframe if not explicitly set
+    strategy = "mean_reversion" if args.timeframe == "15Min" else "trend_following"
 
     # Build config
     config = BacktestConfig(
@@ -178,9 +190,12 @@ def cmd_run(args: argparse.Namespace) -> None:
         trend_filter=not args.no_trend_filter,
         train_test_split=0.7 if args.mode == "train_test" else None,
         timeframe=args.timeframe,
+        strategy=strategy,
     )
 
-    tf_label = "HOURLY" if args.timeframe == "1Hour" else "DAILY"
+    tf_label = {"1Day": "DAILY", "1Hour": "HOURLY", "15Min": "15-MIN MEAN REVERSION"}.get(
+        args.timeframe, args.timeframe
+    )
     print(f"\n{'='*70}")
     print(f"  BACKTEST [{tf_label}] -- {start} -> {end}")
     print(f"  Capital: ${config.initial_capital:,.0f} | Symbols: {len(symbols)} | Mode: {args.mode}")

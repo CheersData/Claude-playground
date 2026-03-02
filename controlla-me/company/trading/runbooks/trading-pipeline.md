@@ -38,13 +38,22 @@ Cambiare a `-4` durante l'ora legale US (seconda domenica di marzo → prima dom
 
 ## Schedule
 
-| Fase | Orario (CET) | Agente |
-|------|-------------|--------|
-| Market Scan | 13:00 (pre-market) | market-scanner |
-| Signal Generation | 15:00 (post-scan) | signal-generator |
-| Risk Check + Execution | 15:30-16:00 (market open) | risk-manager + executor |
-| Monitoring | 15:30-22:00 (market hours) | portfolio-monitor |
-| Daily Report | 22:30 (post-market) | portfolio-monitor |
+| Fase | Orario (CET) | Orario (ET) | Agente |
+|------|-------------|-------------|--------|
+| Daily pipeline (scan + signal + risk + exec) | **15:00** (pre-market) | 09:00 | market-scanner + signal-generator + risk-manager + executor |
+| Intraday scan slot 1 | 16:00 | 10:00 | signal-generator (intraday) |
+| Intraday scan slot 2 | 17:00 | 11:00 | signal-generator (intraday) |
+| Intraday scan slot 3 | 18:00 | 12:00 | signal-generator (intraday) |
+| Intraday scan slot 4 | 19:00 | 13:00 | signal-generator (intraday) |
+| Intraday scan slot 5 | 20:00 | 14:00 | signal-generator (intraday) |
+| Intraday scan slot 6 | 21:00 | 15:00 | signal-generator (intraday) |
+| Monitoring continuo | 15:30-22:00 | 09:30-16:00 | portfolio-monitor |
+| Daily Report | 22:30 (post-market) | 16:30 | portfolio-monitor |
+
+**Note scheduler (`trading/src/scheduler.py`):**
+- `ET_OFFSET_HOURS = -5` (EST) → `-4` durante ora legale US (2a domenica di marzo → 1a domenica di novembre)
+- `INTRADAY_ENABLED = True` — slot intraday 16:00-21:00 CET attivi
+- Skip automatico weekend
 
 ## Procedura
 

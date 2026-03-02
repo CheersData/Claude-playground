@@ -31,12 +31,19 @@ class SignalGenerator(BaseAgent):
         self._db = TradingDB()
         self._settings = get_settings().signal
 
-    async def run(self, watchlist: list[dict] | None = None, **kwargs: Any) -> dict:
+    async def run(
+        self,
+        watchlist: list[dict] | None = None,
+        timeframe: str = "1Day",
+        **kwargs: Any,
+    ) -> dict:
         """
         Generate signals for watchlist candidates.
 
         Args:
             watchlist: List of ScanResult dicts. If None, reads latest scan from DB.
+            timeframe: Bar timeframe — "1Day" (default) or "1Hour" (intraday).
+                       Hourly bars give real-time signals during market hours.
         """
         if watchlist is None:
             scans = self._db.get_latest_signals("scan", limit=1)
@@ -46,10 +53,12 @@ class SignalGenerator(BaseAgent):
             watchlist = scans[0].get("data", {}).get("watchlist", [])
 
         symbols = [c["symbol"] for c in watchlist]
-        self.log_start(watchlist_size=len(symbols))
+        # 1Day: 1 year of history for robust indicators.
+        # 1Hour: 30 days (~390 bars) — enough for RSI/MACD/BB, avoids hitting rate limits.
+        days_back = 365 if timeframe == "1Day" else 30
+        self.log_start(watchlist_size=len(symbols), timeframe=timeframe)
 
-        # Fetch more history for indicator calculations (1 year)
-        bars = self._alpaca.get_bars(symbols, timeframe="1Day", days_back=365)
+        bars = self._alpaca.get_bars(symbols, timeframe=timeframe, days_back=days_back)
 
         signals: list[dict] = []
         for symbol, df in bars.items():
@@ -81,14 +90,28 @@ class SignalGenerator(BaseAgent):
             volume = df["volume"]
             current_price = float(close.iloc[-1])
 
+            # --- SMA200 hard filter (v2) ---
+            # Only go long when price is above the 200-period MA (structural uptrend).
+            # Avoids buying into sustained downtrends where dips keep going lower.
+            if len(close) >= 200:
+                sma200 = float(close.tail(200).mean())
+                if current_price < sma200:
+                    return None  # Below SMA200 — skip, no long entries
+
             # --- RSI ---
             rsi = RSIIndicator(close, window=self._settings.rsi_period)
-            rsi_value = float(rsi.rsi().iloc[-1])
+            rsi_series = rsi.rsi()
+            rsi_value = float(rsi_series.iloc[-1])
+            rsi_prev_value = float(rsi_series.iloc[-2])
+
+            # RSI momentum confirmation (v2): RSI must be turning UP when oversold.
+            # Prevents entering on continuing dips — only buy when momentum reverses.
+            rsi_rising = rsi_value > rsi_prev_value
 
             if rsi_value < self._settings.rsi_oversold:
-                rsi_score = 0.8  # Oversold = potential buy
+                rsi_score = 0.8 if rsi_rising else 0.2  # Only reward if momentum reversing
             elif rsi_value > self._settings.rsi_overbought:
-                rsi_score = -0.8  # Overbought = potential sell
+                rsi_score = -0.8
             else:
                 rsi_score = (50 - rsi_value) / 50 * 0.5  # Linear scale
 
@@ -180,14 +203,16 @@ class SignalGenerator(BaseAgent):
 
             # Calculate entry, stop loss, take profit
             atr = self._calculate_atr(high, low, close, period=14)
+            # ATR multipliers aligned with grid search optimum (v2): SL=2.5x, TP=6.0x
+            # Previous values (2.0x/4.0x) were suboptimal — grid found 2.5x/6.0x best.
             if action == SignalAction.BUY:
                 entry_price = current_price
-                stop_loss = round(entry_price - (atr * 2), 2)  # 2x ATR below
-                take_profit = round(entry_price + (atr * 4), 2)  # 4x ATR above (2:1 R/R)
+                stop_loss = round(entry_price - (atr * 2.5), 2)
+                take_profit = round(entry_price + (atr * 6.0), 2)
             else:
                 entry_price = current_price
-                stop_loss = round(entry_price + (atr * 2), 2)
-                take_profit = round(entry_price - (atr * 4), 2)
+                stop_loss = round(entry_price + (atr * 2.5), 2)
+                take_profit = round(entry_price - (atr * 6.0), 2)
 
             rationale = self._build_rationale(
                 rsi_value, macd_score, bb_score, trend_score, vol_ratio

@@ -165,9 +165,9 @@ async def run_intraday_pipeline() -> dict:
             results["status"] = "no_candidates"
             return results
 
-        # Phase 2: Signal Generator
+        # Phase 2: Signal Generator — use 1Hour bars for real-time intraday signals
         signal_gen = SignalGenerator()
-        signal_result = await signal_gen.run(watchlist=watchlist)
+        signal_result = await signal_gen.run(watchlist=watchlist, timeframe="1Hour")
         results["signals"] = {
             "generated": signal_result.get("signals_generated", 0),
             "status": "ok",

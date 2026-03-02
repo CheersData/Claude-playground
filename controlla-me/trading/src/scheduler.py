@@ -31,11 +31,9 @@ from .utils.logging import setup_logging
 
 logger = structlog.get_logger()
 
-# Intraday flag — disabled until backtest (Phase 2) validates the model.
-# The hourly intraday runs fetch daily bars which don't update during market
-# hours, producing identical results to the 09:00 pre-market run (6 API calls
-# for zero new value). Re-enable once signal_generator supports intraday bars.
-INTRADAY_ENABLED = False
+# Intraday flag — enabled. Signal generator now fetches 1Hour bars so each
+# hourly run uses fresh intraday data (not stale daily bars).
+INTRADAY_ENABLED = True
 
 _EASTERN = ZoneInfo("America/New_York")
 

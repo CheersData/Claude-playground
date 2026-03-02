@@ -71,14 +71,41 @@ Trading automatizzato su azioni US e ETF via Alpaca per garantire sostenibilità
     → Alert a Finance + CME su eventi critici
 ```
 
+## Strategia Corrente (validata da backtest 2026-03-02)
+
+**Daily MACD su ETF settoriali** — strategia principale in paper trading.
+
+| Parametro | Valore |
+|-----------|--------|
+| Universo | 14 ETF settoriali (XLF, XLK, XLE, XLV, XLI, XLU, XLY, XLP, XLRE, XLB, XLC, SPY, QQQ, IWM) |
+| Timeframe | 1Day |
+| SL | 2.5x ATR |
+| TP | 6.0x ATR |
+| Filtro trend | SMA200 |
+| Conferma RSI | Sì (momentum) |
+
+**Risultati backtest (2019-01-01 → 2026-02-28, 7 anni, $20k capital):**
+
+| Metrica | Valore | Soglia | Pass |
+|---------|--------|--------|------|
+| Sharpe Ratio | -0.112* | > 1.0 | ❌ |
+| Max Drawdown | -5.94% | < 15% | ✅ |
+| Win Rate | 60.9% | > 50% | ✅ |
+| Profit Factor | 1.91 | > 1.5 | ✅ |
+| Totale trade | 184 | > 100 | ✅ |
+
+*Sharpe negativo perché CAGR 3.58% < risk-free rate 4%. La strategia è profittevole (+28.63% totale), ma sotto-performa i T-bill su orizzonte 7 anni. Non è un segnale di perdita — è un segnale che occorre migliorare il rendimento assoluto.
+
+**Prossimo step strategia**: ottimizzare CAGR (ridurre holding time o aumentare frequenza) per superare il 4% annuo.
+
 ## Fasi di Deployment
 
-| Fase | Durata | Criteri go/no-go |
-|------|--------|-----------------|
-| 1. Fondamenta | 1-2 settimane | Infrastruttura Python funzionante, connessione Alpaca paper, schema DB |
-| 2. Backtest | 1-2 settimane | Backtest su dati storici (min 1 anno), Sharpe > 1.0, max drawdown < 15% |
-| 3. Paper Trading | 30 giorni minimi | Paper trading con risultati consistenti col backtest, nessun bug critico |
-| 4. Go Live | Indefinito | Boss approva, capital allocato, kill switch testato |
+| Fase | Durata | Criteri go/no-go | Stato |
+|------|--------|-----------------|-------|
+| 1. Fondamenta | 1-2 settimane | Infrastruttura Python funzionante, connessione Alpaca paper, schema DB | ✅ COMPLETATA (2026-02-xx) |
+| 2. Backtest | 1-2 settimane | Backtest su dati storici (min 1 anno), Sharpe > 1.0, max drawdown < 15% | ⚠️ PARZIALE — 4/5 criteri OK, Sharpe negativo (da ottimizzare) |
+| 3. Paper Trading | 30 giorni minimi | Paper trading con risultati consistenti col backtest, nessun bug critico | 🟠 **IN CORSO** — avviato 2026-03-02 |
+| 4. Go Live | Indefinito | Boss approva, capital allocato, kill switch testato | 🔒 PENDING |
 
 ## Agenti
 

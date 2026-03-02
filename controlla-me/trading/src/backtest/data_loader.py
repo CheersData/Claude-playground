@@ -79,6 +79,8 @@ class DataLoader:
             )
             if timeframe == "1Hour":
                 downloaded = self._download_batch_yfinance(to_download, start, end, timeframe)
+            elif timeframe == "15Min":
+                downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=15)
             else:
                 downloaded = self._download_batch_alpaca(to_download, start, end)
 
@@ -199,6 +201,72 @@ class DataLoader:
 
             except Exception as e:
                 logger.error("download_error", batch=batch, error=str(e), source="alpaca")
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Alpaca intraday download (15Min bars via Alpaca API)
+    # ------------------------------------------------------------------
+
+    def _download_batch_alpaca_intraday(
+        self, symbols: list[str], start: date, end: date, minutes: int = 15
+    ) -> dict[str, pd.DataFrame]:
+        """Download sub-hourly bars from Alpaca (15Min supported by paper account)."""
+        from alpaca.data.historical import StockHistoricalDataClient
+        from alpaca.data.requests import StockBarsRequest
+        from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+
+        client = StockHistoricalDataClient(self._api_key, self._secret_key)
+        tf = TimeFrame(minutes, TimeFrameUnit.Minute)
+        result: dict[str, pd.DataFrame] = {}
+
+        # Alpaca limits: request in 30-day chunks to stay within API bounds
+        max_chunk_days = 30
+        batch_size = 10
+
+        for i in range(0, len(symbols), batch_size):
+            batch = symbols[i : i + batch_size]
+            all_chunks: list[pd.DataFrame] = []
+            chunk_start = start
+
+            while chunk_start < end:
+                chunk_end = min(chunk_start + timedelta(days=max_chunk_days), end)
+                try:
+                    request = StockBarsRequest(
+                        symbol_or_symbols=batch,
+                        timeframe=tf,
+                        start=datetime.combine(chunk_start, datetime.min.time()),
+                        end=datetime.combine(chunk_end, datetime.min.time()),
+                    )
+                    bars = client.get_stock_bars(request)
+
+                    for symbol in batch:
+                        if symbol in bars.data and bars.data[symbol]:
+                            data = [
+                                {
+                                    "timestamp": bar.timestamp,
+                                    "open": float(bar.open),
+                                    "high": float(bar.high),
+                                    "low": float(bar.low),
+                                    "close": float(bar.close),
+                                    "volume": int(bar.volume),
+                                }
+                                for bar in bars.data[symbol]
+                            ]
+                            if data:
+                                df = pd.DataFrame(data).set_index("timestamp")
+                                if symbol not in result:
+                                    result[symbol] = df
+                                else:
+                                    result[symbol] = pd.concat([result[symbol], df])
+                except Exception as e:
+                    logger.error("download_error_intraday", batch=batch, error=str(e))
+                chunk_start = chunk_end + timedelta(days=1)
+
+        for symbol in result:
+            result[symbol] = result[symbol][~result[symbol].index.duplicated(keep="first")]
+            result[symbol].sort_index(inplace=True)
+            logger.debug("symbol_downloaded", symbol=symbol, bars=len(result[symbol]), source="alpaca_15min")
 
         return result
 

@@ -63,11 +63,37 @@ HOURLY_INDICATOR_PERIODS = {
     "warmup_bars": 390,     # 60 days × 6.5 hours
 }
 
+# 15-minute settings — intraday mean reversion on sector ETFs
+# 1 trading day = 26 bars (9:30–16:00, 390 min / 15 min)
+FIFTEEN_MIN_INDICATOR_PERIODS = {
+    "rsi_period": 14,        # 14 bars × 15 min = 3.5 h — short-term momentum
+    "macd_fast": 8,          # not primary trigger for MR, kept for compat
+    "macd_slow": 21,
+    "macd_signal": 5,
+    "bb_period": 20,         # 20 bars × 15 min ≈ 5 h — intraday Bollinger
+    "bb_std": 2.0,
+    "sma_short": 20,         # ≈ 5 h
+    "sma_medium": 52,        # ≈ 2 trading days
+    "sma_long": 104,         # ≈ 4 trading days
+    "volume_avg": 20,        # 20-bar volume baseline
+    "atr_period": 14,        # 3.5 h ATR
+    "crossover_lookback": 2,
+    "min_bars": 60,          # need warmup for BB (20) + RSI (14) + buffer
+    "warmup_bars": 104,      # 4 trading days
+    # Mean reversion thresholds
+    "rsi_entry": 28,         # enter when RSI < this (deeply oversold — fewer, better signals)
+    "rsi_exit": 55,          # exit when RSI > this (mean-reverting up)
+    "volume_mult": 1.5,      # require volume spike: recent bar > avg × mult
+    "symbol_cooldown_bars": 13,  # bars to skip after stop loss (3.25 h — avoid falling knife)
+}
+
 
 def get_indicator_periods(timeframe: str = "1Day") -> dict:
     """Return indicator periods calibrated for the given timeframe."""
     if timeframe == "1Hour":
         return HOURLY_INDICATOR_PERIODS.copy()
+    if timeframe == "15Min":
+        return FIFTEEN_MIN_INDICATOR_PERIODS.copy()
     return DAILY_INDICATOR_PERIODS.copy()
 
 
@@ -84,6 +110,7 @@ class CloseReason(StrEnum):
     STOP_LOSS = "stop_loss"
     TAKE_PROFIT = "take_profit"
     SIGNAL_EXIT = "signal_exit"
+    EOD_CLOSE = "eod_close"        # intraday hard close at 15:30 ET
     END_OF_BACKTEST = "end_of_backtest"
     KILL_SWITCH = "kill_switch"
 
@@ -107,7 +134,8 @@ class BacktestConfig(BaseModel):
     stop_loss_atr: float = 2.0  # stop loss ATR multiplier
     take_profit_atr: float = 4.0  # take profit ATR multiplier
     trend_filter: bool = True  # require price > SMA long for BUY signals
-    timeframe: str = "1Day"  # "1Day" or "1Hour"
+    timeframe: str = "1Day"  # "1Day", "1Hour", or "15Min"
+    strategy: str = "trend_following"  # "trend_following" or "mean_reversion"
 
     # Signal settings (override defaults if needed)
     signal: SignalSettings = Field(default_factory=SignalSettings)
@@ -361,6 +389,152 @@ def analyze_stock(
         return None
 
 
+def analyze_stock_mean_reversion(
+    symbol: str,
+    df: pd.DataFrame,
+    settings: SignalSettings,
+    threshold: float = 0.4,
+    stop_loss_atr: float = 1.0,
+    take_profit_atr: float = 1.5,
+    trend_filter: bool = False,  # ignored — mean reversion is direction-neutral
+    timeframe: str = "15Min",
+) -> SignalResult | None:
+    """
+    Intraday mean reversion signal on 15-minute bars (sector ETFs).
+
+    Entry conditions (ALL must be true):
+    1. RSI(14) < 35 (oversold — intraday dip)
+    2. Price <= lower Bollinger Band (20, 2σ)
+    3. Volume on current bar > 1.5x 20-bar average (volume spike)
+    4. Time filter: 10:30-15:00 ET (UTC 14-19h) — avoids opening noise and EOD risk
+
+    Exit:
+    - TP: middle Bollinger Band (mean reversion target = SMA 20)
+    - SL: entry - ATR × stop_loss_atr (tight downside protection)
+    - Hard EOD close at 15:30 ET handled by engine, not here
+
+    Args:
+        symbol: ETF ticker.
+        df: OHLCV DataFrame with DatetimeIndex.
+        settings: Signal settings (kept for interface compatibility, not used).
+        threshold: Minimum confidence score to generate signal.
+        stop_loss_atr: ATR multiplier for stop loss (default 1.0 = tight).
+        take_profit_atr: Backup TP multiplier if BB mid is too close.
+        trend_filter: Ignored for mean reversion.
+        timeframe: Must be "15Min".
+
+    Returns:
+        SignalResult or None if no signal.
+    """
+    try:
+        periods = get_indicator_periods(timeframe)
+
+        close = df["close"]
+        high = df["high"]
+        low = df["low"]
+        volume = df["volume"]
+        current_price = float(close.iloc[-1])
+
+        if len(df) < periods["min_bars"]:
+            return None
+
+        # --- Time filter: allow 10:30-15:00 ET only ---
+        # Alpaca timestamps are UTC-aware. 10:30 ET = 14:30 UTC (EDT) or 15:30 UTC (EST)
+        # 15:00 ET = 19:00 UTC (EDT) or 20:00 UTC (EST)
+        # Conservative range: UTC 14-19 (safe for both EDT and EST)
+        last_ts = df.index[-1]
+        if hasattr(last_ts, "hour"):
+            try:
+                ts_utc = (
+                    last_ts.tz_convert("UTC")
+                    if getattr(last_ts, "tzinfo", None) is not None
+                    else last_ts
+                )
+                utc_hour = ts_utc.hour
+                if utc_hour < 14 or utc_hour >= 20:
+                    return None  # Outside allowed trading window
+            except Exception:
+                pass  # If timezone handling fails, don't filter
+
+        # --- RSI: must be oversold ---
+        rsi_indicator = RSIIndicator(close, window=periods["rsi_period"])
+        rsi_series = rsi_indicator.rsi()
+        rsi_value = float(rsi_series.iloc[-1])
+        if np.isnan(rsi_value) or rsi_value >= periods["rsi_entry"]:
+            return None  # Not oversold enough
+
+        # --- Bollinger Bands: price must touch or breach lower band ---
+        bb = BollingerBands(close, window=periods["bb_period"], window_dev=periods["bb_std"])
+        bb_lower = float(bb.bollinger_lband().iloc[-1])
+        bb_mid = float(bb.bollinger_mavg().iloc[-1])
+        if np.isnan(bb_lower) or np.isnan(bb_mid):
+            return None
+        # Allow a small tolerance (0.2%) above lower band
+        if current_price > bb_lower * 1.002:
+            return None
+
+        # --- Volume spike confirmation ---
+        avg_vol = float(volume.tail(periods["volume_avg"]).mean())
+        current_bar_vol = float(volume.iloc[-1])
+        if current_bar_vol < avg_vol * periods["volume_mult"]:
+            return None  # No volume confirmation
+
+        # --- ATR for stop loss ---
+        tr = pd.concat([
+            high - low,
+            (high - close.shift(1)).abs(),
+            (low - close.shift(1)).abs(),
+        ], axis=1).max(axis=1)
+        atr = float(tr.tail(periods["atr_period"]).mean())
+        if atr <= 0 or np.isnan(atr):
+            return None
+
+        # --- Stop loss: ATR-based below entry ---
+        stop_loss = round(current_price - (atr * stop_loss_atr), 2)
+
+        # --- Take profit: BB middle band (mean reversion to SMA20) ---
+        bb_gain_pct = (bb_mid - current_price) / current_price
+        if bb_gain_pct >= 0.003:  # at least 0.3% to TP target
+            take_profit = round(bb_mid, 2)
+        else:
+            take_profit = round(current_price + (atr * take_profit_atr), 2)
+
+        # Minimum R:R = 1.0
+        reward = take_profit - current_price
+        risk = current_price - stop_loss
+        if risk <= 0 or reward <= 0 or reward / risk < 1.0:
+            return None
+
+        # --- Confidence: depth below lower band + RSI depth + volume spike ---
+        bb_depth = max((bb_lower - current_price) / max(atr, 0.01), 0.0)
+        rsi_depth = (periods["rsi_entry"] - rsi_value) / periods["rsi_entry"]  # 0-1
+        vol_ratio = current_bar_vol / max(avg_vol, 1)
+        confidence = min(
+            0.4
+            + (bb_depth * 0.2)
+            + (rsi_depth * 0.25)
+            + min((vol_ratio - periods["volume_mult"]) * 0.1, 0.15),
+            1.0,
+        )
+        confidence = max(confidence, 0.4)
+
+        if confidence < threshold:
+            return None
+
+        return SignalResult(
+            symbol=symbol,
+            action="BUY",
+            score=round(confidence, 3),
+            confidence=round(confidence, 3),
+            entry_price=round(current_price, 2),
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+        )
+
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
@@ -383,16 +557,26 @@ class BacktestEngine:
         self._kill_switch_date: str | None = None
         self._kill_switch_count: int = 0
         self._cooldown_until: int = 0  # bar_idx to resume trading after kill switch
+        # Per-symbol cooldown after stop loss (15-min mean reversion only)
+        self._symbol_stop_cooldown: dict[str, int] = {}
         self._prev_equity: float = config.initial_capital
         self._week_start_equity: float = config.initial_capital
         self._bar_count: int = 0
 
-        # For hourly: track "day" boundaries for kill switch daily check
+        # Intraday flags
         self._is_hourly = config.timeframe == "1Hour"
-        # Cooldown is 5 trading days = 5 * 6.5 = ~33 hourly bars
-        self._cooldown_bars = 33 if self._is_hourly else 5
-        # Weekly reset every 5 trading days = 5 * 6.5 = ~33 hourly bars
-        self._week_bars = 33 if self._is_hourly else 5
+        self._is_fifteen_min = config.timeframe == "15Min"
+        # 15-min: 26 bars/day × 5 days = 130 bars/week
+        # Hourly: 6.5 bars/day × 5 days = ~33 bars/week
+        if self._is_fifteen_min:
+            self._cooldown_bars = 130   # 5 trading days
+            self._week_bars = 130
+        elif self._is_hourly:
+            self._cooldown_bars = 33
+            self._week_bars = 33
+        else:
+            self._cooldown_bars = 5
+            self._week_bars = 5
 
     def run(self, data: dict[str, pd.DataFrame]) -> BacktestResult:
         """
@@ -454,6 +638,10 @@ class BacktestEngine:
 
             # Step 2: Check stop-loss / take-profit on existing positions
             self._check_exits(data, current_date, date_str)
+
+            # Step 2.5: Hard EOD close for mean reversion (no overnight holds)
+            if self._is_fifteen_min and self._positions:
+                self._check_eod_close(data, current_date, date_str)
 
             # Step 3: Check kill switch (daily/weekly loss limits)
             equity = self._calculate_equity(data, current_date)
@@ -665,6 +853,11 @@ class BacktestEngine:
                 reason=reason.value,
                 exit_price=round(exit_price, 2),
             )
+            # 15-min mean reversion: apply per-symbol cooldown after stop loss
+            # Prevents re-entering falling knives immediately after being stopped out
+            if self._is_fifteen_min and reason == CloseReason.STOP_LOSS:
+                cooldown_periods = self._periods.get("symbol_cooldown_bars", 13)
+                self._symbol_stop_cooldown[symbol] = self._bar_count + cooldown_periods
 
     # ------------------------------------------------------------------
     # Signal generation
@@ -694,6 +887,9 @@ class BacktestEngine:
         for symbol, full_df in data.items():
             if symbol in self._positions:
                 continue  # Already have a position
+            # 15-min: respect per-symbol stop-loss cooldown (avoid falling knives)
+            if self._is_fifteen_min and self._bar_count < self._symbol_stop_cooldown.get(symbol, 0):
+                continue
             if len(self._positions) + len(self._pending_orders) >= self.config.max_positions:
                 break
 
@@ -704,17 +900,29 @@ class BacktestEngine:
             if len(df_slice) < min_bars:
                 continue  # Not enough history for indicators
 
-            # Analyze stock with timeframe-calibrated indicators
-            signal = analyze_stock(
-                symbol,
-                df_slice,
-                self.config.signal,
-                threshold=self.config.signal_threshold,
-                stop_loss_atr=self.config.stop_loss_atr,
-                take_profit_atr=self.config.take_profit_atr,
-                trend_filter=self.config.trend_filter,
-                timeframe=self.config.timeframe,
-            )
+            # Analyze stock — route to appropriate strategy
+            if self._is_fifteen_min or self.config.strategy == "mean_reversion":
+                signal = analyze_stock_mean_reversion(
+                    symbol,
+                    df_slice,
+                    self.config.signal,
+                    threshold=self.config.signal_threshold,
+                    stop_loss_atr=self.config.stop_loss_atr,
+                    take_profit_atr=self.config.take_profit_atr,
+                    trend_filter=self.config.trend_filter,
+                    timeframe=self.config.timeframe,
+                )
+            else:
+                signal = analyze_stock(
+                    symbol,
+                    df_slice,
+                    self.config.signal,
+                    threshold=self.config.signal_threshold,
+                    stop_loss_atr=self.config.stop_loss_atr,
+                    take_profit_atr=self.config.take_profit_atr,
+                    trend_filter=self.config.trend_filter,
+                    timeframe=self.config.timeframe,
+                )
 
             if signal is None:
                 continue
@@ -758,6 +966,40 @@ class BacktestEngine:
                     signal_confidence=signal.confidence,
                 )
             )
+
+    # ------------------------------------------------------------------
+    # EOD hard close (15-min mean reversion — no overnight holds)
+    # ------------------------------------------------------------------
+
+    def _check_eod_close(self, data: dict[str, pd.DataFrame], current_date, date_str: str) -> None:
+        """Close all positions at 15:30 ET (intraday mean reversion only).
+
+        15:30 ET in UTC:
+        - EDT (UTC-4): 19:30 UTC  → hour == 19 and minute >= 30
+        - EST (UTC-5): 20:30 UTC  → hour == 20 and minute >= 30
+        We use hour >= 20 UTC as a safe conservative threshold that works for
+        EST. In EDT the close fires at 16:00 ET instead of 15:30 ET, which is
+        still inside market hours and avoids any overnight gap risk.
+        """
+        if not self._positions:
+            return
+        try:
+            ts_utc = (
+                current_date.tz_convert("UTC")
+                if getattr(current_date, "tzinfo", None) is not None
+                else current_date
+            )
+            if ts_utc.hour < 20:
+                return  # Not yet EOD threshold
+        except Exception:
+            return  # Cannot determine time — skip
+
+        logger.debug(
+            "eod_hard_close",
+            date=date_str,
+            positions=len(self._positions),
+        )
+        self._close_all_positions(data, current_date, date_str, CloseReason.EOD_CLOSE)
 
     # ------------------------------------------------------------------
     # Kill switch
