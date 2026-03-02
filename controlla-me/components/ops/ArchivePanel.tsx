@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Archive, Filter, X, Loader2 } from "lucide-react";
+import {
+  Archive, Filter, X, Loader2,
+  Scale, Database, CheckCircle, Building2, DollarSign, Monitor, Shield, Target, Megaphone, TrendingUp, Palette, GitBranch, ClipboardList,
+  type LucideIcon,
+} from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 import { TaskModal, TagBadge, type TaskItem } from "@/components/ops/TaskModal";
 
@@ -20,19 +24,19 @@ const DEPT_LABELS: Record<string, string> = {
   protocols: "Protocols",
 };
 
-const DEPT_EMOJI: Record<string, string> = {
-  "ufficio-legale": "⚖️",
-  "data-engineering": "🔌",
-  "quality-assurance": "🧪",
-  architecture: "🏛️",
-  finance: "💰",
-  operations: "📡",
-  security: "🛡️",
-  strategy: "🎯",
-  marketing: "📣",
-  trading: "📈",
-  "ux-ui": "🎨",
-  protocols: "📋",
+const DEPT_ICONS: Record<string, LucideIcon> = {
+  "ufficio-legale": Scale,
+  "data-engineering": Database,
+  "quality-assurance": CheckCircle,
+  architecture: Building2,
+  finance: DollarSign,
+  operations: Monitor,
+  security: Shield,
+  strategy: Target,
+  marketing: Megaphone,
+  trading: TrendingUp,
+  "ux-ui": Palette,
+  protocols: GitBranch,
 };
 
 const BENEFIT_STATUS_COLORS: Record<string, string> = {
@@ -163,9 +167,7 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
               onClick={() => setSelectedTask(task)}
               className="cursor-pointer w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-zinc-800/30 hover:bg-zinc-800/60 transition-colors group"
             >
-              <span className="text-base leading-none mt-0.5 flex-shrink-0">
-                {DEPT_EMOJI[task.department] ?? "📋"}
-              </span>
+              {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" />; })()}
               <span className="flex-1 min-w-0">
                 <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block truncate">
                   {task.seqNum ? <span className="text-zinc-600 mr-1">#{task.seqNum}</span> : null}

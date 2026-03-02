@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Building2, ChevronRight, Loader2,
+  Scale, Database, CheckCircle, Monitor, Shield, Target, Megaphone, TrendingUp, DollarSign,
+  type LucideIcon,
+} from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 interface TaskItem {
@@ -37,17 +41,17 @@ const DEPT_LABELS: Record<string, string> = {
   trading: "Trading",
 };
 
-const DEPT_ICONS: Record<string, string> = {
-  "ufficio-legale": "⚖️",
-  "data-engineering": "🔌",
-  "quality-assurance": "🧪",
-  architecture: "🏛️",
-  finance: "💰",
-  operations: "📡",
-  security: "🛡️",
-  strategy: "🎯",
-  marketing: "📣",
-  trading: "📈",
+const DEPT_ICONS: Record<string, LucideIcon> = {
+  "ufficio-legale": Scale,
+  "data-engineering": Database,
+  "quality-assurance": CheckCircle,
+  architecture: Building2,
+  finance: DollarSign,
+  operations: Monitor,
+  security: Shield,
+  strategy: Target,
+  marketing: Megaphone,
+  trading: TrendingUp,
 };
 
 const ALL_DEPTS = [
@@ -147,7 +151,7 @@ export function DepartmentList({
                   onClick={() => onSelectDepartment?.(dept)}
                   className="flex-1 flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/50 transition-colors text-left group cursor-pointer"
                 >
-                  <span className="text-base leading-none">{DEPT_ICONS[dept]}</span>
+                  {(() => { const Icon = DEPT_ICONS[dept]; return Icon ? <Icon className="w-4 h-4 text-zinc-400 flex-shrink-0" /> : null; })()}
 
                   <span
                     className={`text-sm flex-1 transition-colors group-hover:text-white ${

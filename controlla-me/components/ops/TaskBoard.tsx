@@ -1,6 +1,10 @@
 "use client";
 
-import { ClipboardList, Maximize2, AlertCircle } from "lucide-react";
+import {
+  ClipboardList, Maximize2, AlertCircle,
+  Scale, Database, CheckCircle, Building2, DollarSign, Monitor, Shield, Target, Megaphone, TrendingUp,
+  type LucideIcon,
+} from "lucide-react";
 // Single source of truth for TaskItem
 import type { TaskItem } from "@/components/ops/TaskModal";
 import { TagBadge } from "@/components/ops/TaskModal";
@@ -32,17 +36,17 @@ const PRIORITY_DOTS: Record<string, string> = {
   low: "bg-zinc-500",
 };
 
-const DEPT_EMOJI: Record<string, string> = {
-  "ufficio-legale": "⚖️",
-  "data-engineering": "🔌",
-  "quality-assurance": "🧪",
-  architecture: "🏛️",
-  finance: "💰",
-  operations: "📡",
-  security: "🛡️",
-  strategy: "🎯",
-  marketing: "📣",
-  trading: "📈",
+const DEPT_ICONS: Record<string, LucideIcon> = {
+  "ufficio-legale": Scale,
+  "data-engineering": Database,
+  "quality-assurance": CheckCircle,
+  architecture: Building2,
+  finance: DollarSign,
+  operations: Monitor,
+  security: Shield,
+  strategy: Target,
+  marketing: Megaphone,
+  trading: TrendingUp,
 };
 
 export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
@@ -195,9 +199,9 @@ function TaskRow({
     >
       <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
       <span className="flex-1 min-w-0">
-        <span className="text-sm block truncate">
-          <span className="mr-1">{DEPT_EMOJI[task.department] ?? "📋"}</span>
-          <span className={`${review ? "text-amber-100" : "text-zinc-300"} group-hover:text-white transition-colors`}>
+        <span className="text-sm flex items-center gap-1.5 truncate">
+          {(() => { const Icon = DEPT_ICONS[task.department]; return Icon ? <Icon className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" /> : <ClipboardList className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />; })()}
+          <span className={`${review ? "text-amber-100" : "text-zinc-300"} group-hover:text-white transition-colors truncate`}>
             {task.title}
           </span>
         </span>

@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { X, Search, Loader2, ChevronDown } from "lucide-react";
+import {
+  X, Search, Loader2, ChevronDown,
+  Scale, Database, CheckCircle, Building2, DollarSign, Monitor, Shield, Target, Megaphone, TrendingUp, ClipboardList,
+  type LucideIcon,
+} from "lucide-react";
 import { TaskModal, TagBadge, type TaskItem } from "@/components/ops/TaskModal";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -34,17 +38,17 @@ const PRIORITY_DOTS: Record<string, string> = {
   low: "bg-zinc-500",
 };
 
-const DEPT_EMOJI: Record<string, string> = {
-  "ufficio-legale": "⚖️",
-  "data-engineering": "🔌",
-  "quality-assurance": "🧪",
-  architecture: "🏛️",
-  finance: "💰",
-  operations: "📡",
-  security: "🛡️",
-  strategy: "🎯",
-  marketing: "📣",
-  trading: "📈",
+const DEPT_ICONS: Record<string, LucideIcon> = {
+  "ufficio-legale": Scale,
+  "data-engineering": Database,
+  "quality-assurance": CheckCircle,
+  architecture: Building2,
+  finance: DollarSign,
+  operations: Monitor,
+  security: Shield,
+  strategy: Target,
+  marketing: Megaphone,
+  trading: TrendingUp,
 };
 
 const DEPT_LABELS: Record<string, string> = {
@@ -343,9 +347,7 @@ function FullscreenTaskRow({ task, onClick }: { task: TaskItem; onClick: () => v
     >
       <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
 
-      <span className="text-base flex-shrink-0 mt-0.5">
-        {DEPT_EMOJI[task.department] ?? "📋"}
-      </span>
+      {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" />; })()}
 
       <span className="flex-1 min-w-0">
         <span className="text-sm text-zinc-200 block truncate group-hover:text-white">

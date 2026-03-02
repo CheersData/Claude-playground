@@ -166,25 +166,25 @@ export default function OpsPageClient() {
             onClick={() => { setShowVision(true); setShowCME(false); setShowReports(false); setShowLegalQA(false); setShowArchive(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showVision ? "bg-[#FF6B35]/80 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
-            🎯 Vision
+            Vision
           </button>
           <button
             onClick={() => { setSelectedDepartment("trading"); setShowCME(false); setShowReports(false); setShowLegalQA(false); setShowVision(false); setShowArchive(false); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${selectedDepartment === "trading" ? "bg-zinc-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
-            📈 Trading
+            Trading
           </button>
           <button
             onClick={() => { setShowLegalQA(true); setShowReports(false); setShowCME(false); setShowVision(false); setShowArchive(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showLegalQA ? "bg-purple-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
-            ⚖️ Legal Q&A
+            Legal Q&A
           </button>
           <button
             onClick={() => { setShowArchive(true); setShowReports(false); setShowCME(false); setShowVision(false); setShowLegalQA(false); setSelectedDepartment(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${showArchive ? "bg-zinc-600 text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
           >
-            📦 Archivio
+            Archivio
           </button>
           <button
             onClick={() => { setShowReports(true); setShowCME(false); setShowLegalQA(false); setShowVision(false); setShowArchive(false); setSelectedDepartment(null); }}
