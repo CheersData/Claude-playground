@@ -21,6 +21,9 @@
  *   npx tsx scripts/adversarial-testbook.ts --tier intern    # forza tier (default: intern)
  *   npx tsx scripts/adversarial-testbook.ts --tier associate # tier intermedio
  *   npx tsx scripts/adversarial-testbook.ts --tier partner   # tier top (richiede crediti Anthropic)
+ *   npx tsx scripts/adversarial-testbook.ts --evalua-opus    # + giudizio finale Opus (summary)
+ *   npx tsx scripts/adversarial-testbook.ts --opus-eval       # valutazione legale automatica per-test con Opus
+ *   npx tsx scripts/adversarial-testbook.ts --opus-eval --notaio  # combo: solo notaio + Opus eval
  *
  * Nota tier default = intern: question-prep parte da Cerebras, corpus-agent da Gemini Flash.
  * Salta Anthropic (nessun credito in ambiente demo) e rispetta le soglie free dei provider.
@@ -28,12 +31,90 @@
 
 import * as dotenv from "dotenv";
 import { resolve } from "path";
+import { execSync } from "child_process";
 
 dotenv.config({ path: resolve(__dirname, "../.env.local") });
 
 import { askCorpusAgent, type CorpusAgentResult } from "../lib/agents/corpus-agent";
 import { isVectorDBEnabled } from "../lib/embeddings";
 import { setCurrentTier, type TierName } from "../lib/tiers";
+
+// Env pulito per subprocess claude -p (rimuove CLAUDE* e ANTHROPIC_API_KEY per evitare nested session)
+function getCleanEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key === "ANTHROPIC_API_KEY" || key.startsWith("CLAUDE")) {
+      delete env[key];
+    }
+  }
+  return env;
+}
+
+// ─── Opus per-test evaluation (--opus-eval) ────────────────────────────────────
+
+interface OpusEvalResult {
+  score: number;   // 0-10
+  notes: string;
+}
+
+/**
+ * Valuta la correttezza giuridica di un singolo risultato usando claude-opus-4-5 via CLI.
+ * Chiamato per ogni test case quando --opus-eval è attivo.
+ * Regola CLAUDE.md: script interni usano `claude -p`, mai @anthropic-ai/sdk.
+ */
+function evaluateWithOpus(tc: AdversarialTestCase, result: CorpusAgentResult): OpusEvalResult {
+  const prompt = `Sei un esperto legale italiano. Valuta la correttezza giuridica della seguente risposta.
+
+DOMANDA:
+${tc.question}
+
+RISPOSTA DELL'AGENTE:
+${result.answer}
+
+ARTICOLI CITATI:
+${result.citedArticles?.map((a) => `- ${a.reference}: ${(a as { reference?: string; title?: string }).title ?? ""}`).join("
+") || "Nessuno"}
+
+CONTESTO TEST:
+- Categoria: ${tc.category}
+- Comportamento atteso: ${tc.expectedBehavior.shouldDetectGap ? "deve segnalare limite corpus" : "risposta completa attesa"}
+- Articoli attesi: ${tc.expectedBehavior.expectedArticleRefs?.join(", ") || "nessuno specificato"}
+
+Valuta su scala 0-10 la correttezza giuridica della risposta.
+Criteri: accuratezza delle norme citate, assenza di invenzioni, completezza rispetto alla domanda, segnalazione corretta dei limiti.
+
+Rispondi SOLO con questo formato:
+PUNTEGGIO: [numero 0-10]
+NOTE: [1-2 frasi di motivazione]`;
+
+  try {
+    const raw = execSync(
+      `claude -p ${JSON.stringify(prompt)} --model claude-opus-4-5`,
+      {
+        encoding: "utf-8",
+        timeout: 60_000,
+        cwd: resolve(__dirname, ".."),
+        env: getCleanEnv(),
+      }
+    ).trim();
+
+    // Parse PUNTEGGIO: X and NOTE: ...
+    const scoreMatch = raw.match(/PUNTEGGIO:s*([0-9](?:.[0-9])?|10)/i);
+    const noteMatch = raw.match(/NOTE:s*(.+)/is);
+
+    const score = scoreMatch ? Math.min(10, Math.max(0, parseFloat(scoreMatch[1]))) : 0;
+    const notes = noteMatch ? noteMatch[1].trim().slice(0, 300) : raw.slice(0, 200);
+
+    return { score, notes };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const isDemo = msg.includes("ENOENT") || msg.includes("Credit balance") || msg.includes("exit code");
+    return {
+      score: 0,
+      notes: isDemo ? "Opus eval non disponibile in ambiente demo" : `Opus eval fallita: ${msg.slice(0, 100)}`,
+    };
+  }
+}
 
 // ─── ANSI colors ───
 
@@ -920,7 +1001,7 @@ function printResult(r: AdversarialTestResult) {
   console.log(`  ${color}${BOLD}TOTALE: ${r.score.total}/${r.score.max} (${pct}%)${RESET}\n`);
 }
 
-function printSummary(results: AdversarialTestResult[]) {
+function printSummary(results: AdversarialTestResult[], opusEvalActive = false) {
   const valid = results.filter((r) => !r.error);
   const avg = valid.length > 0
     ? Math.round(valid.reduce((s, r) => s + r.score.percentage, 0) / valid.length)
@@ -959,6 +1040,153 @@ function printSummary(results: AdversarialTestResult[]) {
   console.log();
 }
 
+// ─── Opus CLI Evaluation (--evalua-opus) ──────────────────────────────────────
+
+/**
+ * Valutazione qualitativa complessiva con Opus via CLI.
+ * Usato solo con flag --evalua-opus.
+ * NON usa @anthropic-ai/sdk — usa CLI claude -p per rispettare regola CLAUDE.md.
+ */
+async function evaluateWithOpusCLI(results: AdversarialTestResult[]): Promise<void> {
+  console.log(`\n${BOLD}🎓 Valutazione qualitativa Opus (claude-opus-4-5)${RESET}`);
+  console.log(`${DIM}Usa claude -p CLI — rispetta regola CLAUDE.md (no SDK in scripts/)${RESET}\n`);
+
+  // Costruisci il contesto per Opus: solo i risultati più significativi
+  // Per evitare prompt troppo lunghi: prendi i 10 peggiori + 5 migliori
+  const sorted = [...results].sort((a, b) => a.score.percentage - b.score.percentage);
+  const worst = sorted.slice(0, 10);
+  const best = sorted.slice(-5);
+  const selected = [...worst, ...best];
+
+  const avgScore = results.length > 0
+    ? Math.round(results.reduce((s, r) => s + r.score.percentage, 0) / results.length)
+    : 0;
+
+  const prompt = `Sei un esperto legale senior che valuta un sistema AI di Q&A su legislazione italiana.
+
+Il sistema ha risposto a ${results.length} domande tecniche da Notaio e Avvocato.
+Punteggio medio algoritimco: ${avgScore}/100.
+
+Ecco i ${selected.length} casi più significativi (i 10 peggiori + 5 migliori):
+
+${selected.map(r => `
+**TC${r.id} [${r.persona.toUpperCase()}] "${r.name}" (${r.score.percentage}%)**
+- Domanda: ${r.question.slice(0, 150)}
+- Risposta sistema: ${r.agentResult?.answer?.slice(0, 300) ?? "[nessuna risposta]"}
+- Articoli citati: ${r.agentResult?.citedArticles?.length ?? 0}
+- Confidence: ${r.agentResult?.confidence ?? 0}
+`).join("\n")}
+
+Fornisci una valutazione qualitativa in 200-300 parole:
+1. Punti di forza del sistema
+2. Gap critici (cosa manca)
+3. Giudizio complessivo (adeguato per uso professionale? sì/no/con riserve)
+4. 2-3 raccomandazioni concrete per migliorare
+
+Rispondi in italiano, tono professionale ma diretto.`;
+
+  const escapedPrompt = prompt.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "");
+
+  try {
+    console.log(`${DIM}Chiamata claude -p --model claude-opus-4-5 (può richiedere 20-30s)...${RESET}\n`);
+
+    // Nota: in ambiente demo questo fallirà con "Credit balance is too low"
+    // ma la struttura è corretta per ambienti con crediti attivi
+    const output = execSync(
+      `claude -p --model claude-opus-4-5 "${escapedPrompt}"`,
+      {
+        encoding: "utf-8",
+        timeout: 60_000,
+        env: { ...process.env },
+        cwd: resolve(__dirname, ".."),
+      }
+    );
+
+    console.log(`${BOLD}📋 Valutazione Opus:${RESET}\n`);
+    console.log(output.trim());
+    console.log();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Credit balance is too low") || msg.includes("ENOENT") || msg.includes("credit")) {
+      console.log(`${Y}⚠ Valutazione Opus non disponibile in ambiente demo (crediti insufficienti o claude CLI non trovato).${RESET}`);
+      console.log(`${DIM}In produzione con crediti Anthropic attivi, questo mostrerebbe la valutazione qualitativa.${RESET}\n`);
+    } else {
+      console.error(`${R}Errore valutazione Opus: ${msg.slice(0, 200)}${RESET}\n`);
+    }
+  }
+}
+
+// ─── Opus CLI Verdict ─────────────────────────────────────────────────────────
+
+/**
+ * Genera un giudizio finale LLM usando Opus via CLI (non SDK).
+ * Analizza tutti i 30 risultati e produce una valutazione esperta del Corpus Agent.
+ * Regola CLAUDE.md: script interni usano `claude -p`, mai @anthropic-ai/sdk.
+ */
+async function generateOpusVerdict(results: AdversarialTestResult[]): Promise<void> {
+  const valid = results.filter((r) => !r.error);
+  const avg = valid.length > 0
+    ? Math.round(valid.reduce((s, r) => s + r.score.percentage, 0) / valid.length)
+    : 0;
+
+  // Build compact results summary for the prompt
+  const resultsSummary = results.map((r) => {
+    const score = r.score.percentage;
+    const status = r.error ? "ERROR" : score >= 70 ? "PASS" : score >= 50 ? "BORDERLINE" : "FAIL";
+    const gaps = r.score.gapDetection.score >= 15 ? "gap-OK" : "gap-MISS";
+    const cits = r.score.citationAccuracy.score >= 15 ? "cit-OK" : "cit-MISS";
+    return `TC${r.id} [${r.persona}/${r.difficulty}] ${r.name}: ${score}% ${status} | ${gaps} | ${cits}${r.error ? ` | ERR: ${r.error.slice(0, 60)}` : ""}`;
+  }).join("\n");
+
+  const prompt = `Sei un esperto di sistemi AI legali. Hai appena osservato i risultati di un test adversariale del Corpus Agent di Controlla.me (analisi contratti AI per PMI italiane).
+
+Il Corpus Agent risponde a domande legali usando un RAG su ~5600 articoli legislativi italiani + europei.
+
+RISULTATI TEST (30 casi, 15 Notaio + 15 Avvocato):
+Media globale: ${avg}%
+${resultsSummary}
+
+DIMENSIONI VALUTATE:
+- Citation accuracy (25pt): gli articoli citati esistono e sono pertinenti
+- Gap detection (25pt): l'agente ammette i limiti del corpus quando la risposta non è disponibile
+- Confidence calibration (25pt): il livello di confidenza è appropriato
+- Response completeness (25pt): risposta completa con IN PRATICA + followUp
+
+Fornisci un giudizio esperto sintetico (max 400 parole) su:
+1. QUALITÀ COMPLESSIVA: il sistema è pronto per utenti professionali (notai/avvocati)?
+2. PUNTI DI FORZA: cosa funziona bene e perché è rilevante
+3. PUNTI CRITICI: i 2-3 fallimenti più preoccupanti per uso professionale
+4. RACCOMANDAZIONI PRIORITARIE: 3 miglioramenti concreti ordinati per impatto
+
+Sii diretto e tecnico. Non ripetere i numeri che ho già dato — aggiungi analisi qualitativa.`;
+
+  console.log(`\n${BOLD}🔬 Opus CLI — Giudizio finale${RESET} ${DIM}(claude-opus-4-5 via CLI)${RESET}\n`);
+
+  try {
+    const raw = execSync(
+      `claude -p --model claude-opus-4-5 ${JSON.stringify(prompt)}`,
+      {
+        encoding: "utf-8",
+        timeout: 120_000,
+        cwd: resolve(__dirname, ".."),
+        env: getCleanEnv(),
+      }
+    ).trim();
+
+    console.log(raw);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Fallback message se CLI non disponibile (ambiente demo)
+    if (msg.includes("ENOENT") || msg.includes("Credit balance") || msg.includes("exit code")) {
+      console.log(`${Y}⚠ Opus CLI non disponibile in ambiente demo (${msg.slice(0, 80)})${RESET}`);
+      console.log(`${DIM}  Eseguire da terminale esterno con crediti disponibili per il giudizio Opus.${RESET}`);
+    } else {
+      console.error(`${R}Errore Opus CLI: ${msg}${RESET}`);
+    }
+  }
+  console.log();
+}
+
 // ─── Main ───
 
 async function main() {
@@ -966,6 +1194,8 @@ async function main() {
   const dryRun = args.includes("--dry-run");
   const onlyNotaio = args.includes("--notaio");
   const onlyAvvocato = args.includes("--avvocato");
+  const evaluaOpus = args.includes("--evalua-opus");
+  const opusEval = args.includes("--opus-eval");
 
   // Tier: default intern — salta Anthropic (nessun credito in demo),
   // parte direttamente da Gemini/Cerebras/Groq.
@@ -1013,6 +1243,17 @@ async function main() {
 
       if (!dryRun) {
         agentResult = await askCorpusAgent(tc.question);
+
+        // Opus per-test eval: sovrascrive tc.manualEval solo in memoria
+        if (opusEval) {
+          const opusScore = evaluateWithOpus(tc, agentResult);
+          tc.manualEval = {
+            legalCorrectness: opusScore.score,
+            evaluatorName: "claude-opus-4-5 (auto)",
+            evaluatorNotes: opusScore.notes,
+            evaluatedAt: new Date().toISOString(),
+          };
+        }
       } else {
         // Dry run: risposta simulata per test dello scoring
         agentResult = {
@@ -1082,7 +1323,17 @@ async function main() {
     printResult(r);
   }
 
-  printSummary(results);
+  printSummary(results, opusEval);
+
+  // Valutazione qualitativa opzionale con Opus via CLI
+  if (evaluaOpus && !dryRun && results.length > 0) {
+    await evaluateWithOpusCLI(results);
+  }
+
+  // Opus CLI final verdict (skipped in dry-run)
+  if (!dryRun) {
+    await generateOpusVerdict(results);
+  }
 
   // Save JSON
   const outPath = resolve(__dirname, `adversarial-results-${Date.now()}.json`);

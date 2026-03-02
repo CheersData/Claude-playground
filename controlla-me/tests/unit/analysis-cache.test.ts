@@ -34,8 +34,10 @@ import {
   loadSession,
   savePhaseResult,
   findSessionByDocument,
+  listSessions,
   savePhaseTiming,
   getAverageTimings,
+  cleanupOldSessions,
 } from "@/lib/analysis-cache";
 
 // ─── Helper: reset catena mock ───
@@ -253,28 +255,10 @@ describe("findSessionByDocument", () => {
   });
 });
 
-// ─── savePhaseTiming ───
+// ─── savePhaseTiming (aggiornato: usa RPC update_phase_timing atomico — migration 016) ───
 
 describe("savePhaseTiming", () => {
-  it("legge il phase_timing corrente e poi aggiorna con la fase nuova", async () => {
-    // La funzione fa 2 round trip:
-    //   1. select("phase_timing").eq(...).single()  → legge il timing corrente
-    //   2. update({...}).eq(...)                    → scrive il timing aggiornato
-    //
-    // Il mock usa eq sempre con mockReturnThis.
-    // Per il round trip 1: single() è il terminale → risolve con data
-    // Per il round trip 2: eq() è il terminale → deve restituire una promise
-    // Usiamo mockReturnValueOnce per far sì che la SECONDA chiamata a eq risolva.
-
-    mockSupabase.single.mockResolvedValueOnce({
-      data: { phase_timing: { classifier: { startedAt: "2026-03-01T10:00:00.000Z", completedAt: "2026-03-01T10:00:12.000Z", durationMs: 12000 } } },
-      error: null,
-    });
-    // La 2a chiamata a eq() è il terminale del round trip update — deve restituire una promise
-    mockSupabase.eq
-      .mockReturnValueOnce(mockSupabase)  // prima chiamata: select chain → ritorna this (poi single() è il terminale)
-      .mockResolvedValueOnce({ error: null }); // seconda chiamata: update chain → terminale
-
+  it("chiama RPC update_phase_timing con i parametri corretti", async () => {
     const timing = {
       startedAt: "2026-03-01T10:01:00.000Z",
       completedAt: "2026-03-01T10:01:25.000Z",
@@ -283,24 +267,15 @@ describe("savePhaseTiming", () => {
 
     await savePhaseTiming("session-xyz", "analyzer", timing);
 
-    // Deve aver chiamato select per leggere il timing corrente
-    expect(mockSupabase.select).toHaveBeenCalledWith("phase_timing");
-
-    // Deve aver chiamato update con il timing della fase analyzer incluso
-    expect(mockSupabase.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        phase_timing: expect.objectContaining({
-          analyzer: timing,
-        }),
-      })
-    );
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("update_phase_timing", {
+      p_session_id: "session-xyz",
+      p_phase: "analyzer",
+      p_timing: timing,
+    });
   });
 
-  it("non lancia se update fallisce (silent fail)", async () => {
-    mockSupabase.single.mockResolvedValueOnce({ data: { phase_timing: {} }, error: null });
-    mockSupabase.eq
-      .mockReturnValueOnce(mockSupabase)          // select chain
-      .mockResolvedValueOnce({ error: { message: "update failed" } }); // update chain terminale
+  it("non lancia se RPC fallisce (silent fail)", async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({ data: null, error: { message: "rpc failed" } });
 
     await expect(
       savePhaseTiming("session-abc", "advisor", {
@@ -311,22 +286,17 @@ describe("savePhaseTiming", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("inizializza phase_timing vuoto se non esiste in DB", async () => {
-    mockSupabase.single.mockResolvedValueOnce({ data: null, error: null });
-    mockSupabase.eq
-      .mockReturnValueOnce(mockSupabase)       // select chain
-      .mockResolvedValueOnce({ error: null }); // update chain terminale
-
-    const timing = {
-      startedAt: "2026-03-01T10:03:00.000Z",
-      completedAt: "2026-03-01T10:03:22.000Z",
-      durationMs: 22000,
-    };
-
-    await savePhaseTiming("session-new", "investigator", timing);
-
-    const updateArg = mockSupabase.update.mock.calls[0][0];
-    expect(updateArg.phase_timing).toEqual({ investigator: timing });
+  it("funziona per tutte le fasi (classifier, analyzer, investigator, advisor)", async () => {
+    const phases = ["classifier", "analyzer", "investigator", "advisor"] as const;
+    for (const phase of phases) {
+      mockSupabase.rpc.mockResolvedValueOnce({ data: 0, error: null });
+      await savePhaseTiming("session-phases", phase, {
+        startedAt: "2026-03-01T10:00:00.000Z",
+        completedAt: "2026-03-01T10:00:10.000Z",
+        durationMs: 10000,
+      });
+    }
+    expect(mockSupabase.rpc).toHaveBeenCalledTimes(phases.length);
   });
 });
 
@@ -426,5 +396,112 @@ describe("getAverageTimings", () => {
 
     expect(result.classifier).toBe(12); // default, perché 0 è ignorato
     expect(result.analyzer).toBe(20);
+  });
+});
+
+// ─── listSessions ───
+
+describe("listSessions", () => {
+  it("ritorna un array di CachedAnalysis mappate da DB rows", async () => {
+    const fakeRows = [
+      {
+        session_id: "aaaa1111bbbb2222-xyz098pqr123",
+        document_hash: "aaaa1111bbbb2222",
+        created_at: "2026-03-01T10:00:00.000Z",
+        updated_at: "2026-03-01T10:05:00.000Z",
+        classification: { documentType: "locazione" },
+        analysis: null,
+        investigation: null,
+        advice: null,
+        phase_timing: {},
+      },
+      {
+        session_id: "cccc3333dddd4444-abc123def456",
+        document_hash: "cccc3333dddd4444",
+        created_at: "2026-03-01T09:00:00.000Z",
+        updated_at: "2026-03-01T09:10:00.000Z",
+        classification: null,
+        analysis: null,
+        investigation: null,
+        advice: null,
+        phase_timing: {},
+      },
+    ];
+    mockSupabase.limit.mockResolvedValueOnce({ data: fakeRows, error: null });
+
+    const result = await listSessions();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].sessionId).toBe("aaaa1111bbbb2222-xyz098pqr123");
+    expect(result[1].sessionId).toBe("cccc3333dddd4444-abc123def456");
+    expect(result[0].classification).toEqual({ documentType: "locazione" });
+    expect(result[1].classification).toBeNull();
+  });
+
+  it("ritorna array vuoto se non ci sono sessioni", async () => {
+    mockSupabase.limit.mockResolvedValueOnce({ data: [], error: null });
+
+    const result = await listSessions();
+    expect(result).toEqual([]);
+  });
+
+  it("ritorna array vuoto in caso di errore supabase", async () => {
+    mockSupabase.limit.mockResolvedValueOnce({ data: null, error: { message: "query failed" } });
+
+    const result = await listSessions();
+    expect(result).toEqual([]);
+  });
+
+  it("chiama supabase con order desc e limit 10", async () => {
+    mockSupabase.limit.mockResolvedValueOnce({ data: [], error: null });
+
+    await listSessions();
+
+    expect(mockSupabase.from).toHaveBeenCalledWith("analysis_sessions");
+    expect(mockSupabase.select).toHaveBeenCalledWith("*");
+    expect(mockSupabase.order).toHaveBeenCalledWith("updated_at", { ascending: false });
+    expect(mockSupabase.limit).toHaveBeenCalledWith(10);
+  });
+});
+
+// ─── cleanupOldSessions ───
+
+describe("cleanupOldSessions", () => {
+  it("chiama RPC cleanup_old_analysis_sessions con retention_hours = 24 (default)", async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({ data: 0, error: null });
+
+    await cleanupOldSessions();
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("cleanup_old_analysis_sessions", {
+      retention_hours: 24,
+    });
+  });
+
+  it("converte maxAgeMs custom in retention_hours (arrotondato per eccesso)", async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({ data: 0, error: null });
+
+    // 36 ore
+    await cleanupOldSessions(36 * 3600 * 1000);
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("cleanup_old_analysis_sessions", {
+      retention_hours: 36,
+    });
+  });
+
+  it("arrotonda per eccesso durate non intere (es. 1.5h → 2h)", async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({ data: 0, error: null });
+
+    // 1.5 ore = 5400000ms → Math.ceil(1.5) = 2
+    await cleanupOldSessions(1.5 * 3600 * 1000);
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("cleanup_old_analysis_sessions", {
+      retention_hours: 2,
+    });
+  });
+
+  it("non lancia se RPC fallisce (silent fail)", async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({ data: null, error: { message: "rpc failed" } });
+
+    await expect(cleanupOldSessions()).resolves.toBeUndefined();
   });
 });
