@@ -100,7 +100,7 @@ class SignalSettings(BaseSettings):
 class SlopeVolumeSettings(BaseSettings):
     """Slope+Volume intraday strategy parameters (5-min bars, SPY)."""
 
-    enabled: bool = Field(default=False, description="Enable slope+volume strategy")
+    enabled: bool = Field(default=True, description="Enable slope+volume strategy")
     symbol: str = Field(default="SPY", description="Target symbol")
     timeframe: str = Field(default="5Min", description="Bar timeframe")
     lookback_bars: int = Field(default=5, description="Bars for slope regression")
