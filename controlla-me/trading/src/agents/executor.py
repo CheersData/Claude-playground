@@ -119,6 +119,19 @@ class Executor(BaseAgent):
                 }
                 self._db.insert_order(order_data)
 
+                # Initialize trailing stop state for bracket BUY orders
+                if stop_loss and take_profit and side == "buy":
+                    atr_at_entry = decision.get("atr")
+                    fill_price = order_data.get("filled_avg_price") or decision.get("entry_price")
+                    if atr_at_entry and fill_price:
+                        self._init_trailing_stop(
+                            symbol=symbol,
+                            entry_price=fill_price,
+                            stop_loss=stop_loss,
+                            take_profit=take_profit,
+                            atr_at_entry=atr_at_entry,
+                        )
+
                 self.logger.info(
                     "order_executed",
                     symbol=symbol,
@@ -186,6 +199,49 @@ class Executor(BaseAgent):
         self._alpaca.cancel_order(order_id)
         self._db.update_order(order_id, {"status": "cancelled"})
         self.logger.info("order_cancelled", order_id=order_id)
+
+    def _init_trailing_stop(
+        self,
+        symbol: str,
+        entry_price: float,
+        stop_loss: float,
+        take_profit: float,
+        atr_at_entry: float,
+    ) -> None:
+        """Initialize trailing stop state after bracket order fill."""
+        # Find the stop order ID from Alpaca open orders
+        stop_order_id = None
+        try:
+            orders = self._alpaca.get_orders(status="open")
+            for o in orders:
+                if o.get("symbol") == symbol and o.get("type") == "stop":
+                    stop_order_id = o.get("order_id")
+                    break
+        except Exception as e:
+            self.logger.warning(
+                "trailing_stop_find_order_failed", symbol=symbol, error=str(e)
+            )
+
+        state = {
+            "symbol": symbol,
+            "entry_price": round(entry_price, 4),
+            "atr_at_entry": round(atr_at_entry, 4),
+            "highest_close": round(entry_price, 4),  # Start with entry price
+            "current_stop_price": round(stop_loss, 4),
+            "original_stop_price": round(stop_loss, 4),
+            "stop_order_id": stop_order_id,
+            "take_profit_price": round(take_profit, 4),
+            "tier_reached": 0,
+        }
+        self._db.upsert_trailing_stop_state(state)
+        self.logger.info(
+            "trailing_stop_initialized",
+            symbol=symbol,
+            atr=atr_at_entry,
+            entry_price=entry_price,
+            stop_loss=stop_loss,
+            stop_order_id=stop_order_id,
+        )
 
     async def liquidate_all(self, reason: str) -> dict:
         """Emergency: close all positions and cancel all orders."""

@@ -268,6 +268,8 @@ class RiskManager(BaseAgent):
             portfolio_pct=portfolio_pct,
             stop_loss=stop_loss,
             take_profit=take_profit,
+            atr=signal.get("atr"),  # Pass through for trailing stop
+            entry_price=entry_price,  # Pass through for trailing stop
         )
 
     @staticmethod

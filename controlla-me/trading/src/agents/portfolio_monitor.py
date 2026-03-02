@@ -1,10 +1,11 @@
 """
 Portfolio Monitor Agent
 
-Monitors portfolio health with 3 operational modes:
+Monitors portfolio health with 4 operational modes:
 - status: Quick portfolio status snapshot
 - daily_report: End-of-day P&L report with snapshot persistence
 - check_stops: Enforce stop-loss levels on open positions
+- trailing_stops: Update 4-tier trailing stop levels (matching backtest engine)
 
 Generates risk events and alerts when thresholds are breached.
 """
@@ -16,6 +17,7 @@ from typing import Any, Literal
 
 import pandas as pd
 
+from ..analysis import calculate_atr
 from ..config import get_settings
 from ..connectors.alpaca_client import AlpacaClient
 from ..models.portfolio import PortfolioSnapshot, Position, RiskEvent, RiskEventType
@@ -23,7 +25,7 @@ from ..utils.db import TradingDB
 from .base import BaseAgent
 
 
-MonitorMode = Literal["status", "daily_report", "check_stops"]
+MonitorMode = Literal["status", "daily_report", "check_stops", "trailing_stops"]
 
 
 class PortfolioMonitor(BaseAgent):
@@ -50,6 +52,8 @@ class PortfolioMonitor(BaseAgent):
             result = await self._daily_report()
         elif mode == "check_stops":
             result = await self._check_stops()
+        elif mode == "trailing_stops":
+            result = await self._trailing_stops_mode()
         else:
             self.log_error(f"Unknown mode: {mode}")
             return {"error": f"Unknown mode: {mode}"}
@@ -201,6 +205,258 @@ class PortfolioMonitor(BaseAgent):
                 1 for e in stop_events if e.get("event_type") == RiskEventType.STOP_LOSS
             ),
         }
+
+    # ─── Mode: trailing_stops ──────────────────────────────────
+
+    async def _trailing_stops_mode(self) -> dict:
+        """Update 4-tier trailing stops for all positions."""
+        updates = self._update_trailing_stops()
+        cleanup = self._cleanup_trailing_stop_state()
+        return {
+            "mode": "trailing_stops",
+            "updates": updates,
+            "stops_raised": len(updates),
+            "states_cleaned": cleanup,
+        }
+
+    def _update_trailing_stops(self) -> list[dict]:
+        """
+        4-tier trailing stop system (matches backtest engine _check_exits).
+
+        Tier 0: Breakeven — move SL to entry when profit > breakeven_atr * ATR
+        Tier 1: Lock     — move SL to entry + cushion when profit > lock_atr * ATR
+        Tier 2: Trail    — follow highest_close - distance when profit > trail_threshold * ATR
+        Tier 3: Tight    — tight trail when profit > tight_threshold * ATR
+
+        Uses max() to ensure stop only moves UP (monotonic).
+        Auto-bootstraps state for pre-existing positions.
+        """
+        if not self._risk.trailing_enabled:
+            return []
+
+        raw_positions = self._alpaca.get_positions()
+        if not raw_positions:
+            return []
+
+        states = self._db.get_all_trailing_stop_states()
+        state_map = {s["symbol"]: s for s in states}
+        updates: list[dict] = []
+
+        for pos in raw_positions:
+            symbol = pos["symbol"]
+            current_price = pos["current_price"]
+            state = state_map.get(symbol)
+
+            # Auto-bootstrap for positions without trailing stop state
+            if not state:
+                state = self._bootstrap_trailing_stop(pos)
+                if not state:
+                    continue
+
+            entry_price = float(state["entry_price"])
+            atr = float(state["atr_at_entry"])
+            highest_close = float(state["highest_close"])
+            current_stop = float(state["current_stop_price"])
+            stop_order_id = state.get("stop_order_id")
+
+            if atr <= 0:
+                continue
+
+            # Update highest close
+            if current_price > highest_close:
+                highest_close = current_price
+
+            # Calculate profit from entry using highest_close
+            profit_from_entry = highest_close - entry_price
+            new_stop = current_stop
+            tier = int(state.get("tier_reached", 0))
+
+            # Tier 0: Breakeven — move SL to entry price
+            if profit_from_entry > self._risk.trailing_breakeven_atr * atr:
+                new_stop = max(new_stop, entry_price)
+                tier = max(tier, 1)
+
+            # Tier 1: Lock profit — move SL to entry + cushion
+            if profit_from_entry > self._risk.trailing_lock_atr * atr:
+                lock_stop = entry_price + (atr * self._risk.trailing_lock_cushion_atr)
+                new_stop = max(new_stop, lock_stop)
+                tier = max(tier, 2)
+
+            # Tier 2: Trail — follow highest_close at distance
+            if profit_from_entry > self._risk.trailing_trail_threshold_atr * atr:
+                trailing_stop = highest_close - (atr * self._risk.trailing_trail_distance_atr)
+                new_stop = max(new_stop, trailing_stop)
+                tier = max(tier, 3)
+
+            # Tier 3: Tight trail — close trailing near take profit
+            if profit_from_entry > self._risk.trailing_tight_threshold_atr * atr:
+                tight_stop = highest_close - (atr * self._risk.trailing_tight_distance_atr)
+                new_stop = max(new_stop, tight_stop)
+                tier = max(tier, 4)
+
+            new_stop = round(new_stop, 2)
+
+            # Update state in DB (always — to track highest_close)
+            updated_state = {
+                "symbol": symbol,
+                "entry_price": entry_price,
+                "atr_at_entry": atr,
+                "highest_close": round(highest_close, 4),
+                "current_stop_price": new_stop,
+                "original_stop_price": float(state["original_stop_price"]),
+                "stop_order_id": stop_order_id,
+                "take_profit_price": state.get("take_profit_price"),
+                "tier_reached": tier,
+            }
+
+            # If stop price moved up, replace the Alpaca stop order
+            if new_stop > current_stop and stop_order_id:
+                try:
+                    result = self._alpaca.replace_order_stop_price(
+                        stop_order_id, new_stop
+                    )
+                    # Alpaca creates a NEW order — update the ID
+                    new_order_id = result.get("order_id")
+                    if new_order_id and new_order_id != stop_order_id:
+                        updated_state["stop_order_id"] = new_order_id
+
+                    self.logger.info(
+                        "trailing_stop_raised",
+                        symbol=symbol,
+                        old_stop=current_stop,
+                        new_stop=new_stop,
+                        tier=tier,
+                        highest_close=round(highest_close, 2),
+                    )
+
+                    # Log risk event
+                    tier_names = {
+                        1: "breakeven",
+                        2: "lock_profit",
+                        3: "trailing",
+                        4: "tight_trail",
+                    }
+                    event = RiskEvent(
+                        event_type=RiskEventType.TRAILING_STOP,
+                        severity="INFO",
+                        symbol=symbol,
+                        message=(
+                            f"Trailing stop raised: {symbol} "
+                            f"${current_stop:.2f} → ${new_stop:.2f} "
+                            f"(tier {tier}: {tier_names.get(tier, 'unknown')})"
+                        ),
+                        portfolio_value=None,
+                        action_taken=(
+                            f"Stop order replaced: {stop_order_id} → "
+                            f"{updated_state['stop_order_id']}"
+                        ),
+                    )
+                    self._db.insert_risk_event(event.model_dump(mode="json"))
+
+                    updates.append({
+                        "symbol": symbol,
+                        "old_stop": current_stop,
+                        "new_stop": new_stop,
+                        "tier": tier,
+                        "tier_name": tier_names.get(tier, "unknown"),
+                        "highest_close": round(highest_close, 2),
+                    })
+
+                except Exception as e:
+                    self.logger.error(
+                        "trailing_stop_replace_failed",
+                        symbol=symbol,
+                        order_id=stop_order_id,
+                        error=str(e),
+                    )
+
+            # Save state (even if order replace failed — we still track highest_close)
+            self._db.upsert_trailing_stop_state(updated_state)
+
+        return updates
+
+    def _bootstrap_trailing_stop(self, pos: dict) -> dict | None:
+        """Bootstrap trailing stop state for a pre-existing position.
+
+        Computes ATR from current market data and finds the stop order ID
+        from Alpaca open orders.
+        """
+        symbol = pos["symbol"]
+        entry_price = pos["avg_entry_price"]
+
+        # Compute ATR from current market data
+        try:
+            bars = self._alpaca.get_bars([symbol], timeframe="1Day", days_back=30)
+            if symbol not in bars or len(bars[symbol]) < 14:
+                self.logger.warning(
+                    "bootstrap_insufficient_data", symbol=symbol
+                )
+                return None
+            df = bars[symbol]
+            atr = calculate_atr(df["high"], df["low"], df["close"], period=14)
+        except Exception as e:
+            self.logger.warning(
+                "bootstrap_atr_failed", symbol=symbol, error=str(e)
+            )
+            return None
+
+        # Find stop order ID from Alpaca open orders
+        stop_order_id = None
+        existing_stop_price = None
+        try:
+            orders = self._alpaca.get_orders(status="open")
+            for o in orders:
+                if o.get("symbol") == symbol and o.get("type") == "stop":
+                    stop_order_id = o.get("order_id")
+                    existing_stop_price = o.get("stop_price")
+                    break
+        except Exception:
+            pass
+
+        # Use existing Alpaca stop price if available, otherwise estimate
+        if existing_stop_price:
+            original_stop = float(existing_stop_price)
+        else:
+            original_stop = round(entry_price - 2.5 * atr, 2)
+
+        state = {
+            "symbol": symbol,
+            "entry_price": round(entry_price, 4),
+            "atr_at_entry": round(atr, 4),
+            "highest_close": round(max(pos["current_price"], entry_price), 4),
+            "current_stop_price": original_stop,
+            "original_stop_price": original_stop,
+            "stop_order_id": stop_order_id,
+            "take_profit_price": None,
+            "tier_reached": 0,
+        }
+        self._db.upsert_trailing_stop_state(state)
+        self.logger.info(
+            "trailing_stop_bootstrapped",
+            symbol=symbol,
+            atr=round(atr, 4),
+            entry_price=entry_price,
+            stop_price=original_stop,
+            stop_order_id=stop_order_id,
+        )
+        return state
+
+    def _cleanup_trailing_stop_state(self) -> int:
+        """Remove trailing stop state for symbols no longer in portfolio."""
+        raw_positions = self._alpaca.get_positions()
+        current_symbols = {p["symbol"] for p in raw_positions}
+        all_states = self._db.get_all_trailing_stop_states()
+        cleaned = 0
+        for state in all_states:
+            if state["symbol"] not in current_symbols:
+                self._db.delete_trailing_stop_state(state["symbol"])
+                self.logger.info(
+                    "trailing_stop_cleaned",
+                    symbol=state["symbol"],
+                    reason="position_closed",
+                )
+                cleaned += 1
+        return cleaned
 
     # ─── Helpers ──────────────────────────────────────────────
 

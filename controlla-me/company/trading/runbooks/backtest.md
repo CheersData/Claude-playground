@@ -150,3 +150,33 @@ Per strategia daily MACD su ETF:
 - `--max-positions 10`
 - Filtro SMA200: ON
 - Conferma RSI: ON
+
+## Trailing Stop — sistema a 4 tier (aggiornato 2026-03-02)
+
+Il trailing stop protegge i profitti in 4 fasi progressive. Tutti i parametri sono configurabili via CLI.
+
+| Tier | Parametro CLI | Default | Effetto |
+|------|--------------|---------|---------|
+| 0 — Breakeven | `--trail-breakeven` | 1.0 ATR | Dopo +1.0 ATR: SL → entry (breakeven) |
+| 1 — Lock | `--trail-lock` / `--trail-lock-cushion` | 1.5 / 0.5 ATR | Dopo +1.5 ATR: SL → entry + 0.5 ATR |
+| 2 — Trail | `--trail-threshold` / `--trail-distance` | 2.5 / 1.5 ATR | Dopo +2.5 ATR: SL → highest - 1.5 ATR |
+| 3 — Tight | `--trail-tight-threshold` / `--trail-tight-distance` | 4.0 / 1.0 ATR | Dopo +4.0 ATR: SL → highest - 1.0 ATR |
+
+**Esempio**: trade entra a $100, ATR = $2:
+- Prezzo sale a $102 (+1.0 ATR) → SL = $100 (breakeven)
+- Prezzo sale a $103 (+1.5 ATR) → SL = $101 (lock +$1)
+- Prezzo sale a $105 (+2.5 ATR) → SL = $105 - $3 = $102 (trail)
+- Prezzo sale a $108 (+4.0 ATR) → SL = $108 - $2 = $106 (tight trail)
+
+### Grid search trailing stop
+
+```bash
+# Grid search con preset TPSL (96 combinazioni, include trailing + signal exit)
+py -m src.backtest grid --start 2019-01-01 --end 2026-02-28 --grid-preset tpsl \
+  --universe XLF,XLK,XLE,XLV,XLI,XLU,XLY,XLP,XLRE,XLB,XLC,SPY,QQQ,IWM
+
+# Run singolo con trailing custom
+py -m src.backtest run --start 2019-01-01 --end 2026-02-28 --sl-atr 2.5 --tp-atr 6.0 \
+  --trail-breakeven 1.0 --trail-lock 1.5 --trail-threshold 2.5 --trail-distance 1.5 \
+  --universe XLF,XLK,XLE,XLV,XLI,XLU,XLY,XLP,XLRE,XLB,XLC,SPY,QQQ,IWM
+```

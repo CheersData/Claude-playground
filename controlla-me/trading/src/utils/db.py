@@ -136,6 +136,44 @@ class TradingDB:
         )
         return result.data or []
 
+    # ─── Trailing Stop State ─────────────────────────────────
+
+    def get_trailing_stop_state(self, symbol: str) -> dict | None:
+        """Get trailing stop state for a symbol."""
+        result = (
+            self._client.table("trailing_stop_state")
+            .select("*")
+            .eq("symbol", symbol)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    def get_all_trailing_stop_states(self) -> list[dict]:
+        """Get all trailing stop states."""
+        result = self._client.table("trailing_stop_state").select("*").execute()
+        return result.data or []
+
+    def upsert_trailing_stop_state(self, state: dict[str, Any]) -> dict:
+        """Upsert trailing stop state for a symbol."""
+        state["updated_at"] = datetime.utcnow().isoformat()
+        result = (
+            self._client.table("trailing_stop_state")
+            .upsert(state, on_conflict="symbol")
+            .execute()
+        )
+        logger.info(
+            "trailing_stop_upserted",
+            symbol=state.get("symbol"),
+            stop_price=state.get("current_stop_price"),
+            tier=state.get("tier_reached"),
+        )
+        return result.data[0] if result.data else {}
+
+    def delete_trailing_stop_state(self, symbol: str) -> None:
+        """Delete trailing stop state when position is closed."""
+        self._client.table("trailing_stop_state").delete().eq("symbol", symbol).execute()
+        logger.info("trailing_stop_deleted", symbol=symbol)
+
     # ─── Config ────────────────────────────────────────────────
 
     def get_config(self) -> dict:

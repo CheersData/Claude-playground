@@ -19,6 +19,7 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD
 from ta.volatility import BollingerBands
 
+from ..analysis import analyze_composite, analyze_mean_reversion_v3
 from ..config.settings import RiskSettings, SignalSettings
 
 logger = structlog.get_logger()
@@ -63,6 +64,25 @@ HOURLY_INDICATOR_PERIODS = {
     "warmup_bars": 390,     # 60 days × 6.5 hours
 }
 
+# 5-Minute settings — slope+volume intraday strategy on SPY
+# 1 trading day = 78 bars (9:30–16:00, 390 min / 5 min)
+# Scaling note: indicator periods are NOT simply daily×78; for fast intraday
+# signals we keep RSI/ATR at 14 bars (70 minutes) and scale only trend SMAs.
+FIVEMIN_INDICATOR_PERIODS = {
+    "rsi_period": 14,        # 14 bars × 5 min = 70 minutes — short-term momentum
+    "macd_fast": 8,          # Faster MACD for intraday responsiveness
+    "macd_slow": 21,
+    "macd_signal": 5,
+    "sma_short": 10,         # 10 bars = 50 minutes
+    "sma_medium": 26,        # 26 bars = 130 minutes (~2h)
+    "sma_long": 78,          # 78 bars ≈ 1 full trading day
+    "volume_avg": 20,        # 20-bar volume baseline (100 minutes)
+    "atr_period": 14,        # 70-minute ATR
+    "crossover_lookback": 2,
+    "min_bars": 30,          # Minimum bars before generating any signal
+    "warmup_bars": 40,       # ~3h 20min of 5-min bars (warm-up buffer)
+}
+
 # 15-minute settings — intraday mean reversion on sector ETFs
 # 1 trading day = 26 bars (9:30–16:00, 390 min / 15 min)
 FIFTEEN_MIN_INDICATOR_PERIODS = {
@@ -94,6 +114,8 @@ def get_indicator_periods(timeframe: str = "1Day") -> dict:
         return HOURLY_INDICATOR_PERIODS.copy()
     if timeframe == "15Min":
         return FIFTEEN_MIN_INDICATOR_PERIODS.copy()
+    if timeframe == "5Min":
+        return FIVEMIN_INDICATOR_PERIODS.copy()
     return DAILY_INDICATOR_PERIODS.copy()
 
 
@@ -132,10 +154,31 @@ class BacktestConfig(BaseModel):
     train_test_split: float | None = None  # e.g. 0.7 for 70/30
     signal_threshold: float = 0.3  # composite score threshold for BUY/SELL
     stop_loss_atr: float = 2.0  # stop loss ATR multiplier
-    take_profit_atr: float = 4.0  # take profit ATR multiplier
+    take_profit_atr: float = 10.0  # take profit ATR multiplier (grid search optimal: wider TP)
     trend_filter: bool = True  # require price > SMA long for BUY signals
     timeframe: str = "1Day"  # "1Day", "1Hour", or "15Min"
-    strategy: str = "trend_following"  # "trend_following" or "mean_reversion"
+    strategy: str = "trend_following"  # "trend_following", "mean_reversion", or "mean_reversion_v3"
+
+    # Daily filter for mean reversion v3 (dual-timeframe)
+    daily_filter_enabled: bool = True  # Require daily uptrend for MR v3 entries
+    daily_sma_period: int = 20  # SMA period for daily trend filter
+    daily_trend_strict: bool = True  # Strict: price > SMA. False: allow 0.5% tolerance
+
+    # Trailing stop parameters — 4-tier system (configurable for grid search)
+    # Tier 0: Move SL to entry (breakeven) after this ATR profit
+    trailing_breakeven_atr: float = 1.5  # grid search optimal: don't breakeven too early
+    # Tier 1: Lock small profit (entry + lock_cushion) after this ATR profit
+    trailing_lock_atr: float = 1.5
+    trailing_lock_cushion_atr: float = 0.5  # Cushion above entry for profit lock
+    # Tier 2: Start trailing at highest_close - trail_distance after this ATR profit
+    trailing_trail_threshold_atr: float = 3.5  # grid search optimal: trail later
+    trailing_trail_distance_atr: float = 2.0  # grid search optimal: wider trail
+    # Tier 3: Tight trail at highest_close - tight_distance after this ATR profit
+    trailing_tight_threshold_atr: float = 4.0
+    trailing_tight_distance_atr: float = 1.0
+
+    # Signal exit: close positions on MACD bearish crossover
+    signal_exit_enabled: bool = False  # Enable MACD bearish crossover exits
 
     # Signal settings (override defaults if needed)
     signal: SignalSettings = Field(default_factory=SignalSettings)
@@ -253,140 +296,60 @@ def analyze_stock(
     """
     Run technical analysis on a single stock.
 
-    Uses a rule-based approach: MACD crossover as primary trigger,
-    with trend/RSI/volume as confirmation filters. Indicator periods
-    are automatically calibrated for the given timeframe.
-
-    Entry conditions (ALL must be true):
-    1. MACD bullish crossover in last N bars (3 daily / 7 hourly)
-    2. RSI between 25-65 (not overbought, room to run)
-    3. Price > SMA medium (uptrend)
-    4. If trend_filter: Price > SMA long
-    5. Volume not declining (recent vol >= 80% of avg)
+    v3: Uses the shared composite-score analysis from src.analysis.
+    This ensures backtest and live pipeline use IDENTICAL signal logic.
 
     Args:
         symbol: Stock ticker.
         df: OHLCV DataFrame.
-        settings: Signal settings (indicator parameters — used as base).
-        threshold: Not used for entry (rule-based), used for confidence minimum.
+        settings: Signal settings (indicator parameters).
+        threshold: Score threshold for BUY signal.
         stop_loss_atr: ATR multiplier for stop loss.
         take_profit_atr: ATR multiplier for take profit.
-        trend_filter: If True, also require price > SMA long.
-        timeframe: "1Day" or "1Hour" — determines indicator periods.
+        trend_filter: If True, apply SMA trend filter.
+        timeframe: "1Day" or "1Hour".
 
     Returns:
         SignalResult or None if no signal.
     """
-    try:
-        periods = get_indicator_periods(timeframe)
+    result = analyze_composite(
+        symbol,
+        df,
+        rsi_period=settings.rsi_period,
+        rsi_oversold=settings.rsi_oversold,
+        rsi_overbought=settings.rsi_overbought,
+        macd_fast=settings.macd_fast,
+        macd_slow=settings.macd_slow,
+        macd_signal=settings.macd_signal,
+        bb_period=settings.bb_period,
+        bb_std=settings.bb_std,
+        weight_rsi=settings.weight_rsi,
+        weight_macd=settings.weight_macd,
+        weight_bollinger=settings.weight_bollinger,
+        weight_trend=settings.weight_trend,
+        weight_volume=settings.weight_volume,
+        score_buy_threshold=threshold,
+        score_sell_threshold=-0.5,
+        stop_loss_atr=stop_loss_atr,
+        take_profit_atr=take_profit_atr,
+        trend_filter=trend_filter,
+        require_macd_crossover=True,  # Hard gate: only enter on MACD crossover
+        macd_crossover_lookback=3,
+        timeframe=timeframe,
+    )
 
-        close = df["close"]
-        high = df["high"]
-        low = df["low"]
-        volume = df["volume"]
-        current_price = float(close.iloc[-1])
-
-        if len(df) < periods["min_bars"]:
-            return None
-
-        # --- MACD crossover detection (primary trigger) ---
-        macd = MACD(
-            close,
-            window_slow=periods["macd_slow"],
-            window_fast=periods["macd_fast"],
-            window_sign=periods["macd_signal"],
-        )
-        macd_series = macd.macd()
-        signal_series = macd.macd_signal()
-
-        # Check for bullish crossover in last N bars
-        bullish_crossover = False
-        lookback_range = periods["crossover_lookback"]
-        for lookback in range(1, lookback_range + 1):
-            if len(macd_series) > lookback + 1:
-                prev_macd = float(macd_series.iloc[-(lookback + 1)])
-                prev_signal = float(signal_series.iloc[-(lookback + 1)])
-                curr_macd = float(macd_series.iloc[-lookback])
-                curr_signal = float(signal_series.iloc[-lookback])
-
-                if not np.isnan(prev_macd) and not np.isnan(curr_macd):
-                    if prev_macd < prev_signal and curr_macd > curr_signal:
-                        bullish_crossover = True
-                        break
-
-        if not bullish_crossover:
-            return None  # No crossover — no signal
-
-        # --- RSI confirmation (not overbought) ---
-        rsi = RSIIndicator(close, window=periods["rsi_period"])
-        rsi_value = float(rsi.rsi().iloc[-1])
-
-        if np.isnan(rsi_value) or rsi_value > 65 or rsi_value < 25:
-            return None  # Too overbought or too oversold (falling knife)
-
-        # --- Trend confirmation (price > SMA medium) ---
-        sma_medium = float(close.tail(periods["sma_medium"]).mean())
-        if current_price < sma_medium:
-            return None  # Below medium-term trend
-
-        # --- SMA long trend filter ---
-        if trend_filter and len(close) >= periods["sma_long"]:
-            sma_long = float(close.tail(periods["sma_long"]).mean())
-            if current_price < sma_long:
-                return None  # Below long-term trend
-
-        # --- Volume confirmation ---
-        avg_vol = float(volume.tail(periods["volume_avg"]).mean())
-        recent_vol_bars = max(3, int(periods["crossover_lookback"]))
-        recent_vol = float(volume.tail(recent_vol_bars).mean())
-        if recent_vol < avg_vol * 0.8:
-            return None  # Declining volume — weak signal
-
-        # --- Score calculation for confidence ---
-        # MACD strength
-        macd_val = float(macd_series.iloc[-1])
-        signal_val = float(signal_series.iloc[-1])
-        macd_spread = abs(macd_val - signal_val) / max(abs(signal_val), 0.01)
-
-        # Trend strength
-        trend_strength = (current_price - sma_medium) / sma_medium
-
-        # RSI positioning (closer to 30 = more upside)
-        rsi_upside = (65 - rsi_value) / 35  # 0 to 1
-
-        # Volume ratio
-        vol_ratio = recent_vol / max(avg_vol, 1)
-
-        # Composite confidence
-        score = min(
-            0.3 + (macd_spread * 0.2) + (trend_strength * 2) + (rsi_upside * 0.15) + ((vol_ratio - 1) * 0.1),
-            1.0,
-        )
-        score = max(score, 0.3)
-
-        # ATR for stop-loss / take-profit
-        tr = pd.concat([
-            high - low,
-            (high - close.shift(1)).abs(),
-            (low - close.shift(1)).abs(),
-        ], axis=1).max(axis=1)
-        atr = float(tr.tail(periods["atr_period"]).mean())
-
-        stop_loss = round(current_price - (atr * stop_loss_atr), 2)
-        take_profit = round(current_price + (atr * take_profit_atr), 2)
-
-        return SignalResult(
-            symbol=symbol,
-            action="BUY",
-            score=round(score, 3),
-            confidence=round(score, 3),
-            entry_price=round(current_price, 2),
-            stop_loss=stop_loss,
-            take_profit=take_profit,
-        )
-
-    except Exception:
+    if result is None:
         return None
+
+    return SignalResult(
+        symbol=result["symbol"],
+        action=result["action"],
+        score=result["score"],
+        confidence=result["confidence"],
+        entry_price=result["entry_price"],
+        stop_loss=result["stop_loss"],
+        take_profit=result["take_profit"],
+    )
 
 
 def analyze_stock_mean_reversion(
@@ -535,6 +498,65 @@ def analyze_stock_mean_reversion(
         return None
 
 
+def analyze_stock_mean_reversion_v3(
+    symbol: str,
+    df_intraday: pd.DataFrame,
+    df_daily: pd.DataFrame | None,
+    settings: SignalSettings,
+    config: BacktestConfig,
+) -> SignalResult | None:
+    """
+    Mean Reversion v3 wrapper for backtest engine.
+
+    Uses the shared analyze_mean_reversion_v3 from src.analysis, passing
+    the daily data slice for the corresponding trading day.
+
+    Args:
+        symbol: Ticker.
+        df_intraday: 15-min bars sliced up to current bar (no look-ahead).
+        df_daily: Daily bars sliced up to the trading day of current bar.
+        settings: Signal settings.
+        config: Backtest config with daily filter params.
+
+    Returns:
+        SignalResult or None.
+    """
+    periods = get_indicator_periods("15Min")
+
+    result = analyze_mean_reversion_v3(
+        symbol,
+        df_intraday,
+        df_daily,
+        rsi_period=periods["rsi_period"],
+        rsi_entry=periods["rsi_entry"],
+        bb_period=periods["bb_period"],
+        bb_std=periods["bb_std"],
+        volume_avg=periods["volume_avg"],
+        volume_mult=periods["volume_mult"],
+        atr_period=periods["atr_period"],
+        stop_loss_atr=config.stop_loss_atr,
+        take_profit_atr=config.take_profit_atr,
+        daily_filter_enabled=config.daily_filter_enabled,
+        daily_sma_period=config.daily_sma_period,
+        daily_trend_strict=config.daily_trend_strict,
+        min_confidence=config.signal_threshold,
+        min_bars=periods["min_bars"],
+    )
+
+    if result is None:
+        return None
+
+    return SignalResult(
+        symbol=result["symbol"],
+        action=result["action"],
+        score=result["score"],
+        confidence=result["confidence"],
+        entry_price=result["entry_price"],
+        stop_loss=result["stop_loss"],
+        take_profit=result["take_profit"],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
@@ -578,16 +600,22 @@ class BacktestEngine:
             self._cooldown_bars = 5
             self._week_bars = 5
 
-    def run(self, data: dict[str, pd.DataFrame]) -> BacktestResult:
+    def run(
+        self,
+        data: dict[str, pd.DataFrame],
+        daily_data: dict[str, pd.DataFrame] | None = None,
+    ) -> BacktestResult:
         """
         Run backtest on historical data.
 
         Args:
             data: dict[symbol, DataFrame] with OHLCV columns, DatetimeIndex.
+            daily_data: Optional daily bars for dual-timeframe strategies (v3).
 
         Returns:
             BacktestResult with trades, equity curve, and metrics inputs.
         """
+        self._daily_data = daily_data  # Store for use in _generate_signals
         # Build aligned date index (union of all trading timestamps)
         all_dates = set()
         for df in data.values():
@@ -638,6 +666,10 @@ class BacktestEngine:
 
             # Step 2: Check stop-loss / take-profit on existing positions
             self._check_exits(data, current_date, date_str)
+
+            # Step 2.3: Signal exit — MACD bearish crossover closes positions
+            if self.config.signal_exit_enabled:
+                self._check_signal_exits(data, current_date, date_str)
 
             # Step 2.5: Hard EOD close for mean reversion (no overnight holds)
             if self._is_fifteen_min and self._positions:
@@ -822,18 +854,29 @@ class BacktestEngine:
             if close_price > pos.highest_close:
                 pos.highest_close = close_price
 
-            # Trailing stop: only after significant profit
+            # 4-tier trailing stop (evaluated top-down, max() ensures monotonic)
             atr = pos.atr_at_entry
             if atr > 0:
                 profit_from_entry = pos.highest_close - pos.entry_price
-                # Move to breakeven after 2xATR profit
-                if profit_from_entry > 2 * atr:
-                    breakeven_stop = pos.entry_price + (atr * 0.25)
-                    pos.stop_loss = max(pos.stop_loss, breakeven_stop)
-                # Trail at highest - 2.5xATR after 3.5xATR profit
-                if profit_from_entry > 3.5 * atr:
-                    trailing_stop = pos.highest_close - (atr * 2.5)
+
+                # Tier 0: Breakeven — move SL to entry price
+                if profit_from_entry > self.config.trailing_breakeven_atr * atr:
+                    pos.stop_loss = max(pos.stop_loss, pos.entry_price)
+
+                # Tier 1: Lock profit — move SL to entry + cushion
+                if profit_from_entry > self.config.trailing_lock_atr * atr:
+                    lock_stop = pos.entry_price + (atr * self.config.trailing_lock_cushion_atr)
+                    pos.stop_loss = max(pos.stop_loss, lock_stop)
+
+                # Tier 2: Trail — follow highest close at distance
+                if profit_from_entry > self.config.trailing_trail_threshold_atr * atr:
+                    trailing_stop = pos.highest_close - (atr * self.config.trailing_trail_distance_atr)
                     pos.stop_loss = max(pos.stop_loss, trailing_stop)
+
+                # Tier 3: Tight trail — close trailing near take profit
+                if profit_from_entry > self.config.trailing_tight_threshold_atr * atr:
+                    tight_stop = pos.highest_close - (atr * self.config.trailing_tight_distance_atr)
+                    pos.stop_loss = max(pos.stop_loss, tight_stop)
 
             # Exit checks
             if low <= pos.stop_loss:
@@ -858,6 +901,84 @@ class BacktestEngine:
             if self._is_fifteen_min and reason == CloseReason.STOP_LOSS:
                 cooldown_periods = self._periods.get("symbol_cooldown_bars", 13)
                 self._symbol_stop_cooldown[symbol] = self._bar_count + cooldown_periods
+
+    # ------------------------------------------------------------------
+    # Signal exit (MACD bearish crossover on open positions)
+    # ------------------------------------------------------------------
+
+    def _check_signal_exits(
+        self, data: dict[str, pd.DataFrame], current_date, date_str: str
+    ) -> None:
+        """Queue SELL orders for positions where MACD has bearish crossover.
+
+        Only active when config.signal_exit_enabled is True.
+        Uses the same MACD parameters as entry signals for consistency.
+        """
+        if not self.config.signal_exit_enabled or not self._positions:
+            return
+
+        to_sell: list[str] = []
+
+        for symbol, pos in self._positions.items():
+            if symbol not in data:
+                continue
+            df = data[symbol]
+            mask = df.index <= current_date
+            df_slice = df[mask]
+
+            min_bars = self._periods["min_bars"]
+            if len(df_slice) < min_bars:
+                continue
+
+            try:
+                close = df_slice["close"]
+
+                # MACD bearish crossover detection
+                macd_ind = MACD(
+                    close,
+                    window_slow=self._periods["macd_slow"],
+                    window_fast=self._periods["macd_fast"],
+                    window_sign=self._periods["macd_signal"],
+                )
+                macd_series = macd_ind.macd()
+                signal_series = macd_ind.macd_signal()
+
+                if len(macd_series) < 3:
+                    continue
+
+                # Check bearish crossover in last 2 bars
+                lookback = self._periods.get("crossover_lookback", 3)
+                for lb in range(1, min(lookback + 1, len(macd_series))):
+                    prev_macd = float(macd_series.iloc[-(lb + 1)])
+                    prev_signal = float(signal_series.iloc[-(lb + 1)])
+                    curr_macd = float(macd_series.iloc[-lb])
+                    curr_signal = float(signal_series.iloc[-lb])
+
+                    if np.isnan(prev_macd) or np.isnan(curr_macd):
+                        continue
+
+                    # Bearish crossover: MACD was above signal, now below
+                    if prev_macd > prev_signal and curr_macd < curr_signal:
+                        to_sell.append(symbol)
+                        break
+            except Exception:
+                continue
+
+        # Queue SELL orders (will be filled next bar at open)
+        for symbol in to_sell:
+            pos = self._positions[symbol]
+            self._pending_orders.append(
+                PendingOrder(
+                    symbol=symbol,
+                    action=TradeAction.SELL,
+                    shares=pos.shares,
+                    stop_loss=0,
+                    take_profit=0,
+                    signal_score=0,
+                    signal_confidence=0,
+                )
+            )
+            logger.debug("signal_exit_queued", symbol=symbol, date=date_str)
 
     # ------------------------------------------------------------------
     # Signal generation
@@ -901,7 +1022,34 @@ class BacktestEngine:
                 continue  # Not enough history for indicators
 
             # Analyze stock — route to appropriate strategy
-            if self._is_fifteen_min or self.config.strategy == "mean_reversion":
+            if self.config.strategy == "mean_reversion_v3":
+                # v3: dual-timeframe — slice daily data up to current date
+                daily_slice = None
+                if self._daily_data and symbol in self._daily_data:
+                    daily_df = self._daily_data[symbol]
+                    # For 15-min bars, get the corresponding daily date
+                    current_day = current_date.date() if hasattr(current_date, "date") else current_date
+                    # Slice daily data up to the current trading day (no look-ahead)
+                    # Handle tz-aware vs tz-naive comparison safely
+                    try:
+                        ts_day = pd.Timestamp(current_day)
+                        if daily_df.index.tz is not None:
+                            ts_day = ts_day.tz_localize(daily_df.index.tz)
+                        daily_mask = daily_df.index.normalize() <= ts_day
+                        daily_slice = daily_df[daily_mask]
+                        if len(daily_slice) == 0:
+                            daily_slice = None
+                    except Exception:
+                        daily_slice = None
+
+                signal = analyze_stock_mean_reversion_v3(
+                    symbol,
+                    df_slice,
+                    daily_slice,
+                    self.config.signal,
+                    self.config,
+                )
+            elif self._is_fifteen_min or self.config.strategy == "mean_reversion":
                 signal = analyze_stock_mean_reversion(
                     symbol,
                     df_slice,

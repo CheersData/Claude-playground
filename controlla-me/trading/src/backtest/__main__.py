@@ -80,12 +80,17 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated symbols (default: S&P 500 subset + ETFs)",
     )
     grid_parser.add_argument(
-        "--timeframe", type=str, choices=["1Day", "1Hour", "15Min"], default="1Day",
-        help="Timeframe: 1Day, 1Hour, or 15Min (default: 1Day)",
+        "--timeframe", type=str, choices=["1Day", "1Hour", "15Min", "5Min"], default="1Day",
+        help="Timeframe: 1Day, 1Hour, 15Min, or 5Min (default: 1Day)",
     )
     grid_parser.add_argument(
         "--output", type=str, default=None,
         help="Custom output directory for results",
+    )
+    grid_parser.add_argument(
+        "--grid-preset", type=str, choices=["default", "tpsl"],
+        default="default",
+        help="Grid preset: 'default' (original 64-combo) or 'tpsl' (TP/SL optimization with trailing + signal exit)",
     )
 
     return parser.parse_args()
@@ -138,12 +143,60 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Disable SMA trend filter",
     )
     parser.add_argument(
-        "--timeframe", type=str, choices=["1Day", "1Hour", "15Min"], default="1Day",
-        help="Timeframe: 1Day, 1Hour, or 15Min (default: 1Day)",
+        "--timeframe", type=str, choices=["1Day", "1Hour", "15Min", "5Min"], default="1Day",
+        help="Timeframe: 1Day, 1Hour, 15Min, or 5Min (default: 1Day)",
+    )
+    parser.add_argument(
+        "--strategy", type=str,
+        choices=["trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume"],
+        default=None,
+        help="Strategy override. Default: auto-detect from timeframe (15Min=mean_reversion, 5Min=slope_volume, else=trend_following)",
+    )
+    # Daily filter for mean reversion v3
+    parser.add_argument(
+        "--daily-filter-enabled", action="store_true", default=True,
+        help="Enable daily SMA filter for mean_reversion_v3 (default: True)",
+    )
+    parser.add_argument(
+        "--no-daily-filter", action="store_true",
+        help="Disable daily SMA filter for mean_reversion_v3 (run v3 without daily trend check — ablation test)",
+    )
+    parser.add_argument(
+        "--daily-sma-period", type=int, default=20,
+        help="Daily SMA period for v3 trend filter (default: 20)",
     )
     parser.add_argument(
         "--output", type=str, default=None,
         help="Custom output directory for results",
+    )
+    # Trailing stop parameters (4-tier system)
+    parser.add_argument(
+        "--trail-breakeven", type=float, default=1.0,
+        help="Tier 0: Move SL to entry after this ATR profit (default: 1.0)",
+    )
+    parser.add_argument(
+        "--trail-lock", type=float, default=1.5,
+        help="Tier 1: Lock profit after this ATR profit (default: 1.5)",
+    )
+    parser.add_argument(
+        "--trail-lock-cushion", type=float, default=0.5,
+        help="Tier 1: Cushion above entry in ATR (default: 0.5)",
+    )
+    parser.add_argument(
+        "--trail-threshold", type=float, default=2.5,
+        help="Tier 2: Start trailing after this ATR profit (default: 2.5)",
+    )
+    parser.add_argument(
+        "--trail-distance", type=float, default=1.5,
+        help="Tier 2: Trail distance from highest close in ATR (default: 1.5)",
+    )
+    parser.add_argument(
+        "--trail-tight-threshold", type=float, default=4.0,
+        help="Tier 3: Tight trail after this ATR profit (default: 4.0)",
+    )
+    parser.add_argument(
+        "--trail-tight-distance", type=float, default=1.0,
+        help="Tier 3: Tight trail distance from highest close in ATR (default: 1.0)",
     )
 
 
@@ -166,16 +219,28 @@ def cmd_run(args: argparse.Namespace) -> None:
         print("Error: Start date must be before end date")
         sys.exit(1)
 
-    # Parse universe — auto-select mean reversion universe for 15Min
+    # Parse universe — auto-select based on timeframe
     if args.universe:
         symbols = [s.strip().upper() for s in args.universe.split(",")]
-    elif args.timeframe == "15Min":
+    elif args.timeframe in ("15Min", "5Min"):
+        # Slope+volume and mean reversion work best on liquid single names + ETFs
         symbols = MEAN_REVERSION_UNIVERSE
     else:
         symbols = DEFAULT_UNIVERSE
 
     # Derive strategy from timeframe if not explicitly set
-    strategy = "mean_reversion" if args.timeframe == "15Min" else "trend_following"
+    if args.strategy:
+        strategy = args.strategy
+    elif args.timeframe == "5Min":
+        strategy = "slope_volume"
+    elif args.timeframe == "15Min":
+        strategy = "mean_reversion"
+    else:
+        strategy = "trend_following"
+
+    # Daily filter settings (v3 only)
+    daily_filter_enabled = not getattr(args, "no_daily_filter", False)
+    daily_sma_period = getattr(args, "daily_sma_period", 20)
 
     # Build config
     config = BacktestConfig(
@@ -191,29 +256,65 @@ def cmd_run(args: argparse.Namespace) -> None:
         train_test_split=0.7 if args.mode == "train_test" else None,
         timeframe=args.timeframe,
         strategy=strategy,
+        # v3 daily filter
+        daily_filter_enabled=daily_filter_enabled,
+        daily_sma_period=daily_sma_period,
+        # 4-tier trailing stop
+        trailing_breakeven_atr=args.trail_breakeven,
+        trailing_lock_atr=args.trail_lock,
+        trailing_lock_cushion_atr=args.trail_lock_cushion,
+        trailing_trail_threshold_atr=args.trail_threshold,
+        trailing_trail_distance_atr=args.trail_distance,
+        trailing_tight_threshold_atr=args.trail_tight_threshold,
+        trailing_tight_distance_atr=args.trail_tight_distance,
     )
 
-    tf_label = {"1Day": "DAILY", "1Hour": "HOURLY", "15Min": "15-MIN MEAN REVERSION"}.get(
-        args.timeframe, args.timeframe
-    )
+    tf_label = {
+        "1Day": "DAILY",
+        "1Hour": "HOURLY",
+        "15Min": f"15-MIN MEAN REVERSION {'v3' if strategy == 'mean_reversion_v3' else 'v2'}",
+        "5Min":  "5-MIN SLOPE+VOLUME",
+    }.get(args.timeframe, args.timeframe)
     print(f"\n{'='*70}")
     print(f"  BACKTEST [{tf_label}] -- {start} -> {end}")
+    print(f"  Strategy: {strategy}")
     print(f"  Capital: ${config.initial_capital:,.0f} | Symbols: {len(symbols)} | Mode: {args.mode}")
     print(f"  Slippage: {config.slippage_bps} bps | Max Positions: {config.max_positions}")
     print(f"  SL: {config.stop_loss_atr}x ATR | TP: {config.take_profit_atr}x ATR")
     print(f"  Trend Filter: {'ON' if config.trend_filter else 'OFF'}")
+    if strategy == "mean_reversion_v3":
+        print(f"  Daily Filter: {'ON' if daily_filter_enabled else 'OFF'} | SMA({daily_sma_period})")
+    print(f"  Trailing: BE={config.trailing_breakeven_atr} Lock={config.trailing_lock_atr}"
+          f" Trail={config.trailing_trail_threshold_atr}/{config.trailing_trail_distance_atr}"
+          f" Tight={config.trailing_tight_threshold_atr}/{config.trailing_tight_distance_atr}")
     print(f"{'='*70}\n")
 
     # Step 1: Load data
-    logger.info(
-        "loading_data",
-        symbols=len(symbols),
-        start=str(start),
-        end=str(end),
-        timeframe=args.timeframe,
-    )
     loader = DataLoader()
-    data = loader.load(symbols, start, end, timeframe=args.timeframe)
+    daily_data = None
+
+    if strategy == "mean_reversion_v3":
+        # Dual-timeframe: load both 15-min and daily bars
+        logger.info(
+            "loading_multi_timeframe",
+            symbols=len(symbols),
+            start=str(start),
+            end=str(end),
+        )
+        data, daily_data = loader.load_multi_timeframe(
+            symbols, start, end,
+            primary_timeframe=args.timeframe,
+            secondary_timeframe="1Day",
+        )
+    else:
+        logger.info(
+            "loading_data",
+            symbols=len(symbols),
+            start=str(start),
+            end=str(end),
+            timeframe=args.timeframe,
+        )
+        data = loader.load(symbols, start, end, timeframe=args.timeframe)
 
     if not data:
         print("Error: No data loaded. Check API keys and date range.")
@@ -223,12 +324,13 @@ def cmd_run(args: argparse.Namespace) -> None:
         "data_loaded",
         symbols=len(data),
         total_bars=sum(len(df) for df in data.values()),
+        daily_symbols=len(daily_data) if daily_data else 0,
     )
 
     # Step 2: Run backtest
-    logger.info("running_backtest")
+    logger.info("running_backtest", strategy=strategy)
     engine = BacktestEngine(config)
-    result = engine.run(data)
+    result = engine.run(data, daily_data=daily_data)
 
     # Step 3: Calculate metrics
     logger.info("calculating_metrics")
@@ -269,6 +371,12 @@ def cmd_grid(args: argparse.Namespace) -> None:
 
     output_dir = Path(args.output) if args.output else None
 
+    # Select grid preset
+    selected_grid = None
+    if args.grid_preset == "tpsl":
+        from .grid_search import TPSL_OPTIMIZATION_GRID
+        selected_grid = TPSL_OPTIMIZATION_GRID
+
     run_grid_search(
         symbols=symbols,
         start=start,
@@ -276,6 +384,7 @@ def cmd_grid(args: argparse.Namespace) -> None:
         initial_capital=args.capital,
         timeframe=args.timeframe,
         output_dir=output_dir,
+        param_grid=selected_grid,
     )
 
 

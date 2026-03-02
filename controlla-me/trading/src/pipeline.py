@@ -6,9 +6,10 @@ Pipeline flow:
   2. Signal Generator → signals
   3. Risk Manager    → approved orders
   4. Executor        → executed trades
+  4.5. Trailing Stops → update 4-tier dynamic stop levels
   5. Portfolio Monitor → daily report
 
-Intraday pipeline (phases 1-4, no daily report):
+Intraday pipeline (phases 1-4.5, no daily report):
   run_intraday_pipeline() — hourly refresh during market hours
 
 Can be run as a full pipeline or agent-by-agent.
@@ -59,55 +60,62 @@ async def run_daily_pipeline() -> dict:
         }
 
         watchlist = scan_result.get("watchlist", [])
-        if not watchlist:
-            logger.info("pipeline_skip", reason="empty watchlist")
-            results["status"] = "no_candidates"
-            return results
 
-        # Phase 2: Signal Generator
-        signal_gen = SignalGenerator()
-        signal_result = await signal_gen.run(watchlist=watchlist)
-        results["signals"] = {
-            "generated": signal_result.get("signals_generated", 0),
-            "status": "ok",
-        }
-
-        signals = signal_result.get("signals", [])
-        if not signals:
-            logger.info("pipeline_skip", reason="no signals")
-            results["status"] = "no_signals"
-            return results
-
-        # Phase 3: Risk Manager
-        risk_mgr = RiskManager()
-        risk_result = await risk_mgr.run(signals=signals)
-
-        if risk_result.get("kill_switch"):
-            results["risk"] = {"status": "kill_switch", "message": risk_result["message"]}
-            results["status"] = "kill_switch"
-            return results
-
-        decisions = risk_result.get("decisions", [])
-        approved = [d for d in decisions if d.get("status") == "APPROVED"]
-        results["risk"] = {
-            "total": len(decisions),
-            "approved": len(approved),
-            "status": "ok",
-        }
-
-        # Phase 4: Executor
-        if approved:
-            executor = Executor()
-            exec_result = await executor.run(decisions=approved)
-            results["execution"] = {
-                "executed": exec_result.get("total_executed", 0),
+        # Phases 2-4: Only run if we have watchlist candidates
+        if watchlist:
+            # Phase 2: Signal Generator
+            signal_gen = SignalGenerator()
+            signal_result = await signal_gen.run(watchlist=watchlist)
+            results["signals"] = {
+                "generated": signal_result.get("signals_generated", 0),
                 "status": "ok",
             }
+
+            signals = signal_result.get("signals", [])
+
+            if signals:
+                # Phase 3: Risk Manager
+                risk_mgr = RiskManager()
+                risk_result = await risk_mgr.run(signals=signals)
+
+                if risk_result.get("kill_switch"):
+                    results["risk"] = {"status": "kill_switch", "message": risk_result["message"]}
+                    results["status"] = "kill_switch"
+                    return results
+
+                decisions = risk_result.get("decisions", [])
+                approved = [d for d in decisions if d.get("status") == "APPROVED"]
+                results["risk"] = {
+                    "total": len(decisions),
+                    "approved": len(approved),
+                    "status": "ok",
+                }
+
+                # Phase 4: Executor
+                if approved:
+                    executor = Executor()
+                    exec_result = await executor.run(decisions=approved)
+                    results["execution"] = {
+                        "executed": exec_result.get("total_executed", 0),
+                        "status": "ok",
+                    }
+                else:
+                    results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+            else:
+                results["signals"]["status"] = "no_signals"
         else:
-            results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+            results["scan"]["status"] = "no_candidates"
+
+        # Phase 4.5: Update Trailing Stops (ALWAYS runs — existing positions need management)
+        monitor = PortfolioMonitor()
+        trail_result = await monitor.run(mode="trailing_stops")
+        results["trailing_stops"] = {
+            "stops_raised": trail_result.get("stops_raised", 0),
+            "states_cleaned": trail_result.get("states_cleaned", 0),
+            "status": "ok",
+        }
 
         # Phase 5: Portfolio Monitor (daily report)
-        monitor = PortfolioMonitor()
         report = await monitor.run(mode="daily_report")
         results["report"] = {
             "portfolio_value": report.get("portfolio_value"),
@@ -160,64 +168,69 @@ async def run_intraday_pipeline() -> dict:
         }
 
         watchlist = scan_result.get("watchlist", [])
-        if not watchlist:
-            logger.info("intraday_pipeline_skip", reason="empty watchlist")
-            results["status"] = "no_candidates"
-            return results
 
-        # Phase 2: Signal Generator — use 1Hour bars for real-time intraday signals
-        signal_gen = SignalGenerator()
-        signal_result = await signal_gen.run(watchlist=watchlist, timeframe="1Hour")
-        results["signals"] = {
-            "generated": signal_result.get("signals_generated", 0),
-            "status": "ok",
-        }
-
-        signals = signal_result.get("signals", [])
-        if not signals:
-            logger.info("intraday_pipeline_skip", reason="no signals")
-            results["status"] = "no_signals"
-            return results
-
-        # Phase 3: Risk Manager
-        risk_mgr = RiskManager()
-        risk_result = await risk_mgr.run(signals=signals)
-
-        if risk_result.get("kill_switch"):
-            results["risk"] = {
-                "status": "kill_switch",
-                "message": risk_result.get("message"),
-            }
-            results["status"] = "kill_switch"
-            return results
-
-        decisions = risk_result.get("decisions", [])
-        approved = [d for d in decisions if d.get("status") == "APPROVED"]
-        results["risk"] = {
-            "total": len(decisions),
-            "approved": len(approved),
-            "status": "ok",
-        }
-
-        # Phase 4: Executor
-        if approved:
-            executor = Executor()
-            exec_result = await executor.run(decisions=approved)
-            results["execution"] = {
-                "executed": exec_result.get("total_executed", 0),
+        # Phases 2-4: Only run if we have watchlist candidates
+        if watchlist:
+            # Phase 2: Signal Generator — use 1Hour bars for real-time intraday signals
+            signal_gen = SignalGenerator()
+            signal_result = await signal_gen.run(watchlist=watchlist, timeframe="1Hour")
+            results["signals"] = {
+                "generated": signal_result.get("signals_generated", 0),
                 "status": "ok",
             }
+
+            signals = signal_result.get("signals", [])
+
+            if signals:
+                # Phase 3: Risk Manager
+                risk_mgr = RiskManager()
+                risk_result = await risk_mgr.run(signals=signals)
+
+                if risk_result.get("kill_switch"):
+                    results["risk"] = {
+                        "status": "kill_switch",
+                        "message": risk_result.get("message"),
+                    }
+                    results["status"] = "kill_switch"
+                    return results
+
+                decisions = risk_result.get("decisions", [])
+                approved = [d for d in decisions if d.get("status") == "APPROVED"]
+                results["risk"] = {
+                    "total": len(decisions),
+                    "approved": len(approved),
+                    "status": "ok",
+                }
+
+                # Phase 4: Executor
+                if approved:
+                    executor = Executor()
+                    exec_result = await executor.run(decisions=approved)
+                    results["execution"] = {
+                        "executed": exec_result.get("total_executed", 0),
+                        "status": "ok",
+                    }
+                else:
+                    results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+            else:
+                results["signals"]["status"] = "no_signals"
         else:
-            results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+            results["scan"]["status"] = "no_candidates"
+
+        # Phase 4.5: Update Trailing Stops (ALWAYS runs — existing positions need management)
+        monitor = PortfolioMonitor()
+        trail_result = await monitor.run(mode="trailing_stops")
+        results["trailing_stops"] = {
+            "stops_raised": trail_result.get("stops_raised", 0),
+            "status": "ok",
+        }
 
         results["status"] = "ok"
         duration_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
         logger.info(
             "intraday_pipeline_complete",
             duration_ms=duration_ms,
-            signals=results["signals"]["generated"],
-            approved=results["risk"]["approved"],
-            executed=results["execution"]["executed"],
+            trailing_stops=results["trailing_stops"]["stops_raised"],
         )
 
     except Exception as e:

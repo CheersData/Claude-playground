@@ -42,6 +42,16 @@ class RiskSettings(BaseSettings):
     max_correlation: float = Field(default=0.7, description="Max correlation between positions")
     kelly_fraction: float = Field(default=0.5, description="Half-Kelly for position sizing")
 
+    # Trailing stop parameters — 4-tier system (matching backtest engine.py)
+    trailing_enabled: bool = Field(default=True, description="Enable 4-tier trailing stop")
+    trailing_breakeven_atr: float = Field(default=1.5, description="Move SL to entry after this ATR profit (grid-optimal)")
+    trailing_lock_atr: float = Field(default=1.5, description="Lock profit after this ATR profit")
+    trailing_lock_cushion_atr: float = Field(default=0.5, description="Cushion above entry for profit lock")
+    trailing_trail_threshold_atr: float = Field(default=3.5, description="Start trailing after this ATR profit (grid-optimal)")
+    trailing_trail_distance_atr: float = Field(default=2.0, description="Trail distance in ATR (grid-optimal)")
+    trailing_tight_threshold_atr: float = Field(default=4.0, description="Tight trail after this ATR profit")
+    trailing_tight_distance_atr: float = Field(default=1.0, description="Tight trail distance in ATR")
+
     model_config = {"env_prefix": "TRADING_RISK_", "extra": "ignore"}
 
 
@@ -62,7 +72,7 @@ class ScannerSettings(BaseSettings):
 class SignalSettings(BaseSettings):
     """Signal generator parameters."""
 
-    min_confidence: float = Field(default=0.6, description="Min confidence to pass to Risk Manager")
+    min_confidence: float = Field(default=0.3, description="Min confidence to pass to Risk Manager (aligned with score_buy_threshold)")
     rsi_period: int = Field(default=14, description="RSI period")
     rsi_overbought: float = Field(default=70.0, description="RSI overbought level")
     rsi_oversold: float = Field(default=30.0, description="RSI oversold level")
@@ -72,6 +82,11 @@ class SignalSettings(BaseSettings):
     bb_period: int = Field(default=20, description="Bollinger Bands period")
     bb_std: float = Field(default=2.0, description="Bollinger Bands std dev")
 
+    # Score thresholds — composite score required to generate a signal.
+    # 0.5 = very selective (few signals), 0.3 = moderate (paper trading data collection)
+    score_buy_threshold: float = Field(default=0.3, description="Composite score above this = BUY")
+    score_sell_threshold: float = Field(default=-0.5, description="Composite score below this = SELL")
+
     # Indicator weights for composite score
     weight_rsi: float = 0.15
     weight_macd: float = 0.25
@@ -80,6 +95,27 @@ class SignalSettings(BaseSettings):
     weight_volume: float = 0.20
 
     model_config = {"env_prefix": "TRADING_SIGNAL_", "extra": "ignore"}
+
+
+class SlopeVolumeSettings(BaseSettings):
+    """Slope+Volume intraday strategy parameters (5-min bars, SPY)."""
+
+    enabled: bool = Field(default=False, description="Enable slope+volume strategy")
+    symbol: str = Field(default="SPY", description="Target symbol")
+    timeframe: str = Field(default="5Min", description="Bar timeframe")
+    lookback_bars: int = Field(default=5, description="Bars for slope regression")
+    slope_threshold_pct: float = Field(default=0.05, description="Min abs slope % per bar to trigger")
+    volume_multiplier: float = Field(default=1.5, description="Volume must be > N*MA to confirm")
+    volume_ma_period: int = Field(default=20, description="Volume moving average period")
+    stop_loss_atr: float = Field(default=1.5, description="Stop loss in ATR units")
+    take_profit_atr: float = Field(default=3.0, description="Take profit in ATR units")
+    atr_period: int = Field(default=14, description="ATR calculation period")
+    market_open_utc: str = Field(default="14:30", description="Market open UTC (skip first 30min)")
+    market_close_utc: str = Field(default="20:00", description="Market close UTC")
+    max_trades_per_day: int = Field(default=3, description="Max trades per day (kill switch protection)")
+    min_bars: int = Field(default=30, description="Min bars needed before generating signals")
+
+    model_config = {"env_prefix": "TRADING_SLOPE_", "extra": "ignore"}
 
 
 class SupabaseSettings(BaseSettings):
@@ -106,6 +142,7 @@ class Settings(BaseSettings):
     risk: RiskSettings = Field(default_factory=RiskSettings)
     scanner: ScannerSettings = Field(default_factory=ScannerSettings)
     signal: SignalSettings = Field(default_factory=SignalSettings)
+    slope_volume: SlopeVolumeSettings = Field(default_factory=SlopeVolumeSettings)
     supabase: SupabaseSettings = Field(default_factory=SupabaseSettings)
 
     # Optional

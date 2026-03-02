@@ -2,8 +2,10 @@
 Data Loader — Download and cache historical OHLCV data.
 
 Sources:
-- Daily bars: Alpaca StockHistoricalDataClient (full history)
+- Daily bars:  Alpaca StockHistoricalDataClient (full history)
 - Hourly bars: yfinance (up to 730 days free)
+- 5Min bars:   Alpaca StockHistoricalDataClient (free tier: up to ~1 year)
+- 15Min bars:  Alpaca StockHistoricalDataClient (free tier: up to ~1 year)
 
 Caches to Parquet files in .backtest-cache/ for offline backtesting.
 """
@@ -50,7 +52,7 @@ class DataLoader:
             symbols: List of ticker symbols.
             start: Start date.
             end: End date.
-            timeframe: "1Day" or "1Hour".
+            timeframe: "1Day", "1Hour", "15Min", or "5Min".
 
         Returns:
             dict[symbol, DataFrame] with columns: open, high, low, close, volume.
@@ -81,6 +83,8 @@ class DataLoader:
                 downloaded = self._download_batch_yfinance(to_download, start, end, timeframe)
             elif timeframe == "15Min":
                 downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=15)
+            elif timeframe == "5Min":
+                downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=5)
             else:
                 downloaded = self._download_batch_alpaca(to_download, start, end)
 
@@ -90,6 +94,53 @@ class DataLoader:
 
         logger.info("data_loaded", total_symbols=len(result), timeframe=timeframe)
         return result
+
+    def load_multi_timeframe(
+        self,
+        symbols: list[str],
+        start: date,
+        end: date,
+        primary_timeframe: str = "15Min",
+        secondary_timeframe: str = "1Day",
+    ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+        """
+        Load both primary and secondary timeframe data for dual-timeframe strategies.
+
+        Used by Mean Reversion v3: primary=15Min (trade signals), secondary=1Day (trend filter).
+
+        Returns:
+            (primary_data, secondary_data) — both are dict[symbol, DataFrame].
+        """
+        logger.info(
+            "loading_multi_timeframe",
+            symbols=len(symbols),
+            primary=primary_timeframe,
+            secondary=secondary_timeframe,
+            start=str(start),
+            end=str(end),
+        )
+
+        # Load primary (e.g. 15Min bars)
+        primary_data = self.load(symbols, start, end, timeframe=primary_timeframe)
+
+        # Load secondary (e.g. Daily bars) — need extra history for SMA warmup
+        # Add 60 extra days before start for daily SMA calculation
+        secondary_start = date(
+            start.year if start.month > 3 else start.year - 1,
+            max(start.month - 3, 1) if start.month > 3 else start.month + 9,
+            1,
+        )
+        secondary_data = self.load(symbols, secondary_start, end, timeframe=secondary_timeframe)
+
+        logger.info(
+            "multi_timeframe_loaded",
+            primary_symbols=len(primary_data),
+            secondary_symbols=len(secondary_data),
+            primary_tf=primary_timeframe,
+            secondary_tf=secondary_timeframe,
+        )
+
+        return primary_data, secondary_data
 
     # ------------------------------------------------------------------
     # Cache
@@ -123,10 +174,13 @@ class DataLoader:
                     cached_end = date.fromisoformat(parts[3])
                     if cached_start <= start and cached_end >= end:
                         df = pd.read_parquet(f)
-                        # Slice to requested range
-                        mask = (df.index >= pd.Timestamp(start)) & (
-                            df.index <= pd.Timestamp(end) + pd.Timedelta(days=1)
-                        )
+                        # Slice to requested range (tz-aware safe)
+                        ts_start = pd.Timestamp(start)
+                        ts_end = pd.Timestamp(end) + pd.Timedelta(days=1)
+                        if df.index.tz is not None:
+                            ts_start = ts_start.tz_localize(df.index.tz)
+                            ts_end = ts_end.tz_localize(df.index.tz)
+                        mask = (df.index >= ts_start) & (df.index <= ts_end)
                         sliced = df[mask]
                         if len(sliced) > 0:
                             return sliced

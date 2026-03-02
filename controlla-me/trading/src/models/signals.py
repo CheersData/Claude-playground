@@ -70,5 +70,7 @@ class RiskDecision(BaseModel):
     portfolio_pct: float | None = None
     stop_loss: float | None = None
     take_profit: float | None = None
+    atr: float | None = None  # ATR at signal time (for trailing stop)
+    entry_price: float | None = None  # Signal entry price (for trailing stop)
     reason: str | None = None  # only for rejections
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -35,6 +35,26 @@ PARAM_GRID = {
     "max_positions": [5, 10],
 }
 
+# Extended grid for TP/SL optimization (task 95fd33c2)
+# Tests: wider TP, 4-tier trailing stop tuning, MACD signal exit
+# ~96 combinations (manageable runtime)
+TPSL_OPTIMIZATION_GRID = {
+    "stop_loss_atr": [2.0, 2.5],
+    "take_profit_atr": [6.0, 8.0, 10.0],
+    # 4-tier trailing stop
+    "trailing_breakeven_atr": [1.0, 1.5],           # Tier 0: breakeven trigger
+    "trailing_lock_atr": [1.5],                       # Tier 1: fixed (default)
+    "trailing_lock_cushion_atr": [0.5],               # Tier 1: fixed (default)
+    "trailing_trail_threshold_atr": [2.5, 3.5],       # Tier 2: trail trigger
+    "trailing_trail_distance_atr": [1.5, 2.0],        # Tier 2: trail distance
+    "trailing_tight_threshold_atr": [4.0],             # Tier 3: fixed (default)
+    "trailing_tight_distance_atr": [1.0],              # Tier 3: fixed (default)
+    # Signal exit
+    "signal_exit_enabled": [False, True],
+    "trend_filter": [True],
+    "max_positions": [10],
+}
+
 
 def run_grid_search(
     symbols: list[str],
@@ -97,13 +117,24 @@ def run_grid_search(
         elapsed = time.time() - start_time
         eta = (elapsed / idx * (total - idx)) if idx > 1 else 0
 
+        # Build compact param summary
+        param_parts = [
+            f"SL={params.get('stop_loss_atr', '-')}x",
+            f"TP={params.get('take_profit_atr', '-')}x",
+        ]
+        if "trailing_breakeven_atr" in params:
+            param_parts.append(f"tBE={params['trailing_breakeven_atr']}x")
+        if "trailing_trail_threshold_atr" in params:
+            param_parts.append(f"tTH={params['trailing_trail_threshold_atr']}x")
+        if "trailing_trail_distance_atr" in params:
+            param_parts.append(f"tTR={params['trailing_trail_distance_atr']}x")
+        if "signal_exit_enabled" in params:
+            param_parts.append(f"sigExit={'ON' if params['signal_exit_enabled'] else 'OFF'}")
+        param_parts.append(f"trend={'ON' if params.get('trend_filter', True) else 'OFF'}")
+        param_parts.append(f"pos={params.get('max_positions', 10)}")
+
         print(
-            f"  [{idx}/{total}] "
-            f"SL={params.get('stop_loss_atr', '-')}x "
-            f"TP={params.get('take_profit_atr', '-')}x "
-            f"trend={'ON' if params.get('trend_filter', True) else 'OFF'} "
-            f"pos={params.get('max_positions', 10)} "
-            f"... ",
+            f"  [{idx}/{total}] {' '.join(param_parts)} ... ",
             end="",
             flush=True,
         )
@@ -120,6 +151,16 @@ def run_grid_search(
                 max_positions=params.get("max_positions", 10),
                 signal_threshold=params.get("signal_threshold", 0.3),
                 slippage_bps=params.get("slippage_bps", 4.0),
+                # 4-tier trailing stop params
+                trailing_breakeven_atr=params.get("trailing_breakeven_atr", 1.0),
+                trailing_lock_atr=params.get("trailing_lock_atr", 1.5),
+                trailing_lock_cushion_atr=params.get("trailing_lock_cushion_atr", 0.5),
+                trailing_trail_threshold_atr=params.get("trailing_trail_threshold_atr", 2.5),
+                trailing_trail_distance_atr=params.get("trailing_trail_distance_atr", 1.5),
+                trailing_tight_threshold_atr=params.get("trailing_tight_threshold_atr", 4.0),
+                trailing_tight_distance_atr=params.get("trailing_tight_distance_atr", 1.0),
+                # Signal exit
+                signal_exit_enabled=params.get("signal_exit_enabled", False),
             )
 
             engine = BacktestEngine(config)
@@ -142,6 +183,9 @@ def run_grid_search(
                 "avg_hold_days": metrics.avg_hold_days,
                 "exposure_pct": metrics.exposure_pct,
                 "final_equity": metrics.final_equity,
+                "stop_loss_count": metrics.stop_loss_count,
+                "take_profit_count": metrics.take_profit_count,
+                "signal_exit_count": metrics.signal_exit_count,
                 "go_nogo": metrics.go_nogo["pass"],
                 "kill_switches": 1 if result.kill_switch_triggered else 0,
             }
@@ -149,12 +193,14 @@ def run_grid_search(
 
             # Quick summary
             go_str = "GO" if row["go_nogo"] else "NO-GO"
+            sl_pct = (metrics.stop_loss_count / metrics.total_trades * 100) if metrics.total_trades > 0 else 0
             print(
                 f"Sharpe={metrics.sharpe_ratio:+.2f} "
                 f"DD={metrics.max_drawdown_pct:.1f}% "
                 f"WR={metrics.win_rate_pct:.0f}% "
                 f"PF={metrics.profit_factor:.2f} "
                 f"T={metrics.total_trades} "
+                f"SL={metrics.stop_loss_count} TP={metrics.take_profit_count} SE={metrics.signal_exit_count} "
                 f"[{go_str}]"
                 f"  (ETA: {eta:.0f}s)"
             )
