@@ -1,36 +1,23 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
-import { createRequire } from "module";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// The source code uses eval("require")("pdf-parse") which bypasses vi.mock.
-// In Vitest ESM, `require` is not defined. We intercept eval to provide
-// a real require (via createRequire) that returns our mocks for pdf-parse.
+// The source code uses createRequire(import.meta.url)("pdf-parse").
+// vi.mock intercepts CJS requires (including createRequire) via Node's Module._load hook.
 const mockPdfParseFn = vi.hoisted(() => vi.fn());
 const mockMammothExtract = vi.hoisted(() => vi.fn());
 
-const originalEval = globalThis.eval;
-const nodeRequire = createRequire(import.meta.url);
-
-globalThis.eval = ((code: string) => {
-  if (code === "require") {
-    return ((modName: string) => {
-      if (modName === "pdf-parse") {
-        return { default: mockPdfParseFn };
-      }
-      return nodeRequire(modName);
-    }) as NodeRequire;
-  }
-  return originalEval(code);
-}) as typeof eval;
+vi.mock("pdf-parse", () => ({
+  // Expose as default export — code does: pdfParseModule.default ?? pdfParseModule
+  default: mockPdfParseFn,
+  // PDFParse is the v2 class API. Set to undefined so the typeof check is "undefined"
+  // (not "function") and code falls through to the v1 function-based API.
+  PDFParse: undefined,
+}));
 
 vi.mock("mammoth", () => ({
   default: { extractRawText: mockMammothExtract },
 }));
 
 import { extractText } from "@/lib/extract-text";
-
-afterAll(() => {
-  globalThis.eval = originalEval;
-});
 
 beforeEach(() => {
   vi.clearAllMocks();

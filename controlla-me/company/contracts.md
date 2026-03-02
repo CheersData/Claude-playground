@@ -1,0 +1,73 @@
+# Contratti Inter-Dipartimento
+
+## Regola d'oro
+
+I dipartimenti **NON** si chiamano tra loro direttamente.
+Comunicano tramite **TASK**.
+
+```
+Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende → completa → risultato nel task
+```
+
+## Flussi autorizzati
+
+| # | Da | A | Tipo | Note |
+|---|-----|---|------|------|
+| 1 | CME | qualsiasi | task diretto | CME può delegare a chiunque |
+| 2 | Architecture | QA | richiesta test | dopo proposta tecnica |
+| 3 | Architecture | Finance | stima costi | prima di implementare |
+| 4 | QA | qualsiasi | bug report | quando un test fallisce |
+| 5 | Finance | CME | alert costi | MAI diretto ai dipartimenti |
+| 6 | Hooks runtime | Task System | automatico | nessun dipartimento chiamato |
+| 7 | Strategy | CME | OKR report / competitor alert | Output trimestrale o urgente |
+| 8 | Strategy | Architecture | feature proposal | dopo approvazione CME |
+| 9 | Strategy | Marketing | positioning brief | ogni trimestre |
+| 10 | Marketing | CME | growth report / metriche mensili | primo del mese |
+| 11 | Marketing | Ufficio Legale | revisione contenuti | prima della pubblicazione |
+| 12 | Security | CME | vulnerability alert | immediatamente su critical/high |
+| 13 | Security | QA | richiesta test regressione | dopo fix |
+| 14 | Uff. Trading | Finance | P&L report giornaliero | automatico |
+| 15 | Uff. Trading | CME | risk alert (kill switch) | immediatamente |
+| 16 | Finance | CME | alert P&L trading | quando loss > soglia |
+| 17 | QA | Uff. Trading | backtest validation | prima di go-live |
+| 18 | CME | Protocols | richiesta routing | ogni decisione non-triviale |
+| 19 | Protocols | qualsiasi | richiesta parere | consultazione da decision tree |
+| 20 | Protocols | CME | routing + recommendation | risultato classificazione |
+| 21 | Protocols | Boss (Telegram) | richiesta approvazione | decisioni L3/L4 |
+| 22 | Acceleration | Architecture | proposta refactoring strutturale | per interventi che cambiano interfacce |
+| 23 | Acceleration | QA | richiesta test regressione | dopo ogni pulizia significativa |
+| 24 | CME | Acceleration | audit periodico | dopo ogni sprint completato |
+
+## Flussi VIETATI
+
+- Ufficio Legale → Data Engineering (passa da CME)
+- Finance → qualsiasi dipartimento (passa da CME)
+- Operations → modifiche codice (solo monitoring)
+- Marketing → modificare prompt o codice (passa da CME → Ufficio Legale / Architecture)
+- Strategy → implementare feature direttamente (passa da CME → Architecture)
+- Qualsiasi → bypassare Protocols per decisioni strategiche/critiche (L3/L4 richiedono sempre routing)
+- Protocols → implementare codice (solo governance e routing, mai esecuzione)
+
+## Formati I/O per unità organizzativa
+
+### Uffici (Revenue)
+
+| Ufficio | Input (riceve) | Output (produce) |
+|---------|----------------|-------------------|
+| Ufficio Legale | Task con tipo (prompt review, agent config, revisione contenuto) | Prompt aggiornato, config modificata, contenuto validato |
+| Ufficio Trading | Task con tipo (strategy config, risk params, go/no-go review) | Signal report, trade log, P&L report, risk alert |
+
+### Dipartimenti (Staff)
+
+| Dipartimento | Input (riceve) | Output (produce) |
+|-------------|----------------|-------------------|
+| Architecture | Task con problema/feature da risolvere | Proposal (soluzione, impatto, costi stimati) |
+| Data Engineering | Task con source + operazione (sync, add, fix) | Risultato sync (items fetched/inserted/errors) |
+| Quality Assurance | Task "run suite" o "validate X" | Report (tests pass/fail, coverage, issues) |
+| Security | Task "audit" o vulnerability identificata | Report sicurezza, fix implementato |
+| Finance | Task "cost report" o alert automatico | Report costi (per agent, per provider, trend), P&L trading |
+| Operations | Task "status report" | Dashboard data (health, latency, pipeline status) |
+| Strategy | Task "quarterly review" o "feature prioritization" | OKR, roadmap, RICE scores, competitor snapshot |
+| Marketing | Task "content calendar", "growth report", "partnership outreach" | Piano contenuti, report metriche, stato partnership |
+| Protocols | Richiesta da classificare + pareri da raccogliere | Routing (dept + livello approvazione) + recommendation |
+| Acceleration | Task "codebase audit", "performance audit dept", "cleanup X" | Report audit con lista interventi, PR diff, metriche before/after |

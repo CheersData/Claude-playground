@@ -45,7 +45,7 @@ describe("runAnalyzer", () => {
     expect(params.system).toBeDefined();
   });
 
-  it("passes classification JSON and document text in user message", async () => {
+  it("passes classification info and document text in user message", async () => {
     mockCreate.mockResolvedValue(
       makeAnthropicResponse(JSON.stringify(analysisFixture))
     );
@@ -54,7 +54,9 @@ describe("runAnalyzer", () => {
 
     const params = mockCreate.mock.calls[0][0];
     const userMessage = params.messages[0].content as string;
-    expect(userMessage).toContain(JSON.stringify(classification));
+    // Analyzer formats classification as human-readable text (not raw JSON)
+    expect(userMessage).toContain(classification.documentTypeLabel);
+    expect(userMessage).toContain(classification.jurisdiction);
     expect(userMessage).toContain(SAMPLE_RENTAL_CONTRACT);
   });
 

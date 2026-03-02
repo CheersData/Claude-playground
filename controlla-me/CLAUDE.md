@@ -1,5 +1,46 @@
 # CLAUDE.md — Istruzioni per agenti AI
 
+---
+
+## ⚠️ REGOLA ASSOLUTA — AMBIENTE DEMO
+
+**Questo è un ambiente di demo. I crediti API Anthropic NON sono disponibili.**
+
+### Per gli script interni (`scripts/`, `company/`)
+
+Gli script di company operations (architect-review, model-census, data-connector, ecc.) devono usare **esclusivamente il CLI `claude -p`** per invocare LLM, MAI il SDK `@anthropic-ai/sdk` direttamente.
+
+```typescript
+// ✅ CORRETTO — usa CLI
+import { execSync } from "child_process";
+const output = execSync(`claude -p ${JSON.stringify(prompt)}`, { encoding: "utf-8" });
+
+// ❌ VIETATO — usa API con crediti
+import Anthropic from "@anthropic-ai/sdk";
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+```
+
+**Nota:** il CLI non può girare dentro una sessione Claude Code attiva (nested session). Gli script vanno eseguiti dal terminale esterno.
+
+### Task-runner e demo environment — COMPORTAMENTO ATTESO
+
+`scripts/task-runner.ts` è lo script di esecuzione autonoma dei task aziendali. Usa correttamente `spawnSync('claude', ['-p'])` (CLI, non SDK). **In ambiente demo fallisce sempre** per uno di questi motivi:
+
+1. `spawnSync claude ENOENT` — `claude` non è nel PATH del terminale che esegue lo script
+2. `claude -p exit 1 | Credit balance is too low` — crediti API insufficienti (ambiente demo)
+
+**Conseguenza:** il task-runner lascia i task in stato `in_progress` (o `blocked`) con messaggio di errore nel campo `result`. Questi task NON sono stati eseguiti.
+
+**Soluzione obbligatoria in ambiente demo:** CME (Claude Code) esegue i task MANUALMENTE leggendo description e department.md del dipartimento, senza delegare al task-runner. Il task-runner è riservato ad ambienti con crediti API attivi e `claude` nel PATH.
+
+### Per l'app runtime (`app/`, `lib/agents/`, `lib/ai-sdk/`)
+
+L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.ts` (tier system + fallback). Questa regola NON si applica al codice runtime dell'app.
+
+**Salvo esplicito ordine contrario del boss, questa regola è permanente e non negoziabile.**
+
+---
+
 > Tutto ciò che un agente AI deve sapere per sviluppare, deployare e mantenere **controlla.me** — app di analisi legale AI con 4 agenti specializzati.
 >
 > **Controlla.me è il primo prototipo** di una piattaforma madre per molteplici team di agenti AI. I servizi devono essere scalabili e parametrizzabili.
@@ -21,6 +62,10 @@
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
+| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
+| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 6.x |
+| AI Registry | lib/models.ts — ~40 modelli, 7 provider | — |
+| Tier System | lib/tiers.ts — 3 tier, catene N-fallback | — |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
 | Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
 | Database | Supabase (PostgreSQL + RLS) | 2.97.0 |
@@ -28,7 +73,8 @@
 | Pagamenti | Stripe | 20.3.1 |
 | PDF | pdf-parse | 2.4.5 |
 | DOCX | mammoth | 1.11.0 |
-| OCR | tesseract.js (non ancora implementato) | 7.0.0 |
+| XML Parser | fast-xml-parser (AKN legislativo) | 5.x |
+| OCR | tesseract.js (NON implementato — rimosso da dependencies) | — |
 | Font | DM Sans + Instrument Serif | Google Fonts |
 
 ---
@@ -71,6 +117,37 @@ STRIPE_SINGLE_PRICE_ID=price_...
 
 # Voyage AI (embeddings per vector DB — opzionale)
 VOYAGE_API_KEY=pa-...
+
+# Google Gemini (opzionale, fallback a Haiku)
+GEMINI_API_KEY=...
+
+# OpenAI (opzionale — subscription ChatGPT Plus NON include crediti API)
+OPENAI_API_KEY=sk-proj-...
+
+# Mistral (opzionale, free tier: tutti i modelli, 2 RPM)
+MISTRAL_API_KEY=...
+
+# Groq (opzionale, free tier: Llama 4, 1000 req/giorno)
+GROQ_API_KEY=gsk_...
+
+# Cerebras (opzionale, free tier: 1M token/giorno)
+CEREBRAS_API_KEY=csk-...
+
+# DeepSeek (opzionale — ⚠️ server in Cina, non usare per dati sensibili)
+DEEPSEEK_API_KEY=...
+
+# Console (obbligatorio in produzione)
+CONSOLE_JWT_SECRET=...           # min 32 chars — se assente usa fallback hardcoded pubblico (RISCHIO SICUREZZA)
+CRON_SECRET=...                  # obbligatorio se cron attivi — se assente i cron endpoint sono aperti a chiunque
+
+# Telegram (per Company Scheduler — approvazione piani via bot)
+# Setup: @BotFather → /newbot → copia token. Poi: api.telegram.org/bot{TOKEN}/getUpdates → prendi "chat.id"
+TELEGRAM_BOT_TOKEN=...           # es. 1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ
+TELEGRAM_CHAT_ID=...             # ID numerico della chat con il bot
+
+# Upstash Redis (necessario per rate limiting distribuito in produzione)
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -119,7 +196,11 @@ controlla-me/
 │       ├── upload/route.ts        # Estrazione testo da file
 │       ├── deep-search/route.ts   # Ricerca approfondita clausole
 │       ├── vector-search/route.ts # Ricerca semantica vector DB
-│       ├── corpus/route.ts        # Gestione corpus legislativo
+│       ├── corpus/route.ts           # Gestione corpus legislativo
+│       ├── corpus/hierarchy/route.ts # Fonti e albero navigabile
+│       ├── corpus/ask/route.ts      # Corpus Agent Q&A (Gemini/Haiku)
+│       ├── console/route.ts         # Console SSE — leader + pipeline routing
+│       ├── console/tier/route.ts    # GET/POST — tier switch + agent toggle
 │       ├── session/[sessionId]/route.ts  # Cache sessioni
 │       ├── user/usage/route.ts    # Limiti utilizzo
 │       ├── auth/callback/route.ts # OAuth Supabase
@@ -127,7 +208,7 @@ controlla-me/
 │       ├── stripe/portal/route.ts
 │       └── webhook/route.ts       # Webhook Stripe
 │
-├── components/                    # 18 componenti React
+├── components/                    # 20+ componenti React
 │   ├── Navbar.tsx                # Nav + menu mobile
 │   ├── HeroSection.tsx           # 3 hero: HeroVerifica, HeroDubbi (CorpusChat live), HeroBrand
 │   ├── MissionSection.tsx        # Come funziona (4 step)
@@ -145,13 +226,48 @@ controlla-me/
 │   ├── LawyerCTA.tsx             # Raccomandazione avvocato
 │   ├── PaywallBanner.tsx         # Banner limite utilizzo
 │   ├── CTASection.tsx            # Call-to-action
-│   └── Footer.tsx                # Footer
+│   ├── Footer.tsx                # Footer
+│   └── console/                  # Componenti console
+│       ├── StudioShell.tsx       # Layout console
+│       ├── ConsoleHeader.tsx     # Header + Power button
+│       ├── ConsoleInput.tsx      # Input chat
+│       ├── AgentOutput.tsx       # Rendering output agenti
+│       ├── ReasoningGraph.tsx    # Visualizzazione reasoning
+│       ├── CorpusTreePanel.tsx   # Pannello laterale corpus
+│       └── PowerPanel.tsx        # Pannello tier + catene fallback + toggle agenti
 │
 ├── lib/
 │   ├── anthropic.ts              # Client Claude + retry rate limit
+│   ├── gemini.ts                 # Client Gemini 2.5 Flash + retry
+│   ├── models.ts                 # Registry centralizzato: ~40 modelli, 7 provider
+│   ├── tiers.ts                  # Tier system: intern/associate/partner + catene fallback + agent toggle
+│   ├── ai-sdk/                   # Infrastruttura AI riusabile (astraibile)
+│   │   ├── types.ts              # Interfacce GenerateConfig, GenerateResult
+│   │   ├── openai-compat.ts      # 1 funzione per 5 provider OpenAI-compatibili
+│   │   ├── generate.ts           # Router universale: generate(modelKey) → provider
+│   │   └── agent-runner.ts       # runAgent(agentName) con catena N-fallback da tiers.ts
 │   ├── embeddings.ts             # Client Voyage AI per embeddings
 │   ├── vector-store.ts           # RAG: chunk, index, search, buildRAGContext
 │   ├── legal-corpus.ts           # Ingest e query corpus legislativo
+│   ├── staff/
+│   │   └── data-connector/       # Staff Service: pipeline CONNECT→MODEL→LOAD
+│   │       ├── index.ts           # Orchestratore pipeline
+│   │       ├── types.ts           # Interfacce generiche
+│   │       ├── registry.ts        # Source registry da corpus-sources.ts
+│   │       ├── sync-log.ts        # CRUD su connector_sync_log
+│   │       ├── connectors/
+│   │       │   ├── base.ts        # BaseConnector (fetch+retry, User-Agent)
+│   │       │   ├── normattiva.ts  # Normattiva Open Data API + collection download
+│   │       │   └── eurlex.ts      # EUR-Lex Cellar REST
+│   │       ├── parsers/
+│   │       │   ├── akn-parser.ts  # Akoma Ntoso XML → articoli (standard + attachment)
+│   │       │   └── html-parser.ts # EUR-Lex HTML → articoli
+│   │       ├── models/
+│   │       │   └── legal-article-model.ts  # Verifica schema legal_articles
+│   │       ├── stores/
+│   │       │   └── legal-corpus-store.ts   # Adattatore per ingestArticles()
+│   │       └── validators/
+│   │           └── article-validator.ts    # Validazione articoli
 │   ├── extract-text.ts           # Estrazione PDF/DOCX/TXT
 │   ├── analysis-cache.ts         # Cache analisi su filesystem
 │   ├── stripe.ts                 # Config Stripe + piani
@@ -176,9 +292,33 @@ controlla-me/
 │       ├── server.ts             # Client SSR
 │       └── admin.ts              # Client admin (webhook)
 │
-├── supabase/migrations/           # SQL per setup DB
+├── scripts/
+│   ├── data-connector.ts          # CLI: connect, model, load, status, update
+│   ├── corpus-sources.ts          # 14 fonti con ConnectorConfig + lifecycle
+│   ├── model-census-agent.ts      # CLI: verifica modelli provider (npx tsx scripts/model-census-agent.ts)
+│   ├── seed-corpus.ts             # Seed legacy (HuggingFace)
+│   └── check-data.ts              # QA dati corpus
+│
+├── supabase/migrations/           # SQL per setup DB (001-019)
 ├── public/videos/                 # Video generati AI
-└── .analysis-cache/               # Cache analisi (gitignored)
+├── .analysis-cache/               # Cache analisi (gitignored)
+│
+├── trading/                       # Ufficio Trading (Python, stesso localhost)
+│   ├── pyproject.toml             # Python 3.11+, alpaca-py, pandas, ta
+│   ├── src/
+│   │   ├── config/settings.py     # Pydantic settings (26 parametri)
+│   │   ├── connectors/alpaca_client.py  # Alpaca trading + market data
+│   │   ├── models/                # signals.py, orders.py, portfolio.py
+│   │   ├── agents/base.py         # BaseAgent ABC
+│   │   ├── strategies/            # (futuro)
+│   │   ├── backtest/              # (Fase 2)
+│   │   └── utils/                 # db.py (CRUD Supabase), logging.py
+│   └── tests/
+│
+└── company/trading/               # Org structure trading
+    ├── department.md              # Identità ufficio + vincoli architetturali
+    ├── agents/                    # 5 identity cards + trading-lead
+    └── runbooks/                  # pipeline, risk, backtest, go-live
 ```
 
 ---
@@ -235,14 +375,54 @@ Domanda utente (colloquiale)
 
 Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda originale**.
 
-### Scelta dei modelli
+### Tier System e Catene di Fallback
 
-| Agente | Modello | Perche |
-|--------|---------|--------|
-| Classifier | `claude-haiku-4-5-20251001` | Prompt profondo compensa, velocita |
-| Analyzer | `claude-sonnet-4-5-20250929` | Analisi profonda con contesto normativo |
-| Investigator | `claude-sonnet-4-5-20250929` | Upgrade da Haiku: query migliori, copertura completa |
-| Advisor | `claude-sonnet-4-5-20250929` | Output finale + scoring multidimensionale |
+Configurazione centralizzata in `lib/tiers.ts`. Ogni agente ha una **catena ordinata di N modelli**. Il tier (Intern/Associate/Partner) determina il punto di partenza nella catena. Su errore 429 o provider non disponibile, il sistema scende automaticamente al modello successivo.
+
+```
+Tier Partner:   Sonnet 4.5 → Gemini Pro → Mistral Large → Groq Llama → Cerebras
+Tier Associate: Gemini Pro → Mistral Large → Groq Llama → Cerebras
+Tier Intern:    Mistral Large → Groq Llama → Cerebras
+```
+
+| Tier | Descrizione | Modelli tipici | Costo stimato |
+|------|-------------|---------------|---------------|
+| **Intern** | Modelli gratuiti | Cerebras, Groq, Mistral free | ~gratis |
+| **Associate** | Modelli intermedi | Gemini Flash/Pro, Haiku | ~$0.01 |
+| **Partner** | Modelli top-tier | Sonnet, GPT-5 | ~$0.05 |
+
+**Investigator**: catena limitata a 2 modelli Anthropic (Sonnet → Haiku) perche usa `web_search` che richiede Claude.
+
+### Toggle Agenti
+
+Ogni agente puo essere disabilitato singolarmente dal PowerPanel. Quando disabilitato:
+- **Classifier** → classificazione minimale di default
+- **Analyzer** → `{ clauses: [], missingElements: [], overallRisk: "low" }`
+- **Investigator** → `{ findings: [] }` (stesso pattern del fallback su errore)
+- **Advisor** → skip, nessun output finale
+- **Question-prep** → usa domanda originale come query legale
+- **Corpus-agent** → skip risposta LLM
+
+Stato gestito in `lib/tiers.ts` con `isAgentEnabled()` / `setAgentEnabled()`. API: `POST /api/console/tier` con `{ agent, enabled }`.
+
+### Provider disponibili (7)
+
+Architettura a 3 livelli: `lib/models.ts` (registry) → `lib/ai-sdk/generate.ts` (router) → provider client.
+Anthropic e Gemini hanno SDK nativi dedicati. Gli altri 5 usano `lib/ai-sdk/openai-compat.ts` (1 funzione per tutti).
+
+| Provider | Implementazione | Modelli | Free tier |
+|----------|----------------|---------|-----------|
+| Anthropic | `lib/anthropic.ts` (SDK nativo) | Sonnet 4.5, Haiku 4.5 | No |
+| Google Gemini | `lib/gemini.ts` (SDK nativo) | Flash, Flash Lite, Pro | 250 req/giorno |
+| OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-5.1, 5.2, 4.1, 4o, Codex Mini, OSS 20B/120B | $5 crediti |
+| Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo, Ministral, Magistral S/M | Tutti, 2 RPM |
+| Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B, GPT-OSS, Kimi K2 | 1000 req/giorno |
+| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B, Qwen3 235B, GPT-OSS 120B | 1M tok/giorno |
+| DeepSeek | `lib/ai-sdk/openai-compat.ts` | V3, R1 | 5M tok (30gg) |
+
+Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts` che risolve la catena di fallback dal tier corrente. Per cambiare catena o tier: modificare `AGENT_CHAINS` / `TIER_START` in `lib/tiers.ts`.
+
+Vedi `docs/MODEL-CENSUS.md` per pricing completo. Script `scripts/model-census-agent.ts` per verificare modelli nuovi/deprecati dai provider.
 
 ### Regole dei prompt
 
@@ -318,13 +498,14 @@ for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 
 ### Strategie anti-throttling (ordine di importanza)
 
-1. **Retry 60s fisso su 429** — Il rate limit e' per minuto, aspetti 1 minuto esatto
-2. **Distribuisci i modelli** — Haiku per task semplici (classifier, investigator), Sonnet per task complessi (analyzer, advisor). Riduce token consumati
-3. **Cache aggressiva** — SHA256 del documento, se gia analizzato salta le fasi completate. Risparmio 50%+ chiamate API
-4. **Limita le iterazioni** — Investigator: max 5 tool_use loop. Deep search: max 8 iterazioni
-5. **Limita i token output** — Ogni agente ha max_tokens calibrato: 4096, 8192, 6144, 4096
-6. **Usage limits per utente** — Free: 3 analisi/mese. Previene abuso
-7. **Logging dettagliato** — Logga token in/out, tempo, stop_reason per ogni chiamata
+1. **Catene di fallback N-modelli** — Su 429 il sistema scende automaticamente al modello successivo nella catena (lib/tiers.ts). Nessun tempo di attesa se un altro provider e' disponibile
+2. **Retry 60s fisso su 429** — Se tutta la catena fallisce, retry su rate limit con attesa 60s
+3. **Distribuisci i modelli** — Haiku per task semplici (classifier, investigator), Sonnet per task complessi (analyzer, advisor). Riduce token consumati
+4. **Cache aggressiva** — SHA256 del documento, se gia analizzato salta le fasi completate. Risparmio 50%+ chiamate API
+5. **Limita le iterazioni** — Investigator: max 5 tool_use loop. Deep search: max 8 iterazioni
+6. **Limita i token output** — Ogni agente ha max_tokens calibrato: 4096, 8192, 6144, 4096
+7. **Usage limits per utente** — Free: 3 analisi/mese. Previene abuso
+8. **Logging dettagliato** — Logga token in/out, tempo, stop_reason per ogni chiamata
 
 ### Pattern logging API
 
@@ -392,6 +573,9 @@ data: {"phase": "classifier", "status": "running"}
 
 event: progress
 data: {"phase": "classifier", "status": "done", "data": {...}}
+
+event: progress
+data: {"phase": "investigator", "status": "skipped"}
 
 event: error
 data: {"phase": "analyzer", "error": "messaggio"}
@@ -482,7 +666,7 @@ Il componente piu complesso (643 righe): cerchio progress con gradiente, timelin
 | PDF | pdf-parse | Richiede serverExternalPackages in next.config |
 | DOCX/DOC | mammoth | Estrazione raw text |
 | TXT | Built-in | UTF-8 decode |
-| Immagini | tesseract.js | NON ancora implementato |
+| Immagini | tesseract.js | NON implementato — libreria rimossa da dependencies, reinstallare quando necessario |
 
 Validazione: file max 20MB, testo estratto min 50 caratteri, messaggi errore in italiano.
 
@@ -658,8 +842,8 @@ vercel deploy    # O collega repo GitHub a Vercel
 ┌─────────────────────────────────────────────────────┐
 │              SUPABASE pgvector                       │
 │                                                      │
-│  1. legal_articles    → Corpus legislativo italiano  │
-│     - Codice Civile, D.Lgs., DPR, Leggi            │
+│  1. legal_articles    → Corpus legislativo ~5600 art │
+│     - 13 fonti IT+EU (Normattiva + EUR-Lex)        │
 │     - Ricerca semantica + lookup diretto            │
 │     - Embedding: Voyage AI (voyage-law-2, 1024d)    │
 │                                                      │
@@ -710,6 +894,8 @@ Se `VOYAGE_API_KEY` non è configurata, tutte le feature vector DB vengono salta
 - `GET /api/vector-search` — Statistiche vector DB
 - `POST /api/corpus` — Caricamento articoli nel corpus
 - `GET /api/corpus` — Statistiche corpus legislativo
+- `GET /api/corpus/hierarchy` — Lista fonti o albero navigabile per fonte
+- `GET /corpus` — Pagina UI navigazione corpus
 
 ### Migrazione database
 
@@ -738,11 +924,11 @@ Il Classifier ora identifica:
 
 ```typescript
 scores: {
-  contractEquity: number;      // Bilanciamento tra le parti
-  legalCoherence: number;      // Coerenza interna clausole
-  practicalCompliance: number;  // Aderenza alla prassi
-  completeness: number;         // Copertura situazioni tipiche
+  legalCompliance: number;   // Aderenza al quadro normativo vigente (9-10=conforme, 1-2=violazioni gravi)
+  contractBalance: number;   // Equilibrio tra le parti (9-10=bilanciato, 1-2=vessatorio)
+  industryPractice: number;  // Conformità alla prassi di settore (9-10=standard mercato, 1-2=fuori prassi)
 }
+// fairnessScore = media dei 3 scores, arrotondata a 1 decimale
 ```
 
 ### Limiti output Advisor enforced
@@ -751,21 +937,256 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 
 ---
 
-## 16. FEATURE INCOMPLETE
+## 16. UFFICIO TRADING (Swing Trading Automatizzato)
 
-1. OCR immagini — tesseract.js importato ma non implementato
-2. Dashboard reale — Usa mock data, servono query Supabase
-3. Pagina dettaglio analisi — Usa mock, serve fetch da Supabase
-4. Deep search limit — Modello dati supporta, non enforced in UI
-5. Sistema referral avvocati — Tabelle DB esistono, nessuna UI
-6. Test — Nessun test unitario/integrazione/E2E
-7. CI/CD — Nessuna GitHub Action
-8. Corpus legislativo — Tabella e API pronte, servono dati (Codice Civile da HuggingFace, D.Lgs. da Normattiva)
-9. UI scoring multidimensionale — Backend pronto, frontend mostra solo fairnessScore
+### Missione
+
+Trading automatizzato su azioni US e ETF via Alpaca Markets per sostenibilità finanziaria di Controlla.me. Infrastruttura Python autonoma, comunicazione con il resto via Supabase condiviso.
+
+### Vincolo architetturale (direttiva boss)
+
+- **Stesso localhost**: Trading gira sulla stessa macchina dell'app Next.js, non è un microservizio remoto
+- **Comunicazione inter-dipartimentale**: via Supabase condiviso (tabelle `trading_*`)
+- **CME unico interlocutore**: nessun dipartimento parla direttamente col Trading, tutto passa da CME
+- **Orchestrazione locale**: CME invoca gli agenti Python localmente (es. `cd trading && python -m src.agents.market_scanner`)
+
+### Stack
+
+| Livello | Tecnologia | Versione |
+|---------|-----------|----------|
+| Linguaggio | Python | 3.11+ |
+| Broker | alpaca-py | 0.28+ |
+| Analisi Tecnica | ta | 0.11+ |
+| Data | pandas + numpy | 2.2+ / 1.26+ |
+| Database | supabase-py | 2.9+ |
+| Config | pydantic-settings | 2.6+ |
+| Logging | structlog | 24.4+ |
+
+### Architettura directory
+
+```
+trading/
+├── pyproject.toml                 # Python project config
+├── src/
+│   ├── config/
+│   │   └── settings.py            # Pydantic settings (Alpaca, Risk, Scanner, Signal)
+│   ├── connectors/
+│   │   └── alpaca_client.py       # Alpaca trading + market data client
+│   ├── models/
+│   │   ├── signals.py             # ScanResult, Signal, RiskDecision
+│   │   ├── orders.py              # Order, OrderStatus
+│   │   └── portfolio.py           # Position, PortfolioSnapshot, RiskEvent
+│   ├── agents/
+│   │   ├── base.py                # BaseAgent ABC (async, structured logging)
+│   │   ├── market_scanner.py      # [1] Daily pre-market screening
+│   │   ├── signal_generator.py    # [2] Technical analysis + signals
+│   │   ├── risk_manager.py        # [3] Risk validation + kill switch
+│   │   ├── executor.py            # [4] Order execution on Alpaca
+│   │   └── portfolio_monitor.py   # [5] P&L monitoring + alerts
+│   ├── strategies/                # Strategy configurations (future)
+│   ├── backtest/                  # Backtesting framework (Phase 2)
+│   ├── utils/
+│   │   ├── logging.py             # structlog setup
+│   │   └── db.py                  # TradingDB (CRUD Supabase)
+│   └── pipeline.py                # Orchestratore pipeline 5 agenti
+├── tests/
+│   ├── unit/
+│   │   └── test_models.py         # Model validation tests
+│   └── integration/               # Integration tests (future)
+└── company/trading/               # Company structure (department.md, agents/, runbooks/)
+```
+
+### Pipeline 5+1 agenti
+
+```
+[1] MARKET SCANNER (daily, pre-market)
+    → Filtra S&P 500 + NASDAQ 100 + ETF: volume, ATR, trend SMA
+    → Output: watchlist 20-30 candidati
+    |
+[2] SIGNAL GENERATOR (daily, post-scan)
+    → RSI + MACD + Bollinger + Trend + Volume → score composito
+    → Output: segnali BUY/SELL con confidence > 0.6
+    |
+[3] RISK MANAGER (pre-trade)
+    → Position sizing (half-Kelly, max 10% portfolio)
+    → Correlazione, esposizione settoriale, R/R ratio
+    → KILL SWITCH su -2% daily o -5% weekly
+    → Output: ordini APPROVED/REJECTED + ATR passthrough
+    |
+[4] EXECUTOR (on-signal)
+    → Bracket orders su Alpaca (entry + stop loss + take profit)
+    → Retry 3x su errore, logging completo
+    → Inizializza trailing stop state al fill (ATR, entry, stop order ID)
+    |
+[4.5] TRAILING STOP (SEMPRE — anche senza nuovi segnali)
+    → 4-tier sistema (identico al backtest engine):
+      Tier 0: Breakeven (profit > 1.0× ATR → SL = entry)
+      Tier 1: Lock (profit > 1.5× ATR → SL = entry + 0.5× ATR)
+      Tier 2: Trail (profit > 2.5× ATR → SL = highest - 1.5× ATR)
+      Tier 3: Tight (profit > 4.0× ATR → SL = highest - 1.0× ATR)
+    → Replace Alpaca stop order con nuovo prezzo (monotonic, solo UP)
+    → Auto-bootstrap per posizioni pre-esistenti (calcola ATR da dati correnti)
+    → Cleanup state per posizioni chiuse
+    |
+[5] PORTFOLIO MONITOR (continuous + daily report)
+    → P&L tracking, alert system, daily snapshot
+    → Trigger stop loss/take profit
+```
+
+### Risk Management (NON NEGOZIABILE)
+
+| Parametro | Valore |
+|-----------|--------|
+| Max daily loss | -2% portfolio → KILL SWITCH |
+| Max weekly loss | -5% portfolio → KILL SWITCH |
+| Max position size | 10% portfolio |
+| Max positions | 10 simultanee |
+| Max sector exposure | 30% |
+| Stop loss per trade | -5% |
+| Min risk/reward | 1:2 |
+| Paper trading minimo | 30 giorni |
+
+### Schema Database (Migration 019 + 021)
+
+```sql
+trading_config        -- Singleton: mode, enabled, risk params, kill switch state
+trading_signals       -- Scan results, trade signals, risk checks (TTL 90gg)
+trading_orders        -- Ordini eseguiti su Alpaca
+portfolio_positions   -- Posizioni correnti (upsert)
+portfolio_snapshots   -- Snapshot giornalieri P&L
+risk_events           -- Kill switch, stop loss, trailing stop, warning, alerts
+trailing_stop_state   -- Stato trailing stop per posizione (021): entry, ATR, highest_close, tiers
+```
+
+RLS: solo `service_role` (il Python trading system usa `SUPABASE_SERVICE_ROLE_KEY`).
+
+### Variabili d'ambiente
+
+```env
+# Alpaca (obbligatorie per trading)
+ALPACA_API_KEY=...
+ALPACA_SECRET_KEY=...
+ALPACA_BASE_URL=https://paper-api.alpaca.markets  # paper default, live dopo approvazione
+
+# Trading config
+TRADING_MODE=paper          # paper | live | backtest
+TRADING_ENABLED=true
+
+# Federal Reserve Economic Data (opzionale, macro)
+FRED_API_KEY=...
+```
+
+### Fasi di deployment
+
+| Fase | Durata | Stato |
+|------|--------|-------|
+| 1. Fondamenta | 1-2 settimane | **IN CORSO** — infrastruttura Python, schema DB |
+| 2. Backtest | 1-2 settimane | Pending — dati storici 2 anni, Sharpe > 1.0 |
+| 3. Paper Trading | 30 giorni min | Pending — risultati consistenti col backtest |
+| 4. Go Live | Indefinito | Pending — approvazione boss |
+
+### Company structure
+
+```
+company/trading/
+├── department.md                  # Identità ufficio
+├── agents/
+│   ├── trading-lead.md            # Leader ufficio trading
+│   ├── market-scanner.md          # Identity card scanner
+│   ├── signal-generator.md        # Identity card signal gen
+│   ├── risk-manager.md            # Identity card risk mgr
+│   ├── executor.md                # Identity card executor
+│   └── portfolio-monitor.md       # Identity card monitor
+└── runbooks/
+    ├── trading-pipeline.md        # Pipeline giornaliera
+    ├── risk-management.md         # Kill switch e procedure risk
+    ├── backtest.md                # Come eseguire backtest
+    └── go-live.md                 # Checklist go-live
+```
 
 ---
 
-## 16. CONVENZIONI DI CODICE
+## 17. FEATURE INCOMPLETE (Ufficio Legale / App)
+
+1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
+2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
+3. ~~Deep search limit~~ — **COMPLETATO**: Gate paywall implementato in `RiskCard.tsx`. `/api/user/usage` esteso con `deepSearchUsed/deepSearchLimit/canDeepSearch`. Paywall differenziato per non-auth vs limite raggiunto.
+4. Sistema referral avvocati — Tabelle DB esistono (`lawyer_referrals`), nessuna UI. Prerequisito: ADR GDPR su quali dati condividere con l'avvocato e con quale base giuridica.
+5. Test — **PARZIALMENTE COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, agenti core coperti (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + nuova suite `e2e/` (auth, upload, analysis, console). **Gap critici rimasti**: `lib/ai-sdk/agent-runner.ts` (P1), `lib/tiers.ts` (P2), `lib/middleware/console-token.ts` (P3), `lib/analysis-cache.ts` (P4), `lib/ai-sdk/generate.ts` (P5).
+6. CI/CD — `.github/` presente ma pipeline non completamente configurata. ~~**Bloccato da**: migration duplicate 003-007 (TD-3)~~ — TD-3 risolto (migrations 001-015). Rimane da configurare: test automatici su PR, build check, deploy preview.
+7. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
+8. UI scoring multidimensionale — Backend pronto (`legalCompliance`, `contractBalance`, `industryPractice`), frontend mostra solo `fairnessScore`. Effort minimo.
+9. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati.
+10. Statuto dei Lavoratori — L'unica fonte IT non ancora caricata (L. 300/1970). API async Normattiva produce ZIP vuoti. Approcci alternativi: HTML scraping Normattiva web, o testo consolidato via EUR-Lex.
+11. Verticale HR — Non avviato. Fonti mappate in `hr-sources.ts`: D.Lgs. 81/2008 (306 art., pipeline standard, nessun blocco), D.Lgs. 276/2003, D.Lgs. 23/2015. Prerequisito corpus: punto 10.
+
+---
+
+## 18. SECURITY STATUS (aggiornato 2026-03-02)
+
+**Stato complessivo: 🟢 VERDE** — Tutti i finding medi risolti. Finding bassi residui non bloccanti.
+
+### Infrastruttura security esistente (SEC-001..006)
+
+- Headers HTTP completi (CSP, HSTS, X-Frame-Options, Permissions-Policy) in `next.config.ts`
+- Middleware centralizzato: `lib/middleware/` (auth, rate-limit, CSRF, sanitization, audit-log, console-token)
+- Token HMAC-SHA256 per console operators (`lib/middleware/console-token.ts`)
+- RLS attivo su tutte le tabelle Supabase
+- TTL GDPR per dati sensibili
+- Audit log strutturato (EU AI Act compliance)
+
+### Finding medi — tutti risolti ✅
+
+| ID | Problema | Stato |
+|----|---------|-------|
+| M1 | `/api/company/*` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
+| M2 | `/api/console/company` + `/message` + `/stop` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
+| M3 | `CRON_SECRET` opzionale | ✅ Fail-closed: 500 se non configurato (commit 2c7648f) |
+| M4 | Route corpus READ senza rate-limit | ✅ `checkRateLimit` per IP su hierarchy/institutes/article (commit 2c7648f) |
+| M5 | `/api/lawyer-referrals` senza rate-limit | ✅ `checkRateLimit` 5/h aggiunto |
+| M6 | `/api/console/company/*` senza rate-limit (spawna `claude -p`) | ✅ `checkRateLimit` 5-10/min aggiunto su company, message, stop |
+| H1 | `/api/platform/cron/data-connector` GET senza auth (espone infrastruttura) | ✅ `CRON_SECRET` check aggiunto a GET |
+| H2 | `/api/corpus/ask` rate-limit bypassato per utenti anonimi | ✅ `checkRateLimit` applicato SEMPRE (per userId o IP) |
+| M7 | `/api/company/costs` usa `requireAuth` anziché `requireConsoleAuth` | ✅ Cambiato a `requireConsoleAuth` + rate-limit |
+| M8 | `/api/corpus` GET e `/api/vector-search` GET senza rate-limit | ✅ `checkRateLimit` per IP aggiunto |
+| M9 | `/api/company/cron` POST senza rate-limit | ✅ `checkRateLimit` aggiunto |
+
+### Finding bassi residui
+
+- Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente — bassa priorità
+- CSP include `'unsafe-eval'` — necessario per Next.js, rimovibile in prod con nonce-based CSP
+- `/api/company/*` routes (board, tasks, status, files, departments, reports) senza rate-limit — protetti da console auth, basso rischio
+- DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI (task CME aperto)
+- Consulente EU AI Act — scadenza agosto 2026 (task CME aperto)
+
+---
+
+## 19. TECH DEBT CRITICO (aggiornato 2026-03-01)
+
+### Tech Debt attivi
+
+| ID | File | Problema | Impatto | Effort fix |
+|----|------|---------|---------|-----------|
+| TD-1 | `lib/analysis-cache.ts` | ~~`savePhaseTiming`: 2 roundtrip Supabase per fase (8 totali nella pipeline). Race condition teorica.~~ **RISOLTO 2026-03-01**: RPC `update_phase_timing` con `jsonb_set` atomico (migration 016). 1 roundtrip per fase, race condition eliminata. | — | — |
+| TD-2 | `lib/tiers.ts` | `let currentTier` = global mutable state. `setCurrentTier()` non è chiamato da `/api/analyze` — rischio teorico, non attuale. `getAgentChain()` ora usa `getCurrentTier()` (AsyncLocalStorage-aware). Documentato con TODO. | Teorico (nessun caller attuale) | Basso — `withRequestTier()` via sessionTierStore quando si implementa tier per-utente |
+| TD-3 | `supabase/migrations/` | ~~Numeri 003-007 hanno tutti doppioni~~ **RISOLTO 2026-03-01**: rinumerati 001-015 con sequenza continua, aggiunto REGISTRY.md | — | — |
+
+### Debiti tecnici minori
+
+- ~~`tesseract.js` in `dependencies` ma mai importato~~  — **RISOLTO**: rimosso da `dependencies` il 2026-03-01 (TD-2).
+- ~~`openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x)~~ — **RISOLTO**: CLAUDE.md aggiornato a 6.x. Breaking changes v5→v6 verificati: nessun impatto sul nostro uso (solo `chat.completions.create`).
+- `@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.
+- `@upstash/ratelimit` + `@upstash/redis` usati in `lib/middleware/rate-limit.ts` ma `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` non erano documentate in `.env.local.example` (ora aggiunte).
+
+### Rischi architetturali (non urgenti)
+
+- **SSE + Edge Runtime**: `ReadableStream` con `maxDuration=300` non funziona su Vercel Edge Runtime (limite 30s). Oggi gira su Node.js — OK. Da monitorare se si migra a Edge.
+- **getAverageTimings() fire-and-forget**: il cleanup TTL viene triggerato ad ogni analisi. In alta concorrenza genera RPC Supabase parallele inutili. Meglio un cron job dedicato (Edge Function schedulata).
+- **Pipeline multi-verticale**: l'approccio `app/[verticale]/page.tsx` con logica inline non scala oltre 2-3 verticali. Serve un sistema config-driven per i verticali.
+
+---
+
+## 20. CONVENZIONI DI CODICE
 
 - **Lingua UI**: Italiano
 - **Lingua codice**: Inglese (variabili, funzioni, commenti tecnici)
@@ -777,3 +1198,85 @@ Il codice tronca automaticamente a max 3 risks e max 3 actions anche se il model
 - **State**: React useState/useRef, nessun store globale
 - **API routes**: App Router route handlers, FormData per upload
 - **Error messages**: Sempre in italiano per l'utente
+
+---
+
+## 21. VIRTUAL COMPANY (CME)
+
+All'avvio di ogni sessione Claude Code su questo progetto, leggi `company/cme.md`.
+Comportati come **CME** (CEO virtuale):
+
+1. **Check task board**: `npx tsx scripts/company-tasks.ts board`
+2. **Reporta stato** all'utente in 3-5 righe
+3. **Chiedi**: "Su cosa vuoi che ci concentriamo?"
+4. **Delega** ai dipartimenti — non scrivere codice direttamente senza passare dal dipartimento competente
+5. **CME = ROUTER ONLY** — classifica richieste usando decision trees (`company/protocols/decision-trees/`), delega implementazione ai builder dei dipartimenti
+
+### Per lavorare come un dipartimento specifico
+
+1. Leggi il contesto veloce: `npx tsx scripts/dept-context.ts <dept>`
+2. Leggi il `company/<dept>/department.md` + il runbook pertinente in `company/<dept>/runbooks/`
+3. Se il dept ha un `builder.md`, segui le sue istruzioni per implementare
+
+### Processo decisionale (Protocolli)
+
+Ogni decisione non-triviale segue il processo del Dipartimento Protocolli:
+- **L1 Auto**: task operativi routine → CME approva direttamente
+- **L2 CME**: task cross-dipartimento → CME decide dopo consultazione
+- **L3 Boss**: decisioni strategiche → approvazione via Telegram
+- **L4 Boss + Security**: decisioni critiche → security audit obbligatorio
+
+Decision trees in `company/protocols/decision-trees/` (feature-request, trading-operations, data-operations, infrastructure, company-operations).
+
+### Struttura company/
+
+```
+company/
+├── cme.md                    # CEO prompt (ROUTER ONLY, non implementatore)
+├── process-designer.md       # Protocolli inter-dipartimento
+├── contracts.md              # Contratti I/O
+├── <dept>/department.md      # Identità dipartimento
+├── <dept>/agents/*.md        # Identity card agenti
+└── <dept>/runbooks/*.md      # Procedure operative
+```
+
+### Task System
+
+**REGOLA: `--desc` è obbligatorio alla creazione.** Ogni task deve avere una descrizione esplicativa che chiarisca cosa fare e perché. Senza `--desc` il CLI rifiuta il task. La descrizione appare nel `board` e nel `list` per consentire lettura rapida senza aprire il dettaglio.
+
+```bash
+npx tsx scripts/company-tasks.ts board                     # stato azienda (mostra desc nei task recenti)
+npx tsx scripts/company-tasks.ts list --dept qa --status open   # mostra desc per ogni task
+npx tsx scripts/company-tasks.ts create --title "..." --dept qa --priority high --by cme --desc "Cosa fare e perché, in modo che chiunque legga il board capisca senza aprire il dettaglio"
+npx tsx scripts/company-tasks.ts claim <id> --agent test-runner
+npx tsx scripts/company-tasks.ts done <id> --summary "..."
+```
+
+### Cost Tracking
+
+Ogni chiamata agente viene loggata automaticamente in `agent_cost_log`.
+Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
+
+### Uffici (Revenue)
+
+| Ufficio | Missione | Stack | File |
+|---------|----------|-------|------|
+| Ufficio Legale | 7 agenti AI analisi legale | TypeScript/Next.js | `company/ufficio-legale/` |
+| Ufficio Trading | 5 agenti swing trading | Python/Alpaca | `company/trading/` |
+
+### Dipartimenti (Staff)
+
+| Dipartimento | Missione | File |
+|-------------|----------|------|
+| Architecture | Soluzioni tecniche | `company/architecture/` |
+| Data Engineering | Pipeline dati legislativi e nuovi corpus | `company/data-engineering/` |
+| | ⚠️ **Scraping = ULTIMA risorsa. Ordine: API ufficiali → repo/dataset open → fonti alternative → scraping (con approvazione boss).** | |
+| Quality Assurance | Test e validazione | `company/quality-assurance/` |
+| Finance | Costi API e P&L trading | `company/finance/` |
+| Operations | Dashboard e monitoring | `company/operations/` |
+| Security | Audit e protezione dati | `company/security/` |
+| Strategy | Vision: opportunita di business, nuovi agenti/servizi/domini, analisi competitiva, OKR | `company/strategy/` |
+| Marketing | Vision: market intelligence, segnali di mercato, validazione opportunita, acquisizione | `company/marketing/` |
+| Protocols | Governance: decision trees, routing richieste, audit decisioni, prompt optimization | `company/protocols/` |
+| UX/UI | Design system, implementazione interfacce, accessibilità WCAG 2.1 AA | `company/ux-ui/` |
+| Acceleration | Velocità: performance dipartimenti + pulizia codebase | `company/acceleration/department.md` |

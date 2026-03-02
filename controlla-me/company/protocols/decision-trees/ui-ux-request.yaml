@@ -1,0 +1,70 @@
+# Decision Tree: UI/UX Request
+# Quando il boss chiede modifiche a interfacce, componenti, design, accessibilità
+
+name: ui-ux-request
+description: Routing per richieste che toccano interfacce utente, design system, accessibilità
+trigger: "Modifica UI, nuova pagina, redesign, fix accessibilità, cambia interfaccia, design system"
+
+classification:
+  questions:
+    - "Tocca componenti in components/ o pagine in app/?"
+    - "Modifica il design system (palette, font, spacing)?"
+    - "Ha impatto sull'accessibilità?"
+    - "Richiede nuovi componenti o solo modifiche a esistenti?"
+
+routing:
+  # Fix piccolo: typo, colore, padding, singolo componente
+  cosmetic:
+    condition: "1 componente, nessun impatto design system"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [ux-ui]
+    example: "Fix padding bottone, cambia colore testo, aggiusta allineamento"
+
+  # Modifica componente esistente o nuova sezione
+  component:
+    condition: "1-3 componenti O nuova sezione in pagina esistente"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [ux-ui]
+    review: [quality-assurance]
+    example: "Aggiungere scoring multidimensionale, ridisegnare RiskCard, nuova sezione hero"
+
+  # Nuova pagina o redesign significativo
+  page:
+    condition: "Nuova pagina O redesign di pagina intera"
+    type: operativo
+    approval: L2
+    consult: [architecture]
+    execute: [ux-ui]
+    review: [quality-assurance]
+    example: "Nuova pagina vision/mission, redesign dashboard, nuova landing"
+
+  # Cambio design system (impatta tutti i componenti)
+  design_system:
+    condition: "Modifica a palette, tipografia, spacing globali"
+    type: strategico
+    approval: L3
+    consult: [architecture, strategy]
+    execute: [ux-ui]
+    review: [quality-assurance]
+    example: "Cambio palette colori, nuovo font, dark/light mode switch"
+
+  # Accessibilità critica (compliance WCAG)
+  accessibility:
+    condition: "Audit accessibilità o fix WCAG bloccanti"
+    type: operativo
+    approval: L2
+    consult: []
+    execute: [ux-ui]
+    review: [quality-assurance, security]
+    runbook: accessibility-audit.md
+    example: "Audit WCAG completo, fix contrasto, fix focus management"
+
+department_owner: ux-ui
+builder: company/ux-ui/agents/builder.md
+runbooks:
+  - company/ux-ui/runbooks/implement-ui-change.md
+  - company/ux-ui/runbooks/accessibility-audit.md

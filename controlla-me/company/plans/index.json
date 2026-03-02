@@ -1,0 +1,65 @@
+[
+  {
+    "id": "PLAN-20260301215727",
+    "generatedAt": "2026-03-01T21:57:27.547Z",
+    "status": "pending",
+    "triggerContext": "Ultimo batch completato: Company Scheduler — architettura approvazione piani via Telegram [architecture], Fix run intraday — usa barre intraday reali o disabilita [architecture], Fix DST — ET_OFFSET_HOURS dinamico prima dell'8 marzo [architecture].",
+    "recentlyCompleted": [
+      "Company Scheduler — architettura approvazione piani via Telegram [architecture]",
+      "Fix run intraday — usa barre intraday reali o disabilita [architecture]",
+      "Fix DST — ET_OFFSET_HOURS dinamico prima dell'8 marzo [architecture]",
+      "Scheduler giornaliero trading — 09:00 ET automatico [operations]",
+      "Espandi DEFAULT_UNIVERSE — settori difensivi e commodities [architecture]",
+      "Aggiornare CLAUDE.md con Ufficio Trading [architecture]",
+      "Schema Supabase per trading [architecture]",
+      "Setup infrastruttura Python /trading [architecture]"
+    ],
+    "proposedTasks": [
+      {
+        "title": "Implementa GET /api/analyses/[id]",
+        "dept": "architecture",
+        "priority": "high",
+        "desc": "Implementare l'endpoint GET /api/analyses/[id] con RLS per recuperare i dati di analisi. Utilizzare il database Supabase e implementare le autorizzazioni necessarie. Assicurarsi che i dati siano restituiti in formato JSON.",
+        "why": "Perché è necessario per la funzionalità di analisi dei contratti"
+      },
+      {
+        "title": "Test coverage gap",
+        "dept": "quality-assurance",
+        "priority": "medium",
+        "desc": "Rimuovere il gap di copertura dei test per i file agent-runner.ts, tiers.ts, generate.ts, console-token.ts e analysis-cache.ts. Scrivere test unitari e di integrazione per assicurarsi che il codice funzioni correttamente.",
+        "why": "Perché è importante per garantire la qualità del prodotto"
+      },
+      {
+        "title": "DPA con provider AI",
+        "dept": "security",
+        "priority": "critical",
+        "desc": "Stipulare un accordo di protezione dei dati (DPA) con i provider di intelligenza artificiale (Anthropic, Google, Mistral) per assicurarsi che i dati dei clienti siano protetti. Verificare che i provider siano conformi alle norme di protezione dei dati dell'UE.",
+        "why": "Perché è un prerequisito per il lancio commerciale PMI"
+      },
+      {
+        "title": "Implementa UI scoring multidimensionale",
+        "dept": "architecture",
+        "priority": "medium",
+        "desc": "Implementare la UI per il punteggio multidimensionale, che mostra i punteggi di conformità legale, equilibrio contrattuale e pratica industriale. Utilizzare i dati restituiti dall'endpoint GET /api/analyses/[id].",
+        "why": "Perché è una funzionalità importante per i clienti"
+      },
+      {
+        "title": "Configura pipeline GitHub Actions",
+        "dept": "operations",
+        "priority": "medium",
+        "desc": "Configurare la pipeline GitHub Actions per automatizzare il processo di build, test e deploy dell'applicazione. Assicurarsi che la pipeline sia configurata correttamente e funzioni come previsto.",
+        "why": "Perché è importante per semplificare il processo di deploy"
+      },
+      {
+        "title": "Rimuovi CSP unsafe-eval",
+        "dept": "security",
+        "priority": "high",
+        "desc": "Rimuovere la direttiva CSP unsafe-eval dalla configurazione di produzione. Utilizzare una politica di sicurezza basata su nonce per proteggere l'applicazione da attacchi di cross-site scripting.",
+        "why": "Perché è una vulnerabilità di sicurezza importante"
+      }
+    ],
+    "approvedAt": null,
+    "rejectedAt": null,
+    "createdTaskIds": []
+  }
+]

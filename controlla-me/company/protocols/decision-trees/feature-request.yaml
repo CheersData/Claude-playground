@@ -1,0 +1,52 @@
+# Decision Tree: Feature Request
+# Quando il boss o CME chiede una nuova feature
+
+name: feature-request
+description: Routing per richieste di nuove feature o miglioramenti
+trigger: "Nuova feature, miglioramento, aggiunta funzionalità"
+
+classification:
+  questions:
+    - "Tocca più di 2 file?"
+    - "Modifica un'interfaccia condivisa?"
+    - "Ha impatto su utenti finali?"
+    - "Richiede nuove dipendenze o infrastruttura?"
+
+routing:
+  # Feature piccola, 1-2 file, nessun impatto architetturale
+  small:
+    condition: "1-2 file, nessuna interfaccia condivisa"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [department_owner]
+    example: "Aggiungere un campo a un model, fix prompt"
+
+  # Feature media, cross-file, possibile impatto
+  medium:
+    condition: "3+ file O interfaccia condivisa"
+    type: operativo
+    approval: L2
+    consult: [architecture]
+    execute: [department_owner]
+    review: [quality-assurance]
+    example: "Nuovo endpoint API, refactoring componente"
+
+  # Feature grande, cross-dipartimento, impatto utenti
+  large:
+    condition: "Cross-dipartimento O impatto utenti"
+    type: strategico
+    approval: L3
+    consult: [architecture, strategy]
+    execute: [department_owner, quality-assurance]
+    review: [security]
+    example: "Nuova verticale, cambio architettura, nuova integrazione"
+
+  # Feature critica, impatto sicurezza/dati/finanze
+  critical:
+    condition: "Tocca sicurezza, dati sensibili, o finanze"
+    type: critico
+    approval: L4
+    consult: [architecture, security, finance]
+    execute: [department_owner, quality-assurance]
+    example: "Go-live trading, modifica auth, cambio provider AI"

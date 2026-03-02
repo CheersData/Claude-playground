@@ -1,5 +1,8 @@
 "use client";
 
+// Forza rendering dinamico — evita prerender SSR che causa crash useContext con Framer Motion 12 + React 19
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Zap, Crown, FileText, ArrowLeft, Loader2 } from "lucide-react";

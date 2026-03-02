@@ -132,10 +132,45 @@ export interface AdvisorResult {
   lawyerReason: string;
 }
 
+// ─── Console / Leader Types ───
+
+/** Un turno della conversazione — usato dal Leader per session memory */
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  /** User: messaggio inviato. Assistant: sintesi del risultato (route + risposta breve) */
+  content: string;
+  route?: LeaderRoute;
+  /** Nome del documento allegato (se presente) */
+  fileName?: string;
+  timestamp: number;
+}
+
+export type LeaderRoute = "corpus-qa" | "document-analysis" | "hybrid" | "clarification";
+
+export interface LeaderDecision {
+  route: LeaderRoute;
+  reasoning: string;
+  /** Domanda estratta dall'input utente (per corpus-qa o hybrid) */
+  question: string | null;
+  /** Contesto utente da passare all'orchestrator */
+  userContext: string | null;
+  /** Domanda di chiarimento da porre all'utente (solo per route=clarification) */
+  clarificationQuestion?: string | null;
+  /** Se true, attiva l'Investigator (web_search) per giurisprudenza e approfondimenti */
+  needsDeepSearch?: boolean;
+}
+
+export type ConsoleAgentPhase =
+  | "leader"
+  | "question-prep" | "corpus-search" | "corpus-agent"
+  | "classifier" | "retrieval" | "analyzer" | "investigator" | "advisor";
+
+export type ConsolePhaseStatus = "running" | "done" | "error" | "skipped";
+
 // ─── SSE Event Types ───
 
 export type AgentPhase = "classifier" | "analyzer" | "investigator" | "advisor";
-export type PhaseStatus = "running" | "done" | "error";
+export type PhaseStatus = "running" | "done" | "error" | "skipped";
 
 export interface ProgressEvent {
   phase: AgentPhase;

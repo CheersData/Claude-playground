@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestArticles, getCorpusStats } from "@/lib/legal-corpus";
 import { isVectorDBEnabled } from "@/lib/embeddings";
+import { requireAuth, isAuthError } from "@/lib/middleware/auth";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import type { LegalArticle } from "@/lib/legal-corpus";
 
 /**
@@ -9,9 +12,33 @@ import type { LegalArticle } from "@/lib/legal-corpus";
  * Body:
  *   { "articles": [{ "lawSource": "Codice Civile", "articleReference": "Art. 1538", ... }] }
  *
- * Richiede SUPABASE_SERVICE_ROLE_KEY (server-side only).
+ * Protetto: richiede autenticazione + header admin secret (se configurato).
  */
 export async function POST(req: NextRequest) {
+  // CSRF
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
+  // Auth: richiede utente autenticato
+  const auth = await requireAuth();
+  if (isAuthError(auth)) return auth;
+
+  // Admin check: se ADMIN_API_SECRET e' configurato, verifica header
+  const adminSecret = process.env.ADMIN_API_SECRET;
+  if (adminSecret) {
+    const provided = req.headers.get("x-admin-secret");
+    if (provided !== adminSecret) {
+      return NextResponse.json(
+        { error: "Accesso riservato agli amministratori" },
+        { status: 403 }
+      );
+    }
+  }
+
+  // Rate limit
+  const limited = await checkRateLimit(req, auth.user.id);
+  if (limited) return limited;
+
   if (!isVectorDBEnabled()) {
     return NextResponse.json(
       { error: "Vector DB non configurato. Aggiungi VOYAGE_API_KEY al .env.local." },
@@ -55,8 +82,12 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/corpus — Statistiche del corpus legislativo.
+ * SEC-M2: Rate limit per IP (endpoint pubblico, no auth richiesta).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req);
+  if (limited) return limited;
+
   try {
     const stats = await getCorpusStats();
     return NextResponse.json(stats);

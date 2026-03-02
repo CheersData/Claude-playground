@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { auth, profiles } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   if (!stripe) {
     return NextResponse.json(
       { error: "Stripe non configurato" },
@@ -10,18 +12,24 @@ export async function POST() {
     );
   }
 
-  const user = await auth.getAuthenticatedUser();
+  // Auth centralizzato (SEC-002)
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult as NextResponse;
+  const { user } = authResult as AuthResult;
 
-  if (!user) {
-    return NextResponse.json(
-      { error: "Devi effettuare il login" },
-      { status: 401 }
-    );
-  }
+  // Rate limit anti-abuse pagamenti (SEC-003)
+  const limited = await checkRateLimit(req, user.id);
+  if (limited) return limited;
 
-  const profile = await profiles.getProfile(user.id);
+  // Get the user's stripe_customer_id from their profile
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id")
+    .eq("id", user.id)
+    .single();
 
-  if (!profile?.stripeCustomerId) {
+  if (!profile?.stripe_customer_id) {
     return NextResponse.json(
       { error: "Nessun abbonamento attivo" },
       { status: 400 }
@@ -31,7 +39,7 @@ export async function POST() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const portalSession = await stripe.billingPortal.sessions.create({
-    customer: profile.stripeCustomerId,
+    customer: profile.stripe_customer_id,
     return_url: `${appUrl}/pricing`,
   });
 

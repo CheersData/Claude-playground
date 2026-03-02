@@ -36,7 +36,6 @@ export async function generate(
     case "groq":
     case "mistral":
     case "cerebras":
-    case "deepseek":
       return generateWithOpenAICompat(
         modelConfig.provider,
         modelConfig.model,
@@ -58,7 +57,7 @@ async function generateWithAnthropic(
     systemPrompt,
     maxTokens = 4096,
     temperature = 0,
-    agentName = "ANTHROPIC",
+    agentName: _agentName = "ANTHROPIC",
   } = config;
 
   const start = Date.now();

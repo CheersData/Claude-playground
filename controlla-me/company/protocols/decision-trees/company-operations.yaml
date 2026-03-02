@@ -1,0 +1,57 @@
+# Decision Tree: Company Operations
+# Decisioni organizzative, nuovi dipartimenti, agenti, processi
+
+name: company-operations
+description: Routing per decisioni organizzative aziendali
+trigger: "Nuovo dipartimento, nuovo agente, modifica processi, riorganizzazione"
+
+routing:
+  # Nuovo agente in dipartimento esistente
+  new_agent:
+    condition: "Aggiungere agente a dipartimento già esistente"
+    type: operativo
+    approval: L2
+    consult: [department_owner]
+    execute: [department_owner, protocols]
+    example: "Aggiungere trading-strategist al Trading"
+    requirement: "Identity card + runbook + contratto I/O"
+
+  # Nuovo dipartimento
+  new_department:
+    condition: "Creare un nuovo dipartimento o ufficio"
+    type: strategico
+    approval: L3
+    consult: [architecture, strategy, protocols]
+    execute: [cme]
+    example: "Creare Dipartimento Protocolli, Ufficio HR"
+    requirement: "department.md + agents/ + runbooks/ + contratti in contracts.md"
+
+  # Modifica processo esistente
+  process_change:
+    condition: "Cambiare un workflow o protocollo esistente"
+    type: strategico
+    approval: L3
+    consult: [protocols, architecture]
+    execute: [protocols]
+    review: [affected_departments]
+    example: "Cambiare livelli di approvazione, aggiungere step a pipeline"
+
+  # Modifica prompt agente
+  prompt_change:
+    condition: "Modifica al prompt di un agente AI"
+    type: operativo
+    approval: L2
+    consult: [department_owner]
+    execute: [department_owner]
+    review: [quality-assurance]
+    example: "Migliorare prompt analyzer, calibrare corpus-agent"
+
+  # Cambio vision/mission
+  vision_mission:
+    condition: "Modifica alla vision o mission aziendale"
+    type: critico
+    approval: L3
+    consult: [strategy]
+    execute: [cme]
+    notify: [all_departments]
+    example: "Nuova vision, pivot strategico, cambio priorità"

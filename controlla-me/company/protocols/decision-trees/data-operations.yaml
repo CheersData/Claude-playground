@@ -1,0 +1,47 @@
+# Decision Tree: Data Operations
+# Decisioni su dati, corpus, pipeline dati
+
+name: data-operations
+description: Routing per operazioni sui dati e corpus legislativo
+trigger: "Nuova fonte dati, sync, ingest, corpus, embeddings"
+
+routing:
+  # Sync di routine (fonte esistente)
+  routine_sync:
+    condition: "Sync fonte già configurata, nessuna modifica schema"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [data-engineering]
+    example: "Re-sync Normattiva, aggiornamento EUR-Lex"
+
+  # Nuova fonte dati
+  new_source:
+    condition: "Fonte dati mai usata prima"
+    type: operativo
+    approval: L2
+    consult: [architecture]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Aggiungere Statuto Lavoratori, nuova fonte EUR-Lex"
+    requirement: "Seguire ordine: API ufficiali > repo open > alternative > scraping (con approvazione boss)"
+
+  # Modifica schema DB
+  schema_change:
+    condition: "Nuova tabella, modifica colonne, nuova migration"
+    type: strategico
+    approval: L2
+    consult: [architecture]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Nuova tabella per verticale HR, modifica legal_articles"
+
+  # Scraping
+  scraping:
+    condition: "Richiede web scraping"
+    type: strategico
+    approval: L3
+    consult: [architecture, security]
+    execute: [data-engineering]
+    example: "Scraping Normattiva HTML per fonti senza API"
+    requirement: "ULTIMA risorsa. Boss deve approvare esplicitamente."

@@ -13,6 +13,22 @@
   --border-subtle: #F0F0F0;
   --surface: #FFFFFF;
   --surface-hover: #F5F5F7;
+
+  /* ─── Poimandres — Ops Console Design System ─── */
+  /* Palette di riferimento per la dashboard /ops (developer console, dark-only) */
+  --ops-bg:          #1b1e28; /* background profondo blu-nero */
+  --ops-surface:     #252837; /* card, pannelli */
+  --ops-surface-2:   #2d3146; /* hover state, nested containers */
+  --ops-border:      #383b4d; /* bordi */
+  --ops-border-subtle: #2a2d3e; /* bordi sottili */
+  --ops-muted:       #4c5068; /* placeholder, disabilitato */
+  --ops-fg-muted:    #a6accd; /* testo secondario */
+  --ops-fg:          #e4f0fb; /* testo primario */
+  --ops-accent:      #FF6B35; /* arancione brand (invariato) */
+  --ops-teal:        #5de4c7; /* success, completato */
+  --ops-cyan:        #add7ff; /* info, link */
+  --ops-rose:        #f694ff; /* warning alternativo */
+  --ops-error:       #e58d78; /* errore */
 }
 
 @theme inline {
@@ -164,4 +180,164 @@ html {
 /* ── Video container ── */
 .video-glow {
   box-shadow: 0 0 80px rgba(255,107,53,0.06), 0 0 160px rgba(255,107,53,0.03);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ─── Studio Legale Console Theme (scoped to .studio-root) ─ */
+/* ═══════════════════════════════════════════════════════════ */
+
+.studio-root {
+  --pb-green: #c9a84c;
+  --pb-green-dim: #8b6914;
+  --pb-green-glow: rgba(201, 168, 76, 0.15);
+  --pb-amber: #d4a843;
+  --pb-amber-dim: #8b6914;
+  --pb-red: #cc4444;
+  --pb-bg: #1a1a2e;
+  --pb-bg-panel: #1f1f36;
+  --pb-border: #2a2a4e;
+  --pb-text: #f5f0e8;
+  --pb-text-dim: #7a7590;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: var(--pb-text);
+}
+
+.studio-root *::selection {
+  background: rgba(201, 168, 76, 0.3);
+  color: #fff;
+}
+
+.studio-root ::-webkit-scrollbar {
+  width: 6px;
+}
+.studio-root ::-webkit-scrollbar-track {
+  background: var(--pb-bg);
+}
+.studio-root ::-webkit-scrollbar-thumb {
+  background: var(--pb-border);
+  border-radius: 3px;
+}
+.studio-root ::-webkit-scrollbar-thumb:hover {
+  background: var(--pb-green-dim);
+}
+
+/* Subtle gold glow on cards */
+.pipboy-glow {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 0 1px var(--pb-border);
+  border: 1px solid var(--pb-border);
+}
+
+/* Status dots */
+.pipboy-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.pipboy-led-idle {
+  background: #3a3a5a;
+  box-shadow: none;
+}
+
+.pipboy-led-running {
+  background: var(--pb-green);
+  box-shadow: 0 0 4px var(--pb-green-glow);
+  animation: studio-dot-pulse 1.5s ease-in-out infinite;
+}
+
+.pipboy-led-done {
+  background: var(--pb-green);
+  box-shadow: 0 0 2px var(--pb-green-dim);
+}
+
+.pipboy-led-error {
+  background: var(--pb-red);
+  box-shadow: 0 0 4px rgba(204, 68, 68, 0.3);
+}
+
+.pipboy-led-skipped {
+  background: var(--pb-text-dim);
+  box-shadow: none;
+}
+
+@keyframes studio-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Panel */
+.pipboy-panel {
+  background: var(--pb-bg-panel);
+  border: 1px solid var(--pb-border);
+  transition: border-color 0.2s ease;
+}
+
+.pipboy-panel:hover {
+  border-color: var(--pb-green-dim);
+}
+
+/* Output text reveal animation */
+@keyframes studio-reveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pipboy-reveal {
+  animation: studio-reveal 0.3s ease-out forwards;
+}
+
+/* ─── Print / PDF ─── */
+@media print {
+  /* Nascondi elementi non stampabili */
+  header button,
+  footer,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Forza sfondo bianco e testo nero */
+  body, main {
+    background: white !important;
+    color: #1A1A1A !important;
+  }
+
+  /* Rimuovi bordi e ombre inutili */
+  .rounded-xl {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Intestazione stampabile */
+  header {
+    border-bottom: 1px solid #ccc !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Evita rottura pagina dentro i blocchi agente */
+  main > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Nascondi animazioni */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Input console non stampabile */
+  form, textarea, input {
+    display: none !important;
+  }
+
+  /* Margini pagina */
+  @page {
+    margin: 20mm 15mm;
+    size: A4;
+  }
 }

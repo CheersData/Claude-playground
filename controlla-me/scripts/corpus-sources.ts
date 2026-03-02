@@ -4,9 +4,11 @@
  * Ogni fonte specifica:
  * - ID univoco e nome
  * - Tipo (normattiva / eurlex)
- * - URL base per scraping
+ * - URL base per consultazione
  * - Gerarchia strutturale (come navigare l'albero)
  * - Range articoli stimato
+ * - ConnectorConfig per il Data Connector
+ * - Lifecycle per tracciamento stato pipeline
  */
 
 // ─── Tipi ───
@@ -14,6 +16,33 @@
 export interface HierarchyLevel {
   key: string;        // chiave nel campo JSONB hierarchy (es. "book", "title", "chapter")
   label: string;      // etichetta UI (es. "Libro", "Titolo", "Capo")
+}
+
+export type SourceLifecycle =
+  | "planned"        // Fonte definita, nessun test
+  | "api-tested"     // CONNECT completato: API funziona
+  | "schema-ready"   // MODEL completato: schema DB verificato/creato
+  | "loaded"         // LOAD completato: dati in DB
+  | "delta-active";  // Delta updates automatici attivi
+
+export interface ConnectorConfig {
+  /** Normattiva: termini di ricerca per trovare l'atto */
+  normattivaSearchTerms?: string[];
+  /** Normattiva: tipo atto per filtro (es. "regio.decreto", "decreto.legislativo") */
+  normattivaActType?: string;
+  /** Formato preferito per il download */
+  preferredFormat?: "akn" | "json" | "html" | "xml";
+  /** Normattiva: usa caricaAKN diretto invece della ricerca asincrona (ZIP spesso vuoti) */
+  directAkn?: boolean;
+  /** Normattiva: codiceRedazionale hardcoded per caricaAKN diretto (es. "070U0300") */
+  codiceRedazionale?: string;
+  /**
+   * Normattiva: data GU (Gazzetta Ufficiale) in formato YYYYMMDD per il portale web.
+   * Usato da fetchViaWebCaricaAKN quando l'API Open Data produce ZIP vuoti (es. leggi storiche).
+   * Es. "19700527" per L. 300/1970 (Statuto dei Lavoratori).
+   * Richiede anche directAkn: true e codiceRedazionale.
+   */
+  normattivaDataGU?: string;
 }
 
 export interface CorpusSource {
@@ -27,6 +56,10 @@ export interface CorpusSource {
   baseUrl: string;                 // URL per consultazione
   hierarchyLevels: HierarchyLevel[];
   estimatedArticles: number;
+  connector?: ConnectorConfig;     // Config specifica per Data Connector
+  lifecycle?: SourceLifecycle;     // Stato pipeline (default: "planned")
+  /** Dominio verticale: "legal" | "hr" | "real-estate" | ... (default: "legal") */
+  vertical?: string;
 }
 
 // ─── Fonti Italiane (Normattiva) ───
@@ -47,6 +80,12 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 3150,
+    connector: {
+      normattivaSearchTerms: ["codice civile"],
+      normattivaActType: "regio.decreto",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded", // Caricato via HuggingFace (4271 art.)
   },
   {
     id: "codice_penale",
@@ -62,7 +101,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 734,
+    estimatedArticles: 767,
+    connector: {
+      normattivaSearchTerms: ["codice penale"],
+      normattivaActType: "regio.decreto",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",
   },
   {
     id: "codice_consumo",
@@ -78,7 +123,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 146,
+    estimatedArticles: 240,
+    connector: {
+      normattivaSearchTerms: ["codice del consumo", "decreto legislativo 206 2005"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",
   },
   {
     id: "codice_proc_civile",
@@ -94,7 +145,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 831,
+    estimatedArticles: 887,
+    connector: {
+      normattivaSearchTerms: ["codice di procedura civile"],
+      normattivaActType: "regio.decreto",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",
   },
   {
     id: "dlgs_231_2001",
@@ -108,7 +165,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 85,
+    estimatedArticles: 109,
+    connector: {
+      normattivaSearchTerms: ["responsabilita amministrativa enti", "decreto legislativo 231 2001"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",
   },
   {
     id: "dlgs_122_2005",
@@ -121,7 +184,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     hierarchyLevels: [
       { key: "chapter", label: "Capo" },
     ],
-    estimatedArticles: 21,
+    estimatedArticles: 19,
+    connector: {
+      normattivaSearchTerms: ["tutela acquirenti immobili", "decreto legislativo 122 2005"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",
   },
   {
     id: "statuto_lavoratori",
@@ -135,6 +204,18 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "title", label: "Titolo" },
     ],
     estimatedArticles: 41,
+    connector: {
+      normattivaSearchTerms: ["statuto dei lavoratori", "legge 300 1970"],
+      normattivaActType: "legge",
+      preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "070U0300",
+      // caricaAKN web endpoint: l'API asincrona Open Data produce ZIP vuoti per leggi storiche.
+      // Workaround confermato 2026-03-01: www.normattiva.it/do/atto/caricaAKN?dataGU=...
+      // dataGU = data pubblicazione GU (27 maggio 1970), diversa dalla data del provvedimento.
+      normattivaDataGU: "19700527",
+    },
+    lifecycle: "loaded", // Caricato via seed-statuto-lavoratori.ts (41 art., testo di pubblico dominio)
   },
   {
     id: "tu_edilizia",
@@ -150,7 +231,13 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
       { key: "section", label: "Sezione" },
     ],
-    estimatedArticles: 138,
+    estimatedArticles: 151,
+    connector: {
+      normattivaSearchTerms: ["testo unico edilizia", "dpr 380 2001"],
+      normattivaActType: "decreto.del.presidente.della.repubblica",
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",
   },
 ];
 
@@ -170,6 +257,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 99,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dir_93_13_clausole_abusive",
@@ -181,6 +270,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
     baseUrl: "https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:31993L0013",
     hierarchyLevels: [],
     estimatedArticles: 11,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dir_2011_83_consumatori",
@@ -194,6 +285,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 35,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dir_2019_771_vendita_beni",
@@ -207,6 +300,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 28,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "reg_roma_i",
@@ -220,6 +315,8 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "chapter", label: "Capo" },
     ],
     estimatedArticles: 29,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
   {
     id: "dsa",
@@ -234,6 +331,40 @@ export const EURLEX_SOURCES: CorpusSource[] = [
       { key: "section", label: "Sezione" },
     ],
     estimatedArticles: 93,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
+  },
+  {
+    id: "ai_act",
+    name: "AI Act — Regolamento (UE) 2024/1689",
+    shortName: "AI Act",
+    type: "eurlex",
+    description: "Regolamento del Parlamento europeo e del Consiglio che stabilisce norme armonizzate sull'intelligenza artificiale",
+    celexId: "32024R1689",
+    baseUrl: "https://eur-lex.europa.eu/eli/reg/2024/1689/oj/ita",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 113,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
+  },
+  {
+    id: "nis2",
+    name: "NIS2 — Direttiva (UE) 2022/2555",
+    shortName: "NIS2",
+    type: "eurlex",
+    description: "Direttiva relativa a misure per un livello comune elevato di cybersicurezza nell'Unione",
+    celexId: "32022L2555",
+    baseUrl: "https://eur-lex.europa.eu/eli/dir/2022/2555/oj/ita",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 46,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",
   },
 ];
 
@@ -247,6 +378,60 @@ export function getSourceById(id: string): CorpusSource | undefined {
 
 export function getSourcesByType(type: "normattiva" | "eurlex"): CorpusSource[] {
   return ALL_SOURCES.filter((s) => s.type === type);
+}
+
+// ─── Vertical Registry ───
+// Mappa verticali → fonti. Ogni verticale è un dominio di conoscenza indipendente.
+// Per aggiungere un verticale: creare le CorpusSource nel file del verticale,
+// poi registrarle qui con registerVertical() o aggiungendo direttamente a SOURCES_BY_VERTICAL.
+
+export type Vertical = string; // Stringa per extensibility — "legal" | "hr" | "real-estate" | ...
+
+/** Mappa verticale → fonti. Mutabile per supporto registrazione dinamica. */
+const _sourcesByVertical: Map<Vertical, CorpusSource[]> = new Map([
+  ["legal", ALL_SOURCES],  // tutte le fonti correnti appartengono al verticale "legal"
+]);
+
+/**
+ * Registra un nuovo verticale con le sue fonti.
+ * Chiamato dai file verticale-specifici (es. hr-sources.ts) all'avvio.
+ * Se il verticale esiste già, le fonti vengono aggiunte (non sostituite).
+ */
+export function registerVertical(vertical: Vertical, sources: CorpusSource[]): void {
+  const existing = _sourcesByVertical.get(vertical) ?? [];
+  _sourcesByVertical.set(vertical, [...existing, ...sources]);
+}
+
+/**
+ * Restituisce tutte le fonti di un verticale.
+ * Se il verticale non esiste, restituisce [].
+ */
+export function getSourcesByVertical(vertical: Vertical): CorpusSource[] {
+  return _sourcesByVertical.get(vertical) ?? [];
+}
+
+/**
+ * Tutti i verticali registrati.
+ */
+export function getVerticals(): Vertical[] {
+  return Array.from(_sourcesByVertical.keys());
+}
+
+/**
+ * Tutte le fonti di tutti i verticali (de-duplicata per id).
+ */
+export function getAllSourcesAcrossVerticals(): CorpusSource[] {
+  const seen = new Set<string>();
+  const result: CorpusSource[] = [];
+  for (const sources of _sourcesByVertical.values()) {
+    for (const s of sources) {
+      if (!seen.has(s.id)) {
+        seen.add(s.id);
+        result.push(s);
+      }
+    }
+  }
+  return result;
 }
 
 // Gerarchia statica del Codice Civile (per il seed)

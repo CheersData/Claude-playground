@@ -1,0 +1,59 @@
+# Decision Tree: Trading Operations
+# Tutte le decisioni relative all'Ufficio Trading
+
+name: trading-operations
+description: Routing per operazioni e decisioni trading
+trigger: "Trading, ordini, strategia, risk, backtest, go-live"
+
+routing:
+  # Operazioni di routine (pipeline, monitoring)
+  routine:
+    condition: "Pipeline automatica, monitoring, report"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [trading]
+    example: "Eseguire pipeline, check posizioni, daily report"
+
+  # Modifica parametri strategia
+  strategy_change:
+    condition: "Modifica a parametri signal/risk/threshold"
+    type: strategico
+    approval: L3
+    consult: [trading, architecture]
+    execute: [trading]
+    review: [quality-assurance]
+    example: "Cambiare SL/TP multiplier, aggiungere filtro, modificare universo"
+    requirement: "Backtest obbligatorio prima del deploy"
+
+  # Nuova strategia
+  new_strategy:
+    condition: "Strategia completamente nuova"
+    type: strategico
+    approval: L3
+    consult: [trading, architecture, strategy]
+    execute: [trading, quality-assurance]
+    example: "Mean reversion 15min, pairs trading, options"
+    requirement: "Backtest 3+ anni, Sharpe > 1.0, 30 giorni paper"
+
+  # Go-live o modifica risk params
+  go_live:
+    condition: "Passaggio a live trading O modifica risk management"
+    type: critico
+    approval: L4
+    consult: [trading, security, finance, architecture]
+    execute: [trading]
+    review: [quality-assurance, security]
+    example: "Go-live con soldi veri, cambio kill switch params"
+    requirement: "30 giorni paper OK, Security audit, Finance approval capital"
+
+  # Emergenza (kill switch)
+  emergency:
+    condition: "Kill switch attivato, loss anomala, bug critico"
+    type: critico
+    approval: L1_immediate
+    consult: []
+    execute: [trading]
+    notify: [cme, boss]
+    example: "Kill switch -2% daily, ordine anomalo, API down"
+    note: "Agire PRIMA, notificare DOPO. La sicurezza del capitale è priorità assoluta."

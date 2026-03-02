@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorpusSources, getSourceHierarchy } from "@/lib/legal-corpus";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/corpus/hierarchy
@@ -9,6 +10,9 @@ import { getCorpusSources, getSourceHierarchy } from "@/lib/legal-corpus";
  *   -> Albero navigabile della fonte specifica
  */
 export async function GET(request: NextRequest) {
+  const rateLimitError = await checkRateLimit(request);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const sourceId = request.nextUrl.searchParams.get("source");
 

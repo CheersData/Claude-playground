@@ -13,16 +13,17 @@ const SCORE_DIMENSIONS: Array<{
   label: string;
   labelShort: string;
 }> = [
-  { key: "contractEquity", label: "Equità contrattuale", labelShort: "Equità" },
-  { key: "legalCoherence", label: "Coerenza giuridica", labelShort: "Coerenza" },
-  { key: "practicalCompliance", label: "Conformità pratica", labelShort: "Conformità" },
-  { key: "completeness", label: "Completezza", labelShort: "Completezza" },
+  { key: "legalCompliance", label: "Conformità Legale", labelShort: "Conformità" },
+  { key: "contractBalance", label: "Equilibrio Contrattuale", labelShort: "Equilibrio" },
+  { key: "industryPractice", label: "Prassi di Settore", labelShort: "Prassi" },
 ];
 
 function getColor(value: number): string {
-  if (value >= 7) return "#2ECC40";
-  if (value >= 5) return "#FF851B";
-  return "#FF4136";
+  if (value >= 9) return "#2ECC40";   // verde — conforme / equilibrato
+  if (value >= 7) return "#7BC67E";   // giallo-verde — buono
+  if (value >= 5) return "#FF851B";   // giallo/arancione — problemi
+  if (value >= 3) return "#E8601C";   // arancione — critico
+  return "#FF4136";                   // rosso — gravemente squilibrato
 }
 
 export default function FairnessScore({ score, scores }: FairnessScoreProps) {

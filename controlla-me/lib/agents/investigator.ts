@@ -1,15 +1,102 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODEL, parseAgentJSON } from "../anthropic";
+import { anthropic, parseAgentJSON } from "../anthropic";
+import { AGENT_MODELS, MODELS } from "../models";
 import { INVESTIGATOR_SYSTEM_PROMPT } from "../prompts/investigator";
+import { searchLegalKnowledge } from "../vector-store";
+import { searchArticles } from "../legal-corpus";
+import { isVectorDBEnabled } from "../embeddings";
+import { logAgentCost } from "../company/cost-logger";
 import type {
   ClassificationResult,
   AnalysisResult,
   InvestigationResult,
 } from "../types";
 
+// Read model from centralized config instead of hardcoded constant
+// ARCH-refactor: salviamo anche la ModelKey per il cost tracking (parity con agent-runner)
+const INVESTIGATOR_MODEL_KEY = AGENT_MODELS["investigator"].primary;
+const INVESTIGATOR_MODEL = MODELS[INVESTIGATOR_MODEL_KEY].model;
+
+// ─── Self-Retrieval ───
+
+/**
+ * Recupera contesto RAG per clausola specifica dal vector DB.
+ * Combina: knowledge base (analisi passate) + corpus legislativo.
+ * Limitato a 3 clausole x 3 risultati ciascuna per evitare token bloat.
+ */
+async function selfRetrieveForClauses(
+  clauses: Array<{ title: string; issue: string; originalText?: string | null }>,
+  maxClauses = 3,
+  maxResultsPerClause = 3
+): Promise<string> {
+  if (!isVectorDBEnabled()) return "";
+
+  const topClauses = clauses.slice(0, maxClauses);
+  const sections: string[] = [];
+
+  await Promise.all(
+    topClauses.map(async (clause) => {
+      const query = `${clause.title}: ${clause.originalText?.slice(0, 150) ?? clause.issue}`;
+
+      const [knowledgeResults, articleResults] = await Promise.all([
+        searchLegalKnowledge(query, {
+          limit: maxResultsPerClause,
+          threshold: 0.60,
+        }),
+        searchArticles(query, {
+          threshold: 0.55,
+          limit: maxResultsPerClause,
+        }),
+      ]);
+
+      const parts: string[] = [];
+
+      if (knowledgeResults.length > 0) {
+        parts.push(
+          knowledgeResults
+            .map(
+              (r) =>
+                `[${r.category?.toUpperCase()}] ${r.title} (${(r.similarity * 100).toFixed(0)}%, visto ${r.timesSeen ?? 1}x)\n${r.content.slice(0, 300)}`
+            )
+            .join("\n")
+        );
+      }
+
+      if (articleResults.length > 0) {
+        parts.push(
+          articleResults
+            .map(
+              (a) =>
+                `[CORPUS] ${a.lawSource} ${a.articleReference}${a.articleTitle ? ` — ${a.articleTitle}` : ""}\n${a.articleText.slice(0, 300)}`
+            )
+            .join("\n")
+        );
+      }
+
+      if (parts.length > 0) {
+        sections.push(`── Clausola: ${clause.title} ──\n${parts.join("\n")}`);
+      }
+    })
+  );
+
+  if (sections.length === 0) return "";
+
+  const result = `\n╔══════════════════════════════════════════════╗
+║  SELF-RETRIEVAL: norme e pattern per clausola ║
+╚══════════════════════════════════════════════╝\n${sections.join("\n\n")}\n╔══════════════════════════════════════════════╗
+║  FINE SELF-RETRIEVAL                         ║
+╚══════════════════════════════════════════════╝\n`;
+
+  console.log(
+    `[INVESTIGATOR] Self-retrieval: ${topClauses.length} clausole | ${sections.length} sezioni | ${result.length} chars`
+  );
+
+  return result;
+}
+
 /**
  * Investigator aggressivo: copre TUTTE le clausole critical e high.
- * Usa Sonnet (non Haiku) per query di ricerca più precise.
+ * Usa web_search Anthropic — richiede Claude, non migra a runAgent().
  *
  * @param legalContext - Contesto normativo dal corpus legislativo (opzionale).
  * @param ragContext - Contesto da analisi precedenti nella knowledge base (opzionale).
@@ -30,6 +117,18 @@ export async function runInvestigator(
     return { findings: [] };
   }
 
+  // P2: Self-retrieval — Investigator queries vector DB autonomously for each critical/high clause
+  // This supplements the legalContext/ragContext from the orchestrator with per-clause precision.
+  let selfRAGContext = "";
+  try {
+    selfRAGContext = await selfRetrieveForClauses(criticalAndHigh);
+  } catch (err) {
+    // Non-fatal: self-retrieval failure doesn't block the investigator
+    console.error(
+      `[INVESTIGATOR] Errore self-retrieval: ${err instanceof Error ? err.message : "Unknown"}`
+    );
+  }
+
   // Build enriched user message
   const userMessageParts = [
     `Documento: ${classification.documentTypeLabel} (${classification.jurisdiction})`,
@@ -42,6 +141,7 @@ export async function runInvestigator(
     `Leggi applicabili: ${classification.applicableLaws.map((l) => l.reference).join(", ")}`,
     legalContext ? `\n${legalContext}` : null,
     ragContext ? `\n${ragContext}` : null,
+    selfRAGContext ? `\n${selfRAGContext}` : null,
     `\nClausole CRITICAL e HIGH (obbligatorio coprire TUTTE): ${JSON.stringify(criticalAndHigh)}`,
     medium.length > 0
       ? `\nClausole MEDIUM (coprire se possibile): ${JSON.stringify(medium)}`
@@ -51,18 +151,22 @@ export async function runInvestigator(
 
   const userMessage = userMessageParts.filter(Boolean).join("\n");
 
-  // Agentic loop with web search — upgraded to Sonnet for better quality
+  // Agentic loop with web search
   const messages: Anthropic.Messages.MessageParam[] = [
     { role: "user", content: userMessage },
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 8; // Increased from 5 to cover all clauses
+  const MAX_ITERATIONS = 5; // CLAUDE.md: max 5 tool_use loop
+  // ARCH-refactor: cumulative token tracking per cost parity con agent-runner
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  const t0 = Date.now();
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
-      model: MODEL, // Upgraded from MODEL_FAST to MODEL (Sonnet) for better query quality
-      max_tokens: 8192,
+      model: INVESTIGATOR_MODEL,
+      max_tokens: AGENT_MODELS["investigator"].maxTokens,
       system: INVESTIGATOR_SYSTEM_PROMPT,
       tools: [
         {
@@ -72,6 +176,10 @@ export async function runInvestigator(
       ],
       messages,
     });
+
+    // Accumula token per cost tracking
+    totalInputTokens += response.usage.input_tokens;
+    totalOutputTokens += response.usage.output_tokens;
 
     const textBlocks = response.content
       .filter(
@@ -112,6 +220,16 @@ export async function runInvestigator(
     messages.push({ role: "user", content: toolResults });
   }
 
+  // ARCH-refactor: fire-and-forget cost log (parity con runAgent in agent-runner.ts)
+  logAgentCost({
+    agentName: "investigator",
+    modelKey: INVESTIGATOR_MODEL_KEY,
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
+    durationMs: Date.now() - t0,
+    usedFallback: false,
+  }).catch(() => {});
+
   return parseAgentJSON<InvestigationResult>(finalText);
 }
 
@@ -144,7 +262,7 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
   ];
 
   let finalText = "";
-  const MAX_ITERATIONS = 8;
+  const MAX_ITERATIONS = 5; // CLAUDE.md: max 5 tool_use loop
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({

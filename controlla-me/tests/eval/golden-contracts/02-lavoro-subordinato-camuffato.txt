@@ -1,0 +1,65 @@
+CONTRATTO DI PRESTAZIONE D'OPERA PROFESSIONALE
+(Art. 2222 e ss. Codice Civile — Lavoro autonomo)
+
+PARTI
+
+COMMITTENTE: Nexus Solutions S.r.l., con sede legale in Roma, Via Nazionale 120, P.IVA 01234567890, rappresentata dal Sig. Roberto Lanza (Amministratore Delegato).
+
+PRESTATORE: Ing. Marco Bianchi, nato a Napoli il 05/07/1988, codice fiscale BNCMRC88L05F839G, P.IVA 09876543210, con domicilio professionale in Roma, Via Tuscolana 300.
+
+OGGETTO DELLA PRESTAZIONE
+
+Il Prestatore si obbliga a svolgere in favore del Committente le seguenti attività di sviluppo software:
+- Sviluppo e manutenzione del sistema gestionale interno dell'azienda;
+- Supporto tecnico al team di sviluppo interno;
+- Partecipazione alle riunioni di progetto;
+- Qualsiasi altra attività informatica richiesta dal Direttore Tecnico.
+
+ESCLUSIVITÀ
+
+Art. 3 — Per tutta la durata del presente contratto, il Prestatore si impegna a lavorare esclusivamente per il Committente, rinunciando a svolgere attività professionali per terzi soggetti, concorrenti o meno. Eventuali incarichi esterni dovranno essere preventivamente autorizzati per iscritto dall'Amministratore Delegato.
+
+ORARIO DI LAVORO E PRESENZA
+
+Art. 4 — Il Prestatore si impegna a essere presente presso la sede del Committente in Roma, Via Nazionale 120, dal lunedì al venerdì dalle ore 9:00 alle ore 18:00, con pausa pranzo di 1 ora. La presenza è obbligatoria salvo preventiva autorizzazione del Direttore Tecnico. Le giornate di assenza non autorizzate comportano una decurtazione del compenso proporzionale.
+
+STRUMENTI DI LAVORO
+
+Art. 5 — Il Prestatore utilizzerà esclusivamente gli strumenti informatici forniti dal Committente (PC, software, accessi). Non è autorizzato l'utilizzo di strumenti propri né di account personali per attività connesse al contratto.
+
+COMPENSO
+
+Il Committente corrisponderà al Prestatore un compenso mensile fisso di EUR 2.800,00 (duemilaottocento/00), indipendentemente dal volume di lavoro effettivamente svolto, entro il giorno 27 di ogni mese.
+
+FERIE E ASSENZE
+
+Art. 7 — Il Prestatore ha diritto a 20 giorni lavorativi di "sospensione dell'attività" all'anno, da concordarsi con il Direttore Tecnico con preavviso di almeno 30 giorni. Le assenze per malattia devono essere comunicate entro le ore 9:00 e documentate con certificato medico.
+
+RIMBORSI SPESE
+
+Il Committente rimborserà le spese di trasferta previa presentazione di nota spese e documentazione giustificativa, secondo le procedure aziendali interne.
+
+COORDINAMENTO E DIPENDENZA FUNZIONALE
+
+Art. 9 — Il Prestatore opera sotto la direzione del Direttore Tecnico del Committente, dal quale riceve le istruzioni operative quotidiane, le priorità di progetto e le metodologie di lavoro da adottare. Il Prestatore è tenuto a rendicontare giornalmente l'avanzamento delle attività tramite il sistema di project management aziendale.
+
+DURATA
+
+Il contratto ha durata di 12 mesi con decorrenza dal 1° marzo 2025, rinnovabile automaticamente per periodi uguali salvo disdetta con preavviso di 30 giorni.
+
+NON CONCORRENZA POST-CONTRATTUALE
+
+Per i 24 mesi successivi alla cessazione del rapporto, il Prestatore si impegna a non svolgere attività lavorativa o professionale, in qualsiasi forma, per società concorrenti nel settore IT, in tutta Italia. La violazione comporta il pagamento di una penale di EUR 50.000,00.
+
+RISERVATEZZA
+
+Il Prestatore si obbliga a mantenere riservate tutte le informazioni acquisite nell'ambito del rapporto, anche dopo la cessazione, senza limiti temporali.
+
+PROPRIETÀ INTELLETTUALE
+
+Tutte le opere, il codice sorgente e i risultati prodotti dal Prestatore nell'ambito del contratto sono di proprietà esclusiva del Committente fin dal momento della loro creazione.
+
+Roma, 28 febbraio 2025
+
+Per il Committente: _______________
+Il Prestatore: _______________

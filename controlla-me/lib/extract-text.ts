@@ -38,14 +38,13 @@ export async function extractText(
 }
 
 async function extractFromPDF(buffer: Buffer): Promise<string> {
-  // Dynamic import: pdf-parse e' in serverExternalPackages (next.config.ts)
-  // quindi non viene bundlato da Turbopack e il dynamic import funziona.
-  // Usiamo createRequire come alternativa sicura a eval("require").
-  const { createRequire } = await import("module");
-  const require = createRequire(import.meta.url);
-  const pdfParseModule = require("pdf-parse");
+  // Dynamic import: pdf-parse is in serverExternalPackages (next.config.ts)
+  // so it's not bundled by Turbopack. Using await import() so that
+  // vi.mock("pdf-parse") in Vitest can intercept calls during tests.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfParseModule = (await import("pdf-parse")) as any;
 
-  // pdf-parse v2: class-based API
+  // pdf-parse v2: class-based API (PDFParse class)
   if (typeof pdfParseModule.PDFParse === "function") {
     const parser = new pdfParseModule.PDFParse({ data: buffer });
     try {

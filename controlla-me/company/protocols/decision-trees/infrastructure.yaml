@@ -1,0 +1,46 @@
+# Decision Tree: Infrastructure
+# Decisioni su deploy, infrastruttura, sicurezza
+
+name: infrastructure
+description: Routing per decisioni infrastrutturali
+trigger: "Deploy, server, VM, security, CI/CD, database, env vars"
+
+routing:
+  # Config locale (env vars, settings)
+  config_change:
+    condition: "Modifica env vars o config non critica"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [operations]
+    example: "Aggiornare log level, cambiare tier AI"
+
+  # CI/CD, test automation
+  ci_cd:
+    condition: "Modifica pipeline CI/CD o test automation"
+    type: operativo
+    approval: L2
+    consult: [architecture]
+    execute: [quality-assurance]
+    example: "Aggiungere test su PR, configurare deploy preview"
+
+  # Migrazione infrastruttura
+  migration:
+    condition: "Cambio provider, VM, hosting"
+    type: strategico
+    approval: L3
+    consult: [architecture, security, finance]
+    execute: [operations]
+    review: [security]
+    example: "Migrazione su Hetzner VM, cambio provider DB"
+    requirement: "Security audit P0, cost analysis, rollback plan"
+
+  # Modifica sicurezza
+  security_change:
+    condition: "Tocca auth, RLS, secrets, headers, CORS"
+    type: critico
+    approval: L4
+    consult: [security, architecture]
+    execute: [department_owner]
+    review: [security, quality-assurance]
+    example: "Modifica RLS policies, aggiunta OAuth provider, cambio CSP"

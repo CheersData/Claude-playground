@@ -12,6 +12,17 @@ process.env.STRIPE_PRO_PRICE_ID = "price_test_pro";
 process.env.STRIPE_SINGLE_PRICE_ID = "price_test_single";
 process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
 
+// Clear all non-Anthropic provider keys so agent-runner only uses the mocked Anthropic client.
+// Without this, real API keys from .env.local would leak into the test process, causing
+// the fallback chain to make real HTTP calls when the Anthropic mock rejects.
+delete process.env.GEMINI_API_KEY;
+delete process.env.OPENAI_API_KEY;
+delete process.env.MISTRAL_API_KEY;
+delete process.env.GROQ_API_KEY;
+delete process.env.CEREBRAS_API_KEY;
+delete process.env.DEEPSEEK_API_KEY;
+delete process.env.VOYAGE_API_KEY;
+
 // Suppress console.log/warn during tests (agents log extensively)
 vi.spyOn(console, "log").mockImplementation(() => {});
 vi.spyOn(console, "warn").mockImplementation(() => {});

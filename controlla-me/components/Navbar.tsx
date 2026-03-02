@@ -21,7 +21,6 @@ interface NavbarProps {
 export default function Navbar({ onLogoClick }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -29,7 +28,6 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
   // Track scroll position for navbar background + active section
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
       setShowScrollTop(window.scrollY > 600);
 
       // Only track sections on home page
@@ -70,10 +68,12 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
     };
   }, [mobileOpen]);
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change — standard pattern for resetting UI on navigation
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle logo click
   const handleLogoClick = useCallback(
