@@ -168,54 +168,68 @@ async def run_intraday_pipeline() -> dict:
         }
 
         watchlist = scan_result.get("watchlist", [])
+        signals: list[dict] = []
 
-        # Phases 2-4: Only run if we have watchlist candidates
+        # Phase 2: Signal Generator — use 1Hour bars for real-time intraday signals
+        signal_gen = SignalGenerator()
         if watchlist:
-            # Phase 2: Signal Generator — use 1Hour bars for real-time intraday signals
-            signal_gen = SignalGenerator()
             signal_result = await signal_gen.run(watchlist=watchlist, timeframe="1Hour")
             results["signals"] = {
                 "generated": signal_result.get("signals_generated", 0),
                 "status": "ok",
             }
-
-            signals = signal_result.get("signals", [])
-
-            if signals:
-                # Phase 3: Risk Manager
-                risk_mgr = RiskManager()
-                risk_result = await risk_mgr.run(signals=signals)
-
-                if risk_result.get("kill_switch"):
-                    results["risk"] = {
-                        "status": "kill_switch",
-                        "message": risk_result.get("message"),
-                    }
-                    results["status"] = "kill_switch"
-                    return results
-
-                decisions = risk_result.get("decisions", [])
-                approved = [d for d in decisions if d.get("status") == "APPROVED"]
-                results["risk"] = {
-                    "total": len(decisions),
-                    "approved": len(approved),
-                    "status": "ok",
-                }
-
-                # Phase 4: Executor
-                if approved:
-                    executor = Executor()
-                    exec_result = await executor.run(decisions=approved)
-                    results["execution"] = {
-                        "executed": exec_result.get("total_executed", 0),
-                        "status": "ok",
-                    }
-                else:
-                    results["execution"] = {"executed": 0, "status": "no_approved_orders"}
-            else:
-                results["signals"]["status"] = "no_signals"
+            signals = list(signal_result.get("signals", []))
         else:
             results["scan"]["status"] = "no_candidates"
+
+        # Phase 2.5: Slope+Volume Strategy (independent — SPY 5-min, always runs if enabled)
+        if get_settings().slope_volume.enabled:
+            slope_result = await asyncio.to_thread(signal_gen.run_slope_volume)
+            slope_signals = slope_result.get("signals", [])
+            results["slope_volume"] = {
+                "generated": slope_result.get("signals_generated", 0),
+                "status": (
+                    "error" if "error" in slope_result
+                    else "skipped" if "skipped" in slope_result
+                    else "ok"
+                ),
+            }
+            signals = signals + slope_signals
+
+        # Phases 3-4: Risk Manager + Executor (merged signals from all strategies)
+        if signals:
+            # Phase 3: Risk Manager
+            risk_mgr = RiskManager()
+            risk_result = await risk_mgr.run(signals=signals)
+
+            if risk_result.get("kill_switch"):
+                results["risk"] = {
+                    "status": "kill_switch",
+                    "message": risk_result.get("message"),
+                }
+                results["status"] = "kill_switch"
+                return results
+
+            decisions = risk_result.get("decisions", [])
+            approved = [d for d in decisions if d.get("status") == "APPROVED"]
+            results["risk"] = {
+                "total": len(decisions),
+                "approved": len(approved),
+                "status": "ok",
+            }
+
+            # Phase 4: Executor
+            if approved:
+                executor = Executor()
+                exec_result = await executor.run(decisions=approved)
+                results["execution"] = {
+                    "executed": exec_result.get("total_executed", 0),
+                    "status": "ok",
+                }
+            else:
+                results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+        else:
+            results.setdefault("signals", {})["status"] = "no_signals"
 
         # Phase 4.5: Update Trailing Stops (ALWAYS runs — existing positions need management)
         monitor = PortfolioMonitor()
