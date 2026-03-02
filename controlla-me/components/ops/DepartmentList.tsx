@@ -3,9 +3,8 @@
 import { useState } from "react";
 import {
   Building2, ChevronRight, Loader2,
-  Scale, Database, CheckCircle, Monitor, Shield, Target, Megaphone, TrendingUp, DollarSign,
-  type LucideIcon,
 } from "lucide-react";
+import { DEPT_ICONS } from "@/lib/company/dept-icons";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 interface TaskItem {
@@ -39,19 +38,7 @@ const DEPT_LABELS: Record<string, string> = {
   strategy: "Strategy",
   marketing: "Marketing",
   trading: "Trading",
-};
-
-const DEPT_ICONS: Record<string, LucideIcon> = {
-  "ufficio-legale": Scale,
-  "data-engineering": Database,
-  "quality-assurance": CheckCircle,
-  architecture: Building2,
-  finance: DollarSign,
-  operations: Monitor,
-  security: Shield,
-  strategy: Target,
-  marketing: Megaphone,
-  trading: TrendingUp,
+  "ux-ui": "UX/UI",
 };
 
 const ALL_DEPTS = [
@@ -64,6 +51,7 @@ const ALL_DEPTS = [
   "operations",
   "strategy",
   "marketing",
+  "ux-ui",
   "trading",
 ];
 

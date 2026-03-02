@@ -204,7 +204,7 @@ export async function checkRateLimit(
   const limiter = getUpstashRatelimiter(config.windowSec, config.max);
   if (limiter) {
     try {
-      const { success, limit, remaining, reset } = await limiter.limit(clientKey);
+      const { success, limit, reset } = await limiter.limit(clientKey);
       if (!success) {
         const retryAfterSec = Math.ceil((reset - Date.now()) / 1000);
         return buildLimitedResponse(limit, Math.max(1, retryAfterSec), reset);

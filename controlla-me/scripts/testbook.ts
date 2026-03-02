@@ -504,7 +504,7 @@ function scorePrep(tc: TestCase, prep: QuestionPrepResult): PrepScore {
 function scoreSearch(
   tc: TestCase,
   articles: Array<{ ref: string; source: string; similarity: string }>,
-  instituteCount: number
+  _instituteCount: number
 ): SearchScore {
   const details: string[] = [];
   let total = 0;
@@ -584,7 +584,7 @@ async function runTestCase(tc: TestCase): Promise<TestResult> {
       )
     : [];
 
-  const [primaryResults, mechanismResults, knowledge, ...instituteResults] = await Promise.all([
+  const [primaryResults, mechanismResults, _knowledge, ...instituteResults] = await Promise.all([
     searchArticles(prep.legalQuery, {
       threshold: 0.4,
       limit: 8,

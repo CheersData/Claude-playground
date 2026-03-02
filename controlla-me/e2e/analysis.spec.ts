@@ -62,7 +62,7 @@ test.describe("Analysis API — SSE stream contract", () => {
 
     // Read initial bytes to check event format (don't consume entire stream)
     const body = response.body();
-    const reader = (await body as unknown as ReadableStream<Uint8Array>).getReader?.();
+    const _reader = (await body as unknown as ReadableStream<Uint8Array>).getReader?.();
 
     // Use response text with a short timeout to get the first chunk
     const text = await response.text().catch(() => "");

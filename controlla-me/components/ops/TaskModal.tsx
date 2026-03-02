@@ -6,6 +6,8 @@ import {
   X, User, Calendar, Tag, FileText, Loader2,
   CheckCheck, Play, AlertTriangle, RotateCcw,
   ThumbsUp, ThumbsDown, Building2, Terminal,
+  Scale, DollarSign, Monitor, Shield, Target, Megaphone, TrendingUp, ClipboardList, FlaskConical, Plug,
+  type LucideIcon,
 } from "lucide-react";
 
 export interface TaskItem {
@@ -78,17 +80,17 @@ const DEPT_LABELS: Record<string, string> = {
   trading: "Ufficio Trading",
 };
 
-const DEPT_ICONS: Record<string, string> = {
-  "ufficio-legale": "⚖️",
-  "data-engineering": "🔌",
-  "quality-assurance": "🧪",
-  architecture: "🏛️",
-  finance: "💰",
-  operations: "📡",
-  security: "🛡️",
-  strategy: "🎯",
-  marketing: "📣",
-  trading: "📈",
+const DEPT_ICONS: Record<string, LucideIcon> = {
+  "ufficio-legale": Scale,
+  "data-engineering": Plug,
+  "quality-assurance": FlaskConical,
+  architecture: Building2,
+  finance: DollarSign,
+  operations: Monitor,
+  security: Shield,
+  strategy: Target,
+  marketing: Megaphone,
+  trading: TrendingUp,
 };
 
 function formatDate(iso: string) {
@@ -221,7 +223,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
         <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-zinc-800 flex-shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base leading-none">{DEPT_ICONS[task.department] ?? "📋"}</span>
+              {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-400 flex-shrink-0" />; })()}
               <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
                 {DEPT_LABELS[task.department] ?? task.department}
               </span>

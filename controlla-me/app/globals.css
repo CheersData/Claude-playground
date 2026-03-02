@@ -13,6 +13,22 @@
   --border-subtle: #F0F0F0;
   --surface: #FFFFFF;
   --surface-hover: #F5F5F7;
+
+  /* ─── Poimandres — Ops Console Design System ─── */
+  /* Palette di riferimento per la dashboard /ops (developer console, dark-only) */
+  --ops-bg:          #1b1e28; /* background profondo blu-nero */
+  --ops-surface:     #252837; /* card, pannelli */
+  --ops-surface-2:   #2d3146; /* hover state, nested containers */
+  --ops-border:      #383b4d; /* bordi */
+  --ops-border-subtle: #2a2d3e; /* bordi sottili */
+  --ops-muted:       #4c5068; /* placeholder, disabilitato */
+  --ops-fg-muted:    #a6accd; /* testo secondario */
+  --ops-fg:          #e4f0fb; /* testo primario */
+  --ops-accent:      #FF6B35; /* arancione brand (invariato) */
+  --ops-teal:        #5de4c7; /* success, completato */
+  --ops-cyan:        #add7ff; /* info, link */
+  --ops-rose:        #f694ff; /* warning alternativo */
+  --ops-error:       #e58d78; /* errore */
 }
 
 @theme inline {

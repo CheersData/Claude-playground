@@ -550,8 +550,8 @@ export function QALegalPanel() {
               >
                 <span className="text-zinc-600 font-mono text-[10px] w-4">{i + 1}</span>
                 <span className="text-zinc-500 flex-1">{fmtDate(run.runAt)}</span>
-                <span className="text-green-400">{run.passed} ✓</span>
-                {run.failed > 0 && <span className="text-red-400">{run.failed} ✗</span>}
+                <span className="flex items-center gap-1 text-green-400"><CheckCircle2 size={10} />{run.passed}</span>
+                {run.failed > 0 && <span className="flex items-center gap-1 text-red-400"><XCircle size={10} />{run.failed}</span>}
                 <span className="text-zinc-600 text-[10px]">
                   {Math.round((run.passed / run.total) * 100)}%
                 </span>

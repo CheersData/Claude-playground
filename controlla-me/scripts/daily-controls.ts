@@ -190,8 +190,6 @@ export async function ensureDailyControls(date: string): Promise<{
 
   // Recupera tutti i task aperti / in corso / review per cercare duplicati
   const existing = await getOpenTasks({ limit: 500 });
-  const existingTitles = new Set(existing.map((t) => t.title));
-
   let created = 0;
   let skipped = 0;
 

@@ -4,7 +4,7 @@
  * API pubblica del servizio. Il CLI e il cron route usano solo queste funzioni.
  */
 
-import { getSourceById, getAllSources } from "./registry";
+import { getSourceById } from "./registry";
 import { startSync, completeSync, getLastSuccessfulSync } from "./sync-log";
 import { validateBatch } from "./validators/article-validator";
 import {

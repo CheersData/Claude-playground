@@ -36,6 +36,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 const STATE_FILE = path.resolve(__dirname, "../company/scheduler-daemon-state.json");
+const LATEST_PLAN_FILE = path.resolve(__dirname, "../company/latest-scheduler-plan.md");
 const BOARD_POLL_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 ore (come il piano)
 const PLAN_INTERVAL_MS = 2 * 60 * 60 * 1000;  // Piano ogni 2 ore
 const TELEGRAM_POLL_TIMEOUT_S = 30;            // long polling timeout
@@ -605,6 +606,32 @@ async function onBoardEmpty(state: DaemonState): Promise<DaemonState> {
   state.lastPlanGeneratedAt = new Date().toISOString();
 
   saveState(state);
+
+  // Scrivi il piano su file locale — leggibile da CME in sessione Claude Code
+  try {
+    const ts = new Date().toLocaleString("it-IT");
+    const taskLines = plan.tasks
+      .map(t => `- [${t.dept}] **${t.priority.toUpperCase()}** — ${t.title}`)
+      .join("\n");
+    const recLines = (plan.recommendations ?? [])
+      .map((r, i) => `${i + 1}. ${r}`)
+      .join("\n");
+    const md = [
+      `# Piano #${state.planCountToday} — ${ts}`,
+      `> Status: in attesa di approvazione su Telegram`,
+      "",
+      plan.planText,
+      "",
+      `## Task proposti (${plan.tasks.length})`,
+      taskLines,
+      ...(recLines ? ["", "## Raccomandazioni per il prossimo piano", recLines] : []),
+    ].join("\n");
+    fs.writeFileSync(LATEST_PLAN_FILE, md, "utf-8");
+    log(`Piano scritto su ${LATEST_PLAN_FILE}`);
+  } catch (e) {
+    log(`WARN: impossibile scrivere latest-scheduler-plan.md: ${(e as Error).message}`);
+  }
+
   return state;
 }
 

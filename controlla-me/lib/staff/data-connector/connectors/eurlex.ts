@@ -24,7 +24,6 @@ import type {
 const SPARQL_ENDPOINT =
   "https://publications.europa.eu/webapi/rdf/sparql";
 
-const CELLAR_BASE = "http://publications.europa.eu/resource/cellar/";
 
 interface SparqlBindings {
   bindings?: Array<Record<string, { value?: string }>>;

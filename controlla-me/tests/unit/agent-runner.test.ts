@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { AgentName, ModelKey } from "@/lib/models";
+import type { ModelKey } from "@/lib/models";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 

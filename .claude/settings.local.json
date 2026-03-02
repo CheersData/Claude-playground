@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.bqopzktbqpoqupbglkmk:Cm3Virtual!2026xQ9@aws-0-eu-central-1.pooler.supabase.com:6543/postgres\" npx tsx:*)",
+      "Bash(node:*)",
+      "Bash(npx tsx:*)",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(netstat -ano)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(rm:*)",
+      "Bash(npx next:*)",
+      "Bash(echo Token length: $#TOKEN:*)"
+    ]
+  }
+}

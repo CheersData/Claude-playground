@@ -57,7 +57,7 @@ async function generateWithAnthropic(
     systemPrompt,
     maxTokens = 4096,
     temperature = 0,
-    agentName = "ANTHROPIC",
+    agentName: _agentName = "ANTHROPIC",
   } = config;
 
   const start = Date.now();

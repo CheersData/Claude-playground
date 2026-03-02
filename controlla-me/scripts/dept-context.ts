@@ -21,6 +21,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
+import { execSync } from "child_process";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -160,9 +161,15 @@ function getRunbooks(deptDir: string): string[] {
     .map((f) => f.replace(".md", ""));
 }
 
-function getTasksForDept(dept: string): { open: any[]; recentDone: any[] } {
+interface TaskSummary {
+  title: string;
+  priority: string;
+  status: string;
+}
+
+function getTasksForDept(dept: string): { open: TaskSummary[]; recentDone: TaskSummary[] } {
   try {
-    const raw = require("child_process").execSync(
+    const raw = execSync(
       `npx tsx scripts/company-tasks.ts list --dept ${dept} --status open`,
       { encoding: "utf-8", cwd: ROOT, timeout: 10000 }
     );

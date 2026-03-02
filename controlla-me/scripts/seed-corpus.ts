@@ -39,9 +39,9 @@ const PAGE_SIZE = 100;
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
 const VOYAGE_MODEL = "voyage-law-2";
 const EMBEDDING_BATCH_SIZE = 50; // Più conservativo per non saturare la API
-const EMBEDDING_DIMENSIONS = 1024;
+const _EMBEDDING_DIMENSIONS = 1024;
 
-const SUPABASE_BATCH_SIZE = 50; // Articoli per batch di upsert
+const _SUPABASE_BATCH_SIZE = 50; // Articoli per batch di upsert
 
 // ─── Tipi ───
 

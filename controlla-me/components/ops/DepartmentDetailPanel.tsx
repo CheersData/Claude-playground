@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
 import {
@@ -16,7 +16,13 @@ import {
   AlertCircle,
   Clock,
   Ban,
+  TrendingUp,
+  ClipboardList,
+  FlaskConical,
+  BarChart2,
+  Cpu,
 } from "lucide-react";
+import { DEPT_ICONS } from "@/lib/company/dept-icons";
 import type { Department, Task, TaskPriority } from "@/lib/company/types";
 import type { DepartmentMeta } from "@/lib/company/departments";
 import type { DepartmentAnalysis } from "@/lib/company/department-analyses";
@@ -278,16 +284,16 @@ export function DepartmentDetailPanel({
   const badge = ANALYSIS_BADGE[statusLabel] ?? ANALYSIS_BADGE["idle"];
   const BadgeIcon = badge.icon;
 
-  const tabs: { key: Section; label: string; count?: number }[] = [
+  const tabs: { key: Section; label: React.ReactNode; count?: number }[] = [
     { key: "overview", label: "Overview" },
     { key: "tasks",    label: "Task",       count: activeTasks.length },
     { key: "done",     label: "Completati", count: doneTasks.length },
     { key: "create",   label: "+ Nuovo" },
-    ...(department === "trading" ? [{ key: "live" as Section, label: "📈 Live" }] : []),
-    ...(department === "ufficio-legale" ? [{ key: "qa" as Section, label: "📋 QA Report" }] : []),
-    ...(department === "ufficio-legale" ? [{ key: "qatest" as Section, label: "🧠 Q&A Test" }] : []),
-    ...(department === "quality-assurance" ? [{ key: "suite" as Section, label: "🧪 Suite" }] : []),
-    ...(department === "quality-assurance" ? [{ key: "qareport" as Section, label: "📊 QA Report" }] : []),
+    ...(department === "trading" ? [{ key: "live" as Section, label: <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" />Live</span> }] : []),
+    ...(department === "ufficio-legale" ? [{ key: "qa" as Section, label: <span className="flex items-center gap-1"><ClipboardList className="w-3.5 h-3.5" />QA Report</span> }] : []),
+    ...(department === "ufficio-legale" ? [{ key: "qatest" as Section, label: <span className="flex items-center gap-1"><Cpu className="w-3.5 h-3.5" />Q&amp;A Test</span> }] : []),
+    ...(department === "quality-assurance" ? [{ key: "suite" as Section, label: <span className="flex items-center gap-1"><FlaskConical className="w-3.5 h-3.5" />Suite</span> }] : []),
+    ...(department === "quality-assurance" ? [{ key: "qareport" as Section, label: <span className="flex items-center gap-1"><BarChart2 className="w-3.5 h-3.5" />QA Report</span> }] : []),
   ];
 
   return (
@@ -311,7 +317,14 @@ export function DepartmentDetailPanel({
           </button>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-2xl leading-none">{meta.emoji}</span>
+              {(() => {
+                const DeptIcon = DEPT_ICONS[department];
+                return DeptIcon ? (
+                  <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex-shrink-0">
+                    <DeptIcon className="w-5 h-5 text-[#FF6B35]" />
+                  </span>
+                ) : null;
+              })()}
               <div>
                 <h2 className="text-lg font-semibold text-white">{meta.label}</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -646,7 +659,12 @@ export function DepartmentDetailPanel({
                               : "bg-zinc-800/50 border-zinc-700/50 text-zinc-500 hover:text-zinc-300"
                           }`}
                         >
-                          {p === "critical" ? "🔴" : p === "high" ? "🟠" : p === "medium" ? "🟡" : "⚪"}{" "}
+                          <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
+                            p === "critical" ? "bg-red-500" :
+                            p === "high" ? "bg-orange-500" :
+                            p === "medium" ? "bg-yellow-500" :
+                            "bg-zinc-400"
+                          }`} />
                           {p}
                         </button>
                       ))}

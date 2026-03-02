@@ -146,8 +146,9 @@ export function VisionMissionPanel() {
         </div>
 
         {!vision && (
-          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 text-xs text-yellow-400">
-            ⚠ Vision/Mission non ancora configurata. Compila il form e salva.
+          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 text-xs text-yellow-400 flex items-center gap-2">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            Vision/Mission non ancora configurata. Compila il form e salva.
           </div>
         )}
 
@@ -309,13 +310,13 @@ export function VisionMissionPanel() {
               </div>
             )}
 
-            {latestPlan.recommendations.length > 0 && (
+            {(latestPlan.recommendations ?? []).length > 0 && (
               <div>
                 <p className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wide mb-1.5">
                   Raccomandazioni per il prossimo piano
                 </p>
                 <ul className="space-y-1">
-                  {latestPlan.recommendations.map((r, i) => (
+                  {(latestPlan.recommendations ?? []).map((r, i) => (
                     <li key={i} className="text-xs text-zinc-400 flex items-start gap-1.5">
                       <span className="text-zinc-600 flex-shrink-0">{i + 1}.</span>
                       {r}

@@ -75,9 +75,60 @@ Vedi task board — tasks assegnati a QA e Architecture per:
 
 ---
 
-## Verifica finale
+## Verifica finale (Round 1)
 
 - `npm run build`: non eseguito (richiederebbe env Supabase/Stripe live)
 - `npx tsc --noEmit`: errori residui in components/ops/ (categoria B, task creato)
 - `npm run lint`: 19 errors, 30 warnings — ridotti da 21 errors (parsing + const fix)
+- `npm test`: non eseguito (scope di QA)
+
+---
+
+## Round 2 — Cleanup aggiuntivo (sera 2026-03-02)
+
+**Task**: #1292a9ed — secondo passaggio codebase cleanup
+
+### Interventi eseguiti
+
+| Tipo | Elemento | Motivo |
+|------|----------|--------|
+| File rimosso | `scripts/archive/run-migration-006.ts` | Migrazione obsoleta, superata da sistema 001-023 |
+| File rimosso | `scripts/archive/run-migration-007.ts` | Migrazione obsoleta |
+| File rimosso | `scripts/archive/run-migrations.ts` | Runner obsoleto |
+| Dir rimossa | `scripts/archive/` | Vuota dopo rimozione |
+| `.gitignore` | Aggiunto `trading/backtest-results/` | 37 file JSON ephemeral non tracciati |
+| Fix unused var | `lib/ai-sdk/generate.ts:60` — `agentName` → `_agentName` | Destructured ma non usato |
+| Fix unused var | `lib/middleware/rate-limit.ts:207` — rimosso `remaining` dal destructuring | Non usato |
+| Fix unused const | `lib/staff/data-connector/connectors/eurlex.ts:27` — rimossa `CELLAR_BASE` | Costante non referenziata |
+| Fix unused func | `scripts/architect-review.ts:58` — `warn` → `_warn` | Definita ma mai chiamata |
+| Fix unused var | `scripts/daily-controls.ts:193` — rimossa `existingTitles` | Set costruita ma mai usata (controllo duplicati usa `existing.some` direttamente) |
+| Fix unused param | `scripts/testbook.ts:507` — `instituteCount` → `_instituteCount` | Parametro mai usato nel corpo funzione |
+| Fix unused var | `scripts/testbook.ts:587` — `knowledge` → `_knowledge` | Destructured da Promise.all ma non usato |
+| Fix unused var | `tests/e2e/analysis-flow.spec.ts:92` — rimossa `caseStudyCards` | Locator assegnato ma non usato |
+| Fix unused var | `tests/e2e/console.spec.ts:227` — rimossa `powerBtn` | Locator assegnato ma non usato |
+| Fix unused import | `tests/unit/investigator.test.ts:26` — rimosso `MODEL_FAST` | Import non usato nel file |
+| Fix unused import | `tests/unit/middleware/auth.test.ts:1` — rimossi `vi, beforeEach` | Import non usati |
+
+### Warnings lint residui (categoria B — intentionally kept)
+
+| File | Simbolo | Motivo mantenuto |
+|------|---------|-----------------|
+| `e2e/analysis.spec.ts:65` | `reader` | Variabile test, potenzialmente utile |
+| `lib/staff/data-connector/index.ts:7` | `getAllSources` | Export pubblico |
+| `lib/staff/data-connector/sync-log.ts:7` | `StoreResult, ConnectResult, ModelResult` | Type imports per documentazione |
+| `scripts/seed-corpus.ts:42,44` | `EMBEDDING_DIMENSIONS, SUPABASE_BATCH_SIZE` | Costanti future |
+| `tests/unit/agent-runner.test.ts:16` | `AgentName` | Type import |
+| `tests/unit/tiers.test.ts:15` | `ModelKey` | Type import |
+
+### Metriche Round 2
+
+- File/dir eliminati: 4 (3 scripts + 1 dir)
+- Variabili/import inutili fixati: 11
+- Lint warnings `no-unused-vars`: da 22 → 9 (-59%)
+- TypeScript `npx tsc --noEmit`: 0 errori ✅
+
+### Verifica finale Round 2
+
+- `npx tsc --noEmit`: ✅ zero errori
+- `npm run lint` unused-vars: 9 warnings residui (tutti categoria B)
 - `npm test`: non eseguito (scope di QA)

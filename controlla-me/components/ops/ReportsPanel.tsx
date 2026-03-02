@@ -28,7 +28,7 @@ interface ReportItem {
 interface ReportGroup {
   id: string;
   label: string;
-  emoji: string;
+  emoji?: string; // legacy — UI usa GROUP_ICONS, non renderizzato
   items: ReportItem[];
 }
 

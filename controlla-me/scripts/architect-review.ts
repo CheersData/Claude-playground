@@ -55,7 +55,7 @@ const C = {
 function print(msg: string) { process.stdout.write(msg + "\n"); }
 function header(msg: string) { print(`\n${C.bold}${C.white}${msg}${C.reset}`); }
 function ok(msg: string) { print(`${C.green}✓${C.reset} ${msg}`); }
-function warn(msg: string) { print(`${C.amber}⚠${C.reset} ${msg}`); }
+function _warn(msg: string) { print(`${C.amber}⚠${C.reset} ${msg}`); }
 function err(msg: string) { print(`${C.red}✗${C.reset} ${msg}`); }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

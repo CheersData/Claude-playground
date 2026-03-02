@@ -89,7 +89,6 @@ test.describe("Document Analysis Flow", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/affitto/i);
 
     // Verifica presenza dei case study (4)
-    const caseStudyCards = page.locator("text=Milano, text=Roma, text=Torino, text=Napoli".split(",")[0]);
     await expect(page.getByText("Milano")).toBeVisible();
     await expect(page.getByText("Roma")).toBeVisible();
     await expect(page.getByText("Torino")).toBeVisible();

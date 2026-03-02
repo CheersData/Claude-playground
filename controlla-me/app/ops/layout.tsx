@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Operations Center — Controlla.me",
+  title: "Operations Center — Poimandres",
 };
 
 export default function OpsLayout({ children }: { children: React.ReactNode }) {

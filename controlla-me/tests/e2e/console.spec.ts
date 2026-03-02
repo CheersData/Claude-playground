@@ -224,7 +224,6 @@ test("power panel: cambio tier visibile nell'UI", async ({ page }) => {
   await navigateToConsole(page);
 
   // Cerca il power panel / tier selector
-  const powerBtn = page.locator("[aria-label*='power'], [aria-label*='Power'], button:has-text('Power'), button:has-text('Tier')").first();
   const tierEl = page.locator("text=Associate").or(page.locator("text=Intern")).or(page.locator("text=Partner")).or(page.locator("text=tier"));
 
   // Se il power panel è visibile o il tier è mostrato, test OK

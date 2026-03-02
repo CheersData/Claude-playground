@@ -23,7 +23,7 @@ vi.mock("@/lib/anthropic", async (importOriginal) => {
 });
 
 import { runInvestigator, runDeepSearch } from "@/lib/agents/investigator";
-import { MODEL_FAST, MODEL } from "@/lib/anthropic";
+import { MODEL } from "@/lib/anthropic";
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -4,7 +4,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { SyncLogEntry, StoreResult, ConnectResult, ModelResult } from "./types";
+import type { SyncLogEntry } from "./types";
 
 export async function startSync(
   sourceId: string,

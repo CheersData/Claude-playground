@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import { Play, Volume2, VolumeX } from "lucide-react";
 
@@ -41,14 +41,17 @@ export default function VideoShowcase({
   const [isMuted, setIsMuted] = useState(true);
 
   // Auto-play/pause when in/out of view
-  if (videoRef.current) {
-    if (isInView && !isPlaying) {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-    } else if (!isInView && isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isInView && !isPlaying) {
+        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      } else if (!isInView && isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInView]);
 
   const toggleMute = () => {
     if (videoRef.current) {

@@ -2,9 +2,8 @@
 
 import {
   ClipboardList, Maximize2, AlertCircle,
-  Scale, Database, CheckCircle, Building2, DollarSign, Monitor, Shield, Target, Megaphone, TrendingUp,
-  type LucideIcon,
 } from "lucide-react";
+import { DEPT_ICONS } from "@/lib/company/dept-icons";
 // Single source of truth for TaskItem
 import type { TaskItem } from "@/components/ops/TaskModal";
 import { TagBadge } from "@/components/ops/TaskModal";
@@ -36,18 +35,6 @@ const PRIORITY_DOTS: Record<string, string> = {
   low: "bg-zinc-500",
 };
 
-const DEPT_ICONS: Record<string, LucideIcon> = {
-  "ufficio-legale": Scale,
-  "data-engineering": Database,
-  "quality-assurance": CheckCircle,
-  architecture: Building2,
-  finance: DollarSign,
-  operations: Monitor,
-  security: Shield,
-  strategy: Target,
-  marketing: Megaphone,
-  trading: TrendingUp,
-};
 
 export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
   if (!board) {
