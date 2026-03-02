@@ -132,3 +132,38 @@ Vedi task board — tasks assegnati a QA e Architecture per:
 - `npx tsc --noEmit`: ✅ zero errori
 - `npm run lint` unused-vars: 9 warnings residui (tutti categoria B)
 - `npm test`: non eseguito (scope di QA)
+
+---
+
+## Round 3 — Cleanup finale (2026-03-02, nuova sessione CME)
+
+**Scope**: Risoluzione dei 9 warnings `no-unused-vars` residui del Round 2.
+
+### Interventi eseguiti
+
+| Tipo | Elemento | Motivo |
+|------|----------|--------|
+| Fix eslint config | `eslint.config.mjs` — aggiunto `varsIgnorePattern/argsIgnorePattern: "^_"` | Il pattern underscore non era riconosciuto → warnings su variabili già correttamente prefissate con `_` |
+| Fix import | `app/api/company/status/route.ts` — rimosso `AgentName` | Import non usato |
+| Fix import | `app/api/console/route.ts` — rimosso `NextResponse` | Import non usato |
+| Fix import | `app/corpus/CorpusPageClient.tsx` — rimosso `Loader2` | Import non usato |
+| Fix unused state | `components/Navbar.tsx` — rimosso `scrolled` state | `setScrolled` mai letto nel render |
+| Fix underscore | `components/console/CompanyPanel.tsx` — `childPid` → `_childPid` | Valore mai letto nel render |
+| Fix underscore | `components/console/CorpusTreePanel.tsx` — `onClose` → `_onClose`, `fullTree` → `_fullTree`, rimossa `maxCount` | Variabili unused |
+| Fix eslint-disable | `components/console/PowerPanel.tsx` (2), `components/ops/ReportsPanel.tsx` (1) | Direttive eslint-disable superate, ESLint le segnalava come unused |
+| Fix unused const | `components/ops/QALegalPanel.tsx` — rimosso `SEVERITY_BG` | Costante definita ma mai usata |
+| Fix unused type | `components/ops/QASuitePanel.tsx` — rimossa interface `SuggestionsData`, `err` → `_` | Tipo e catch var inutilizzati |
+| Fix param | `app/HomePageClient.tsx` — `context` → `_context` | Param di funzione non usato nel corpo |
+| Fix auto (--fix) | `scripts/testbook.ts` — `prefer-const` su `sampleShort`/`sampleLong` | Già fixato in Round 2, confermato |
+
+### Risultato finale
+
+- `npm run lint`: ✅ **0 problemi (exit code 0)**
+- `npx tsc --noEmit`: ✅ **0 errori**
+- Lint warnings residui: **0** (tutti risolti o soppressi correttamente)
+
+### Note
+
+- `e2e/analysis.spec.ts:65` (`reader`) — gestito dall'ESLint `--fix` automatico in sessione precedente
+- I warnings `any` in `lib/staff/data-connector/models/legal-article-model.ts` e il `require()` style import erano già stati risolti nei commit QA precedenti
+- REGISTRY.md migrations 020-023 era già aggiornato (verificato, nessun intervento necessario)
