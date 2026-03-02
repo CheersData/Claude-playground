@@ -12,6 +12,7 @@ import {
   Terminal,
   AlertTriangle,
   Loader2,
+  CornerDownRight,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -307,7 +308,7 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                         key={i}
                         className="flex items-start gap-2 text-xs text-red-300/80 bg-red-500/5 border border-red-500/10 px-2.5 py-1.5 rounded"
                       >
-                        <span className="text-red-500 flex-shrink-0">↳</span>
+                        <CornerDownRight className="w-3 h-3 text-red-500 flex-shrink-0" />
                         {fc}
                       </div>
                     ))}

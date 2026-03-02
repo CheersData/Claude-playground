@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw } from "lucide-react";
+import { Archive, Bot, FileText, RefreshCw, Scale, Telescope, TrendingUp } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 import { TaskBoard } from "@/components/ops/TaskBoard";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";

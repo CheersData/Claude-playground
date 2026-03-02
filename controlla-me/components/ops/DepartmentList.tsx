@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Building2, ChevronRight, Loader2,
+  Building2, ChevronRight, Loader2, Play,
 } from "lucide-react";
 import { DEPT_ICONS } from "@/lib/company/dept-icons";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
@@ -157,8 +157,8 @@ export function DepartmentList({
                       </span>
                     )}
                     {info && inProgressCount > 0 && isExpanded && (
-                      <span className="text-xs bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded-full animate-pulse">
-                        ▶ {inProgressCount}
+                      <span className="inline-flex items-center gap-1 text-xs bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded-full animate-pulse">
+                        <Play className="w-2 h-2 fill-current" /> {inProgressCount}
                       </span>
                     )}
                     {!info && (

@@ -115,3 +115,87 @@ Tema: Light (#FAFAFA background, #1A1A2E text, #FF6B35 accent)
 **Spacing:** 4, 8, 12, 16, 20, 24, 32, 48, 64px
 **Border radius:** rounded-full (pill), rounded-3xl (card large), rounded-2xl (card), rounded-xl (input)
 **Shadows:** shadow-sm (card), shadow-md (elevated), shadow-lg (dropdown)
+
+---
+
+## Ops Dashboard — Design System (Poimandres Dark)
+
+> Aggiornato: 2026-03-02
+
+Il dashboard `/ops` usa il tema Poimandres (dark) separato dal tema light della landing page.
+
+### Palette Ops
+
+| Token | Valore | Uso |
+|-------|--------|-----|
+| Page background | zinc-950 / bg-[#0a0a0a] | Sfondo pagina |
+| Surface | zinc-900 | Card, pannelli |
+| Surface elevated | zinc-800 | Hover, input, bottoni secondari |
+| Border | zinc-800 / zinc-700/50 | Bordi card e separatori |
+| Text primary | white | Titoli, valori |
+| Text secondary | zinc-300 / zinc-400 | Etichette, descrizioni |
+| Text muted | zinc-500 / zinc-600 | Timestamp, info secondarie |
+| Accent | #FF6B35 | Tab attiva, bottone primario, evidenza |
+| Status open | blue-400 / blue-500/20 | Task aperti |
+| Status in_progress | yellow-400 / yellow-500/20 | Task in corso (+ animate-pulse) |
+| Status review | amber-400 / amber-500/20 | Task in review |
+| Status done | green-400 / green-500/20 | Task completati |
+| Status blocked | red-400 / red-500/20 | Task bloccati |
+
+### Componenti standard ops
+
+**Card:**
+```
+bg-zinc-900 rounded-xl border border-zinc-800 p-4
+```
+
+**Bottone primario:**
+```
+bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white rounded-lg px-4 py-2 text-sm font-medium
+```
+
+**Bottone secondario:**
+```
+bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-lg px-4 py-2 text-sm
+```
+
+**Badge status:**
+```
+text-xs bg-{color}/20 text-{color}-400 px-2 py-0.5 rounded-full
+```
+
+**Tab navigazione header:**
+```
+attiva: bg-[#FF6B35] text-white
+inattiva: bg-zinc-800 hover:bg-zinc-700 text-zinc-300
+```
+
+### Regole icone ops
+
+- **Esclusivamente Lucide React** — zero emoji, zero unicode decorativi
+- Dimensioni standard: `w-4 h-4` (inline), `w-5 h-5` (header), `w-3 h-3` (badge/small)
+- `fill-current` solo per icone filled (es. Play, Circle come bullet)
+- `flex-shrink-0` quando inline con testo multilabel
+
+### Componenti ops (18 file, audit 2026-03-02)
+
+| Componente | Ruolo | Score |
+|------------|-------|-------|
+| TaskBoard | Board task con status overview | ✅ |
+| TaskBoardFullscreen | Board espanso per status | ✅ |
+| TaskModal | Dettaglio task + azioni | ✅ |
+| DepartmentList | Sidebar navigazione dipartimenti | ✅ |
+| DepartmentDetailPanel | Dettaglio dipartimento + task list | ✅ |
+| CostSummary | Costi API 7gg per provider | ✅ |
+| AgentHealth | Config agenti attivi | ✅ |
+| PipelineStatus | Stato sync data connector | ✅ |
+| QAStatus | Counter task per QA gate | ✅ |
+| CMEChatPanel | Chat con CME via API console | ✅ |
+| LegalQATestPanel | Test suite Q&A legale | ✅ |
+| QALegalPanel | Panel QA con check legali | ✅ |
+| QASuitePanel | Suite test completa | ✅ |
+| QAReportPanel | Report QA dettagliato | ✅ |
+| ReportsPanel | Report markdown dipartimenti | ✅ |
+| TradingDashboard | Dashboard ufficio trading | ✅ |
+| ArchivePanel | Task archivio (done) | ✅ |
+| VisionMissionPanel | Visione e missione aziendale | ✅ |
