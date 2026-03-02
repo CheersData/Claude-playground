@@ -49,12 +49,14 @@ export default function HierarchyTree({
 }: HierarchyTreeProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  // Auto-expand first level on mount
+  // Auto-expand first level on mount/source change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (source.tree.length > 0) {
       setExpandedNodes(new Set(source.tree.map((n) => n.key)));
     }
   }, [source]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleNode = useCallback((key: string) => {
     setExpandedNodes((prev) => {

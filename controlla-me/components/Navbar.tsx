@@ -68,10 +68,12 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
     };
   }, [mobileOpen]);
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change — standard pattern for resetting UI on navigation
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle logo click
   const handleLogoClick = useCallback(
