@@ -349,8 +349,8 @@ async function runDiagnostics() {
   let veryLong = 0;
   let empty = 0;
   let totalTextLength = 0;
-  let sampleShort: Array<{ lawSource: string; ref: string; text: string }> = [];
-  let sampleLong: Array<{ lawSource: string; ref: string; length: number }> = [];
+  const sampleShort: Array<{ lawSource: string; ref: string; text: string }> = [];
+  const sampleLong: Array<{ lawSource: string; ref: string; length: number }> = [];
 
   let offset = 0;
   const pageSize = 1000;

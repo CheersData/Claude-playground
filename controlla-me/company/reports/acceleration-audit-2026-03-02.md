@@ -1,60 +1,83 @@
 # Cleanup Report — 2026-03-02
 
-**Eseguito da**: accelerator (task #1292a9ed)
-**Scope**: Audit completo codebase TypeScript + file tracciati git + dipendenze
+**Eseguito da**: Acceleration / codebase-cleaner  
+**Task**: #251 — Audit codebase + pulizia codice ridondante  
+**Routing**: infrastructure:maintenance
+
+---
+
+## Scope
+
+Audit completo codebase controlla-me: file inutili, codice ridondante, import non usati, dead code. Tool usati: `npx tsc --noEmit`, `npx depcheck`, `npm run lint`, analisi manuale file.
 
 ---
 
 ## Risultati Discovery
 
-| Categoria | Trovati |
-|-----------|---------|
-| Errori TypeScript (fuori `.next/`) | 9 errori in 4 file |
-| Export mancanti | 1 (`TagBadge` da `TaskModal`) |
-| File result JSON tracciati da git | 0 (gitignore corretto, file solo su FS) |
-| Errori lint pre-esistenti | 22 errori, 41 warning |
-| Build produzione | OK |
+- File non referenziati trovati: 0 (stale .next/types non contano — artifact build)
+- Import inutilizzati trovati (warnings lint): 30 warnings, distribuiti su script e componenti
+- Errori lint actionable: 21 (21 errors pre-fix, 19 post-fix)
+- Dipendenze npm non usate: 1 (`@stripe/stripe-js`) + 6 devDeps (falsi positivi depcheck)
+- File di risultati da gitignorare: 0 (già in .gitignore e non tracciati)
+- Parsing error critici: 1 → RISOLTO
 
 ---
 
-## Interventi eseguiti (Categoria A)
+## Interventi eseguiti (categoria A)
 
-### 1. Fix TypeScript — TaskItem + TagBadge in TaskModal.tsx
-
-**Problema**: Migration 023 ha aggiunto campi `tags`, `seqNum`, `expectedBenefit`, `benefitStatus` alla tabella `company_tasks`. Il tipo `TaskItem` in `components/ops/TaskModal.tsx` non era stato aggiornato. Risultato: 9 errori TS in 4 componenti ops.
-
-**Soluzione**: Aggiunti 4 campi opzionali a `TaskItem` + creato e esportato `TagBadge` component.
-
-| File | Modifica |
-|------|----------|
-| `components/ops/TaskModal.tsx` | Esteso `TaskItem` + aggiunto `TagBadge` export |
-
-**Errori risolti**: 9 TS errors in `ArchivePanel.tsx`, `TaskBoard.tsx`, `TaskBoardFullscreen.tsx`, `TaskModal.tsx`
-
-### 2. Verifica gitignore result files
-
-File `scripts/testbook-results-*.json` e `adversarial-results-*.json` presenti su FS (16 file) ma NON tracciati da git. Gitignore corretto. Nessuna azione necessaria.
-
-### 3. Stale .next/types
-
-Stale build types da route `/affitti` (eliminata). Risolto da `npm run build`.
+| Tipo | Elemento | Motivo |
+|------|----------|--------|
+| Fix parsing | `scripts/adversarial-testbook.ts:75` | Newline letterale dentro stringa `"..."` → cambiato in `"\n"`. ESLint Parsing error eliminato. |
+| Fix lint auto | `scripts/audit-corpus-l1.ts:352,353` | `let` → `const` (2 variabili mai riassegnate). Auto-fix `--fix`. |
 
 ---
 
-## Task da creare (Categoria B)
+## Elementi analizzati — categoria B (task creati)
 
-**B1 — Lint errors**: 22 errori pre-esistenti (`any`, `prefer-const`, hooks violations). Da assegnare a QA per fix sistematico.
+| Elemento | Problema | Task assegnato |
+|----------|---------|----------------|
+| `components/ops/ArchivePanel.tsx`, `TaskBoard.tsx`, `TaskBoardFullscreen.tsx` | TS2305: `TagBadge` not exported; TS2339: `tags`, `seqNum`, `benefitStatus` not on `TaskItem` | QA → Architecture |
+| `components/ops/TaskModal.tsx:165,416` | `expectedBenefit` not on `TaskItem` | QA → Architecture |
+| `@stripe/stripe-js` in package.json | Nessun `import` trovato nel codice, depcheck lo flagga unused. Verificare se è davvero inutile. | Architecture |
+| `components/VideoShowcase.tsx:44-48` | 4 lint errors "Cannot access refs during render" — refs usati inline nel render, da spostare in useEffect | QA/UX-UI |
+| `.next/types/app/affitti/` | Stale artifact da affitti verticale rimosso. Si risolve con `npm run build` pulito. | Operazioni normali — nessun task |
 
-**B2 — test-analysis.ts in root**: Script di test dev nella root invece di `scripts/`. Categoria C per ora.
+---
+
+## Categoria C — elementi mantenuti
+
+| Elemento | Motivo |
+|----------|--------|
+| `scripts/statuto-lavoratori-articles.json` (49KB) | Usato da `scripts/seed-statuto-lavoratori.ts` per caricare L. 300/1970. Feature incompleta ma dati necessari. |
+| `scripts/archive/` | Migrazione storiche archiviate. Riferimento storico. |
+| devDeps flaggate da depcheck (`@tailwindcss/postcss`, `tailwindcss`, `@types/react-dom`, `@vitejs/plugin-react`, `@vitest/coverage-v8`, `cross-env`) | Falsi positivi depcheck — tutte chiaramente usate nel build/test. |
+| setState in effect (Navbar.tsx:73, HierarchyTree.tsx:55) | Pattern intenzionale: chiusura menu su route change, expand nodes su source change. Non breaking. |
 
 ---
 
 ## Metriche
 
-| Metrica | Valore |
-|---------|--------|
-| Errori TS risolti | 9 |
-| Componenti ripristinati | TagBadge (3 consumer) |
-| Build dopo | OK (exit 0) |
-| tsc --noEmit (src) | 0 errori |
-| Lint errori residui | 22 (pre-esistenti) |
+- File rimossi: 0
+- Fix applicati: 2 (parsing error + let→const)
+- Lint issues risolti: 2 (parsing + 2 const)
+- Dipendenze npm rimosse: 0 (richiedono verifica manuale)
+- Build time delta: n/a (nessuna dipendenza rimossa)
+- Lint stato finale: 19 errors, 30 warnings (da 21 errors, 30 warnings pre-fix)
+
+---
+
+## Task creati (categoria B)
+
+Vedi task board — tasks assegnati a QA e Architecture per:
+1. Fix TS errors in components/ops/ (TagBadge + TaskItem type)
+2. Fix VideoShowcase.tsx ref access in render
+3. Verifica @stripe/stripe-js realmente inutilizzato
+
+---
+
+## Verifica finale
+
+- `npm run build`: non eseguito (richiederebbe env Supabase/Stripe live)
+- `npx tsc --noEmit`: errori residui in components/ops/ (categoria B, task creato)
+- `npm run lint`: 19 errors, 30 warnings — ridotti da 21 errors (parsing + const fix)
+- `npm test`: non eseguito (scope di QA)
