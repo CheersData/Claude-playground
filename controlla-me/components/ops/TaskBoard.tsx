@@ -3,6 +3,7 @@
 import { ClipboardList, Maximize2, AlertCircle } from "lucide-react";
 // Single source of truth for TaskItem
 import type { TaskItem } from "@/components/ops/TaskModal";
+import { TagBadge } from "@/components/ops/TaskModal";
 export type { TaskItem };
 
 interface TaskBoardProps {
@@ -178,11 +179,13 @@ function TaskRow({
   highlighted?: boolean;
   review?: boolean;
 }) {
+  const visibleTags = (task.tags ?? []).slice(0, 3);
+
   return (
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className={`cursor-pointer w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors group ${
+      className={`cursor-pointer w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left transition-colors group ${
         review
           ? "bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20"
           : highlighted
@@ -190,19 +193,28 @@ function TaskRow({
           : "bg-zinc-800/30 hover:bg-zinc-800/60"
       }`}
     >
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
-      <span className="text-sm flex-1 truncate">
-        <span className="mr-1">{DEPT_EMOJI[task.department] ?? "📋"}</span>
-        <span className={`${review ? "text-amber-100" : "text-zinc-300"} group-hover:text-white transition-colors`}>
-          {task.title}
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
+      <span className="flex-1 min-w-0">
+        <span className="text-sm block truncate">
+          <span className="mr-1">{DEPT_EMOJI[task.department] ?? "📋"}</span>
+          <span className={`${review ? "text-amber-100" : "text-zinc-300"} group-hover:text-white transition-colors`}>
+            {task.title}
+          </span>
         </span>
+        {visibleTags.length > 0 && (
+          <span className="flex flex-wrap gap-1 mt-1">
+            {visibleTags.map((tag) => (
+              <TagBadge key={tag} tag={tag} size="xs" />
+            ))}
+          </span>
+        )}
       </span>
       {task.assignedTo && (
-        <span className="text-xs text-zinc-500 hidden sm:block truncate max-w-[90px] flex-shrink-0">
+        <span className="text-xs text-zinc-500 hidden sm:block truncate max-w-[90px] flex-shrink-0 mt-0.5">
           {task.assignedTo}
         </span>
       )}
-      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400"}`}>
+      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400"}`}>
         {task.status.replace("_", " ")}
       </span>
     </button>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { X, Search, Loader2 } from "lucide-react";
-import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { X, Search, Loader2, ChevronDown } from "lucide-react";
+import { TaskModal, TagBadge, type TaskItem } from "@/components/ops/TaskModal";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 interface TaskBoardFullscreenProps {
@@ -47,6 +47,20 @@ const DEPT_EMOJI: Record<string, string> = {
   trading: "📈",
 };
 
+const DEPT_LABELS: Record<string, string> = {
+  "ufficio-legale": "Ufficio Legale",
+  "data-engineering": "Data Engineering",
+  "quality-assurance": "Quality Assurance",
+  architecture: "Architecture",
+  finance: "Finance",
+  operations: "Operations",
+  security: "Security",
+  strategy: "Strategy",
+  marketing: "Marketing",
+  trading: "Ufficio Trading",
+  "ux-ui": "UX/UI",
+};
+
 export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoardFullscreenProps) {
   const [activeStatus, setActiveStatus] = useState(initialStatus);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -54,10 +68,15 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
   const [search, setSearch] = useState("");
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
 
+  // Archive filters (only visible when activeStatus === "done")
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedDept, setSelectedDept] = useState<string>("all");
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+
   const fetchTasks = useCallback(async (status: string) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "200" });
+      const params = new URLSearchParams({ limit: "500" });
       if (status !== "all") params.set("status", status);
       const res = await fetch(`/api/company/tasks?${params}`, {
         headers: getConsoleAuthHeaders(),
@@ -75,23 +94,62 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
 
   useEffect(() => {
     fetchTasks(activeStatus);
+    // Reset archive filters when switching tabs
+    setSelectedTags([]);
+    setSelectedDept("all");
+    setSearch("");
   }, [activeStatus, fetchTasks]);
 
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !selectedTask) onClose();
+      if (e.key === "Escape" && !selectedTask) {
+        if (tagDropdownOpen) { setTagDropdownOpen(false); return; }
+        onClose();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose, selectedTask]);
+  }, [onClose, selectedTask, tagDropdownOpen]);
 
-  const filtered = tasks.filter((t) =>
-    search.trim() === "" ||
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.department.toLowerCase().includes(search.toLowerCase()) ||
-    (t.assignedTo ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Collect all unique tags present in current task list
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => (t.tags ?? []).forEach((tag) => set.add(tag)));
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  // Collect all departments present
+  const allDepts = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => set.add(t.department));
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  const isArchive = activeStatus === "done";
+
+  const filtered = tasks.filter((t) => {
+    const matchSearch =
+      search.trim() === "" ||
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.department.toLowerCase().includes(search.toLowerCase()) ||
+      (t.assignedTo ?? "").toLowerCase().includes(search.toLowerCase());
+
+    const matchDept = !isArchive || selectedDept === "all" || t.department === selectedDept;
+
+    const matchTags =
+      !isArchive ||
+      selectedTags.length === 0 ||
+      selectedTags.every((tag) => (t.tags ?? []).includes(tag));
+
+    return matchSearch && matchDept && matchTags;
+  });
+
+  function toggleTag(tag: string) {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }
 
   return (
     <>
@@ -117,7 +175,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
           </div>
 
           {/* Tabs + Search */}
-          <div className="px-6 py-3 border-b border-zinc-800 flex items-center gap-4 flex-shrink-0">
+          <div className="px-6 py-3 border-b border-zinc-800 flex items-center gap-4 flex-shrink-0 flex-wrap">
             <div className="flex gap-1 flex-wrap">
               {STATUS_TABS.map((tab) => (
                 <button
@@ -145,6 +203,94 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
               />
             </div>
           </div>
+
+          {/* Archive filters — visible only on "done" tab */}
+          {isArchive && (
+            <div className="px-6 py-2.5 border-b border-zinc-800 flex items-center gap-3 flex-shrink-0 flex-wrap bg-zinc-950/60">
+              <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
+                Archivio
+              </span>
+
+              {/* Department filter */}
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                className="bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 px-2 py-1.5 focus:outline-none focus:border-zinc-500 cursor-pointer"
+              >
+                <option value="all">Tutti i dipartimenti</option>
+                {allDepts.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {DEPT_LABELS[dept] ?? dept}
+                  </option>
+                ))}
+              </select>
+
+              {/* Tag multi-select dropdown */}
+              {allTags.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setTagDropdownOpen((o) => !o)}
+                    className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 px-2.5 py-1.5 hover:bg-zinc-700 transition-colors cursor-pointer"
+                  >
+                    {selectedTags.length === 0
+                      ? "Tutti i tag"
+                      : `${selectedTags.length} tag selezionat${selectedTags.length === 1 ? "o" : "i"}`}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {tagDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl py-1.5 min-w-[180px] max-h-60 overflow-y-auto">
+                      {allTags.map((tag) => {
+                        const active = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            onClick={() => toggleTag(tag)}
+                            className={`w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-zinc-800 ${
+                              active ? "text-white" : "text-zinc-400"
+                            }`}
+                          >
+                            <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${
+                              active ? "bg-[#FF6B35] border-[#FF6B35]" : "border-zinc-600"
+                            }`}>
+                              {active && (
+                                <svg viewBox="0 0 8 8" className="w-2 h-2 text-white fill-current">
+                                  <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" fill="none" />
+                                </svg>
+                              )}
+                            </span>
+                            <TagBadge tag={tag} size="xs" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Active filter chips */}
+              {selectedTags.length > 0 && (
+                <div className="flex flex-wrap gap-1 items-center">
+                  {selectedTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className="flex items-center gap-1 cursor-pointer group"
+                      title={`Rimuovi filtro "${tag}"`}
+                    >
+                      <TagBadge tag={tag} size="xs" />
+                      <X className="w-2.5 h-2.5 text-zinc-500 group-hover:text-zinc-300 -ml-0.5" />
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setSelectedTags([])}
+                    className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer underline"
+                  >
+                    Pulisci
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Count */}
           <div className="px-6 py-2 flex-shrink-0">
@@ -188,30 +334,41 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
 }
 
 function FullscreenTaskRow({ task, onClick }: { task: TaskItem; onClick: () => void }) {
+  const visibleTags = (task.tags ?? []).slice(0, 3);
+
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left bg-zinc-900 hover:bg-zinc-800 transition-colors group border border-zinc-800/50 hover:border-zinc-700"
+      className="w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-zinc-900 hover:bg-zinc-800 transition-colors group border border-zinc-800/50 hover:border-zinc-700"
     >
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
 
-      <span className="text-base flex-shrink-0">
+      <span className="text-base flex-shrink-0 mt-0.5">
         {DEPT_EMOJI[task.department] ?? "📋"}
       </span>
 
-      <span className="text-sm text-zinc-200 flex-1 truncate group-hover:text-white">
-        {task.title}
+      <span className="flex-1 min-w-0">
+        <span className="text-sm text-zinc-200 block truncate group-hover:text-white">
+          {task.title}
+        </span>
+        {visibleTags.length > 0 && (
+          <span className="flex flex-wrap gap-1 mt-1">
+            {visibleTags.map((tag) => (
+              <TagBadge key={tag} tag={tag} size="xs" />
+            ))}
+          </span>
+        )}
       </span>
 
-      <span className="text-xs text-zinc-500 hidden md:block truncate max-w-[100px] flex-shrink-0">
+      <span className="text-xs text-zinc-500 hidden md:block truncate max-w-[100px] flex-shrink-0 mt-0.5">
         {task.assignedTo ?? <span className="italic text-zinc-700">—</span>}
       </span>
 
-      <span className="text-xs text-zinc-500 hidden sm:block flex-shrink-0">
-        {task.department}
+      <span className="text-xs text-zinc-500 hidden sm:block flex-shrink-0 mt-0.5">
+        {DEPT_LABELS[task.department] ?? task.department}
       </span>
 
-      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400"}`}>
+      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400"}`}>
         {task.status.replace("_", " ")}
       </span>
     </button>

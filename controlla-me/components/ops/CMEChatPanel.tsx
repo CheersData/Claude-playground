@@ -213,7 +213,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
         <span className="text-zinc-600">/</span>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#FF6B35]" />
-          <span className="text-zinc-200 text-sm font-medium">CME (CEO) — Sonnet</span>
+          <span className="text-zinc-200 text-sm font-medium">CME (CEO) — Opus</span>
         </div>
         {responding && (
           <span className="text-[11px] text-amber-400 animate-pulse ml-2">
@@ -275,7 +275,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
             <div className="max-w-[85%] bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="w-[5px] h-[5px] rounded-full bg-[#FF6B35] animate-pulse" />
-                <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Sonnet</span>
+                <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Opus</span>
               </div>
               <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">{streaming}</p>
             </div>
@@ -295,7 +295,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
               {msg.role === "assistant" && (
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="w-[5px] h-[5px] rounded-full bg-[#FF6B35]" />
-                  <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Sonnet</span>
+                  <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Opus</span>
                 </div>
               )}
               <p className="whitespace-pre-wrap">{msg.content}</p>

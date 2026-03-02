@@ -20,6 +20,11 @@ import {
 import type { Department, Task, TaskPriority } from "@/lib/company/types";
 import type { DepartmentMeta } from "@/lib/company/departments";
 import type { DepartmentAnalysis } from "@/lib/company/department-analyses";
+import { TradingDashboard } from "@/components/ops/TradingDashboard";
+import { QALegalPanel } from "@/components/ops/QALegalPanel";
+import { QASuitePanel } from "@/components/ops/QASuitePanel";
+import { QAReportPanel } from "@/components/ops/QAReportPanel";
+import { LegalQATestPanel } from "@/components/ops/LegalQATestPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +36,7 @@ interface DeptPanelData {
   analysis: DepartmentAnalysis | null;
 }
 
-type Section = "overview" | "tasks" | "done" | "create";
+type Section = "overview" | "tasks" | "done" | "create" | "live" | "qa" | "suite" | "qareport" | "qatest";
 
 interface DepartmentDetailPanelProps {
   department: Department;
@@ -278,6 +283,11 @@ export function DepartmentDetailPanel({
     { key: "tasks",    label: "Task",       count: activeTasks.length },
     { key: "done",     label: "Completati", count: doneTasks.length },
     { key: "create",   label: "+ Nuovo" },
+    ...(department === "trading" ? [{ key: "live" as Section, label: "📈 Live" }] : []),
+    ...(department === "ufficio-legale" ? [{ key: "qa" as Section, label: "📋 QA Report" }] : []),
+    ...(department === "ufficio-legale" ? [{ key: "qatest" as Section, label: "🧠 Q&A Test" }] : []),
+    ...(department === "quality-assurance" ? [{ key: "suite" as Section, label: "🧪 Suite" }] : []),
+    ...(department === "quality-assurance" ? [{ key: "qareport" as Section, label: "📊 QA Report" }] : []),
   ];
 
   return (
@@ -669,6 +679,61 @@ export function DepartmentDetailPanel({
                     Crea Task
                   </button>
                 </form>
+              </motion.div>
+            )}
+            {activeSection === "live" && department === "trading" && (
+              <motion.div
+                key="live"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.12 }}
+              >
+                <TradingDashboard />
+              </motion.div>
+            )}
+            {activeSection === "qa" && department === "ufficio-legale" && (
+              <motion.div
+                key="qa"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.12 }}
+              >
+                <QALegalPanel />
+              </motion.div>
+            )}
+            {activeSection === "suite" && department === "quality-assurance" && (
+              <motion.div
+                key="suite"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.12 }}
+              >
+                <QASuitePanel />
+              </motion.div>
+            )}
+            {activeSection === "qareport" && department === "quality-assurance" && (
+              <motion.div
+                key="qareport"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.12 }}
+              >
+                <QAReportPanel />
+              </motion.div>
+            )}
+            {activeSection === "qatest" && department === "ufficio-legale" && (
+              <motion.div
+                key="qatest"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.12 }}
+              >
+                <LegalQATestPanel />
               </motion.div>
             )}
           </AnimatePresence>
