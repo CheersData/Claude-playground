@@ -105,6 +105,13 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "groq-llama3-70b",
     "cerebras-gpt-oss-120b",
   ],
+  // ── Company Tasks — solo modelli free (ADR-009) ──
+  "task-executor": [
+    "gemini-2.5-flash",       // partner + associate (free 250 req/giorno)
+    "cerebras-gpt-oss-120b",  // intern
+    "groq-llama4-scout",
+    "mistral-small-3",
+  ],
 };
 
 /**
@@ -119,6 +126,7 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   analyzer:       { partner: 0, associate: 1, intern: 2 },
   investigator:   { partner: 0, associate: 1, intern: 1 },  // intern = associate per investigator (solo Anthropic)
   advisor:        { partner: 0, associate: 1, intern: 2 },
+  "task-executor": { partner: 0, associate: 0, intern: 1 },  // tutti i tier partono da free
 };
 
 // ─── State ───
@@ -206,7 +214,7 @@ export function getTierInfo(): TierInfo {
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor",
+    "analyzer", "investigator", "advisor", "task-executor",
   ];
 
   for (const agent of allAgents) {
@@ -248,7 +256,7 @@ export function getTierInfoForSession(
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor",
+    "analyzer", "investigator", "advisor", "task-executor",
   ];
 
   for (const agent of allAgents) {
@@ -294,7 +302,8 @@ export function estimateTierCost(): { perQuery: number; label: string } {
     "corpus-agent": { input: 8000, output: 2000 },
     analyzer:       { input: 10000, output: 4000 },
     investigator:   { input: 6000, output: 3000 },
-    advisor:        { input: 8000, output: 2000 },
+    advisor:          { input: 8000, output: 2000 },
+    "task-executor":  { input: 2000, output: 1500 },
   };
 
   let total = 0;
@@ -326,7 +335,8 @@ export function estimateTierCostForSession(
     "corpus-agent":  { input: 8000,  output: 2000 },
     analyzer:        { input: 10000, output: 4000 },
     investigator:    { input: 6000,  output: 3000 },
-    advisor:         { input: 8000,  output: 2000 },
+    advisor:          { input: 8000,  output: 2000 },
+    "task-executor":  { input: 2000,  output: 1500 },
   };
 
   let total = 0;

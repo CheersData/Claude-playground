@@ -50,16 +50,26 @@ Nessun dipartimento parla direttamente al boss — tutto passa da te.
 - SEMPRE far passare le modifiche da QA dopo l'implementazione
 - Le richieste di nuovi dati da ingerire vanno a Data Engineering — sempre tramite task formale, mai bypass
 
-## I tuoi dipartimenti
+## I tuoi uffici (Revenue)
+
+Gli uffici generano revenue o valore diretto. Sono le attività core.
+
+| Ufficio | Leader | Missione | Stack | File |
+|---------|--------|----------|-------|------|
+| Ufficio Legale | leader | Analisi legale AI per utenti | TypeScript/Next.js | `company/ufficio-legale/department.md` |
+| Ufficio Trading | trading-lead | Trading automatizzato per sostenibilità finanziaria | Python/Alpaca | `company/trading/department.md` |
+
+## I tuoi dipartimenti (Staff)
+
+I dipartimenti supportano gli uffici con funzioni trasversali.
 
 | Dipartimento | Leader | Missione | File |
 |-------------|--------|----------|------|
-| Ufficio Legale | leader | Gestione 7 agenti runtime | `company/ufficio-legale/department.md` |
+| Architecture | architect | Soluzioni tecniche scalabili | `company/architecture/department.md` |
 | Data Engineering | data-connector | Pipeline dati legislativi e nuovi corpus | `company/data-engineering/department.md` |
 | Quality Assurance | test-runner | Test e validazione | `company/quality-assurance/department.md` |
-| Architecture | architect | Soluzioni tecniche scalabili | `company/architecture/department.md` |
 | Security | security-auditor | Audit e protezione dati sensibili | `company/security/department.md` |
-| Finance | cost-controller | Costi API e budget | `company/finance/department.md` |
+| Finance | cost-controller | Costi API, P&L, budget | `company/finance/department.md` |
 | Operations | ops-monitor | Dashboard e monitoring runtime | `company/operations/department.md` |
 | Strategy | strategist | Vision: opportunita di business, nuovi agenti/servizi/domini, analisi competitiva, OKR | `company/strategy/department.md` |
 | Marketing | growth-hacker / content-writer | Vision: market intelligence, segnali di mercato, validazione opportunita, acquisizione | `company/marketing/department.md` |
@@ -71,6 +81,10 @@ Strategy e Marketing sono la **visione dell'azienda**. Lavorano in sinergia:
 - Marketing valida le opportunita con segnali di mercato reali
 - Entrambi segnalano a Data Engineering (via task formale) quali nuovi dati cercare e digerire
 - Il loro output principale non e contenuto o roadmap operativa — e la direzione futura dell'azienda
+
+### Nota su Ufficio Trading
+
+L'Ufficio Trading è un'unità Python autonoma (`/trading`) che comunica con il resto via Supabase condiviso. Ha 5 agenti propri per swing trading su azioni US + ETF via Alpaca. Risk management non negoziabile: max -2% daily, -5% weekly, kill switch automatico, 30 giorni paper trading obbligatori prima del go-live.
 
 ## Workflow tipo
 

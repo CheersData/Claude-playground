@@ -1,9 +1,8 @@
 """
-Backtest Engine — Day-by-day simulation with NO look-ahead bias.
+Backtest Engine — Bar-by-bar simulation with NO look-ahead bias.
 
-Signal on bar T → fill on bar T+1 open + slippage.
-Same indicators as production SignalGenerator (RSI, MACD, BB, Trend, Volume)
-with configurable signal threshold for backtest tuning.
+Signal on bar T -> fill on bar T+1 open + slippage.
+Supports both daily and hourly timeframes with calibrated indicator periods.
 """
 
 from __future__ import annotations
@@ -23,6 +22,53 @@ from ta.volatility import BollingerBands
 from ..config.settings import RiskSettings, SignalSettings
 
 logger = structlog.get_logger()
+
+# Hours per trading day (US markets: 9:30-16:00 = 6.5h)
+HOURS_PER_DAY = 6.5
+
+
+# ---------------------------------------------------------------------------
+# Timeframe-aware indicator settings
+# ---------------------------------------------------------------------------
+
+# Daily settings (standard)
+DAILY_INDICATOR_PERIODS = {
+    "rsi_period": 14,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "sma_short": 20,
+    "sma_medium": 50,
+    "sma_long": 200,
+    "volume_avg": 20,
+    "atr_period": 14,
+    "crossover_lookback": 3,
+    "min_bars": 50,
+    "warmup_bars": 60,
+}
+
+# Hourly settings (daily × 6.5, rounded)
+HOURLY_INDICATOR_PERIODS = {
+    "rsi_period": 91,       # 14 × 6.5
+    "macd_fast": 78,        # 12 × 6.5
+    "macd_slow": 169,       # 26 × 6.5
+    "macd_signal": 59,      # 9 × 6.5
+    "sma_short": 130,       # 20 × 6.5
+    "sma_medium": 325,      # 50 × 6.5
+    "sma_long": 1300,       # 200 × 6.5
+    "volume_avg": 130,      # 20 × 6.5
+    "atr_period": 91,       # 14 × 6.5
+    "crossover_lookback": 7,  # ~1 day of hourly bars
+    "min_bars": 325,        # Need SMA medium history
+    "warmup_bars": 390,     # 60 days × 6.5 hours
+}
+
+
+def get_indicator_periods(timeframe: str = "1Day") -> dict:
+    """Return indicator periods calibrated for the given timeframe."""
+    if timeframe == "1Hour":
+        return HOURLY_INDICATOR_PERIODS.copy()
+    return DAILY_INDICATOR_PERIODS.copy()
 
 
 # ---------------------------------------------------------------------------
@@ -55,18 +101,26 @@ class BacktestConfig(BaseModel):
     max_loss_per_trade_pct: float = 1.0  # % of portfolio risked per trade
     daily_loss_limit_pct: float = -2.0  # kill switch
     weekly_loss_limit_pct: float = -5.0  # kill switch
-    warmup_bars: int = 60  # bars needed before generating signals
+    warmup_bars: int | None = None  # Auto-calculated from timeframe if None
     train_test_split: float | None = None  # e.g. 0.7 for 70/30
     signal_threshold: float = 0.3  # composite score threshold for BUY/SELL
     stop_loss_atr: float = 2.0  # stop loss ATR multiplier
     take_profit_atr: float = 4.0  # take profit ATR multiplier
-    trend_filter: bool = True  # require price > SMA200 for BUY signals
+    trend_filter: bool = True  # require price > SMA long for BUY signals
+    timeframe: str = "1Day"  # "1Day" or "1Hour"
 
     # Signal settings (override defaults if needed)
     signal: SignalSettings = Field(default_factory=SignalSettings)
     risk: RiskSettings = Field(default_factory=RiskSettings)
 
     model_config = {"arbitrary_types_allowed": True}
+
+    def effective_warmup_bars(self) -> int:
+        """Return warmup bars, auto-calculated from timeframe if not set."""
+        if self.warmup_bars is not None:
+            return self.warmup_bars
+        periods = get_indicator_periods(self.timeframe)
+        return periods["warmup_bars"]
 
 
 class TradeRecord(BaseModel):
@@ -142,7 +196,7 @@ class BacktestResult(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Signal Analysis — same indicators as production SignalGenerator
+# Signal Analysis — timeframe-aware indicators
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -166,54 +220,61 @@ def analyze_stock(
     stop_loss_atr: float = 2.0,
     take_profit_atr: float = 4.0,
     trend_filter: bool = True,
+    timeframe: str = "1Day",
 ) -> SignalResult | None:
     """
     Run technical analysis on a single stock.
 
     Uses a rule-based approach: MACD crossover as primary trigger,
-    with trend/RSI/volume as confirmation filters. Much more selective
-    than a weighted composite score.
+    with trend/RSI/volume as confirmation filters. Indicator periods
+    are automatically calibrated for the given timeframe.
 
     Entry conditions (ALL must be true):
-    1. MACD bullish crossover in last 3 bars
-    2. RSI between 30-65 (not overbought, room to run)
-    3. Price > SMA50 (medium-term uptrend)
-    4. Volume not declining (recent vol >= 80% of avg)
-
-    Exit: stop loss + take profit via ATR multiples.
+    1. MACD bullish crossover in last N bars (3 daily / 7 hourly)
+    2. RSI between 25-65 (not overbought, room to run)
+    3. Price > SMA medium (uptrend)
+    4. If trend_filter: Price > SMA long
+    5. Volume not declining (recent vol >= 80% of avg)
 
     Args:
         symbol: Stock ticker.
-        df: OHLCV DataFrame (must have 50+ rows).
-        settings: Signal settings (indicator parameters).
+        df: OHLCV DataFrame.
+        settings: Signal settings (indicator parameters — used as base).
         threshold: Not used for entry (rule-based), used for confidence minimum.
         stop_loss_atr: ATR multiplier for stop loss.
         take_profit_atr: ATR multiplier for take profit.
-        trend_filter: If True, also require price > SMA200.
+        trend_filter: If True, also require price > SMA long.
+        timeframe: "1Day" or "1Hour" — determines indicator periods.
 
     Returns:
         SignalResult or None if no signal.
     """
     try:
+        periods = get_indicator_periods(timeframe)
+
         close = df["close"]
         high = df["high"]
         low = df["low"]
         volume = df["volume"]
         current_price = float(close.iloc[-1])
 
+        if len(df) < periods["min_bars"]:
+            return None
+
         # --- MACD crossover detection (primary trigger) ---
         macd = MACD(
             close,
-            window_slow=settings.macd_slow,
-            window_fast=settings.macd_fast,
-            window_sign=settings.macd_signal,
+            window_slow=periods["macd_slow"],
+            window_fast=periods["macd_fast"],
+            window_sign=periods["macd_signal"],
         )
         macd_series = macd.macd()
         signal_series = macd.macd_signal()
 
-        # Check for bullish crossover in last 3 bars
+        # Check for bullish crossover in last N bars
         bullish_crossover = False
-        for lookback in range(1, 4):
+        lookback_range = periods["crossover_lookback"]
+        for lookback in range(1, lookback_range + 1):
             if len(macd_series) > lookback + 1:
                 prev_macd = float(macd_series.iloc[-(lookback + 1)])
                 prev_signal = float(signal_series.iloc[-(lookback + 1)])
@@ -229,27 +290,28 @@ def analyze_stock(
             return None  # No crossover — no signal
 
         # --- RSI confirmation (not overbought) ---
-        rsi = RSIIndicator(close, window=settings.rsi_period)
+        rsi = RSIIndicator(close, window=periods["rsi_period"])
         rsi_value = float(rsi.rsi().iloc[-1])
 
         if np.isnan(rsi_value) or rsi_value > 65 or rsi_value < 25:
             return None  # Too overbought or too oversold (falling knife)
 
-        # --- Trend confirmation (price > SMA50) ---
-        sma_50 = float(close.tail(50).mean())
-        if current_price < sma_50:
+        # --- Trend confirmation (price > SMA medium) ---
+        sma_medium = float(close.tail(periods["sma_medium"]).mean())
+        if current_price < sma_medium:
             return None  # Below medium-term trend
 
-        # --- SMA200 trend filter ---
-        if trend_filter and len(close) >= 200:
-            sma_200 = float(close.tail(200).mean())
-            if current_price < sma_200:
+        # --- SMA long trend filter ---
+        if trend_filter and len(close) >= periods["sma_long"]:
+            sma_long = float(close.tail(periods["sma_long"]).mean())
+            if current_price < sma_long:
                 return None  # Below long-term trend
 
         # --- Volume confirmation ---
-        avg_vol_20 = float(volume.tail(20).mean())
-        recent_vol = float(volume.tail(3).mean())
-        if recent_vol < avg_vol_20 * 0.8:
+        avg_vol = float(volume.tail(periods["volume_avg"]).mean())
+        recent_vol_bars = max(3, int(periods["crossover_lookback"]))
+        recent_vol = float(volume.tail(recent_vol_bars).mean())
+        if recent_vol < avg_vol * 0.8:
             return None  # Declining volume — weak signal
 
         # --- Score calculation for confidence ---
@@ -259,14 +321,13 @@ def analyze_stock(
         macd_spread = abs(macd_val - signal_val) / max(abs(signal_val), 0.01)
 
         # Trend strength
-        sma_20 = float(close.tail(20).mean())
-        trend_strength = (current_price - sma_50) / sma_50
+        trend_strength = (current_price - sma_medium) / sma_medium
 
         # RSI positioning (closer to 30 = more upside)
         rsi_upside = (65 - rsi_value) / 35  # 0 to 1
 
         # Volume ratio
-        vol_ratio = recent_vol / max(avg_vol_20, 1)
+        vol_ratio = recent_vol / max(avg_vol, 1)
 
         # Composite confidence
         score = min(
@@ -281,7 +342,7 @@ def analyze_stock(
             (high - close.shift(1)).abs(),
             (low - close.shift(1)).abs(),
         ], axis=1).max(axis=1)
-        atr = float(tr.tail(14).mean())
+        atr = float(tr.tail(periods["atr_period"]).mean())
 
         stop_loss = round(current_price - (atr * stop_loss_atr), 2)
         take_profit = round(current_price + (atr * take_profit_atr), 2)
@@ -305,10 +366,11 @@ def analyze_stock(
 # ---------------------------------------------------------------------------
 
 class BacktestEngine:
-    """Day-by-day backtesting engine with realistic simulation."""
+    """Bar-by-bar backtesting engine with realistic simulation."""
 
     def __init__(self, config: BacktestConfig) -> None:
         self.config = config
+        self._periods = get_indicator_periods(config.timeframe)
         self._positions: dict[str, OpenPosition] = {}
         self._pending_orders: list[PendingOrder] = []
         self._cash: float = config.initial_capital
@@ -323,7 +385,14 @@ class BacktestEngine:
         self._cooldown_until: int = 0  # bar_idx to resume trading after kill switch
         self._prev_equity: float = config.initial_capital
         self._week_start_equity: float = config.initial_capital
-        self._day_count: int = 0
+        self._bar_count: int = 0
+
+        # For hourly: track "day" boundaries for kill switch daily check
+        self._is_hourly = config.timeframe == "1Hour"
+        # Cooldown is 5 trading days = 5 * 6.5 = ~33 hourly bars
+        self._cooldown_bars = 33 if self._is_hourly else 5
+        # Weekly reset every 5 trading days = 5 * 6.5 = ~33 hourly bars
+        self._week_bars = 33 if self._is_hourly else 5
 
     def run(self, data: dict[str, pd.DataFrame]) -> BacktestResult:
         """
@@ -335,7 +404,7 @@ class BacktestEngine:
         Returns:
             BacktestResult with trades, equity curve, and metrics inputs.
         """
-        # Build aligned date index (union of all trading days)
+        # Build aligned date index (union of all trading timestamps)
         all_dates = set()
         for df in data.values():
             all_dates.update(df.index)
@@ -352,14 +421,16 @@ class BacktestEngine:
             test_dates = dates[split_idx:]
             logger.info(
                 "train_test_split",
-                train_days=len(train_dates),
-                test_days=len(test_dates),
+                train_bars=len(train_dates),
+                test_bars=len(test_dates),
                 split_date=str(dates[split_idx]),
             )
             # Run on test set only (train is warmup + parameter fitting)
             dates = test_dates
 
         total_bars = len(dates)
+        warmup = self.config.effective_warmup_bars()
+
         logger.info(
             "backtest_start",
             start=str(dates[0]),
@@ -367,12 +438,18 @@ class BacktestEngine:
             total_bars=total_bars,
             symbols=len(data),
             capital=self.config.initial_capital,
+            timeframe=self.config.timeframe,
+            warmup_bars=warmup,
         )
 
-        for bar_idx, current_date in enumerate(dates):
-            date_str = str(current_date.date()) if hasattr(current_date, 'date') else str(current_date)
+        # Track previous day for daily return calculation in hourly mode
+        prev_day: str | None = None
 
-            # Step 1: Fill pending orders at today's open
+        for bar_idx, current_date in enumerate(dates):
+            date_str = self._format_date(current_date)
+            day_str = self._extract_day(current_date)
+
+            # Step 1: Fill pending orders at this bar's open
             self._fill_pending_orders(data, current_date)
 
             # Step 2: Check stop-loss / take-profit on existing positions
@@ -385,49 +462,81 @@ class BacktestEngine:
                 # Close all positions but DON'T stop the backtest — cooldown period
                 self._close_all_positions(data, current_date, date_str, CloseReason.KILL_SWITCH)
                 self._kill_switch = False  # Reset after closing positions
-                self._cooldown_until = bar_idx + 5  # 5-day cooldown
+                self._cooldown_until = bar_idx + self._cooldown_bars
                 self._kill_switch_count += 1
 
             # Step 4: Generate signals (only after warmup and not in cooldown)
-            if bar_idx >= self.config.warmup_bars and bar_idx >= self._cooldown_until:
+            if bar_idx >= warmup and bar_idx >= self._cooldown_until:
                 self._generate_signals(data, current_date, dates, bar_idx)
 
-            # Step 5: Record end-of-day equity
+            # Step 5: Record equity
             equity = self._calculate_equity(data, current_date)
-            self._record_equity(date_str, equity, data, current_date)
 
-            # Track daily returns
+            # For hourly: only record equity curve at end of day (last bar of the day)
+            # For daily: record every bar
+            is_day_end = True
+            if self._is_hourly:
+                # Check if next bar is a different day
+                next_idx = bar_idx + 1
+                if next_idx < len(dates):
+                    next_day = self._extract_day(dates[next_idx])
+                    is_day_end = next_day != day_str
+
+            if is_day_end:
+                self._record_equity(day_str, equity, data, current_date)
+
+            # Track returns per bar (for Sharpe calculation)
             if self._prev_equity > 0:
-                daily_ret = (equity - self._prev_equity) / self._prev_equity
-                self._daily_returns.append(daily_ret)
+                bar_ret = (equity - self._prev_equity) / self._prev_equity
+                self._daily_returns.append(bar_ret)
             self._prev_equity = equity
 
-            # Weekly reset (every 5 trading days)
-            self._day_count += 1
-            if self._day_count % 5 == 0:
+            # Weekly reset
+            self._bar_count += 1
+            if self._bar_count % self._week_bars == 0:
                 self._week_start_equity = equity
 
         # Close remaining positions at end
         if self._positions:
             last_date = dates[-1]
-            last_date_str = str(last_date.date()) if hasattr(last_date, 'date') else str(last_date)
+            last_date_str = self._format_date(last_date)
             self._close_all_positions(data, last_date, last_date_str, CloseReason.END_OF_BACKTEST)
 
+        final_eq = self._calculate_equity(data, dates[-1]) if dates else self._cash
         logger.info(
             "backtest_complete",
             trades=len(self._trades),
-            final_equity=round(self._calculate_equity(data, dates[-1]) if dates else self._cash, 2),
-            kill_switch=self._kill_switch,
+            final_equity=round(final_eq, 2),
+            kill_switches=self._kill_switch_count,
+            timeframe=self.config.timeframe,
         )
 
         return self._build_result(total_bars)
+
+    # ------------------------------------------------------------------
+    # Date helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _format_date(ts) -> str:
+        """Format a timestamp to string."""
+        if hasattr(ts, "strftime"):
+            return ts.strftime("%Y-%m-%d %H:%M") if hasattr(ts, "hour") and ts.hour > 0 else ts.strftime("%Y-%m-%d")
+        return str(ts)
+
+    @staticmethod
+    def _extract_day(ts) -> str:
+        """Extract just the date part from a timestamp."""
+        if hasattr(ts, "date"):
+            return str(ts.date())
+        return str(ts)[:10]
 
     # ------------------------------------------------------------------
     # Order filling
     # ------------------------------------------------------------------
 
     def _fill_pending_orders(self, data: dict[str, pd.DataFrame], current_date) -> None:
-        """Fill pending orders at today's open + slippage."""
+        """Fill pending orders at this bar's open + slippage."""
         orders_to_fill = self._pending_orders[:]
         self._pending_orders.clear()
 
@@ -463,9 +572,13 @@ class BacktestEngine:
                     continue  # Already have a position
 
                 self._cash -= cost
-                date_str = str(current_date.date()) if hasattr(current_date, 'date') else str(current_date)
+                date_str = self._format_date(current_date)
                 # Calculate ATR at entry for trailing stop
-                atr_at_entry = abs(fill_price - order.stop_loss) / self.config.stop_loss_atr if self.config.stop_loss_atr > 0 else 0
+                atr_at_entry = (
+                    abs(fill_price - order.stop_loss) / self.config.stop_loss_atr
+                    if self.config.stop_loss_atr > 0
+                    else 0
+                )
                 self._positions[order.symbol] = OpenPosition(
                     symbol=order.symbol,
                     shares=order.shares,
@@ -492,7 +605,7 @@ class BacktestEngine:
                 pos = self._positions[order.symbol]
                 proceeds = pos.shares * fill_price - (pos.shares * self.config.commission_per_share)
                 self._cash += proceeds
-                date_str = str(current_date.date()) if hasattr(current_date, 'date') else str(current_date)
+                date_str = self._format_date(current_date)
                 self._record_trade(pos, fill_price, date_str, CloseReason.SIGNAL_EXIT)
                 del self._positions[order.symbol]
                 self._orders_filled += 1
@@ -521,15 +634,15 @@ class BacktestEngine:
             if close_price > pos.highest_close:
                 pos.highest_close = close_price
 
-            # Trailing stop: only after significant profit (3×ATR)
+            # Trailing stop: only after significant profit
             atr = pos.atr_at_entry
             if atr > 0:
                 profit_from_entry = pos.highest_close - pos.entry_price
-                # Move to breakeven after 2×ATR profit
+                # Move to breakeven after 2xATR profit
                 if profit_from_entry > 2 * atr:
                     breakeven_stop = pos.entry_price + (atr * 0.25)
                     pos.stop_loss = max(pos.stop_loss, breakeven_stop)
-                # Trail at highest - 2.5×ATR after 3.5×ATR profit
+                # Trail at highest - 2.5xATR after 3.5xATR profit
                 if profit_from_entry > 3.5 * atr:
                     trailing_stop = pos.highest_close - (atr * 2.5)
                     pos.stop_loss = max(pos.stop_loss, trailing_stop)
@@ -554,7 +667,7 @@ class BacktestEngine:
             )
 
     # ------------------------------------------------------------------
-    # Signal generation (reuses production code)
+    # Signal generation
     # ------------------------------------------------------------------
 
     def _generate_signals(
@@ -564,16 +677,19 @@ class BacktestEngine:
         if len(self._positions) >= self.config.max_positions:
             return  # At capacity
 
-        # Macro filter: skip if SPY is below its SMA50
+        # Macro filter: skip if SPY is below its SMA medium
+        sma_medium_period = self._periods["sma_medium"]
         if self.config.trend_filter and "SPY" in data:
             spy_df = data["SPY"]
             spy_mask = spy_df.index <= current_date
             spy_slice = spy_df[spy_mask]
-            if len(spy_slice) >= 50:
+            if len(spy_slice) >= sma_medium_period:
                 spy_price = float(spy_slice["close"].iloc[-1])
-                spy_sma50 = float(spy_slice["close"].tail(50).mean())
-                if spy_price < spy_sma50:
+                spy_sma = float(spy_slice["close"].tail(sma_medium_period).mean())
+                if spy_price < spy_sma:
                     return  # Market in downtrend — sit out
+
+        min_bars = self._periods["min_bars"]
 
         for symbol, full_df in data.items():
             if symbol in self._positions:
@@ -585,10 +701,10 @@ class BacktestEngine:
             mask = full_df.index <= current_date
             df_slice = full_df[mask]
 
-            if len(df_slice) < 50:
+            if len(df_slice) < min_bars:
                 continue  # Not enough history for indicators
 
-            # Analyze stock with configurable threshold
+            # Analyze stock with timeframe-calibrated indicators
             signal = analyze_stock(
                 symbol,
                 df_slice,
@@ -597,6 +713,7 @@ class BacktestEngine:
                 stop_loss_atr=self.config.stop_loss_atr,
                 take_profit_atr=self.config.take_profit_atr,
                 trend_filter=self.config.trend_filter,
+                timeframe=self.config.timeframe,
             )
 
             if signal is None:
@@ -731,8 +848,8 @@ class BacktestEngine:
 
         # Calculate hold days from date strings
         try:
-            entry_d = date.fromisoformat(pos.entry_date)
-            exit_d = date.fromisoformat(exit_date)
+            entry_d = date.fromisoformat(pos.entry_date[:10])
+            exit_d = date.fromisoformat(exit_date[:10])
             hold_days = (exit_d - entry_d).days
         except (ValueError, TypeError):
             hold_days = 0

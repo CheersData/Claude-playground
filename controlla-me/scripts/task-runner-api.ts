@@ -1,148 +1,200 @@
 /**
- * task-runner-api.ts — Task runner alternativo via API diretta (ADR-009)
+ * task-runner-api.ts — Task runner via API diretta (ADR-009)
  *
- * Per task con model_tier: "free" usa modelli Groq/Cerebras/Mistral
- * senza consumare la subscription del boss (claude -p).
+ * Usa agent-runner con catena di fallback free-tier:
+ *   Gemini Flash → Cerebras → Groq → Mistral
  *
- * Usage: npx tsx scripts/task-runner-api.ts [--task-id <id>] [--dept <dept>]
+ * Vantaggi rispetto al task-runner.ts (CLI):
+ * - Zero consumo subscription (modelli free)
+ * - Fallback automatico su provider errors/429
+ * - Cost logging automatico (agent_cost_log)
+ * - Funziona in ambiente demo senza `claude` nel PATH
  *
- * Differenze dal task-runner.ts:
- * - Usa fetch() diretta vs CLI claude -p
- * - Solo per task taggati model_tier: free
- * - Nessun ragionamento multi-step — prompt singolo
+ * Usage:
+ *   npx tsx scripts/task-runner-api.ts --task-id <id>      # singolo task
+ *   npx tsx scripts/task-runner-api.ts --dept <dept>        # tutti open del dipartimento
+ *   npx tsx scripts/task-runner-api.ts --all                # tutti open
+ *
+ * NOTA: Usa agent-runner direttamente — non serve claude CLI.
  */
 
-import { execSync } from "child_process";
 import * as dotenv from "dotenv";
 import { resolve } from "path";
+import * as fs from "fs";
 
 dotenv.config({ path: resolve(__dirname, "../.env.local") });
 
-// ─── Config provider free ───
+import { runAgent } from "../lib/ai-sdk/agent-runner";
+import {
+  getTask,
+  getOpenTasks,
+  claimTask,
+  updateTask,
+} from "../lib/company/tasks";
+import type { Task, Department } from "../lib/company/types";
 
-function getFreeProvider(): { key: string; url: string; model: string } | null {
-  if (process.env.GROQ_API_KEY) {
-    return {
-      key: process.env.GROQ_API_KEY,
-      url: "https://api.groq.com/openai/v1",
-      model: "llama-3.3-70b-versatile",
-    };
-  }
-  if (process.env.CEREBRAS_API_KEY) {
-    return {
-      key: process.env.CEREBRAS_API_KEY,
-      url: "https://api.cerebras.ai/v1",
-      model: "llama-3.3-70b",
-    };
-  }
-  if (process.env.MISTRAL_API_KEY) {
-    return {
-      key: process.env.MISTRAL_API_KEY,
-      url: "https://api.mistral.ai/v1",
-      model: "mistral-small-latest",
-    };
-  }
-  return null;
+// ─── Config ───
+
+const MAX_TASKS_PER_RUN = 10;
+const COMPANY_DIR = resolve(__dirname, "../company");
+
+function log(msg: string): void {
+  const ts = new Date().toISOString().slice(11, 19);
+  console.log(`[${ts}] ${msg}`);
 }
 
-// ─── Esegui task via API free ───
+// ─── Lettura context dipartimento ───
 
-async function runTaskFree(taskId: string, title: string, description: string): Promise<string> {
-  const provider = getFreeProvider();
-  if (!provider) {
-    throw new Error("Nessun provider free configurato (GROQ_API_KEY / CEREBRAS_API_KEY / MISTRAL_API_KEY)");
+function getDepartmentContext(dept: string): string {
+  const deptFile = resolve(COMPANY_DIR, dept, "department.md");
+  try {
+    return fs.readFileSync(deptFile, "utf-8").slice(0, 2000);
+  } catch {
+    return `Dipartimento: ${dept}`;
   }
+}
 
-  const prompt = `Sei un agente AI che lavora per Controlla.me (app analisi legale AI).
+// ─── Esecuzione task ───
 
-Task da eseguire:
-TITOLO: ${title}
-DESCRIZIONE: ${description}
+interface TaskResult {
+  success: boolean;
+  summary: string;
+  recommendations?: string[];
+}
 
-Esegui il task e fornisci output concreto e utile. Sii diretto, no intro generiche.`;
+async function executeTask(task: Task): Promise<{ success: boolean; summary: string }> {
+  const start = Date.now();
+  log(`  → Esecuzione [${task.priority}] ${task.title}`);
 
-  const res = await fetch(`${provider.url}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${provider.key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 2048,
+  const deptContext = getDepartmentContext(task.department);
+
+  const prompt = `Sei un agente AI della virtual company Controlla.me (app analisi legale AI).
+
+CONTESTO DIPARTIMENTO:
+${deptContext}
+
+TASK DA ESEGUIRE:
+- Titolo: ${task.title}
+- Descrizione: ${task.description ?? "Nessuna descrizione."}
+- Dipartimento: ${task.department}
+- Priorità: ${task.priority}
+
+Esegui il task e rispondi con JSON puro (no markdown, no backtick):
+{
+  "success": true,
+  "summary": "Resoconto concreto di cosa hai analizzato/proposto (max 400 parole)",
+  "recommendations": ["Azione 1", "Azione 2"]
+}
+
+Sii diretto e concreto. No intro generiche. Produci output utile e azionabile.`;
+
+  try {
+    const result = await runAgent<TaskResult>("task-executor", prompt, {
+      maxTokens: 4096,
       temperature: 0.2,
-    }),
-  });
+    });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`API ${provider.url}: HTTP ${res.status} — ${err.slice(0, 200)}`);
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    const modelUsed = result.usedModelKey;
+    const fallback = result.usedFallback ? " (fallback)" : "";
+
+    log(`     ✓ Completato in ${elapsed}s — ${modelUsed}${fallback}`);
+
+    return {
+      success: result.parsed.success !== false,
+      summary: result.parsed.summary ?? "Task eseguito senza output strutturato.",
+    };
+  } catch (err) {
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log(`     ✗ Errore dopo ${elapsed}s: ${errMsg.slice(0, 200)}`);
+    return {
+      success: false,
+      summary: `ERRORE ESECUZIONE (${elapsed}s): ${errMsg.slice(0, 400)}`,
+    };
   }
-
-  const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-  return data.choices[0]?.message?.content ?? "Nessun output.";
 }
 
 // ─── MAIN ───
 
 async function main() {
   const args = process.argv.slice(2);
-  const taskIdArg = args[args.indexOf("--task-id") + 1];
 
-  if (!taskIdArg) {
-    console.log("Usage: npx tsx scripts/task-runner-api.ts --task-id <id>");
-    console.log("\nEsegue task company via API free (Groq/Cerebras/Mistral).");
-    console.log("Solo per task con model_tier: free — task complessi usare CME manualmente.");
-    process.exit(1);
-  }
+  const taskIdIdx = args.indexOf("--task-id");
+  const deptIdx = args.indexOf("--dept");
+  const allMode = args.includes("--all");
 
-  // Leggi task dal board
-  let taskData: { title: string; description: string } | null = null;
-  try {
-    const raw = execSync(
-      `npx tsx scripts/company-tasks.ts get ${taskIdArg}`,
-      { encoding: "utf-8", cwd: resolve(__dirname, "..") }
-    );
-    const titleMatch = raw.match(/Task:\s+(.+)/);
-    const descMatch = raw.match(/Description:\s+([\s\S]+?)(?:\n  [A-Z]|$)/);
-    if (titleMatch) {
-      taskData = {
-        title: titleMatch[1].trim(),
-        description: descMatch?.[1]?.trim() ?? "Nessuna descrizione.",
-      };
+  let tasks: Task[] = [];
+
+  if (taskIdIdx !== -1 && args[taskIdIdx + 1]) {
+    const taskId = args[taskIdIdx + 1];
+    const task = await getTask(taskId);
+    if (!task) {
+      console.error(`Task ${taskId} non trovato.`);
+      process.exit(1);
     }
-  } catch (e) {
-    console.error("Errore lettura task:", e);
-    process.exit(1);
+    tasks = [task];
+  } else if (deptIdx !== -1 && args[deptIdx + 1]) {
+    const dept = args[deptIdx + 1] as Department;
+    tasks = await getOpenTasks({ department: dept, status: "open", limit: MAX_TASKS_PER_RUN });
+  } else if (allMode) {
+    tasks = await getOpenTasks({ status: "open", limit: MAX_TASKS_PER_RUN });
+  } else {
+    console.log(`
+task-runner-api — Esecuzione task via API free (ADR-009)
+
+Usage:
+  npx tsx scripts/task-runner-api.ts --task-id <id>    Singolo task
+  npx tsx scripts/task-runner-api.ts --dept <dept>     Tutti open del dipartimento
+  npx tsx scripts/task-runner-api.ts --all             Tutti open (max ${MAX_TASKS_PER_RUN})
+
+Catena fallback: Gemini Flash → Cerebras → Groq → Mistral (tutti free tier)
+    `);
+    process.exit(0);
   }
 
-  if (!taskData) {
-    console.error(`Task ${taskIdArg} non trovato.`);
-    process.exit(1);
+  if (tasks.length === 0) {
+    log("Nessun task da eseguire.");
+    return;
   }
 
-  console.log(`=== Task Runner API (free tier) ===`);
-  console.log(`Task: ${taskData.title}`);
-  console.log(`ID: ${taskIdArg}\n`);
+  log(`=== Task Runner API (free tier) — ${tasks.length} task ===\n`);
 
-  try {
-    const result = await runTaskFree(taskIdArg, taskData.title, taskData.description);
-    console.log("=== OUTPUT ===\n");
-    console.log(result);
-    console.log("\n=== FINE ===");
+  let completed = 0;
+  let failed = 0;
 
-    // Segna come completato
-    execSync(
-      `npx tsx scripts/company-tasks.ts done ${taskIdArg} --summary ${JSON.stringify(result.slice(0, 500))}`,
-      { encoding: "utf-8", cwd: resolve(__dirname, "..") }
-    );
-    console.log(`\n✓ Task ${taskIdArg} segnato come completato.`);
-  } catch (e) {
-    const errMsg = e instanceof Error ? e.message : String(e);
-    console.error(`\n✗ Errore: ${errMsg}`);
-    process.exit(1);
+  for (const task of tasks) {
+    // Claim task
+    try {
+      await claimTask(task.id, "task-runner-api");
+    } catch {
+      log(`  ⚠ Task ${task.id.slice(0, 8)} già claimed, skip.`);
+      continue;
+    }
+
+    // Execute
+    const result = await executeTask(task);
+
+    // Update status
+    if (result.success) {
+      await updateTask(task.id, {
+        status: "done",
+        resultSummary: result.summary,
+      });
+      completed++;
+    } else {
+      await updateTask(task.id, {
+        status: "blocked",
+        resultSummary: result.summary,
+      });
+      failed++;
+    }
   }
+
+  log(`\n=== Riepilogo: ${completed} completati, ${failed} bloccati ===`);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error("Errore fatale:", err.message);
+  process.exit(1);
+});

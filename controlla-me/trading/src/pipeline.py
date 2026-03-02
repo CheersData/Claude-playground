@@ -8,6 +8,9 @@ Pipeline flow:
   4. Executor        → executed trades
   5. Portfolio Monitor → daily report
 
+Intraday pipeline (phases 1-4, no daily report):
+  run_intraday_pipeline() — hourly refresh during market hours
+
 Can be run as a full pipeline or agent-by-agent.
 """
 
@@ -122,6 +125,105 @@ async def run_daily_pipeline() -> dict:
         results["status"] = "error"
         results["error"] = str(e)
         logger.error("pipeline_error", error=str(e))
+
+    return results
+
+
+async def run_intraday_pipeline() -> dict:
+    """
+    Intraday signal refresh — runs every hour during market hours.
+
+    Phases 1-4 only (scan + signal + risk + execute).
+    No daily report — that runs post-market at 16:30 ET.
+    """
+    settings = get_settings()
+    start = datetime.utcnow()
+
+    if not settings.enabled:
+        logger.warning("intraday_pipeline_disabled", reason="TRADING_ENABLED=false")
+        return {"status": "disabled"}
+
+    logger.info("intraday_pipeline_start", mode=settings.mode)
+    results: dict = {
+        "started_at": start.isoformat(),
+        "mode": settings.mode,
+        "type": "intraday",
+    }
+
+    try:
+        # Phase 1: Market Scanner (refresh intraday watchlist)
+        scanner = MarketScanner()
+        scan_result = await scanner.run()
+        results["scan"] = {
+            "candidates": scan_result.get("candidates_found", 0),
+            "status": "ok",
+        }
+
+        watchlist = scan_result.get("watchlist", [])
+        if not watchlist:
+            logger.info("intraday_pipeline_skip", reason="empty watchlist")
+            results["status"] = "no_candidates"
+            return results
+
+        # Phase 2: Signal Generator
+        signal_gen = SignalGenerator()
+        signal_result = await signal_gen.run(watchlist=watchlist)
+        results["signals"] = {
+            "generated": signal_result.get("signals_generated", 0),
+            "status": "ok",
+        }
+
+        signals = signal_result.get("signals", [])
+        if not signals:
+            logger.info("intraday_pipeline_skip", reason="no signals")
+            results["status"] = "no_signals"
+            return results
+
+        # Phase 3: Risk Manager
+        risk_mgr = RiskManager()
+        risk_result = await risk_mgr.run(signals=signals)
+
+        if risk_result.get("kill_switch"):
+            results["risk"] = {
+                "status": "kill_switch",
+                "message": risk_result.get("message"),
+            }
+            results["status"] = "kill_switch"
+            return results
+
+        decisions = risk_result.get("decisions", [])
+        approved = [d for d in decisions if d.get("status") == "APPROVED"]
+        results["risk"] = {
+            "total": len(decisions),
+            "approved": len(approved),
+            "status": "ok",
+        }
+
+        # Phase 4: Executor
+        if approved:
+            executor = Executor()
+            exec_result = await executor.run(decisions=approved)
+            results["execution"] = {
+                "executed": exec_result.get("total_executed", 0),
+                "status": "ok",
+            }
+        else:
+            results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+
+        results["status"] = "ok"
+        duration_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        logger.info(
+            "intraday_pipeline_complete",
+            duration_ms=duration_ms,
+            signals=results["signals"]["generated"],
+            approved=results["risk"]["approved"],
+            executed=results["execution"]["executed"],
+        )
+
+    except Exception as e:
+        results["status"] = "error"
+        results["error"] = str(e)
+        logger.error("intraday_pipeline_error", error=str(e))
 
     return results
 

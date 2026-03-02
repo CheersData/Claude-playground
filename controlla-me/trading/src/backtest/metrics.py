@@ -3,6 +3,8 @@ Backtest Metrics — Calculate performance statistics from backtest results.
 
 Sharpe, Sortino, CAGR, max drawdown, win rate, profit factor, etc.
 Includes go/no-go check against runbook criteria.
+
+Supports both daily and hourly timeframes with correct annualization.
 """
 
 from __future__ import annotations
@@ -16,6 +18,8 @@ import structlog
 logger = structlog.get_logger()
 
 TRADING_DAYS_PER_YEAR = 252
+HOURS_PER_DAY = 6.5
+TRADING_HOURS_PER_YEAR = TRADING_DAYS_PER_YEAR * HOURS_PER_DAY  # 1638
 RISK_FREE_RATE = 0.04  # ~4% risk-free (T-bills 2024-2026)
 
 
@@ -68,9 +72,18 @@ class PerformanceMetrics:
     go_nogo: dict
 
 
+def _bars_per_year(timeframe: str) -> float:
+    """Return the number of bars per year for annualization."""
+    if timeframe == "1Hour":
+        return TRADING_HOURS_PER_YEAR
+    return TRADING_DAYS_PER_YEAR
+
+
 def calculate_metrics(result) -> PerformanceMetrics:
     """
     Calculate comprehensive performance metrics from a BacktestResult.
+
+    Handles both daily and hourly timeframes with correct annualization.
 
     Args:
         result: BacktestResult from engine.
@@ -82,6 +95,10 @@ def calculate_metrics(result) -> PerformanceMetrics:
     equity_curve = result.equity_curve
     daily_returns = result.daily_returns
     initial_capital = result.config.initial_capital
+    timeframe = getattr(result.config, "timeframe", "1Day")
+
+    # Annualization factor
+    ann_factor = _bars_per_year(timeframe)
 
     # --- Basic returns ---
     final_equity = equity_curve[-1]["equity"] if equity_curve else initial_capital
@@ -91,8 +108,8 @@ def calculate_metrics(result) -> PerformanceMetrics:
     # Trading period in years
     if equity_curve and len(equity_curve) > 1:
         try:
-            start_d = date.fromisoformat(equity_curve[0]["date"])
-            end_d = date.fromisoformat(equity_curve[-1]["date"])
+            start_d = date.fromisoformat(equity_curve[0]["date"][:10])
+            end_d = date.fromisoformat(equity_curve[-1]["date"][:10])
             years = max((end_d - start_d).days / 365.25, 0.01)
         except (ValueError, TypeError):
             years = len(equity_curve) / TRADING_DAYS_PER_YEAR
@@ -108,7 +125,12 @@ def calculate_metrics(result) -> PerformanceMetrics:
     # --- Volatility & risk-adjusted metrics ---
     returns_arr = np.array(daily_returns) if daily_returns else np.array([0.0])
 
-    annualized_vol = float(np.std(returns_arr, ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR) * 100) if len(returns_arr) > 1 else 0.0
+    # Annualized volatility — uses ann_factor for correct scaling
+    annualized_vol = (
+        float(np.std(returns_arr, ddof=1) * np.sqrt(ann_factor) * 100)
+        if len(returns_arr) > 1
+        else 0.0
+    )
 
     # Sharpe ratio (annualized)
     if annualized_vol > 0:
@@ -120,19 +142,19 @@ def calculate_metrics(result) -> PerformanceMetrics:
     # Sortino ratio (uses downside deviation only)
     negative_returns = returns_arr[returns_arr < 0]
     if len(negative_returns) > 0:
-        downside_dev = float(np.std(negative_returns, ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR) * 100)
+        downside_dev = float(np.std(negative_returns, ddof=1) * np.sqrt(ann_factor) * 100)
         if downside_dev > 0:
             sortino_ratio = (cagr_pct - (RISK_FREE_RATE * 100)) / downside_dev
         else:
             sortino_ratio = 0.0
     else:
-        sortino_ratio = sharpe_ratio  # No losing days
+        sortino_ratio = sharpe_ratio  # No losing periods
 
     # --- Drawdown ---
     max_dd_pct = 0.0
     max_dd_duration = 0
-    dd_durations = []
-    current_dd_start = None
+    dd_durations: list[int] = []
+    current_dd_start: str | None = None
 
     if equity_curve:
         peak = equity_curve[0]["equity"]
@@ -142,8 +164,8 @@ def calculate_metrics(result) -> PerformanceMetrics:
                 peak = eq
                 if current_dd_start is not None:
                     try:
-                        dd_start = date.fromisoformat(current_dd_start)
-                        dd_end = date.fromisoformat(point["date"])
+                        dd_start = date.fromisoformat(current_dd_start[:10])
+                        dd_end = date.fromisoformat(point["date"][:10])
                         dd_durations.append((dd_end - dd_start).days)
                     except (ValueError, TypeError):
                         pass
@@ -156,7 +178,11 @@ def calculate_metrics(result) -> PerformanceMetrics:
 
         max_dd_duration = max(dd_durations) if dd_durations else 0
 
-    avg_dd_pct = float(np.mean([e["drawdown_pct"] for e in equity_curve if e["drawdown_pct"] < 0])) if any(e["drawdown_pct"] < 0 for e in equity_curve) else 0.0
+    avg_dd_pct = (
+        float(np.mean([e["drawdown_pct"] for e in equity_curve if e["drawdown_pct"] < 0]))
+        if any(e["drawdown_pct"] < 0 for e in equity_curve)
+        else 0.0
+    )
 
     # --- Trade statistics ---
     total_trades = len(trades)
@@ -170,7 +196,11 @@ def calculate_metrics(result) -> PerformanceMetrics:
     # Profit factor
     gross_profit = sum(t.pnl for t in winning) if winning else 0.0
     gross_loss = abs(sum(t.pnl for t in losing)) if losing else 0.0
-    profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
+    profit_factor = (
+        (gross_profit / gross_loss)
+        if gross_loss > 0
+        else (float("inf") if gross_profit > 0 else 0.0)
+    )
 
     avg_win_pct = float(np.mean([t.pnl_pct for t in winning])) if winning else 0.0
     avg_loss_pct = float(np.mean([t.pnl_pct for t in losing])) if losing else 0.0
@@ -242,6 +272,7 @@ def calculate_metrics(result) -> PerformanceMetrics:
         win_rate=metrics.win_rate_pct,
         profit_factor=metrics.profit_factor,
         trades=metrics.total_trades,
+        timeframe=timeframe,
         go=go_nogo["pass"],
     )
 
@@ -301,5 +332,5 @@ def _check_go_nogo(
     return {
         "pass": all_pass,
         "checks": checks,
-        "verdict": "GO ✅ — Ready for paper trading" if all_pass else "NO-GO ❌ — Does not meet criteria",
+        "verdict": "GO — Ready for paper trading" if all_pass else "NO-GO — Does not meet criteria",
     }

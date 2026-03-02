@@ -39,6 +39,25 @@ jobs:
       - name: Lint
         run: npm run lint
 
+  # ─── 1b. Documentation Check (solo PR) ──────────────────────────────────────
+  docs-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check CHANGELOG updated
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "CHANGELOG.md"; then
+            echo "✅ CHANGELOG.md aggiornato"
+          else
+            echo "⚠️  CHANGELOG.md non aggiornato — ricorda di documentare le modifiche"
+            echo "   Vedi docs/DEPLOY-CHECKLIST.md per il processo completo"
+          fi
+
   # ─── 2. Unit Tests ──────────────────────────────────────────────────────────
   unit-tests:
     name: Unit Tests

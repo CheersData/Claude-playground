@@ -11,6 +11,31 @@ Esecuzione della pipeline di trading giornaliera, dal market scan all'esecuzione
 - Supabase accessibile
 - Mercato US aperto (9:30-16:00 ET, lun-ven)
 
+## Esecuzione automatica (scheduler)
+
+```bash
+cd trading
+python -m src.scheduler
+```
+
+Gira continuamente in background. Schedule automatico:
+- **09:00 ET** — full pipeline (scan + signal + risk + execution)
+- **16:30 ET** — daily report post-market
+- Skip automatico weekend
+
+Per girare in background su Windows:
+```bash
+start /B python -m src.scheduler > logs/scheduler.log 2>&1
+```
+
+Per girare in background su Linux/Mac:
+```bash
+nohup python -m src.scheduler > logs/scheduler.log 2>&1 &
+```
+
+**Nota DST**: `ET_OFFSET_HOURS` in `src/scheduler.py` è impostato a `-5` (EST).
+Cambiare a `-4` durante l'ora legale US (seconda domenica di marzo → prima domenica di novembre).
+
 ## Schedule
 
 | Fase | Orario (CET) | Agente |

@@ -25,14 +25,32 @@ from ..connectors.alpaca_client import AlpacaClient
 from ..models.signals import ScanResult
 
 
-# S&P 500 + NASDAQ 100 core symbols (subset for MVP — expand later)
+# S&P 500 + NASDAQ 100 core symbols + sector rotation coverage
 DEFAULT_UNIVERSE = [
-    "AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA", "BRK.B",
-    "UNH", "JNJ", "V", "XOM", "JPM", "PG", "MA", "HD", "CVX", "ABBV",
-    "MRK", "LLY", "PEP", "KO", "COST", "AVGO", "TMO", "MCD", "WMT",
-    "CSCO", "ACN", "ABT", "DHR", "NEE", "LIN", "TXN", "PM", "AMGN",
-    # ETFs
-    "SPY", "QQQ", "IWM", "XLF", "XLK", "XLE", "XLV", "XLI", "ARKK",
+    # Mega-cap tech / growth
+    "AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA",
+    # Healthcare
+    "UNH", "JNJ", "ABBV", "MRK", "LLY", "ABT", "TMO", "DHR", "AMGN",
+    # Financials
+    "JPM", "V", "MA", "BRK.B",
+    # Consumer
+    "PG", "HD", "PEP", "KO", "COST", "MCD", "WMT", "PM",
+    # Tech / Semis
+    "AVGO", "CSCO", "ACN", "TXN",
+    # Energy
+    "XOM", "CVX",
+    # Industrials
+    "LIN", "NEE",
+    # Defense — sector rotation target
+    "LMT", "NOC", "RTX", "GD",
+    # Utilities — defensive rotation
+    "XLU", "SO",
+    # Commodities / Hard assets — rotation in corso
+    "GLD", "GDX", "USO", "DBA",
+    # Broad ETFs
+    "SPY", "QQQ", "IWM",
+    # Sector ETFs
+    "XLF", "XLK", "XLE", "XLV", "XLI", "ARKK",
 ]
 
 

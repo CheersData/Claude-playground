@@ -18,7 +18,7 @@ import type { NextRequest } from "next/server";
 export const maxDuration = 300; // Sessioni interattive possono durare di più
 
 const TARGETS: Record<string, { promptFile: string; label: string; model: string }> = {
-  cme:                { promptFile: "cme.md",                           label: "CME (CEO)",            model: "opus" },
+  cme:                { promptFile: "cme.md",                           label: "CME (CEO)",            model: "sonnet" },
   "ufficio-legale":   { promptFile: "ufficio-legale/department.md",     label: "Ufficio Legale TL",    model: "sonnet" },
   "data-engineering": { promptFile: "data-engineering/department.md",   label: "Data Engineering TL",  model: "sonnet" },
   "quality-assurance":{ promptFile: "quality-assurance/department.md",  label: "Quality Assurance TL", model: "sonnet" },
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const message: string = body.message ?? "";
     const target: string = body.target ?? "cme";
+    const history: Array<{ role: string; content: string }> = body.history ?? [];
 
     const targetConfig = TARGETS[target];
     if (!targetConfig) {
@@ -73,6 +74,20 @@ export async function POST(req: Request) {
     // Short system prompt for CLI arg (avoids Windows cmd length limit)
     const shortSystemPrompt = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso (max 200 parole). Non inventare numeri.`;
 
+    // Build conversation history section (if resuming)
+    let historySection = "";
+    if (history.length > 0) {
+      const historyLines = history.map((m) =>
+        m.role === "user" ? `BOSS: ${m.content}` : `TU: ${m.content}`
+      );
+      historySection = [
+        "",
+        "## CONVERSAZIONE PRECEDENTE (continua da qui)",
+        ...historyLines,
+        "",
+      ].join("\n");
+    }
+
     // Build full context message for first turn
     const contextMessage = [
       "## IL TUO RUOLO",
@@ -80,7 +95,7 @@ export async function POST(req: Request) {
       "",
       "## DATI AZIENDALI LIVE",
       dataContext,
-      "",
+      historySection,
       "## DOMANDA",
       message,
     ].join("\n");

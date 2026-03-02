@@ -381,7 +381,8 @@ export type AgentName =
   | "analyzer"
   | "investigator"
   | "advisor"
-  | "corpus-agent";
+  | "corpus-agent"
+  | "task-executor";
 
 export interface AgentModelConfig {
   /** Primary model for this agent */
@@ -452,6 +453,14 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     maxTokens: 4096,
     temperature: 0,
     notes: "Output finale utente. Serve qualità massima, zero errori.",
+  },
+  // ── Company Tasks — FREE TIER (ADR-009) ──
+  "task-executor": {
+    primary: "gemini-2.5-flash",
+    fallback: "cerebras-gpt-oss-120b",
+    maxTokens: 4096,
+    temperature: 0.2,
+    notes: "Esecuzione task company via API free. Zero costo subscription. Catena: Gemini Flash → Cerebras → Groq → Mistral.",
   },
 };
 

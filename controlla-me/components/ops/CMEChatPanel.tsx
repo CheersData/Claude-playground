@@ -40,13 +40,19 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
     abortRef.current = controller;
 
     try {
-      const token = sessionStorage.getItem("lexmea-token");
+      const headers = getConsoleJsonHeaders();
+      if (!sessionStorage.getItem("lexmea-token")) {
+        throw new Error("Sessione scaduta — ricarica la pagina e accedi di nuovo.");
+      }
+      // Include conversation history so CME has full context even on new subprocess
       const res = await fetch("/api/console/company", {
         method: "POST",
-        headers: token
-          ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-          : { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, target: "cme" }),
+        headers,
+        body: JSON.stringify({
+          message: text,
+          target: "cme",
+          history: messages.slice(-20),
+        }),
         signal: controller.signal,
       });
 
@@ -130,7 +136,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
       setSessionId(null);
       setResponding(false);
     }
-  }, []);
+  }, [messages]);
 
   const sendFollowUp = useCallback(async (text: string) => {
     if (!sessionId) { await startSession(text, false); return; }
@@ -207,7 +213,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
         <span className="text-zinc-600">/</span>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#FF6B35]" />
-          <span className="text-zinc-200 text-sm font-medium">CME (CEO) — Opus</span>
+          <span className="text-zinc-200 text-sm font-medium">CME (CEO) — Sonnet</span>
         </div>
         {responding && (
           <span className="text-[11px] text-amber-400 animate-pulse ml-2">
@@ -269,7 +275,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
             <div className="max-w-[85%] bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="w-[5px] h-[5px] rounded-full bg-[#FF6B35] animate-pulse" />
-                <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Opus</span>
+                <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Sonnet</span>
               </div>
               <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">{streaming}</p>
             </div>
@@ -289,7 +295,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
               {msg.role === "assistant" && (
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="w-[5px] h-[5px] rounded-full bg-[#FF6B35]" />
-                  <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Opus</span>
+                  <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Sonnet</span>
                 </div>
               )}
               <p className="whitespace-pre-wrap">{msg.content}</p>

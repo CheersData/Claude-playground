@@ -32,9 +32,7 @@ Vedi `decisions.md` per il log completo delle decisioni prese.
 
 ## Agenti
 
-| Agente | Ruolo |
-|--------|-------|
-| ui-ux-designer | Design system, accessibilità, component review, user flows |
+_L'agente ui-ux-designer e stato spostato nel nuovo dipartimento UX/UI (company/ux-ui/)._
 
 ## Runbooks
 

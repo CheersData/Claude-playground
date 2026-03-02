@@ -26,6 +26,10 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 | 11 | Marketing | Ufficio Legale | revisione contenuti | prima della pubblicazione |
 | 12 | Security | CME | vulnerability alert | immediatamente su critical/high |
 | 13 | Security | QA | richiesta test regressione | dopo fix |
+| 14 | Uff. Trading | Finance | P&L report giornaliero | automatico |
+| 15 | Uff. Trading | CME | risk alert (kill switch) | immediatamente |
+| 16 | Finance | CME | alert P&L trading | quando loss > soglia |
+| 17 | QA | Uff. Trading | backtest validation | prima di go-live |
 
 ## Flussi VIETATI
 
@@ -35,16 +39,24 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 - Marketing → modificare prompt o codice (passa da CME → Ufficio Legale / Architecture)
 - Strategy → implementare feature direttamente (passa da CME → Architecture)
 
-## Formati I/O per dipartimento
+## Formati I/O per unità organizzativa
+
+### Uffici (Revenue)
+
+| Ufficio | Input (riceve) | Output (produce) |
+|---------|----------------|-------------------|
+| Ufficio Legale | Task con tipo (prompt review, agent config, revisione contenuto) | Prompt aggiornato, config modificata, contenuto validato |
+| Ufficio Trading | Task con tipo (strategy config, risk params, go/no-go review) | Signal report, trade log, P&L report, risk alert |
+
+### Dipartimenti (Staff)
 
 | Dipartimento | Input (riceve) | Output (produce) |
 |-------------|----------------|-------------------|
-| Ufficio Legale | Task con tipo (prompt review, agent config, revisione contenuto) | Prompt aggiornato, config modificata, contenuto validato |
+| Architecture | Task con problema/feature da risolvere | Proposal (soluzione, impatto, costi stimati) |
 | Data Engineering | Task con source + operazione (sync, add, fix) | Risultato sync (items fetched/inserted/errors) |
 | Quality Assurance | Task "run suite" o "validate X" | Report (tests pass/fail, coverage, issues) |
-| Architecture | Task con problema/feature da risolvere | Proposal (soluzione, impatto, costi stimati) |
 | Security | Task "audit" o vulnerability identificata | Report sicurezza, fix implementato |
-| Finance | Task "cost report" o alert automatico | Report costi (per agent, per provider, trend) |
+| Finance | Task "cost report" o alert automatico | Report costi (per agent, per provider, trend), P&L trading |
 | Operations | Task "status report" | Dashboard data (health, latency, pipeline status) |
 | Strategy | Task "quarterly review" o "feature prioritization" | OKR, roadmap, RICE scores, competitor snapshot |
 | Marketing | Task "content calendar", "growth report", "partnership outreach" | Piano contenuti, report metriche, stato partnership |

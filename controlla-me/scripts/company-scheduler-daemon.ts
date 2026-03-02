@@ -57,6 +57,11 @@ interface PendingPlan {
   tasks: TaskProposal[];
 }
 
+interface ChatMsg {
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface DaemonState {
   updateOffset: number;
   pendingPlan: PendingPlan | null;
@@ -64,6 +69,7 @@ interface DaemonState {
   lastPlanDate: string;
   lastCancelledAt: string | null;
   lastApprovedAt: string | null;
+  chatHistory: ChatMsg[];
 }
 
 // ─── State persistence ────────────────────────────────────────────────────────
@@ -81,6 +87,7 @@ function loadState(): DaemonState {
     lastPlanDate: "",
     lastCancelledAt: null,
     lastApprovedAt: null,
+    chatHistory: [],
   };
 }
 
@@ -527,6 +534,59 @@ async function handleCallback(
   return state;
 }
 
+// ─── CME Chat via Telegram ───────────────────────────────────────────────────
+
+async function chatWithCME(userMessage: string, state: DaemonState): Promise<{ reply: string; state: DaemonState }> {
+  // Read CME prompt
+  let cmePrompt = "Sei il CME (CEO) di Controlla.me. Rispondi in italiano, conciso.";
+  try {
+    cmePrompt = fs.readFileSync(path.join(ROOT, "company/cme.md"), "utf-8");
+  } catch {}
+
+  // Get board stats for context
+  const stats = getBoardStats();
+  const tradingStatus = await getTradingStatus();
+
+  // Build conversation history
+  const historyText = state.chatHistory.length > 0
+    ? state.chatHistory.map((m) => m.role === "user" ? `BOSS: ${m.content}` : `CME: ${m.content}`).join("\n")
+    : "";
+
+  const prompt = `${cmePrompt}
+
+## DATI AZIENDALI LIVE
+Task board: Open=${stats.open}, In Progress=${stats.inProgress}, Done=${stats.done}, Totale=${stats.total}
+
+Ufficio Trading:
+${tradingStatus}
+
+${historyText ? `## CONVERSAZIONE PRECEDENTE\n${historyText}\n` : ""}
+## MESSAGGIO DEL BOSS
+${userMessage}
+
+Rispondi in modo conciso (max 300 parole). Non usare markdown complesso — solo *grassetto* e testo semplice (il messaggio va su Telegram).`;
+
+  try {
+    const raw = execSync(`claude -p ${JSON.stringify(prompt)}`, {
+      encoding: "utf-8",
+      timeout: 90_000,
+      cwd: ROOT,
+    }).trim();
+
+    // Update history (keep last 20 messages)
+    state.chatHistory.push({ role: "user", content: userMessage });
+    state.chatHistory.push({ role: "assistant", content: raw });
+    if (state.chatHistory.length > 20) {
+      state.chatHistory = state.chatHistory.slice(-20);
+    }
+    saveState(state);
+
+    return { reply: raw, state };
+  } catch (e) {
+    return { reply: `Errore CME: ${(e as Error).message}`, state };
+  }
+}
+
 // ─── Main loop ────────────────────────────────────────────────────────────────
 
 async function runDaemon(): Promise<void> {
@@ -543,7 +603,7 @@ async function runDaemon(): Promise<void> {
   let state = loadState();
   let lastBoardCheck = 0;
 
-  await sendMessage("🟢 *CME Scheduler avviato*\nMonitoro il board ogni 5 minuti.\nRiceverai un piano ogni volta che il board è completamente vuoto.");
+  await sendMessage("🟢 *CME Scheduler avviato*\nMonitoro il board ogni 5 minuti.\n\n💬 Scrivi qualsiasi messaggio per parlare con CME.\n📋 /status — stato board\n🔄 /reset — resetta conversazione");
 
   // Telegram + board loop combinato
   while (true) {
@@ -584,10 +644,22 @@ async function runDaemon(): Promise<void> {
           } else {
             await sendMessage("Nessun piano in attesa.");
           }
+        } else if (text === "/reset") {
+          state.chatHistory = [];
+          saveState(state);
+          await sendMessage("🔄 Conversazione resettata.");
         } else if (text === "/help") {
           await sendMessage(
-            "*CME Scheduler — Comandi*\n\n/status — Stato board\n/cancella — Annulla piano corrente\n/help — Questo messaggio"
+            "*CME Scheduler — Comandi*\n\n/status — Stato board\n/cancella — Annulla piano corrente\n/reset — Resetta conversazione CME\n/help — Questo messaggio\n\n💬 _Scrivi qualsiasi messaggio per parlare con CME_"
           );
+        } else if (!text.startsWith("/")) {
+          // Free-text → chat with CME
+          log(`Chat CME: "${text.slice(0, 80)}"`);
+          await sendMessage("⏳ _CME sta elaborando..._");
+          const result = await chatWithCME(text, state);
+          state = result.state;
+          await sendMessage(`🤖 *CME:*\n\n${result.reply}`);
+          log(`CME risposta: ${result.reply.length} chars`);
         }
       }
 

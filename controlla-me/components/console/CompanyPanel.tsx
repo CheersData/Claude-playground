@@ -57,7 +57,7 @@ interface CompanyPanelProps {
 // ── Constants ──
 
 const TARGETS: { key: TargetKey; label: string; short: string }[] = [
-  { key: "cme", label: "CME (CEO) — Opus", short: "CME" },
+  { key: "cme", label: "CME (CEO) — Sonnet", short: "CME" },
   { key: "ufficio-legale", label: "Ufficio Legale TL", short: "Legale" },
   { key: "data-engineering", label: "Data Engineering TL", short: "Data" },
   { key: "quality-assurance", label: "Quality Assurance TL", short: "QA" },
@@ -194,10 +194,15 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
         throw new Error("Sessione scaduta — ricarica la pagina e accedi di nuovo.");
       }
 
+      // Include conversation history so CME has full context even on new subprocess
       const res = await fetch("/api/console/company", {
         method: "POST",
         headers,
-        body: JSON.stringify({ message: text, target: effectiveTarget }),
+        body: JSON.stringify({
+          message: text,
+          target: effectiveTarget,
+          history: messages.slice(-20), // Last 20 messages to avoid token overflow
+        }),
         signal: controller.signal,
       });
 

@@ -45,6 +45,7 @@ dev = [
 backtest = [
     "matplotlib>=3.9.0",
     "pyarrow>=18.0.0",        # Parquet support
+    "yfinance>=0.2.40",       # Hourly historical data (730 days)
 ]
 
 [tool.hatch.build.targets.wheel]

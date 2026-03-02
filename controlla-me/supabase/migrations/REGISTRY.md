@@ -27,10 +27,11 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 016 | `016_savephasetiming_rpc.sql` | RPC `update_phase_timing` con `jsonb_set` atomico (ADR-005, TD-1 fix) | — |
 | 017 | `017_lawyer_referrals_contact.sql` | Campi contatto per `lawyer_referrals` | — |
 | 018 | `018_cost_log_ttl.sql` | TTL 6 mesi per `agent_cost_log` + view `cost_summary_30d` (ADR-011) | — |
+| 019 | `019_trading_schema.sql` | Schema Ufficio Trading: `trading_config`, `trading_signals`, `trading_orders`, `portfolio_positions`, `portfolio_snapshots`, `risk_events` + RLS service_role + TTL signals 90gg | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 018) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 019) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -54,6 +55,7 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 016 → dipende da 011 (opera su analysis_sessions)
 017 → dipende da 001 (alter table lawyer_referrals)
 018 → dipende da 014 (opera su agent_cost_log)
+019 → indipendente (schema trading, nessuna FK a tabelle esistenti)
 ```
 
 ## Storico rinumerazione

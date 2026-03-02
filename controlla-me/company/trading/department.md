@@ -28,8 +28,9 @@ Trading automatizzato su azioni US e ETF via Alpaca per garantire sostenibilità
 
 - **Swing trading**: hold 3-15 giorni
 - **Universo**: azioni US (S&P 500, NASDAQ 100) + ETF settoriali
-- **Frequenza decisionale**: daily scan + signal generation
+- **Frequenza decisionale**: hourly scan + signal generation (daily per backtest storici)
 - **Esecuzione**: market/limit orders via Alpaca API
+- **Timeframe**: 1Hour per segnali operativi, 1Day per analisi macro/trend
 
 ## Risk Management (NON NEGOZIABILE)
 
@@ -88,10 +89,11 @@ Trading automatizzato su azioni US e ETF via Alpaca per garantire sostenibilità
 | risk-manager | `agents/risk-manager.md` | Validazione rischio pre-trade |
 | executor | `agents/executor.md` | Esecuzione ordini su Alpaca |
 | portfolio-monitor | `agents/portfolio-monitor.md` | Monitoring posizioni e P&L |
+| trading-strategist | `agents/trading-strategist.md` | Analisi backtest, calibrazione parametri, nuove strategie |
 
 ## Leader
 
-**trading-lead** — Coordina i 5 agenti, gestisce la pipeline, reporta a CME.
+**trading-lead** — Coordina i 6 agenti, gestisce la pipeline, reporta a CME.
 
 ## Runbooks
 
