@@ -15,7 +15,6 @@
 
 import {
   fetchNormativaArticle,
-  buildArticleNumbers,
   NORMATTIVA_SOURCES,
 } from "./connectors/normattiva";
 import connector from "./connectors/normattiva";

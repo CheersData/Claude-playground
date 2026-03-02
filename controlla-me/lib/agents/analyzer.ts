@@ -39,12 +39,11 @@ export async function runAnalyzer(
     .filter(Boolean)
     .join("\n");
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 8192,
-    system: ANALYZER_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  const { parsed } = await runAgent<AnalysisResult>(
+    "analyzer",
+    userMessage,
+    { systemPrompt: ANALYZER_SYSTEM_PROMPT }
+  );
 
   return parsed;
 }

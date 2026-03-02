@@ -350,8 +350,8 @@ export async function downloadCollection(
  */
 export function extractArticlesFromJson(
   jsonData: NormativaJsonAct,
-  sourceName: string,
-  sourceId: string
+  _sourceName: string,
+  _sourceId: string
 ): Array<{
   articleNumber: string;
   title: string | null;

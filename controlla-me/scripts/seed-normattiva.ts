@@ -59,7 +59,9 @@ async function generateEmbeddings(texts: string[]): Promise<number[][] | null> {
   }
 
   const data = await response.json();
-  return data.data.sort((a: any, b: any) => a.index - b.index).map((d: any) => d.embedding);
+  return (data.data as { index: number; embedding: number[] }[])
+    .sort((a, b) => a.index - b.index)
+    .map((d) => d.embedding);
 }
 
 // ─── Normattiva scraper ───

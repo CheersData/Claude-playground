@@ -19,7 +19,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import type { CorpusConfig, HierarchyRule, InstituteRule } from "../lib/types/corpus-config";
+import type { CorpusConfig, HierarchyRule } from "../lib/types/corpus-config";
 
 // ─── Types ───
 
@@ -530,7 +530,7 @@ async function auditDataSourceSample(config: CorpusConfig): Promise<QAIssue[]> {
       let emptyCount = 0;
       let shortCount = 0;
       let noTitleCount = 0;
-      let noIdCount = 0;
+      let _noIdCount = 0;
 
       for (const item of data.rows) {
         const row = item.row;
@@ -541,7 +541,7 @@ async function auditDataSourceSample(config: CorpusConfig): Promise<QAIssue[]> {
         if (!text || text.length < 10) emptyCount++;
         else if (text.length < 50) shortCount++;
         if (!title) noTitleCount++;
-        if (!id) noIdCount++;
+        if (!id) _noIdCount++;
       }
 
       const sampleSize = data.rows.length;
@@ -730,7 +730,7 @@ function toRoman(num: number): string {
 // ─── Main ───
 
 async function main() {
-  const { domain, checkDb } = parseArgs();
+  const { domain, checkDb: _checkDb } = parseArgs();
 
   console.log("\n[QA] Starting corpus quality audit...");
   console.log(`[QA] Domain: ${domain}`);

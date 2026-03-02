@@ -101,7 +101,7 @@ export async function fetchNormativaArticle(
     const html = await resp.text();
 
     // Extract title from Akoma Ntoso heading
-    const headingMatch = html.match(/class="article-heading-akn">(.*?)<\/div>/s);
+    const headingMatch = html.match(/class="article-heading-akn">([\s\S]*?)<\/div>/);
     let title: string | null = null;
     if (headingMatch) {
       title = decodeHtmlEntities(headingMatch[1].replace(/<[^>]+>/g, "").trim());
@@ -212,7 +212,7 @@ export default defineConnector({
     const errors: string[] = [];
 
     // Test first 3 articles of first source
-    const source = NORMATTIVA_SOURCES[0];
+    const _source = NORMATTIVA_SOURCES[0];
     const records = await this.fetch({ limit: 3 });
 
     if (records.length === 0) {

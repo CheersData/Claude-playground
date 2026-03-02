@@ -48,7 +48,7 @@ export async function runOrchestrator(
   documentText: string,
   callbacks: OrchestratorCallbacks,
   resumeSessionId?: string,
-  domain?: string
+  userContext?: string
 ): Promise<OrchestratorResult> {
   // Try to resume an existing session or find one for this document
   let sessionId: string;
@@ -141,7 +141,6 @@ export async function runOrchestrator(
       applicableLaws: result.classification.applicableLaws,
       relevantInstitutes: result.classification.relevantInstitutes,
       clauseTexts: [], // Will be populated after analysis for investigator
-      domain,
     });
 
     legalContext = formatLegalContextForPrompt(legalResult);
@@ -228,7 +227,6 @@ export async function runOrchestrator(
           applicableLaws: result.classification.applicableLaws,
           relevantInstitutes: result.classification.relevantInstitutes,
           clauseTexts: problematicTexts,
-          domain,
         });
 
         investigatorLegalContext = formatLegalContextForPrompt(clauseContext);
