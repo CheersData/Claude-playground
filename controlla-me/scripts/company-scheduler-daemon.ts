@@ -16,13 +16,15 @@
  * USAGE:
  *   npx tsx scripts/company-scheduler-daemon.ts            # Avvia daemon
  *   npx tsx scripts/company-scheduler-daemon.ts --setup    # Mostra chat ID
- *   npx tsx scripts/company-scheduler-daemon.ts --test     # Invia messaggio test
+ *   npx tsx scripts/company-scheduler-daemon.ts --test        # Invia messaggio test
+ *   npx tsx scripts/company-scheduler-daemon.ts --check-once  # Esecuzione singola (per PowerShell/cron)
  */
 
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
+import { buildVisionContext, savePlan, updatePlanStatus, getVision } from "./lib/company-vision";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -34,11 +36,23 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 const STATE_FILE = path.resolve(__dirname, "../company/scheduler-daemon-state.json");
-const BOARD_POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minuti
+const BOARD_POLL_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 ore (come il piano)
+const PLAN_INTERVAL_MS = 2 * 60 * 60 * 1000;  // Piano ogni 2 ore
 const TELEGRAM_POLL_TIMEOUT_S = 30;            // long polling timeout
 const CANCEL_COOLDOWN_MS = 30 * 60 * 1000;    // 30 min cooldown dopo annulla
 
 const ROOT = path.resolve(__dirname, "..");
+
+// Env pulito per subprocess claude -p (rimuove CLAUDE* e ANTHROPIC_API_KEY per evitare nested session)
+function getCleanEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key === "ANTHROPIC_API_KEY" || key.startsWith("CLAUDE")) {
+      delete env[key];
+    }
+  }
+  return env;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +76,14 @@ interface ChatMsg {
   content: string;
 }
 
+interface StartupInterview {
+  date: string;  // YYYY-MM-DD
+  status: "q1_sent" | "q2_sent" | "q3_sent" | "done";
+  focus: string | null;
+  urgenze: string | null;
+  trading: string | null;
+}
+
 interface DaemonState {
   updateOffset: number;
   pendingPlan: PendingPlan | null;
@@ -69,26 +91,32 @@ interface DaemonState {
   lastPlanDate: string;
   lastCancelledAt: string | null;
   lastApprovedAt: string | null;
+  lastPlanGeneratedAt: string | null;
   chatHistory: ChatMsg[];
+  startupInterview: StartupInterview | null;
 }
 
 // ─── State persistence ────────────────────────────────────────────────────────
 
 function loadState(): DaemonState {
-  try {
-    if (fs.existsSync(STATE_FILE)) {
-      return JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
-    }
-  } catch {}
-  return {
+  const defaults: DaemonState = {
     updateOffset: 0,
     pendingPlan: null,
     planCountToday: 0,
     lastPlanDate: "",
     lastCancelledAt: null,
     lastApprovedAt: null,
+    lastPlanGeneratedAt: null,
     chatHistory: [],
+    startupInterview: null,
   };
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      const saved = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
+      return { ...defaults, ...saved };
+    }
+  } catch {}
+  return defaults;
 }
 
 function saveState(state: DaemonState): void {
@@ -196,11 +224,30 @@ async function getTradingStatus(): Promise<string> {
 interface GeneratedPlan {
   planText: string;
   tasks: TaskProposal[];
+  recommendations?: string[];  // R7: raccomandazioni per il piano successivo
 }
 
-async function generatePlan(planNumber: number, boardStats: BoardStats): Promise<GeneratedPlan> {
+async function generatePlan(
+  planNumber: number,
+  boardStats: BoardStats,
+  interview?: StartupInterview | null
+): Promise<GeneratedPlan> {
   const tradingStatus = await getTradingStatus();
   const dateStr = new Date().toLocaleString("it-IT");
+
+  // Vision/Mission context (R7/R8 — vision-driven planning)
+  let visionContext = "";
+  try {
+    visionContext = await buildVisionContext();
+  } catch (e) {
+    log(`WARN: Vision context unavailable: ${(e as Error).message}`);
+    visionContext = "⚠️ Vision/Mission non disponibile (tabella non ancora creata).";
+  }
+
+  // Contesto intervista boss (se disponibile)
+  const interviewContext = interview?.status === "done" && interview.date === todayDateStr()
+    ? `\nINDICAZIONI DEL BOSS PER OGGI (MASSIMA PRIORITÀ):\n- Focus: ${interview.focus}\n- Urgenze: ${interview.urgenze}\n- Trading: ${interview.trading}\n`
+    : "";
 
   // Backlog noto (hard-coded context per qualità del piano)
   const companyContext = `
@@ -208,6 +255,8 @@ Controlla.me — app analisi legale AI (pre-lancio commerciale PMI).
 Stack: Next.js 15, Supabase, Claude/Gemini/Groq, pgvector.
 Task board: VUOTO (open=${boardStats.open}, in_progress=${boardStats.inProgress}, done=${boardStats.done} totali).
 
+${visionContext}
+${interviewContext}
 Ufficio Trading:
 ${tradingStatus}
 
@@ -226,16 +275,21 @@ Backlog storico noto (da considerare per i task):
 Dashboard /ops — sezione Trading: mostrare posizioni attuali + P&L ultimo giorno + P&L ultima ora.
 `.trim();
 
-  const prompt = `Sei CME, il CEO virtuale di Controlla.me. Il task board è ora COMPLETAMENTE VUOTO.
+  const prompt = `Sei CME, il CEO virtuale di Controlla.me (Poimandres). Il task board è ora COMPLETAMENTE VUOTO.
 Devi generare il Piano #${planNumber} (${dateStr}).
 
 CONTESTO:
 ${companyContext}
+${interviewContext ? `\nATTENZIONE: Le indicazioni del boss (focus, urgenze, trading) hanno MASSIMA PRIORITÀ. Il piano deve riflettere esattamente quelle direttive come prima cosa.\n` : ""}
+
+IMPORTANTE: Il piano DEVE essere allineato con la Vision e la Mission aziendale.
+I task devono portare l'azienda verso la visione, non essere casuali.
+Le raccomandazioni del piano precedente (se presenti) devono essere considerate.
 
 Genera un piano CONCRETO. Output ESCLUSIVAMENTE JSON puro. Inizia con { e finisci con }.
 
 {
-  "planText": "Testo markdown del piano leggibile dal boss su Telegram (max 2000 caratteri). Include: titolo, priorità immediata, analisi Ufficio Trading con miglioramenti concreti, elenco dipartimenti con task proposti. Tono diretto, no legalese.",
+  "planText": "Testo markdown del piano leggibile dal boss su Telegram (max 2000 caratteri). Include: titolo, allineamento con vision/mission, priorità immediata, analisi Ufficio Trading, elenco dipartimenti con task proposti. Tono diretto.",
   "tasks": [
     {
       "dept": "nome-dipartimento",
@@ -243,10 +297,14 @@ Genera un piano CONCRETO. Output ESCLUSIVAMENTE JSON puro. Inizia con { e finisc
       "priority": "low|medium|high|critical",
       "desc": "Cosa fare e perché, in modo che chiunque legga capisca senza aprire il dettaglio (max 150 char)"
     }
+  ],
+  "recommendations": [
+    "Raccomandazione 1 per il prossimo piano (cosa migliorare, cosa fare dopo)",
+    "Raccomandazione 2"
   ]
 }
 
-Dipartimenti validi: architecture, data-engineering, quality-assurance, security, finance, operations, strategy, marketing, ufficio-legale, trading, ux-ui
+Dipartimenti validi: architecture, data-engineering, quality-assurance, security, finance, operations, strategy, marketing, ufficio-legale, trading, ux-ui, protocols
 
 Regole:
 - 1-3 task per dipartimento, solo per quelli dove c'è davvero lavoro utile
@@ -254,6 +312,7 @@ Regole:
 - planText deve essere leggibile su Telegram con Markdown (*grassetto*, _corsivo_)
 - NON inventare task generici — usa il backlog noto sopra
 - Priorità task: almeno 2 HIGH nel piano
+- recommendations: 2-5 raccomandazioni concrete per il piano successivo (saranno usate come input)
 - JSON valido, no backtick`;
 
   try {
@@ -261,6 +320,7 @@ Regole:
       encoding: "utf-8",
       timeout: 90_000,
       cwd: ROOT,
+      env: getCleanEnv(),
     }).trim();
 
     // Parse JSON robusto
@@ -384,6 +444,76 @@ function log(msg: string): void {
   console.log(`[${ts}] ${msg}`);
 }
 
+// ─── Startup Interview ────────────────────────────────────────────────────────
+
+const INTERVIEW_QUESTIONS = [
+  "*1/3 — FOCUS* 🎯\nSu cosa vuoi concentrarti oggi? (es. sviluppo, test, trading, strategia, altro)",
+  "*2/3 — URGENZE* ⚡\nCi sono urgenze o blocchi da gestire prima di tutto il resto?",
+  "*3/3 — TRADING* 📈\nDirettive per l'ufficio trading oggi? (es. avvia backtest, monitora solo, aspetta, nessuna)",
+];
+
+function todayDateStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isInterviewDoneToday(state: DaemonState): boolean {
+  return (
+    state.startupInterview?.status === "done" &&
+    state.startupInterview?.date === todayDateStr()
+  );
+}
+
+async function startInterview(state: DaemonState): Promise<DaemonState> {
+  const today = todayDateStr();
+  await sendMessage(
+    `👋 *Buongiorno boss!*\n\nPrima di iniziare, 3 domande rapide per calibrare il piano di oggi.\n\n${INTERVIEW_QUESTIONS[0]}`
+  );
+  state.startupInterview = {
+    date: today,
+    status: "q1_sent",
+    focus: null,
+    urgenze: null,
+    trading: null,
+  };
+  saveState(state);
+  log("Intervista avvio inviata — in attesa risposta Q1");
+  return state;
+}
+
+async function handleInterviewAnswer(
+  answer: string,
+  state: DaemonState
+): Promise<DaemonState> {
+  const iv = state.startupInterview!;
+
+  if (iv.status === "q1_sent") {
+    iv.focus = answer;
+    iv.status = "q2_sent";
+    await sendMessage(INTERVIEW_QUESTIONS[1]);
+    log(`Intervista Q1 ricevuta: "${answer.slice(0, 60)}"`);
+  } else if (iv.status === "q2_sent") {
+    iv.urgenze = answer;
+    iv.status = "q3_sent";
+    await sendMessage(INTERVIEW_QUESTIONS[2]);
+    log(`Intervista Q2 ricevuta: "${answer.slice(0, 60)}"`);
+  } else if (iv.status === "q3_sent") {
+    iv.trading = answer;
+    iv.status = "done";
+    log(`Intervista Q3 ricevuta: "${answer.slice(0, 60)}"`);
+    await sendMessage(
+      `✅ *Contesto acquisito — grazie boss!*\n\n` +
+        `🎯 Focus: ${iv.focus}\n` +
+        `⚡ Urgenze: ${iv.urgenze}\n` +
+        `📈 Trading: ${iv.trading}\n\n` +
+        `_Il piano di oggi terrà conto di queste indicazioni. Monitoraggio board attivo._`
+    );
+    log("Intervista avvio completata — contesto iniettato nel generatore piani");
+  }
+
+  saveState(state);
+  return state;
+}
+
 // ─── Plan message formatting ──────────────────────────────────────────────────
 
 function formatPlanMessage(plan: GeneratedPlan, planNumber: number): string {
@@ -436,7 +566,7 @@ async function onBoardEmpty(state: DaemonState): Promise<DaemonState> {
   log(`Board vuoto — genero Piano #${state.planCountToday}...`);
   await sendMessage(`⏳ Board vuoto. Genero Piano #${state.planCountToday}...`);
 
-  const plan = await generatePlan(state.planCountToday, getBoardStats());
+  const plan = await generatePlan(state.planCountToday, getBoardStats(), state.startupInterview);
   const text = formatPlanMessage(plan, state.planCountToday);
   const keyboard = buildApprovalKeyboard(state.planCountToday);
 
@@ -449,7 +579,9 @@ async function onBoardEmpty(state: DaemonState): Promise<DaemonState> {
     messageId: messageId,
     planText: plan.planText,
     tasks: plan.tasks,
-  };
+    ...(plan.recommendations ? { recommendations: plan.recommendations } : {}),
+  } as PendingPlan;
+  state.lastPlanGeneratedAt = new Date().toISOString();
 
   saveState(state);
   return state;
@@ -475,6 +607,24 @@ async function handleCallback(
     const created = createTasks(state.pendingPlan.tasks);
     state.lastApprovedAt = new Date().toISOString();
 
+    // Save approved plan to Supabase audit trail (R7/R8)
+    try {
+      const vision = await getVision();
+      const planId = await savePlan({
+        plan_content: { planText: state.pendingPlan.planText, tasks: state.pendingPlan.tasks },
+        vision_snapshot: vision?.vision ?? undefined,
+        mission_snapshot: vision?.mission ?? undefined,
+        recommendations: (state.pendingPlan as any).recommendations ?? [],
+        plan_number: planNum,
+      });
+      if (planId) {
+        await updatePlanStatus(planId, "approved");
+        log(`Piano salvato su Supabase: ${planId}`);
+      }
+    } catch (e) {
+      log(`WARN: Failed to save plan to Supabase: ${(e as Error).message}`);
+    }
+
     const confirmText = `✅ *Piano #${planNum} approvato*\n\n${created} task creati sul board.\nIl CME li eseguirà alla prossima sessione.`;
     if (state.pendingPlan.messageId) {
       await editMessage(state.pendingPlan.messageId, confirmText);
@@ -499,7 +649,7 @@ async function handleCallback(
 
     // Incrementa e rigenera subito
     state.planCountToday++;
-    const plan = await generatePlan(state.planCountToday, getBoardStats());
+    const plan = await generatePlan(state.planCountToday, getBoardStats(), state.startupInterview);
     const text = formatPlanMessage(plan, state.planCountToday);
     const keyboard = buildApprovalKeyboard(state.planCountToday);
     const messageId = await sendMessage(text, keyboard);
@@ -571,6 +721,7 @@ Rispondi in modo conciso (max 300 parole). Non usare markdown complesso — solo
       encoding: "utf-8",
       timeout: 90_000,
       cwd: ROOT,
+      env: getCleanEnv(),
     }).trim();
 
     // Update history (keep last 20 messages)
@@ -592,6 +743,7 @@ Rispondi in modo conciso (max 300 parole). Non usare markdown complesso — solo
 async function runDaemon(): Promise<void> {
   log("=== CME Company Scheduler Daemon avviato ===");
   log(`Board poll: ogni ${BOARD_POLL_INTERVAL_MS / 60_000} min`);
+  log(`Piano periodico: ogni ${PLAN_INTERVAL_MS / 3_600_000}h`);
   log(`Telegram long-poll timeout: ${TELEGRAM_POLL_TIMEOUT_S}s`);
 
   if (!BOT_TOKEN || !CHAT_ID) {
@@ -603,7 +755,19 @@ async function runDaemon(): Promise<void> {
   let state = loadState();
   let lastBoardCheck = 0;
 
-  await sendMessage("🟢 *CME Scheduler avviato*\nMonitoro il board ogni 5 minuti.\n\n💬 Scrivi qualsiasi messaggio per parlare con CME.\n📋 /status — stato board\n🔄 /reset — resetta conversazione");
+  // All'avvio: se intervista di oggi non completata, avvia il flow
+  if (!isInterviewDoneToday(state)) {
+    // Reset intervista se è di un altro giorno
+    if (state.startupInterview && state.startupInterview.date !== todayDateStr()) {
+      state.startupInterview = null;
+      saveState(state);
+    }
+    // Avvia intervista (manda Q1 direttamente)
+    state = await startInterview(state);
+  } else {
+    // Intervista già fatta oggi → messaggio di avvio standard
+    await sendMessage("🟢 *CME Scheduler avviato*\nBoard check + piano automatico ogni 2h.\n\n💬 Scrivi qualsiasi messaggio per parlare con CME.\n📋 /status — stato board\n📝 /piano — genera piano ora\n🔄 /reset — resetta conversazione");
+  }
 
   // Telegram + board loop combinato
   while (true) {
@@ -648,18 +812,36 @@ async function runDaemon(): Promise<void> {
           state.chatHistory = [];
           saveState(state);
           await sendMessage("🔄 Conversazione resettata.");
+        } else if (text === "/piano" || text === "/plan") {
+          if (state.pendingPlan) {
+            await sendMessage("⚠️ C'è già un piano in attesa di approvazione.");
+          } else {
+            await sendMessage("⏳ Genero piano su richiesta...");
+            state = await onBoardEmpty(state);
+          }
+        } else if (text === "/intervista") {
+          // Forza ri-avvio intervista (utile se si vuole aggiornare il contesto)
+          state.startupInterview = null;
+          saveState(state);
+          state = await startInterview(state);
         } else if (text === "/help") {
           await sendMessage(
-            "*CME Scheduler — Comandi*\n\n/status — Stato board\n/cancella — Annulla piano corrente\n/reset — Resetta conversazione CME\n/help — Questo messaggio\n\n💬 _Scrivi qualsiasi messaggio per parlare con CME_"
+            "*CME Scheduler — Comandi*\n\n/status — Stato board\n/piano — Genera piano ora\n/cancella — Annulla piano corrente\n/reset — Resetta conversazione CME\n/intervista — Ripeti l'intervista di contesto\n/help — Questo messaggio\n\n💬 _Scrivi qualsiasi messaggio per parlare con CME_"
           );
         } else if (!text.startsWith("/")) {
-          // Free-text → chat with CME
-          log(`Chat CME: "${text.slice(0, 80)}"`);
-          await sendMessage("⏳ _CME sta elaborando..._");
-          const result = await chatWithCME(text, state);
-          state = result.state;
-          await sendMessage(`🤖 *CME:*\n\n${result.reply}`);
-          log(`CME risposta: ${result.reply.length} chars`);
+          // Intercetta risposta intervista avvio (priorità su chat libera)
+          const iv = state.startupInterview;
+          if (iv && iv.status !== "done") {
+            state = await handleInterviewAnswer(text, state);
+          } else {
+            // Free-text → chat with CME
+            log(`Chat CME: "${text.slice(0, 80)}"`);
+            await sendMessage("⏳ _CME sta elaborando..._");
+            const result = await chatWithCME(text, state);
+            state = result.state;
+            await sendMessage(`🤖 *CME:*\n\n${result.reply}`);
+            log(`CME risposta: ${result.reply.length} chars`);
+          }
         }
       }
 
@@ -673,7 +855,15 @@ async function runDaemon(): Promise<void> {
       const stats = getBoardStats();
       log(`Board check: open=${stats.open}, in_progress=${stats.inProgress}`);
 
+      // Board vuoto → piano immediato
       if (stats.open === 0 && stats.inProgress === 0) {
+        state = await onBoardEmpty(state);
+      }
+
+      // Piano periodico ogni 2h (anche se board non è vuoto)
+      const lastGen = state.lastPlanGeneratedAt ? new Date(state.lastPlanGeneratedAt).getTime() : 0;
+      if (now - lastGen >= PLAN_INTERVAL_MS && !state.pendingPlan) {
+        log(`Piano periodico (2h) — ultimo piano: ${state.lastPlanGeneratedAt ?? "mai"}`);
         state = await onBoardEmpty(state);
       }
     }
@@ -735,6 +925,68 @@ async function runTest(): Promise<void> {
   console.log(`✅ Messaggio test inviato (messageId: ${msgId})`);
 }
 
+// ─── Check-once mode ──────────────────────────────────────────────────────────
+
+/**
+ * Single-shot execution for PowerShell scheduler / cron (AVVIA_SCHEDULER.ps1).
+ * Does NOT require Telegram — works without BOT_TOKEN/CHAT_ID.
+ *
+ * Behavior:
+ *   - Board has open tasks   → log count, attempt to claim first open task
+ *   - Board is empty (open=0, in_progress=0)
+ *       • Telegram configured → call onBoardEmpty() to generate and send plan
+ *       • Telegram missing    → log demo message and exit 0
+ *   - Board has only in_progress tasks → log and exit (nothing to do)
+ */
+async function runCheckOnce(): Promise<void> {
+  log("=== CME Scheduler check-once ===");
+
+  const stats = getBoardStats();
+  log(`Board: open=${stats.open}, in_progress=${stats.inProgress}, done=${stats.done}, total=${stats.total}`);
+
+  if (stats.open > 0) {
+    // Task aperti → tenta di claimare il primo disponibile
+    log(`${stats.open} task open presenti`);
+    try {
+      const listRaw = execSync("npx tsx scripts/company-tasks.ts list --status open", {
+        encoding: "utf-8",
+        cwd: ROOT,
+        timeout: 30_000,
+      });
+      // Cerca il primo short ID (8 caratteri hex) nella lista
+      const idMatch = listRaw.match(/\b([0-9a-f]{8})\b/i);
+      if (idMatch) {
+        const taskId = idMatch[1];
+        log(`Claim task ${taskId} per scheduler...`);
+        execSync(`npx tsx scripts/company-tasks.ts claim ${taskId} --agent scheduler`, {
+          encoding: "utf-8",
+          cwd: ROOT,
+          timeout: 15_000,
+        });
+        log(`Task ${taskId} claimato con successo`);
+      } else {
+        log("WARN: nessun task ID trovato nell'output list — skip claim");
+      }
+    } catch (e) {
+      log(`WARN: claim fallito: ${(e as Error).message}`);
+    }
+  } else if (stats.open === 0 && stats.inProgress === 0) {
+    // Board completamente vuoto
+    if (BOT_TOKEN && CHAT_ID) {
+      log("Board vuoto — Telegram configurato, avvio generazione piano...");
+      const state = loadState();
+      await onBoardEmpty(state);
+    } else {
+      log("Board vuoto - in ambiente demo il piano sarebbe generato via claude -p");
+    }
+  } else {
+    // Solo task in_progress, nessun open
+    log(`Board ok: in_progress=${stats.inProgress} — nessuna azione`);
+  }
+
+  log("=== Check-once completato ===");
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
@@ -743,6 +995,11 @@ if (args.includes("--setup")) {
   runSetup().catch(console.error);
 } else if (args.includes("--test")) {
   runTest().catch(console.error);
+} else if (args.includes("--check-once")) {
+  runCheckOnce().catch((e) => {
+    console.error("Check-once error:", e);
+    process.exit(1);
+  });
 } else {
   runDaemon().catch((e) => {
     console.error("Daemon crashed:", e);

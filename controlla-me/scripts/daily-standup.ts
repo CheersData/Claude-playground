@@ -39,6 +39,7 @@ const DEPT_LABELS: Record<string, { emoji: string; label: string }> = {
   "marketing":        { emoji: "📣",  label: "Marketing" },
   "ux-ui":            { emoji: "🎨",  label: "UX/UI" },
   "trading":          { emoji: "📈",  label: "Ufficio Trading" },
+  "protocols":        { emoji: "📋",  label: "Protocols" },
 };
 
 const PRIORITY_ICON: Record<string, string> = {
