@@ -82,8 +82,12 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/corpus — Statistiche del corpus legislativo.
+ * SEC-M2: Rate limit per IP (endpoint pubblico, no auth richiesta).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req);
+  if (limited) return limited;
+
   try {
     const stats = await getCorpusStats();
     return NextResponse.json(stats);

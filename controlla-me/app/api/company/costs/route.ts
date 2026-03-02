@@ -1,15 +1,23 @@
 /**
  * API Company Costs — GET con filtri per agent/days/provider
- * Richiede autenticazione.
+ * Richiede autenticazione console operator (dati interni aziendali).
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getDailyCosts, getTotalSpend } from "@/lib/company/cost-logger";
-import { requireAuth, isAuthError } from "@/lib/middleware/auth";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
-  if (isAuthError(auth)) return auth;
+  // SEC-M1: Console auth (non Supabase auth) — dati aziendali riservati
+  const authPayload = requireConsoleAuth(req);
+  if (!authPayload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
 
   try {
     const url = new URL(req.url);

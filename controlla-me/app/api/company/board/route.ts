@@ -5,12 +5,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
   const payload = requireConsoleAuth(req);
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
 
   try {
     const board = await getTaskBoard();

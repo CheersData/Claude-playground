@@ -13,8 +13,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 export async function POST(req: NextRequest) {
+  // SEC-F1: CSRF protection — verify Origin header
+  const csrf = checkCsrf(req);
+  if (csrf) return csrf;
+
+  // SEC-M1: Rate limit — 5 per hour per user
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(

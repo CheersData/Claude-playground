@@ -123,7 +123,21 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Console — (SEC-003) match più specifico vince su "api/console"
   "api/console/auth": { windowSec: 60, max: 10 },
   "api/console/tier": { windowSec: 60, max: 30 },
+  // Console company — spawna claude -p, protegge crediti API (SEC-M3/M4/M5)
+  "api/console/company/message": { windowSec: 60, max: 10 },
+  "api/console/company/stop": { windowSec: 60, max: 10 },
+  "api/console/company": { windowSec: 60, max: 5 },
   "api/console": { windowSec: 60, max: 10 },
+  // Lawyer referrals — protegge da abuso (SEC-M1)
+  "api/lawyer-referrals": { windowSec: 3600, max: 5 },
+  // Company internal API — console-auth-protected, rate limit come defense-in-depth
+  "api/company/costs": { windowSec: 60, max: 30 },
+  "api/company/cron": { windowSec: 60, max: 5 },
+  "api/company": { windowSec: 60, max: 30 },
+  // Platform cron — CRON_SECRET-protected
+  "api/platform/cron": { windowSec: 60, max: 10 },
+  // Delta update cron — CRON_SECRET-protected, defense-in-depth (SEC-F2)
+  "api/cron/delta-update": { windowSec: 60, max: 5 },
   // Default per endpoint non specificati
   default: { windowSec: 60, max: 30 },
 };

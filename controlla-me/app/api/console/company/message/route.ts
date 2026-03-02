@@ -7,9 +7,14 @@
 
 import { getSession, deleteSession } from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import type { NextRequest } from "next/server";
 
 export async function POST(req: Request) {
+  // SEC-M4: Rate limit — 10 per minute
+  const rl = await checkRateLimit(req as unknown as NextRequest);
+  if (rl) return rl;
+
   const authPayload = requireConsoleAuth(req as unknown as NextRequest);
   if (!authPayload) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {

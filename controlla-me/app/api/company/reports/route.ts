@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 const COMPANY_ROOT = path.resolve(process.cwd(), "company");
 
@@ -58,6 +59,10 @@ export async function GET(req: NextRequest) {
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
 
   const groups: ReportGroup[] = [];
 

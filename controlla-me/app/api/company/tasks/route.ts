@@ -6,12 +6,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createTask, getOpenTasks } from "@/lib/company/tasks";
 import type { Department, TaskStatus } from "@/lib/company/types";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
   const payload = requireConsoleAuth(req);
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
 
   try {
     const url = new URL(req.url);
@@ -39,6 +44,10 @@ export async function POST(req: NextRequest) {
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit
+  const rl2 = await checkRateLimit(req);
+  if (rl2) return rl2;
 
   try {
     const body = await req.json();

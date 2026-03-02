@@ -22,7 +22,19 @@ import {
 
 export const maxDuration = 300;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // SEC-H1: Auth check — CRON_SECRET richiesto anche per GET (espone infrastruttura interna)
+  const authHeader = request.headers.get("Authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    console.error("[SECURITY] CRON_SECRET non configurato — endpoint bloccato per sicurezza");
+    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const sources = getAllSources();
   const status = await Promise.all(
     sources.map(async (s) => {

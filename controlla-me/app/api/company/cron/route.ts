@@ -12,12 +12,17 @@ import { getOpenTasks, createTask } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
 import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 const STALE_DAYS = 7;
 const SYNC_GAP_DAYS = 7;
 const DAILY_COST_THRESHOLD = 1.0;
 
 export async function POST(req: NextRequest) {
+  // SEC-M4: Rate limit — protegge da spam task creation
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   const payload = requireConsoleAuth(req);
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

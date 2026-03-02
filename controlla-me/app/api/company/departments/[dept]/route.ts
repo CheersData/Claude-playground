@@ -17,6 +17,7 @@ import { getLatestDepartmentAnalysis } from "@/lib/company/department-analyses";
 import { getDepartmentMeta } from "@/lib/company/departments";
 import type { Department } from "@/lib/company/types";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 const ACTIVE_STATUSES = new Set(["open", "in_progress", "blocked", "review"]);
 
@@ -28,6 +29,10 @@ export async function GET(
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit
+  const rl = await checkRateLimit(_req);
+  if (rl) return rl;
 
   try {
     const { dept } = await params;

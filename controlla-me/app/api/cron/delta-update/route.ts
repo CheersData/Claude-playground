@@ -13,10 +13,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { runPipeline, getAllSources } from "@/lib/staff/data-connector";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
+  // SEC-F2: Rate limit defense-in-depth (anche con CRON_SECRET)
+  const rl = await checkRateLimit(request);
+  if (rl) return rl;
+
   // Autenticazione: Vercel Cron invia Authorization: Bearer <CRON_SECRET>
   const authHeader = request.headers.get("Authorization");
   const cronSecret = process.env.CRON_SECRET;
