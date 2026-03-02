@@ -403,64 +403,64 @@ export interface AgentModelConfig {
  * Questo è il SINGOLO punto di configurazione per tutti gli agenti.
  */
 export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
-  // ── Corpus Q&A Pipeline — FULL ANTHROPIC ──
+  // ── Corpus Q&A Pipeline — FULL OPUS ──
   leader: {
-    primary: "claude-haiku-4.5",
-    fallback: "claude-haiku-4.5",
+    primary: "claude-opus-4.5",
+    fallback: "claude-sonnet-4.5",
     maxTokens: 512,
     temperature: 0,
-    notes: "Routing veloce. Haiku per qualità decisioni.",
+    notes: "Routing. Opus per qualità massima decisioni.",
   },
   "question-prep": {
-    primary: "claude-haiku-4.5",
-    fallback: "claude-haiku-4.5",
+    primary: "claude-opus-4.5",
+    fallback: "claude-sonnet-4.5",
     maxTokens: 1024,
     temperature: 0.2,
-    notes: "Riformulazione domanda. Haiku per precisione giuridica.",
+    notes: "Riformulazione domanda. Opus per precisione giuridica.",
   },
   "corpus-agent": {
-    primary: "claude-haiku-4.5",
-    fallback: "claude-haiku-4.5",
+    primary: "claude-opus-4.5",
+    fallback: "claude-sonnet-4.5",
     maxTokens: 4096,
     temperature: 0.2,
-    notes: "Sintesi risposta. Haiku basta: il lavoro pesante lo fa l'Investigator (Sonnet). Rate limit separati.",
+    notes: "Sintesi risposta. Opus per qualità massima.",
   },
-  // ── Document Analysis Pipeline — FULL ANTHROPIC ──
+  // ── Document Analysis Pipeline — FULL OPUS ──
   classifier: {
-    primary: "claude-haiku-4.5",
-    fallback: "claude-haiku-4.5",
+    primary: "claude-opus-4.5",
+    fallback: "claude-sonnet-4.5",
     maxTokens: 4096,
     temperature: 0,
-    notes: "Classificazione documento. Haiku eccelle con istruzioni complesse.",
+    notes: "Classificazione documento. Opus per reasoning superiore.",
   },
   analyzer: {
-    primary: "claude-sonnet-4.5",
+    primary: "claude-opus-4.5",
     fallback: "claude-sonnet-4.5",
     maxTokens: 8192,
     temperature: 0,
-    notes: "Analisi rischi profonda. Serve reasoning top-tier.",
+    notes: "Analisi rischi profonda. Opus per reasoning top-tier.",
   },
   investigator: {
-    primary: "claude-sonnet-4.5",
+    primary: "claude-opus-4.5",
     fallback: "claude-sonnet-4.5",
     maxTokens: 8192,
     temperature: 0,
-    notes: "Usa web_search Anthropic — richiede Claude.",
+    notes: "Usa web_search Anthropic — richiede Claude. Opus per qualità massima.",
   },
   advisor: {
-    primary: "claude-sonnet-4.5",
+    primary: "claude-opus-4.5",
     fallback: "claude-sonnet-4.5",
     maxTokens: 4096,
     temperature: 0,
-    notes: "Output finale utente. Serve qualità massima, zero errori.",
+    notes: "Output finale utente. Opus per qualità massima, zero errori.",
   },
-  // ── Company Tasks — FREE TIER (ADR-009) ──
+  // ── Company Tasks — OPUS ──
   "task-executor": {
-    primary: "gemini-2.5-flash",
-    fallback: "cerebras-gpt-oss-120b",
+    primary: "claude-opus-4.5",
+    fallback: "claude-sonnet-4.5",
     maxTokens: 4096,
     temperature: 0.2,
-    notes: "Esecuzione task company via API free. Zero costo subscription. Catena: Gemini Flash → Cerebras → Groq → Mistral.",
+    notes: "Esecuzione task company con Opus. Fallback Sonnet.",
   },
 };
 

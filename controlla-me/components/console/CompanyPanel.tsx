@@ -57,7 +57,7 @@ interface CompanyPanelProps {
 // ── Constants ──
 
 const TARGETS: { key: TargetKey; label: string; short: string }[] = [
-  { key: "cme", label: "CME (CEO) — Sonnet", short: "CME" },
+  { key: "cme", label: "CME (CEO) — Opus", short: "CME" },
   { key: "ufficio-legale", label: "Ufficio Legale TL", short: "Legale" },
   { key: "data-engineering", label: "Data Engineering TL", short: "Data" },
   { key: "quality-assurance", label: "Quality Assurance TL", short: "QA" },

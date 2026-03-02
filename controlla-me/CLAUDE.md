@@ -996,7 +996,7 @@ trading/
 └── company/trading/               # Company structure (department.md, agents/, runbooks/)
 ```
 
-### Pipeline 5 agenti
+### Pipeline 5+1 agenti
 
 ```
 [1] MARKET SCANNER (daily, pre-market)
@@ -1011,11 +1011,22 @@ trading/
     → Position sizing (half-Kelly, max 10% portfolio)
     → Correlazione, esposizione settoriale, R/R ratio
     → KILL SWITCH su -2% daily o -5% weekly
-    → Output: ordini APPROVED/REJECTED
+    → Output: ordini APPROVED/REJECTED + ATR passthrough
     |
 [4] EXECUTOR (on-signal)
     → Bracket orders su Alpaca (entry + stop loss + take profit)
     → Retry 3x su errore, logging completo
+    → Inizializza trailing stop state al fill (ATR, entry, stop order ID)
+    |
+[4.5] TRAILING STOP (SEMPRE — anche senza nuovi segnali)
+    → 4-tier sistema (identico al backtest engine):
+      Tier 0: Breakeven (profit > 1.0× ATR → SL = entry)
+      Tier 1: Lock (profit > 1.5× ATR → SL = entry + 0.5× ATR)
+      Tier 2: Trail (profit > 2.5× ATR → SL = highest - 1.5× ATR)
+      Tier 3: Tight (profit > 4.0× ATR → SL = highest - 1.0× ATR)
+    → Replace Alpaca stop order con nuovo prezzo (monotonic, solo UP)
+    → Auto-bootstrap per posizioni pre-esistenti (calcola ATR da dati correnti)
+    → Cleanup state per posizioni chiuse
     |
 [5] PORTFOLIO MONITOR (continuous + daily report)
     → P&L tracking, alert system, daily snapshot
@@ -1035,7 +1046,7 @@ trading/
 | Min risk/reward | 1:2 |
 | Paper trading minimo | 30 giorni |
 
-### Schema Database (Migration 019)
+### Schema Database (Migration 019 + 021)
 
 ```sql
 trading_config        -- Singleton: mode, enabled, risk params, kill switch state
@@ -1043,7 +1054,8 @@ trading_signals       -- Scan results, trade signals, risk checks (TTL 90gg)
 trading_orders        -- Ordini eseguiti su Alpaca
 portfolio_positions   -- Posizioni correnti (upsert)
 portfolio_snapshots   -- Snapshot giornalieri P&L
-risk_events           -- Kill switch, stop loss, warning, alerts
+risk_events           -- Kill switch, stop loss, trailing stop, warning, alerts
+trailing_stop_state   -- Stato trailing stop per posizione (021): entry, ATR, highest_close, tiers
 ```
 
 RLS: solo `service_role` (il Python trading system usa `SUPABASE_SERVICE_ROLE_KEY`).
@@ -1110,9 +1122,9 @@ company/trading/
 
 ---
 
-## 18. SECURITY STATUS (aggiornato 2026-03-01)
+## 18. SECURITY STATUS (aggiornato 2026-03-02)
 
-**Stato complessivo: 🟢 VERDE** — Tutti i finding medi risolti (commit 2c7648f). Finding bassi residui non bloccanti.
+**Stato complessivo: 🟢 VERDE** — Tutti i finding medi risolti. Finding bassi residui non bloccanti.
 
 ### Infrastruttura security esistente (SEC-001..006)
 
@@ -1131,11 +1143,19 @@ company/trading/
 | M2 | `/api/console/company` + `/message` + `/stop` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
 | M3 | `CRON_SECRET` opzionale | ✅ Fail-closed: 500 se non configurato (commit 2c7648f) |
 | M4 | Route corpus READ senza rate-limit | ✅ `checkRateLimit` per IP su hierarchy/institutes/article (commit 2c7648f) |
+| M5 | `/api/lawyer-referrals` senza rate-limit | ✅ `checkRateLimit` 5/h aggiunto |
+| M6 | `/api/console/company/*` senza rate-limit (spawna `claude -p`) | ✅ `checkRateLimit` 5-10/min aggiunto su company, message, stop |
+| H1 | `/api/platform/cron/data-connector` GET senza auth (espone infrastruttura) | ✅ `CRON_SECRET` check aggiunto a GET |
+| H2 | `/api/corpus/ask` rate-limit bypassato per utenti anonimi | ✅ `checkRateLimit` applicato SEMPRE (per userId o IP) |
+| M7 | `/api/company/costs` usa `requireAuth` anziché `requireConsoleAuth` | ✅ Cambiato a `requireConsoleAuth` + rate-limit |
+| M8 | `/api/corpus` GET e `/api/vector-search` GET senza rate-limit | ✅ `checkRateLimit` per IP aggiunto |
+| M9 | `/api/company/cron` POST senza rate-limit | ✅ `checkRateLimit` aggiunto |
 
 ### Finding bassi residui
 
 - Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente — bassa priorità
 - CSP include `'unsafe-eval'` — necessario per Next.js, rimovibile in prod con nonce-based CSP
+- `/api/company/*` routes (board, tasks, status, files, departments, reports) senza rate-limit — protetti da console auth, basso rischio
 - DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI (task CME aperto)
 - Consulente EU AI Act — scadenza agosto 2026 (task CME aperto)
 
@@ -1190,16 +1210,29 @@ Comportati come **CME** (CEO virtuale):
 2. **Reporta stato** all'utente in 3-5 righe
 3. **Chiedi**: "Su cosa vuoi che ci concentriamo?"
 4. **Delega** ai dipartimenti — non scrivere codice direttamente senza passare dal dipartimento competente
+5. **CME = ROUTER ONLY** — classifica richieste usando decision trees (`company/protocols/decision-trees/`), delega implementazione ai builder dei dipartimenti
 
 ### Per lavorare come un dipartimento specifico
 
-Leggi il `company/<dept>/department.md` + il runbook pertinente in `company/<dept>/runbooks/`.
+1. Leggi il contesto veloce: `npx tsx scripts/dept-context.ts <dept>`
+2. Leggi il `company/<dept>/department.md` + il runbook pertinente in `company/<dept>/runbooks/`
+3. Se il dept ha un `builder.md`, segui le sue istruzioni per implementare
+
+### Processo decisionale (Protocolli)
+
+Ogni decisione non-triviale segue il processo del Dipartimento Protocolli:
+- **L1 Auto**: task operativi routine → CME approva direttamente
+- **L2 CME**: task cross-dipartimento → CME decide dopo consultazione
+- **L3 Boss**: decisioni strategiche → approvazione via Telegram
+- **L4 Boss + Security**: decisioni critiche → security audit obbligatorio
+
+Decision trees in `company/protocols/decision-trees/` (feature-request, trading-operations, data-operations, infrastructure, company-operations).
 
 ### Struttura company/
 
 ```
 company/
-├── cme.md                    # CEO prompt
+├── cme.md                    # CEO prompt (ROUTER ONLY, non implementatore)
 ├── process-designer.md       # Protocolli inter-dipartimento
 ├── contracts.md              # Contratti I/O
 ├── <dept>/department.md      # Identità dipartimento
@@ -1244,3 +1277,6 @@ Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 | Security | Audit e protezione dati | `company/security/` |
 | Strategy | Vision: opportunita di business, nuovi agenti/servizi/domini, analisi competitiva, OKR | `company/strategy/` |
 | Marketing | Vision: market intelligence, segnali di mercato, validazione opportunita, acquisizione | `company/marketing/` |
+| Protocols | Governance: decision trees, routing richieste, audit decisioni, prompt optimization | `company/protocols/` |
+| UX/UI | Design system, implementazione interfacce, accessibilità WCAG 2.1 AA | `company/ux-ui/` |
+| Acceleration | Velocità: performance dipartimenti + pulizia codebase | `company/acceleration/department.md` |

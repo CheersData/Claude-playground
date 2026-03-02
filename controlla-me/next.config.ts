@@ -60,6 +60,14 @@ const nextConfig: NextConfig = {
     qualities: [60, 75, 90],
   },
 
+  // Next.js 16: disabilita prerenderEarlyExit per evitare build failure
+  // su pagine client-only (es. /console, /_global-error) che non possono
+  // essere prerendered staticamente. Con questa opzione il build continua
+  // anche se una pagina fallisce il prerendering, marcandola come dynamic.
+  experimental: {
+    prerenderEarlyExit: false,
+  },
+
   async headers() {
     return [
       {
