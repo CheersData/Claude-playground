@@ -967,70 +967,75 @@ Trading automatizzato su azioni US e ETF via Alpaca Markets per sostenibilità f
 ```
 trading/
 ├── pyproject.toml                 # Python project config
+├── report.py                      # CLI report portfolio (P&L, posizioni, risk events)
 ├── src/
 │   ├── config/
-│   │   └── settings.py            # Pydantic settings (Alpaca, Risk, Scanner, Signal)
+│   │   └── settings.py            # Pydantic settings (Alpaca, Risk, Scanner, Signal, SlopeVolume)
 │   ├── connectors/
-│   │   └── alpaca_client.py       # Alpaca trading + market data client
+│   │   ├── alpaca_client.py       # Alpaca trading + market data client
+│   │   └── tiingo_client.py       # Tiingo IEX real-time data (zero delay, free tier)
 │   ├── models/
-│   │   ├── signals.py             # ScanResult, Signal, RiskDecision
+│   │   ├── signals.py             # ScanResult, Signal (BUY/SHORT/SELL/COVER), RiskDecision
 │   │   ├── orders.py              # Order, OrderStatus
 │   │   └── portfolio.py           # Position, PortfolioSnapshot, RiskEvent
 │   ├── agents/
 │   │   ├── base.py                # BaseAgent ABC (async, structured logging)
 │   │   ├── market_scanner.py      # [1] Daily pre-market screening
-│   │   ├── signal_generator.py    # [2] Technical analysis + signals
+│   │   ├── signal_generator.py    # [2] Technical analysis + slope+volume strategy
 │   │   ├── risk_manager.py        # [3] Risk validation + kill switch
 │   │   ├── executor.py            # [4] Order execution on Alpaca
-│   │   └── portfolio_monitor.py   # [5] P&L monitoring + alerts
+│   │   └── portfolio_monitor.py   # [5] P&L monitoring + trailing stops + daily report
+│   ├── analysis.py                # Shared analysis: composite score + slope+volume (single source)
 │   ├── strategies/                # Strategy configurations (future)
-│   ├── backtest/                  # Backtesting framework (Phase 2)
+│   ├── backtest/
+│   │   └── engine.py              # Backtest engine (unified con analysis.py)
 │   ├── utils/
 │   │   ├── logging.py             # structlog setup
-│   │   └── db.py                  # TradingDB (CRUD Supabase)
-│   └── pipeline.py                # Orchestratore pipeline 5 agenti
+│   │   ├── db.py                  # TradingDB (CRUD Supabase)
+│   │   └── telegram.py            # Notifiche Telegram (trade, kill switch, daily report)
+│   ├── pipeline.py                # Orchestratore: daily pipeline + intraday pipeline (slope 24/7)
+│   └── scheduler.py               # Scheduler: intraday ogni 1min, daily 09:00 ET, report 16:30 ET
 ├── tests/
-│   ├── unit/
-│   │   └── test_models.py         # Model validation tests
-│   └── integration/               # Integration tests (future)
+│   └── unit/
+│       ├── test_models.py         # Model validation tests
+│       └── test_slope_and_trailing.py  # Slope strategy + trailing stop unit tests
 └── company/trading/               # Company structure (department.md, agents/, runbooks/)
 ```
 
 ### Pipeline 5+1 agenti
 
+**Daily pipeline** (09:00 ET, weekday):
 ```
-[1] MARKET SCANNER (daily, pre-market)
-    → Filtra S&P 500 + NASDAQ 100 + ETF: volume, ATR, trend SMA
-    → Output: watchlist 20-30 candidati
-    |
-[2] SIGNAL GENERATOR (daily, post-scan)
-    → RSI + MACD + Bollinger + Trend + Volume → score composito
-    → Output: segnali BUY/SELL con confidence > 0.6
-    |
-[3] RISK MANAGER (pre-trade)
-    → Position sizing (half-Kelly, max 10% portfolio)
-    → Correlazione, esposizione settoriale, R/R ratio
-    → KILL SWITCH su -2% daily o -5% weekly
-    → Output: ordini APPROVED/REJECTED + ATR passthrough
-    |
-[4] EXECUTOR (on-signal)
-    → Bracket orders su Alpaca (entry + stop loss + take profit)
-    → Retry 3x su errore, logging completo
-    → Inizializza trailing stop state al fill (ATR, entry, stop order ID)
-    |
-[4.5] TRAILING STOP (SEMPRE — anche senza nuovi segnali)
-    → 4-tier sistema (identico al backtest engine):
-      Tier 0: Breakeven (profit > 1.0× ATR → SL = entry)
-      Tier 1: Lock (profit > 1.5× ATR → SL = entry + 0.5× ATR)
-      Tier 2: Trail (profit > 2.5× ATR → SL = highest - 1.5× ATR)
-      Tier 3: Tight (profit > 4.0× ATR → SL = highest - 1.0× ATR)
-    → Replace Alpaca stop order con nuovo prezzo (monotonic, solo UP)
-    → Auto-bootstrap per posizioni pre-esistenti (calcola ATR da dati correnti)
-    → Cleanup state per posizioni chiuse
-    |
-[5] PORTFOLIO MONITOR (continuous + daily report)
-    → P&L tracking, alert system, daily snapshot
-    → Trigger stop loss/take profit
+[1] MARKET SCANNER → watchlist 20+ candidati (volume, ATR, trend SMA)
+[2] SIGNAL GENERATOR → RSI+MACD+BB+Trend+Volume → score composito → BUY/SHORT
+[3] RISK MANAGER → position sizing (half-Kelly), correlazione, kill switch
+[4] EXECUTOR → bracket orders Alpaca, retry 3x, pending intent pattern
+[4.5] TRAILING STOP → 4-tier dinamico (breakeven→lock→trail→tight)
+[5] PORTFOLIO MONITOR → daily report, P&L snapshot
+```
+
+**Intraday pipeline** (ogni 1 minuto, 24/7 — inclusi weekend):
+```
+[2.0] PENDING RETRY → riprova ordini falliti (TTL 10min, già risk-approved)
+[2.5] SLOPE+VOLUME → OLS linear regression su barre 1Min via Tiingo IEX real-time
+      → BUY: slope positiva > threshold (0.01%/bar) + volume > 1.3× MA(20)
+      → EXIT: slope si inverte → SELL (chiude long) o COVER (chiude short)
+      → ADVERSE EXIT: slope avversa senza inversione formale → exit immediata
+      → INVERSE ETF (SH, PSQ, DOG, SPXS, SQQQ):
+          require_reversal=False (trend-continuation, non flip)
+          bypass_volume_check=True (Tiingo free tier: volume=0 su ETF illiquidi)
+          Mai SHORT (double-negative = long mercato)
+          Force COVER se short errato già aperto
+[3] RISK MANAGER → approva/rigetta segnali slope
+[4] EXECUTOR → market orders (con bracket se BUY con SL+TP)
+[4.5] TRAILING STOP → aggiorna stop su posizioni esistenti
+```
+
+**Notifiche Telegram** (via `utils/telegram.py`):
+```
+🔔 Trade eseguito → intraday, ogni esecuzione
+🚨 Kill switch → P&L -2%/day o -5%/week
+📊 Daily report → 16:30 ET (portfolio value, P&L, posizioni aperte, alert)
 ```
 
 ### Risk Management (NON NEGOZIABILE)
@@ -1046,17 +1051,20 @@ trading/
 | Min risk/reward | 1:2 |
 | Paper trading minimo | 30 giorni |
 
-### Schema Database (Migration 019 + 021)
+### Schema Database (Migration 019 + 021 + 024)
 
 ```sql
 trading_config        -- Singleton: mode, enabled, risk params, kill switch state
-trading_signals       -- Scan results, trade signals, risk checks (TTL 90gg)
-trading_orders        -- Ordini eseguiti su Alpaca
-portfolio_positions   -- Posizioni correnti (upsert)
-portfolio_snapshots   -- Snapshot giornalieri P&L
+trading_signals       -- signal_type: scan|trade|risk_check|kill_switch|pending_retry (TTL 90gg)
+trading_orders        -- Ordini eseguiti su Alpaca (fill price, qty, bracket info)
+portfolio_positions   -- Posizioni correnti (upsert ogni ciclo intraday)
+portfolio_snapshots   -- Snapshot giornalieri P&L (portfolio value, sharpe, win_rate)
 risk_events           -- Kill switch, stop loss, trailing stop, warning, alerts
-trailing_stop_state   -- Stato trailing stop per posizione (021): entry, ATR, highest_close, tiers
+trailing_stop_state   -- Stato trailing stop: entry, ATR, highest_close, tier_reached, stop_order_id
 ```
+
+`pending_retry` pattern: ordini falliti salvati in `trading_signals` con TTL 10min.
+Il ciclo intraday successivo li riprova direttamente (già risk-approved, salta signal gen e risk mgr).
 
 RLS: solo `service_role` (il Python trading system usa `SUPABASE_SERVICE_ROLE_KEY`).
 
@@ -1072,24 +1080,48 @@ ALPACA_BASE_URL=https://paper-api.alpaca.markets  # paper default, live dopo app
 TRADING_MODE=paper          # paper | live | backtest
 TRADING_ENABLED=true
 
+# Tiingo IEX (real-time market data, zero delay — Alpaca free = 15min delay)
+TIINGO_API_KEY=...
+TIINGO_USE_FOR_MARKET_DATA=true
+
+# Telegram (notifiche trade + kill switch + daily report)
+TELEGRAM_BOT_TOKEN=...      # da @BotFather → /newbot
+TELEGRAM_CHAT_ID=...        # da api.telegram.org/bot{TOKEN}/getUpdates → chat.id
+
+# Slope+Volume strategy (intraday 24/7)
+TRADING_SLOPE_ENABLED=true
+TRADING_SLOPE_SYMBOLS=["SPY","QQQ","IWM","XLK","XLF","XLE","XLV","XLI","XLU","XLP","XLRE","XLB","GLD","TLT","SHY","USO","DBA","SH","PSQ","NVDA"]
+TRADING_SLOPE_TIMEFRAME=1Min
+TRADING_SLOPE_LOOKBACK_BARS=5
+TRADING_SLOPE_THRESHOLD_PCT=0.01     # slope minima per trigger (abbassa a 0.005 per più reattività)
+TRADING_SLOPE_VOLUME_MULTIPLIER=1.3
+TRADING_SLOPE_STOP_LOSS_ATR=2.5
+TRADING_SLOPE_TAKE_PROFIT_ATR=3.0
+
 # Federal Reserve Economic Data (opzionale, macro)
 FRED_API_KEY=...
 ```
 
 ### Fasi di deployment
 
-| Fase | Durata | Stato |
-|------|--------|-------|
-| 1. Fondamenta | 1-2 settimane | **IN CORSO** — infrastruttura Python, schema DB |
-| 2. Backtest | 1-2 settimane | Pending — dati storici 2 anni, Sharpe > 1.0 |
-| 3. Paper Trading | 30 giorni min | Pending — risultati consistenti col backtest |
-| 4. Go Live | Indefinito | Pending — approvazione boss |
+| Fase | Stato (2026-03-03) |
+|------|-------------------|
+| 1. Fondamenta | ✅ **COMPLETATA** — 5+1 agenti, schema DB (021+024), Tiingo IEX, Telegram, slope strategy |
+| 2. Backtest | 🟡 **IN CORSO** — Ciclo #3: Sharpe 0.975 (gap 0.025 da soglia 1.0), 136 trade, CAGR 11.12% |
+| 3. Paper Trading | ⏳ Pending — avvio dopo Sharpe > 1.0 confermato |
+| 4. Go Live | ⏳ Pending — approvazione boss post-paper 30gg |
+
+**Backtest risultati (aggiornato 2026-03-03):**
+- Ciclo #3 (2 anni 2023-2024): Sharpe 0.975, Win Rate 52.2%, Profit Factor 2.20, Max DD 3.85%
+- Blockers: 126/136 exit su stop loss (TP 6×ATR troppo distante) → prossimo tuning: sl_atr=1.5-2.0
+- Grid search best combo: TP=10×ATR, SL=2×ATR → +24.5% return, 322 trade, Sharpe ancora < 1.0
 
 ### Company structure
 
 ```
 company/trading/
 ├── department.md                  # Identità ufficio
+├── status.json                    # Stato corrente (fase, backtest results, posizioni)
 ├── agents/
 │   ├── trading-lead.md            # Leader ufficio trading
 │   ├── market-scanner.md          # Identity card scanner
@@ -1097,11 +1129,16 @@ company/trading/
 │   ├── risk-manager.md            # Identity card risk mgr
 │   ├── executor.md                # Identity card executor
 │   └── portfolio-monitor.md       # Identity card monitor
-└── runbooks/
-    ├── trading-pipeline.md        # Pipeline giornaliera
-    ├── risk-management.md         # Kill switch e procedure risk
-    ├── backtest.md                # Come eseguire backtest
-    └── go-live.md                 # Checklist go-live
+├── runbooks/
+│   ├── trading-pipeline.md        # Pipeline giornaliera
+│   ├── risk-management.md         # Kill switch e procedure risk
+│   ├── backtest.md                # Come eseguire backtest
+│   ├── backtest-5min-slope.md     # Backtest slope strategy su barre 5min
+│   ├── grid-search-tpsl.md        # Grid search TP/SL parametri
+│   ├── alpaca-extended-hours.md   # Extended hours e orari mercato
+│   └── go-live.md                 # Checklist go-live
+└── reports/
+    └── performance-live-diagnosis-2026-03-03.md  # Diagnosi live trading 2026-03-03
 ```
 
 ---
@@ -1280,3 +1317,81 @@ Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 | Protocols | Governance: decision trees, routing richieste, audit decisioni, prompt optimization | `company/protocols/` |
 | UX/UI | Design system, implementazione interfacce, accessibilità WCAG 2.1 AA | `company/ux-ui/` |
 | Acceleration | Velocità: performance dipartimenti + pulizia codebase | `company/acceleration/department.md` |
+
+---
+
+## 22. PARALLEL SUB-AGENT EXECUTION — REGOLA OPERATIVA
+
+**L'utente ha Claude Max 20x. Usare il compute in modo aggressivo. Task indipendenti = sempre in parallelo.**
+
+### Regola fondamentale
+
+Ogni volta che ci sono 2+ task che non dipendono l'uno dall'altro, **devono** essere lanciati in un singolo blocco `<tool_use>` con più Agent tool calls contemporanee. Mai sequenziale se può essere parallelo.
+
+```
+❌ SBAGLIATO — sequenziale
+   1. Leggo file A
+   2. Poi leggo file B
+   3. Poi leggo file C
+
+✅ CORRETTO — parallelo (singolo blocco tool-use)
+   Agent(leggi A) + Agent(leggi B) + Agent(leggi C)  →  tutti e 3 insieme
+```
+
+### Architettura sub-agenti per questo progetto
+
+Ogni dipartimento della virtual company corrisponde a un ruolo naturale per un sub-agente:
+
+| Sub-agente | Ruolo | Quando usarlo |
+|------------|-------|---------------|
+| `Explore` | Ricerca codebase, lettura file, grep | Sempre — per capire prima di modificare |
+| `Plan` | Architect review, design decisioni | Prima di implementazioni complesse |
+| `general-purpose` | Task multi-step, ricerche cross-file | Review dipartimento, analisi complete |
+
+### Pattern operativo standard
+
+**Per ogni richiesta complessa:**
+```
+1. ANALISI PARALLELA (sub-agenti Explore)
+   ├── Agente A: leggi file rilevanti area 1
+   ├── Agente B: leggi file rilevanti area 2
+   └── Agente C: cerca pattern nel codebase
+
+2. IMPLEMENTAZIONE (io, con risultati degli agenti)
+   → Applico le modifiche ai file
+
+3. VERIFICA PARALLELA (sub-agenti Explore, opzionale)
+   ├── Agente A: verifica coerenza modifica 1
+   └── Agente B: verifica coerenza modifica 2
+```
+
+### Esempi concreti
+
+**Review trading system** → lancio in parallelo:
+- Agente 1: analizza `src/agents/` (5 file)
+- Agente 2: analizza `src/analysis.py` + `src/config/settings.py`
+- Agente 3: analizza `src/pipeline.py` + `src/scheduler.py`
+
+**Aggiornamento multi-dipartimento** → lancio in parallelo:
+- Agente 1 (Architecture): studia impatto architetturale
+- Agente 2 (QA): identifica test mancanti
+- Agente 3 (Trading): verifica parametri risk
+
+**Ricerca cross-codebase** → lancio in parallelo:
+- Agente 1: cerca in `app/` e `lib/`
+- Agente 2: cerca in `trading/src/`
+- Agente 3: cerca in `company/` e `scripts/`
+
+### Limiti e quando NON parallelizzare
+
+- **Dipendenze sequenziali**: se il task B usa il risultato del task A → sequenziale
+- **Modifiche allo stesso file**: evitare due agenti che scrivono lo stesso file
+- **Task banali** (< 30 secondi): non vale l'overhead di lanciare un sub-agente
+
+### Background agents
+
+Per task lunghi non bloccanti (build, analisi pesanti, ricerche estese):
+```python
+Agent(task="...", run_in_background=True)
+# → Continuo a lavorare, vengo notificato al completamento
+```
