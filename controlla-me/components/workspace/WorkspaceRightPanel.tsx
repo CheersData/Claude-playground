@@ -17,6 +17,8 @@ function ArticleViewer({ articleRef, onClose }: { articleRef: string; onClose: (
 
   useEffect(() => {
     if (!articleRef) return;
+    // Multiple setState calls batched by React 18+ automatic batching (valid pattern).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     setLoading(true);
     setError(null);
     setArticles([]);
@@ -58,7 +60,7 @@ function ArticleViewer({ articleRef, onClose }: { articleRef: string; onClose: (
         {!loading && !error && articles.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-gray-400">Nessun articolo trovato nel corpus</p>
-            <p className="text-xs text-gray-300 mt-1">per "{articleRef}"</p>
+            <p className="text-xs text-gray-300 mt-1">per &quot;{articleRef}&quot;</p>
           </div>
         )}
         {articles.map((article) => (
@@ -124,6 +126,8 @@ function CorpusSearchPanel({ onArticleSelect }: { onArticleSelect: (ref: string)
     timerRef.current = setTimeout(() => search(val, searchType), 400);
   };
 
+  // Re-run search when searchType changes (query is a controlled input, not a dep).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { search(query, searchType); }, [searchType]);
 
   return (
@@ -193,7 +197,7 @@ function CorpusSearchPanel({ onArticleSelect }: { onArticleSelect: (ref: string)
           </motion.button>
         ))}
         {query && !loading && results.length === 0 && (
-          <p className="text-center text-xs text-gray-400 py-8">Nessun risultato per "{query}"</p>
+          <p className="text-center text-xs text-gray-400 py-8">Nessun risultato per &quot;{query}&quot;</p>
         )}
       </div>
     </div>
@@ -419,7 +423,7 @@ export default function WorkspaceRightPanel({
                       <div className="flex flex-col items-center justify-center h-full text-center p-6">
                         <BookOpen className="w-10 h-10 text-gray-200 mb-3" />
                         <p className="text-sm text-gray-400 font-medium">Nessun articolo selezionato</p>
-                        <p className="text-xs text-gray-300 mt-1">Clicca su un riferimento normativo nell'analisi</p>
+                        <p className="text-xs text-gray-300 mt-1">Clicca su un riferimento normativo nell&apos;analisi</p>
                       </div>
                     )
                   }

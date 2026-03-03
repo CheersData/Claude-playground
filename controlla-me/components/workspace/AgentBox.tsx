@@ -49,7 +49,8 @@ const AGENT_CONFIG: Record<AgentId, {
 // ── Article chip detection ─────────────────────────────────────────────────────
 
 // Matches: Art. 1571 c.c. | art. 4 | D.Lgs. 23/2015 | L. 300/1970 | D.P.R. 633/1972
-const ARTICLE_REGEX = /\b(Art\.?\s*\d+(?:[\w\s.-]*(?:c\.c\.|c\.p\.|cost\.|c\.n\.))?\s*|D\.Lgs\.?\s*[\d]+\/\d{4}(?:,?\s*art\.?\s*\d+)?|L\.?\s*\d+\/\d{4}|D\.P\.R\.?\s*\d+\/\d{4})/gi;
+// No `g` flag: split() finds all matches without it, test() won't advance lastIndex.
+const ARTICLE_REGEX = /\b(Art\.?\s*\d+(?:[\w\s.-]*(?:c\.c\.|c\.p\.|cost\.|c\.n\.))?\s*|D\.Lgs\.?\s*[\d]+\/\d{4}(?:,?\s*art\.?\s*\d+)?|L\.?\s*\d+\/\d{4}|D\.P\.R\.?\s*\d+\/\d{4})/i;
 
 function TextWithArticleChips({
   text,
@@ -63,7 +64,6 @@ function TextWithArticleChips({
     <>
       {parts.map((part, i) => {
         if (ARTICLE_REGEX.test(part)) {
-          ARTICLE_REGEX.lastIndex = 0;
           return (
             <button
               key={i}
@@ -341,7 +341,7 @@ export default function AgentBox({ agentId, status, data, onArticleClick, delay 
                 </div>
               )}
               {status === "error" && (
-                <p className="text-sm text-red-400 mt-2">Errore durante l'elaborazione.</p>
+                <p className="text-sm text-red-400 mt-2">Errore durante l&apos;elaborazione.</p>
               )}
             </div>
           </motion.div>
