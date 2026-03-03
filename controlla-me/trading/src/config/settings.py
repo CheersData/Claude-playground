@@ -241,6 +241,16 @@ class SlopeVolumeSettings(BaseSettings):
             "No prior negative slope needed. Volume bypassed because Tiingo IEX may not return volume for low-volume ETFs."
         ),
     )
+    trend_following_symbols: list[str] = Field(
+        default=["SPY", "QQQ", "IWM", "NVDA", "GLD", "TLT", "XLK", "XLF", "XLE", "XLV"],
+        description=(
+            "Liquid, trending instruments that use trend-continuation entry (require_reversal=False) "
+            "but still require volume confirmation (bypass_volume_check=False, unlike inverse ETFs). "
+            "A sustained positive or negative slope is enough to signal — no prior reversal needed. "
+            "Enables signal generation across the full watchlist, not only inverse ETFs. "
+            "Configure via TRADING_SLOPE_TREND_FOLLOWING_SYMBOLS (JSON array)."
+        ),
+    )
     crypto_enabled: bool = Field(
         default=True,
         alias="TRADING_SLOPE_CRYPTO_ENABLED",

@@ -217,6 +217,13 @@ class SignalGenerator(BaseAgent):
         symbols_with_signals = 0
 
         inverse_etf_set = set(getattr(slope_cfg, "inverse_etf_symbols", ["SH", "PSQ", "DOG", "SPXS", "SQQQ"]))
+        # Trend-following symbols: liquid instruments that trade on sustained slope
+        # direction (no reversal needed) but still require volume confirmation.
+        # Enables diversification beyond inverse ETFs — SPY/QQQ/NVDA etc. now generate signals.
+        trend_following_set = set(getattr(
+            slope_cfg, "trend_following_symbols",
+            ["SPY", "QQQ", "IWM", "NVDA", "GLD", "TLT", "XLK", "XLF", "XLE", "XLV"],
+        ))
 
         for symbol in all_symbols:
             df = self._market_data.get_latest_bars(
@@ -228,13 +235,18 @@ class SignalGenerator(BaseAgent):
                 self.log_error("no_data", symbol=symbol)
                 continue  # skip this symbol, try next
 
-            # Inverse ETFs (SH, PSQ, etc.) don't need a slope reversal to enter.
-            # A sustained positive slope is the signal (market falling → inverse rising).
-            # Volume check also bypassed: Tiingo IEX free tier may not return volume for these.
+            # --- Entry mode per asset class ---
+            # Inverse ETFs (SH, PSQ, etc.): trend-continuation, volume bypassed.
+            #   A sustained positive slope = market falling → inverse ETF rising = BUY.
+            #   Volume bypassed: Tiingo IEX may not return volume for low-volume ETFs.
+            # Trend-following (SPY, QQQ, NVDA, GLD, ...): trend-continuation, volume required.
+            #   Sustained slope above threshold + volume confirmation → signal.
+            #   No reversal needed — these trend for hours/days, not just at reversal points.
+            # All others: reversal mode — slope must flip direction to signal entry.
             is_inverse = symbol in inverse_etf_set
+            is_trend_following = (not is_inverse) and (symbol in trend_following_set)
 
             result = analyze_slope_volume(
-
                 symbol,
                 df,
                 lookback_bars=slope_cfg.lookback_bars,
@@ -248,8 +260,8 @@ class SignalGenerator(BaseAgent):
                 market_close_utc=slope_cfg.market_close_utc,
                 min_bars=slope_cfg.min_bars,
                 timeframe=slope_cfg.timeframe,
-                require_reversal=not is_inverse,
-                bypass_volume_check=is_inverse,
+                require_reversal=(not is_inverse) and (not is_trend_following),
+                bypass_volume_check=is_inverse,  # only inverse ETFs bypass volume
             )
 
             # Inverse ETFs: never SHORT. SH/PSQ are already inverse instruments —
@@ -258,9 +270,10 @@ class SignalGenerator(BaseAgent):
             if is_inverse and result is not None and result.get("action") == "SHORT":
                 result = None
 
-            # Log slope diagnostics for inverse ETFs when no signal is generated.
-            # This explains WHY SH/PSQ are silent: slope below threshold or negative.
-            if result is None and is_inverse:
+            # Log slope diagnostics when no signal generated — helps tune thresholds.
+            # Logged for: inverse ETFs (always), trend-following symbols (sampling only).
+            log_diag = is_inverse or is_trend_following
+            if result is None and log_diag:
                 try:
                     slope_info = get_current_slope_info(
                         df,
@@ -272,9 +285,11 @@ class SignalGenerator(BaseAgent):
                         if slope_info["direction"] == "negative"
                         else "below_threshold"
                     )
+                    mode = "inverse" if is_inverse else "trend_following"
                     self.logger.info(
                         "slope_no_signal",
                         symbol=symbol,
+                        mode=mode,
                         slope_pct=round(slope_info["slope_pct"], 4),
                         slope_dir=slope_info["direction"],
                         angle_deg=round(slope_info["angle_deg"], 1),
