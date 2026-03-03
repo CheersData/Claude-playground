@@ -2,16 +2,10 @@
 
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Upload,
-  FileText,
-  Sparkles,
-  Scale,
-  MessageSquare,
-} from "lucide-react";
+import { Upload, FileText, Scale, MessageSquare, BookOpen, Globe } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
-import LegalWorkspaceShell from "@/components/workspace/LegalWorkspaceShell";
+import LegalWorkspaceShell, { type TierName } from "@/components/workspace/LegalWorkspaceShell";
 import PaywallBanner from "@/components/PaywallBanner";
 import type { AgentPhase, AdvisorResult } from "@/lib/types";
 
@@ -25,27 +19,63 @@ interface UsageInfo {
   canAnalyze: boolean;
 }
 
-const AGENT_PILLS = [
-  { name: "Leo", role: "Catalogatore", color: "#4ECDC4" },
-  { name: "Marta", role: "Analista rischi", color: "#FF6B6B" },
-  { name: "Giulia", role: "Giurista", color: "#A78BFA" },
-  { name: "Enzo", role: "Consulente", color: "#FFC832" },
+// ── Tier options ───────────────────────────────────────────────────────────────
+
+const TIER_OPTIONS: Array<{
+  id: TierName;
+  label: string;
+  desc: string;
+  cost: string;
+  models: string;
+  activeClass: string;
+  dotColor: string;
+}> = [
+  {
+    id: "intern",
+    label: "Intern",
+    desc: "Modelli gratuiti",
+    cost: "~gratis",
+    models: "Cerebras · Groq · Mistral",
+    activeClass: "border-gray-400 bg-gray-50 ring-1 ring-gray-300",
+    dotColor: "#9ca3af",
+  },
+  {
+    id: "associate",
+    label: "Associate",
+    desc: "Qualità intermedia",
+    cost: "~€ 0.01",
+    models: "Gemini Pro · Mistral Large",
+    activeClass: "border-blue-400 bg-blue-50 ring-1 ring-blue-300",
+    dotColor: "#3b82f6",
+  },
+  {
+    id: "partner",
+    label: "Partner",
+    desc: "Massima qualità",
+    cost: "~€ 0.05",
+    models: "Claude Sonnet · GPT-5",
+    activeClass: "border-violet-400 bg-violet-50 ring-1 ring-violet-300",
+    dotColor: "#7c3aed",
+  },
 ];
 
-export default function LegalOfficeClient() {
-  const [view, setView] = useState<AppView>("landing");
-  const [fileName, setFileName] = useState("");
-  const [currentPhase, setCurrentPhase] = useState<AgentPhase | null>(null);
-  const [completedPhases, setCompletedPhases] = useState<AgentPhase[]>([]);
-  const [result, setResult] = useState<AdvisorResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [usage, setUsage] = useState<UsageInfo | null>(null);
-  const [contextPrompt, setContextPrompt] = useState("");
-  const [phaseResults, setPhaseResults] = useState<Record<string, unknown>>({});
+// ── Component ─────────────────────────────────────────────────────────────────
 
-  const lastFileRef = useRef<File | null>(null);
+export default function LegalOfficeClient() {
+  const [view, setView]                   = useState<AppView>("landing");
+  const [fileName, setFileName]           = useState("");
+  const [currentPhase, setCurrentPhase]   = useState<AgentPhase | null>(null);
+  const [completedPhases, setCompletedPhases] = useState<AgentPhase[]>([]);
+  const [result, setResult]               = useState<AdvisorResult | null>(null);
+  const [error, setError]                 = useState<string | null>(null);
+  const [sessionId, setSessionId]         = useState<string | null>(null);
+  const [dragOver, setDragOver]           = useState(false);
+  const [usage, setUsage]                 = useState<UsageInfo | null>(null);
+  const [contextPrompt, setContextPrompt] = useState("");
+  const [phaseResults, setPhaseResults]   = useState<Record<string, unknown>>({});
+  const [tier, setTier]                   = useState<TierName>("partner");
+
+  const lastFileRef  = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reset = useCallback(() => {
@@ -71,7 +101,8 @@ export default function LegalOfficeClient() {
 
       const formData = new FormData();
       formData.append("file", file);
-      if (resumeId) formData.append("sessionId", resumeId);
+      formData.append("tier", tier);
+      if (resumeId)      formData.append("sessionId", resumeId);
       if (contextPrompt) formData.append("context", contextPrompt);
 
       let response: Response;
@@ -89,9 +120,9 @@ export default function LegalOfficeClient() {
         return;
       }
 
-      const reader = response.body.getReader();
+      const reader  = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer    = "";
 
       const processBuffer = () => {
         const events = buffer.split("\n\n");
@@ -99,16 +130,17 @@ export default function LegalOfficeClient() {
         for (const block of events) {
           const lines = block.trim().split("\n");
           let eventType = "message";
-          let dataStr = "";
+          let dataStr   = "";
           for (const line of lines) {
-            if (line.startsWith("event:")) eventType = line.slice(6).trim();
-            else if (line.startsWith("data:")) dataStr = line.slice(5).trim();
+            if (line.startsWith("event:"))      eventType = line.slice(6).trim();
+            else if (line.startsWith("data:"))  dataStr   = line.slice(5).trim();
           }
           if (!dataStr) continue;
           try {
             const data = JSON.parse(dataStr);
-            if (eventType === "session") setSessionId(data.sessionId);
-            else if (eventType === "progress") {
+            if (eventType === "session") {
+              setSessionId(data.sessionId);
+            } else if (eventType === "progress") {
               if (data.status === "running") setCurrentPhase(data.phase);
               else if (data.status === "done") {
                 setCompletedPhases((p) => [...p, data.phase]);
@@ -120,18 +152,13 @@ export default function LegalOfficeClient() {
               setView("results");
             } else if (eventType === "error") {
               if (data.code === "LIMIT_REACHED") {
-                fetch("/api/user/usage")
-                  .then((r) => r.json())
-                  .then(setUsage)
-                  .catch(() => {});
+                fetch("/api/user/usage").then((r) => r.json()).then(setUsage).catch(() => {});
                 setView("paywall");
               } else {
                 setError(data.error || "Errore durante l'analisi");
               }
             }
-          } catch {
-            /* ignore parse errors */
-          }
+          } catch { /* ignore parse errors */ }
         }
       };
 
@@ -147,7 +174,7 @@ export default function LegalOfficeClient() {
         setView("landing");
       }
     },
-    [contextPrompt]
+    [contextPrompt, tier]
   );
 
   const handleDrop = useCallback(
@@ -169,73 +196,88 @@ export default function LegalOfficeClient() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
 
-      {/* ═══════════ LANDING — Upload ═══════════ */}
+      {/* ═══════════ LANDING ═══════════ */}
       <AnimatePresence mode="wait">
         {view === "landing" && (
           <motion.div
             key="upload-landing"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.35 }}
             className="flex flex-col items-center justify-center min-h-screen px-6 pt-20 pb-16"
           >
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-xl">
+
               {/* Badge */}
-              <div className="flex justify-center mb-8">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FF6B35]/10 border border-[#FF6B35]/20 text-[#FF6B35] text-sm font-medium">
-                  <Scale className="w-3.5 h-3.5" />
+              <div className="flex justify-center mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-500 text-xs font-semibold tracking-wide shadow-sm">
+                  <Scale className="w-3.5 h-3.5 text-[#FF6B35]" />
                   Legal Intelligence Workspace
                 </div>
               </div>
 
               {/* Heading */}
-              <div className="text-center mb-10">
-                <h1 className="font-serif text-4xl md:text-5xl text-white mb-4 leading-tight">
+              <div className="text-center mb-8">
+                <h1 className="font-serif text-3xl md:text-4xl text-gray-900 mb-3 leading-tight">
                   Analisi legale{" "}
                   <span className="text-[#FF6B35]">professionale</span>
                 </h1>
-                <p className="text-white/50 text-lg max-w-lg mx-auto">
-                  4 agenti AI specializzati analizzano il tuo contratto in
-                  parallelo — rischi, normativa, consigli pratici.
+                <p className="text-gray-500 text-base max-w-md mx-auto leading-relaxed">
+                  Pipeline a 4 agenti AI — classificazione, analisi rischi,
+                  ricerca normativa e consulenza — su corpus legislativo IT+EU.
                 </p>
               </div>
 
-              {/* Agent pills */}
-              <div className="flex items-center justify-center gap-3 flex-wrap mb-10">
-                {AGENT_PILLS.map((a) => (
-                  <div
-                    key={a.name}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border"
-                    style={{
-                      borderColor: `${a.color}30`,
-                      backgroundColor: `${a.color}10`,
-                      color: a.color,
-                    }}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: a.color }}
-                    />
-                    {a.name} · {a.role}
-                  </div>
-                ))}
+              {/* ── Tier selector ── */}
+              <div className="mb-6">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300 mb-2.5 text-center">
+                  Livello analisi
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {TIER_OPTIONS.map((opt) => {
+                    const active = tier === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setTier(opt.id)}
+                        className={`p-3 rounded-xl border-2 text-left transition-all duration-150 bg-white ${
+                          active ? opt.activeClass : "border-gray-150 hover:border-gray-300"
+                        }`}
+                        style={{ borderColor: active ? undefined : "#edf0f3" }}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: active ? opt.dotColor : "#d1d5db" }}
+                          />
+                          <span className={`text-xs font-bold ${active ? "text-gray-800" : "text-gray-500"}`}>
+                            {opt.label}
+                          </span>
+                        </div>
+                        <p className={`text-[10px] leading-tight ${active ? "text-gray-500" : "text-gray-400"}`}>
+                          {opt.desc}
+                        </p>
+                        <p className={`text-[10px] font-semibold mt-1.5 ${active ? "text-gray-700" : "text-gray-300"}`}>
+                          {opt.cost}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Drop Zone */}
+              {/* ── Drop Zone ── */}
               <div
-                className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
+                className={`relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 ${
                   dragOver
-                    ? "border-[#FF6B35]/80 bg-[#FF6B35]/5 scale-[1.01]"
-                    : "border-white/10 hover:border-white/25 hover:bg-white/[0.02]"
+                    ? "border-[#FF6B35] bg-[#FF6B35]/5 scale-[1.01]"
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
                 }`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
@@ -247,41 +289,36 @@ export default function LegalOfficeClient() {
                   accept=".pdf,.doc,.docx,.txt"
                   onChange={handleFileChange}
                 />
-                <div
-                  className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all ${
-                    dragOver ? "bg-[#FF6B35]/20" : "bg-white/5"
-                  }`}
-                >
-                  {dragOver ? (
-                    <FileText className="w-8 h-8 text-[#FF6B35]" />
-                  ) : (
-                    <Upload className="w-8 h-8 text-white/40" />
-                  )}
+                <div className={`w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center transition-all ${
+                  dragOver ? "bg-[#FF6B35]/15" : "bg-gray-100"
+                }`}>
+                  {dragOver
+                    ? <FileText className="w-6 h-6 text-[#FF6B35]" />
+                    : <Upload className="w-6 h-6 text-gray-400" />
+                  }
                 </div>
 
-                <p className="text-white/80 text-lg font-medium mb-1">
-                  {dragOver
-                    ? "Rilascia per analizzare"
-                    : "Trascina il contratto qui"}
+                <p className="text-gray-700 text-sm font-semibold mb-1">
+                  {dragOver ? "Rilascia per avviare l'analisi" : "Trascina il documento qui"}
                 </p>
-                <p className="text-white/40 text-sm mb-7">
-                  oppure clicca per selezionare — PDF, DOCX, TXT · max 20MB
+                <p className="text-gray-400 text-xs mb-5">
+                  oppure clicca per sfogliare — PDF · DOCX · TXT · max 20 MB
                 </p>
 
-                <div className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-medium hover:bg-[#FF6B35]/90 transition-colors">
+                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#E8451A] transition-colors shadow-sm">
                   <FileText className="w-4 h-4" />
                   Seleziona documento
                 </div>
               </div>
 
-              {/* Context prompt */}
-              <div className="mt-4 relative">
-                <MessageSquare className="absolute left-3.5 top-3 w-4 h-4 text-white/25" />
+              {/* ── Context ── */}
+              <div className="mt-3 relative">
+                <MessageSquare className="absolute left-3.5 top-3 w-3.5 h-3.5 text-gray-300" />
                 <textarea
                   value={contextPrompt}
                   onChange={(e) => setContextPrompt(e.target.value)}
-                  placeholder="Contesto opzionale — es. &quot;Sono il conduttore&quot; o &quot;Cosa rischio se recedo anticipatamente?&quot;"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white/70 placeholder-white/25 resize-none focus:outline-none focus:border-white/20 transition-colors"
+                  placeholder='Contesto opzionale — es. "Sono il conduttore" o "Cosa rischio se recedo anticipatamente?"'
+                  className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-300 resize-none focus:outline-none focus:border-gray-400 transition-colors"
                   rows={2}
                   maxLength={500}
                 />
@@ -289,22 +326,19 @@ export default function LegalOfficeClient() {
 
               {/* Error */}
               {error && (
-                <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
                   {error}
                 </div>
               )}
 
               {/* Trust signals */}
-              <div className="flex items-center justify-center gap-6 mt-8">
+              <div className="flex items-center justify-center gap-5 mt-6">
                 {[
-                  { icon: <Sparkles className="w-3.5 h-3.5" />, text: "4 agenti specializzati" },
-                  { icon: <Scale className="w-3.5 h-3.5" />, text: "Punto di vista parte debole" },
-                  { icon: <FileText className="w-3.5 h-3.5" />, text: "Corpus legislativo IT+EU" },
+                  { icon: <Globe className="w-3.5 h-3.5" />,    text: "6.100+ articoli legislativi" },
+                  { icon: <Scale className="w-3.5 h-3.5" />,    text: "Parte debole tutelata" },
+                  { icon: <BookOpen className="w-3.5 h-3.5" />, text: "Corpus IT + EU" },
                 ].map((item) => (
-                  <div
-                    key={item.text}
-                    className="flex items-center gap-1.5 text-white/30 text-xs"
-                  >
+                  <div key={item.text} className="flex items-center gap-1.5 text-gray-400 text-[11px]">
                     {item.icon}
                     {item.text}
                   </div>
@@ -315,7 +349,7 @@ export default function LegalOfficeClient() {
         )}
       </AnimatePresence>
 
-      {/* ═══════════ WORKSPACE (analyzing + results) ═══════════ */}
+      {/* ═══════════ WORKSPACE ═══════════ */}
       {(view === "analyzing" || view === "results") && (
         <LegalWorkspaceShell
           fileName={fileName}
@@ -325,16 +359,16 @@ export default function LegalOfficeClient() {
           result={result}
           sessionId={sessionId}
           onBack={reset}
+          tier={tier}
           documentType={
-            (phaseResults.classifier as { documentType?: string } | null)
-              ?.documentType
+            (phaseResults.classifier as { documentType?: string } | null)?.documentType
           }
         />
       )}
 
       {/* ═══════════ PAYWALL ═══════════ */}
       {view === "paywall" && usage && (
-        <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 relative z-10">
+        <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16">
           <PaywallBanner
             analysesUsed={usage.analysesUsed}
             analysesLimit={usage.analysesLimit}

@@ -17,29 +17,29 @@ const AGENT_CONFIG: Record<AgentId, {
   Icon: React.ElementType;
 }> = {
   classifier: {
-    name: "Leo",
-    role: "Catalogatore",
+    name: "Classificatore",
+    role: "Analisi documento",
     color: "#4ECDC4",
     bg: "rgba(78,205,196,0.08)",
     Icon: FileText,
   },
   analyzer: {
-    name: "Marta",
-    role: "Analista",
+    name: "Analista",
+    role: "Analisi rischi",
     color: "#FF6B6B",
     bg: "rgba(255,107,107,0.08)",
     Icon: Scale,
   },
   investigator: {
-    name: "Giulia",
-    role: "Giurista",
+    name: "Investigatore",
+    role: "Ricerca normativa",
     color: "#A78BFA",
     bg: "rgba(167,139,250,0.08)",
     Icon: Search,
   },
   advisor: {
-    name: "Enzo",
-    role: "Consulente",
+    name: "Consulente",
+    role: "Valutazione finale",
     color: "#FFC832",
     bg: "rgba(255,200,50,0.08)",
     Icon: Lightbulb,
