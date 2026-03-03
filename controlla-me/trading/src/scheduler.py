@@ -1,12 +1,16 @@
 """
-Daily Trading Scheduler.
+Trading Scheduler — 24/7 multi-market mode.
 
-Runs the full pipeline automatically at:
-  - 09:00 ET  (pre-market: full pipeline — scan + signal + risk + execute)
-  - 10:00–15:00 ET  (hourly intraday: DISABLED — see INTRADAY_ENABLED flag)
-  - 16:30 ET  (post-market daily report)
+Schedule:
+  - Every 30 min, all day, every day  → intraday pipeline (slope + conventional signals)
+  - 09:00 ET on weekdays              → daily pipeline (scan + signal + risk + execute + trailing)
+  - 16:30 ET on weekdays              → daily report snapshot
 
-Skips weekends automatically.
+The intraday pipeline runs 24/7 to support multi-market operation (crypto,
+futures, extended hours). The daily pipeline still anchors to US market open
+for full scan + execution. Weekend intraday runs keep signals fresh for
+Monday open and future non-US markets.
+
 Runs continuously — keep alive with: python -m src.scheduler
 
 DST-aware: uses zoneinfo.ZoneInfo('America/New_York') — no manual offset needed.
@@ -28,12 +32,9 @@ import structlog
 
 from .pipeline import run_daily_pipeline, run_intraday_pipeline
 from .utils.logging import setup_logging
+from .utils import telegram as tg
 
 logger = structlog.get_logger()
-
-# Intraday flag — enabled. Signal generator now fetches 1Hour bars so each
-# hourly run uses fresh intraday data (not stale daily bars).
-INTRADAY_ENABLED = True
 
 _EASTERN = ZoneInfo("America/New_York")
 
@@ -71,9 +72,11 @@ def _run_pipeline() -> None:
 
 
 def _run_intraday() -> None:
-    """Sync wrapper: hourly intraday signal refresh during market hours."""
-    if not _is_weekday():
-        return
+    """Sync wrapper: intraday signal refresh — runs 24/7 every 30 min.
+
+    No weekday check: multi-market mode (crypto, futures, extended hours).
+    Weekend runs keep signals fresh for Monday open.
+    """
     logger.info("scheduler_trigger", job="intraday_pipeline")
     result = asyncio.run(run_intraday_pipeline())
     status = result.get("status", "unknown")
@@ -97,6 +100,7 @@ def _run_daily_report() -> None:
         monitor = PortfolioMonitor()
         return await monitor.run(mode="daily_report")
 
+    from .config import get_settings
     logger.info("scheduler_trigger", job="daily_report")
     result = asyncio.run(_report())
     logger.info(
@@ -105,6 +109,7 @@ def _run_daily_report() -> None:
         daily_pnl_pct=result.get("daily_pnl_pct"),
         alerts=len(result.get("alerts", [])),
     )
+    tg.notify_daily_report(result, mode=get_settings().mode)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -142,21 +147,15 @@ def _setup_schedule() -> None:
     schedule.every().day.at(pipeline_time).do(_run_pipeline)
     schedule.every().day.at(report_time).do(_run_daily_report)
 
-    # Hourly intraday slots — disabled until signal_generator supports intraday bars.
-    # Daily bars don't update until market close: identical results to the 09:00 run.
-    # Re-enable by setting INTRADAY_ENABLED = True after Phase 2 backtest.
-    intraday_times: list[str] = []
-    if INTRADAY_ENABLED:
-        intraday_hours = range(10, 16)  # 10, 11, 12, 13, 14, 15
-        intraday_times = [_et_to_local(h, 0) for h in intraday_hours]
-        for t in intraday_times:
-            schedule.every().day.at(t).do(_run_intraday)
+    # Intraday: every 1 minute, 24/7.
+    # Slope uses 1-min bars with Tiingo IEX real-time data (no delay).
+    # Running every 1 min = each run sees a fresh closed bar.
+    schedule.every(1).minutes.do(_run_intraday)
 
     logger.info(
         "scheduler_configured",
         pipeline_local=pipeline_time,
-        intraday_enabled=INTRADAY_ENABLED,
-        intraday_slots=intraday_times if INTRADAY_ENABLED else "disabled",
+        intraday_mode="every_1_min_24_7",
         report_local=report_time,
         et_offset_hours=et_offset,
         et_zone="EDT" if et_offset == -4 else "EST",
@@ -178,7 +177,7 @@ def main() -> None:
     try:
         while True:
             schedule.run_pending()
-            time.sleep(30)  # check every 30 seconds
+            time.sleep(10)  # check every 10 seconds (precise enough for 1-min jobs)
     except KeyboardInterrupt:
         logger.info("scheduler_stop", reason="KeyboardInterrupt")
 

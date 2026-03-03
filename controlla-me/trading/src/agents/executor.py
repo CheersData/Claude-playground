@@ -71,14 +71,33 @@ class Executor(BaseAgent):
         symbol = decision["symbol"]
         action = decision["action"]
         qty = decision.get("position_size")
-        stop_loss = decision.get("stop_loss")
-        take_profit = decision.get("take_profit")
+        # Alpaca requires prices rounded to 2 decimal places (no sub-penny)
+        raw_sl = decision.get("stop_loss")
+        raw_tp = decision.get("take_profit")
+        stop_loss = round(raw_sl, 2) if raw_sl is not None else None
+        take_profit = round(raw_tp, 2) if raw_tp is not None else None
 
         if not qty or qty <= 0:
             self.logger.warning("skip_order", symbol=symbol, reason="no quantity")
             return None
 
-        side = "buy" if action == "BUY" else "sell"
+        # BUY=long entry, SHORT=short entry, SELL=close long, COVER=close short
+        if action in ("BUY",):
+            side = "buy"
+        elif action in ("SHORT",):
+            side = "sell"   # Alpaca: short entry = sell without owning
+        elif action in ("SELL",):
+            side = "sell"
+        else:  # COVER
+            side = "buy"
+
+        # --- Pre-sell: cancel trailing stop order if active ---
+        # When shares are held by an open stop order on Alpaca, a market SELL
+        # will fail with "insufficient qty available for order" because the
+        # broker reserves the shares for the pending stop order.
+        # We must cancel the stop order first so Alpaca releases the qty.
+        if side == "sell":
+            self._cancel_trailing_stop_before_sell(symbol)
 
         for attempt in range(MAX_RETRIES):
             try:
@@ -100,8 +119,8 @@ class Executor(BaseAgent):
 
                 order_id = result.get("order_id")
 
-                # Poll for fill
-                fill_info = await self._poll_for_fill(order_id)
+                # Poll for fill — partial fills are not terminal: keep polling
+                fill_info = await self._poll_for_fill(order_id, allow_partial=False)
 
                 # Build order record
                 order_data = {
@@ -119,11 +138,33 @@ class Executor(BaseAgent):
                 }
                 self._db.insert_order(order_data)
 
-                # Initialize trailing stop state for bracket BUY orders
-                if stop_loss and take_profit and side == "buy":
+                # Initialize trailing stop state for bracket BUY orders.
+                # Skip if partial fill with 0 qty (order not actually filled yet).
+                filled_qty = order_data.get("filled_qty")
+                order_status = order_data.get("status", "")
+                is_partial_with_no_fill = (
+                    order_status == "partially_filled" and not filled_qty
+                )
+                if is_partial_with_no_fill:
+                    self.logger.warning(
+                        "trailing_stop_skipped_partial_no_fill",
+                        symbol=symbol,
+                        order_id=order_id,
+                        reason="partially_filled with 0 qty — trailing stop not initialized",
+                    )
+                elif stop_loss and take_profit and side == "buy":
                     atr_at_entry = decision.get("atr")
                     fill_price = order_data.get("filled_avg_price") or decision.get("entry_price")
                     if atr_at_entry and fill_price:
+                        if order_status == "partially_filled":
+                            self.logger.warning(
+                                "trailing_stop_partial_fill",
+                                symbol=symbol,
+                                requested_qty=qty,
+                                filled_qty=filled_qty,
+                                fill_price=fill_price,
+                                reason="Initializing trailing stop on partial fill — position size < planned",
+                            )
                         self._init_trailing_stop(
                             symbol=symbol,
                             entry_price=fill_price,
@@ -162,34 +203,81 @@ class Executor(BaseAgent):
                     }
                     self._db.insert_order(failed_order)
                     self.log_error(f"Order failed after {MAX_RETRIES} retries: {error_msg}")
+                    # Schedule retry for next pipeline cycle (pending intent pattern)
+                    # The pipeline will re-execute this decision directly, bypassing
+                    # the signal generator and risk manager (already approved).
+                    # TTL: 10 minutes — after that the retry is abandoned.
+                    self._db.insert_signal("pending_retry", {
+                        "decision": decision,
+                        "symbol": symbol,
+                        "original_error": error_msg,
+                    })
+                    self.logger.info(
+                        "pending_retry_scheduled",
+                        symbol=symbol,
+                        action=action,
+                        reason="will retry at next pipeline cycle",
+                    )
                     return None
 
         return None
 
-    async def _poll_for_fill(self, order_id: str | None) -> dict:
-        """Poll Alpaca for order fill status with timeout."""
+    async def _poll_for_fill(self, order_id: str | None, allow_partial: bool = False) -> dict:
+        """Poll Alpaca for order fill status with timeout.
+
+        Args:
+            order_id: Alpaca order ID.
+            allow_partial: If True, treat partially_filled as terminal (old behaviour).
+                           Default False — keeps polling until fully filled or cancelled.
+        """
         if not order_id:
             return {}
 
+        TERMINAL_STATUSES = {"filled", "cancelled", "expired", "rejected"}
+        if allow_partial:
+            TERMINAL_STATUSES.add("partially_filled")
+
         elapsed = 0.0
+        last_partial: dict = {}
+
         while elapsed < FILL_TIMEOUT_SEC:
             try:
                 orders = self._alpaca.get_orders(status="all")
                 for order in orders:
                     if order.get("order_id") == order_id:
                         status = order.get("status", "")
-                        if status in ("filled", "partially_filled", "cancelled", "expired", "rejected"):
-                            return {
-                                "status": status,
-                                "filled_avg_price": order.get("filled_avg_price"),
-                                "filled_qty": order.get("filled_qty"),
-                                "filled_at": order.get("filled_at"),
-                            }
+                        info = {
+                            "status": status,
+                            "filled_avg_price": order.get("filled_avg_price"),
+                            "filled_qty": order.get("filled_qty"),
+                            "filled_at": order.get("filled_at"),
+                        }
+                        if status in TERMINAL_STATUSES:
+                            return info
+                        if status == "partially_filled":
+                            # Save last partial fill info — return it if we timeout
+                            last_partial = info
+                            self.logger.debug(
+                                "poll_partial_fill",
+                                order_id=order_id,
+                                filled_qty=order.get("filled_qty"),
+                                elapsed=elapsed,
+                            )
             except Exception as e:
                 self.logger.debug("poll_error", order_id=order_id, error=str(e))
 
             await asyncio.sleep(FILL_POLL_INTERVAL_SEC)
             elapsed += FILL_POLL_INTERVAL_SEC
+
+        # Timeout — return last partial fill info if available, else submitted
+        if last_partial:
+            self.logger.warning(
+                "fill_timeout_with_partial",
+                order_id=order_id,
+                timeout=FILL_TIMEOUT_SEC,
+                filled_qty=last_partial.get("filled_qty"),
+            )
+            return last_partial
 
         self.logger.warning("fill_timeout", order_id=order_id, timeout=FILL_TIMEOUT_SEC)
         return {"status": "submitted"}
@@ -199,6 +287,85 @@ class Executor(BaseAgent):
         self._alpaca.cancel_order(order_id)
         self._db.update_order(order_id, {"status": "cancelled"})
         self.logger.info("order_cancelled", order_id=order_id)
+
+    def _cancel_trailing_stop_before_sell(self, symbol: str) -> None:
+        """Cancel any open trailing stop order before sending a market SELL.
+
+        Alpaca reserves shares for open stop orders, which causes market SELL
+        orders to fail with "insufficient qty available for order".  By cancelling
+        the stop order first we release the held qty so the SELL can proceed.
+
+        Two-path strategy:
+        1. DB state path: if trailing_stop_state has a stop_order_id, cancel it directly.
+        2. Alpaca fallback: if stop_order_id is missing from DB (e.g. state created before
+           the fix), query Alpaca directly for open stop/stop_limit orders on this symbol
+           and cancel them all.  Also back-fills the stop_order_id into DB state.
+        """
+        ts_state = self._db.get_trailing_stop_state(symbol)
+        stop_order_id = ts_state.get("stop_order_id") if ts_state else None
+
+        if stop_order_id:
+            # Fast path — cancel the known stop order
+            try:
+                self._alpaca.cancel_order(stop_order_id)
+                self.logger.info(
+                    "trailing_stop_cancelled",
+                    symbol=symbol,
+                    stop_order_id=stop_order_id,
+                )
+                return
+            except Exception as e:
+                # May already be filled/cancelled — fall through to Alpaca lookup
+                self.logger.warning(
+                    "trailing_stop_cancel_failed",
+                    symbol=symbol,
+                    stop_order_id=stop_order_id,
+                    error=str(e),
+                )
+
+        # Fallback: cancel ALL open orders for this symbol before selling.
+        # Bracket orders have multiple legs (stop_loss + take_profit OCO).
+        # Alpaca reserves shares for ANY open order, not just stop types.
+        # Cancelling only stop orders leaves take_profit (limit) legs active,
+        # which still hold the shares and cause "insufficient qty" errors.
+        try:
+            open_orders = self._alpaca.get_orders(status="open")
+            blocking_orders = [
+                o for o in open_orders
+                if o.get("symbol") == symbol
+            ]
+            if not blocking_orders:
+                self.logger.info("no_open_orders_found", symbol=symbol)
+                return
+            for order in blocking_orders:
+                oid = order.get("order_id")
+                order_type = order.get("type", "unknown")
+                try:
+                    self._alpaca.cancel_order(oid)
+                    self.logger.info(
+                        "open_order_cancelled_before_sell",
+                        symbol=symbol,
+                        order_id=oid,
+                        order_type=order_type,
+                    )
+                    # Back-fill stop_order_id into DB state if it was a stop order
+                    if order_type in ("stop", "stop_limit", "trailing_stop") and ts_state:
+                        ts_state["stop_order_id"] = oid
+                        self._db.upsert_trailing_stop_state(ts_state)
+                except Exception as e2:
+                    self.logger.warning(
+                        "order_cancel_failed_before_sell",
+                        symbol=symbol,
+                        order_id=oid,
+                        order_type=order_type,
+                        error=str(e2),
+                    )
+        except Exception as e:
+            self.logger.warning(
+                "alpaca_open_orders_fetch_failed",
+                symbol=symbol,
+                error=str(e),
+            )
 
     def _init_trailing_stop(
         self,

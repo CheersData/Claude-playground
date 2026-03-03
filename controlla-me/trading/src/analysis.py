@@ -495,6 +495,8 @@ def analyze_slope_volume(
     market_close_utc: str = "20:00",
     min_bars: int = 30,
     timeframe: str = "5Min",
+    require_reversal: bool = True,
+    bypass_volume_check: bool = False,
 ) -> dict[str, Any] | None:
     """
     Slope+Volume intraday signal analysis.
@@ -523,6 +525,13 @@ def analyze_slope_volume(
         market_close_utc: Only generate signals before this UTC time (HH:MM).
         min_bars: Minimum bars required in df before generating any signal.
         timeframe: Bar timeframe string, informational (e.g. "5Min").
+        require_reversal: If True (default), signal fires only on slope direction flip
+            (negative→positive for BUY, positive→negative for SHORT). If False,
+            signal fires on sustained slope above threshold regardless of prior direction.
+            Use False for inverse ETFs (SH, PSQ) where positive slope is always the entry.
+        bypass_volume_check: If True, skip volume confirmation gate. Use when the
+            market data provider does not reliably return volume (e.g. Tiingo IEX free
+            tier sometimes returns 0 for low-volume ETFs).
 
     Returns:
         dict with signal data (symbol, action, score, confidence, entry_price,
@@ -540,27 +549,30 @@ def analyze_slope_volume(
         volume = df["volume"]
         current_price = float(close.iloc[-1])
 
-        # --- Time filter ---
-        # Resolve last bar timestamp to a UTC time object for comparison.
-        if isinstance(df.index, pd.DatetimeIndex):
-            last_ts = df.index[-1]
-        else:
-            last_ts = pd.Timestamp(df["timestamp"].iloc[-1])
-
-        if getattr(last_ts, "tzinfo", None) is not None:
-            last_ts_utc = last_ts.tz_convert("UTC")
-        else:
-            last_ts_utc = last_ts
-
+        # --- Time filter (optional) ---
+        # When market_open_utc == "00:00" and market_close_utc == "23:59",
+        # the filter is effectively disabled (24/7 mode for multi-market operation).
         open_h, open_m = map(int, market_open_utc.split(":"))
         close_h, close_m = map(int, market_close_utc.split(":"))
-        bar_time = last_ts_utc.time() if hasattr(last_ts_utc, "time") else None
+        _always_on = (open_h == 0 and open_m == 0 and close_h == 23 and close_m == 59)
 
-        if bar_time is not None:
-            open_time = dt.time(open_h, open_m)
-            close_time = dt.time(close_h, close_m)
-            if not (open_time <= bar_time <= close_time):
-                return None  # Outside market hours
+        if not _always_on:
+            if isinstance(df.index, pd.DatetimeIndex):
+                last_ts = df.index[-1]
+            else:
+                last_ts = pd.Timestamp(df["timestamp"].iloc[-1])
+
+            if getattr(last_ts, "tzinfo", None) is not None:
+                last_ts_utc = last_ts.tz_convert("UTC")
+            else:
+                last_ts_utc = last_ts
+
+            bar_time = last_ts_utc.time() if hasattr(last_ts_utc, "time") else None
+            if bar_time is not None:
+                open_time = dt.time(open_h, open_m)
+                close_time = dt.time(close_h, close_m)
+                if not (open_time <= bar_time <= close_time):
+                    return None  # Outside market hours
 
         # --- ATR (True Range average) ---
         tr = pd.concat([
@@ -604,33 +616,60 @@ def analyze_slope_volume(
         volume_confirmed = vol_ratio >= volume_multiplier
 
         # --- Signal logic ---
-        # BUY: slope crosses from negative → positive, significant, volume confirmed.
         bullish_reversal = slope_prev_pct < 0 and slope_pct > 0
+        bearish_reversal = slope_prev_pct > 0 and slope_pct < 0
         slope_significant = abs(slope_pct) >= slope_threshold_pct
+        # bypass_volume_check: use when provider doesn't return reliable volume
+        # (e.g. Tiingo IEX free tier returns 0 for low-volume ETFs).
+        vol_ok = True if (bypass_volume_check or avg_volume == 0) else volume_confirmed
 
-        if not (bullish_reversal and slope_significant and volume_confirmed):
+        if require_reversal:
+            # Default: signal fires only on slope direction flip + volume confirmation.
+            # BUY: slope crosses negative → positive. SHORT: slope crosses positive → negative.
+            has_signal = (bullish_reversal or bearish_reversal) and slope_significant and volume_confirmed
+            action = "BUY" if bullish_reversal else "SHORT"
+        else:
+            # Trend-continuation mode: no reversal needed.
+            # Used for inverse ETFs (SH, PSQ) where sustained positive slope = rising price.
+            # A slope that has been positive all day is a valid entry — no prior negative needed.
+            has_signal = slope_significant and vol_ok
+            action = "BUY" if slope_pct > 0 else "SHORT"
+
+        if not has_signal:
             return None
 
         # --- Price levels ---
-        stop_loss = current_price - (stop_loss_atr * atr)
-        take_profit = current_price + (take_profit_atr * atr)
+        if action == "BUY":
+            stop_loss = current_price - (stop_loss_atr * atr)
+            take_profit = current_price + (take_profit_atr * atr)
+        else:  # SHORT: SL above entry (price goes up = loss), TP below entry (price drops = gain)
+            stop_loss = current_price + (stop_loss_atr * atr)
+            take_profit = current_price - (take_profit_atr * atr)
 
-        # Confidence: slope strength (0–1) + volume excess (0–1), weighted 60/40.
+        # Confidence: slope strength (0–1) + volume activity (0–1), weighted 60/40.
         slope_score = min(abs(slope_pct) / (slope_threshold_pct * 3), 1.0)
         volume_score = min((vol_ratio - volume_multiplier) / volume_multiplier, 1.0)
         confidence = round(0.5 + 0.3 * slope_score + 0.2 * volume_score, 3)
         confidence = max(0.5, min(confidence, 1.0))
 
-        rationale = (
-            f"Slope reversal: {slope_prev_pct:.3f}% → {slope_pct:.3f}% per bar "
-            f"(threshold {slope_threshold_pct}%). "
-            f"Volume {vol_ratio:.1f}x avg (threshold {volume_multiplier}x). "
-            f"ATR {atr:.4f}, SL {stop_loss:.4f}, TP {take_profit:.4f}."
-        )
+        if require_reversal:
+            rationale = (
+                f"Slope {action} reversal: {slope_prev_pct:.3f}% → {slope_pct:.3f}% per bar "
+                f"(threshold {slope_threshold_pct}%). "
+                f"Volume {vol_ratio:.1f}x avg (threshold {volume_multiplier}x). "
+                f"ATR {atr:.4f}, SL {stop_loss:.4f}, TP {take_profit:.4f}."
+            )
+        else:
+            vol_note = "bypassed" if (bypass_volume_check or avg_volume == 0) else f"{vol_ratio:.1f}x avg"
+            rationale = (
+                f"Slope {action} trend: {slope_pct:.3f}%/bar (threshold {slope_threshold_pct}%). "
+                f"Volume {vol_note}. "
+                f"ATR {atr:.4f}, SL {stop_loss:.4f}, TP {take_profit:.4f}."
+            )
 
         return {
             "symbol": symbol,
-            "action": "BUY",
+            "action": action,
             "score": round(slope_pct, 4),
             "confidence": confidence,
             "entry_price": round(current_price, 4),
@@ -640,6 +679,8 @@ def analyze_slope_volume(
             "indicators": {
                 "slope_pct": round(slope_pct, 4),
                 "slope_prev_pct": round(slope_prev_pct, 4),
+                "slope_angle": round(float(np.degrees(np.arctan(slope_pct))), 1),
+                "slope_prev_angle": round(float(np.degrees(np.arctan(slope_prev_pct))), 1),
                 "vol_ratio": round(vol_ratio, 2),
                 "atr": round(atr, 4),
                 "lookback_bars": lookback_bars,
@@ -650,6 +691,97 @@ def analyze_slope_volume(
         import structlog as _sl
         _sl.get_logger().warning("analyze_slope_volume_error", symbol=symbol, error=str(exc))
         return None
+
+
+def get_current_slope_direction(
+    df: pd.DataFrame,
+    *,
+    lookback_bars: int = 5,
+    slope_threshold_pct: float = 0.05,
+) -> str:
+    """
+    Returns the current slope direction for an open position exit check.
+
+    Used by SignalGenerator to detect adverse slope on existing positions,
+    even when no reversal (entry) signal is generated by analyze_slope_volume.
+
+    Returns:
+        "positive" – slope is above +threshold (bullish momentum).
+        "negative" – slope is below -threshold (bearish momentum).
+        "flat"     – slope is within ±threshold (no clear direction).
+    """
+    try:
+        close = df["close"]
+        if len(close) < lookback_bars:
+            return "flat"
+        current_price = float(close.iloc[-1])
+        if current_price <= 0:
+            return "flat"
+
+        y = close.tail(lookback_bars).values
+        x = np.arange(len(y), dtype=float)
+        x_mean, y_mean = x.mean(), y.mean()
+        denom = float(np.sum((x - x_mean) ** 2))
+        if denom == 0:
+            return "flat"
+        slope_raw = float(np.sum((x - x_mean) * (y - y_mean)) / denom)
+        slope_pct = (slope_raw / current_price) * 100
+
+        if slope_pct > slope_threshold_pct:
+            return "positive"
+        elif slope_pct < -slope_threshold_pct:
+            return "negative"
+        return "flat"
+    except Exception:
+        return "flat"
+
+
+def get_current_slope_info(
+    df: pd.DataFrame,
+    *,
+    lookback_bars: int = 5,
+    slope_threshold_pct: float = 0.05,
+) -> dict:
+    """
+    Like get_current_slope_direction but also returns slope_pct and angle_deg.
+
+    Returns dict with:
+        direction: "positive" | "negative" | "flat"
+        slope_pct: float  (OLS slope normalized as % of price per bar)
+        angle_deg: float  (atan(slope_pct) in degrees — visual representation)
+    """
+    try:
+        close = df["close"]
+        if len(close) < lookback_bars:
+            return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
+        current_price = float(close.iloc[-1])
+        if current_price <= 0:
+            return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
+
+        y = close.tail(lookback_bars).values
+        x = np.arange(len(y), dtype=float)
+        x_mean, y_mean = x.mean(), y.mean()
+        denom = float(np.sum((x - x_mean) ** 2))
+        if denom == 0:
+            return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
+        slope_raw = float(np.sum((x - x_mean) * (y - y_mean)) / denom)
+        slope_pct = (slope_raw / current_price) * 100
+        angle_deg = float(np.degrees(np.arctan(slope_pct)))
+
+        if slope_pct > slope_threshold_pct:
+            direction = "positive"
+        elif slope_pct < -slope_threshold_pct:
+            direction = "negative"
+        else:
+            direction = "flat"
+
+        return {
+            "direction": direction,
+            "slope_pct": round(slope_pct, 4),
+            "angle_deg": round(angle_deg, 1),
+        }
+    except Exception:
+        return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
 
 
 def build_rationale(

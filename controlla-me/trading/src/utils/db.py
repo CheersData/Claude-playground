@@ -41,7 +41,10 @@ class TradingDB:
             "created_at": datetime.utcnow().isoformat(),
         }
         result = self._client.table("trading_signals").insert(record).execute()
-        logger.info("signal_inserted", signal_type=signal_type, symbol=data.get("symbol"))
+        # data["symbol"] exists only for single-symbol records (e.g. scan rows).
+        # For trade/risk_check batches the symbols live inside data["signals"] as a list.
+        symbol_log = data.get("symbol") or [s.get("symbol") for s in data.get("signals", [])]
+        logger.info("signal_inserted", signal_type=signal_type, symbol=symbol_log)
         return result.data[0] if result.data else {}
 
     def get_latest_signals(self, signal_type: str, limit: int = 50) -> list[dict]:
@@ -173,6 +176,38 @@ class TradingDB:
         """Delete trailing stop state when position is closed."""
         self._client.table("trailing_stop_state").delete().eq("symbol", symbol).execute()
         logger.info("trailing_stop_deleted", symbol=symbol)
+
+    # ─── Pending Retries ──────────────────────────────────────
+
+    def get_pending_retries(self, max_age_minutes: int = 10) -> list[dict]:
+        """Get pending retry signals — failed executions to re-attempt next cycle.
+
+        Returns records younger than max_age_minutes (default 10 min = 10 cycles at 1-min freq).
+        After the TTL the retry is abandoned — signal generator will re-detect independently.
+        """
+        from datetime import timedelta
+        cutoff = (datetime.utcnow() - timedelta(minutes=max_age_minutes)).isoformat()
+        result = (
+            self._client.table("trading_signals")
+            .select("*")
+            .eq("signal_type", "pending_retry")
+            .gte("created_at", cutoff)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        return result.data or []
+
+    def delete_pending_retries(self, ids: list[str]) -> None:
+        """Remove resolved pending retries by ID (after execution attempt — success or failure).
+
+        Executor re-inserts a fresh pending_retry if execution still fails,
+        so the TTL window resets correctly.
+        """
+        if not ids:
+            return
+        for rid in ids:
+            self._client.table("trading_signals").delete().eq("id", rid).execute()
+        logger.info("pending_retries_cleared", count=len(ids))
 
     # ─── Config ────────────────────────────────────────────────
 

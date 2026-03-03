@@ -19,7 +19,7 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD
 from ta.volatility import BollingerBands
 
-from ..analysis import analyze_composite, analyze_mean_reversion_v3
+from ..analysis import analyze_composite, analyze_mean_reversion_v3, analyze_slope_volume
 from ..config.settings import RiskSettings, SignalSettings
 
 logger = structlog.get_logger()
@@ -157,7 +157,7 @@ class BacktestConfig(BaseModel):
     take_profit_atr: float = 10.0  # take profit ATR multiplier (grid search optimal: wider TP)
     trend_filter: bool = True  # require price > SMA long for BUY signals
     timeframe: str = "1Day"  # "1Day", "1Hour", or "15Min"
-    strategy: str = "trend_following"  # "trend_following", "mean_reversion", or "mean_reversion_v3"
+    strategy: str = "trend_following"  # "trend_following", "mean_reversion", "mean_reversion_v3", or "slope_volume"
 
     # Daily filter for mean reversion v3 (dual-timeframe)
     daily_filter_enabled: bool = True  # Require daily uptrend for MR v3 entries
@@ -341,6 +341,51 @@ def analyze_stock(
     if result is None:
         return None
 
+    return SignalResult(
+        symbol=result["symbol"],
+        action=result["action"],
+        score=result["score"],
+        confidence=result["confidence"],
+        entry_price=result["entry_price"],
+        stop_loss=result["stop_loss"],
+        take_profit=result["take_profit"],
+    )
+
+
+def analyze_stock_slope_volume(
+    symbol: str,
+    df: pd.DataFrame,
+    lookback_bars: int = 5,
+    slope_threshold_pct: float = 0.05,
+    volume_multiplier: float = 1.5,
+    volume_ma_period: int = 20,
+    stop_loss_atr: float = 1.5,
+    take_profit_atr: float = 3.0,
+    atr_period: int = 14,
+) -> SignalResult | None:
+    """
+    Wrapper around analyze_slope_volume() that returns a SignalResult.
+
+    Bridges the live-trading dict output to the backtesting SignalResult dataclass.
+    Market-hours filter is disabled (backtest data is already market-hours only).
+    """
+    result = analyze_slope_volume(
+        symbol,
+        df,
+        lookback_bars=lookback_bars,
+        slope_threshold_pct=slope_threshold_pct,
+        volume_multiplier=volume_multiplier,
+        volume_ma_period=volume_ma_period,
+        stop_loss_atr=stop_loss_atr,
+        take_profit_atr=take_profit_atr,
+        atr_period=atr_period,
+        # Disable time-of-day filter in backtest — data is already market-hours only
+        market_open_utc="00:00",
+        market_close_utc="23:59",
+        timeframe="5Min",
+    )
+    if result is None:
+        return None
     return SignalResult(
         symbol=result["symbol"],
         action=result["action"],
@@ -588,11 +633,16 @@ class BacktestEngine:
         # Intraday flags
         self._is_hourly = config.timeframe == "1Hour"
         self._is_fifteen_min = config.timeframe == "15Min"
+        self._is_five_min = config.timeframe == "5Min"
         # 15-min: 26 bars/day × 5 days = 130 bars/week
+        # 5-min:  78 bars/day × 5 days = 390 bars/week
         # Hourly: 6.5 bars/day × 5 days = ~33 bars/week
         if self._is_fifteen_min:
             self._cooldown_bars = 130   # 5 trading days
             self._week_bars = 130
+        elif self._is_five_min:
+            self._cooldown_bars = 390   # 5 trading days
+            self._week_bars = 390
         elif self._is_hourly:
             self._cooldown_bars = 33
             self._week_bars = 33
@@ -1048,6 +1098,13 @@ class BacktestEngine:
                     daily_slice,
                     self.config.signal,
                     self.config,
+                )
+            elif self._is_five_min or self.config.strategy == "slope_volume":
+                signal = analyze_stock_slope_volume(
+                    symbol,
+                    df_slice,
+                    stop_loss_atr=self.config.stop_loss_atr,
+                    take_profit_atr=self.config.take_profit_atr,
                 )
             elif self._is_fifteen_min or self.config.strategy == "mean_reversion":
                 signal = analyze_stock_mean_reversion(

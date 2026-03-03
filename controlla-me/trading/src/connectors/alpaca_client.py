@@ -11,7 +11,7 @@ from __future__ import annotations
 import structlog
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest
-from alpaca.data.timeframe import TimeFrame
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
 from alpaca.trading.requests import (
@@ -251,7 +251,7 @@ class AlpacaClient:
             tf = TimeFrame.Hour
         elif timeframe.endswith("Min") or timeframe.endswith("min"):
             minutes = int(timeframe.replace("Min", "").replace("min", ""))
-            tf = TimeFrame.Minute(minutes)
+            tf = TimeFrame(minutes, TimeFrameUnit.Minute)
         else:
             tf = TimeFrame.Day
         start = datetime.utcnow() - timedelta(days=days_back)
@@ -336,7 +336,7 @@ class AlpacaClient:
         """
         if timeframe.endswith("Min") or timeframe.endswith("min"):
             minutes = int(timeframe.replace("Min", "").replace("min", ""))
-            tf = TimeFrame.Minute(minutes)
+            tf = TimeFrame(minutes, TimeFrameUnit.Minute)
         elif timeframe == "1Hour":
             tf = TimeFrame.Hour
         else:

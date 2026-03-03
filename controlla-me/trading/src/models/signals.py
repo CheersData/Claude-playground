@@ -16,7 +16,9 @@ class SignalType(StrEnum):
 
 class SignalAction(StrEnum):
     BUY = "BUY"
-    SELL = "SELL"
+    SELL = "SELL"   # Close long position
+    SHORT = "SHORT"  # Open short position (sell without owning)
+    COVER = "COVER"  # Close short position (buy to cover)
     HOLD = "HOLD"
 
 

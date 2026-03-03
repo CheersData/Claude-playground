@@ -3,14 +3,19 @@ Trading Pipeline — Orchestrates the 5-agent daily workflow.
 
 Pipeline flow:
   1. Market Scanner  → watchlist
-  2. Signal Generator → signals
+  2. Signal Generator → signals (conventional, daily bars)
   3. Risk Manager    → approved orders
   4. Executor        → executed trades
   4.5. Trailing Stops → update 4-tier dynamic stop levels
   5. Portfolio Monitor → daily report
 
-Intraday pipeline (phases 1-4.5, no daily report):
-  run_intraday_pipeline() — hourly refresh during market hours
+Intraday pipeline (slope-only — phases 2.5+3+4+4.5):
+  run_intraday_pipeline() — every 5 min, 24/7.
+
+  The conventional Signal Generator (RSI/MACD/BB) uses daily bars and runs
+  ONLY in the daily pipeline (09:00 ET). In the intraday pipeline it would
+  re-read 1H bars every 5 min (92% redundant) with 0 signals.
+  Intraday = slope+volume strategy only: faster, lower API calls, no redundancy.
 
 Can be run as a full pipeline or agent-by-agent.
 """
@@ -28,7 +33,9 @@ from .agents.risk_manager import RiskManager
 from .agents.executor import Executor
 from .agents.portfolio_monitor import PortfolioMonitor
 from .config import get_settings
+from .utils.db import TradingDB
 from .utils.logging import setup_logging
+from .utils import telegram as tg
 
 logger = structlog.get_logger()
 
@@ -139,9 +146,10 @@ async def run_daily_pipeline() -> dict:
 
 async def run_intraday_pipeline() -> dict:
     """
-    Intraday signal refresh — runs every hour during market hours.
+    Intraday signal refresh — slope+volume only, every 5 min, 24/7.
 
-    Phases 1-4 only (scan + signal + risk + execute).
+    Only slope+volume signals (Phase 2.5) — the conventional Signal Generator
+    (RSI/MACD/BB on daily bars) runs exclusively in the daily pipeline at 09:00 ET.
     No daily report — that runs post-market at 16:30 ET.
     """
     settings = get_settings()
@@ -159,53 +167,77 @@ async def run_intraday_pipeline() -> dict:
     }
 
     try:
-        # Phase 1: Market Scanner (refresh intraday watchlist)
-        scanner = MarketScanner()
-        scan_result = await scanner.run()
-        results["scan"] = {
-            "candidates": scan_result.get("candidates_found", 0),
-            "status": "ok",
-        }
-
-        watchlist = scan_result.get("watchlist", [])
         signals: list[dict] = []
 
-        # Phase 2: Signal Generator — use 1Hour bars for real-time intraday signals
-        signal_gen = SignalGenerator()
-        if watchlist:
-            signal_result = await signal_gen.run(watchlist=watchlist, timeframe="1Hour")
-            results["signals"] = {
-                "generated": signal_result.get("signals_generated", 0),
-                "status": "ok",
-            }
-            signals = list(signal_result.get("signals", []))
-        else:
-            results["scan"]["status"] = "no_candidates"
+        # Phase 2.0: Retry failed executions from previous cycles (pending intent)
+        # Decisions here are already risk-approved — skip signal gen and risk manager.
+        # TTL: 10 minutes. After that, signal generator will re-detect independently.
+        db = TradingDB()
+        pending = db.get_pending_retries(max_age_minutes=10)
+        if pending:
+            pending_decisions = [r["data"]["decision"] for r in pending]
+            pending_ids = [r["id"] for r in pending]
 
-        # Phase 2.5: Slope+Volume Strategy (independent — SPY 5-min, always runs if enabled)
+            # Filter out SHORT signals on inverse ETFs — these were created before the
+            # inverse-ETF-only-BUY fix and must not be retried (would short a non-shortable asset).
+            inverse_etf_symbols = set(get_settings().slope_volume.inverse_etf_symbols)
+            valid_decisions = [
+                d for d in pending_decisions
+                if not (d.get("action") == "SHORT" and d.get("symbol") in inverse_etf_symbols)
+            ]
+            skipped = len(pending_decisions) - len(valid_decisions)
+            if skipped:
+                skipped_syms = [d.get("symbol") for d in pending_decisions if d.get("action") == "SHORT" and d.get("symbol") in inverse_etf_symbols]
+                logger.info("pending_retry_skipped_inverse_short", skipped=skipped, symbols=skipped_syms)
+
+            logger.info("pending_retries_found", count=len(pending), symbols=[d.get("symbol") for d in valid_decisions])
+            if valid_decisions:
+                executor = Executor()
+                retry_result = await executor.run(decisions=valid_decisions)
+            else:
+                retry_result = {"total_executed": 0}
+            # Delete consumed retries regardless of outcome.
+            # Executor re-inserts a fresh pending_retry if execution still fails.
+            db.delete_pending_retries(pending_ids)
+            results["pending_retries"] = {
+                "retried": len(valid_decisions),
+                "skipped_invalid": skipped,
+                "executed": retry_result.get("total_executed", 0),
+            }
+
+        # Phase 2.5: Slope+Volume Strategy (multi-ticker, 24/7)
+        # Runs on configured symbols (default: SPY, AAPL, NVDA, TSLA) — see TRADING_SLOPE_SYMBOLS
+        # Conventional Signal Generator (RSI/MACD/BB) runs only in daily pipeline (daily bars).
         if get_settings().slope_volume.enabled:
+            signal_gen = SignalGenerator()
             slope_result = await asyncio.to_thread(signal_gen.run_slope_volume)
             slope_signals = slope_result.get("signals", [])
             results["slope_volume"] = {
                 "generated": slope_result.get("signals_generated", 0),
+                "symbols_scanned": slope_result.get("symbols_scanned", 1),
+                "symbols_with_signals": slope_result.get("symbols_with_signals", 0),
                 "status": (
                     "error" if "error" in slope_result
                     else "skipped" if "skipped" in slope_result
                     else "ok"
                 ),
             }
-            signals = signals + slope_signals
+            signals = slope_signals
+        else:
+            results["slope_volume"] = {"status": "disabled"}
 
-        # Phases 3-4: Risk Manager + Executor (merged signals from all strategies)
+        # Phases 3-4: Risk Manager + Executor
         if signals:
             # Phase 3: Risk Manager
             risk_mgr = RiskManager()
             risk_result = await risk_mgr.run(signals=signals)
 
             if risk_result.get("kill_switch"):
+                ks_msg = risk_result.get("message", "Limite P&L raggiunto")
+                tg.notify_kill_switch(ks_msg, mode=settings.mode)
                 results["risk"] = {
                     "status": "kill_switch",
-                    "message": risk_result.get("message"),
+                    "message": ks_msg,
                 }
                 results["status"] = "kill_switch"
                 return results
@@ -222,6 +254,9 @@ async def run_intraday_pipeline() -> dict:
             if approved:
                 executor = Executor()
                 exec_result = await executor.run(decisions=approved)
+                executed_orders = exec_result.get("orders", [])
+                if executed_orders:
+                    tg.notify_trades(executed_orders, mode=settings.mode)
                 results["execution"] = {
                     "executed": exec_result.get("total_executed", 0),
                     "status": "ok",
@@ -229,7 +264,7 @@ async def run_intraday_pipeline() -> dict:
             else:
                 results["execution"] = {"executed": 0, "status": "no_approved_orders"}
         else:
-            results.setdefault("signals", {})["status"] = "no_signals"
+            results.setdefault("slope_volume", {})["status"] = "no_signals"
 
         # Phase 4.5: Update Trailing Stops (ALWAYS runs — existing positions need management)
         monitor = PortfolioMonitor()
@@ -244,6 +279,7 @@ async def run_intraday_pipeline() -> dict:
         logger.info(
             "intraday_pipeline_complete",
             duration_ms=duration_ms,
+            slope_signals=results.get("slope_volume", {}).get("generated", 0),
             trailing_stops=results["trailing_stops"]["stops_raised"],
         )
 
