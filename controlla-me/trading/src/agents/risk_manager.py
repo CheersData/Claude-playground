@@ -394,6 +394,22 @@ class RiskManager(BaseAgent):
                     reason=f"Risk/reward {rr_ratio:.1f} below minimum {self._risk.min_risk_reward}",
                 )
 
+        # ── News risk adjustment ─────────────────────────────────────────────
+        # Halve position size when breaking news is detected (flagged by signal generator).
+        # News-driven volatility can invalidate slope signals — smaller size = less damage.
+        if signal.get("news_risk", False):
+            original_size = qty
+            qty = max(1, qty // 2)
+            position_value = qty * entry_price
+            portfolio_pct = (position_value / portfolio_value) * 100
+            self.logger.warning(
+                "risk_news_size_reduction",
+                symbol=symbol,
+                original_shares=original_size,
+                reduced_shares=qty,
+                headline=str(signal.get("news_headline", ""))[:80],
+            )
+
         return RiskDecision(
             symbol=symbol,
             action=action,

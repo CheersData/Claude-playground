@@ -241,6 +241,20 @@ class SlopeVolumeSettings(BaseSettings):
             "No prior negative slope needed. Volume bypassed because Tiingo IEX may not return volume for low-volume ETFs."
         ),
     )
+    crypto_enabled: bool = Field(
+        default=True,
+        alias="TRADING_SLOPE_CRYPTO_ENABLED",
+        description="Enable crypto pairs (BTC/ETH) in slope strategy — trades 24/7 including weekends",
+    )
+    crypto_symbols: list[str] = Field(
+        default=["btcusd", "ethusd"],
+        alias="TRADING_SLOPE_CRYPTO_SYMBOLS",
+        description=(
+            "Crypto pairs for 24/7 slope trading (Tiingo format: btcusd, ethusd). "
+            "Market hours restriction is bypassed — crypto trades on weekends. "
+            "Alpaca paper account supports crypto trading natively."
+        ),
+    )
 
     model_config = {"env_prefix": "TRADING_SLOPE_", "extra": "ignore"}
 
@@ -286,6 +300,28 @@ class TiingoSettings(BaseSettings):
     model_config = {"env_prefix": "", "extra": "ignore"}
 
 
+class TiingoNewsSettings(BaseSettings):
+    """Tiingo News API configuration (Power plan feature)."""
+
+    enabled: bool = Field(
+        default=True,
+        alias="TIINGO_NEWS_ENABLED",
+        description="Enable Tiingo News API check before slope signals (Power plan required)",
+    )
+    minutes_back: float = Field(
+        default=30.0,
+        alias="TIINGO_NEWS_MINUTES_BACK",
+        description="Lookback window in minutes for breaking news detection",
+    )
+    high_impact_only: bool = Field(
+        default=True,
+        alias="TIINGO_NEWS_HIGH_IMPACT_ONLY",
+        description="If True, only flag high-impact news (Fed, tariffs, crashes). False = any news.",
+    )
+
+    model_config = {"env_prefix": "", "extra": "ignore"}
+
+
 class Settings(BaseSettings):
     """Root settings — aggregates all sub-configs."""
 
@@ -304,6 +340,7 @@ class Settings(BaseSettings):
     slope_volume: SlopeVolumeSettings = Field(default_factory=SlopeVolumeSettings)
     supabase: SupabaseSettings = Field(default_factory=SupabaseSettings)
     tiingo: TiingoSettings = Field(default_factory=TiingoSettings)
+    tiingo_news: TiingoNewsSettings = Field(default_factory=TiingoNewsSettings)
 
     # Optional (kept for backward compat — canonical location is tiingo.tiingo_api_key)
     fred_api_key: str | None = Field(default=None, alias="FRED_API_KEY")

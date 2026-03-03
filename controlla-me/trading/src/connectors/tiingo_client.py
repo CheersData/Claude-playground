@@ -37,6 +37,9 @@ _TIINGO_BASE = "https://api.tiingo.com"
 # Max symbols per IEX batch request
 _IEX_BATCH_SIZE = 50
 
+# Tiingo Crypto API base path
+_CRYPTO_BASE = f"{_TIINGO_BASE}/tiingo/crypto"
+
 # Map our timeframe strings to Tiingo resampleFreq parameter values.
 # IEX intraday endpoint supports: 1min, 5min, 15min, 30min, 1hour
 _TIMEFRAME_TO_RESAMPLE: dict[str, str] = {
@@ -262,6 +265,59 @@ class TiingoClient:
             result.update(quotes)
         return result
 
+    def get_crypto_bars(
+        self,
+        symbols: list[str],
+        resample_freq: str = "1min",
+        days_back: int = 3,
+    ) -> dict[str, pd.DataFrame]:
+        """Fetch intraday OHLCV bars for cryptocurrency pairs via Tiingo Crypto API.
+
+        Crypto trades 24/7 — no market hours restriction. Available on all Tiingo plans.
+
+        Args:
+            symbols:      Tiingo crypto pair format (e.g., ["btcusd", "ethusd"]).
+            resample_freq: Bar size: "1min", "5min", "15min", "30min", "1hour", "1day".
+            days_back:    Calendar days of history to fetch (default 3 — covers weekends).
+
+        Returns:
+            dict mapping symbol → DataFrame with columns:
+            [open, high, low, close, volume] indexed by UTC-aware timestamp.
+            Empty dict on error.
+        """
+        result: dict[str, pd.DataFrame] = {}
+        for symbol in symbols:
+            df = self._get_crypto_ohlcv(symbol, resample_freq=resample_freq, days_back=days_back)
+            if df is not None and not df.empty:
+                result[symbol] = df
+        return result
+
+    def get_crypto_latest(
+        self,
+        symbols: list[str],
+        n_bars: int = 30,
+        resample_freq: str = "1min",
+    ) -> dict[str, pd.DataFrame]:
+        """Fetch recent crypto bars — equivalent to get_latest_bars() for crypto pairs.
+
+        Args:
+            symbols:      Tiingo crypto pair symbols (e.g., ["btcusd", "ethusd"]).
+            n_bars:       Number of most recent bars to return.
+            resample_freq: Bar size (default "1min").
+
+        Returns:
+            dict mapping symbol → DataFrame (last n_bars rows).
+        """
+        # Crypto is 24/7 — 1440 min/day. Calculate days needed with margin.
+        minutes_per_bar = int("".join(filter(str.isdigit, resample_freq)) or "1")
+        days_needed = max(int((n_bars * minutes_per_bar) / 1440) + 2, 3)
+        result: dict[str, pd.DataFrame] = {}
+        for symbol in symbols:
+            df = self._get_crypto_ohlcv(symbol, resample_freq=resample_freq, days_back=days_needed)
+            if df is not None and not df.empty:
+                result[symbol] = df.tail(n_bars)
+        return result
+
     # ─── Private helpers ──────────────────────────────────────────────────────
 
     def _get_daily_bars(
@@ -434,6 +490,99 @@ class TiingoClient:
         # volume defaults to 0 (free tier has no volume) — keep rows with missing OHLC
         df["volume"] = df["volume"].fillna(0)
 
+        return df.dropna(subset=["close"])
+
+    def _get_crypto_ohlcv(
+        self,
+        symbol: str,
+        resample_freq: str = "1min",
+        days_back: int = 3,
+    ) -> pd.DataFrame | None:
+        """Fetch intraday OHLCV for a single crypto pair from Tiingo Crypto API.
+
+        Endpoint: GET /tiingo/crypto/prices
+        Params: tickers=btcusd, resampleFreq=1min, startDate=..., endDate=...
+
+        Args:
+            symbol:        Tiingo crypto pair (e.g. "btcusd", "ethusd"). Lowercase.
+            resample_freq: Bar size for the resampleFreq param.
+            days_back:     Calendar days of history.
+        """
+        import structlog
+
+        log = structlog.get_logger()
+
+        url = f"{_CRYPTO_BASE}/prices"
+        end_dt = datetime.utcnow()
+        start_dt = end_dt - timedelta(days=days_back)
+
+        params: dict[str, Any] = {
+            "tickers": symbol.lower(),
+            "startDate": start_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endDate": end_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "resampleFreq": resample_freq,
+            "token": self._token,
+        }
+
+        try:
+            resp = self._get(url, params=params, timeout=15)
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            status = getattr(resp, "status_code", None)
+            if status == 404:
+                return None
+            if status == 400:
+                log.warning(
+                    "tiingo_crypto_bad_request",
+                    symbol=symbol,
+                    resample_freq=resample_freq,
+                    response=resp.text[:200],
+                )
+                return None
+            raise RuntimeError(f"Tiingo Crypto request failed for {symbol}: {e}") from e
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(f"Tiingo Crypto network error for {symbol}: {e}") from e
+
+        data = resp.json()
+        # Crypto endpoint returns: [{"ticker": "btcusd", "baseCurrency": "btc", ...,
+        #   "priceData": [{"date": "...", "open": ..., "high": ..., "low": ...,
+        #                   "close": ..., "volume": ..., "volumeNotional": ..., "tradesDone": ...}]}]
+        if not data or not isinstance(data, list):
+            return None
+
+        # Extract priceData from first item (we requested a single ticker)
+        price_data = data[0].get("priceData", []) if data else []
+        if not price_data:
+            log.warning("tiingo_crypto_no_price_data", symbol=symbol)
+            return None
+
+        records = []
+        for bar in price_data:
+            records.append(
+                {
+                    "date": bar.get("date"),
+                    "open": bar.get("open"),
+                    "high": bar.get("high"),
+                    "low": bar.get("low"),
+                    "close": bar.get("close"),
+                    "volume": bar.get("volume", 0),  # volume in base currency (BTC/ETH)
+                }
+            )
+
+        df = pd.DataFrame(records)
+        if df.empty or "date" not in df.columns:
+            return None
+
+        raw_index = pd.to_datetime(df["date"], utc=True, errors="coerce")
+        df = df[["open", "high", "low", "close", "volume"]].copy()
+        df.index = raw_index
+        df.index.name = "timestamp"
+        df = df.sort_index()
+
+        for col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        df["volume"] = df["volume"].fillna(0)
         return df.dropna(subset=["close"])
 
     def _fetch_iex_quotes(self, symbols: list[str]) -> dict[str, dict]:

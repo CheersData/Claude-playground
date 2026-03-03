@@ -50,6 +50,10 @@ class Signal(BaseModel):
     stop_loss: float
     take_profit: float
     rationale: str
+    news_risk: bool = False
+    """True when breaking news was detected at signal generation time (Tiingo News API)."""
+    news_headline: str = ""
+    """Most recent breaking headline if news_risk=True. Empty string otherwise."""
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     @property

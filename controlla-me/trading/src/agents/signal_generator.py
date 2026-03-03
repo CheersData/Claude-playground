@@ -43,6 +43,19 @@ class SignalGenerator(BaseAgent):
             )
         self._settings = cfg.signal
 
+        # ── News client (Tiingo Power plan) ─────────────────────────────────────
+        # Detects breaking news before emitting entry signals.
+        # Graceful degradation: if not configured or plan doesn't support it → skip.
+        self._news_client = None
+        self._news_settings = cfg.tiingo_news
+        if cfg.tiingo.tiingo_api_key and self._news_settings.enabled:
+            try:
+                from ..connectors.tiingo_news import TiingoNewsClient
+                self._news_client = TiingoNewsClient()
+                self.logger.info("news_client_initialized", provider="tiingo_news")
+            except Exception as exc:
+                self.logger.warning("news_client_init_failed", error=str(exc))
+
     async def run(
         self,
         watchlist: list[dict] | None = None,
@@ -297,6 +310,31 @@ class SignalGenerator(BaseAgent):
                     take_profit = result["take_profit"]
                     rationale = result["rationale"]
 
+                # ── News risk check (Tiingo Power plan) ──────────────────────────────
+                # Check for breaking news before emitting BUY/SHORT entry signals.
+                # Exit signals (SELL/COVER) are never blocked — exiting is always safe.
+                news_risk = False
+                news_headline = ""
+                is_entry = action in (SignalAction.BUY, SignalAction.SHORT)
+                if is_entry and self._news_client is not None:
+                    try:
+                        check_tickers = list({symbol, "SPY", "QQQ"})
+                        news_risk, news_headline = self._news_client.has_breaking_news(
+                            check_tickers,
+                            minutes_back=self._news_settings.minutes_back,
+                            high_impact_only=self._news_settings.high_impact_only,
+                        )
+                        if news_risk:
+                            self.logger.warning(
+                                "slope_signal_news_risk",
+                                symbol=symbol,
+                                action=action.value,
+                                headline=news_headline[:100] if news_headline else "",
+                                note="Signal flagged — Risk Manager will halve position size",
+                            )
+                    except Exception as exc:
+                        self.logger.debug("news_check_skipped", error=str(exc))
+
                 all_signals.append(
                     Signal(
                         symbol=result["symbol"],
@@ -307,6 +345,8 @@ class SignalGenerator(BaseAgent):
                         stop_loss=stop_loss,
                         take_profit=take_profit,
                         rationale=rationale,
+                        news_risk=news_risk,
+                        news_headline=news_headline,
                     ).model_dump(mode="json")
                 )
                 symbols_with_signals += 1
@@ -373,13 +413,96 @@ class SignalGenerator(BaseAgent):
                                 pos_qty=adverse_qty,
                             )
 
+        # ── Crypto symbols (24/7, bypass market hours) ──────────────────────────
+        # BTC/ETH trade round the clock — run slope analysis even on weekends.
+        # Uses get_crypto_latest() → market_open 00:00 / market_close 23:59.
+        crypto_syms: list[str] = []
+        if slope_cfg.crypto_enabled and slope_cfg.crypto_symbols:
+            tiingo = self._market_data if hasattr(self._market_data, "get_crypto_latest") else None
+            if tiingo is not None:
+                _resample_map = {
+                    "1Min": "1min", "1min": "1min",
+                    "5Min": "5min", "5min": "5min",
+                    "15Min": "15min", "1Hour": "1hour",
+                }
+                resample_freq = _resample_map.get(slope_cfg.timeframe, "1min")
+                for crypto_sym in slope_cfg.crypto_symbols:
+                    crypto_bars = tiingo.get_crypto_latest(
+                        [crypto_sym], n_bars=n_bars, resample_freq=resample_freq
+                    )
+                    df = crypto_bars.get(crypto_sym)
+                    if df is None or df.empty:
+                        self.log_error("no_crypto_data", symbol=crypto_sym)
+                        continue
+
+                    from ..analysis import analyze_slope_volume as _analyze_slope
+                    result = _analyze_slope(
+                        crypto_sym,
+                        df,
+                        lookback_bars=slope_cfg.lookback_bars,
+                        slope_threshold_pct=slope_cfg.slope_threshold_pct,
+                        volume_multiplier=slope_cfg.volume_multiplier,
+                        volume_ma_period=slope_cfg.volume_ma_period,
+                        stop_loss_atr=slope_cfg.stop_loss_atr,
+                        take_profit_atr=slope_cfg.take_profit_atr,
+                        atr_period=slope_cfg.atr_period,
+                        market_open_utc="00:00",   # crypto = 24/7, always open
+                        market_close_utc="23:59",
+                        min_bars=slope_cfg.min_bars,
+                        timeframe=slope_cfg.timeframe,
+                        require_reversal=False,    # trend continuation entry
+                        bypass_volume_check=True,  # crypto volume varies by exchange
+                    )
+
+                    if result is not None and result.get("action") == "SHORT":
+                        result = None  # no shorting crypto in paper account
+
+                    if result is not None:
+                        news_risk_c = False
+                        news_headline_c = ""
+                        if self._news_client is not None:
+                            try:
+                                # Check BTC/ETH news + market-wide news
+                                crypto_news_tickers = ["BTC", "ETH", "BTCUSD", "ETHUSD", "SPY"]
+                                news_risk_c, news_headline_c = self._news_client.has_breaking_news(
+                                    crypto_news_tickers,
+                                    minutes_back=self._news_settings.minutes_back,
+                                    high_impact_only=self._news_settings.high_impact_only,
+                                )
+                            except Exception:
+                                pass
+
+                        all_signals.append(
+                            Signal(
+                                symbol=crypto_sym.upper(),
+                                action=SignalAction.BUY,
+                                confidence=result["confidence"],
+                                score=result["score"],
+                                entry_price=result["entry_price"],
+                                stop_loss=result["stop_loss"],
+                                take_profit=result["take_profit"],
+                                rationale=f"[CRYPTO 24/7] {result['rationale']}",
+                                news_risk=news_risk_c,
+                                news_headline=news_headline_c,
+                            ).model_dump(mode="json")
+                        )
+                        symbols_with_signals += 1
+                        self.logger.info(
+                            "crypto_slope_signal",
+                            symbol=crypto_sym,
+                            action="BUY",
+                            confidence=round(result["confidence"], 3),
+                        )
+                    crypto_syms.append(crypto_sym)
+
         signal_data = {
             "strategy": "slope_volume",
             "symbols": all_symbols,
+            "crypto_symbols": crypto_syms,
             "timeframe": slope_cfg.timeframe,
             "signals": all_signals,
             "signals_generated": len(all_signals),
-            "symbols_scanned": len(all_symbols),
+            "symbols_scanned": len(all_symbols) + len(crypto_syms),
             "symbols_with_signals": symbols_with_signals,
         }
         self._db.insert_signal("trade", signal_data)
