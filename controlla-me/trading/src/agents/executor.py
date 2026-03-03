@@ -77,6 +77,39 @@ class Executor(BaseAgent):
         stop_loss = round(raw_sl, 2) if raw_sl is not None else None
         take_profit = round(raw_tp, 2) if raw_tp is not None else None
 
+        # Alpaca bracket order constraint: stop_price must be <= fill_price - 0.01.
+        # When ATR is near-zero (after-hours / low volatility), the calculated stop
+        # may round UP to the entry price → Alpaca rejects with code 42210000.
+        # Fix: clamp stop_loss to max (entry_price - 0.02) for BUY bracket orders.
+        # 0.02 = 0.01 Alpaca minimum + 0.01 rounding safety buffer.
+        entry_price_ref = decision.get("entry_price")
+        if stop_loss is not None and entry_price_ref is not None:
+            max_allowed_stop = round(float(entry_price_ref) - 0.02, 2)
+            if stop_loss > max_allowed_stop:
+                self.logger.warning(
+                    "stop_loss_clamped",
+                    symbol=decision.get("symbol", "?"),
+                    original_stop=stop_loss,
+                    adjusted_stop=max_allowed_stop,
+                    entry_price=entry_price_ref,
+                    reason="ATR too small — enforcing min stop distance for Alpaca bracket order",
+                )
+                stop_loss = max_allowed_stop
+
+        # Similarly, take_profit must be >= fill_price + 0.01 for BUY orders.
+        if take_profit is not None and entry_price_ref is not None:
+            min_allowed_tp = round(float(entry_price_ref) + 0.02, 2)
+            if take_profit < min_allowed_tp:
+                self.logger.warning(
+                    "take_profit_clamped",
+                    symbol=decision.get("symbol", "?"),
+                    original_tp=take_profit,
+                    adjusted_tp=min_allowed_tp,
+                    entry_price=entry_price_ref,
+                    reason="ATR too small — enforcing min take_profit distance for Alpaca bracket order",
+                )
+                take_profit = min_allowed_tp
+
         if not qty or qty <= 0:
             self.logger.warning("skip_order", symbol=symbol, reason="no quantity")
             return None
