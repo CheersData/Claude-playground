@@ -639,11 +639,15 @@ def analyze_slope_volume(
             return None
 
         # --- Price levels ---
+        # Alpaca requires stop_price <= base_price - 0.01.
+        # On quiet 1-min bars ATR can be tiny → enforce a minimum $0.02 distance
+        # so that after round(..., 2) we always have at least $0.01 gap.
+        _min_sl = 0.02
         if action == "BUY":
-            stop_loss = current_price - (stop_loss_atr * atr)
+            stop_loss = current_price - max(stop_loss_atr * atr, _min_sl)
             take_profit = current_price + (take_profit_atr * atr)
         else:  # SHORT: SL above entry (price goes up = loss), TP below entry (price drops = gain)
-            stop_loss = current_price + (stop_loss_atr * atr)
+            stop_loss = current_price + max(stop_loss_atr * atr, _min_sl)
             take_profit = current_price - (take_profit_atr * atr)
 
         # Confidence: slope strength (0–1) + volume activity (0–1), weighted 60/40.
