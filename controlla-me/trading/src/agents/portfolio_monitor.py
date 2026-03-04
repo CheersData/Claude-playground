@@ -31,9 +31,9 @@ MonitorMode = Literal["status", "daily_report", "check_stops", "trailing_stops"]
 class PortfolioMonitor(BaseAgent):
     """Monitors portfolio health and enforces risk limits."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("portfolio_monitor")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         self._db = TradingDB()
         self._risk = get_settings().risk
 

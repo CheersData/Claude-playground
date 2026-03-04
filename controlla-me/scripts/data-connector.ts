@@ -30,6 +30,7 @@ import {
   loadSource,
   updateSource,
   getAllSources,
+  getAllSourcesAllVerticals,
   getLastSuccessfulSync,
   getSyncHistory,
 } from "@/lib/staff/data-connector";
@@ -38,6 +39,8 @@ import {
 // Ogni verticale registra le proprie fonti all'import (side-effect).
 // Per aggiungere un nuovo verticale: creare il file e importarlo qui.
 import "@/scripts/hr-sources";
+import "@/scripts/tax-sources";
+import "@/scripts/commercial-sources";
 // import "@/scripts/real-estate-sources";  // futuro
 // import "@/scripts/consumer-sources";      // futuro
 
@@ -68,7 +71,7 @@ function parseArgs(args: string[]): {
 // ─── Comandi ───
 
 async function cmdStatus() {
-  const sources = getAllSources();
+  const sources = getAllSourcesAllVerticals();
   const byLifecycle: Record<string, typeof sources> = {};
 
   for (const s of sources) {
@@ -199,7 +202,7 @@ async function cmdUpdate(sourceId: string) {
 }
 
 async function cmdUpdateAll() {
-  const sources = getAllSources().filter(
+  const sources = getAllSourcesAllVerticals().filter(
     (s) => s.lifecycle === "loaded" || s.lifecycle === "delta-active"
   );
 

@@ -23,9 +23,9 @@ from .base import BaseAgent
 class RiskManager(BaseAgent):
     """Validates signals and manages portfolio risk."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("risk_manager")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         self._db = TradingDB()
         self._risk = get_settings().risk
 

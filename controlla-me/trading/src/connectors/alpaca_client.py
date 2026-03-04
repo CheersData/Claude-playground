@@ -24,6 +24,7 @@ from alpaca.trading.requests import (
 )
 from datetime import datetime, timedelta
 import time
+from typing import Literal
 
 import pandas as pd
 
@@ -59,12 +60,46 @@ def _retry_on_rate_limit(func, max_retries=3, wait_seconds=30):
 class AlpacaClient:
     """Unified Alpaca client for trading + market data."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: Literal["slope", "conventional", "crypto"] = "slope") -> None:
         settings = get_settings()
-        self._api_key = settings.alpaca.api_key
-        self._secret_key = settings.alpaca.secret_key
-        self._base_url = settings.alpaca.base_url
-        self._is_paper = settings.alpaca.is_paper
+
+        if account_type == "conventional":
+            conv = settings.alpaca_conventional
+            if conv.is_configured:
+                self._api_key = conv.api_key
+                self._secret_key = conv.secret_key
+                self._base_url = conv.base_url
+                self._is_paper = conv.is_paper
+            else:
+                logger.warning(
+                    "alpaca_conventional_not_configured",
+                    reason="ALPACA_CONV_API_KEY/ALPACA_CONV_SECRET_KEY missing — falling back to slope account",
+                )
+                self._api_key = settings.alpaca.api_key
+                self._secret_key = settings.alpaca.secret_key
+                self._base_url = settings.alpaca.base_url
+                self._is_paper = settings.alpaca.is_paper
+        elif account_type == "crypto":
+            crypto = settings.alpaca_crypto
+            if crypto.is_configured:
+                self._api_key = crypto.api_key
+                self._secret_key = crypto.secret_key
+                self._base_url = crypto.base_url
+                self._is_paper = crypto.is_paper
+            else:
+                logger.warning(
+                    "alpaca_crypto_not_configured",
+                    reason="ALPACA_CRYPTO_API_KEY/ALPACA_CRYPTO_SECRET_KEY missing — falling back to slope account",
+                )
+                self._api_key = settings.alpaca.api_key
+                self._secret_key = settings.alpaca.secret_key
+                self._base_url = settings.alpaca.base_url
+                self._is_paper = settings.alpaca.is_paper
+        else:
+            self._api_key = settings.alpaca.api_key
+            self._secret_key = settings.alpaca.secret_key
+            self._base_url = settings.alpaca.base_url
+            self._is_paper = settings.alpaca.is_paper
 
         # Trading client
         self._trading = TradingClient(
@@ -81,6 +116,7 @@ class AlpacaClient:
 
         logger.info(
             "alpaca_client_init",
+            account_type=account_type,
             paper=self._is_paper,
             base_url=self._base_url,
         )

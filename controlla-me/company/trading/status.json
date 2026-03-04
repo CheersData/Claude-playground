@@ -2,7 +2,7 @@
   "_meta": {
     "dept": "trading",
     "schema_version": "1.0",
-    "last_updated": "2026-03-03T13:30:00.000Z",
+    "last_updated": "2026-03-04T00:00:00.000Z",
     "updated_by": "trading-lead"
   },
   "health": "ok",
@@ -129,7 +129,9 @@
     },
     "notes": "Sharpe 0.975 — mancano 0.025 per GO. 4/5 criteri soddisfatti. 126/136 exit per stop loss (TP 6x ATR troppo distante). Prossimo: tuning parametri (sl-atr, tp-atr, threshold) per spingere Sharpe >1.0."
   },
+  "pending_backtest_5min": "scripts ready — execute in order: (1) python scripts/fetch_spy_5min.py  (2) python scripts/backtest_5min_slope.py  (3) python scripts/grid_search_tpsl.py. Requires TIINGO_API_KEY in .env.local.",
   "next_actions": [
+    "PRIORITY: Run fetch_spy_5min.py → backtest_5min_slope.py → grid_search_tpsl.py (96 combos) per trovare Sharpe >1.0",
     "Tuning parametri backtest (sl-atr 1.5-2.0, threshold 0.4) per raggiungere Sharpe >1.0",
     "Configurare ALPACA_API_KEY per paper trading",
     "Short selling: validato long-only è superiore (long+short Sharpe ~0.959)"

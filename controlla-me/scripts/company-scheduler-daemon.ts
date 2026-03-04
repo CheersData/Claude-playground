@@ -1,13 +1,13 @@
 /**
  * company-scheduler-daemon.ts — CME Scheduler con approvazione Telegram
  *
- * COMPORTAMENTO:
- *   1. Polling board ogni 5 min
- *   2. Se open=0 AND in_progress=0 → genera piano con `claude -p`
- *   3. Invia piano su Telegram per approvazione boss
+ * COMPORTAMENTO AUTONOMO:
+ *   1. Board check ogni 2h
+ *   2. Se open > 0       → triggerCMEExecution() → spawna claude -p per eseguire i task
+ *   3. Se open=0 + ip=0  → onBoardEmpty() → plenaria virtuale + piano nuovo su Telegram
  *   4. Boss clicca ✅ Approva → task creati sul board
- *   5. Boss clicca ✏️ Modifica → rigenerazione
- *   6. Boss clicca ❌ Annulla → cooldown 30 min
+ *   5. Boss clicca ❌ Annulla → cooldown 30 min
+ *   6. /esegui manuale   → trigger immediato esecuzione (utile in demo)
  *
  * SETUP RICHIESTO in .env.local:
  *   TELEGRAM_BOT_TOKEN=... (da @BotFather)
@@ -24,7 +24,7 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
-import { buildVisionContext, savePlan, updatePlanStatus, getVision } from "./lib/company-vision";
+import { savePlan, updatePlanStatus, getVision } from "./lib/company-vision";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -39,21 +39,11 @@ const STATE_FILE = path.resolve(__dirname, "../company/scheduler-daemon-state.js
 const LATEST_PLAN_FILE = path.resolve(__dirname, "../company/latest-scheduler-plan.md");
 const BOARD_POLL_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 ore (come il piano)
 const PLAN_INTERVAL_MS = 2 * 60 * 60 * 1000;  // Piano ogni 2 ore
+const OPEN_TASK_REMINDER_MS = 5 * 60 * 1000;  // Reminder task open ogni 5 min
 const TELEGRAM_POLL_TIMEOUT_S = 30;            // long polling timeout
 const CANCEL_COOLDOWN_MS = 30 * 60 * 1000;    // 30 min cooldown dopo annulla
 
 const ROOT = path.resolve(__dirname, "..");
-
-// Env pulito per subprocess claude -p (rimuove CLAUDE* e ANTHROPIC_API_KEY per evitare nested session)
-function getCleanEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (key === "ANTHROPIC_API_KEY" || key.startsWith("CLAUDE")) {
-      delete env[key];
-    }
-  }
-  return env;
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,6 +106,12 @@ interface DaemonState {
   lastPlanGeneratedAt: string | null;
   chatHistory: ChatMsg[];
   startupInterview: StartupInterview | null;
+  /** Se true: board idle, in attesa che CME (in sessione Claude Code) generi il piano */
+  needsPlan?: boolean;
+  /** Se true: daemon sta eseguendo task via claude -p (blocca ulteriori trigger) */
+  isExecuting?: boolean;
+  /** ISO timestamp di inizio ultima esecuzione (per timeout/stall detection) */
+  lastExecutionStart?: string | null;
 }
 
 // ─── State persistence ────────────────────────────────────────────────────────
@@ -131,6 +127,7 @@ function loadState(): DaemonState {
     lastPlanGeneratedAt: null,
     chatHistory: [],
     startupInterview: null,
+    needsPlan: false,
   };
   try {
     if (fs.existsSync(STATE_FILE)) {
@@ -241,138 +238,14 @@ async function getTradingStatus(): Promise<string> {
   }
 }
 
-// ─── Plan generation ──────────────────────────────────────────────────────────
+// ─── Plan types ───────────────────────────────────────────────────────────────
+// La generazione piani avviene in sessione Claude Code (CME), non nel daemon.
+// Il daemon riceve i piani via state file (pendingPlan con messageId=null) e li invia su Telegram.
 
 interface GeneratedPlan {
   planText: string;
   tasks: TaskProposal[];
-  recommendations?: string[];  // R7: raccomandazioni per il piano successivo
-}
-
-async function generatePlan(
-  planNumber: number,
-  boardStats: BoardStats,
-  interview?: StartupInterview | null
-): Promise<GeneratedPlan> {
-  const tradingStatus = await getTradingStatus();
-  const dateStr = new Date().toLocaleString("it-IT");
-
-  // Vision/Mission context (R7/R8 — vision-driven planning)
-  let visionContext = "";
-  try {
-    visionContext = await buildVisionContext();
-  } catch (e) {
-    log(`WARN: Vision context unavailable: ${(e as Error).message}`);
-    visionContext = "⚠️ Vision/Mission non disponibile (tabella non ancora creata).";
-  }
-
-  // Contesto intervista boss (se disponibile)
-  const interviewContext = interview?.status === "done" && interview.date === todayDateStr()
-    ? `\nINDICAZIONI DEL BOSS PER OGGI (MASSIMA PRIORITÀ):\n- Focus: ${interview.focus}\n- Urgenze: ${interview.urgenze}\n- Trading: ${interview.trading}\n`
-    : "";
-
-  // Backlog noto (hard-coded context per qualità del piano)
-  const companyContext = `
-Controlla.me — app analisi legale AI (pre-lancio commerciale PMI).
-Stack: Next.js 15, Supabase, Claude/Gemini/Groq, pgvector.
-Task board: VUOTO (open=${boardStats.open}, in_progress=${boardStats.inProgress}, done=${boardStats.done} totali).
-
-${visionContext}
-${interviewContext}
-Ufficio Trading:
-${tradingStatus}
-
-Backlog storico noto (da considerare per i task):
-- QA: gap test su agent-runner.ts, tiers.ts, generate.ts (P1-P2-P5)
-- Security: DPA con Anthropic/Mistral/Google, consulente EU AI Act (agosto 2026)
-- Architecture: UI scoring multidimensionale, TD-2 (tiers.ts global state)
-- Data Engineering: Statuto dei Lavoratori (L. 300/1970) — non ancora caricato
-- Strategy: Opportunity Brief verticale HR, analisi competitor
-- Marketing: SEO articoli legali, landing page verticale affitti
-- Finance: Cost report mensile, monitoraggio costi Groq/Cerebras
-- Operations: Health check agenti runtime, monitoring dashboard /ops
-- Ufficio Legale: Revisione prompt advisor (falsi positivi needsLawyer)
-- Trading: Backtest (Fase 2), ottimizzazione filtri scanner, riduzione falsi segnali
-
-Dashboard /ops — sezione Trading: mostrare posizioni attuali + P&L ultimo giorno + P&L ultima ora.
-`.trim();
-
-  const prompt = `Sei CME, il CEO virtuale di Controlla.me (Poimandres). Il task board è ora COMPLETAMENTE VUOTO.
-Devi generare il Piano #${planNumber} (${dateStr}).
-
-CONTESTO:
-${companyContext}
-${interviewContext ? `\nATTENZIONE: Le indicazioni del boss (focus, urgenze, trading) hanno MASSIMA PRIORITÀ. Il piano deve riflettere esattamente quelle direttive come prima cosa.\n` : ""}
-
-IMPORTANTE: Il piano DEVE essere allineato con la Vision e la Mission aziendale.
-I task devono portare l'azienda verso la visione, non essere casuali.
-Le raccomandazioni del piano precedente (se presenti) devono essere considerate.
-
-Genera un piano CONCRETO. Output ESCLUSIVAMENTE JSON puro. Inizia con { e finisci con }.
-
-{
-  "planText": "Testo markdown del piano leggibile dal boss su Telegram (max 2000 caratteri). Include: titolo, allineamento con vision/mission, priorità immediata, analisi Ufficio Trading, elenco dipartimenti con task proposti. Tono diretto.",
-  "tasks": [
-    {
-      "dept": "nome-dipartimento",
-      "title": "Titolo task breve (max 10 parole)",
-      "priority": "low|medium|high|critical",
-      "desc": "Cosa fare e perché, in modo che chiunque legga capisca senza aprire il dettaglio (max 150 char)"
-    }
-  ],
-  "recommendations": [
-    "Raccomandazione 1 per il prossimo piano (cosa migliorare, cosa fare dopo)",
-    "Raccomandazione 2"
-  ]
-}
-
-Dipartimenti validi: architecture, data-engineering, quality-assurance, security, finance, operations, strategy, marketing, ufficio-legale, trading, ux-ui, protocols
-
-Regole:
-- 1-3 task per dipartimento, solo per quelli dove c'è davvero lavoro utile
-- Trading: SEMPRE includi almeno 2 task specifici per migliorare la pipeline
-- planText deve essere leggibile su Telegram con Markdown (*grassetto*, _corsivo_)
-- NON inventare task generici — usa il backlog noto sopra
-- Priorità task: almeno 2 HIGH nel piano
-- recommendations: 2-5 raccomandazioni concrete per il piano successivo (saranno usate come input)
-- JSON valido, no backtick`;
-
-  try {
-    const raw = execSync(`claude -p ${JSON.stringify(prompt)}`, {
-      encoding: "utf-8",
-      timeout: 90_000,
-      cwd: ROOT,
-      env: getCleanEnv(),
-    }).trim();
-
-    // Parse JSON robusto
-    let parsed: GeneratedPlan | null = null;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { parsed = JSON.parse(match[0]); } catch {}
-      }
-    }
-
-    if (!parsed || !parsed.planText || !Array.isArray(parsed.tasks)) {
-      throw new Error(`JSON parse fallito. Risposta: ${raw.slice(0, 200)}`);
-    }
-
-    return parsed;
-  } catch (e) {
-    // Fallback: piano minimo senza AI
-    log(`Plan generation error: ${(e as Error).message}`);
-    return {
-      planText: `*Piano #${planNumber} — Errore generazione AI*\n\nBoard vuoto. Errore: ${(e as Error).message}\n\nApprova per creare task di default.`,
-      tasks: [
-        { dept: "architecture", title: "Review backlog e priorità sprint", priority: "medium", desc: "Board vuoto — definire prossime attività." },
-        { dept: "quality-assurance", title: "Completa test coverage gap critici", priority: "high", desc: "agent-runner.ts e tiers.ts non coperti — P1/P2." },
-        { dept: "trading", title: "Analisi performance scanner ultima settimana", priority: "high", desc: "Verificare qualità segnali e metriche P&L." },
-      ],
-    };
-  }
+  recommendations?: string[];
 }
 
 // ─── Task creation ────────────────────────────────────────────────────────────
@@ -382,9 +255,11 @@ function createTasks(tasks: TaskProposal[]): number {
   for (const t of tasks) {
     const dept = t.dept.toLowerCase().replace(/\s+/g, "-");
     const priority = (t.priority || "medium").toLowerCase();
+    // routing: i task del daemon sono sempre operativi di routine (L1 auto-approved)
+    const routing = t.dept === "trading" ? "trading-operations:routine" : "company-operations:routine";
     try {
       execSync(
-        `npx tsx scripts/company-tasks.ts create --title ${JSON.stringify(t.title)} --dept ${dept} --priority ${priority} --by cme --desc ${JSON.stringify(t.desc)}`,
+        `npx tsx scripts/company-tasks.ts create --title ${JSON.stringify(t.title)} --dept ${dept} --priority ${priority} --by cme --routing ${JSON.stringify(routing)} --desc ${JSON.stringify(t.desc)}`,
         { encoding: "utf-8", cwd: ROOT, timeout: 15_000 }
       );
       created++;
@@ -397,6 +272,11 @@ function createTasks(tasks: TaskProposal[]): number {
 }
 
 // ─── Telegram API (fetch nativa Node 18+) ────────────────────────────────────
+
+/** Escape caratteri speciali per Telegram Markdown v1 (_, *, `, [) */
+function escapeMd(text: string): string {
+  return text.replace(/([_*`\[])/g, "\\$1");
+}
 
 async function telegramRequest(method: string, body: object): Promise<Record<string, unknown>> {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN non configurato");
@@ -560,6 +440,242 @@ function buildApprovalKeyboard(planNumber: number): object {
 
 // ─── Board watcher ────────────────────────────────────────────────────────────
 
+const COMPANY_DIR = path.resolve(__dirname, "../company");
+const PLENARY_DIR = path.resolve(COMPANY_DIR, "plenary-minutes");
+
+interface DeptStatus {
+  dept: string;
+  health: string;
+  summary: string;
+  gaps?: Array<{ id: string; description: string; severity: string }>;
+  open_tasks?: unknown[];
+  blockers?: unknown[];
+  [key: string]: unknown;
+}
+
+/**
+ * Legge tutti i status.json disponibili nei dipartimenti.
+ * Restituisce solo quelli trovati (dipartimenti senza file vengono saltati).
+ */
+function readAllDeptStatuses(): DeptStatus[] {
+  const depts = [
+    "trading", "quality-assurance", "data-engineering", "architecture",
+    "security", "finance", "operations", "strategy", "marketing",
+    "protocols", "ux-ui", "ufficio-legale", "acceleration",
+  ];
+  const statuses: DeptStatus[] = [];
+  for (const dept of depts) {
+    const filePath = path.join(COMPANY_DIR, dept, "status.json");
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      const raw = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<string, unknown>;
+      statuses.push({ dept, ...raw } as DeptStatus);
+    } catch {
+      log(`WARN: impossibile leggere status.json per ${dept}`);
+    }
+  }
+  return statuses;
+}
+
+function healthEmoji(health: string): string {
+  switch (health) {
+    case "ok": return "🟢";
+    case "warning": return "🟡";
+    case "critical": return "🔴";
+    default: return "⚪";
+  }
+}
+
+/**
+ * Genera il verbale della riunione plenaria virtuale.
+ *
+ * Legge tutti i status.json, produce un markdown in company/plenary-minutes/
+ * e restituisce i task proposti sulla base dello stato reale dei dipartimenti.
+ */
+function generatePlenaryMinutes(
+  state: DaemonState,
+  planNumber: number
+): { filePath: string; summary: string; tasksFromStatus: TaskProposal[] } {
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const timeStr = now.toISOString().slice(11, 16).replace(":", "-");
+  const fileName = `${dateStr}-${timeStr}-piano-${planNumber}.md`;
+
+  if (!fs.existsSync(PLENARY_DIR)) {
+    fs.mkdirSync(PLENARY_DIR, { recursive: true });
+  }
+  const filePath = path.join(PLENARY_DIR, fileName);
+
+  const statuses = readAllDeptStatuses();
+  const tasksFromStatus: TaskProposal[] = [];
+
+  // ── Analisi per dipartimento ────────────────────────────────────────────────
+
+  for (const s of statuses) {
+    const health = s.health ?? "unknown";
+    const criticalGaps = (s.gaps ?? []).filter((g) => g.severity === "critical");
+    const blockers = s.blockers ?? [];
+
+    if (health === "critical" || blockers.length > 0) {
+      tasksFromStatus.push({
+        dept: s.dept,
+        title: `🔴 [${s.dept}] Issue critica — intervento immediato`,
+        priority: "critical",
+        desc: `Health: ${health}. ${blockers.length > 0 ? `Blockers: ${(blockers as string[]).join(", ")}. ` : ""}Summary: ${s.summary}`,
+      });
+    } else if (health === "warning") {
+      const gapNote = criticalGaps.length > 0
+        ? ` Gap critici: ${criticalGaps.map((g) => `[${g.id}] ${g.description}`).join("; ")}.`
+        : "";
+      tasksFromStatus.push({
+        dept: s.dept,
+        title: `[${s.dept}] Review — health warning`,
+        priority: "high",
+        desc: `Health warning rilevato.${gapNote} Summary: ${s.summary}`,
+      });
+    }
+
+    // Trading-specific: kill switch
+    const runtime = s["runtime"] as Record<string, unknown> | undefined;
+    if (s.dept === "trading" && runtime?.["kill_switch_active"] === true) {
+      tasksFromStatus.push({
+        dept: "trading",
+        title: "🔴 KILL SWITCH attivo — analisi post-mortem",
+        priority: "critical",
+        desc: "Il kill switch trading è attivo. Analizzare causa, verificare P&L, decidere se disabilitare manualmente. Runbook: risk-management.md",
+      });
+    }
+  }
+
+  // ── Generazione markdown verbale ────────────────────────────────────────────
+
+  const focus = state.startupInterview?.focus ?? "generico";
+  const urgenze = state.startupInterview?.urgenze ?? "nessuna";
+
+  let md = `# Riunione Plenaria — ${dateStr} ${now.toISOString().slice(11, 16)} UTC\n\n`;
+  md += `**Piano #${planNumber}** | Focus: *${focus}* | Urgenze: *${urgenze}*\n\n`;
+
+  md += `## Presenti (dipartimenti con status.json)\n\n`;
+  if (statuses.length === 0) {
+    md += `_Nessun dipartimento ha ancora uno status.json._\n\n`;
+  } else {
+    md += `| Dipartimento | Health | Stato |\n`;
+    md += `|---|---|---|\n`;
+    for (const s of statuses) {
+      const emoji = healthEmoji(s.health ?? "unknown");
+      const summary = (s.summary ?? "").slice(0, 80);
+      md += `| ${s.dept} | ${emoji} ${s.health ?? "?"} | ${summary} |\n`;
+    }
+    md += `\n`;
+  }
+
+  if (tasksFromStatus.length > 0) {
+    md += `## Issue rilevate dai dipartimenti\n\n`;
+    for (const s of statuses) {
+      const dept = s.dept;
+      const deptTasks = tasksFromStatus.filter((t) => t.dept === dept);
+      if (deptTasks.length === 0) continue;
+      md += `### ${dept}\n\n`;
+      md += `- Health: ${healthEmoji(s.health ?? "unknown")} ${s.health ?? "unknown"}\n`;
+      const gaps = (s.gaps ?? []).filter((g) => g.severity === "critical");
+      if (gaps.length > 0) {
+        md += `- Gap critici: ${gaps.map((g) => `[${g.id}]`).join(", ")}\n`;
+      }
+      const blockers = s.blockers ?? [];
+      if (blockers.length > 0) md += `- Blockers: ${blockers.length}\n`;
+      md += `\n`;
+    }
+  } else {
+    md += `## Stato generale\n\nTutti i dipartimenti con status.json sono in stato OK. Nessuna issue critica.\n\n`;
+  }
+
+  md += `## Task proposti dalla plenaria\n\n`;
+  if (tasksFromStatus.length === 0) {
+    md += `_Nessun task derivato da health/gap. Il piano si basa sull'intervista di avvio._\n\n`;
+  } else {
+    for (let i = 0; i < tasksFromStatus.length; i++) {
+      const t = tasksFromStatus[i];
+      md += `${i + 1}. **[${t.dept}]** *(${t.priority})* ${t.title}\n`;
+      md += `   > ${t.desc}\n\n`;
+    }
+  }
+
+  md += `---\n_Verbale generato automaticamente dal daemon — Piano #${planNumber}_\n`;
+
+  fs.writeFileSync(filePath, md, "utf-8");
+  log(`Verbale plenaria salvato: ${path.relative(ROOT, filePath)}`);
+
+  const summary = statuses.length > 0
+    ? `${statuses.length} dept in riunione — ${tasksFromStatus.length} issue rilevate`
+    : "Nessun status.json trovato — piano da intervista";
+
+  return { filePath, summary, tasksFromStatus };
+}
+
+/**
+ * Genera automaticamente un set di task per il board.
+ *
+ * Strategia:
+ * 1. Riunione plenaria: legge status.json di tutti i dipartimenti → task da issue reali
+ * 2. Intervista di avvio: aggiunge task basati su focus area (trading / legal / default)
+ * 3. Deduplica per dipartimento (max 1 task/dept da plenaria, max 1 da intervista)
+ */
+function buildAutoTasks(state: DaemonState, planNumber: number): TaskProposal[] {
+  // 1. Riunione plenaria virtuale
+  const plenary = generatePlenaryMinutes(state, planNumber);
+  const tasks: TaskProposal[] = [...plenary.tasksFromStatus];
+  const deptsCovered = new Set(tasks.map((t) => t.dept));
+
+  // 2. Task da intervista (solo per dipartimenti non già coperti dalla plenaria)
+  const focus = state.startupInterview?.focus?.toLowerCase() ?? "";
+  const trading = state.startupInterview?.trading ?? "";
+
+  if ((focus.includes("trading") || trading) && !deptsCovered.has("trading")) {
+    tasks.push({
+      dept: "trading",
+      title: `Trading review ciclo #${planNumber} — P&L e segnali`,
+      priority: "high",
+      desc: `Review automatico del ciclo di trading: controlla P&L paper account, segnali slope generati, stato trailing stop. Contesto intervista: "${trading || "nessuno"}". Runbook: trading-pipeline.md`,
+    });
+    deptsCovered.add("trading");
+  }
+  if ((focus.includes("trading") || trading) && !deptsCovered.has("operations")) {
+    tasks.push({
+      dept: "operations",
+      title: `Dashboard /ops — verifica metriche trading ciclo #${planNumber}`,
+      priority: "medium",
+      desc: "Verifica che la dashboard /ops mostri correttamente: segnali slope, P&L, stato posizioni. Se ci sono anomalie, aprire subtask. Controllare API /api/trading/signals.",
+    });
+  } else if ((focus.includes("legal") || focus.includes("legale")) && !deptsCovered.has("ufficio-legale")) {
+    tasks.push({
+      dept: "ufficio-legale",
+      title: `Review pipeline analisi legale — ciclo #${planNumber}`,
+      priority: "high",
+      desc: "Review automatico: controlla gli ultimi errori nella pipeline di analisi, qualità output agenti, copertura corpus. Runbook: ufficio-legale/runbooks/.",
+    });
+  } else if (!focus.includes("trading") && !trading && !focus.includes("legal") && !focus.includes("legale")) {
+    // Default generico: solo se i dept non sono già coperti dalla plenaria
+    if (!deptsCovered.has("architecture")) {
+      tasks.push({
+        dept: "architecture",
+        title: `Architecture review — ciclo #${planNumber}`,
+        priority: "medium",
+        desc: "Review automatico: tech debt aperto, dipendenze da aggiornare, ADR da completare. Vedi CLAUDE.md sezione 19.",
+      });
+    }
+    if (!deptsCovered.has("quality-assurance")) {
+      tasks.push({
+        dept: "quality-assurance",
+        title: `QA review — gap di copertura test ciclo #${planNumber}`,
+        priority: "medium",
+        desc: "Identifica gap di copertura test. Priorità: agent-runner (P1), tiers.ts (P2), console-token (P3). Vedi CLAUDE.md sezione 17.",
+      });
+    }
+  }
+
+  return tasks;
+}
+
 async function onBoardEmpty(state: DaemonState): Promise<DaemonState> {
   // Controlla cooldown dopo annulla
   if (state.lastCancelledAt) {
@@ -571,9 +687,9 @@ async function onBoardEmpty(state: DaemonState): Promise<DaemonState> {
     }
   }
 
-  // Non generare se c'è già un piano in attesa
+  // Non generare se c'è già un piano CME in attesa di approvazione
   if (state.pendingPlan) {
-    log("Piano in attesa di approvazione — skip generazione");
+    log("Piano CME in attesa di approvazione — skip auto-tasks");
     return state;
   }
 
@@ -585,52 +701,190 @@ async function onBoardEmpty(state: DaemonState): Promise<DaemonState> {
   }
   state.planCountToday++;
 
-  log(`Board vuoto — genero Piano #${state.planCountToday}...`);
-  await sendMessage(`⏳ Board vuoto. Genero Piano #${state.planCountToday}...`);
+  const planNum = state.planCountToday;
+  log(`Board vuoto — riunione plenaria + Piano #${planNum} (focus: ${state.startupInterview?.focus ?? "generico"})`);
 
-  const plan = await generatePlan(state.planCountToday, getBoardStats(), state.startupInterview);
-  const text = formatPlanMessage(plan, state.planCountToday);
-  const keyboard = buildApprovalKeyboard(state.planCountToday);
+  // Genera task (include riunione plenaria virtuale + verbale markdown)
+  const tasks = buildAutoTasks(state, planNum);
+  const created = createTasks(tasks);
 
-  const messageId = await sendMessage(text, keyboard);
-  log(`Piano #${state.planCountToday} inviato su Telegram (messageId: ${messageId})`);
-
-  state.pendingPlan = {
-    planNumber: state.planCountToday,
-    generatedAt: new Date().toISOString(),
-    messageId: messageId,
-    planText: plan.planText,
-    tasks: plan.tasks,
-    ...(plan.recommendations ? { recommendations: plan.recommendations } : {}),
-  } as PendingPlan;
+  state.needsPlan = false;
   state.lastPlanGeneratedAt = new Date().toISOString();
-
+  state.lastApprovedAt = new Date().toISOString();
   saveState(state);
 
-  // Scrivi il piano su file locale — leggibile da CME in sessione Claude Code
+  const taskList = tasks.map((t) => `• [${t.dept}] ${t.title}`).join("\n");
+  log(`Piano #${planNum}: ${created}/${tasks.length} task creati`);
+  const statusCount = readAllDeptStatuses().length;
+  await sendMessage(
+    `✅ *Piano #${planNum} — ${created} task creati automaticamente*\n\n` +
+    `Focus: *${state.startupInterview?.focus ?? "generico"}* | Plenaria: ${statusCount} dept\n\n` +
+    `${taskList}\n\n` +
+    `_Verbale in company/plenary-minutes/. CME al lavoro._`
+  );
+
+  return state;
+}
+
+/**
+ * Esecuzione autonoma dei task aperti via claude -p.
+ *
+ * Quando ci sono task open, spawna `claude -p` con un prompt CME che:
+ * 1. Legge department.md + runbook di ogni dipartimento coinvolto
+ * 2. Clama e esegue ogni task in ordine di priorità (critical→high→medium→low)
+ * 3. Marca done con summary
+ *
+ * Blocca il daemon per tutta la durata dell'esecuzione (max 25 min).
+ * In ambiente demo, claude -p fallisce con ENOENT o credit balance — gestito in catch.
+ */
+async function triggerCMEExecution(state: DaemonState): Promise<DaemonState> {
+  // Stall detection: se isExecuting=true da più di 30 min → considera finito
+  if (state.isExecuting && state.lastExecutionStart) {
+    const elapsed = Date.now() - new Date(state.lastExecutionStart).getTime();
+    if (elapsed < 30 * 60 * 1000) {
+      log(`CME già in esecuzione da ${Math.floor(elapsed / 60_000)} min — skip`);
+      return state;
+    }
+    log(`WARN: stall rilevato (${Math.floor(elapsed / 60_000)} min) — reset isExecuting`);
+  }
+
+  // Recupera lista task open con dettagli
+  let listRaw = "";
+  try {
+    listRaw = execSync("npx tsx scripts/company-tasks.ts list --status open", {
+      encoding: "utf-8", cwd: ROOT, timeout: 30_000,
+    });
+  } catch {
+    log("WARN: impossibile leggere lista task open");
+    return state;
+  }
+
+  // Parse: righe [open] PRIORITY | Title [id] + riga seguente dept
+  const lines = listRaw.split("\n");
+  const tasks: Array<{ id: string; title: string; dept: string; priority: string; desc: string }> = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/\[open\]\s+(\w+)\s+\|\s+(.+?)\s+\[([0-9a-f]{8})\]/i);
+    if (m) {
+      const priority = m[1], title = m[2].trim(), id = m[3];
+      const deptMatch = (lines[i + 1] ?? "").match(/dept:\s+(\S+)/);
+      const descMatch = (lines[i + 2] ?? "").match(/desc:\s+(.+)/);
+      tasks.push({
+        id, title, priority,
+        dept: deptMatch?.[1] ?? "cme",
+        desc: descMatch?.[1]?.trim() ?? title,
+      });
+    }
+  }
+
+  if (tasks.length === 0) {
+    log("triggerCMEExecution: nessun task open trovato — skip");
+    return state;
+  }
+
+  // Marca executing
+  state.isExecuting = true;
+  state.lastExecutionStart = new Date().toISOString();
+  saveState(state);
+
+  const taskLines = tasks.map(t => `• [${t.dept}] ${t.priority.toUpperCase()} — ${t.title}`).join("\n");
+  await sendMessage(
+    `🚀 *CME in esecuzione — ${tasks.length} task open*\n\n` +
+    `${taskLines}\n\n` +
+    `_Esecuzione autonoma via claude -p. Durata stimata: 10-20 min._`
+  );
+
+  const taskDetail = tasks
+    .map(t => `- [${t.id}] **${t.title}** (dept: ${t.dept}, priority: ${t.priority})\n  Descrizione: ${t.desc}`)
+    .join("\n");
+
+  const prompt =
+    `Sei CME (CEO virtuale) di controlla.me. Il company scheduler ti ha incaricato di eseguire autonomamente i task aperti sul board.\n\n` +
+    `TASK APERTI (${tasks.length}):\n${taskDetail}\n\n` +
+    `ISTRUZIONI:\n` +
+    `Per ogni task, in ordine critical→high→medium→low:\n` +
+    `1. Leggi company/<dept>/department.md per capire il dipartimento\n` +
+    `2. Leggi il runbook pertinente in company/<dept>/runbooks/\n` +
+    `3. Claim: npx tsx scripts/company-tasks.ts claim <id> --agent <dept>-lead\n` +
+    `4. Esegui il lavoro del task (analisi, report, proposta tecnica, ecc.)\n` +
+    `5. Done: npx tsx scripts/company-tasks.ts done <id> --summary "cosa hai fatto + risultati"\n\n` +
+    `Esegui TUTTI i task autonomamente. Non chiedere conferme. Non saltare task.\n` +
+    `Working directory: ${ROOT}`;
+
+  try {
+    log(`Spawn claude -p — ${tasks.length} task da eseguire...`);
+    const output = execSync(`claude -p ${JSON.stringify(prompt)}`, {
+      encoding: "utf-8",
+      cwd: ROOT,
+      timeout: 25 * 60 * 1000, // 25 min max
+    });
+    log(`Esecuzione completata: ${output.length} chars output`);
+
+    const finalStats = getBoardStats();
+    await sendMessage(
+      `✅ *CME ha completato l'esecuzione*\n\n` +
+      `Board: open=${finalStats.open}, in_progress=${finalStats.inProgress}, done=${finalStats.done}\n\n` +
+      `_Task rimasti open (se > 0) verranno ritentati al prossimo ciclo._`
+    );
+  } catch (e) {
+    const err = (e as Error).message ?? String(e);
+    const isDemoError = err.includes("ENOENT") || err.includes("Credit balance") || err.includes("exit code 1");
+    log(`WARN: claude -p execution: ${err.slice(0, 200)}`);
+    if (isDemoError) {
+      await sendMessage(
+        `⚠️ *Esecuzione automatica non disponibile*\n\n` +
+        `Ambiente demo: \`claude\` non nel PATH o crediti insufficienti.\n\n` +
+        `*Task da eseguire manualmente:*\n${taskLines}\n\n` +
+        `_Apri Claude Code e esegui: i task sono sul board._`
+      );
+    } else {
+      await sendMessage(`⚠️ *Errore esecuzione CME*\n\n\`${err.slice(0, 300)}\``);
+    }
+  }
+
+  state.isExecuting = false;
+  state.lastExecutionStart = null;
+  saveState(state);
+  return state;
+}
+
+/**
+ * Invia su Telegram un pendingPlan scritto da CME in sessione (messageId === null).
+ * Chiamato dal state-file watcher quando rileva un nuovo piano iniettato esternamente.
+ */
+async function sendCMEInjectedPlan(state: DaemonState): Promise<DaemonState> {
+  if (!state.pendingPlan || state.pendingPlan.messageId !== null) return state;
+
+  const plan: GeneratedPlan = {
+    planText: state.pendingPlan.planText,
+    tasks: state.pendingPlan.tasks,
+  };
+  const text = formatPlanMessage(plan, state.pendingPlan.planNumber);
+  const keyboard = buildApprovalKeyboard(state.pendingPlan.planNumber);
+
+  const messageId = await sendMessage(text, keyboard);
+  log(`Piano CME #${state.pendingPlan.planNumber} inviato su Telegram (messageId: ${messageId})`);
+
+  state.pendingPlan.messageId = messageId;
+  state.needsPlan = false;
+  saveState(state);
+
+  // Scrivi file locale leggibile
   try {
     const ts = new Date().toLocaleString("it-IT");
-    const taskLines = plan.tasks
+    const taskLines = state.pendingPlan.tasks
       .map(t => `- [${t.dept}] **${t.priority.toUpperCase()}** — ${t.title}`)
       .join("\n");
-    const recLines = (plan.recommendations ?? [])
-      .map((r, i) => `${i + 1}. ${r}`)
-      .join("\n");
     const md = [
-      `# Piano #${state.planCountToday} — ${ts}`,
+      `# Piano #${state.pendingPlan.planNumber} — ${ts}`,
       `> Status: in attesa di approvazione su Telegram`,
       "",
-      plan.planText,
+      state.pendingPlan.planText,
       "",
-      `## Task proposti (${plan.tasks.length})`,
+      `## Task proposti (${state.pendingPlan.tasks.length})`,
       taskLines,
-      ...(recLines ? ["", "## Raccomandazioni per il prossimo piano", recLines] : []),
     ].join("\n");
     fs.writeFileSync(LATEST_PLAN_FILE, md, "utf-8");
-    log(`Piano scritto su ${LATEST_PLAN_FILE}`);
-  } catch (e) {
-    log(`WARN: impossibile scrivere latest-scheduler-plan.md: ${(e as Error).message}`);
-  }
+  } catch {}
 
   return state;
 }
@@ -690,27 +944,21 @@ async function handleCallback(
       return state;
     }
 
-    await answerCallback(callbackQueryId, "Richiesta modifica ricevuta. Rigenero...");
-    await sendMessage(`✏️ Piano #${planNum} rifiutato. Rigerenro Piano #${state.planCountToday + 1}...`);
+    await answerCallback(callbackQueryId, "Piano rifiutato — genero un piano alternativo...");
+    const rejectText = `✏️ *Piano #${planNum} rifiutato*\n\nGenero piano alternativo automaticamente...`;
+    if (state.pendingPlan.messageId) {
+      await editMessage(state.pendingPlan.messageId, rejectText);
+    } else {
+      await sendMessage(rejectText);
+    }
     state.pendingPlan = null;
     state.lastCancelledAt = null;
+    state.needsPlan = false;
 
-    // Incrementa e rigenera subito
-    state.planCountToday++;
-    const plan = await generatePlan(state.planCountToday, getBoardStats(), state.startupInterview);
-    const text = formatPlanMessage(plan, state.planCountToday);
-    const keyboard = buildApprovalKeyboard(state.planCountToday);
-    const messageId = await sendMessage(text, keyboard);
-
-    state.pendingPlan = {
-      planNumber: state.planCountToday,
-      generatedAt: new Date().toISOString(),
-      messageId,
-      planText: plan.planText,
-      tasks: plan.tasks,
-    };
-
-    log(`Piano rigenerato: #${state.planCountToday}`);
+    log(`Piano #${planNum} rifiutato — genero piano alternativo automaticamente`);
+    saveState(state);
+    state = await onBoardEmpty(state);
+    return state;
 
   } else if (data.startsWith("cancel_")) {
     const planNum = parseInt(data.replace("cancel_", ""));
@@ -735,54 +983,70 @@ async function handleCallback(
 // ─── CME Chat via Telegram ───────────────────────────────────────────────────
 
 async function chatWithCME(userMessage: string, state: DaemonState): Promise<{ reply: string; state: DaemonState }> {
-  // Read CME prompt
-  let cmePrompt = "Sei il CME (CEO) di Controlla.me. Rispondi in italiano, conciso.";
-  try {
-    cmePrompt = fs.readFileSync(path.join(ROOT, "company/cme.md"), "utf-8");
-  } catch {}
-
-  // Get board stats for context
+  // Chat CME non disponibile in ambiente demo (claude -p richiede crediti API).
+  // Restituisce stato board + comandi disponibili come risposta contestuale.
   const stats = getBoardStats();
   const tradingStatus = await getTradingStatus();
 
-  // Build conversation history
-  const historyText = state.chatHistory.length > 0
-    ? state.chatHistory.map((m) => m.role === "user" ? `BOSS: ${m.content}` : `CME: ${m.content}`).join("\n")
-    : "";
+  const reply =
+    `*CME — risposta automatica* (modalità demo)\n\n` +
+    `Hai scritto: _"${escapeMd(userMessage.slice(0, 100))}"_\n\n` +
+    `*Board:* Open=${stats.open} | In Progress=${stats.inProgress} | Done=${stats.done}\n` +
+    `*Pending plan:* ${state.pendingPlan ? `Piano #${state.pendingPlan.planNumber} in attesa` : "nessuno"}\n` +
+    `*Eseguendo:* ${state.isExecuting ? "si (claude -p attivo)" : "no"}\n\n` +
+    `*Trading:*\n${escapeMd(tradingStatus)}\n\n` +
+    `_Chat CME attiva solo con crediti API. Usa i comandi: /status /piano /piano\\_default /esegui /help_`;
 
-  const prompt = `${cmePrompt}
+  log(`Chat CME (demo): "${userMessage.slice(0, 60)}" → risposta automatica`);
+  return { reply, state };
+}
 
-## DATI AZIENDALI LIVE
-Task board: Open=${stats.open}, In Progress=${stats.inProgress}, Done=${stats.done}, Totale=${stats.total}
+// ─── Headless daemon (senza Telegram) ─────────────────────────────────────────
 
-Ufficio Trading:
-${tradingStatus}
+/**
+ * Modalità headless: nessuna interazione Telegram.
+ * Polling board ogni 2h. Se idle → crea task di pianificazione via checkIdleAndPlan().
+ * Nessun approccio LLM — usa la logica di daily-controls.ts.
+ */
+async function runHeadlessDaemon(): Promise<void> {
+  log("=== Headless daemon avviato — board check ogni 2h ===");
+  const { checkIdleAndPlan } = await import("./daily-controls");
+  const { saveStateOfCompany } = await import("./lib/state-of-company");
 
-${historyText ? `## CONVERSAZIONE PRECEDENTE\n${historyText}\n` : ""}
-## MESSAGGIO DEL BOSS
-${userMessage}
+  let lastCheck = 0;
 
-Rispondi in modo conciso (max 300 parole). Non usare markdown complesso — solo *grassetto* e testo semplice (il messaggio va su Telegram).`;
+  while (true) {
+    const now = Date.now();
+    if (now - lastCheck >= BOARD_POLL_INTERVAL_MS) {
+      lastCheck = now;
+      const date = new Date().toISOString().slice(0, 10);
+      const stats = getBoardStats();
+      log(`Board check: open=${stats.open}, in_progress=${stats.inProgress}`);
 
-  try {
-    const raw = execSync(`claude -p ${JSON.stringify(prompt)}`, {
-      encoding: "utf-8",
-      timeout: 90_000,
-      cwd: ROOT,
-      env: getCleanEnv(),
-    }).trim();
+      if (stats.open === 0 && stats.inProgress === 0) {
+        log("Board idle — creo task di pianificazione...");
+        try {
+          const result = await checkIdleAndPlan(date);
+          if (result.tasksCreated > 0) {
+            log(`✅ ${result.tasksCreated} task di pianificazione creati`);
+          } else {
+            log("Task già presenti per oggi — skip");
+          }
+        } catch (e) {
+          log(`WARN: checkIdleAndPlan: ${(e as Error).message}`);
+        }
+      }
 
-    // Update history (keep last 20 messages)
-    state.chatHistory.push({ role: "user", content: userMessage });
-    state.chatHistory.push({ role: "assistant", content: raw });
-    if (state.chatHistory.length > 20) {
-      state.chatHistory = state.chatHistory.slice(-20);
+      // State of Company giornaliero
+      try {
+        const socPath = await saveStateOfCompany(date);
+        log(`📊 State of Company aggiornato: ${path.basename(socPath)}`);
+      } catch (e) {
+        log(`WARN: State of Company: ${(e as Error).message}`);
+      }
     }
-    saveState(state);
 
-    return { reply: raw, state };
-  } catch (e) {
-    return { reply: `Errore CME: ${(e as Error).message}`, state };
+    await new Promise((r) => setTimeout(r, 60_000)); // check ogni minuto se è ora di girare
   }
 }
 
@@ -795,13 +1059,18 @@ async function runDaemon(): Promise<void> {
   log(`Telegram long-poll timeout: ${TELEGRAM_POLL_TIMEOUT_S}s`);
 
   if (!BOT_TOKEN || !CHAT_ID) {
-    console.error("\n❌ TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID mancanti in .env.local");
-    console.error("   Esegui con --setup per configurare il Telegram bot\n");
-    process.exit(1);
+    // Headless mode: senza Telegram, il daemon gira in modalità silenziosa
+    // Fa solo board check e crea task via checkIdleAndPlan() quando idle
+    log("⚠️  TELEGRAM non configurato — modalità headless attiva");
+    log("   Il daemon monitorerà il board e creerà task di pianificazione automaticamente.");
+    log("   Per Telegram: aggiungi TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID in .env.local");
+    await runHeadlessDaemon();
+    return;
   }
 
   let state = loadState();
   let lastBoardCheck = 0;
+  let lastReminderMs = 0; // reminder task open ogni 5 min (in-memory, non persistito)
 
   // All'avvio: se intervista di oggi non completata, avvia il flow
   if (!isInterviewDoneToday(state)) {
@@ -818,6 +1087,7 @@ async function runDaemon(): Promise<void> {
   }
 
   // Telegram + board loop combinato
+  let lastStateMtime = fs.existsSync(STATE_FILE) ? fs.statSync(STATE_FILE).mtimeMs : 0;
   while (true) {
     // ── Telegram long-poll ──
     const updates = await getUpdates(state.updateOffset);
@@ -872,9 +1142,61 @@ async function runDaemon(): Promise<void> {
           state.startupInterview = null;
           saveState(state);
           state = await startInterview(state);
+        } else if (text === "/piano_default" || text === "/pianodefault") {
+          // Piano di emergenza senza AI — usa il fallback hardcoded
+          if (state.pendingPlan) {
+            await sendMessage("⚠️ C'è già un piano in attesa di approvazione.");
+          } else {
+            const today2 = new Date().toISOString().slice(0, 10);
+            if (state.lastPlanDate !== today2) { state.planCountToday = 0; state.lastPlanDate = today2; }
+            state.planCountToday++;
+            const defaultPlan: GeneratedPlan = {
+              planText: `*Piano di emergenza #${state.planCountToday}*\n\nBoard vuoto. Piano generato senza AI.\nPriorità: backlog QA + trading.`,
+              tasks: [
+                { dept: "quality-assurance", title: "Completa test coverage gap critici", priority: "high", desc: "agent-runner.ts e tiers.ts non coperti — P1/P2." },
+                { dept: "trading", title: "Analisi performance scanner settimana", priority: "high", desc: "Verificare qualità segnali slope e metriche P&L." },
+                { dept: "architecture", title: "Review tech debt e dipendenze", priority: "medium", desc: "Board vuoto — revisione backlog architetturale." },
+              ],
+            };
+            const text2 = formatPlanMessage(defaultPlan, state.planCountToday);
+            const keyboard2 = buildApprovalKeyboard(state.planCountToday);
+            const msgId = await sendMessage(text2, keyboard2);
+            state.pendingPlan = {
+              planNumber: state.planCountToday,
+              generatedAt: new Date().toISOString(),
+              messageId: msgId,
+              planText: defaultPlan.planText,
+              tasks: defaultPlan.tasks,
+            };
+            state.needsPlan = false;
+            state.lastPlanGeneratedAt = new Date().toISOString();
+            saveState(state);
+            log(`Piano default #${state.planCountToday} inviato`);
+          }
+        } else if (text === "/esegui" || text === "/parti") {
+          // Trigger manuale esecuzione (utile in demo dove il board check automatico usa claude -p)
+          const stats = getBoardStats();
+          if (stats.open === 0) {
+            await sendMessage("✅ Nessun task open — board già pulito.");
+          } else {
+            await sendMessage(`⏳ *Avvio esecuzione manuale — ${stats.open} task open...*`);
+            state = await triggerCMEExecution(state);
+          }
         } else if (text === "/help") {
           await sendMessage(
-            "*CME Scheduler — Comandi*\n\n/status — Stato board\n/piano — Genera piano ora\n/cancella — Annulla piano corrente\n/reset — Resetta conversazione CME\n/intervista — Ripeti l'intervista di contesto\n/help — Questo messaggio\n\n💬 _Scrivi qualsiasi messaggio per parlare con CME_"
+            "*CME Scheduler — Comandi*\n\n" +
+            "/status — Stato board\n" +
+            "/esegui — Trigger manuale esecuzione task open (normalmente automatico)\n" +
+            "/piano — Genera piano automatico (board vuoto)\n" +
+            "/piano\\_default — Piano di emergenza hardcoded\n" +
+            "/cancella — Annulla piano CME in attesa\n" +
+            "/reset — Resetta conversazione CME\n" +
+            "/intervista — Ripeti l'intervista di contesto\n" +
+            "/help — Questo messaggio\n\n" +
+            "💬 _Scrivi qualsiasi messaggio per parlare con CME_\n\n" +
+            "🤖 _Comportamento automatico:_\n" +
+            "_• Task open → CME li esegue via claude -p_\n" +
+            "_• Board vuoto → CME convoca plenaria + crea piano_"
           );
         } else if (!text.startsWith("/")) {
           // Intercetta risposta intervista avvio (priorità su chat libera)
@@ -896,23 +1218,72 @@ async function runDaemon(): Promise<void> {
       saveState(state);
     }
 
+    // ── State file mtime watch — comunicazione bidirezionale con Claude Code ──
+    const currentMtime = fs.existsSync(STATE_FILE) ? fs.statSync(STATE_FILE).mtimeMs : 0;
+    if (currentMtime > lastStateMtime) {
+      const freshState = loadState();
+
+      // Caso 1: pendingPlan era presente e ora è null → approvato o rifiutato da Claude Code
+      if (state.pendingPlan && !freshState.pendingPlan) {
+        log("Piano approvato/rifiutato esternamente (Claude Code) — aggiorno Telegram");
+        if (state.pendingPlan.messageId) {
+          const ts = new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome" });
+          const wasApproved = freshState.lastApprovedAt &&
+            (!freshState.lastCancelledAt || freshState.lastApprovedAt > freshState.lastCancelledAt);
+          const statusText = wasApproved
+            ? `✅ *Piano #${state.pendingPlan.planNumber} — Approvato via Claude Code*\n_${ts}_`
+            : `❌ *Piano #${state.pendingPlan.planNumber} — Rifiutato via Claude Code*\n_${ts}_`;
+          await editMessage(state.pendingPlan.messageId, statusText);
+        }
+      }
+
+      // Caso 2: CME in sessione ha scritto un nuovo pendingPlan con messageId=null → inviarlo su Telegram
+      const cmeWroteNewPlan = !state.pendingPlan && freshState.pendingPlan && freshState.pendingPlan.messageId === null;
+      const cmeUpdatedPlan = state.pendingPlan && freshState.pendingPlan &&
+        state.pendingPlan.messageId === null && freshState.pendingPlan.messageId === null;
+      if (cmeWroteNewPlan || cmeUpdatedPlan) {
+        log(`Piano CME iniettato (messageId=null) — invio su Telegram`);
+        state = freshState;
+        state = await sendCMEInjectedPlan(state);
+        lastStateMtime = fs.existsSync(STATE_FILE) ? fs.statSync(STATE_FILE).mtimeMs : 0;
+        continue;
+      }
+
+      state = freshState;
+      lastStateMtime = currentMtime;
+    }
+
     // ── Board check (ogni BOARD_POLL_INTERVAL_MS) ──
     const now = Date.now();
     if (now - lastBoardCheck >= BOARD_POLL_INTERVAL_MS) {
       lastBoardCheck = now;
+      lastReminderMs = now; // il board check copre il reminder — evita doppio getBoardStats
       const stats = getBoardStats();
       log(`Board check: open=${stats.open}, in_progress=${stats.inProgress}`);
 
-      // Board vuoto → piano immediato
-      if (stats.open === 0 && stats.inProgress === 0) {
+      if (stats.open > 0) {
+        // Task open → CME esegue autonomamente
+        log(`${stats.open} task open — trigger esecuzione CME via claude -p`);
+        state = await triggerCMEExecution(state);
+      } else if (stats.open === 0 && stats.inProgress === 0) {
+        // Board completamente vuoto → plenaria + nuovo piano
         state = await onBoardEmpty(state);
+      } else {
+        // Solo task in_progress → nessuna azione, aspetta completamento
+        log(`Board: ${stats.inProgress} in_progress, 0 open — attendo completamento`);
       }
+    }
 
-      // Piano periodico ogni 2h (anche se board non è vuoto)
-      const lastGen = state.lastPlanGeneratedAt ? new Date(state.lastPlanGeneratedAt).getTime() : 0;
-      if (now - lastGen >= PLAN_INTERVAL_MS && !state.pendingPlan) {
-        log(`Piano periodico (2h) — ultimo piano: ${state.lastPlanGeneratedAt ?? "mai"}`);
-        state = await onBoardEmpty(state);
+    // ── Reminder informativo ogni 5 min (solo log, non Telegram) ──
+    if (now - lastReminderMs >= OPEN_TASK_REMINDER_MS) {
+      lastReminderMs = now;
+      try {
+        const stats = getBoardStats();
+        if (stats.open > 0) {
+          log(`Reminder: ${stats.open} task open (esecuzione al prossimo board check)`);
+        }
+      } catch {
+        // silenzioso
       }
     }
 
@@ -1025,7 +1396,20 @@ async function runCheckOnce(): Promise<void> {
       const state = loadState();
       await onBoardEmpty(state);
     } else {
-      log("Board vuoto - in ambiente demo il piano sarebbe generato via claude -p");
+      // Headless mode: senza Telegram usa checkIdleAndPlan() per creare task di pianificazione reali
+      log("Board vuoto — modalità headless (no Telegram): creo task di pianificazione...");
+      try {
+        const { checkIdleAndPlan } = await import("./daily-controls");
+        const date = new Date().toISOString().slice(0, 10);
+        const result = await checkIdleAndPlan(date);
+        if (result.tasksCreated > 0) {
+          log(`✅ Headless plan: ${result.tasksCreated} task di pianificazione creati per i dipartimenti`);
+        } else {
+          log("Task di pianificazione già presenti — nessuna duplicazione");
+        }
+      } catch (e) {
+        log(`WARN: checkIdleAndPlan fallito: ${(e as Error).message}`);
+      }
     }
   } else {
     // Solo task in_progress, nessun open

@@ -17,6 +17,7 @@ interface LeaderChatProps {
   loading: boolean;
   prefilledHint: string | null;
   onSend: (message: string) => void;
+  className?: string;
 }
 
 // ── Loading dots ──────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ export default function LeaderChat({
   loading,
   prefilledHint,
   onSend,
+  className,
 }: LeaderChatProps) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -105,13 +107,34 @@ export default function LeaderChat({
   };
 
   return (
-    <div className="h-52 flex-none border-t border-gray-100 flex flex-col bg-white">
-      {/* Header label */}
-      <div className="flex items-center gap-1.5 px-3 pt-2 pb-1 flex-shrink-0">
-        <Users2 className="w-3 h-3 text-indigo-400" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-          Leader
-        </span>
+    <div className={`border-t border-gray-100 flex flex-col bg-white ${className ?? "h-52 flex-none"}`}>
+      {/* Header label + Input row — in cima */}
+      <div className="flex-shrink-0 border-b border-gray-100">
+        <div className="flex items-center gap-1.5 px-3 pt-2 pb-1">
+          <Users2 className="w-3 h-3 text-indigo-400" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+            Leader
+          </span>
+        </div>
+        <div className="flex items-center gap-2 px-3 h-10">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder={prefilledHint || "Scrivi al leader…"}
+            disabled={loading}
+            className="flex-1 text-xs text-gray-800 placeholder-gray-300 bg-transparent outline-none disabled:opacity-50 font-sans"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || loading}
+            className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center disabled:opacity-30 hover:bg-gray-700 transition-colors flex-shrink-0"
+          >
+            <Send className="w-3 h-3 text-white" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -138,27 +161,6 @@ export default function LeaderChat({
         )}
 
         <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input row */}
-      <div className="flex-shrink-0 border-t border-gray-100 flex items-center gap-2 px-3 h-10">
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder={prefilledHint || "Scrivi al leader…"}
-          disabled={loading}
-          className="flex-1 text-xs text-gray-800 placeholder-gray-300 bg-transparent outline-none disabled:opacity-50 font-sans"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || loading}
-          className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center disabled:opacity-30 hover:bg-gray-700 transition-colors flex-shrink-0"
-        >
-          <Send className="w-3 h-3 text-white" />
-        </button>
       </div>
     </div>
   );

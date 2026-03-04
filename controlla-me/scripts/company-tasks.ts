@@ -9,10 +9,12 @@
  *   npx tsx scripts/company-tasks.ts claim <id> --agent <agent>
  *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "path1 path2"]
  *   npx tsx scripts/company-tasks.ts update <id> --status <status>
+ *   npx tsx scripts/company-tasks.ts exec <id> [--runbook <name>]
  */
 
 import * as dotenv from "dotenv";
 import * as path from "path";
+import * as fs from "fs";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -353,6 +355,130 @@ async function main() {
       break;
     }
 
+    case "exec": {
+      /**
+       * exec <task-id> [--runbook <name>]
+       *
+       * Stampa il "delegation brief" per un task: contesto del dipartimento (department.md),
+       * runbook pertinente, e istruzioni per il leader. CME usa questo output per passare
+       * dal ruolo di orchestratore al ruolo di leader del dipartimento, mantenendo il routing
+       * formale anche in assenza di API (task-runner non disponibile in ambiente demo).
+       *
+       * Questo comando permette a CME di rimanere ROUTER: decide routing, crea il task,
+       * poi DELEGA al leader del dipartimento (che è ancora CME, ma con il contesto esplicito
+       * del dipartimento). Ogni task ha accountability, runbook e owner chiaro.
+       */
+      const rawId = args[1];
+      const runbookName = getFlag("runbook");
+      if (!rawId) {
+        console.error("Usage: exec <task-id> [--runbook <name>]");
+        process.exit(1);
+      }
+      const id = await resolveId(rawId);
+      const task = await getTask(id);
+      if (!task) {
+        console.error(`Task ${rawId} non trovato.`);
+        process.exit(1);
+      }
+
+      const ROOT = path.resolve(__dirname, "..");
+      const dept = task.department;
+      const deptDir = path.join(ROOT, "company", dept);
+      const deptMdPath = path.join(deptDir, "department.md");
+      const runbooksDir = path.join(deptDir, "runbooks");
+      const agentsDir = path.join(deptDir, "agents");
+
+      // Leggi department.md
+      let deptContent = "";
+      if (fs.existsSync(deptMdPath)) {
+        deptContent = fs.readFileSync(deptMdPath, "utf-8");
+      } else {
+        deptContent = `[department.md non trovato per ${dept}]`;
+      }
+
+      // Lista runbooks disponibili
+      let runbooksList: string[] = [];
+      if (fs.existsSync(runbooksDir)) {
+        runbooksList = fs.readdirSync(runbooksDir).filter((f) => f.endsWith(".md"));
+      }
+
+      // Carica runbook specifico (flag) o auto-detect da titolo task
+      let runbookContent = "";
+      let runbookUsed = "";
+      if (runbookName) {
+        const rb = runbookName.endsWith(".md") ? runbookName : `${runbookName}.md`;
+        const rbPath = path.join(runbooksDir, rb);
+        if (fs.existsSync(rbPath)) {
+          runbookContent = fs.readFileSync(rbPath, "utf-8");
+          runbookUsed = rb;
+        } else {
+          runbookContent = `[Runbook "${rb}" non trovato]`;
+        }
+      } else if (runbooksList.length > 0) {
+        // Auto-detect: usa il primo runbook che matcha parole del titolo
+        const titleLower = (task.title ?? "").toLowerCase();
+        const autoMatch = runbooksList.find((rb) =>
+          titleLower.includes(rb.replace(".md", "").replace(/-/g, " ").split("-")[0])
+        );
+        const fallback = runbooksList[0];
+        const chosen = autoMatch ?? fallback;
+        runbookContent = fs.readFileSync(path.join(runbooksDir, chosen), "utf-8");
+        runbookUsed = chosen;
+      }
+
+      // Lista agenti del dipartimento
+      let agentCards: string[] = [];
+      if (fs.existsSync(agentsDir)) {
+        agentCards = fs.readdirSync(agentsDir).filter((f) => f.endsWith(".md")).map((f) => f.replace(".md", ""));
+      }
+
+      // Trova leader dal department.md (prima riga con "Leader" o "lead")
+      const leaderMatch = deptContent.match(/leader[:\s]+([^\n]+)/i);
+      const leaderName = leaderMatch ? leaderMatch[1].trim() : `${dept}-lead`;
+
+      // Stampa il delegation brief
+      console.log("\n" + "═".repeat(60));
+      console.log(`  DELEGAZIONE — ${dept.toUpperCase()}`);
+      console.log("═".repeat(60));
+      console.log(`\nTask #${task.seqNum ?? "?"}: ${task.title}`);
+      console.log(`Priorità: ${task.priority.toUpperCase()} | Status: ${task.status}`);
+      if (task.description) console.log(`\nDescrizione:\n${task.description}`);
+      console.log(`\nLeader: ${leaderName}`);
+      if (agentCards.length > 0) {
+        console.log(`Agenti disponibili: ${agentCards.join(", ")}`);
+      }
+      console.log("\n" + "─".repeat(60));
+      console.log("  CONTESTO DIPARTIMENTO (department.md)");
+      console.log("─".repeat(60));
+      // Stampa prime 80 righe del department.md (non tutto per brevità)
+      const deptLines = deptContent.split("\n");
+      const deptPreview = deptLines.slice(0, 80).join("\n");
+      console.log(deptPreview);
+      if (deptLines.length > 80) console.log(`\n[... ${deptLines.length - 80} righe omesse — leggi ${deptMdPath} per il testo completo]`);
+
+      if (runbookContent) {
+        console.log("\n" + "─".repeat(60));
+        console.log(`  RUNBOOK: ${runbookUsed}`);
+        console.log("─".repeat(60));
+        const rbLines = runbookContent.split("\n");
+        const rbPreview = rbLines.slice(0, 60).join("\n");
+        console.log(rbPreview);
+        if (rbLines.length > 60) console.log(`\n[... ${rbLines.length - 60} righe omesse]`);
+      }
+
+      if (runbooksList.length > 1) {
+        console.log(`\nAltri runbook disponibili: ${runbooksList.filter((r) => r !== runbookUsed).join(", ")}`);
+      }
+
+      console.log("\n" + "═".repeat(60));
+      console.log(`  → Tu sei il ${leaderName} del dipartimento ${dept}.`);
+      console.log(`    Esegui il task seguendo il runbook e le convenzioni del dipartimento.`);
+      console.log(`    Quando completato: npx tsx scripts/company-tasks.ts done ${task.id.slice(0, 8)} --summary "..."`);
+      console.log("═".repeat(60) + "\n");
+
+      break;
+    }
+
     case "update": {
       const rawId = args[1];
       const status = getFlag("status") as TaskStatus | undefined;
@@ -378,6 +504,7 @@ Commands:
   get <id|#N>                    Dettaglio task (mostra routing, tags, benefit, outcome, next)
   claim <id|#N> --agent <name>   Prendi in carico un task
   done <id|#N> [--summary "..."] [--data '{"k":"v"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "f1 f2"]
+  exec <id|#N> [--runbook <name>]  Delegation brief: contesto dept + runbook + istruzioni leader
   update <id|#N> --status <status>  Aggiorna stato
 
 Routing obbligatorio (--routing):

@@ -127,7 +127,7 @@ export default function LegalOfficeClient() {
   const [usage, setUsage]                     = useState<UsageInfo | null>(null);
   const [contextPrompt, setContextPrompt]     = useState("");
   const [phaseResults, setPhaseResults]       = useState<Record<string, unknown>>({});
-  const [tier, setTier]                       = useState<TierName>("partner");
+  const [tier, setTier]                       = useState<TierName>("intern");
   const [documentType, setDocumentType]       = useState<string | undefined>(undefined);
 
   // ── Layout state ─────────────────────────────────────────────────────────────
@@ -460,8 +460,8 @@ export default function LegalOfficeClient() {
 
         {/* ── LEFT PANEL ───────────────────────────────────────────────────── */}
         <aside
-          className={`flex-none border-r border-gray-100 flex flex-col overflow-hidden bg-gray-50/40 transition-[width] duration-300 ease-in-out ${
-            leftPanelTab === "corpus" ? "w-[480px]" : "w-72"
+          className={`border-r border-gray-100 flex flex-col overflow-hidden bg-gray-50/40 transition-all duration-300 ease-in-out ${
+            leftPanelTab === "corpus" ? "flex-1" : "flex-none w-72"
           }`}
         >
           {/* Tab switcher */}
@@ -543,7 +543,7 @@ export default function LegalOfficeClient() {
         </aside>
 
         {/* ── CENTER ────────────────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-hidden flex flex-col bg-[#F8F9FA]">
+        <main className={`flex-1 overflow-hidden flex flex-col bg-[#F8F9FA] ${leftPanelTab === "corpus" ? "hidden" : ""}`}>
 
           {/* Action bar */}
           <ActionBar
@@ -563,70 +563,60 @@ export default function LegalOfficeClient() {
             )}
           </AnimatePresence>
 
-          {/* Main scroll area */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          {/* Leader chat — componente principale, occupa la maggior parte dello spazio */}
+          <LeaderChat
+            messages={leaderMessages}
+            loading={leaderLoading}
+            prefilledHint={pendingAgentContext ? `Hai una domanda su questo agente?` : null}
+            onSend={sendToLeader}
+            className="flex-1 min-h-0"
+          />
 
-            {/* Upload view */}
+          {/* Content area — compatta, sotto la chat */}
+          <div
+            className={`flex-none h-56 overflow-y-auto border-t border-gray-200 transition-all duration-200 ${
+              dragOver ? "bg-indigo-50/30" : "bg-white"
+            }`}
+            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+
+            {/* Upload view — compatta */}
             {view === "upload" && (
-              <div
-                className={`h-full flex items-center justify-center p-8 transition-all duration-200 ${
-                  dragOver ? "bg-indigo-50/30" : ""
-                }`}
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-              >
-                <div className="text-center max-w-sm">
-                  <div
-                    className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-all ${
-                      dragOver ? "bg-indigo-100" : "bg-gray-100"
-                    }`}
-                  >
-                    {dragOver
-                      ? <FileText className="w-7 h-7 text-indigo-500" />
-                      : <Upload className="w-7 h-7 text-gray-400" />
-                    }
-                  </div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">
-                    {dragOver ? "Rilascia per avviare l'analisi" : "Trascina il documento qui"}
-                  </p>
-                  <p className="text-xs text-gray-400 mb-5">
-                    PDF · DOCX · TXT · max 20 MB
-                  </p>
-                  <button
-                    onClick={handleUploadClick}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Carica documento
-                  </button>
-
-                  {error && (
-                    <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
-                      {error}
-                    </div>
-                  )}
-
-                  {/* Trust signals */}
-                  <div className="flex items-center justify-center gap-4 mt-6">
-                    {[
-                      { icon: <Globe className="w-3 h-3" />, text: "6.100+ articoli" },
-                      { icon: <Scale className="w-3 h-3" />, text: "Parte debole tutelata" },
-                      { icon: <BookOpen className="w-3 h-3" />, text: "Corpus IT + EU" },
-                    ].map(item => (
-                      <div key={item.text} className="flex items-center gap-1 text-gray-400 text-[10px]">
-                        {item.icon}
-                        {item.text}
-                      </div>
-                    ))}
-                  </div>
+              <div className="flex items-center gap-4 px-6 py-4">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                    dragOver ? "bg-indigo-100" : "bg-gray-100"
+                  }`}
+                >
+                  {dragOver
+                    ? <FileText className="w-5 h-5 text-indigo-500" />
+                    : <Upload className="w-5 h-5 text-gray-400" />
+                  }
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-700">
+                    {dragOver ? "Rilascia per avviare l'analisi" : "Trascina il documento qui oppure"}
+                  </p>
+                  <p className="text-[10px] text-gray-400">PDF · DOCX · TXT · max 20 MB</p>
+                  {error && (
+                    <p className="text-[10px] text-red-500 mt-1">{error}</p>
+                  )}
+                </div>
+                <button
+                  onClick={handleUploadClick}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Carica
+                </button>
               </div>
             )}
 
-            {/* Analyzing / Results */}
+            {/* Analyzing / Results — scrollabile nella zona compatta */}
             {showWorkspace && (
-              <div className="max-w-2xl mx-auto px-6 py-6 space-y-4">
+              <div className="px-4 py-3 space-y-3">
                 {AGENT_ORDER.map((agentId, i) => {
                   const status    = getAgentStatus(agentId, currentPhase, completedPhases);
                   const agentData = (phaseResults[agentId] as Record<string, unknown> | null) ?? null;
@@ -652,13 +642,13 @@ export default function LegalOfficeClient() {
                   )}
                 </AnimatePresence>
 
-                <div className="h-4" />
+                <div className="h-2" />
               </div>
             )}
 
             {/* Paywall */}
             {view === "paywall" && usage && (
-              <div className="h-full flex items-center justify-center p-8">
+              <div className="flex items-center justify-center p-6">
                 <PaywallBanner
                   analysesUsed={usage.analysesUsed}
                   analysesLimit={usage.analysesLimit}
@@ -667,14 +657,6 @@ export default function LegalOfficeClient() {
               </div>
             )}
           </div>
-
-          {/* Leader chat — fixed bottom strip */}
-          <LeaderChat
-            messages={leaderMessages}
-            loading={leaderLoading}
-            prefilledHint={pendingAgentContext ? `Hai una domanda su questo agente?` : null}
-            onSend={sendToLeader}
-          />
         </main>
       </div>
     </div>

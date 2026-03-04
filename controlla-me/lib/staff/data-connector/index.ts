@@ -324,7 +324,7 @@ export async function updateSource(
 
 // ─── Status ───
 
-export { getAllSources, getSourceById } from "./registry";
+export { getAllSources, getAllSourcesAllVerticals, getSourceById } from "./registry";
 export {
   getLastSuccessfulSync,
   getSyncHistory,

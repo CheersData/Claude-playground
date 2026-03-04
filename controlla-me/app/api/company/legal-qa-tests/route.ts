@@ -10,11 +10,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { spawnSync } from "child_process";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { sessionTierStore, type TierName } from "@/lib/tiers";
 import { askCorpusAgent } from "@/lib/agents/corpus-agent";
-import { generate } from "@/lib/ai-sdk/generate";
 import { parseAgentJSON } from "@/lib/anthropic";
 
 export const dynamic = "force-dynamic";
@@ -258,28 +258,49 @@ CRITERI SPECIFICI:
 Valuta la risposta dell'agente rispetto alla risposta attesa.`;
 
     try {
-      const opusResult = await generate("claude-opus-4.5", opusUserPrompt, {
-        systemPrompt: opusSystemPrompt,
-        maxTokens: 512,
-        temperature: 0,
-        agentName: "STRESS-SCORER",
-      });
+      // Usa Claude Opus via CLI — il CLI usa crediti Anthropic ma non richiede SDK diretto.
+      // In ambiente demo fallisce con "Credit balance is too low" → evaluation rimane null.
+      // In ambiente con crediti: restituisce valutazione completa da claude-opus-4-5.
+      const fullPrompt = `${opusSystemPrompt}\n\n${opusUserPrompt}`;
+      const cliResult = spawnSync(
+        "claude",
+        ["-p", fullPrompt, "--model", "claude-opus-4-5"],
+        { encoding: "utf-8", timeout: 30_000 }
+      );
 
-      const parsed = parseAgentJSON(opusResult.text) as Partial<OpusEvaluation>;
+      const rawText = (cliResult.stdout ?? "").trim();
 
-      evaluation = {
-        prep: Math.min(30, Math.max(0, Math.round(parsed.prep ?? 0))),
-        search: Math.min(30, Math.max(0, Math.round(parsed.search ?? 0))),
-        quality: Math.min(40, Math.max(0, Math.round(parsed.quality ?? 0))),
-        total: 0, // calcolato sotto
-        verdict: "FAIL",
-        reasoning: parsed.reasoning ?? "Valutazione non disponibile.",
-      };
-      evaluation.total = evaluation.prep + evaluation.search + evaluation.quality;
-      evaluation.verdict =
-        evaluation.total >= 80 ? "PASS" : evaluation.total >= 60 ? "BORDERLINE" : "FAIL";
+      if (cliResult.status !== 0 || !rawText) {
+        const errMsg = (cliResult.stderr ?? "").slice(0, 200);
+        console.warn("[STRESS-SCORER] CLI Opus non disponibile:", errMsg);
+        // evaluation rimane null — la UI mostrerà il fallback
+      } else {
+        const parsed = parseAgentJSON(rawText) as Partial<OpusEvaluation>;
+
+        // Validazione esplicita di ogni campo — Gemini/Opus talvolta omette campi
+        const prep    = Number.isFinite(Number(parsed.prep))    ? Math.min(30, Math.max(0, Math.round(Number(parsed.prep))))    : null;
+        const search  = Number.isFinite(Number(parsed.search))  ? Math.min(30, Math.max(0, Math.round(Number(parsed.search))))  : null;
+        const quality = Number.isFinite(Number(parsed.quality)) ? Math.min(40, Math.max(0, Math.round(Number(parsed.quality)))) : null;
+
+        if (prep === null || search === null || quality === null) {
+          // JSON parziale — logga i campi mancanti e lascia evaluation null
+          console.warn("[STRESS-SCORER] JSON parziale ricevuto:", { prep, search, quality, rawText: rawText.slice(0, 200) });
+        } else {
+          const total = prep + search + quality;
+          evaluation = {
+            prep,
+            search,
+            quality,
+            total,
+            verdict: total >= 80 ? "PASS" : total >= 60 ? "BORDERLINE" : "FAIL",
+            reasoning: typeof parsed.reasoning === "string" && parsed.reasoning.trim()
+              ? parsed.reasoning.trim()
+              : "Nessuna spiegazione fornita dal modello.",
+          };
+        }
+      }
     } catch (err) {
-      console.error("[STRESS-SCORER] Errore Opus:", err instanceof Error ? err.message : err);
+      console.error("[STRESS-SCORER] Errore valutatore:", err instanceof Error ? err.message : err);
       // evaluation rimane null — la UI gestirà il fallback
     }
 

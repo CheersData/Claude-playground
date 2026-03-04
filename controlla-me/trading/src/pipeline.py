@@ -59,7 +59,7 @@ async def run_daily_pipeline() -> dict:
 
     try:
         # Phase 1: Market Scanner
-        scanner = MarketScanner()
+        scanner = MarketScanner(account_type="conventional")
         scan_result = await scanner.run()
         results["scan"] = {
             "candidates": scan_result.get("candidates_found", 0),
@@ -71,7 +71,7 @@ async def run_daily_pipeline() -> dict:
         # Phases 2-4: Only run if we have watchlist candidates
         if watchlist:
             # Phase 2: Signal Generator
-            signal_gen = SignalGenerator()
+            signal_gen = SignalGenerator(account_type="conventional")
             signal_result = await signal_gen.run(watchlist=watchlist)
             results["signals"] = {
                 "generated": signal_result.get("signals_generated", 0),
@@ -82,7 +82,7 @@ async def run_daily_pipeline() -> dict:
 
             if signals:
                 # Phase 3: Risk Manager
-                risk_mgr = RiskManager()
+                risk_mgr = RiskManager(account_type="conventional")
                 risk_result = await risk_mgr.run(signals=signals)
 
                 if risk_result.get("kill_switch"):
@@ -100,7 +100,7 @@ async def run_daily_pipeline() -> dict:
 
                 # Phase 4: Executor
                 if approved:
-                    executor = Executor()
+                    executor = Executor(account_type="conventional")
                     exec_result = await executor.run(decisions=approved)
                     results["execution"] = {
                         "executed": exec_result.get("total_executed", 0),
@@ -114,7 +114,7 @@ async def run_daily_pipeline() -> dict:
             results["scan"]["status"] = "no_candidates"
 
         # Phase 4.5: Update Trailing Stops (ALWAYS runs — existing positions need management)
-        monitor = PortfolioMonitor()
+        monitor = PortfolioMonitor(account_type="conventional")
         trail_result = await monitor.run(mode="trailing_stops")
         results["trailing_stops"] = {
             "stops_raised": trail_result.get("stops_raised", 0),
@@ -192,7 +192,7 @@ async def run_intraday_pipeline() -> dict:
 
             logger.info("pending_retries_found", count=len(pending), symbols=[d.get("symbol") for d in valid_decisions])
             if valid_decisions:
-                executor = Executor()
+                executor = Executor(account_type="slope")
                 retry_result = await executor.run(decisions=valid_decisions)
             else:
                 retry_result = {"total_executed": 0}
@@ -209,7 +209,7 @@ async def run_intraday_pipeline() -> dict:
         # Runs on configured symbols (default: SPY, AAPL, NVDA, TSLA) — see TRADING_SLOPE_SYMBOLS
         # Conventional Signal Generator (RSI/MACD/BB) runs only in daily pipeline (daily bars).
         if get_settings().slope_volume.enabled:
-            signal_gen = SignalGenerator()
+            signal_gen = SignalGenerator(account_type="slope")
             slope_result = await asyncio.to_thread(signal_gen.run_slope_volume)
             slope_signals = slope_result.get("signals", [])
             results["slope_volume"] = {
@@ -229,7 +229,7 @@ async def run_intraday_pipeline() -> dict:
         # Phases 3-4: Risk Manager + Executor
         if signals:
             # Phase 3: Risk Manager
-            risk_mgr = RiskManager()
+            risk_mgr = RiskManager(account_type="slope")
             risk_result = await risk_mgr.run(signals=signals)
 
             if risk_result.get("kill_switch"):
@@ -252,7 +252,7 @@ async def run_intraday_pipeline() -> dict:
 
             # Phase 4: Executor
             if approved:
-                executor = Executor()
+                executor = Executor(account_type="slope")
                 exec_result = await executor.run(decisions=approved)
                 executed_orders = exec_result.get("orders", [])
                 if executed_orders:
@@ -267,7 +267,7 @@ async def run_intraday_pipeline() -> dict:
             results.setdefault("slope_volume", {})["status"] = "no_signals"
 
         # Phase 4.5: Update Trailing Stops (ALWAYS runs — existing positions need management)
-        monitor = PortfolioMonitor()
+        monitor = PortfolioMonitor(account_type="slope")
         trail_result = await monitor.run(mode="trailing_stops")
         results["trailing_stops"] = {
             "stops_raised": trail_result.get("stops_raised", 0),
@@ -287,6 +287,103 @@ async def run_intraday_pipeline() -> dict:
         results["status"] = "error"
         results["error"] = str(e)
         logger.error("intraday_pipeline_error", error=str(e))
+
+    return results
+
+
+async def run_crypto_pipeline() -> dict:
+    """
+    Crypto slope pipeline — BTC/ETH, 24/7 including weekends.
+
+    Dedicated crypto account (ALPACA_CRYPTO_API_KEY).
+    No market hours restriction — crypto trades on weekends too.
+    Uses slope+volume strategy on crypto pairs only.
+    Kill switch is independent from equity slope account.
+
+    Symbols: btcusd, ethusd (Tiingo format) → submitted as BTC/USD, ETH/USD to Alpaca crypto endpoint.
+    """
+    settings = get_settings()
+    start = datetime.utcnow()
+
+    if not settings.enabled:
+        logger.warning("crypto_pipeline_disabled", reason="TRADING_ENABLED=false")
+        return {"status": "disabled"}
+
+    if not settings.alpaca_crypto.is_configured:
+        logger.warning(
+            "crypto_pipeline_skipped",
+            reason="ALPACA_CRYPTO_API_KEY not configured — create crypto paper account and set env vars",
+        )
+        return {"status": "not_configured", "hint": "Set ALPACA_CRYPTO_API_KEY + ALPACA_CRYPTO_SECRET_KEY in .env.local"}
+
+    if not settings.slope_volume.crypto_enabled:
+        logger.info("crypto_pipeline_disabled", reason="TRADING_SLOPE_CRYPTO_ENABLED=false")
+        return {"status": "disabled"}
+
+    logger.info("crypto_pipeline_start", mode=settings.mode, symbols=settings.slope_volume.crypto_symbols)
+    results: dict = {
+        "started_at": start.isoformat(),
+        "mode": settings.mode,
+        "type": "crypto",
+    }
+
+    try:
+        # Phase 2.5: Slope+Volume on crypto symbols only (no market hours check)
+        signal_gen = SignalGenerator(account_type="crypto")
+        slope_result = await asyncio.to_thread(signal_gen.run_slope_volume, crypto_only=True)
+        slope_signals = slope_result.get("signals", [])
+        results["slope_volume"] = {
+            "generated": slope_result.get("signals_generated", 0),
+            "symbols_scanned": slope_result.get("symbols_scanned", 0),
+            "status": "error" if "error" in slope_result else "ok",
+        }
+
+        if slope_signals:
+            # Phase 3: Risk Manager (crypto account)
+            risk_mgr = RiskManager(account_type="crypto")
+            risk_result = await risk_mgr.run(signals=slope_signals)
+
+            if risk_result.get("kill_switch"):
+                ks_msg = risk_result.get("message", "Crypto kill switch triggered")
+                tg.notify_kill_switch(f"[CRYPTO] {ks_msg}", mode=settings.mode)
+                results["risk"] = {"status": "kill_switch", "message": ks_msg}
+                results["status"] = "kill_switch"
+                return results
+
+            decisions = risk_result.get("decisions", [])
+            approved = [d for d in decisions if d.get("status") == "APPROVED"]
+            results["risk"] = {"total": len(decisions), "approved": len(approved), "status": "ok"}
+
+            # Phase 4: Executor (crypto account)
+            if approved:
+                executor = Executor(account_type="crypto")
+                exec_result = await executor.run(decisions=approved)
+                executed_orders = exec_result.get("orders", [])
+                if executed_orders:
+                    tg.notify_trades(executed_orders, mode=settings.mode)
+                results["execution"] = {
+                    "executed": exec_result.get("total_executed", 0),
+                    "status": "ok",
+                }
+            else:
+                results["execution"] = {"executed": 0, "status": "no_approved_orders"}
+
+        # Phase 4.5: Trailing stops on crypto positions
+        monitor = PortfolioMonitor(account_type="crypto")
+        trail_result = await monitor.run(mode="trailing_stops")
+        results["trailing_stops"] = {
+            "stops_raised": trail_result.get("stops_raised", 0),
+            "status": "ok",
+        }
+
+        results["status"] = "ok"
+        duration_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        logger.info("crypto_pipeline_complete", duration_ms=duration_ms, **results.get("slope_volume", {}))
+
+    except Exception as e:
+        results["status"] = "error"
+        results["error"] = str(e)
+        logger.error("crypto_pipeline_error", error=str(e))
 
     return results
 

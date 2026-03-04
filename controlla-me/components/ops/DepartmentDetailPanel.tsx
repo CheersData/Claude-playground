@@ -27,6 +27,7 @@ import type { Department, Task, TaskPriority } from "@/lib/company/types";
 import type { DepartmentMeta } from "@/lib/company/departments";
 import type { DepartmentAnalysis } from "@/lib/company/department-analyses";
 import { TradingDashboard } from "@/components/ops/TradingDashboard";
+import { TradingSlopePanel } from "@/components/ops/TradingSlopePanel";
 import { QALegalPanel } from "@/components/ops/QALegalPanel";
 import { QASuitePanel } from "@/components/ops/QASuitePanel";
 import { QAReportPanel } from "@/components/ops/QAReportPanel";
@@ -42,7 +43,7 @@ interface DeptPanelData {
   analysis: DepartmentAnalysis | null;
 }
 
-type Section = "overview" | "tasks" | "done" | "create" | "live" | "qa" | "suite" | "qareport" | "qatest";
+type Section = "overview" | "tasks" | "done" | "create" | "live" | "slope" | "qa" | "suite" | "qareport" | "qatest";
 
 interface DepartmentDetailPanelProps {
   department: Department;
@@ -290,6 +291,7 @@ export function DepartmentDetailPanel({
     { key: "done",     label: "Completati", count: doneTasks.length },
     { key: "create",   label: "+ Nuovo" },
     ...(department === "trading" ? [{ key: "live" as Section, label: <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" />Live</span> }] : []),
+    ...(department === "trading" ? [{ key: "slope" as Section, label: <span className="flex items-center gap-1"><BarChart2 className="w-3.5 h-3.5" />Slope</span> }] : []),
     ...(department === "ufficio-legale" ? [{ key: "qa" as Section, label: <span className="flex items-center gap-1"><ClipboardList className="w-3.5 h-3.5" />QA Report</span> }] : []),
     ...(department === "ufficio-legale" ? [{ key: "qatest" as Section, label: <span className="flex items-center gap-1"><Cpu className="w-3.5 h-3.5" />Q&amp;A Test</span> }] : []),
     ...(department === "quality-assurance" ? [{ key: "suite" as Section, label: <span className="flex items-center gap-1"><FlaskConical className="w-3.5 h-3.5" />Suite</span> }] : []),
@@ -708,6 +710,17 @@ export function DepartmentDetailPanel({
                 transition={{ duration: 0.12 }}
               >
                 <TradingDashboard />
+              </motion.div>
+            )}
+            {activeSection === "slope" && department === "trading" && (
+              <motion.div
+                key="slope"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.12 }}
+              >
+                <TradingSlopePanel />
               </motion.div>
             )}
             {activeSection === "qa" && department === "ufficio-legale" && (

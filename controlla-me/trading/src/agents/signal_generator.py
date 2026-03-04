@@ -23,9 +23,9 @@ from .base import BaseAgent
 class SignalGenerator(BaseAgent):
     """Generates trading signals from technical analysis."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__(name="signal_generator")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         self._db = TradingDB()
         cfg = get_settings()
         # Use Tiingo IEX (real-time) for market data when configured.

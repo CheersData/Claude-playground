@@ -22,6 +22,7 @@ import { getOpenTasks, getTaskBoard } from "../lib/company/tasks";
 import { upsertDepartmentAnalysis } from "../lib/company/department-analyses";
 import type { Task, Department } from "../lib/company/types";
 import { ensureDailyControls, checkIdleAndPlan } from "./daily-controls";
+import { saveStateOfCompany } from "./lib/state-of-company";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -423,6 +424,15 @@ async function cmdGenerate(): Promise<void> {
     await generateDepartmentAnalyses(deptPlans, date);
   } catch (err) {
     console.warn("⚠️  Department analyses: errore (non bloccante):", (err as Error).message);
+  }
+
+  // ── 5. Genera State of Company giornaliero ──
+  try {
+    const socPath = await saveStateOfCompany(date);
+    const shortPath = socPath.replace(process.cwd(), "").replace(/\\/g, "/").replace(/^\//, "");
+    console.log(`📊 State of Company salvato in: ${shortPath}\n`);
+  } catch (err) {
+    console.warn("⚠️  State of Company: errore (non bloccante):", (err as Error).message);
   }
 }
 

@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       try {
         const result = await generate(modelKey, prompt, {
           systemPrompt: LEGALOFFICE_LEADER_SYSTEM,
-          maxTokens: 400,
+          maxTokens: 800,
           temperature: 0.4,
           jsonOutput: false,
           agentName: "LEGALOFFICE-LEADER",

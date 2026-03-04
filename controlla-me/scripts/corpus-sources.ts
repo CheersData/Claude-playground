@@ -282,15 +282,18 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       normattivaSearchTerms: ["legge 431 1998", "locazioni abitative", "canone concordato"],
       normattivaActType: "legge",
       preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "098G0483", // da API: 098G0483 | LEGGE 1998/431
+      normattivaDataGU: "19981215",  // GU n.292 del 15 dicembre 1998
     },
-    lifecycle: "planned", // Necessario: TC33, TC40, TC43, TC58, TC65 — locazioni 4+4, canone concordato, recesso anticipato
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 16 art. via directAkn — TC33, TC40, TC43, TC58, TC65
   },
   {
     id: "dlgs_28_2010",
     name: "Mediazione civile e commerciale",
     shortName: "D.Lgs. 28/2010",
     type: "normattiva",
-    description: "D.Lgs. 4 marzo 2010, n. 28 — Attuazione dell'articolo 60 della legge 18 giugno 2009, n. 69, in materia di mediazione finalizzata alla conciliazione delle controversie civili e commerciali",
+    description: "D.Lgs. 4 marzo 2010, n. 28 — Mediazione finalizzata alla conciliazione delle controversie civili e commerciali",
     urn: "urn:nir:stato:decreto.legislativo:2010-03-04;28",
     baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28",
     hierarchyLevels: [
@@ -301,8 +304,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       normattivaSearchTerms: ["mediazione civile", "decreto legislativo 28 2010", "mediazione obbligatoria"],
       normattivaActType: "decreto.legislativo",
       preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "010G0050", // da API: 010G0050 | DECRETO LEGISLATIVO 2010/28
+      normattivaDataGU: "20100305",  // GU n.53 del 5 marzo 2010
     },
-    lifecycle: "planned", // Necessario: TC26 — mediazione obbligatoria pre-contenzioso
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 44 art. via directAkn — TC26
   },
   {
     id: "tub_dlgs_385_1993",
@@ -322,8 +328,11 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       normattivaSearchTerms: ["testo unico bancario", "decreto legislativo 385 1993", "TUB"],
       normattivaActType: "decreto.legislativo",
       preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "093G0428", // da API: 093G0428 | DECRETO LEGISLATIVO 1993/385
+      normattivaDataGU: "19930930",  // GU n.230 del 30 settembre 1993
     },
-    lifecycle: "planned", // Necessario: contratti bancari, mutui, TAEG, anatocismo (TC34, TC51, TC66)
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 386 art. via directAkn — TC34, TC51, TC66
   },
   {
     id: "dlgs_23_2015",
@@ -471,7 +480,7 @@ export const EURLEX_SOURCES: CorpusSource[] = [
     hierarchyLevels: [],
     estimatedArticles: 17,
     connector: { preferredFormat: "html" },
-    lifecycle: "planned", // Necessario: TC37 — diritti passeggeri, compensazione ritardi/cancellazioni
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 19 art. via EUR-Lex HTML — TC37
   },
   {
     id: "nis2",

@@ -1,0 +1,404 @@
+{
+  "_meta": {
+    "dept": "marketing",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-03T14:00:00.000Z",
+    "updated_by": "growth-hacker"
+  },
+  "health": "ok",
+  "summary": "SEO a zero, nessun utente reale, nessun contenuto pubblicato — ma il mercato è pronto. La finestra nel quadrante Consumer Italia è ancora aperta: Lexroom (€16M) resta B2B, Lawhive ($60M) non ha ancora attraversato il Mediterraneo. Q2 2026 è la finestra per costruire autorità di dominio prima che la competizione si accorga del segmento consumer IT. OKR Q2: ≥4 articoli SEO pubblicati, ≥1 utente Pro pagante, ≥20 analisi reali. Il content calendar è pianificato su 8 settimane (marzo-aprile), il keyword research è strutturato in 5 cluster, gli esperimenti di crescita sono definiti e pronti all'esecuzione.",
+  "keyword_research": {
+    "primary_clusters": [
+      {
+        "cluster": "Clausole Vessatorie",
+        "intent": "informational",
+        "volume_monthly": "4.200 (aggregato cluster)",
+        "difficulty": "low",
+        "keywords": [
+          "clausole vessatorie contratto",
+          "clausole vessatorie affitto",
+          "clausole vessatorie cosa sono",
+          "clausole vessatorie consumatori",
+          "clausole abusive contratto lavoro",
+          "clausole nulle contratto",
+          "come riconoscere clausole illegali contratto"
+        ]
+      },
+      {
+        "cluster": "Contratti di Affitto",
+        "intent": "informational",
+        "volume_monthly": "5.800 (aggregato cluster)",
+        "difficulty": "low",
+        "keywords": [
+          "contratto affitto illegale",
+          "contratto affitto clausole vietate",
+          "verificare contratto affitto",
+          "contratto affitto 4+4 diritti inquilino",
+          "caparra affitto legge",
+          "disdetta contratto affitto proprietario illegale",
+          "contratto affitto in nero rischi",
+          "aumentare affitto in corso di contratto legale"
+        ]
+      },
+      {
+        "cluster": "Contratti di Lavoro",
+        "intent": "informational",
+        "volume_monthly": "10.100 (aggregato cluster)",
+        "difficulty": "medium",
+        "keywords": [
+          "contratto di lavoro illegale",
+          "diritti lavoratori contratto",
+          "clausole illegali contratto lavoro",
+          "contratto lavoro tempo determinato rinnovo",
+          "patto di non concorrenza illegale",
+          "periodo di prova contratto quanto dura",
+          "contratto lavoro part time clausole",
+          "licenziamento illegittimo segnali"
+        ]
+      },
+      {
+        "cluster": "Analisi Contratti con AI",
+        "intent": "transactional",
+        "volume_monthly": "480 (aggregato cluster — emergente, in forte crescita)",
+        "difficulty": "low",
+        "keywords": [
+          "analisi contratto AI",
+          "verificare contratto online",
+          "controllo contratto online",
+          "contratto sicuro AI",
+          "leggere contratto intelligenza artificiale",
+          "strumenti analisi contratti italiani"
+        ]
+      },
+      {
+        "cluster": "EU AI Act e Contratti",
+        "intent": "informational",
+        "volume_monthly": "1.200 (aggregato cluster — crescita accelerata pre-agosto 2026)",
+        "difficulty": "low",
+        "keywords": [
+          "EU AI Act obblighi aziende",
+          "AI Act contratti",
+          "intelligenza artificiale avvocati rischi",
+          "contratto scritto con AI rischi legali",
+          "GDPR contratti AI",
+          "clausole AI nei contratti SaaS"
+        ]
+      }
+    ],
+    "quick_wins": [
+      "verificare contratto affitto — intento transazionale diretto, difficoltà bassa, zero competitor AI sul termine italiano",
+      "clausole vessatorie affitto — 1.800/mese, articolo informazionale semplice da produrre con corpus disponibile",
+      "contratto affitto 4+4 diritti inquilino — keyword navigazionale con alto intento di lettura, corpus L. 431/1998 disponibile",
+      "caparra confirmatoria o penitenziale differenza — 1.400/mese, FAQ breve ad alto click-through",
+      "contratto di lavoro illegale cosa fare — 2.300/mese, pillar article con CTA upload contratto"
+    ],
+    "long_tail_opportunities": [
+      "contratto affitto cosa non può scrivere il proprietario — long tail a bassa competizione, intento reattivo post-firma",
+      "posso rifiutarmi di firmare clausola contratto — domanda colloquiale ad alta conversione (utente ha già il problema)",
+      "clausola di riservatezza eccessiva contratto lavoro cosa fare — long tail verticale HR, zero competitor",
+      "clausola penale contratto affitto quanto può essere — FAQ ad alta intento commerciale latente",
+      "contratto di fornitura SaaS clausole da evitare PMI — opportunità B2B latente, volume basso ma CAC nullo",
+      "AI ha scritto il mio contratto è valido — segnale emergente da Legge 132/2025, volume crescente",
+      "caparra affitto massimo legale quanto — ricerca pre-firma con intento di verifica immediata",
+      "contratto lavoro part time clausola esclusiva legale — nicchia con zero contenuto specifico in italiano"
+    ]
+  },
+  "content_calendar": {
+    "march_2026": [
+      {
+        "week": 1,
+        "title": "Contratto di lavoro: 7 clausole illegali che il tuo datore non vuole che tu sappia",
+        "type": "pillar",
+        "target_keyword": "clausole illegali contratto lavoro",
+        "volume_target": "2.300/mese (aggregato cluster contratto lavoro illegale)",
+        "cta": "Hai un contratto di lavoro? Caricalo ora — Leo, Marta, Giulia ed Enzo lo analizzano in 90 secondi. Gratis.",
+        "notes": "Articolo lungo (1.800-2.200 parole). Struttura: intro empatica (chi non ha firmato senza leggere?), 7 clausole con esempi reali, box 'Cosa dice la legge' per ogni clausola (cita D.Lgs. 81/2008, Codice Civile), CTA finale con upload. Corpus disponibile: Codice Civile, Codice del Consumo. Gap: Statuto Lavoratori non ancora nel corpus — usare riferimenti al Codice Civile e alla giurisprudenza citata da Giulia.",
+        "status": "planned"
+      },
+      {
+        "week": 1,
+        "title": "Social: LinkedIn carousel '5 clausole che nessuno legge (e che costano caro)'",
+        "type": "social",
+        "target_keyword": "clausole illegali contratto",
+        "cta": "Link in bio → controlla.me — carica il tuo contratto",
+        "notes": "5 slide: slide 1 hook ('Hai firmato questo?'), slide 2-5 una clausola per slide con scenario reale, slide 5 CTA. Tono: colloquiale, niente legalese.",
+        "status": "planned"
+      },
+      {
+        "week": 2,
+        "title": "Caparra confirmatoria o penitenziale: qual è la differenza e quando puoi perderla",
+        "type": "faq",
+        "target_keyword": "caparra confirmatoria cosa significa",
+        "volume_target": "1.400/mese",
+        "cta": "Hai un contratto con clausola caparra? Scopri subito se è conforme alla legge — analisi gratuita in 90 secondi.",
+        "notes": "Articolo medio (900-1.200 parole). Risponde alle domande frequenti su Legge per Tutti e forum affitti. Corpus: Art. 1385-1386 Codice Civile disponibile. Struttura: differenza caparra/acconto, tabella comparativa, quando si perde, quando si restituisce il doppio, CTA upload contratto affitto.",
+        "status": "planned"
+      },
+      {
+        "week": 3,
+        "title": "Contratto di affitto: tutto quello che il proprietario non può farti firmare",
+        "type": "pillar",
+        "target_keyword": "contratto affitto clausole vietate",
+        "volume_target": "5.800/mese (aggregato cluster affitti)",
+        "cta": "Hai già firmato il contratto? Caricalo — controlliamo noi se ci sono clausole vietate. Gratis per i primi 3 contratti.",
+        "notes": "Articolo lungo (2.000-2.500 parole). Il pillar sul verticale affitti. Struttura: intro scenario realismo (Milano, Roma, Napoli — mercati più abusivi), lista clausole vietate per legge (L. 431/1998, Codice Civile), cosa succede se le firmi, come contestarle. SEO: puntare su 'contratto affitto illegale' + 'clausole vietate affitto'. Corpus disponibile: L. 431/1998, Codice Civile, Codice del Consumo.",
+        "status": "planned"
+      },
+      {
+        "week": 3,
+        "title": "Social: Instagram story '3 clausole di affitto che potrebbero essere illegali'",
+        "type": "social",
+        "target_keyword": "clausole affitto illegali",
+        "cta": "Swipe up → controlla il tuo contratto",
+        "notes": "3 story: una clausola per story. Formato: testo + emoji (eccezionalmente — richiesto dal formato social). Tono: diretto, urgente senza allarmismo.",
+        "status": "planned"
+      },
+      {
+        "week": 4,
+        "title": "Patto di non concorrenza nel contratto di lavoro: quando è legale e quando no",
+        "type": "faq",
+        "target_keyword": "patto di non concorrenza illegale",
+        "volume_target": "800/mese + long tail",
+        "cta": "Hai un patto di non concorrenza nel tuo contratto? Caricalo — i nostri agenti verificano se è entro i limiti di legge.",
+        "notes": "Articolo medio (1.000-1.300 parole). Alta intento: chi cerca questo termine sta firmando o ha già firmato. Corpus: Art. 2125 Codice Civile. Struttura: requisiti legali (durata massima, compenso, area geografica), esempi di patto illegale, cosa fare se stai firmando, cosa fare dopo.",
+        "status": "planned"
+      }
+    ],
+    "april_2026": [
+      {
+        "week": 1,
+        "title": "Il tuo contratto è stato scritto da un'AI: cosa dice la legge (e cosa rischi)",
+        "type": "pillar",
+        "target_keyword": "contratto scritto con AI rischi legali",
+        "volume_target": "600/mese — in crescita forte. Keyword emergente post Legge 132/2025",
+        "cta": "Hai ricevuto un contratto? Verificalo con Controlla.me — non generiamo contratti, li analizziamo. La differenza è importante.",
+        "notes": "Articolo di posizionamento differenziante. Struttura: cosa dice la Legge 132/2025 (avvocati devono dichiarare uso AI), rischi dei contratti AI-generati (clausole non conformi al diritto italiano, mancanza di personalizzazione), come verificare un contratto AI, CTA con messaging 'Non ti scriviamo il contratto. Ti diciamo se quello che hai firmato è giusto.' Corpus: Legge 132/2025, GDPR, AI Act.",
+        "status": "planned"
+      },
+      {
+        "week": 1,
+        "title": "Social: LinkedIn post 'Il tuo avvocato ha usato ChatGPT per scrivere il tuo contratto?'",
+        "type": "social",
+        "target_keyword": "avvocati AI contratti",
+        "cta": "Commenta o DM — link all'articolo in primo commento",
+        "notes": "Post provocatorio ma fondato sulla Legge 132/2025. Tono: informativo, non allarmista. Misura engagement per validare interesse del segmento professionale.",
+        "status": "planned"
+      },
+      {
+        "week": 2,
+        "title": "EU AI Act e contratti: cosa cambierà da agosto 2026 per consumatori e PMI",
+        "type": "pillar",
+        "target_keyword": "EU AI Act obblighi aziende contratti",
+        "volume_target": "1.200/mese — picco previsto maggio-luglio 2026 pre-deadline agosto",
+        "cta": "Hai un contratto con un'azienda che usa AI? Scopri se rispetta l'AI Act — analisi gratuita su Controlla.me.",
+        "notes": "Articolo lungo (2.000 parole). Opportunity: siamo posizionati come compliant (audit log EU AI Act). Struttura: cos'è l'AI Act in parole semplici, obblighi per aziende che usano AI, cosa deve contenere un contratto conforme, come verificare, CTA analisi. Differenziarsi: 'Controlla.me è già conforme all'AI Act — audit log strutturato, trasparenza AI, supervisione umana.'",
+        "status": "planned"
+      },
+      {
+        "week": 3,
+        "title": "Diritto di recesso: quanto tempo hai per restituire il prodotto (e quando non puoi)",
+        "type": "faq",
+        "target_keyword": "diritto di recesso consumatore tempistiche",
+        "volume_target": "950/mese",
+        "cta": "Hai firmato un contratto di acquisto e vuoi sapere se puoi recedere? Caricalo — risposta in 90 secondi.",
+        "notes": "FAQ che copre un bisogno informativo reattivo (consumer ha già comprato). Corpus: Codice del Consumo, D.Lgs. 206/2005 disponibile. Struttura: tabella tempi per tipo di contratto, eccezioni, come esercitare il recesso, cosa fare se il venditore si rifiuta.",
+        "status": "planned"
+      },
+      {
+        "week": 3,
+        "title": "Social: Carousel Instagram '4 domande da farti prima di firmare qualsiasi contratto'",
+        "type": "social",
+        "target_keyword": "contratto sicuro cosa controllare",
+        "cta": "Link in bio per analisi gratuita",
+        "notes": "Contenuto educativo pre-firma. Posizionamento preventivo, non solo reattivo. Target: 25-35 anni, prime esperienze di affitto o lavoro.",
+        "status": "planned"
+      },
+      {
+        "week": 4,
+        "title": "Contratti per PMI: le 5 clausole più pericolose nei contratti di fornitura",
+        "type": "pillar",
+        "target_keyword": "clausole pericolose contratti commerciali PMI",
+        "volume_target": "400/mese — low volume ma high-intent B2B, CAC nullo via SEO",
+        "cta": "Sei una PMI? Carica il tuo contratto di fornitura — piano Pro a €4.99/mese, finanziabile con i bandi digitalizzazione 2026.",
+        "notes": "Primo contenuto B2B/PMI. Struttura: clausola di limitazione della responsabilità, penali eccessive, clausole di esclusiva, tempi di pagamento, riserva di proprietà. CTA dedicata con mention voucher digitalizzazione 2026 (€2B disponibili). Tono: professionale ma senza legalese. Misura CTR su CTA Pro vs Free per validare interesse B2B.",
+        "status": "planned"
+      }
+    ]
+  },
+  "growth_analysis": {
+    "current_metrics": {
+      "organic_sessions": 0,
+      "signups": 0,
+      "pro_users": 0,
+      "analyses_run": 0
+    },
+    "q2_targets": {
+      "organic_sessions": "1.500 (target minimo) — 3.000 se tutti gli articoli vengono pubblicati puntualmente e indicizzati entro aprile",
+      "signups": "50 (funnel: 1.500 sessioni × 3% signup rate)",
+      "pro_users": 1,
+      "analyses_run": 20,
+      "notes": "Target conservativi per Q2 basati su benchmark SEO italiano LegalTech: 3-4 mesi per indexazione piena, 8-12 settimane per traffico organico stabile. L'OKR 'almeno 1 Pro pagante' è un benchmark di validazione del funnel, non un target di revenue."
+    },
+    "acquisition_channels": [
+      "SEO organico — canale primario. Zero costo variabile, build up composto nel tempo. 8 articoli pianificati marzo-aprile, obiettivo 4 pubblicati entro fine Q2 (OKR minimo).",
+      "LinkedIn organico — reach sui segmenti professionali (HR, legal, real estate). Carousel e post ogni settimana di contenuto, 0 budget.",
+      "Reddit/forum legali italiani (r/Italy, r/affitti, Legge per Tutti) — risposta a thread con problemi reali, link a guida pertinente. Tattique di content seeding a zero costo. Attenzione: niente spam, solo valore reale.",
+      "Referral avvocati — programma bidirezionale: Controlla.me → avvocato (needsLawyer: true), avvocato → Controlla.me (analisi preliminare per clienti). Pipeline target: studi 1-5 avv. Milano-Roma-Napoli. Template outreach disponibile in company/marketing/outreach/.",
+      "Associazioni consumatori — partnership con Altroconsumo, Codacons, Federconsumatori per distribuzione tool ai loro iscritti. Canale Q3.",
+      "Bandi digitalizzazione PMI 2026 — €2B disponibili, mention in contenuto PMI come leva di acquisizione B2B. CTA specifica sul piano Pro (€4.99/mese) come tool finanziabile."
+    ],
+    "experiments_planned": [
+      "Exit intent popup su homepage — CTA 'Prima di andartene: carica il tuo contratto. È gratis.' Ipotesi: recuperare 15-20% degli exit. Metrica: signup rate. Status: da implementare con UX/UI.",
+      "Sequenza email post-signup 3 messaggi in 7 giorni — Giorno 1: 'Benvenuto, ecco come funziona', Giorno 3: '3 cose che il tuo contratto nasconde', Giorno 7: 'Hai ancora 2 analisi gratuite — usale prima del reset mensile'. Ipotesi: aumentare la conversion da signup a prima analisi al 60%+ (vs cold). Metrica: activation rate. Status: da implementare con Operations.",
+      "Social proof sul paywall — 'Oltre X utenti hanno già analizzato contratti simili al tuo'. Ipotesi: social proof aumenta conversion free→pro del 10-20%. Metrica: conversion rate sul paywall. Status: da implementare con UX/UI (richiede contatore analisi reale).",
+      "A/B test CTA primaria homepage — variante A: 'Carica il tuo contratto' (attuale), variante B: 'Scopri se il tuo contratto è giusto'. Ipotesi: frame centrato sull'outcome (non sull'azione) converte meglio. Metrica: CTR sul bottone. Status: da pianificare dopo primi 500 sessioni.",
+      "Referral loop — 'Invita un amico e ricevi 1 analisi extra'. Ipotesi: k-factor > 0.3 riduce CAC effettivo. Metrica: referral rate e CAC. Status: da implementare in Q3 quando base utenti > 50."
+    ]
+  },
+  "competitor_digital": [
+    {
+      "name": "Lexroom.ai",
+      "domain_authority": "Stimato medio-alta (DA 35-45) — 7.000+ studi legali abbonati generano backlink e traffico di brand. Serie A €16.2M.",
+      "top_keywords": [
+        "assistente AI avvocati",
+        "intelligenza artificiale studi legali",
+        "ricerca giurisprudenza AI",
+        "software avvocati AI",
+        "lexroom"
+      ],
+      "content_gap": "Nessun contenuto consumer su clausole contrattuali, diritti inquilini, contratti di lavoro. Il loro blog è orientato a professionisti del diritto. Il quadrante 'Consumer Italy' è completamente aperto. Rischio: con €16M hanno il budget per pivotare in 90 giorni se vedono domanda. Monitorare ogni annuncio di prodotto.",
+      "threat_level": "media-alta",
+      "monitoring_frequency": "settimanale"
+    },
+    {
+      "name": "Simpliciter.ai",
+      "domain_authority": "Stimato bassa (DA 15-25) — startup early stage, contenuto limitato.",
+      "top_keywords": [
+        "AI legale avvocati",
+        "ricerca normativa AI",
+        "banche dati giuridiche AI"
+      ],
+      "content_gap": "Target B2B/PA. Nessuna presenza sui termini consumer. Nessun contenuto su clausole, diritti consumatori, analisi contratti per privati.",
+      "threat_level": "bassa",
+      "monitoring_frequency": "mensile"
+    },
+    {
+      "name": "Legge per Tutti (leggepertutti.it)",
+      "domain_authority": "Alta (DA 55-65) — portale consolidato con anni di contenuto SEO su temi legali consumer. Competitor SEO indiretto, non tool AI.",
+      "top_keywords": [
+        "clausole vessatorie contratto",
+        "diritto di recesso consumatore",
+        "contratto affitto diritti inquilino",
+        "caparra confirmatoria",
+        "licenziamento illegittimo"
+      ],
+      "content_gap": "Non offrono analisi AI automatica — solo contenuto informativo e consulenze a pagamento. Il gap è sul passaggio da 'informazione' ad 'azione': noi permettiamo di caricare il proprio contratto e ottenere risposta specifica, loro forniscono solo risposte generiche. CTA da sfruttare: 'Leggi la guida, poi verifica il tuo contratto specifico su Controlla.me.'",
+      "threat_level": "bassa (canale informativo, non competitor diretto)",
+      "monitoring_frequency": "mensile — monitorare quali keyword presidiano per identificare gap da attaccare"
+    },
+    {
+      "name": "AvvoGPT",
+      "domain_authority": "Stimato bassa (DA 10-20) — presenza content-first, nessuna piattaforma di analisi strutturata.",
+      "top_keywords": [
+        "avvocato AI",
+        "consulenza legale intelligenza artificiale",
+        "avvocato online AI"
+      ],
+      "content_gap": "Nessuna pipeline multi-agente, nessun corpus legislativo italiano strutturato, nessuna analisi automatica di contratti caricati. Prodotto informazionale, non analitico.",
+      "threat_level": "bassa",
+      "monitoring_frequency": "trimestrale"
+    },
+    {
+      "name": "Lawhive (UK)",
+      "domain_authority": "In crescita (DA 40-50 stimato) — $60M Series B febbraio 2026, espansione US. Nessuna presenza italiana attuale.",
+      "top_keywords": [
+        "ai law firm uk",
+        "tenant rights AI",
+        "contract review AI consumer",
+        "family law AI"
+      ],
+      "content_gap": "Nessun contenuto in italiano, nessun corpus legislativo italiano. Se entra nel mercato EU/italiano avrà il funding per scalare rapidamente. Il nostro vantaggio difensivo: corpus italiano, lingua italiana nativa, compliance AI Act, posizionamento prima dei privati italiani. Finestra stimata: 12-18 mesi prima di un potenziale ingresso EU.",
+      "threat_level": "alta (benchmark strategico + potenziale competitor futuro)",
+      "monitoring_frequency": "settimanale — alert su qualsiasi annuncio di espansione EU"
+    }
+  ],
+  "open_tasks": [
+    {
+      "id": "MKT-001",
+      "title": "Pubblicare articolo settimana 1: clausole illegali contratto lavoro",
+      "priority": "alta",
+      "owner": "content-writer",
+      "due": "2026-03-07",
+      "status": "planned",
+      "notes": "Pillar article. Target keyword: clausole illegali contratto lavoro (2.300/mese). Usare corpus Codice Civile — Statuto Lavoratori non ancora disponibile, compensare con riferimenti giurisprudenziali via Giulia."
+    },
+    {
+      "id": "MKT-002",
+      "title": "Setup Google Search Console + Analytics 4",
+      "priority": "alta",
+      "owner": "operations",
+      "due": "2026-03-07",
+      "status": "planned",
+      "notes": "Prerequisito per misurare traffico organico e validare OKR. Senza GSC non sappiamo se gli articoli vengono indicizzati."
+    },
+    {
+      "id": "MKT-003",
+      "title": "Pubblicare articolo settimana 2: caparra confirmatoria vs penitenziale",
+      "priority": "alta",
+      "owner": "content-writer",
+      "due": "2026-03-14",
+      "status": "planned",
+      "notes": "FAQ ad alta intento. Corpus Art. 1385-1386 Codice Civile disponibile."
+    },
+    {
+      "id": "MKT-004",
+      "title": "Pubblicare pillar affitti settimana 3",
+      "priority": "alta",
+      "owner": "content-writer",
+      "due": "2026-03-21",
+      "status": "planned",
+      "notes": "Pillar principale verticale affitti. Keyword cluster 5.800/mese. Corpus L. 431/1998 disponibile."
+    },
+    {
+      "id": "MKT-005",
+      "title": "Outreach 5 studi legali (avvocati-referral-template.md) — Milano o Roma",
+      "priority": "media",
+      "owner": "growth-hacker",
+      "due": "2026-03-21",
+      "status": "planned",
+      "notes": "Template disponibile in company/marketing/outreach/avvocati-referral-template.md. Target: studi 1-5 avv., diritto civile/lavoro/consumatori. Obiettivo: 1 partnership attiva entro fine Q2."
+    },
+    {
+      "id": "MKT-006",
+      "title": "Segnalare a Strategy: corpus Statuto Lavoratori è bloccante per verticale HR",
+      "priority": "alta",
+      "owner": "growth-hacker",
+      "due": "2026-03-07",
+      "status": "planned",
+      "notes": "Il keyword cluster contratto lavoro vale 10.100/mese aggregati. Il corpus L. 300/1970 non è disponibile. Strategy deve formalizzare task a Data Engineering. Riferimento: company/marketing/market-signal-report-2026-03.md — sezione Data Gap."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-1",
+      "description": "Statuto dei Lavoratori (L. 300/1970) non nel corpus — blocca il verticale HR e i contenuti SEO su contratti di lavoro. Keyword cluster stimato >10.000/mese aggregati. Data Engineering ha segnalato che l'API async Normattiva produce ZIP vuoti per questa fonte. Serve approvazione boss su approccio alternativo: HTML scraping Normattiva web o testo consolidato via EUR-Lex.",
+      "owner": "boss",
+      "impact": "alto — blocca cluster keyword da 10.100/mese, posticipa verticale HR a Q3 minimo",
+      "suggested_path": "Approvare Data Engineering per tentare HTML scraping Normattiva web per L. 300/1970. Effort stimato: 1-2 giorni. Sblocca verticale HR da 10K+ keyword/mese."
+    },
+    {
+      "id": "B-2",
+      "description": "Google Search Console e Analytics 4 non configurati — impossibile misurare traffico organico, indicizzazione articoli, performance keyword. Senza questi strumenti l'OKR 'organic_sessions' è non misurabile.",
+      "owner": "boss",
+      "impact": "medio — blocca la misurazione degli OKR. Non blocca la pubblicazione di contenuto, ma rende impossibile validare l'efficacia.",
+      "suggested_path": "Configurare GSC e GA4 su controlla.me prima della pubblicazione del primo articolo SEO. Effort: 2-4 ore. Prerequisito: accesso DNS e Google account del dominio."
+    },
+    {
+      "id": "B-3",
+      "description": "Nessun utente reale — impossibile raccogliere segnali di domanda interna (quali clausole vengono cercate via deep search, quali tipi di contratti vengono caricati). Il feedback loop prodotto→marketing è attualmente assente.",
+      "owner": "boss",
+      "impact": "medio — il content calendar è basato su segnali esterni (keyword research, community). I segnali interni migliorerebbero la prioritizzazione. Si attenua automaticamente quando arrivano i primi 20 utenti (OKR Q2).",
+      "suggested_path": "Prioritizzare acquisizione primi utenti (beta tester) via canali diretti: LinkedIn personal network del fondatore, community legali, avvocati referral. Obiettivo: 5-10 beta tester entro fine marzo."
+    }
+  ]
+}

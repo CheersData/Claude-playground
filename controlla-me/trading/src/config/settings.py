@@ -98,6 +98,42 @@ class AlpacaSettings(BaseSettings):
     model_config = {"env_prefix": "", "extra": "ignore"}
 
 
+class AlpacaConventionalSettings(BaseSettings):
+    """Alpaca conventional (daily strategy) account credentials."""
+
+    api_key: str = Field(default="", alias="ALPACA_CONV_API_KEY")
+    secret_key: str = Field(default="", alias="ALPACA_CONV_SECRET_KEY")
+    base_url: str = Field(default="https://paper-api.alpaca.markets", alias="ALPACA_CONV_BASE_URL")
+
+    @property
+    def is_paper(self) -> bool:
+        return "paper" in self.base_url
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.api_key and self.secret_key)
+
+    model_config = {"env_prefix": "", "extra": "ignore"}
+
+
+class AlpacaCryptoSettings(BaseSettings):
+    """Alpaca crypto (24/7) account credentials — dedicated to BTC/ETH slope strategy."""
+
+    api_key: str = Field(default="", alias="ALPACA_CRYPTO_API_KEY")
+    secret_key: str = Field(default="", alias="ALPACA_CRYPTO_SECRET_KEY")
+    base_url: str = Field(default="https://paper-api.alpaca.markets", alias="ALPACA_CRYPTO_BASE_URL")
+
+    @property
+    def is_paper(self) -> bool:
+        return "paper" in self.base_url
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.api_key and self.secret_key)
+
+    model_config = {"env_prefix": "", "extra": "ignore"}
+
+
 class RiskSettings(BaseSettings):
     """Risk management parameters — NON-NEGOTIABLE limits."""
 
@@ -344,6 +380,8 @@ class Settings(BaseSettings):
 
     # Sub-configs
     alpaca: AlpacaSettings = Field(default_factory=AlpacaSettings)
+    alpaca_conventional: AlpacaConventionalSettings = Field(default_factory=AlpacaConventionalSettings)
+    alpaca_crypto: AlpacaCryptoSettings = Field(default_factory=AlpacaCryptoSettings)
     risk: RiskSettings = Field(default_factory=RiskSettings)
     scanner: ScannerSettings = Field(default_factory=ScannerSettings)
     signal: SignalSettings = Field(default_factory=SignalSettings)

@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "dept": "data-engineering",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-03T14:00:00.000Z",
+    "updated_by": "de-lead"
+  },
+  "health": "ok",
+  "summary": "Corpus legislativo operativo. 18 fonti caricate su 18. ~5600 articoli IT+EU. Embeddings Voyage AI attivi. Delta update automatico configurato: vercel.json cron domenica 06:00 UTC → /api/platform/cron/data-connector.",
+  "corpus": {
+    "articles_total": 5600,
+    "articles_estimated": true,
+    "sources_total": 18,
+    "sources_loaded": 18,
+    "sources_blocked": 0,
+    "sources_planned": 0,
+    "last_sync": "2026-03-03T00:00:00.000Z",
+    "embeddings_active": true,
+    "embeddings_model": "voyage-law-2"
+  },
+  "sources_by_type": {
+    "normattiva_it": [
+      "codice_civile",
+      "codice_penale",
+      "codice_consumo",
+      "codice_proc_civile",
+      "dlgs_231_2001",
+      "dlgs_122_2005",
+      "statuto_lavoratori",
+      "tu_edilizia",
+      "dlgs_276_2003",
+      "dlgs_23_2015"
+    ],
+    "eurlex_eu": [
+      "dir_93_13_clausole_abusive",
+      "dir_2011_83_consumatori",
+      "dir_2019_771_vendita_beni",
+      "reg_roma_i",
+      "dsa",
+      "ai_act"
+    ],
+    "other": [
+      "codice_civile_huggingface",
+      "gdpr"
+    ]
+  },
+  "pipeline": {
+    "connector": "operational",
+    "parser_akn": "operational",
+    "parser_html": "operational",
+    "delta_updates": "scheduled",
+    "scheduler": "vercel_cron",
+    "cron_schedule": "0 6 * * 0",
+    "cron_schedule_human": "ogni domenica alle 06:00 UTC",
+    "cron_endpoint": "/api/platform/cron/data-connector",
+    "cron_auth": "CRON_SECRET bearer token"
+  },
+  "gaps": [
+    {
+      "id": "DE-1",
+      "description": "CHIUSO — vercel.json cron domenica 06:00 UTC → POST /api/platform/cron/data-connector (CRON_SECRET). Fix: percorso corretto da /api/cron/delta-update a /api/platform/cron/data-connector. Delta update tutte le fonti lifecycle=loaded|delta-active.",
+      "severity": "closed",
+      "workaround": null
+    },
+    {
+      "id": "DE-2",
+      "description": "Verticale HR non avviato — D.Lgs. 81/2008 (Sicurezza Lavoro, 306 art.) non caricato",
+      "severity": "low",
+      "workaround": "Prerequisito: D.Lgs. 276/2003 caricato ✓"
+    },
+    {
+      "id": "DE-3",
+      "description": "Statuto dei Lavoratori (L. 300/1970) caricato via fallback (41 art. pubblico dominio) — versione ufficiale Normattiva produce ZIP vuoti",
+      "severity": "low",
+      "workaround": "Testo attuale sufficiente per MVP"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Pipeline CONNECT→MODEL→LOAD funzionante per Normattiva (AKN) e EUR-Lex (HTML). Codice Civile caricato via HuggingFace (4271 art.) + ricaricato via Normattiva con gerarchie complete. GDPR caricato via EUR-Lex. Embedding Voyage AI (voyage-law-2, 1024d) su HNSW pgvector."
+}

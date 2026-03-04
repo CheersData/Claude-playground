@@ -27,9 +27,9 @@ FILL_TIMEOUT_SEC = 60.0
 class Executor(BaseAgent):
     """Executes approved orders on Alpaca."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("executor")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         self._db = TradingDB()
 
     async def run(self, decisions: list[dict] | None = None, **kwargs: Any) -> dict:

@@ -70,9 +70,9 @@ DEFAULT_UNIVERSE = [
 class MarketScanner(BaseAgent):
     """Screens the universe for trading candidates."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("market_scanner")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         cfg = get_settings()
         # Use Tiingo IEX (real-time) for market data when configured.
         # Alpaca free tier has 15-min delay; Tiingo IEX has no delay.
