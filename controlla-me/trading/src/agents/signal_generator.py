@@ -262,6 +262,11 @@ class SignalGenerator(BaseAgent):
                 timeframe=slope_cfg.timeframe,
                 require_reversal=(not is_inverse) and (not is_trend_following),
                 bypass_volume_check=is_inverse,  # only inverse ETFs bypass volume
+                # Wave detection: 3-factor entry
+                acceleration_bars=slope_cfg.acceleration_bars,
+                min_acceleration_pct=slope_cfg.min_acceleration_pct,
+                volume_trend_bars=slope_cfg.volume_trend_bars,
+                persistence_bars=slope_cfg.persistence_bars,
             )
 
             # Inverse ETFs: never SHORT. SH/PSQ are already inverse instruments —
@@ -399,6 +404,12 @@ class SignalGenerator(BaseAgent):
 
                         if exit_action is not None:
                             current_price = float(df["close"].iloc[-1])
+                            # Dynamic confidence: proportional to adverse slope magnitude.
+                            # Weak slope (~threshold) → 0.5, strong slope (3x+ threshold) → 0.9.
+                            # Prevents cutting winners on noise while exiting quickly on strong moves.
+                            _slope_magnitude = abs(slope_pct_val)
+                            _slope_ratio = min(_slope_magnitude / (slope_cfg.slope_threshold_pct * 3), 1.0)
+                            adverse_confidence = round(0.5 + 0.4 * _slope_ratio, 3)
                             exit_rationale = (
                                 f"[SLOPE {exit_label}] slope={slope_pct_val:+.4f}%/bar "
                                 f"({angle_deg_val:+.1f}°) — "
@@ -409,8 +420,8 @@ class SignalGenerator(BaseAgent):
                                 Signal(
                                     symbol=symbol,
                                     action=exit_action,
-                                    confidence=0.75,
-                                    score=slope_pct_val,  # actual slope_pct, not hardcoded 0.75
+                                    confidence=adverse_confidence,
+                                    score=slope_pct_val,  # actual slope_pct
                                     entry_price=current_price,
                                     stop_loss=current_price,
                                     take_profit=current_price,

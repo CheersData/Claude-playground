@@ -497,47 +497,62 @@ def analyze_slope_volume(
     timeframe: str = "5Min",
     require_reversal: bool = True,
     bypass_volume_check: bool = False,
+    # --- Wave detection: 3-factor entry gate ---
+    acceleration_bars: int = 5,
+    min_acceleration_pct: float = 0.002,
+    volume_trend_bars: int = 5,
+    persistence_bars: int = 5,
+    # --- Contrarian mode: fade the wave ---
+    contrarian: bool = False,
+    # --- Anticipatory mode: enter on deceleration (wave losing steam) ---
+    anticipatory: bool = False,
 ) -> dict[str, Any] | None:
     """
-    Slope+Volume intraday signal analysis.
+    Wave-detection intraday signal analysis (3-factor entry).
 
-    Detects directional changes using linear regression slope on close prices
-    and confirms with volume above moving average.
+    Detects real market waves by requiring THREE simultaneous confirmations:
 
-    Entry logic:
-    - Slope changes from negative → positive (bullish reversal)
-    - abs(slope_pct) > slope_threshold_pct (significant move, not noise)
-    - Volume of last bar > volume_multiplier * MA(volume_ma_period)
-    - Current time is within market hours (market_open_utc to market_close_utc)
+    1. ANGLE (slope + acceleration): the slope must be significant AND growing
+       in magnitude — the wave is accelerating, not decelerating.
+    2. VOLUME (growing volume): volume must be trending UP over the last N bars,
+       not just above average on a single bar. Real moves attract growing interest.
+    3. PERSISTENCE: the slope must have been in the same direction for M
+       consecutive bars. This filters out noise oscillations that flip every minute.
+
+    All 3 must be true simultaneously for entry. This eliminates the vast majority
+    of noise-driven signals that plagued the original single-threshold approach.
 
     Args:
         symbol: Ticker symbol (e.g. "SPY").
         df: OHLCV DataFrame with DatetimeIndex (tz-aware preferred) or
             a "timestamp" column. Must have columns: open, high, low, close, volume.
-        lookback_bars: Number of bars for OLS slope regression.
+        lookback_bars: Number of bars for OLS slope regression window.
         slope_threshold_pct: Minimum absolute slope in % of price per bar to trigger.
-        volume_multiplier: Last bar volume must exceed this multiple of the MA.
+        volume_multiplier: Minimum volume ratio vs MA (existing baseline check).
         volume_ma_period: Period for volume moving average.
-        stop_loss_atr: Stop loss distance in ATR units below entry.
-        take_profit_atr: Take profit distance in ATR units above entry.
+        stop_loss_atr: Stop loss distance in ATR units.
+        take_profit_atr: Take profit distance in ATR units.
         atr_period: Period for ATR calculation.
         market_open_utc: Only generate signals after this UTC time (HH:MM).
         market_close_utc: Only generate signals before this UTC time (HH:MM).
         min_bars: Minimum bars required in df before generating any signal.
-        timeframe: Bar timeframe string, informational (e.g. "5Min").
-        require_reversal: If True (default), signal fires only on slope direction flip
-            (negative→positive for BUY, positive→negative for SHORT). If False,
-            signal fires on sustained slope above threshold regardless of prior direction.
-            Use False for inverse ETFs (SH, PSQ) where positive slope is always the entry.
-        bypass_volume_check: If True, skip volume confirmation gate. Use when the
-            market data provider does not reliably return volume (e.g. Tiingo IEX free
-            tier sometimes returns 0 for low-volume ETFs).
+        timeframe: Bar timeframe string, informational (e.g. "1Min").
+        require_reversal: If True, require slope to have been in the opposite direction
+            before the persistence window (confirms a reversal preceded the wave).
+            If False, only the 3 factors are checked (trend-continuation mode).
+        bypass_volume_check: If True, skip volume gates entirely (for instruments
+            where the data provider doesn't return reliable volume).
+        acceleration_bars: How many bars back to measure slope change (acceleration).
+        min_acceleration_pct: Min slope increase (% per bar) over acceleration window.
+        volume_trend_bars: Bars for volume OLS trend regression (must be growing).
+        persistence_bars: Min consecutive bars with slope in the same direction.
 
     Returns:
         dict with signal data (symbol, action, score, confidence, entry_price,
         stop_loss, take_profit, rationale, indicators) or None if no signal.
     """
     import datetime as dt
+    from numpy.lib.stride_tricks import sliding_window_view
 
     try:
         if len(df) < min_bars:
@@ -550,8 +565,6 @@ def analyze_slope_volume(
         current_price = float(close.iloc[-1])
 
         # --- Time filter (optional) ---
-        # When market_open_utc == "00:00" and market_close_utc == "23:59",
-        # the filter is effectively disabled (24/7 mode for multi-market operation).
         open_h, open_m = map(int, market_open_utc.split(":"))
         close_h, close_m = map(int, market_close_utc.split(":"))
         _always_on = (open_h == 0 and open_m == 0 and close_h == 23 and close_m == 59)
@@ -572,9 +585,9 @@ def analyze_slope_volume(
                 open_time = dt.time(open_h, open_m)
                 close_time = dt.time(close_h, close_m)
                 if not (open_time <= bar_time <= close_time):
-                    return None  # Outside market hours
+                    return None
 
-        # --- ATR (True Range average) ---
+        # --- ATR ---
         tr = pd.concat([
             high - low,
             (high - close.shift(1)).abs(),
@@ -584,108 +597,215 @@ def analyze_slope_volume(
         if atr <= 0 or np.isnan(atr):
             return None
 
-        # --- Slope via OLS linear regression on last N closes ---
-        # Need at least 2 × lookback_bars to compute previous slope for comparison.
-        if len(close) < lookback_bars * 2:
+        # --- Vectorized rolling slopes ---
+        # Compute OLS slope for every overlapping window of `lookback_bars` in one pass.
+        # This gives us the slope at every bar position — needed for acceleration
+        # and persistence checks without repeated per-bar computation.
+        total_needed = lookback_bars + max(acceleration_bars, persistence_bars)
+        if len(close) < total_needed:
             return None
 
-        y_curr = close.tail(lookback_bars).values
-        x_curr = np.arange(len(y_curr), dtype=float)
-        x_mean_c, y_mean_c = x_curr.mean(), y_curr.mean()
-        slope_raw = float(
-            np.sum((x_curr - x_mean_c) * (y_curr - y_mean_c))
-            / np.sum((x_curr - x_mean_c) ** 2)
-        )
-        # Normalize slope as % of current price per bar (makes threshold scale-invariant)
-        slope_pct = (slope_raw / current_price) * 100
+        close_arr = close.values.astype(float)
+        windows = sliding_window_view(close_arr, lookback_bars)
+        # windows shape: (n - lookback_bars + 1, lookback_bars)
 
-        # Previous window: the lookback_bars that immediately precede the current window.
-        y_prev = close.iloc[-(lookback_bars * 2):-lookback_bars].values
-        x_prev = np.arange(len(y_prev), dtype=float)
-        x_mean_p, y_mean_p = x_prev.mean(), y_prev.mean()
-        slope_prev_raw = float(
-            np.sum((x_prev - x_mean_p) * (y_prev - y_mean_p))
-            / np.sum((x_prev - x_mean_p) ** 2)
-        )
-        slope_prev_pct = (slope_prev_raw / current_price) * 100
+        x = np.arange(lookback_bars, dtype=float)
+        x_mean = x.mean()
+        x_dev = x - x_mean
+        x_var = float(np.sum(x_dev ** 2))
+        if x_var == 0:
+            return None
 
-        # --- Volume filter ---
+        y_means = windows.mean(axis=1)
+        cov = np.sum((windows - y_means[:, np.newaxis]) * x_dev, axis=1)
+        slopes_raw = cov / x_var
+
+        # Normalize each slope as % of price at the end of that window
+        prices_at_end = close_arr[lookback_bars - 1:]
+        safe_prices = np.where(prices_at_end > 0, prices_at_end, 1.0)
+        slope_pcts = (slopes_raw / safe_prices) * 100
+
+        current_slope = float(slope_pcts[-1])
+
+        # ===================================================================
+        # CRITERION 1: ANGLE — slope significant AND accelerating
+        # ===================================================================
+        slope_significant = abs(current_slope) >= slope_threshold_pct
+
+        # Acceleration: how much the slope changed over the last `acceleration_bars`.
+        # Positive acceleration = slope growing in the current direction.
+        if len(slope_pcts) > acceleration_bars:
+            prev_slope = float(slope_pcts[-(acceleration_bars + 1)])
+            acceleration = current_slope - prev_slope
+        else:
+            acceleration = 0.0
+
+        if anticipatory:
+            # Anticipatory mode: detect DECELERATION (wave losing steam).
+            # Slope is still in one direction but acceleration is OPPOSITE = slowing down.
+            if current_slope > 0:
+                # Wave up decelerating: acceleration is negative (slope shrinking)
+                acceleration_ok = acceleration <= -min_acceleration_pct
+            elif current_slope < 0:
+                # Wave down decelerating: acceleration is positive (slope becoming less negative)
+                acceleration_ok = acceleration >= min_acceleration_pct
+            else:
+                acceleration_ok = False
+        else:
+            if current_slope > 0:
+                # BUY candidate: slope positive AND growing (acceleration positive)
+                acceleration_ok = acceleration >= min_acceleration_pct
+            elif current_slope < 0:
+                # SHORT candidate: slope negative AND getting more negative
+                acceleration_ok = acceleration <= -min_acceleration_pct
+            else:
+                acceleration_ok = False
+
+        # ===================================================================
+        # CRITERION 2: VOLUME — trending UP (not just a single bar spike)
+        # ===================================================================
+        vol_arr = volume.values.astype(float)
         avg_volume = float(volume.tail(volume_ma_period).mean())
         last_volume = float(volume.iloc[-1])
         vol_ratio = last_volume / max(avg_volume, 1)
-        volume_confirmed = vol_ratio >= volume_multiplier
+        volume_above_avg = vol_ratio >= volume_multiplier
 
-        # --- Signal logic ---
-        bullish_reversal = slope_prev_pct < 0 and slope_pct > 0
-        bearish_reversal = slope_prev_pct > 0 and slope_pct < 0
-        slope_significant = abs(slope_pct) >= slope_threshold_pct
-        # bypass_volume_check: use when provider doesn't return reliable volume
-        # (e.g. Tiingo IEX free tier returns 0 for low-volume ETFs).
-        vol_ok = True if (bypass_volume_check or avg_volume == 0) else volume_confirmed
+        # Volume trend: OLS regression on volume over last N bars
+        volume_growing = True  # default if bypassed or insufficient data
+        if not bypass_volume_check and avg_volume > 0 and len(vol_arr) >= volume_trend_bars:
+            vol_recent = vol_arr[-volume_trend_bars:]
+            vx = np.arange(volume_trend_bars, dtype=float)
+            vx_mean = vx.mean()
+            vx_dev = vx - vx_mean
+            vx_var = float(np.sum(vx_dev ** 2))
+            if vx_var > 0:
+                vy_mean = float(vol_recent.mean())
+                vol_cov = float(np.sum(vx_dev * (vol_recent - vy_mean)))
+                vol_slope = vol_cov / vx_var
+                volume_growing = vol_slope > 0
 
-        if require_reversal:
-            # Default: signal fires only on slope direction flip + volume confirmation.
-            # BUY: slope crosses negative → positive. SHORT: slope crosses positive → negative.
-            has_signal = (bullish_reversal or bearish_reversal) and slope_significant and volume_confirmed
-            action = "BUY" if bullish_reversal else "SHORT"
+        if bypass_volume_check or avg_volume == 0:
+            volume_ok = True  # skip both checks
         else:
-            # Trend-continuation mode: no reversal needed.
-            # Used for inverse ETFs (SH, PSQ) where sustained positive slope = rising price.
-            # A slope that has been positive all day is a valid entry — no prior negative needed.
-            has_signal = slope_significant and vol_ok
-            action = "BUY" if slope_pct > 0 else "SHORT"
+            volume_ok = volume_above_avg and volume_growing
+
+        # ===================================================================
+        # CRITERION 3: PERSISTENCE — slope same direction for M consecutive bars
+        # ===================================================================
+        persistent_count = 0
+        n_slopes = len(slope_pcts)
+        for i in range(min(persistence_bars, n_slopes)):
+            s = float(slope_pcts[-(i + 1)])
+            if current_slope > 0 and s > 0:
+                persistent_count += 1
+            elif current_slope < 0 and s < 0:
+                persistent_count += 1
+            else:
+                break  # direction changed — consecutive streak broken
+        # Anticipatory mode: lower persistence threshold (wave just needs to exist,
+        # not be fully confirmed — we're catching it as it weakens).
+        effective_persistence = max(3, persistence_bars // 2) if anticipatory else persistence_bars
+        persistence_ok = persistent_count >= effective_persistence
+
+        # ===================================================================
+        # ENTRY DECISION — all 3 criteria must pass
+        # ===================================================================
+        if require_reversal:
+            # Reversal mode: additionally confirm that slope was in the opposite
+            # direction just before the persistence window started. This means a
+            # reversal happened at the beginning of the persistent wave.
+            reversal_idx = persistence_bars + 1  # how far back to check
+            if n_slopes > reversal_idx:
+                prior_slope = float(slope_pcts[-(reversal_idx)])
+                if current_slope > 0:
+                    reversal_ok = prior_slope <= 0
+                else:
+                    reversal_ok = prior_slope >= 0
+            else:
+                reversal_ok = False
+            has_signal = (
+                slope_significant
+                and acceleration_ok
+                and volume_ok
+                and persistence_ok
+                and reversal_ok
+            )
+        else:
+            # Trend-continuation mode: 3 factors only, no reversal needed.
+            has_signal = (
+                slope_significant
+                and acceleration_ok
+                and volume_ok
+                and persistence_ok
+            )
+
+        action = "BUY" if current_slope > 0 else "SHORT"
 
         if not has_signal:
             return None
 
+        # --- Contrarian / Anticipatory: fade the wave ---
+        # Contrarian: wave confirmed (3-factor) but we bet it's exhausted → invert.
+        # Anticipatory: wave is decelerating → enter against it early.
+        # Both modes invert the action.
+        if contrarian or anticipatory:
+            action = "SHORT" if action == "BUY" else "BUY"
+
         # --- Price levels ---
-        # Alpaca requires stop_price <= base_price - 0.01.
-        # On quiet 1-min bars ATR can be tiny → enforce a minimum $0.02 distance
-        # so that after round(..., 2) we always have at least $0.01 gap.
         _min_sl = 0.02
         if action == "BUY":
             stop_loss = current_price - max(stop_loss_atr * atr, _min_sl)
             take_profit = current_price + (take_profit_atr * atr)
-        else:  # SHORT: SL above entry (price goes up = loss), TP below entry (price drops = gain)
+        else:
             stop_loss = current_price + max(stop_loss_atr * atr, _min_sl)
             take_profit = current_price - (take_profit_atr * atr)
 
-        # Confidence: slope strength (0–1) + volume activity (0–1), weighted 60/40.
-        slope_score = min(abs(slope_pct) / (slope_threshold_pct * 3), 1.0)
-        volume_score = min((vol_ratio - volume_multiplier) / volume_multiplier, 1.0)
-        confidence = round(0.5 + 0.3 * slope_score + 0.2 * volume_score, 3)
+        # --- Confidence: weighted across all 3 factors ---
+        slope_score = min(abs(current_slope) / (slope_threshold_pct * 3), 1.0)
+        accel_score = min(abs(acceleration) / (min_acceleration_pct * 3), 1.0)
+        if not bypass_volume_check and avg_volume > 0:
+            v_score = min(max(vol_ratio - 1, 0) / max(volume_multiplier, 0.01), 1.0)
+        else:
+            v_score = 0.5
+        persist_score = min(persistent_count / max(persistence_bars * 1.5, 1), 1.0)
+
+        confidence = round(
+            0.35 + 0.2 * slope_score + 0.2 * accel_score + 0.15 * v_score + 0.1 * persist_score,
+            3,
+        )
         confidence = max(0.5, min(confidence, 1.0))
 
-        if require_reversal:
-            rationale = (
-                f"Slope {action} reversal: {slope_prev_pct:.3f}% → {slope_pct:.3f}% per bar "
-                f"(threshold {slope_threshold_pct}%). "
-                f"Volume {vol_ratio:.1f}x avg (threshold {volume_multiplier}x). "
-                f"ATR {atr:.4f}, SL {stop_loss:.4f}, TP {take_profit:.4f}."
-            )
-        else:
-            vol_note = "bypassed" if (bypass_volume_check or avg_volume == 0) else f"{vol_ratio:.1f}x avg"
-            rationale = (
-                f"Slope {action} trend: {slope_pct:.3f}%/bar (threshold {slope_threshold_pct}%). "
-                f"Volume {vol_note}. "
-                f"ATR {atr:.4f}, SL {stop_loss:.4f}, TP {take_profit:.4f}."
-            )
+        # --- Rationale ---
+        vol_note = "bypassed" if (bypass_volume_check or avg_volume == 0) else (
+            f"{'UP' if volume_growing else 'DOWN'} trend, {vol_ratio:.1f}x avg"
+        )
+        mode_tag = "ANTIC" if anticipatory else ("FADE" if contrarian else "WAVE")
+        rationale = (
+            f"{mode_tag} {action}: slope {current_slope:.4f}%/bar (>{slope_threshold_pct}%), "
+            f"accel {'+' if acceleration >= 0 else ''}{acceleration:.4f}%/bar "
+            f"(min {'+' if current_slope > 0 else '-'}{min_acceleration_pct}%), "
+            f"vol {vol_note}, "
+            f"persistent {persistent_count}/{persistence_bars} bars. "
+            f"ATR {atr:.4f}, SL {stop_loss:.4f}, TP {take_profit:.4f}."
+        )
 
         return {
             "symbol": symbol,
             "action": action,
-            "score": round(slope_pct, 4),
+            "score": round(current_slope, 4),
             "confidence": confidence,
             "entry_price": round(current_price, 4),
             "stop_loss": round(stop_loss, 4),
             "take_profit": round(take_profit, 4),
             "rationale": rationale,
             "indicators": {
-                "slope_pct": round(slope_pct, 4),
-                "slope_prev_pct": round(slope_prev_pct, 4),
-                "slope_angle": round(float(np.degrees(np.arctan(slope_pct))), 1),
-                "slope_prev_angle": round(float(np.degrees(np.arctan(slope_prev_pct))), 1),
+                "slope_pct": round(current_slope, 4),
+                "slope_prev_pct": round(prev_slope if len(slope_pcts) > acceleration_bars else 0.0, 4),
+                "acceleration_pct": round(acceleration, 4),
+                "slope_angle": round(float(np.degrees(np.arctan(current_slope))), 1),
                 "vol_ratio": round(vol_ratio, 2),
+                "volume_growing": bool(volume_growing) if not bypass_volume_check else True,
+                "persistent_bars": persistent_count,
                 "atr": round(atr, 4),
                 "lookback_bars": lookback_bars,
             },
@@ -745,32 +865,56 @@ def get_current_slope_info(
     *,
     lookback_bars: int = 5,
     slope_threshold_pct: float = 0.05,
+    acceleration_bars: int = 5,
 ) -> dict:
     """
-    Like get_current_slope_direction but also returns slope_pct and angle_deg.
+    Returns current slope direction, magnitude, and acceleration.
+
+    Used by SignalGenerator for diagnostics and adverse-exit decisions.
 
     Returns dict with:
         direction: "positive" | "negative" | "flat"
         slope_pct: float  (OLS slope normalized as % of price per bar)
         angle_deg: float  (atan(slope_pct) in degrees — visual representation)
+        acceleration_pct: float  (change in slope over acceleration_bars)
+        accelerating: bool  (slope is growing in the direction of the trend)
     """
+    _flat = {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0,
+             "acceleration_pct": 0.0, "accelerating": False}
     try:
         close = df["close"]
         if len(close) < lookback_bars:
-            return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
+            return _flat
         current_price = float(close.iloc[-1])
         if current_price <= 0:
-            return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
+            return _flat
 
-        y = close.tail(lookback_bars).values
-        x = np.arange(len(y), dtype=float)
-        x_mean, y_mean = x.mean(), y.mean()
-        denom = float(np.sum((x - x_mean) ** 2))
-        if denom == 0:
-            return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
-        slope_raw = float(np.sum((x - x_mean) * (y - y_mean)) / denom)
-        slope_pct = (slope_raw / current_price) * 100
+        # Helper: compute OLS slope on a window
+        def _ols_slope_pct(arr: np.ndarray) -> float:
+            x = np.arange(len(arr), dtype=float)
+            x_mean = x.mean()
+            denom = float(np.sum((x - x_mean) ** 2))
+            if denom == 0:
+                return 0.0
+            y_mean = arr.mean()
+            slope_raw = float(np.sum((x - x_mean) * (arr - y_mean)) / denom)
+            return (slope_raw / current_price) * 100
+
+        slope_pct = _ols_slope_pct(close.tail(lookback_bars).values)
         angle_deg = float(np.degrees(np.arctan(slope_pct)))
+
+        # Acceleration
+        acceleration_pct = 0.0
+        accelerating = False
+        if len(close) >= lookback_bars + acceleration_bars:
+            prev_end = len(close) - acceleration_bars
+            prev_start = prev_end - lookback_bars
+            prev_slope = _ols_slope_pct(close.iloc[prev_start:prev_end].values)
+            acceleration_pct = slope_pct - prev_slope
+            if slope_pct > 0:
+                accelerating = acceleration_pct > 0
+            elif slope_pct < 0:
+                accelerating = acceleration_pct < 0
 
         if slope_pct > slope_threshold_pct:
             direction = "positive"
@@ -783,9 +927,11 @@ def get_current_slope_info(
             "direction": direction,
             "slope_pct": round(slope_pct, 4),
             "angle_deg": round(angle_deg, 1),
+            "acceleration_pct": round(acceleration_pct, 4),
+            "accelerating": accelerating,
         }
     except Exception:
-        return {"direction": "flat", "slope_pct": 0.0, "angle_deg": 0.0}
+        return _flat
 
 
 def build_rationale(
@@ -819,3 +965,134 @@ def build_rationale(
         parts.append(f"volume surge {vol_ratio:.1f}x")
 
     return " + ".join(parts) if parts else "Composite signal"
+
+
+# ---------------------------------------------------------------------------
+# Noise Boundary Momentum (Zarattini-Aziz-Barbon 2024)
+# ---------------------------------------------------------------------------
+
+
+def precompute_noise_boundaries(
+    df: pd.DataFrame,
+    lookback_days: int = 14,
+    band_mult: float = 1.0,
+    trade_freq_bars: int = 6,
+    atr_period: int = 14,
+) -> pd.DataFrame:
+    """
+    Precompute noise boundaries for the Zarattini-Aziz-Barbon (2024) strategy.
+
+    For each bar, computes:
+    - UB: upper noise boundary = max(day_open, prev_close) × (1 + band_mult × sigma_open)
+    - LB: lower noise boundary = min(day_open, prev_close) × (1 - band_mult × sigma_open)
+    - vwap: intraday VWAP (resets daily)
+    - sigma_open: 14-day rolling mean of move_open at the same bar-of-day, lagged by 1
+    - nb_signal: +1 (long), -1 (short), 0 (inside noise zone)
+    - is_checkpoint: True at trade_freq_bars intervals (30-min checkpoints on 5Min bars)
+    - atr: Average True Range
+
+    No look-ahead bias: sigma_open only uses data from previous days.
+
+    Reference: "Beat the Market: An Effective Intraday Momentum Strategy for S&P500 ETF (SPY)"
+    """
+    result = df.copy()
+
+    # --- Date and bar-of-day ---
+    result["_date"] = result.index.date
+    result["bar_of_day"] = result.groupby("_date").cumcount()
+
+    # --- Day open (first bar's open each day) ---
+    day_opens = result.groupby("_date")["open"].first()
+    result["_day_open"] = result["_date"].map(day_opens)
+
+    # --- Previous day's close (last bar's close of prior day) ---
+    day_closes = result.groupby("_date")["close"].last()
+    prev_closes = day_closes.shift(1)
+    result["_prev_close"] = result["_date"].map(prev_closes)
+
+    # --- move_open = abs(close / day_open - 1) ---
+    result["_move_open"] = (result["close"] / result["_day_open"] - 1).abs()
+
+    # --- sigma_open: rolling 14-day mean per bar-of-day, lagged by 1 day ---
+    result["sigma_open"] = result.groupby("bar_of_day")["_move_open"].transform(
+        lambda g: g.rolling(window=lookback_days, min_periods=max(lookback_days - 1, 1)).mean().shift(1)
+    )
+
+    # --- Upper / Lower boundaries ---
+    ref_high = np.maximum(
+        result["_day_open"],
+        result["_prev_close"].fillna(result["_day_open"]),
+    )
+    ref_low = np.minimum(
+        result["_day_open"],
+        result["_prev_close"].fillna(result["_day_open"]),
+    )
+    result["UB"] = ref_high * (1 + band_mult * result["sigma_open"])
+    result["LB"] = ref_low * (1 - band_mult * result["sigma_open"])
+
+    # --- VWAP (intraday, resets daily) ---
+    hlc3 = (result["high"] + result["low"] + result["close"]) / 3
+    result["_vol_price"] = result["volume"] * hlc3
+    result["_cum_vol"] = result.groupby("_date")["volume"].cumsum()
+    result["_cum_vol_price"] = result.groupby("_date")["_vol_price"].cumsum()
+    result["vwap"] = result["_cum_vol_price"] / result["_cum_vol"].replace(0, np.nan)
+
+    # --- ATR ---
+    tr = pd.concat(
+        [
+            result["high"] - result["low"],
+            (result["high"] - result["close"].shift(1)).abs(),
+            (result["low"] - result["close"].shift(1)).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    result["atr"] = tr.rolling(window=atr_period).mean()
+
+    # --- Checkpoint flag (30-min intervals) ---
+    # Skip bar 0 (market just opened, no VWAP data)
+    result["is_checkpoint"] = (result["bar_of_day"] > 0) & (
+        result["bar_of_day"] % trade_freq_bars == 0
+    )
+
+    # --- Vectorized NB signal ---
+    mask_valid = result["UB"].notna() & result["LB"].notna() & result["vwap"].notna()
+    mask_long = mask_valid & (result["close"] > result["UB"]) & (result["close"] > result["vwap"])
+    mask_short = mask_valid & (result["close"] < result["LB"]) & (result["close"] < result["vwap"])
+    result["nb_signal"] = 0
+    result.loc[mask_long, "nb_signal"] = 1
+    result.loc[mask_short, "nb_signal"] = -1
+
+    # --- Realized volatility (20-day rolling, annualized) ---
+    # Used for volatility-targeted position sizing (Zarattini paper: target 15% annual vol)
+    daily_close = result.groupby("_date")["close"].last()
+    daily_returns = daily_close.pct_change()
+    rolling_vol = daily_returns.rolling(window=20, min_periods=10).std() * np.sqrt(252)
+    result["realized_vol"] = result["_date"].map(rolling_vol)
+
+    # --- Cleanup temp columns ---
+    result.drop(
+        columns=[c for c in result.columns if c.startswith("_")],
+        inplace=True,
+    )
+
+    return result
+
+
+def evaluate_noise_boundary_signal(
+    close: float, ub: float, lb: float, vwap: float
+) -> int:
+    """
+    Evaluate a single noise boundary signal.
+
+    Returns:
+        +1 = LONG  (close > UB and close > VWAP — breakout above noise zone)
+        -1 = SHORT (close < LB and close < VWAP — breakdown below noise zone)
+         0 = no signal (inside noise zone)
+    """
+    if np.isnan(ub) or np.isnan(lb) or np.isnan(vwap):
+        return 0
+    if close > ub and close > vwap:
+        return 1
+    elif close < lb and close < vwap:
+        return -1
+    return 0

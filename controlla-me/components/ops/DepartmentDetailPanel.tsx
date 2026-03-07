@@ -390,13 +390,44 @@ export function DepartmentDetailPanel({
                 transition={{ duration: 0.12 }}
                 className="space-y-6"
               >
+                {/* Vision */}
+                {meta.vision && (
+                  <div className="border-l-2 border-[#FF6B35]/60 pl-4 py-1">
+                    <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1 font-medium">
+                      Vision
+                    </p>
+                    <p className="text-sm text-zinc-300 leading-relaxed">{meta.vision}</p>
+                  </div>
+                )}
+
                 {/* Missione */}
-                <div className="border-l-2 border-[#FF6B35]/60 pl-4 py-1">
+                <div className={`border-l-2 ${meta.vision ? "border-zinc-700" : "border-[#FF6B35]/60"} pl-4 py-1`}>
                   <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1 font-medium">
                     Missione
                   </p>
                   <p className="text-sm text-zinc-300 leading-relaxed">{meta.mission}</p>
                 </div>
+
+                {/* Priorities */}
+                {meta.priorities && meta.priorities.length > 0 && (
+                  <div>
+                    <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2 font-medium">Priorita</p>
+                    <div className="space-y-1.5">
+                      {meta.priorities.map((p, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold flex-shrink-0 ${
+                            i === 0 ? "bg-[#FF6B35]/20 text-[#FF6B35]" :
+                            i === 1 ? "bg-zinc-700 text-zinc-300" :
+                                      "bg-zinc-800 text-zinc-500"
+                          }`}>
+                            P{i}
+                          </span>
+                          <span className="text-xs text-zinc-400 leading-relaxed">{p}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* KPI */}
                 {meta.kpis.length > 0 && (

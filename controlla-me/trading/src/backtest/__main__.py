@@ -127,6 +127,10 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Max simultaneous positions (default: 10)",
     )
     parser.add_argument(
+        "--max-position-pct", type=float, default=10.0,
+        help="Max position size as %% of portfolio (default: 10.0)",
+    )
+    parser.add_argument(
         "--threshold", type=float, default=0.3,
         help="Signal score threshold for BUY/SELL (default: 0.3)",
     )
@@ -148,7 +152,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--strategy", type=str,
-        choices=["trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume"],
+        choices=["trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume", "noise_boundary"],
         default=None,
         help="Strategy override. Default: auto-detect from timeframe (15Min=mean_reversion, 5Min=slope_volume, else=trend_following)",
     )
@@ -197,6 +201,97 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--trail-tight-distance", type=float, default=1.0,
         help="Tier 3: Tight trail distance from highest close in ATR (default: 1.0)",
+    )
+    # Wave detection: 3-factor entry gate
+    parser.add_argument(
+        "--slope-lookback", type=int, default=10,
+        help="Slope OLS regression lookback bars (default: 10)",
+    )
+    parser.add_argument(
+        "--slope-threshold", type=float, default=0.01,
+        help="Min slope %% per bar for entry (default: 0.01)",
+    )
+    parser.add_argument(
+        "--accel-bars", type=int, default=5,
+        help="Bars back to measure slope acceleration (default: 5)",
+    )
+    parser.add_argument(
+        "--min-accel-pct", type=float, default=0.01,
+        help="Min slope growth %% for entry (default: 0.01)",
+    )
+    parser.add_argument(
+        "--vol-trend-bars", type=int, default=5,
+        help="Bars for volume trend regression (default: 5)",
+    )
+    parser.add_argument(
+        "--persistence-bars", type=int, default=8,
+        help="Consecutive bars with same slope direction required (default: 8)",
+    )
+    parser.add_argument(
+        "--contrarian", action="store_true", default=False,
+        help="Contrarian mode: fade the wave (invert BUY↔SHORT after 3-factor confirmation)",
+    )
+    parser.add_argument(
+        "--anticipatory", action="store_true", default=False,
+        help="Anticipatory mode: enter when wave decelerates (early mean-reversion entry)",
+    )
+    # Noise Boundary Momentum parameters (Zarattini-Aziz-Barbon 2024)
+    parser.add_argument(
+        "--nb-band-mult", type=float, default=1.0,
+        help="Noise boundary width multiplier (default: 1.0 — paper default)",
+    )
+    parser.add_argument(
+        "--nb-lookback-days", type=int, default=14,
+        help="Rolling lookback in trading days for sigma_open (default: 14)",
+    )
+    parser.add_argument(
+        "--nb-trade-freq", type=int, default=6,
+        help="Signal evaluation frequency in bars (default: 6 = 30min on 5Min bars)",
+    )
+    parser.add_argument(
+        "--nb-safety-sl-atr", type=float, default=3.0,
+        help="Wide crash-protection SL in ATR units (default: 3.0 — primary exit is signal change)",
+    )
+    parser.add_argument(
+        "--nb-last-entry-utc", type=int, default=19,
+        help="Last UTC hour for new NB entries (default: 19 — no entries after 19:00 UTC / 3PM ET)",
+    )
+    # NB Enhancement 1: Volatility-targeted sizing
+    parser.add_argument(
+        "--nb-vol-sizing", action="store_true", default=False,
+        help="Enable volatility-targeted position sizing (paper: target 15%% annualized vol)",
+    )
+    parser.add_argument(
+        "--nb-vol-target", type=float, default=15.0,
+        help="Target annualized volatility %% for vol-sizing (default: 15.0)",
+    )
+    parser.add_argument(
+        "--nb-vol-max-leverage", type=float, default=4.0,
+        help="Max leverage cap for vol-targeted sizing (default: 4.0)",
+    )
+    # NB Enhancement 2: VIX regime filter
+    parser.add_argument(
+        "--nb-vix-filter", action="store_true", default=False,
+        help="Enable VIX regime filter (skip NB entries when VIX < threshold)",
+    )
+    parser.add_argument(
+        "--nb-vix-threshold", type=float, default=20.0,
+        help="VIX threshold for regime filter (default: 20.0 — trade momentum above, skip below)",
+    )
+    # NB Enhancement 3: VWAP exit (Maroy 2025)
+    parser.add_argument(
+        "--nb-vwap-exit", action="store_true", default=False,
+        help="Enable VWAP-based profit-taking exit for NB positions (Maroy 2025)",
+    )
+    # NB Enhancement 4: VWAP trailing stop (Maroy 2025 — replaces nb_exit)
+    parser.add_argument(
+        "--nb-vwap-trailing", action="store_true", default=False,
+        help="Enable VWAP trailing stop: long stop=max(VWAP,UB), short stop=min(VWAP,LB). Replaces signal-change exit.",
+    )
+    # NB Enhancement 5: Minimum hold time
+    parser.add_argument(
+        "--nb-min-hold-bars", type=int, default=0,
+        help="Min bars to hold before any NB exit (0=disabled, 12=60min on 5Min). Prevents premature exits.",
     )
 
 
@@ -249,6 +344,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         initial_capital=args.capital,
         slippage_bps=args.slippage,
         max_positions=args.max_positions,
+        max_position_pct=args.max_position_pct,
         signal_threshold=args.threshold,
         stop_loss_atr=args.sl_atr,
         take_profit_atr=args.tp_atr,
@@ -267,14 +363,41 @@ def cmd_run(args: argparse.Namespace) -> None:
         trailing_trail_distance_atr=args.trail_distance,
         trailing_tight_threshold_atr=args.trail_tight_threshold,
         trailing_tight_distance_atr=args.trail_tight_distance,
+        # Wave detection: 3-factor entry gate
+        slope_lookback_bars=args.slope_lookback,
+        slope_threshold_pct=args.slope_threshold,
+        slope_acceleration_bars=args.accel_bars,
+        slope_min_acceleration_pct=args.min_accel_pct,
+        slope_volume_trend_bars=args.vol_trend_bars,
+        slope_persistence_bars=args.persistence_bars,
+        slope_contrarian=args.contrarian,
+        slope_anticipatory=args.anticipatory,
+        # Noise Boundary Momentum
+        nb_band_mult=args.nb_band_mult,
+        nb_lookback_days=args.nb_lookback_days,
+        nb_trade_freq_bars=args.nb_trade_freq,
+        nb_safety_sl_atr=args.nb_safety_sl_atr,
+        nb_last_entry_utc=args.nb_last_entry_utc,
+        # NB Enhancements (paper-complete implementation)
+        nb_vol_sizing=args.nb_vol_sizing,
+        nb_vol_target_pct=args.nb_vol_target,
+        nb_vol_max_leverage=args.nb_vol_max_leverage,
+        nb_vix_filter=args.nb_vix_filter,
+        nb_vix_threshold=args.nb_vix_threshold,
+        nb_vwap_exit=args.nb_vwap_exit,
+        nb_vwap_trailing=args.nb_vwap_trailing,
+        nb_min_hold_bars=args.nb_min_hold_bars,
     )
 
-    tf_label = {
-        "1Day": "DAILY",
-        "1Hour": "HOURLY",
-        "15Min": f"15-MIN MEAN REVERSION {'v3' if strategy == 'mean_reversion_v3' else 'v2'}",
-        "5Min":  "5-MIN SLOPE+VOLUME",
-    }.get(args.timeframe, args.timeframe)
+    if strategy == "noise_boundary":
+        tf_label = f"NOISE BOUNDARY MOMENTUM ({args.timeframe})"
+    else:
+        tf_label = {
+            "1Day": "DAILY",
+            "1Hour": "HOURLY",
+            "15Min": f"15-MIN MEAN REVERSION {'v3' if strategy == 'mean_reversion_v3' else 'v2'}",
+            "5Min":  "5-MIN SLOPE+VOLUME",
+        }.get(args.timeframe, args.timeframe)
     print(f"\n{'='*70}")
     print(f"  BACKTEST [{tf_label}] -- {start} -> {end}")
     print(f"  Strategy: {strategy}")
@@ -287,6 +410,26 @@ def cmd_run(args: argparse.Namespace) -> None:
     print(f"  Trailing: BE={config.trailing_breakeven_atr} Lock={config.trailing_lock_atr}"
           f" Trail={config.trailing_trail_threshold_atr}/{config.trailing_trail_distance_atr}"
           f" Tight={config.trailing_tight_threshold_atr}/{config.trailing_tight_distance_atr}")
+    if strategy == "slope_volume":
+        print(f"  3-Factor: lookback={config.slope_lookback_bars} threshold={config.slope_threshold_pct}"
+              f" accel_bars={config.slope_acceleration_bars} min_accel={config.slope_min_acceleration_pct}"
+              f" vol_trend={config.slope_volume_trend_bars} persist={config.slope_persistence_bars}")
+    if strategy == "noise_boundary":
+        print(f"  NB: band_mult={config.nb_band_mult} lookback_days={config.nb_lookback_days}"
+              f" trade_freq={config.nb_trade_freq_bars} safety_sl={config.nb_safety_sl_atr}x ATR")
+        enhancements = []
+        if config.nb_vol_sizing:
+            enhancements.append(f"VolSizing(target={config.nb_vol_target_pct}%, max_lev={config.nb_vol_max_leverage}x)")
+        if config.nb_vix_filter:
+            enhancements.append(f"VIX(>{config.nb_vix_threshold})")
+        if config.nb_vwap_exit:
+            enhancements.append("VWAP-Exit")
+        if config.nb_vwap_trailing:
+            enhancements.append("VWAP-Trailing")
+        if config.nb_min_hold_bars > 0:
+            enhancements.append(f"MinHold({config.nb_min_hold_bars}bars)")
+        if enhancements:
+            print(f"  NB Enhancements: {' + '.join(enhancements)}")
     print(f"{'='*70}\n")
 
     # Step 1: Load data

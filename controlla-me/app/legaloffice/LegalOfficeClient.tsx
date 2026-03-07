@@ -31,6 +31,7 @@ import {
   BookOpen,
   Plus,
   MessageSquare,
+  Terminal,
 } from "lucide-react";
 
 import AgentBox, { type AgentId, type AgentStatus } from "@/components/workspace/AgentBox";
@@ -40,7 +41,8 @@ import AgentStatusBlock, { type BlockAgentId, type BlockStatus } from "@/compone
 import LeaderChat, { type LeaderMessage } from "@/components/legaloffice/LeaderChat";
 import ActionBar from "@/components/legaloffice/ActionBar";
 import ActivityBanner from "@/components/legaloffice/ActivityBanner";
-import type { AgentPhase, AdvisorResult } from "@/lib/types";
+import ShellPanel from "@/components/legaloffice/ShellPanel";
+import type { AgentPhase, LegalOfficePhase, AdvisorResult } from "@/lib/types";
 
 // CorpusTreePanel usa sessionStorage — SSR off
 const CorpusTreePanel = dynamic(
@@ -64,6 +66,16 @@ interface UsageInfo {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
+// All 6 unified sidebar phases: Q&A activates comprensione+corpus-search+advisor,
+// document pipeline activates classifier+analyzer+investigator+advisor.
+// Dynamic filtering hides inactive agents.
+const SIDEBAR_ORDER: BlockAgentId[] = ["comprensione", "classifier", "analyzer", "corpus-search", "investigator", "advisor"];
+
+// Agents activated by each pipeline mode
+const QA_AGENTS: BlockAgentId[] = ["comprensione", "corpus-search", "advisor"];
+const DOC_AGENTS: BlockAgentId[] = ["classifier", "analyzer", "investigator", "advisor"];
+
+// Legacy 4-agent order for document pipeline content area
 const AGENT_ORDER: AgentId[] = ["classifier", "analyzer", "investigator", "advisor"];
 
 const AGENT_LABELS: Record<AgentId, string> = {
@@ -101,14 +113,35 @@ function getBlockStatus(
   agentId: BlockAgentId,
   currentPhase: AgentPhase | null,
   completedPhases: AgentPhase[],
-  view: AppView
+  view: AppView,
+  qaPhase: LegalOfficePhase | null = null,
+  qaCompletedPhases: LegalOfficePhase[] = [],
+  isQaMode: boolean = false
 ): BlockStatus {
   if (agentId === "leader") {
-    if (view === "analyzing") return "running";
-    if (view === "results")   return "done";
+    if (view === "analyzing" || isQaMode) return "running";
+    if (view === "results" || qaCompletedPhases.length > 0 || completedPhases.length > 0) return "done";
     return "idle";
   }
-  return getAgentStatus(agentId as AgentId, currentPhase, completedPhases) as BlockStatus;
+
+  const phase = agentId as LegalOfficePhase;
+
+  // Durante Q&A attivo: priorità allo stato QA
+  if (isQaMode) {
+    if (qaCompletedPhases.includes(phase)) return "done";
+    if (qaPhase === phase) return "running";
+    // Mantieni "done" se il pipeline documento aveva già completato questo agente
+    if (completedPhases.includes(agentId as AgentPhase)) return "done";
+    return "idle";
+  }
+
+  // Dopo Q&A completato (isQaMode=false ma qaCompletedPhases ha elementi)
+  if (qaCompletedPhases.includes(phase)) return "done";
+
+  // Default: stato pipeline documento (solo i 4 agenti classici si attivano)
+  if (completedPhases.includes(agentId as AgentPhase)) return "done";
+  if (currentPhase === (agentId as AgentPhase)) return "running";
+  return "idle";
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -132,11 +165,21 @@ export default function LegalOfficeClient() {
 
   // ── Layout state ─────────────────────────────────────────────────────────────
   const [leftPanelTab, setLeftPanelTab]       = useState<"agents" | "corpus">("agents");
+  const [shellPanelOpen, setShellPanelOpen]   = useState(false);
 
   // ── Leader chat state ─────────────────────────────────────────────────────────
   const [leaderMessages, setLeaderMessages]   = useState<LeaderMessage[]>([INITIAL_LEADER_MSG]);
   const [leaderLoading, setLeaderLoading]     = useState(false);
   const [pendingAgentContext, setPendingAgentContext] = useState<string | null>(null);
+
+  // ── Q&A orchestration state (LegalOfficePhase includes corpus agent phases) ──
+  const [qaPhase, setQaPhase]                       = useState<LegalOfficePhase | null>(null);
+  const [qaCompletedPhases, setQaCompletedPhases]   = useState<LegalOfficePhase[]>([]);
+  const [qaResults, setQaResults]                   = useState<Record<string, unknown>>({});
+  const [isQaMode, setIsQaMode]                     = useState(false);
+
+  // ── Corpus navigation state ──────────────────────────────────────────────────
+  const [focusArticleId, setFocusArticleId] = useState<string | null>(null);
 
   const lastFileRef  = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,41 +188,152 @@ export default function LegalOfficeClient() {
 
   const sendToLeader = useCallback(async (message: string) => {
     setLeaderLoading(true);
+    setIsQaMode(true);
+    setQaPhase(null);
+    setQaCompletedPhases([]);
     setLeaderMessages(prev => [
       ...prev,
       { role: "user", content: message, timestamp: Date.now() },
     ]);
 
+    // Includi contesto agente evocato come parte del messaggio se presente
+    const fullMessage = pendingAgentContext
+      ? `${message}\n\n[Contesto agente: ${pendingAgentContext}]`
+      : message;
+    setPendingAgentContext(null);
+
+    let response: Response;
     try {
-      const res = await fetch("/api/legaloffice/leader", {
+      // Includi gli ultimi scambi come contesto conversazione (max 6 messaggi = 3 exchanges)
+      const conversationHistory = leaderMessages.slice(-6).map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      response = await fetch("/api/legaloffice/orchestrator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message,
+          message: fullMessage,
           sessionId,
-          agentContext: pendingAgentContext,
           phaseResults,
+          tier,
+          conversationHistory,
         }),
       });
-      const data = await res.json();
-      setLeaderMessages(prev => [
-        ...prev,
-        { role: "leader", content: data.answer || "Nessuna risposta.", timestamp: Date.now() },
-      ]);
-      setPendingAgentContext(null);
     } catch {
       setLeaderMessages(prev => [
         ...prev,
         { role: "leader", content: "Errore di connessione. Riprova.", timestamp: Date.now() },
       ]);
+      setLeaderLoading(false);
+      setIsQaMode(false);
+      return;
+    }
+
+    if (!response.ok || !response.body) {
+      setLeaderMessages(prev => [
+        ...prev,
+        { role: "leader", content: "Errore del server. Riprova.", timestamp: Date.now() },
+      ]);
+      setLeaderLoading(false);
+      setIsQaMode(false);
+      return;
+    }
+
+    // Consuma lo stream SSE — stesso pattern di startAnalysis()
+    const reader  = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer    = "";
+
+    const processBuffer = () => {
+      const events = buffer.split("\n\n");
+      buffer = events.pop() ?? "";
+      for (const block of events) {
+        const lines = block.trim().split("\n");
+        let eventType = "message";
+        let dataStr   = "";
+        for (const line of lines) {
+          if (line.startsWith("event:"))     eventType = line.slice(6).trim();
+          else if (line.startsWith("data:")) dataStr   = line.slice(5).trim();
+        }
+        if (!dataStr) continue;
+        try {
+          const data = JSON.parse(dataStr);
+          if (eventType === "agent") {
+            if (data.status === "running") {
+              setQaPhase(data.phase as LegalOfficePhase);
+            } else if (data.status === "done") {
+              setQaPhase(null);
+              setQaCompletedPhases(p => [...p, data.phase as LegalOfficePhase]);
+              if (data.output) {
+                setQaResults(prev => ({ ...prev, [data.phase]: data.output }));
+              }
+            }
+          } else if (eventType === "complete") {
+            // Estrai dati corpus strutturati per rendering ricco
+            const corpusData = data.agentOutputs?.corpusResult ?? null;
+            setLeaderMessages(prev => [
+              ...prev,
+              {
+                role: "leader",
+                content: data.leaderAnswer || "Analisi completata.",
+                timestamp: Date.now(),
+                corpusData: corpusData || undefined,
+              },
+            ]);
+            setQaPhase(null);
+            setIsQaMode(false);
+            setLeaderLoading(false);
+          } else if (eventType === "error") {
+            setLeaderMessages(prev => [
+              ...prev,
+              {
+                role: "leader",
+                content: "Si è verificato un errore. Riprova.",
+                timestamp: Date.now(),
+              },
+            ]);
+            setQaPhase(null);
+            setIsQaMode(false);
+            setLeaderLoading(false);
+          }
+        } catch { /* ignore JSON parse errors */ }
+      }
+    };
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        processBuffer();
+      }
+    } catch {
+      setLeaderMessages(prev => [
+        ...prev,
+        { role: "leader", content: "Connessione interrotta. Riprova.", timestamp: Date.now() },
+      ]);
     } finally {
+      setQaPhase(null);
+      setIsQaMode(false);
       setLeaderLoading(false);
     }
-  }, [sessionId, pendingAgentContext, phaseResults]);
+  }, [sessionId, pendingAgentContext, phaseResults, tier]);
+
+  const BLOCK_LABELS: Record<BlockAgentId, string> = {
+    leader: "Leader",
+    comprensione: "Comprensione",
+    classifier: "Classificatore",
+    analyzer: "Analista",
+    "corpus-search": "Ricerca Corpus",
+    investigator: "Investigatore",
+    advisor: "Consulente",
+  };
 
   const handleAskAgent = useCallback((agentId: BlockAgentId) => {
-    const agentName = agentId === "leader" ? "Leader" : AGENT_LABELS[agentId as AgentId] || agentId;
-    const agentData = phaseResults[agentId];
+    const agentName = BLOCK_LABELS[agentId] || agentId;
+    const agentData = qaResults[agentId] ?? phaseResults[agentId];
     const context = agentData
       ? `Agente evocato: ${agentName}\nOutput: ${JSON.stringify(agentData).slice(0, 500)}`
       : null;
@@ -192,7 +346,7 @@ export default function LegalOfficeClient() {
         timestamp: Date.now(),
       },
     ]);
-  }, [phaseResults]);
+  }, [qaResults, phaseResults]);
 
   const handleQA = useCallback(() => {
     setLeaderMessages(prev => [
@@ -216,9 +370,10 @@ export default function LegalOfficeClient() {
     ]);
   }, []);
 
-  // ── Article click → apre corpus tab ──────────────────────────────────────────
-  const handleArticleClick = useCallback((_ref: string) => {
+  // ── Article click → apre corpus tab e naviga all'articolo ───────────────────
+  const handleArticleClick = useCallback((articleId: string) => {
     setLeftPanelTab("corpus");
+    setFocusArticleId(articleId);
   }, []);
 
   // ── Pipeline ──────────────────────────────────────────────────────────────────
@@ -235,6 +390,12 @@ export default function LegalOfficeClient() {
     setDocumentType(undefined);
     setLeaderMessages([INITIAL_LEADER_MSG]);
     setPendingAgentContext(null);
+    // Reset stato Q&A
+    setQaPhase(null);
+    setQaCompletedPhases([]);
+    setQaResults({});
+    setIsQaMode(false);
+    setFocusArticleId(null);
   }, []);
 
   const startAnalysis = useCallback(
@@ -386,6 +547,17 @@ export default function LegalOfficeClient() {
   const isAnalyzing   = view === "analyzing";
   const showWorkspace = view === "analyzing" || view === "results";
 
+  // Dynamic sidebar: only show agents relevant to the current pipeline mode
+  const hasQaActivity  = isQaMode || qaCompletedPhases.length > 0;
+  const hasDocActivity = view === "analyzing" || view === "results";
+  const visibleAgents: BlockAgentId[] = (() => {
+    if (!hasQaActivity && !hasDocActivity) return SIDEBAR_ORDER;
+    const visible = new Set<BlockAgentId>();
+    if (hasQaActivity)  QA_AGENTS.forEach(a => visible.add(a));
+    if (hasDocActivity) DOC_AGENTS.forEach(a => visible.add(a));
+    return SIDEBAR_ORDER.filter(id => visible.has(id));
+  })();
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -452,8 +624,24 @@ export default function LegalOfficeClient() {
               Nuova
             </button>
           )}
+          {/* Shell button — comandi di sistema */}
+          <button
+            onClick={() => setShellPanelOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 h-7 bg-gray-900 hover:bg-gray-700 rounded text-xs text-white transition-colors"
+            title="Shell Commands"
+          >
+            <Terminal className="w-3 h-3" />
+            <span className="hidden sm:inline">Shell</span>
+          </button>
         </div>
       </header>
+
+      {/* ── SHELL PANEL ─────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {shellPanelOpen && (
+          <ShellPanel open={shellPanelOpen} onClose={() => setShellPanelOpen(false)} />
+        )}
+      </AnimatePresence>
 
       {/* ── BODY ────────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden flex">
@@ -461,7 +649,7 @@ export default function LegalOfficeClient() {
         {/* ── LEFT PANEL ───────────────────────────────────────────────────── */}
         <aside
           className={`border-r border-gray-100 flex flex-col overflow-hidden bg-gray-50/40 transition-all duration-300 ease-in-out ${
-            leftPanelTab === "corpus" ? "flex-1" : "flex-none w-72"
+            leftPanelTab === "corpus" ? "flex-[7]" : "flex-none w-72"
           }`}
         >
           {/* Tab switcher */}
@@ -490,20 +678,20 @@ export default function LegalOfficeClient() {
             {/* Leader */}
             <AgentStatusBlock
               agentId="leader"
-              status={getBlockStatus("leader", currentPhase, completedPhases, view)}
+              status={getBlockStatus("leader", currentPhase, completedPhases, view, qaPhase, qaCompletedPhases, isQaMode)}
               data={null}
               onAskClick={handleAskAgent}
             />
 
             <div className="my-1 mx-2 h-px bg-gray-100" />
 
-            {/* 4 pipeline agents */}
-            {AGENT_ORDER.map(id => (
+            {/* Dynamic pipeline phases — solo agenti attivi nel mode corrente */}
+            {visibleAgents.map(id => (
               <AgentStatusBlock
                 key={id}
                 agentId={id}
-                status={getBlockStatus(id, currentPhase, completedPhases, view)}
-                data={(phaseResults[id] as Record<string, unknown> | null) ?? null}
+                status={getBlockStatus(id, currentPhase, completedPhases, view, qaPhase, qaCompletedPhases, isQaMode)}
+                data={((qaResults[id] ?? phaseResults[id]) as Record<string, unknown> | null) ?? null}
                 onAskClick={handleAskAgent}
               />
             ))}
@@ -538,12 +726,13 @@ export default function LegalOfficeClient() {
             <CorpusTreePanel
               open={true}
               onClose={() => setLeftPanelTab("agents")}
+              focusArticleId={focusArticleId}
             />
           </div>
         </aside>
 
         {/* ── CENTER ────────────────────────────────────────────────────────── */}
-        <main className={`flex-1 overflow-hidden flex flex-col bg-[#F8F9FA] ${leftPanelTab === "corpus" ? "hidden" : ""}`}>
+        <main className={`overflow-hidden flex flex-col bg-[#F8F9FA] ${leftPanelTab === "corpus" ? "flex-[3] min-w-[280px]" : "flex-1"}`}>
 
           {/* Action bar */}
           <ActionBar
@@ -553,12 +742,14 @@ export default function LegalOfficeClient() {
             disabled={isAnalyzing}
           />
 
-          {/* Activity banner */}
+          {/* Activity banner — doc pipeline o Q&A orchestrator */}
           <AnimatePresence>
-            {currentPhase && (
+            {(currentPhase || qaPhase) && (
               <ActivityBanner
-                currentPhase={currentPhase}
-                completedCount={completedPhases.length}
+                currentPhase={qaPhase ?? currentPhase}
+                completedPhases={isQaMode ? qaCompletedPhases : completedPhases}
+                qaMode={isQaMode}
+                visiblePhases={visibleAgents.filter((id): id is LegalOfficePhase => id !== "leader")}
               />
             )}
           </AnimatePresence>
@@ -569,6 +760,7 @@ export default function LegalOfficeClient() {
             loading={leaderLoading}
             prefilledHint={pendingAgentContext ? `Hai una domanda su questo agente?` : null}
             onSend={sendToLeader}
+            onArticleClick={handleArticleClick}
             className="flex-1 min-h-0"
           />
 

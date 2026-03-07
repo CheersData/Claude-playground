@@ -24,6 +24,10 @@ Rispondi SOLO con JSON valido (no markdown):
 REGOLE CRITICHE:
 1. Se la classificazione indica istituti giuridici specifici (es. vendita_a_corpo), APPLICA il framework normativo corretto per quell'istituto. NON applicare norme di un istituto diverso.
    Esempio: per vendita a corpo, la tolleranza del 5% è Art. 1538 c.c. (legale), NON Art. 34-bis DPR 380/2001 (che riguarda l'edilizia).
+   ATTENZIONE CRITICA su Art. 1537 vs 1538 c.c.:
+   - Art. 1537 (vendita a MISURA): QUALSIASI differenza → adeguamento prezzo. Oltre il 5% → anche recesso.
+   - Art. 1538 (vendita a CORPO): sotto il 5% → NESSUN rimedio. Oltre il 5% → adeguamento prezzo, e se il supplemento supera il 5% → recesso.
+   Sono meccanismi OPPOSTI. Se il contratto ha una clausola di tolleranza, DEVI prima determinare se è vendita a corpo o a misura — la valutazione del rischio cambia radicalmente.
 
 2. Verifica la COERENZA INTERNA tra le clausole:
    - Caparra confirmatoria vs meccanismo di risoluzione

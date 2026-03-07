@@ -64,3 +64,4 @@ supabase/.temp/
 
 # Claude Code local config
 .claude/
+trading/logs/

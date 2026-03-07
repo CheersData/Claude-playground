@@ -1,18 +1,23 @@
 /**
- * Tests: lib/tiers.ts (P2 — tier logic e AsyncLocalStorage isolation)
+ * Tests: lib/tiers.ts (P2 -- tier logic, fallback chains, AsyncLocalStorage isolation)
  *
- * Copre:
- * - getCurrentTier() default e override via sessionTierStore
- * - getAgentChain() slicing per tier
- * - isAgentEnabled() default e override via sessionTierStore
- * - sessionTierStore.run() isolation per-request
- * - getActiveModel() selezione primo provider disponibile
- * - getTierInfo() struttura output
- * - estimateTierCost() stime non-negative
+ * Comprehensive coverage:
+ * - getCurrentTier() default and override via sessionTierStore
+ * - setCurrentTier() global state mutation + isolation from sessionTierStore
+ * - getAgentChain() slicing per tier for ALL agents
+ * - getFullAgentChain() returns unsliced chain
+ * - isAgentEnabled() / setAgentEnabled() / getDisabledAgents() global toggle
+ * - sessionTierStore.run() per-request isolation (tier + disabled agents)
+ * - getActiveModel() first available provider selection + fallback
+ * - getTierInfo() full structure validation
+ * - getTierInfoForSession() per-session variant
+ * - estimateTierCost() and estimateTierCostForSession() cost estimation + label formatting
+ * - AGENT_CHAINS and TIER_START data integrity
+ * - Edge cases: investigator intern==associate, all providers disabled, concurrent sessions
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { AgentName } from "@/lib/models";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { AgentName, ModelKey } from "@/lib/models";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -45,131 +50,367 @@ import {
   type TierName,
   type SessionTierContext,
 } from "@/lib/tiers";
+import { MODELS } from "@/lib/models";
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const ALL_AGENTS: AgentName[] = [
+  "leader", "question-prep", "classifier", "corpus-agent",
+  "analyzer", "investigator", "advisor", "task-executor",
+];
+
+const ALL_TIERS: TierName[] = ["intern", "associate", "partner"];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeSessionCtx(tier: TierName, disabled: AgentName[] = []): SessionTierContext {
+function makeSessionCtx(
+  tier: TierName,
+  disabled: AgentName[] = [],
+): SessionTierContext {
   return { tier, disabledAgents: new Set(disabled), sid: "test-sid" };
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// ── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockIsProviderEnabled.mockReturnValue(true);
+  // Reset global state to known baseline
+  setCurrentTier("partner");
+  for (const agent of ALL_AGENTS) {
+    setAgentEnabled(agent, true);
+  }
 });
 
+afterEach(() => {
+  // Restore global state
+  setCurrentTier("partner");
+  for (const agent of ALL_AGENTS) {
+    setAgentEnabled(agent, true);
+  }
+});
+
+// =============================================================================
+// getCurrentTier
+// =============================================================================
+
 describe("getCurrentTier", () => {
-  it("ritorna 'partner' di default (nessun store context)", () => {
-    // Fuori da sessionTierStore.run() → usa global
-    const tier = getCurrentTier();
-    // Il tier globale può essere "partner" (default) o diverso a seconda di run precedenti
-    // Verifichiamo solo che sia un valore valido
-    expect(["intern", "associate", "partner"]).toContain(tier);
+  it("returns 'partner' by default", () => {
+    expect(getCurrentTier()).toBe("partner");
   });
 
-  it("ritorna il tier dal sessionTierStore quando presente", async () => {
+  it("returns the tier set by setCurrentTier", () => {
+    setCurrentTier("intern");
+    expect(getCurrentTier()).toBe("intern");
+
+    setCurrentTier("associate");
+    expect(getCurrentTier()).toBe("associate");
+  });
+
+  it("returns tier from sessionTierStore when inside .run()", async () => {
     const ctx = makeSessionCtx("intern");
     const result = await sessionTierStore.run(ctx, () => getCurrentTier());
     expect(result).toBe("intern");
   });
 
-  it("ritorna 'associate' dal sessionTierStore", async () => {
-    const ctx = makeSessionCtx("associate");
+  it("sessionTierStore takes priority over global tier", async () => {
+    setCurrentTier("intern");
+    const ctx = makeSessionCtx("partner");
     const result = await sessionTierStore.run(ctx, () => getCurrentTier());
-    expect(result).toBe("associate");
+    expect(result).toBe("partner");
+  });
+
+  it("returns global tier after sessionTierStore.run() completes", async () => {
+    setCurrentTier("associate");
+    await sessionTierStore.run(makeSessionCtx("intern"), () => {
+      // Inside: should be intern
+      expect(getCurrentTier()).toBe("intern");
+    });
+    // Outside: should be back to global
+    expect(getCurrentTier()).toBe("associate");
   });
 });
 
-describe("getAgentChain", () => {
-  it("ritorna la catena a partire dall'indice corretto per 'partner'", async () => {
-    const ctx = makeSessionCtx("partner");
-    const chain = await sessionTierStore.run(ctx, () => getAgentChain("classifier"));
-    const startIndex = TIER_START.classifier.partner;
-    const expected = AGENT_CHAINS.classifier.slice(startIndex);
-    expect(chain).toEqual(expected);
+// =============================================================================
+// setCurrentTier
+// =============================================================================
+
+describe("setCurrentTier", () => {
+  it("changes the global tier", () => {
+    setCurrentTier("intern");
+    expect(getCurrentTier()).toBe("intern");
   });
 
-  it("ritorna la catena a partire dall'indice corretto per 'intern'", async () => {
-    const ctx = makeSessionCtx("intern");
-    const chain = await sessionTierStore.run(ctx, () => getAgentChain("classifier"));
+  it("accepts all 3 valid tier values", () => {
+    for (const tier of ALL_TIERS) {
+      setCurrentTier(tier);
+      expect(getCurrentTier()).toBe(tier);
+    }
+  });
+
+  it("does not affect sessionTierStore contexts", async () => {
+    setCurrentTier("intern");
+    const ctx = makeSessionCtx("partner");
+    const result = await sessionTierStore.run(ctx, () => getCurrentTier());
+    expect(result).toBe("partner");
+  });
+
+  it("setting same tier twice is idempotent", () => {
+    setCurrentTier("intern");
+    setCurrentTier("intern");
+    expect(getCurrentTier()).toBe("intern");
+  });
+});
+
+// =============================================================================
+// getAgentChain — per-agent verification
+// =============================================================================
+
+describe("getAgentChain", () => {
+  describe("slicing by tier", () => {
+    for (const agent of ALL_AGENTS) {
+      for (const tier of ALL_TIERS) {
+        it(`${agent} at tier ${tier} returns chain from index ${TIER_START[agent][tier]}`, async () => {
+          const ctx = makeSessionCtx(tier);
+          const chain = await sessionTierStore.run(ctx, () => getAgentChain(agent));
+          const startIndex = TIER_START[agent][tier];
+          const expected = AGENT_CHAINS[agent].slice(startIndex);
+          expect(chain).toEqual(expected);
+        });
+      }
+    }
+  });
+
+  describe("chain length ordering", () => {
+    for (const agent of ALL_AGENTS) {
+      it(`${agent}: partner chain >= associate chain >= intern chain`, async () => {
+        const chains = await Promise.all(
+          ALL_TIERS.map((tier) =>
+            sessionTierStore.run(makeSessionCtx(tier), () => getAgentChain(agent)),
+          ),
+        );
+        const [internChain, associateChain, partnerChain] = chains;
+        expect(partnerChain.length).toBeGreaterThanOrEqual(associateChain.length);
+        expect(associateChain.length).toBeGreaterThanOrEqual(internChain.length);
+      });
+    }
+  });
+
+  it("investigator chain contains only Claude models (web_search constraint)", async () => {
+    for (const tier of ALL_TIERS) {
+      const ctx = makeSessionCtx(tier);
+      const chain = await sessionTierStore.run(ctx, () => getAgentChain("investigator"));
+      for (const key of chain) {
+        expect(key).toContain("claude");
+      }
+    }
+  });
+
+  it("investigator: intern and associate start at the same index (both index 1)", () => {
+    expect(TIER_START.investigator.intern).toBe(TIER_START.investigator.associate);
+    expect(TIER_START.investigator.intern).toBe(1);
+  });
+
+  it("all chains have at least 1 element for all tiers", async () => {
+    for (const agent of ALL_AGENTS) {
+      for (const tier of ALL_TIERS) {
+        const ctx = makeSessionCtx(tier);
+        const chain = await sessionTierStore.run(ctx, () => getAgentChain(agent));
+        expect(chain.length).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it("uses global tier when called outside sessionTierStore.run", () => {
+    setCurrentTier("intern");
+    const chain = getAgentChain("classifier");
     const startIndex = TIER_START.classifier.intern;
     const expected = AGENT_CHAINS.classifier.slice(startIndex);
     expect(chain).toEqual(expected);
   });
 
-  it("la catena per 'intern' è più corta o uguale a quella di 'partner'", async () => {
-    const [partnerChain, internChain] = await Promise.all([
-      sessionTierStore.run(makeSessionCtx("partner"), () => getAgentChain("analyzer")),
-      sessionTierStore.run(makeSessionCtx("intern"), () => getAgentChain("analyzer")),
-    ]);
-    expect(internChain.length).toBeLessThanOrEqual(partnerChain.length);
-  });
+  it("changing global tier changes the chain returned outside store", () => {
+    setCurrentTier("partner");
+    const partnerChain = getAgentChain("analyzer");
 
-  it("investigator ha solo modelli Anthropic (web_search constraint)", async () => {
-    const ctx = makeSessionCtx("partner");
-    const chain = await sessionTierStore.run(ctx, () => getAgentChain("investigator"));
-    for (const key of chain) {
-      expect(key).toContain("claude");
+    setCurrentTier("intern");
+    const internChain = getAgentChain("analyzer");
+
+    expect(internChain.length).toBeLessThanOrEqual(partnerChain.length);
+    // intern chain is a suffix of partner chain
+    const partnerSuffix = partnerChain.slice(partnerChain.length - internChain.length);
+    expect(internChain).toEqual(partnerSuffix);
+  });
+});
+
+// =============================================================================
+// getFullAgentChain
+// =============================================================================
+
+describe("getFullAgentChain", () => {
+  for (const agent of ALL_AGENTS) {
+    it(`returns the complete chain for ${agent}`, () => {
+      expect(getFullAgentChain(agent)).toEqual(AGENT_CHAINS[agent]);
+    });
+  }
+
+  it("full chain is always >= filtered chain for any tier", async () => {
+    for (const agent of ALL_AGENTS) {
+      const full = getFullAgentChain(agent);
+      for (const tier of ALL_TIERS) {
+        const ctx = makeSessionCtx(tier);
+        const filtered = await sessionTierStore.run(ctx, () => getAgentChain(agent));
+        expect(full.length).toBeGreaterThanOrEqual(filtered.length);
+      }
     }
   });
 
-  it("tutte le catene hanno almeno 1 elemento", async () => {
-    const agents: AgentName[] = ["leader", "question-prep", "classifier", "corpus-agent", "analyzer", "investigator", "advisor"];
-    const ctx = makeSessionCtx("intern");
-    for (const agent of agents) {
-      const chain = await sessionTierStore.run(ctx, () => getAgentChain(agent));
-      expect(chain.length).toBeGreaterThanOrEqual(1);
+  it("full chain starts with the partner chain", async () => {
+    for (const agent of ALL_AGENTS) {
+      const full = getFullAgentChain(agent);
+      const partnerCtx = makeSessionCtx("partner");
+      const partnerChain = await sessionTierStore.run(partnerCtx, () => getAgentChain(agent));
+      // Partner starts at index 0, so partner chain == full chain
+      if (TIER_START[agent].partner === 0) {
+        expect(partnerChain).toEqual(full);
+      }
     }
   });
 });
 
+// =============================================================================
+// isAgentEnabled / setAgentEnabled / getDisabledAgents
+// =============================================================================
+
 describe("isAgentEnabled", () => {
-  it("ritorna true di default (nessun agente disabilitato)", () => {
-    // Fuori dal context store, usa lo stato globale (che di default ha tutto abilitato)
-    // ma isoliamo con un context "vuoto"
-    const result = isAgentEnabled("classifier");
-    expect(typeof result).toBe("boolean");
+  it("all agents are enabled by default", () => {
+    for (const agent of ALL_AGENTS) {
+      expect(isAgentEnabled(agent)).toBe(true);
+    }
   });
 
-  it("ritorna true per agente non in disabledAgents", async () => {
-    const ctx = makeSessionCtx("partner", ["analyzer"]);
-    const result = await sessionTierStore.run(ctx, () => isAgentEnabled("classifier"));
-    expect(result).toBe(true);
+  it("returns false after disabling an agent", () => {
+    setAgentEnabled("analyzer", false);
+    expect(isAgentEnabled("analyzer")).toBe(false);
   });
 
-  it("ritorna false per agente in disabledAgents", async () => {
+  it("returns true after re-enabling an agent", () => {
+    setAgentEnabled("analyzer", false);
+    setAgentEnabled("analyzer", true);
+    expect(isAgentEnabled("analyzer")).toBe(true);
+  });
+
+  it("disabling one agent does not affect others", () => {
+    setAgentEnabled("analyzer", false);
+    expect(isAgentEnabled("classifier")).toBe(true);
+    expect(isAgentEnabled("investigator")).toBe(true);
+    expect(isAgentEnabled("advisor")).toBe(true);
+  });
+
+  it("reads from sessionTierStore when available", async () => {
     const ctx = makeSessionCtx("partner", ["analyzer"]);
     const result = await sessionTierStore.run(ctx, () => isAgentEnabled("analyzer"));
     expect(result).toBe(false);
   });
 
-  it("isola correttamente tra sessioni concorrenti", async () => {
-    const ctx1 = makeSessionCtx("partner", ["analyzer"]);
-    const ctx2 = makeSessionCtx("partner", ["classifier"]);
+  it("sessionTierStore disabled list takes priority over global state", async () => {
+    // Global: analyzer disabled
+    setAgentEnabled("analyzer", false);
+    // Session: analyzer NOT disabled
+    const ctx = makeSessionCtx("partner", []);
+    const result = await sessionTierStore.run(ctx, () => isAgentEnabled("analyzer"));
+    expect(result).toBe(true);
+  });
 
-    const [r1, r2] = await Promise.all([
-      sessionTierStore.run(ctx1, () => isAgentEnabled("analyzer")),
-      sessionTierStore.run(ctx2, () => isAgentEnabled("analyzer")),
-    ]);
-
-    expect(r1).toBe(false);  // ctx1 disabilita analyzer
-    expect(r2).toBe(true);   // ctx2 non disabilita analyzer
+  it("sessionTierStore can disable agents that are globally enabled", async () => {
+    // Global: all enabled
+    const ctx = makeSessionCtx("partner", ["classifier", "advisor"]);
+    const [classifierEnabled, advisorEnabled, analyzerEnabled] = await sessionTierStore.run(
+      ctx,
+      () => [
+        isAgentEnabled("classifier"),
+        isAgentEnabled("advisor"),
+        isAgentEnabled("analyzer"),
+      ],
+    );
+    expect(classifierEnabled).toBe(false);
+    expect(advisorEnabled).toBe(false);
+    expect(analyzerEnabled).toBe(true);
   });
 });
 
-describe("sessionTierStore isolation", () => {
-  it("isola tier tra richieste concorrenti", async () => {
-    const ctx1 = makeSessionCtx("intern");
-    const ctx2 = makeSessionCtx("partner");
+describe("setAgentEnabled", () => {
+  it("disabling is idempotent", () => {
+    setAgentEnabled("analyzer", false);
+    setAgentEnabled("analyzer", false);
+    expect(isAgentEnabled("analyzer")).toBe(false);
+    expect(getDisabledAgents().filter((a) => a === "analyzer")).toHaveLength(1);
+  });
 
+  it("enabling is idempotent", () => {
+    setAgentEnabled("analyzer", true);
+    setAgentEnabled("analyzer", true);
+    expect(isAgentEnabled("analyzer")).toBe(true);
+  });
+
+  it("can disable multiple agents independently", () => {
+    setAgentEnabled("analyzer", false);
+    setAgentEnabled("advisor", false);
+    setAgentEnabled("investigator", false);
+
+    expect(isAgentEnabled("analyzer")).toBe(false);
+    expect(isAgentEnabled("advisor")).toBe(false);
+    expect(isAgentEnabled("investigator")).toBe(false);
+    expect(isAgentEnabled("classifier")).toBe(true);
+  });
+});
+
+describe("getDisabledAgents", () => {
+  it("returns empty array when no agents are disabled", () => {
+    expect(getDisabledAgents()).toEqual([]);
+  });
+
+  it("returns the disabled agents", () => {
+    setAgentEnabled("analyzer", false);
+    setAgentEnabled("advisor", false);
+
+    const disabled = getDisabledAgents();
+    expect(disabled).toContain("analyzer");
+    expect(disabled).toContain("advisor");
+    expect(disabled).toHaveLength(2);
+  });
+
+  it("removing an agent from disabled list is reflected", () => {
+    setAgentEnabled("classifier", false);
+    expect(getDisabledAgents()).toContain("classifier");
+
+    setAgentEnabled("classifier", true);
+    expect(getDisabledAgents()).not.toContain("classifier");
+  });
+
+  it("reflects only global state, not sessionTierStore state", async () => {
+    // Globally, nothing is disabled
+    // In session, analyzer is disabled
+    const ctx = makeSessionCtx("partner", ["analyzer"]);
+    const disabled = await sessionTierStore.run(ctx, () => getDisabledAgents());
+    // getDisabledAgents() reads from the global Set, not the session context
+    expect(disabled).not.toContain("analyzer");
+  });
+});
+
+// =============================================================================
+// sessionTierStore isolation
+// =============================================================================
+
+describe("sessionTierStore isolation", () => {
+  it("isolates tier between concurrent requests", async () => {
     const [tier1, tier2] = await Promise.all([
-      sessionTierStore.run(ctx1, async () => {
-        await new Promise((r) => setTimeout(r, 1));
+      sessionTierStore.run(makeSessionCtx("intern"), async () => {
+        await new Promise((r) => setTimeout(r, 5));
         return getCurrentTier();
       }),
-      sessionTierStore.run(ctx2, async () => {
-        await new Promise((r) => setTimeout(r, 1));
+      sessionTierStore.run(makeSessionCtx("partner"), async () => {
+        await new Promise((r) => setTimeout(r, 5));
         return getCurrentTier();
       }),
     ]);
@@ -178,17 +419,14 @@ describe("sessionTierStore isolation", () => {
     expect(tier2).toBe("partner");
   });
 
-  it("isola disabledAgents tra sessioni concorrenti", async () => {
-    const ctx1 = makeSessionCtx("partner", ["advisor"]);
-    const ctx2 = makeSessionCtx("partner", []);
-
+  it("isolates disabled agents between concurrent requests", async () => {
     const [r1, r2] = await Promise.all([
-      sessionTierStore.run(ctx1, async () => {
-        await new Promise((r) => setTimeout(r, 1));
+      sessionTierStore.run(makeSessionCtx("partner", ["advisor"]), async () => {
+        await new Promise((r) => setTimeout(r, 5));
         return isAgentEnabled("advisor");
       }),
-      sessionTierStore.run(ctx2, async () => {
-        await new Promise((r) => setTimeout(r, 1));
+      sessionTierStore.run(makeSessionCtx("partner", []), async () => {
+        await new Promise((r) => setTimeout(r, 5));
         return isAgentEnabled("advisor");
       }),
     ]);
@@ -196,19 +434,57 @@ describe("sessionTierStore isolation", () => {
     expect(r1).toBe(false);
     expect(r2).toBe(true);
   });
+
+  it("isolates getAgentChain between concurrent requests with different tiers", async () => {
+    const [partnerChain, internChain] = await Promise.all([
+      sessionTierStore.run(makeSessionCtx("partner"), async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        return getAgentChain("analyzer");
+      }),
+      sessionTierStore.run(makeSessionCtx("intern"), async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        return getAgentChain("analyzer");
+      }),
+    ]);
+
+    expect(partnerChain.length).toBeGreaterThanOrEqual(internChain.length);
+    // Intern chain is a suffix of partner chain
+    for (const model of internChain) {
+      expect(partnerChain).toContain(model);
+    }
+  });
+
+  it("nested sessionTierStore.run uses innermost context", async () => {
+    const result = await sessionTierStore.run(makeSessionCtx("partner"), async () => {
+      const outer = getCurrentTier();
+      const inner = await sessionTierStore.run(makeSessionCtx("intern"), () => {
+        return getCurrentTier();
+      });
+      const afterInner = getCurrentTier();
+      return { outer, inner, afterInner };
+    });
+
+    expect(result.outer).toBe("partner");
+    expect(result.inner).toBe("intern");
+    expect(result.afterInner).toBe("partner");
+  });
 });
 
+// =============================================================================
+// getActiveModel
+// =============================================================================
+
 describe("getActiveModel", () => {
-  it("ritorna il primo modello con provider disponibile", async () => {
+  it("returns the first model when all providers are available", async () => {
     mockIsProviderEnabled.mockReturnValue(true);
     const ctx = makeSessionCtx("partner");
     const model = await sessionTierStore.run(ctx, () => getActiveModel("classifier"));
-    expect(typeof model).toBe("string");
-    expect(AGENT_CHAINS.classifier).toContain(model);
+    const chain = AGENT_CHAINS.classifier.slice(TIER_START.classifier.partner);
+    expect(model).toBe(chain[0]);
   });
 
-  it("salta modelli con provider non disponibile", async () => {
-    // Primo disabilitato, secondo abilitato
+  it("skips models with unavailable providers", async () => {
+    // First call: anthropic (false), then all true
     mockIsProviderEnabled
       .mockReturnValueOnce(false)
       .mockReturnValue(true);
@@ -216,65 +492,229 @@ describe("getActiveModel", () => {
     const ctx = makeSessionCtx("partner");
     const model = await sessionTierStore.run(ctx, () => getActiveModel("classifier"));
     const chain = AGENT_CHAINS.classifier.slice(TIER_START.classifier.partner);
-    // Non deve essere il primo (che era disabilitato)
-    expect(model).not.toBe(chain[0]);
+    expect(model).toBe(chain[1]);
   });
 
-  it("ritorna primo elemento della catena se tutti i provider sono disabilitati (fallback)", async () => {
+  it("skips first two unavailable providers, picks third", async () => {
+    mockIsProviderEnabled
+      .mockReturnValueOnce(false) // first
+      .mockReturnValueOnce(false) // second
+      .mockReturnValue(true);     // third onwards
+
+    const ctx = makeSessionCtx("partner");
+    const model = await sessionTierStore.run(ctx, () => getActiveModel("classifier"));
+    const chain = AGENT_CHAINS.classifier.slice(TIER_START.classifier.partner);
+    expect(model).toBe(chain[2]);
+  });
+
+  it("returns first element as fallback when all providers are disabled", async () => {
     mockIsProviderEnabled.mockReturnValue(false);
     const ctx = makeSessionCtx("partner");
     const model = await sessionTierStore.run(ctx, () => getActiveModel("classifier"));
     const chain = AGENT_CHAINS.classifier.slice(TIER_START.classifier.partner);
     expect(model).toBe(chain[0]);
   });
+
+  it("respects the current tier when selecting active model", async () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+
+    const partnerModel = await sessionTierStore.run(
+      makeSessionCtx("partner"),
+      () => getActiveModel("analyzer"),
+    );
+    const internModel = await sessionTierStore.run(
+      makeSessionCtx("intern"),
+      () => getActiveModel("analyzer"),
+    );
+
+    const partnerChain = AGENT_CHAINS.analyzer.slice(TIER_START.analyzer.partner);
+    const internChain = AGENT_CHAINS.analyzer.slice(TIER_START.analyzer.intern);
+
+    expect(partnerModel).toBe(partnerChain[0]);
+    expect(internModel).toBe(internChain[0]);
+  });
+
+  it("works outside sessionTierStore using global tier", () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    setCurrentTier("intern");
+    const model = getActiveModel("classifier");
+    const internChain = AGENT_CHAINS.classifier.slice(TIER_START.classifier.intern);
+    expect(model).toBe(internChain[0]);
+  });
+
+  it("returned model always exists in MODELS registry", async () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    for (const agent of ALL_AGENTS) {
+      for (const tier of ALL_TIERS) {
+        const ctx = makeSessionCtx(tier);
+        const model = await sessionTierStore.run(ctx, () => getActiveModel(agent));
+        expect(MODELS[model]).toBeDefined();
+      }
+    }
+  });
 });
 
+// =============================================================================
+// getTierInfo
+// =============================================================================
+
 describe("getTierInfo", () => {
-  it("ritorna struttura con current e agents", () => {
+  it("returns structure with current and agents", () => {
     const info = getTierInfo();
     expect(info).toHaveProperty("current");
     expect(info).toHaveProperty("agents");
-    expect(["intern", "associate", "partner"]).toContain(info.current);
   });
 
-  it("contiene tutti gli agenti", () => {
+  it("current reflects the global tier", () => {
+    setCurrentTier("intern");
+    expect(getTierInfo().current).toBe("intern");
+
+    setCurrentTier("associate");
+    expect(getTierInfo().current).toBe("associate");
+
+    setCurrentTier("partner");
+    expect(getTierInfo().current).toBe("partner");
+  });
+
+  it("contains all expected agents", () => {
     const info = getTierInfo();
-    const expectedAgents: AgentName[] = ["leader", "question-prep", "classifier", "corpus-agent", "analyzer", "investigator", "advisor"];
-    for (const agent of expectedAgents) {
+    for (const agent of ALL_AGENTS) {
       expect(info.agents).toHaveProperty(agent);
     }
   });
 
-  it("ogni agente ha chain, activeIndex, activeModel, enabled", () => {
+  it("each agent entry has chain, activeIndex, activeModel, enabled", () => {
     const info = getTierInfo();
-    for (const [, agentInfo] of Object.entries(info.agents)) {
+    for (const agent of ALL_AGENTS) {
+      const agentInfo = info.agents[agent];
       expect(agentInfo).toHaveProperty("chain");
       expect(agentInfo).toHaveProperty("activeIndex");
       expect(agentInfo).toHaveProperty("activeModel");
       expect(agentInfo).toHaveProperty("enabled");
       expect(Array.isArray(agentInfo.chain)).toBe(true);
+      expect(typeof agentInfo.activeIndex).toBe("number");
+      expect(typeof agentInfo.activeModel).toBe("string");
       expect(typeof agentInfo.enabled).toBe("boolean");
+    }
+  });
+
+  it("chain entries have key, displayName, provider, available", () => {
+    const info = getTierInfo();
+    for (const agent of ALL_AGENTS) {
+      for (const entry of info.agents[agent].chain) {
+        expect(entry).toHaveProperty("key");
+        expect(entry).toHaveProperty("displayName");
+        expect(entry).toHaveProperty("provider");
+        expect(entry).toHaveProperty("available");
+        expect(typeof entry.key).toBe("string");
+        expect(typeof entry.displayName).toBe("string");
+        expect(typeof entry.provider).toBe("string");
+        expect(typeof entry.available).toBe("boolean");
+      }
+    }
+  });
+
+  it("chain length matches getAgentChain for current tier", () => {
+    setCurrentTier("partner");
+    const info = getTierInfo();
+    for (const agent of ALL_AGENTS) {
+      const chain = getAgentChain(agent);
+      expect(info.agents[agent].chain).toHaveLength(chain.length);
+    }
+  });
+
+  it("activeIndex is 0 when all providers are available", () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    const info = getTierInfo();
+    for (const agent of ALL_AGENTS) {
+      expect(info.agents[agent].activeIndex).toBe(0);
+    }
+  });
+
+  it("enabled reflects global agent toggle state", () => {
+    setAgentEnabled("analyzer", false);
+    setAgentEnabled("investigator", false);
+
+    const info = getTierInfo();
+    expect(info.agents.analyzer.enabled).toBe(false);
+    expect(info.agents.investigator.enabled).toBe(false);
+    expect(info.agents.classifier.enabled).toBe(true);
+    expect(info.agents.advisor.enabled).toBe(true);
+  });
+
+  it("activeModel matches the key at activeIndex in chain", () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    const info = getTierInfo();
+    for (const agent of ALL_AGENTS) {
+      const agentInfo = info.agents[agent];
+      expect(agentInfo.activeModel).toBe(agentInfo.chain[agentInfo.activeIndex].key);
     }
   });
 });
 
+// =============================================================================
+// getTierInfoForSession
+// =============================================================================
+
 describe("getTierInfoForSession", () => {
-  it("usa il tier passato come parametro (non il globale)", () => {
+  it("uses the tier parameter, not the global tier", () => {
+    setCurrentTier("partner");
     const info = getTierInfoForSession("intern", new Set());
     expect(info.current).toBe("intern");
   });
 
-  it("riflette gli agenti disabilitati passati", () => {
+  it("reflects disabled agents from the parameter", () => {
     const disabled = new Set<AgentName>(["analyzer", "advisor"]);
     const info = getTierInfoForSession("partner", disabled);
     expect(info.agents.analyzer.enabled).toBe(false);
     expect(info.agents.advisor.enabled).toBe(false);
     expect(info.agents.classifier.enabled).toBe(true);
+    expect(info.agents.leader.enabled).toBe(true);
+  });
+
+  it("chain length varies by tier", () => {
+    const partnerInfo = getTierInfoForSession("partner", new Set());
+    const internInfo = getTierInfoForSession("intern", new Set());
+
+    for (const agent of ALL_AGENTS) {
+      expect(partnerInfo.agents[agent].chain.length)
+        .toBeGreaterThanOrEqual(internInfo.agents[agent].chain.length);
+    }
+  });
+
+  it("contains all agents", () => {
+    const info = getTierInfoForSession("associate", new Set());
+    for (const agent of ALL_AGENTS) {
+      expect(info.agents).toHaveProperty(agent);
+    }
+  });
+
+  it("does not mutate global state", () => {
+    setCurrentTier("partner");
+    getTierInfoForSession("intern", new Set(["analyzer"] as AgentName[]));
+    // Global state should be unchanged
+    expect(getCurrentTier()).toBe("partner");
+    expect(isAgentEnabled("analyzer")).toBe(true);
+  });
+
+  it("chain keys match the sliced AGENT_CHAINS", () => {
+    for (const tier of ALL_TIERS) {
+      const info = getTierInfoForSession(tier, new Set());
+      for (const agent of ALL_AGENTS) {
+        const expectedChain = AGENT_CHAINS[agent].slice(TIER_START[agent][tier]);
+        const actualKeys = info.agents[agent].chain.map((e) => e.key);
+        expect(actualKeys).toEqual(expectedChain);
+      }
+    }
   });
 });
 
+// =============================================================================
+// estimateTierCost
+// =============================================================================
+
 describe("estimateTierCost", () => {
-  it("ritorna un oggetto con perQuery e label", () => {
+  it("returns an object with perQuery and label", () => {
     const cost = estimateTierCost();
     expect(cost).toHaveProperty("perQuery");
     expect(cost).toHaveProperty("label");
@@ -282,194 +722,172 @@ describe("estimateTierCost", () => {
     expect(typeof cost.label).toBe("string");
   });
 
-  it("perQuery >= 0", () => {
+  it("perQuery is >= 0", () => {
     const cost = estimateTierCost();
     expect(cost.perQuery).toBeGreaterThanOrEqual(0);
   });
+
+  it("disabling agents reduces cost", () => {
+    const fullCost = estimateTierCost();
+    setAgentEnabled("analyzer", false);
+    setAgentEnabled("investigator", false);
+    const reducedCost = estimateTierCost();
+    expect(reducedCost.perQuery).toBeLessThanOrEqual(fullCost.perQuery);
+  });
+
+  it("all agents disabled produces cost 0 and label '~gratis'", () => {
+    for (const agent of ALL_AGENTS) {
+      setAgentEnabled(agent, false);
+    }
+    const cost = estimateTierCost();
+    expect(cost.perQuery).toBe(0);
+    expect(cost.label).toBe("~gratis");
+  });
+
+  it("uses getActiveModel to select model for cost calculation", () => {
+    // When all providers are enabled, uses first model in chain
+    mockIsProviderEnabled.mockReturnValue(true);
+    const cost = estimateTierCost();
+    expect(cost.perQuery).toBeGreaterThan(0);
+  });
 });
 
+// =============================================================================
+// estimateTierCostForSession
+// =============================================================================
+
 describe("estimateTierCostForSession", () => {
-  it("tier intern ha costo <= tier partner", () => {
+  it("intern tier costs <= partner tier (cheaper models)", () => {
     const internCost = estimateTierCostForSession("intern", new Set());
     const partnerCost = estimateTierCostForSession("partner", new Set());
     expect(internCost.perQuery).toBeLessThanOrEqual(partnerCost.perQuery);
   });
 
-  it("disabilitare agenti riduce il costo", () => {
+  it("associate tier costs between intern and partner", () => {
+    const internCost = estimateTierCostForSession("intern", new Set());
+    const associateCost = estimateTierCostForSession("associate", new Set());
+    const partnerCost = estimateTierCostForSession("partner", new Set());
+    expect(associateCost.perQuery).toBeGreaterThanOrEqual(internCost.perQuery);
+    expect(associateCost.perQuery).toBeLessThanOrEqual(partnerCost.perQuery);
+  });
+
+  it("disabling agents reduces cost", () => {
     const fullCost = estimateTierCostForSession("partner", new Set());
-    const partialCost = estimateTierCostForSession("partner", new Set(["analyzer", "investigator", "advisor"] as AgentName[]));
+    const disabled = new Set<AgentName>(["analyzer", "investigator", "advisor"]);
+    const partialCost = estimateTierCostForSession("partner", disabled);
     expect(partialCost.perQuery).toBeLessThanOrEqual(fullCost.perQuery);
   });
 
-  it("tutti gli agenti disabilitati → costo ~0", () => {
-    const allAgents = new Set<AgentName>(["leader", "question-prep", "classifier", "corpus-agent", "analyzer", "investigator", "advisor", "task-executor"]);
-    const cost = estimateTierCostForSession("partner", allAgents);
+  it("all agents disabled produces cost 0 and label '~gratis'", () => {
+    const allAgentsSet = new Set<AgentName>(ALL_AGENTS);
+    const cost = estimateTierCostForSession("partner", allAgentsSet);
     expect(cost.perQuery).toBe(0);
     expect(cost.label).toBe("~gratis");
   });
-});
 
-// ─── setCurrentTier ──────────────────────────────────────────────────────────
-
-describe("setCurrentTier", () => {
-  it("cambia il tier globale", () => {
-    const original = getCurrentTier();
-    setCurrentTier("intern");
-    expect(getCurrentTier()).toBe("intern");
-    // Ripristina
-    setCurrentTier(original);
-  });
-
-  it("accetta tutti i 3 tier validi", () => {
-    const original = getCurrentTier();
-    for (const tier of ["intern", "associate", "partner"] as TierName[]) {
-      setCurrentTier(tier);
-      expect(getCurrentTier()).toBe(tier);
-    }
-    setCurrentTier(original);
-  });
-
-  it("non influenza sessionTierStore (i context store hanno priorità)", async () => {
-    setCurrentTier("intern");
-    const ctx = makeSessionCtx("partner");
-    const result = await sessionTierStore.run(ctx, () => getCurrentTier());
-    expect(result).toBe("partner");
-    setCurrentTier("partner"); // ripristina
-  });
-});
-
-// ─── setAgentEnabled / getDisabledAgents ─────────────────────────────────────
-
-describe("setAgentEnabled / getDisabledAgents", () => {
-  it("disabilita un agente nello stato globale", () => {
-    // Assicuriamoci che analyzer sia abilitato inizialmente
-    setAgentEnabled("analyzer", true);
+  it("does not mutate global state", () => {
+    setCurrentTier("partner");
+    estimateTierCostForSession("intern", new Set(["analyzer"] as AgentName[]));
+    expect(getCurrentTier()).toBe("partner");
     expect(isAgentEnabled("analyzer")).toBe(true);
-
-    setAgentEnabled("analyzer", false);
-    expect(isAgentEnabled("analyzer")).toBe(false);
-
-    // Ripristina
-    setAgentEnabled("analyzer", true);
   });
 
-  it("getDisabledAgents ritorna gli agenti disabilitati", () => {
-    // Pulisci stato
-    setAgentEnabled("analyzer", true);
-    setAgentEnabled("advisor", true);
+  describe("label formatting", () => {
+    it("label is '~gratis' when perQuery is 0", () => {
+      const allAgentsSet = new Set<AgentName>(ALL_AGENTS);
+      const cost = estimateTierCostForSession("partner", allAgentsSet);
+      expect(cost.label).toBe("~gratis");
+    });
 
-    setAgentEnabled("analyzer", false);
-    setAgentEnabled("advisor", false);
-
-    const disabled = getDisabledAgents();
-    expect(disabled).toContain("analyzer");
-    expect(disabled).toContain("advisor");
-    expect(disabled).not.toContain("classifier");
-
-    // Ripristina
-    setAgentEnabled("analyzer", true);
-    setAgentEnabled("advisor", true);
-  });
-
-  it("ri-abilitare un agente lo rimuove dalla lista disabled", () => {
-    setAgentEnabled("classifier", false);
-    expect(getDisabledAgents()).toContain("classifier");
-
-    setAgentEnabled("classifier", true);
-    expect(getDisabledAgents()).not.toContain("classifier");
-  });
-
-  it("setAgentEnabled non influenza il sessionTierStore", async () => {
-    setAgentEnabled("analyzer", false);
-    const ctx = makeSessionCtx("partner", []); // nessun agente disabilitato nel context
-    const result = await sessionTierStore.run(ctx, () => isAgentEnabled("analyzer"));
-    expect(result).toBe(true); // il context store ha priorità
-
-    // Ripristina
-    setAgentEnabled("analyzer", true);
-  });
-});
-
-// ─── getFullAgentChain ───────────────────────────────────────────────────────
-
-describe("getFullAgentChain", () => {
-  it("ritorna la catena completa (non filtrata per tier)", () => {
-    const fullChain = getFullAgentChain("classifier");
-    expect(fullChain).toEqual(AGENT_CHAINS.classifier);
-  });
-
-  it("la catena completa è >= la catena filtrata per qualsiasi tier", async () => {
-    const agents: AgentName[] = ["classifier", "analyzer", "investigator", "advisor"];
-    for (const agent of agents) {
-      const full = getFullAgentChain(agent);
-      for (const tier of ["intern", "associate", "partner"] as TierName[]) {
-        const ctx = makeSessionCtx(tier);
-        const filtered = await sessionTierStore.run(ctx, () => getAgentChain(agent));
-        expect(full.length).toBeGreaterThanOrEqual(filtered.length);
+    it("label contains '$' when cost > 0", () => {
+      mockIsProviderEnabled.mockReturnValue(true);
+      const cost = estimateTierCostForSession("partner", new Set());
+      if (cost.perQuery > 0) {
+        expect(cost.label).toContain("$");
       }
-    }
-  });
+    });
 
-  it("task-executor ha la propria catena separata", () => {
-    const chain = getFullAgentChain("task-executor");
-    expect(chain.length).toBeGreaterThanOrEqual(1);
-    expect(AGENT_CHAINS["task-executor"]).toEqual(chain);
+    it("label format is '~$X.Xc' for costs between 0.001 and 0.01", () => {
+      // We can verify indirectly: intern with cheap models should produce a low cost
+      mockIsProviderEnabled.mockReturnValue(true);
+      const cost = estimateTierCostForSession("intern", new Set());
+      // The label should match one of the expected formats
+      expect(cost.label).toMatch(/^~(gratis|\$[\d.]+c?)$/);
+    });
   });
 });
 
-// ─── Data Integrity ──────────────────────────────────────────────────────────
+// =============================================================================
+// AGENT_CHAINS data integrity
+// =============================================================================
 
 describe("AGENT_CHAINS data integrity", () => {
-  const allAgents: AgentName[] = [
-    "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor",
-  ];
-
-  it("ogni agente ha una catena definita in AGENT_CHAINS", () => {
-    for (const agent of allAgents) {
+  it("every agent has a chain defined", () => {
+    for (const agent of ALL_AGENTS) {
       expect(AGENT_CHAINS[agent]).toBeDefined();
       expect(Array.isArray(AGENT_CHAINS[agent])).toBe(true);
     }
   });
 
-  it("ogni modello nella catena esiste nel registry MODELS", async () => {
-    const { MODELS } = await import("@/lib/models");
-    for (const agent of allAgents) {
+  it("every model key in every chain exists in the MODELS registry", () => {
+    for (const agent of ALL_AGENTS) {
       for (const modelKey of AGENT_CHAINS[agent]) {
         expect(MODELS[modelKey]).toBeDefined();
+        expect(MODELS[modelKey]).toHaveProperty("provider");
+        expect(MODELS[modelKey]).toHaveProperty("displayName");
       }
     }
   });
 
-  it("nessuna catena contiene duplicati", () => {
-    for (const agent of allAgents) {
+  it("no chain contains duplicate model keys", () => {
+    for (const agent of ALL_AGENTS) {
       const chain = AGENT_CHAINS[agent];
       const uniqueKeys = new Set(chain);
       expect(uniqueKeys.size).toBe(chain.length);
     }
   });
+
+  it("chains are non-empty", () => {
+    for (const agent of ALL_AGENTS) {
+      expect(AGENT_CHAINS[agent].length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("investigator chain has exactly 2 models (Sonnet + Haiku)", () => {
+    expect(AGENT_CHAINS.investigator).toHaveLength(2);
+    expect(AGENT_CHAINS.investigator[0]).toBe("claude-sonnet-4.5");
+    expect(AGENT_CHAINS.investigator[1]).toBe("claude-haiku-4.5");
+  });
+
+  it("task-executor chain starts with Opus", () => {
+    expect(AGENT_CHAINS["task-executor"][0]).toBe("claude-opus-4.5");
+  });
+
+  it("classifier, leader, and question-prep share the same chain structure", () => {
+    // They all start with haiku -> flash -> cerebras -> groq -> mistral
+    expect(AGENT_CHAINS.classifier).toEqual(AGENT_CHAINS.leader);
+    expect(AGENT_CHAINS.classifier).toEqual(AGENT_CHAINS["question-prep"]);
+  });
 });
 
-describe("TIER_START data integrity", () => {
-  const allAgents: AgentName[] = [
-    "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor",
-  ];
-  const allTiers: TierName[] = ["intern", "associate", "partner"];
+// =============================================================================
+// TIER_START data integrity
+// =============================================================================
 
-  it("ogni agente ha un TIER_START entry per tutti e 3 i tier", () => {
-    for (const agent of allAgents) {
+describe("TIER_START data integrity", () => {
+  it("every agent has TIER_START entry for all 3 tiers", () => {
+    for (const agent of ALL_AGENTS) {
       expect(TIER_START[agent]).toBeDefined();
-      for (const tier of allTiers) {
+      for (const tier of ALL_TIERS) {
         expect(typeof TIER_START[agent][tier]).toBe("number");
       }
     }
   });
 
-  it("TIER_START indices sono dentro i bounds della catena", () => {
-    for (const agent of allAgents) {
+  it("all indices are within chain bounds", () => {
+    for (const agent of ALL_AGENTS) {
       const chainLength = AGENT_CHAINS[agent].length;
-      for (const tier of allTiers) {
+      for (const tier of ALL_TIERS) {
         const startIndex = TIER_START[agent][tier];
         expect(startIndex).toBeGreaterThanOrEqual(0);
         expect(startIndex).toBeLessThan(chainLength);
@@ -477,87 +895,123 @@ describe("TIER_START data integrity", () => {
     }
   });
 
-  it("partner ha startIndex <= associate <= intern (tier superiore parte prima)", () => {
-    for (const agent of allAgents) {
+  it("partner startIndex <= associate startIndex <= intern startIndex", () => {
+    for (const agent of ALL_AGENTS) {
       expect(TIER_START[agent].partner).toBeLessThanOrEqual(TIER_START[agent].associate);
       expect(TIER_START[agent].associate).toBeLessThanOrEqual(TIER_START[agent].intern);
     }
   });
-});
 
-// ─── getAgentChain outside sessionTierStore ──────────────────────────────────
-
-describe("getAgentChain (global tier, no sessionTierStore)", () => {
-  it("usa il global tier quando chiamato fuori da sessionTierStore.run", () => {
-    const originalTier = getCurrentTier();
-    setCurrentTier("intern");
-
-    const chain = getAgentChain("classifier");
-    const startIndex = TIER_START.classifier.intern;
-    const expected = AGENT_CHAINS.classifier.slice(startIndex);
-    expect(chain).toEqual(expected);
-
-    setCurrentTier(originalTier);
+  it("partner always starts at index 0", () => {
+    for (const agent of ALL_AGENTS) {
+      expect(TIER_START[agent].partner).toBe(0);
+    }
   });
 
-  it("cambiare global tier cambia la catena ritornata fuori dallo store", () => {
-    const originalTier = getCurrentTier();
+  it("investigator intern == associate (special case: web_search = Anthropic only)", () => {
+    expect(TIER_START.investigator.intern).toBe(TIER_START.investigator.associate);
+  });
+});
 
+// =============================================================================
+// Integration-style: full workflow scenarios
+// =============================================================================
+
+describe("full workflow scenarios", () => {
+  it("partner tier with all providers enabled: uses top-tier models", async () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    const ctx = makeSessionCtx("partner");
+
+    const results = await sessionTierStore.run(ctx, () => ({
+      classifierModel: getActiveModel("classifier"),
+      analyzerModel: getActiveModel("analyzer"),
+      investigatorModel: getActiveModel("investigator"),
+      advisorModel: getActiveModel("advisor"),
+    }));
+
+    // Partner tier, all available: should pick first in each chain
+    expect(results.classifierModel).toBe("claude-haiku-4.5");
+    expect(results.analyzerModel).toBe("claude-sonnet-4.5");
+    expect(results.investigatorModel).toBe("claude-sonnet-4.5");
+    expect(results.advisorModel).toBe("claude-sonnet-4.5");
+  });
+
+  it("intern tier with all providers enabled: uses budget models", async () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    const ctx = makeSessionCtx("intern");
+
+    const results = await sessionTierStore.run(ctx, () => ({
+      classifierModel: getActiveModel("classifier"),
+      analyzerModel: getActiveModel("analyzer"),
+      advisorModel: getActiveModel("advisor"),
+    }));
+
+    // Intern tier: starts at index 2 for most agents
+    const classifierInternChain = AGENT_CHAINS.classifier.slice(TIER_START.classifier.intern);
+    const analyzerInternChain = AGENT_CHAINS.analyzer.slice(TIER_START.analyzer.intern);
+    const advisorInternChain = AGENT_CHAINS.advisor.slice(TIER_START.advisor.intern);
+
+    expect(results.classifierModel).toBe(classifierInternChain[0]);
+    expect(results.analyzerModel).toBe(analyzerInternChain[0]);
+    expect(results.advisorModel).toBe(advisorInternChain[0]);
+  });
+
+  it("anthropic-only scenario: only Anthropic provider enabled", async () => {
+    mockIsProviderEnabled.mockImplementation((provider: string) => provider === "anthropic");
+
+    const ctx = makeSessionCtx("partner");
+    const results = await sessionTierStore.run(ctx, () => ({
+      classifierModel: getActiveModel("classifier"),
+      analyzerModel: getActiveModel("analyzer"),
+      investigatorModel: getActiveModel("investigator"),
+    }));
+
+    // Classifier chain: haiku, flash, cerebras, groq, mistral -> only haiku available
+    expect(results.classifierModel).toBe("claude-haiku-4.5");
+    // Analyzer chain: sonnet, gemini-pro, mistral, groq, cerebras -> only sonnet available
+    expect(results.analyzerModel).toBe("claude-sonnet-4.5");
+    // Investigator: sonnet, haiku -> both available
+    expect(results.investigatorModel).toBe("claude-sonnet-4.5");
+  });
+
+  it("no anthropic scenario: falls through to alternative providers", async () => {
+    mockIsProviderEnabled.mockImplementation((provider: string) => provider !== "anthropic");
+
+    const ctx = makeSessionCtx("partner");
+    const classifierModel = await sessionTierStore.run(ctx, () =>
+      getActiveModel("classifier"),
+    );
+
+    // Classifier: haiku(skip), flash(ok) -> should pick flash
+    expect(classifierModel).toBe("gemini-2.5-flash");
+  });
+
+  it("getTierInfo and estimateTierCost are consistent", () => {
+    mockIsProviderEnabled.mockReturnValue(true);
     setCurrentTier("partner");
-    const partnerChain = getAgentChain("analyzer");
 
-    setCurrentTier("intern");
-    const internChain = getAgentChain("analyzer");
+    const info = getTierInfo();
+    const cost = estimateTierCost();
 
-    // La catena intern parte da piu avanti, quindi e piu corta o uguale
-    expect(internChain.length).toBeLessThanOrEqual(partnerChain.length);
-
-    setCurrentTier(originalTier);
-  });
-});
-
-// ─── estimateTierCost label format ────────────────────────────────────────────
-
-describe("estimateTierCost label formatting", () => {
-  it("tutti gli agenti disabilitati producono label '~gratis'", () => {
-    const allAgents = new Set<AgentName>([
-      "leader", "question-prep", "classifier", "corpus-agent",
-      "analyzer", "investigator", "advisor", "task-executor",
-    ]);
-    const cost = estimateTierCostForSession("partner", allAgents);
-    expect(cost.label).toBe("~gratis");
-    expect(cost.perQuery).toBe(0);
-  });
-
-  it("label contiene il simbolo $ per costi > 0", () => {
-    const cost = estimateTierCostForSession("partner", new Set());
-    // Con tutti i provider abilitati (mocked to true), i modelli hanno costi > 0
-    if (cost.perQuery > 0) {
-      expect(cost.label).toContain("$");
+    // All agents should be enabled
+    for (const agent of ALL_AGENTS) {
+      expect(info.agents[agent].enabled).toBe(true);
     }
+
+    // Cost should be positive since all agents are enabled with real models
+    expect(cost.perQuery).toBeGreaterThan(0);
   });
-});
 
-// ─── Concurrent getAgentChain with different tiers ───────────────────────────
+  it("session with disabled agents: getTierInfoForSession and estimateTierCostForSession are consistent", () => {
+    mockIsProviderEnabled.mockReturnValue(true);
+    const disabled = new Set<AgentName>(["analyzer", "investigator"]);
 
-describe("concurrent getAgentChain isolation", () => {
-  it("due sessioni concorrenti con tier diversi ottengono catene diverse per lo stesso agente", async () => {
-    const [partnerChain, internChain] = await Promise.all([
-      sessionTierStore.run(makeSessionCtx("partner"), async () => {
-        await new Promise((r) => setTimeout(r, 1));
-        return getAgentChain("analyzer");
-      }),
-      sessionTierStore.run(makeSessionCtx("intern"), async () => {
-        await new Promise((r) => setTimeout(r, 1));
-        return getAgentChain("analyzer");
-      }),
-    ]);
+    const info = getTierInfoForSession("partner", disabled);
+    const cost = estimateTierCostForSession("partner", disabled);
+    const fullCost = estimateTierCostForSession("partner", new Set());
 
-    // Partner starts at index 0, intern starts later
-    expect(partnerChain.length).toBeGreaterThanOrEqual(internChain.length);
-    // Partner chain should include all models from intern chain
-    for (const model of internChain) {
-      expect(partnerChain).toContain(model);
-    }
+    expect(info.agents.analyzer.enabled).toBe(false);
+    expect(info.agents.investigator.enabled).toBe(false);
+    expect(cost.perQuery).toBeLessThan(fullCost.perQuery);
   });
 });

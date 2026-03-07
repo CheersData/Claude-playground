@@ -151,3 +151,20 @@ Fine trimestre → Quarterly Review → nuovi OKR
 - `runbooks/quarterly-review.md` — Procedura revisione trimestrale OKR e roadmap
 - `runbooks/feature-prioritization.md` — Come prioritizzare le feature con framework RICE
 - `runbooks/opportunity-brief.md` — Come strutturare e validare un'Opportunity Brief
+
+---
+
+## Visione (6 mesi)
+
+Controlla.me come piattaforma madre con almeno 2 verticali attivi (legale + HR). Pipeline opportunità strutturata che genera almeno 1 nuovo dominio validato per trimestre. Competitive intelligence automatizzata.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Opportunity Brief verticale HR** — valutare domanda HRTech Italia, competitor, fonti necessarie, effort
+2. **[P1] OKR Q2 2026** — definire obiettivi misurabili per il trimestre basati sullo stato attuale
+3. **[P2] Competitive intelligence** — monitoraggio sistematico dei 5 competitor principali LegalTech IT
+
+## Autonomia
+
+- **L1 (auto)**: opportunity scouting, competitor analysis, feature proposal RICE, OKR draft
+- **L2+ (escalation)**: proposta nuovo verticale (L3 boss), proposta nuovo agente, cambio strategia pricing

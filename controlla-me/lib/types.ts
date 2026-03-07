@@ -170,6 +170,9 @@ export type ConsolePhaseStatus = "running" | "done" | "error" | "skipped";
 // ─── SSE Event Types ───
 
 export type AgentPhase = "classifier" | "analyzer" | "investigator" | "advisor";
+
+/** Extended phases for /legaloffice sidebar — includes corpus agent steps */
+export type LegalOfficePhase = AgentPhase | "comprensione" | "corpus-search";
 export type PhaseStatus = "running" | "done" | "error" | "skipped";
 
 export interface ProgressEvent {

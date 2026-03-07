@@ -299,6 +299,57 @@ class RiskManager(BaseAgent):
                 entry_price=entry_price,
             )
 
+        # --- Directional exposure check (BUY + SHORT) ---
+        # Prevents portfolio from becoming too concentrated in one direction.
+        # Uses max_directional_exposure_pct (default 60%): if the portfolio already
+        # has 60%+ in long (or short), reject new signals in that same direction.
+        long_value = sum(
+            abs(p.get("market_value", 0))
+            for p in positions
+            if p.get("qty", 0) > 0
+        )
+        short_value = sum(
+            abs(p.get("market_value", 0))
+            for p in positions
+            if p.get("qty", 0) < 0
+        )
+        total_invested = long_value + short_value
+        if total_invested > 0 and portfolio_value > 0:
+            long_pct = (long_value / portfolio_value) * 100
+            short_pct = (short_value / portfolio_value) * 100
+            max_dir_pct = self._risk.max_directional_exposure_pct
+
+            if action == SignalAction.BUY and long_pct >= max_dir_pct:
+                self.logger.warning(
+                    "directional_exposure_rejected",
+                    symbol=symbol,
+                    action=action.value,
+                    long_pct=round(long_pct, 1),
+                    short_pct=round(short_pct, 1),
+                    limit=max_dir_pct,
+                )
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason=f"Long exposure {long_pct:.1f}% exceeds directional limit {max_dir_pct}% — portfolio too concentrated long",
+                )
+            if action == SignalAction.SHORT and short_pct >= max_dir_pct:
+                self.logger.warning(
+                    "directional_exposure_rejected",
+                    symbol=symbol,
+                    action=action.value,
+                    long_pct=round(long_pct, 1),
+                    short_pct=round(short_pct, 1),
+                    limit=max_dir_pct,
+                )
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason=f"Short exposure {short_pct:.1f}% exceeds directional limit {max_dir_pct}% — portfolio too concentrated short",
+                )
+
         # --- BUY validation ---
 
         # Check max positions

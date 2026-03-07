@@ -3,19 +3,18 @@
  *
  * Logica:
  *   1. Se esistono task in_progress → EXIT (batch già in corso, non sovrapporre)
- *   2. Se esistono task open → claim top 10 per priorità, esegui via `claude -p`, marca done/blocked
+ *   2. Se esistono task open → claim top 10 per priorità, esegui via LLM gratuiti, marca done/blocked
  *   3. Se in_progress E open sono entrambi vuoti → convoca tutti i dipartimenti, genera
  *      Sprint N, metti i task in status "review" per approvazione del boss
  *
  * I sprint richiedono APPROVAZIONE ESPLICITA del boss prima di diventare operativi.
  * Report di tutti i dipartimenti inclusi nel file sprint.
  *
+ * Usa provider gratuiti (Gemini Flash/Groq/Cerebras) via scripts/lib/llm.ts.
+ *
  * Usage:
  *   npx tsx scripts/task-runner.ts           # single run
  *   npx tsx scripts/task-runner.ts --watch   # loop ogni 5 minuti
- *
- * NOTA: Deve essere eseguito da un terminale ESTERNO — le sessioni annidate
- *       non sono supportate per `claude -p` (CLAUDE.md regola assoluta).
  */
 
 import * as dotenv from "dotenv";
@@ -23,7 +22,7 @@ import * as path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 import * as fs from "fs";
-import { spawnSync } from "child_process";
+import { callLLM, parseJSON } from "./lib/llm";
 import {
   getTaskBoard,
   getOpenTasks,
@@ -86,36 +85,6 @@ function saveSprintNumber(n: number): void {
   fs.writeFileSync(SPRINT_COUNTER_FILE, String(n), "utf-8");
 }
 
-// ─── Claude CLI ───
-
-/**
- * Chiama `claude -p` con il prompt dato.
- * Usa spawnSync (array di args) per evitare problemi di shell escaping cross-platform.
- * DEVE essere eseguito da terminale esterno (no sessioni annidate — CLAUDE.md).
- */
-function callClaude(prompt: string, timeoutMs = 120_000): string {
-  // claude -p legge da stdin: echo "prompt" | claude -p
-  const result = spawnSync("claude", ["-p"], {
-    input: prompt,           // passa il prompt via stdin
-    encoding: "utf-8",
-    timeout: timeoutMs,
-    maxBuffer: 10 * 1024 * 1024,
-    shell: true,             // necessario su Windows per risolvere claude.cmd
-  });
-
-  if (result.error) throw result.error;
-
-  if (result.status !== 0) {
-    const stderr = result.stderr?.trim() ?? "";
-    const stdout = result.stdout?.trim() ?? "";
-    throw new Error(
-      `claude -p exit ${result.status}${stderr ? ` | stderr: ${stderr.slice(0, 300)}` : ""}${stdout ? ` | stdout: ${stdout.slice(0, 300)}` : ""}`
-    );
-  }
-
-  return result.stdout?.trim() ?? "";
-}
-
 // ─── Utilities ───
 
 function sortByPriority(tasks: Task[]): Task[] {
@@ -169,7 +138,12 @@ async function executeTask(
 
   try {
     const prompt = buildTaskPrompt(task);
-    const output = callClaude(prompt, 180_000); // 3 min per task
+    const output = await callLLM(prompt, {
+      callerName: `TASK-${task.id.slice(0, 8)}`,
+      maxTokens: 4096,
+      temperature: 0.2,
+      jsonOutput: false, // output è testo libero, non JSON
+    });
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);
     log(`     ✅ Completato in ${elapsed}s`);
     return { success: true, summary: output.slice(0, 1500) };
@@ -187,10 +161,10 @@ async function executeTask(
 // ─── Sprint Planning (quando backlog è vuoto) ───
 
 /**
- * Genera il report di un singolo dipartimento via `claude -p`.
+ * Genera il report di un singolo dipartimento via provider gratuiti.
  * Legge il department.md come contesto.
  */
-function generateDeptReport(dept: Department, deptContext: string): string {
+async function generateDeptReport(dept: Department, deptContext: string): Promise<string> {
   const prompt = `Sei il responsabile del dipartimento "${dept}" di Controlla.Me, app di analisi legale AI.
 
 CONTESTO DIPARTIMENTO:
@@ -212,7 +186,12 @@ TASK PROPOSTI:
 - ...`;
 
   try {
-    return callClaude(prompt, 60_000);
+    return await callLLM(prompt, {
+      callerName: `DEPT-REPORT-${dept}`,
+      maxTokens: 2048,
+      temperature: 0.3,
+      jsonOutput: false, // output è testo strutturato, non JSON
+    });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return `[Errore generazione report: ${errMsg.slice(0, 150)}]`;
@@ -230,10 +209,10 @@ interface ProposedTask {
  * Sintetizza tutti i report dipartimentali in un piano sprint strutturato.
  * Ritorna i task come array da creare in status "review".
  */
-function synthesizeSprintPlan(
+async function synthesizeSprintPlan(
   sprintNumber: number,
   reports: Record<Department, string>
-): ProposedTask[] {
+): Promise<ProposedTask[]> {
   const reportsText = DEPARTMENTS.map(
     (dept) => `### ${dept}\n${reports[dept] ?? "(nessun report)"}`
   ).join("\n\n");
@@ -264,20 +243,23 @@ Rispondi con SOLO un array JSON (nessun testo prima o dopo):
 Dipartimenti validi: ${DEPARTMENTS.join(", ")}`;
 
   try {
-    const output = callClaude(prompt, 90_000);
+    const output = await callLLM(prompt, {
+      callerName: "SPRINT-PLAN",
+      maxTokens: 4096,
+      temperature: 0.3,
+    });
 
-    const jsonMatch = output.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      log("⚠️  Nessun JSON trovato nella risposta del piano sprint.");
-      return [];
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]) as Array<{
+    const parsed = parseJSON<Array<{
       title: string;
       description: string;
       department: string;
       priority: string;
-    }>;
+    }>>(output);
+
+    if (!Array.isArray(parsed)) {
+      log("⚠️  Risposta non è un array JSON.");
+      return [];
+    }
 
     return parsed
       .filter((t) => t.title && t.description && t.department)
@@ -313,13 +295,13 @@ async function runSprintPlanning(): Promise<void> {
     log(`  📝 Report: ${dept}`);
     const deptFile = path.join(COMPANY_DIR, dept, "department.md");
     const deptContext = readFileSafe(deptFile, 1000);
-    reports[dept] = generateDeptReport(dept, deptContext);
+    reports[dept] = await generateDeptReport(dept, deptContext);
   }
 
   log(`  🧠 Sintesi report → piano ${sprintLabel}...`);
 
   // 2. Sintetizza piano sprint
-  const proposedTasks = synthesizeSprintPlan(
+  const proposedTasks = await synthesizeSprintPlan(
     sprintNumber,
     reports as Record<Department, string>
   );
@@ -471,7 +453,7 @@ async function runOnce(): Promise<void> {
     return;
   }
 
-  // REGOLA 3: Prendi top N task per priorità, esegui via claude -p
+  // REGOLA 3: Prendi top N task per priorità, esegui via LLM gratuiti
   const allOpen = await getOpenTasks({ status: "open", limit: 200 });
   const sorted = sortByPriority(allOpen);
   const batch = sorted.slice(0, MAX_TASKS_PER_RUN);

@@ -31,24 +31,13 @@
 
 import * as dotenv from "dotenv";
 import { resolve } from "path";
-import { execSync } from "child_process";
 
 dotenv.config({ path: resolve(__dirname, "../.env.local") });
 
 import { askCorpusAgent, type CorpusAgentResult } from "../lib/agents/corpus-agent";
 import { isVectorDBEnabled } from "../lib/embeddings";
 import { setCurrentTier, type TierName } from "../lib/tiers";
-
-// Env pulito per subprocess claude -p (rimuove CLAUDE* e ANTHROPIC_API_KEY per evitare nested session)
-function getCleanEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (key === "ANTHROPIC_API_KEY" || key.startsWith("CLAUDE")) {
-      delete env[key];
-    }
-  }
-  return env;
-}
+import { callLLM } from "./lib/llm";
 
 // ─── Opus per-test evaluation (--opus-eval) ────────────────────────────────────
 
@@ -58,11 +47,11 @@ interface OpusEvalResult {
 }
 
 /**
- * Valuta la correttezza giuridica di un singolo risultato usando claude-opus-4-5 via CLI.
+ * Valuta la correttezza giuridica di un singolo risultato usando provider gratuiti.
  * Chiamato per ogni test case quando --opus-eval è attivo.
- * Regola CLAUDE.md: script interni usano `claude -p`, mai @anthropic-ai/sdk.
+ * Usa scripts/lib/llm.ts con catena fallback free tier.
  */
-function evaluateWithOpus(tc: AdversarialTestCase, result: CorpusAgentResult): OpusEvalResult {
+async function evaluateWithOpus(tc: AdversarialTestCase, result: CorpusAgentResult): Promise<OpusEvalResult> {
   const prompt = `Sei un esperto legale italiano. Valuta la correttezza giuridica della seguente risposta.
 
 DOMANDA:
@@ -87,15 +76,12 @@ PUNTEGGIO: [numero 0-10]
 NOTE: [1-2 frasi di motivazione]`;
 
   try {
-    const raw = execSync(
-      `claude -p ${JSON.stringify(prompt)} --model claude-opus-4-5`,
-      {
-        encoding: "utf-8",
-        timeout: 60_000,
-        cwd: resolve(__dirname, ".."),
-        env: getCleanEnv(),
-      }
-    ).trim();
+    const raw = await callLLM(prompt, {
+      callerName: `OPUS-EVAL-TC${tc.id ?? "?"}`,
+      maxTokens: 1024,
+      temperature: 0.1,
+      jsonOutput: false,
+    });
 
     // Parse PUNTEGGIO: X and NOTE: ...
     const scoreMatch = raw.match(/PUNTEGGIO:\s*([0-9](?:\.[0-9])?|10)/i);
@@ -107,10 +93,9 @@ NOTE: [1-2 frasi di motivazione]`;
     return { score, notes };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const isDemo = msg.includes("ENOENT") || msg.includes("Credit balance") || msg.includes("exit code");
     return {
       score: 0,
-      notes: isDemo ? "Opus eval non disponibile in ambiente demo" : `Opus eval fallita: ${msg.slice(0, 100)}`,
+      notes: `LLM eval fallita: ${msg.slice(0, 100)}`,
     };
   }
 }
@@ -1047,15 +1032,15 @@ function printSummary(results: AdversarialTestResult[], opusEvalActive = false) 
 // ─── Opus CLI Evaluation (--evalua-opus) ──────────────────────────────────────
 
 /**
- * Valutazione qualitativa complessiva con Opus via CLI.
+ * Valutazione qualitativa complessiva con LLM gratuito.
  * Usato solo con flag --evalua-opus.
- * NON usa @anthropic-ai/sdk — usa CLI claude -p per rispettare regola CLAUDE.md.
+ * Usa scripts/lib/llm.ts con catena fallback free tier.
  */
 async function evaluateWithOpusCLI(results: AdversarialTestResult[]): Promise<void> {
-  console.log(`\n${BOLD}🎓 Valutazione qualitativa Opus (claude-opus-4-5)${RESET}`);
-  console.log(`${DIM}Usa claude -p CLI — rispetta regola CLAUDE.md (no SDK in scripts/)${RESET}\n`);
+  console.log(`\n${BOLD}🎓 Valutazione qualitativa LLM (free tier)${RESET}`);
+  console.log(`${DIM}Usa provider gratuiti via scripts/lib/llm.ts${RESET}\n`);
 
-  // Costruisci il contesto per Opus: solo i risultati più significativi
+  // Costruisci il contesto: solo i risultati più significativi
   // Per evitare prompt troppo lunghi: prendi i 10 peggiori + 5 migliori
   const sorted = [...results].sort((a, b) => a.score.percentage - b.score.percentage);
   const worst = sorted.slice(0, 10);
@@ -1089,43 +1074,31 @@ Fornisci una valutazione qualitativa in 200-300 parole:
 
 Rispondi in italiano, tono professionale ma diretto.`;
 
-  const escapedPrompt = prompt.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "");
-
   try {
-    console.log(`${DIM}Chiamata claude -p --model claude-opus-4-5 (può richiedere 20-30s)...${RESET}\n`);
+    console.log(`${DIM}Chiamata LLM (free tier, può richiedere 20-30s)...${RESET}\n`);
 
-    // Nota: in ambiente demo questo fallirà con "Credit balance is too low"
-    // ma la struttura è corretta per ambienti con crediti attivi
-    const output = execSync(
-      `claude -p --model claude-opus-4-5 "${escapedPrompt}"`,
-      {
-        encoding: "utf-8",
-        timeout: 60_000,
-        env: { ...process.env },
-        cwd: resolve(__dirname, ".."),
-      }
-    );
+    const output = await callLLM(prompt, {
+      callerName: "EVALUA-SUMMARY",
+      maxTokens: 2048,
+      temperature: 0.2,
+      jsonOutput: false,
+    });
 
-    console.log(`${BOLD}📋 Valutazione Opus:${RESET}\n`);
+    console.log(`${BOLD}📋 Valutazione LLM:${RESET}\n`);
     console.log(output.trim());
     console.log();
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("Credit balance is too low") || msg.includes("ENOENT") || msg.includes("credit")) {
-      console.log(`${Y}⚠ Valutazione Opus non disponibile in ambiente demo (crediti insufficienti o claude CLI non trovato).${RESET}`);
-      console.log(`${DIM}In produzione con crediti Anthropic attivi, questo mostrerebbe la valutazione qualitativa.${RESET}\n`);
-    } else {
-      console.error(`${R}Errore valutazione Opus: ${msg.slice(0, 200)}${RESET}\n`);
-    }
+    console.error(`${R}Errore valutazione: ${msg.slice(0, 200)}${RESET}\n`);
   }
 }
 
 // ─── Opus CLI Verdict ─────────────────────────────────────────────────────────
 
 /**
- * Genera un giudizio finale LLM usando Opus via CLI (non SDK).
+ * Genera un giudizio finale LLM usando provider gratuiti.
  * Analizza tutti i 30 risultati e produce una valutazione esperta del Corpus Agent.
- * Regola CLAUDE.md: script interni usano `claude -p`, mai @anthropic-ai/sdk.
+ * Usa scripts/lib/llm.ts con catena fallback free tier.
  */
 async function generateOpusVerdict(results: AdversarialTestResult[]): Promise<void> {
   const valid = results.filter((r) => !r.error);
@@ -1164,29 +1137,20 @@ Fornisci un giudizio esperto sintetico (max 400 parole) su:
 
 Sii diretto e tecnico. Non ripetere i numeri che ho già dato — aggiungi analisi qualitativa.`;
 
-  console.log(`\n${BOLD}🔬 Opus CLI — Giudizio finale${RESET} ${DIM}(claude-opus-4-5 via CLI)${RESET}\n`);
+  console.log(`\n${BOLD}🔬 LLM — Giudizio finale${RESET} ${DIM}(free tier via scripts/lib/llm.ts)${RESET}\n`);
 
   try {
-    const raw = execSync(
-      `claude -p --model claude-opus-4-5 ${JSON.stringify(prompt)}`,
-      {
-        encoding: "utf-8",
-        timeout: 120_000,
-        cwd: resolve(__dirname, ".."),
-        env: getCleanEnv(),
-      }
-    ).trim();
+    const raw = await callLLM(prompt, {
+      callerName: "OPUS-VERDICT",
+      maxTokens: 4096,
+      temperature: 0.2,
+      jsonOutput: false,
+    });
 
-    console.log(raw);
+    console.log(raw.trim());
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // Fallback message se CLI non disponibile (ambiente demo)
-    if (msg.includes("ENOENT") || msg.includes("Credit balance") || msg.includes("exit code")) {
-      console.log(`${Y}⚠ Opus CLI non disponibile in ambiente demo (${msg.slice(0, 80)})${RESET}`);
-      console.log(`${DIM}  Eseguire da terminale esterno con crediti disponibili per il giudizio Opus.${RESET}`);
-    } else {
-      console.error(`${R}Errore Opus CLI: ${msg}${RESET}`);
-    }
+    console.error(`${R}Errore LLM: ${msg.slice(0, 200)}${RESET}`);
   }
   console.log();
 }
@@ -1250,7 +1214,7 @@ async function main() {
 
         // Opus per-test eval: sovrascrive tc.manualEval solo in memoria
         if (opusEval) {
-          const opusScore = evaluateWithOpus(tc, agentResult);
+          const opusScore = await evaluateWithOpus(tc, agentResult);
           tc.manualEval = {
             legalCorrectness: opusScore.score,
             evaluatorName: "claude-opus-4-5 (auto)",

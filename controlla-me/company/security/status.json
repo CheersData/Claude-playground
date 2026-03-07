@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "dept": "security",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "security-auditor"
+  },
+  "health": "ok",
+  "summary": "Stato VERDE. Tutti i finding medi (M1-M9) risolti. Finding bassi residui non bloccanti. Headers HTTP, middleware centralizzato, RLS attivo.",
+  "findings": {
+    "critical": 0,
+    "high": 0,
+    "medium_resolved": 9,
+    "low_open": 4
+  },
+  "infrastructure": {
+    "headers_http": true,
+    "middleware_auth": true,
+    "middleware_rate_limit": true,
+    "middleware_csrf": true,
+    "middleware_sanitize": true,
+    "middleware_audit_log": true,
+    "middleware_console_token": true,
+    "rls_active": true,
+    "csp_configured": true
+  },
+  "low_findings_open": [
+    "Whitelist console AUTHORIZED_USERS hardcoded nel sorgente",
+    "CSP include unsafe-eval (necessario per Next.js)",
+    "Company routes senza rate-limit (protetti da console auth)",
+    "DPA con provider AI non firmati (prerequisito lancio commerciale)"
+  ],
+  "compliance": {
+    "gdpr_ttl": true,
+    "eu_ai_act_deadline": "2026-08",
+    "eu_ai_act_consultant": "non ingaggiato"
+  },
+  "gaps": [
+    {
+      "id": "SEC-LOW-1",
+      "description": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI",
+      "severity": "low"
+    },
+    {
+      "id": "SEC-LOW-2",
+      "description": "Consulente EU AI Act — scadenza agosto 2026",
+      "severity": "low"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Ultimo audit completo: 2026-03-02. Prossimo audit raccomandato entro 2 settimane."
+}

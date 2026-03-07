@@ -1152,9 +1152,9 @@ company/trading/
 5. Test — **PARZIALMENTE COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, agenti core coperti (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + nuova suite `e2e/` (auth, upload, analysis, console). **Gap critici rimasti**: `lib/ai-sdk/agent-runner.ts` (P1), `lib/tiers.ts` (P2), `lib/middleware/console-token.ts` (P3), `lib/analysis-cache.ts` (P4), `lib/ai-sdk/generate.ts` (P5).
 6. CI/CD — `.github/` presente ma pipeline non completamente configurata. ~~**Bloccato da**: migration duplicate 003-007 (TD-3)~~ — TD-3 risolto (migrations 001-015). Rimane da configurare: test automatici su PR, build check, deploy preview.
 7. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
-8. UI scoring multidimensionale — Backend pronto (`legalCompliance`, `contractBalance`, `industryPractice`), frontend mostra solo `fairnessScore`. Effort minimo.
+8. ~~UI scoring multidimensionale~~ — **COMPLETATO**: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) implementate in ResultsView (ScoreBreakdown), FairnessScore (pills), ChatMessage (pills), FinalEvaluationPanel (bars).
 9. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati.
-10. Statuto dei Lavoratori — L'unica fonte IT non ancora caricata (L. 300/1970). API async Normattiva produce ZIP vuoti. Approcci alternativi: HTML scraping Normattiva web, o testo consolidato via EUR-Lex.
+10. ~~Statuto dei Lavoratori~~ — **COMPLETATO**: 41 articoli caricati via seed-statuto-lavoratori.ts. fetchViaWebCaricaAKN confermato funzionante (99KB AKN XML). Normattiva OpenData API non supporta leggi ordinarie singole.
 11. Verticale HR — Non avviato. Fonti mappate in `hr-sources.ts`: D.Lgs. 81/2008 (306 art., pipeline standard, nessun blocco), D.Lgs. 276/2003, D.Lgs. 23/2015. Prerequisito corpus: punto 10.
 
 ---

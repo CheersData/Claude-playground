@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import structlog
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest
+from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest, StockLatestQuoteRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
@@ -346,6 +346,28 @@ class AlpacaClient:
             }
             for symbol, bar in bars.items()
         }
+
+    def get_latest_quote(self, symbols: list[str]) -> dict[str, dict]:
+        """Get latest bid/ask quote for symbols. Available pre-market unlike bars."""
+        request = StockLatestQuoteRequest(symbol_or_symbols=symbols)
+        quotes = self._data.get_stock_latest_quote(request)
+
+        result: dict[str, dict] = {}
+        for symbol, quote in quotes.items():
+            bid = float(quote.bid_price) if quote.bid_price else 0
+            ask = float(quote.ask_price) if quote.ask_price else 0
+            if bid > 0 and ask > 0:
+                result[symbol] = {
+                    "mid": round((bid + ask) / 2, 4),
+                    "bid": bid,
+                    "ask": ask,
+                    "timestamp": str(quote.timestamp),
+                }
+            elif ask > 0:
+                result[symbol] = {"mid": ask, "bid": 0, "ask": ask, "timestamp": str(quote.timestamp)}
+            elif bid > 0:
+                result[symbol] = {"mid": bid, "bid": bid, "ask": 0, "timestamp": str(quote.timestamp)}
+        return result
 
     def get_latest_bars(
         self,

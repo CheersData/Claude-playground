@@ -14,6 +14,7 @@ const ReasoningGraph = nextDynamic(() => import("@/components/console/ReasoningG
 const CorpusTreePanel = nextDynamic(() => import("@/components/console/CorpusTreePanel"), { ssr: false });
 const PowerPanel = nextDynamic(() => import("@/components/console/PowerPanel"), { ssr: false });
 const CompanyPanel = nextDynamic(() => import("@/components/console/CompanyPanel"), { ssr: false });
+const ShellPanel = nextDynamic(() => import("@/components/legaloffice/ShellPanel"), { ssr: false });
 import type {
   ConsoleAgentPhase,
   ConsolePhaseStatus,
@@ -116,6 +117,7 @@ export default function ConsolePageClient() {
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [powerOpen, setPowerOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
+  const [shellOpen, setShellOpen] = useState(false);
 
   // ── Session persistence ──
   useEffect(() => {
@@ -458,6 +460,7 @@ export default function ConsolePageClient() {
         corpusActive={corpusOpen}
         onCorpusToggle={isAuthenticated ? () => { setCorpusOpen((v) => !v); setCompanyOpen(false); } : undefined}
         onPowerToggle={isAuthenticated ? () => setPowerOpen((v) => !v) : undefined}
+        onShellToggle={() => setShellOpen((v) => !v)}
         onCompanyToggle={isAuthenticated ? () => { setCompanyOpen((v) => !v); setCorpusOpen(false); } : undefined}
         onPrint={() => window.print()}
       />
@@ -623,6 +626,7 @@ export default function ConsolePageClient() {
       )}
 
       <PowerPanel open={powerOpen} onClose={() => setPowerOpen(false)} />
+      <ShellPanel open={shellOpen} onClose={() => setShellOpen(false)} />
     </StudioShell>
   );
 }

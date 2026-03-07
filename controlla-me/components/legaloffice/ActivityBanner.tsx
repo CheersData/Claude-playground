@@ -1,34 +1,49 @@
 "use client";
 
 import { motion } from "framer-motion";
+import type { LegalOfficePhase } from "@/lib/types";
 
-type AgentPhase = "classifier" | "analyzer" | "investigator" | "advisor";
-
-const PHASE_LABELS: Record<AgentPhase, string> = {
-  classifier:   "Il Classificatore sta analizzando il documento…",
-  analyzer:     "L'Analista sta esaminando le clausole…",
-  investigator: "L'Investigatore sta ricercando la normativa…",
-  advisor:      "Il Consulente sta elaborando la valutazione finale…",
+const PHASE_LABELS: Record<LegalOfficePhase, string> = {
+  comprensione:    "La Comprensione sta analizzando la domanda…",
+  classifier:      "Il Classificatore sta analizzando il documento…",
+  analyzer:        "L'Analista sta esaminando le clausole…",
+  "corpus-search": "La Ricerca Corpus sta consultando gli articoli legislativi…",
+  investigator:    "L'Investigatore sta ricercando la normativa…",
+  advisor:         "Il Consulente sta elaborando la valutazione finale…",
 };
 
-const PHASE_COLORS: Record<AgentPhase, string> = {
-  classifier:   "#4ECDC4",
-  analyzer:     "#FF6B6B",
-  investigator: "#A78BFA",
-  advisor:      "#FFC832",
+const PHASE_LABELS_QA: Record<LegalOfficePhase, string> = {
+  comprensione:    "La Comprensione sta riformulando in linguaggio giuridico…",
+  classifier:      "Il Classificatore sta analizzando la questione legale…",
+  analyzer:        "L'Analista sta esaminando le implicazioni giuridiche…",
+  "corpus-search": "La Ricerca Corpus sta consultando gli articoli legislativi…",
+  investigator:    "L'Investigatore sta cercando normativa e giurisprudenza…",
+  advisor:         "Il Consulente sta formulando il parere…",
 };
 
-const PHASE_ORDER: AgentPhase[] = ["classifier", "analyzer", "investigator", "advisor"];
+const PHASE_COLORS: Record<LegalOfficePhase, string> = {
+  comprensione:    "#06B6D4",
+  classifier:      "#4ECDC4",
+  analyzer:        "#FF6B6B",
+  "corpus-search": "#818CF8",
+  investigator:    "#A78BFA",
+  advisor:         "#FFC832",
+};
+
+const PHASE_ORDER: LegalOfficePhase[] = ["comprensione", "classifier", "analyzer", "corpus-search", "investigator", "advisor"];
 
 interface ActivityBannerProps {
-  currentPhase: AgentPhase | null;
-  completedCount: number;
+  currentPhase: LegalOfficePhase | null;
+  completedPhases: LegalOfficePhase[];
+  qaMode?: boolean;
+  visiblePhases?: LegalOfficePhase[];
 }
 
-export default function ActivityBanner({ currentPhase, completedCount }: ActivityBannerProps) {
+export default function ActivityBanner({ currentPhase, completedPhases, qaMode = false, visiblePhases }: ActivityBannerProps) {
   if (!currentPhase) return null;
 
-  const label = PHASE_LABELS[currentPhase];
+  const phases = visiblePhases || PHASE_ORDER;
+  const label = qaMode ? PHASE_LABELS_QA[currentPhase] : PHASE_LABELS[currentPhase];
   const color = PHASE_COLORS[currentPhase];
 
   return (
@@ -41,13 +56,13 @@ export default function ActivityBanner({ currentPhase, completedCount }: Activit
     >
       {/* Progress segments */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        {PHASE_ORDER.map((phase, i) => {
-          const isDone    = i < completedCount;
+        {phases.map((phase) => {
+          const isDone    = completedPhases.includes(phase);
           const isRunning = phase === currentPhase;
           return (
             <motion.div
               key={phase}
-              className="h-1.5 w-6 rounded-full"
+              className="h-1.5 w-5 rounded-full"
               style={{ backgroundColor: isDone || isRunning ? PHASE_COLORS[phase] : "#e5e7eb" }}
               animate={isRunning ? { opacity: [1, 0.4, 1] } : {}}
               transition={isRunning ? { duration: 1.2, repeat: Infinity } : {}}

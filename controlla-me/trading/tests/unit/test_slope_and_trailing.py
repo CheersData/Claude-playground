@@ -26,8 +26,13 @@ def _make_ohlcv(
     base_volume: int = 1_000_000,
     freq: str = "5min",
     start: str = "2024-01-15 15:00",  # UTC — within market hours 14:30-20:00
+    growing_volume: bool = False,
 ) -> pd.DataFrame:
-    """Build a minimal OHLCV DataFrame with a tz-aware UTC DatetimeIndex."""
+    """Build a minimal OHLCV DataFrame with a tz-aware UTC DatetimeIndex.
+
+    If growing_volume=True, volume grows linearly (satisfies volume trend criterion).
+    Otherwise, flat volume with a spike on the last bar (legacy behaviour).
+    """
     n = len(closes)
     idx = pd.date_range(start=start, periods=n, freq=freq, tz="UTC")
     closes_arr = np.array(closes, dtype=float)
@@ -36,9 +41,17 @@ def _make_ohlcv(
     opens[0] = closes_arr[0]
     highs = closes_arr + 0.5
     lows = closes_arr - 0.5
-    # Last bar has elevated volume to trigger confirmation
-    volumes = np.full(n, base_volume, dtype=float)
-    volumes[-1] = base_volume * volume_multiplier
+    if growing_volume:
+        # Exponential-ish volume growth: satisfies BOTH criteria:
+        # 1. volume trending up (positive OLS slope)
+        # 2. last bar > volume_multiplier × MA (well above average)
+        t = np.linspace(0, 3.0, n)
+        raw = np.exp(t)  # exp(0)=1 → exp(3)≈20
+        volumes = raw / raw[-1] * base_volume * volume_multiplier
+    else:
+        # Last bar has elevated volume to trigger confirmation
+        volumes = np.full(n, base_volume, dtype=float)
+        volumes[-1] = base_volume * volume_multiplier
     return pd.DataFrame(
         {"open": opens, "high": highs, "low": lows, "close": closes_arr, "volume": volumes},
         index=idx,
@@ -52,26 +65,29 @@ def _make_ohlcv(
 class TestAnalyzeSlopeVolume:
     """Tests for the slope+volume intraday signal function."""
 
-    def _bullish_reversal_closes(self, n: int = 40, lookback: int = 5) -> list[float]:
+    def _wave_closes(self, n: int = 60) -> list[float]:
         """
-        Generate closes with a bullish reversal in the correct windows.
+        Generate closes that satisfy all 3 wave-detection criteria:
 
-        analyze_slope_volume looks at:
-          - current window: close.tail(lookback_bars)  = bars [-lookback:]
-          - prev window:    close.iloc[-(lookback*2):-lookback] = bars [-2*lookback:-lookback]
+        1. ANGLE + ACCELERATION: ascending section with quadratic growth
+           (slope gets steeper over time → positive acceleration)
+        2. PERSISTENCE: ascending for 20+ bars → rolling slope is positive
+           for many consecutive windows
+        3. REVERSAL context: descending section before the wave
 
-        We build:
-          - neutral bars to reach min_bars
-          - prev window: descending (negative slope)
-          - current window: ascending (positive slope)
+        Structure:
+          - 20 bars flat at 100 (neutral / warmup)
+          - 15 bars descending (100 → 95.5) — provides reversal context
+          - 25 bars ascending with QUADRATIC acceleration
+            y = 95.5 + 0.05*i + 0.015*i² → slope grows with each bar
         """
-        neutral_count = n - lookback * 2
-        neutral = [100.0] * neutral_count
-        # prev window: 100, 99.5, 99, 98.5, 98  → slope ≈ -0.5/bar (−0.5% of price)
-        prev = [100.0 - i * 0.5 for i in range(lookback)]
-        # current window: 98.5, 99, 99.5, 100, 100.5 → slope ≈ +0.5/bar (+0.5% of price)
-        curr = [98.0 + (i + 1) * 0.5 for i in range(lookback)]
-        return neutral + prev + curr
+        neutral = [100.0] * 20
+        # Descending phase
+        desc = [100.0 - i * 0.3 for i in range(15)]
+        # Ascending with quadratic acceleration
+        base = desc[-1]  # 95.8
+        asc = [base + 0.05 * i + 0.015 * i * i for i in range(25)]
+        return neutral + desc + asc
 
     def test_returns_none_if_too_few_bars(self):
         df = _make_ohlcv([100.0] * 10)
@@ -79,47 +95,58 @@ class TestAnalyzeSlopeVolume:
         assert result is None
 
     def test_returns_none_outside_market_hours(self):
-        closes = self._bullish_reversal_closes(40)
+        closes = self._wave_closes(60)
         # Last bar at 22:00 UTC — outside 14:30–20:00 window
-        df = _make_ohlcv(closes, start="2024-01-15 21:55")
-        result = analyze_slope_volume("SPY", df)
+        df = _make_ohlcv(closes, start="2024-01-15 21:55", growing_volume=True)
+        result = analyze_slope_volume("SPY", df, require_reversal=False)
         assert result is None
 
-    def test_returns_none_if_no_slope_crossover(self):
-        """Flat or monotonically rising prices — no negative→positive crossover."""
-        closes = [100.0 + i * 0.1 for i in range(40)]
-        df = _make_ohlcv(closes)
-        result = analyze_slope_volume("SPY", df)
+    def test_returns_none_if_no_acceleration(self):
+        """Monotonically rising at constant rate — no acceleration."""
+        closes = [100.0 + i * 0.1 for i in range(60)]
+        df = _make_ohlcv(closes, growing_volume=True)
+        # Constant slope → acceleration ≈ 0 → no wave signal
+        result = analyze_slope_volume(
+            "SPY", df, require_reversal=False,
+            min_acceleration_pct=0.01,  # require strong acceleration
+        )
         assert result is None
 
-    def test_returns_none_if_volume_not_confirmed(self):
-        """Slope crossover present but volume < threshold."""
-        closes = self._bullish_reversal_closes(40)
-        # volume_multiplier in data = 1.0 (same as base — no spike)
-        df = _make_ohlcv(closes, volume_multiplier=1.0)
-        result = analyze_slope_volume("SPY", df, volume_multiplier=1.5)
+    def test_returns_none_if_volume_not_growing(self):
+        """Wave shape present but volume is flat (not growing)."""
+        closes = self._wave_closes(60)
+        # Flat volume (not growing) — fails volume trend criterion
+        df = _make_ohlcv(closes, volume_multiplier=1.0, growing_volume=False)
+        result = analyze_slope_volume(
+            "SPY", df, require_reversal=False,
+            slope_threshold_pct=0.01, volume_multiplier=1.5,
+        )
         assert result is None
 
     def test_returns_none_if_slope_below_threshold(self):
-        """Crossover + volume, but slope change is too small (noise)."""
-        # Very gentle slope change: 0.001% per bar
-        n = 40
-        prev = [100.0 - i * 0.00001 for i in range(n // 2)]
-        curr = [prev[-1] + i * 0.00001 for i in range(n // 2)]
-        closes = prev + curr
-        df = _make_ohlcv(closes, volume_multiplier=3.0)
-        result = analyze_slope_volume("SPY", df, slope_threshold_pct=0.05)
+        """Wave shape but slope too small (noise)."""
+        # Very gentle curve — slope < threshold
+        closes = [100.0 + 0.0001 * i * i for i in range(60)]
+        df = _make_ohlcv(closes, growing_volume=True)
+        result = analyze_slope_volume(
+            "SPY", df, require_reversal=False,
+            slope_threshold_pct=0.5,  # very high threshold
+        )
         assert result is None
 
-    def test_buy_signal_on_valid_bullish_reversal(self):
-        """Full valid scenario: slope crossover + threshold + volume confirmed."""
-        closes = self._bullish_reversal_closes(40)
-        df = _make_ohlcv(closes, volume_multiplier=3.0)
+    def test_buy_signal_on_valid_wave(self):
+        """Full valid scenario: all 3 wave criteria satisfied → BUY."""
+        closes = self._wave_closes(60)
+        df = _make_ohlcv(closes, volume_multiplier=3.0, growing_volume=True)
         result = analyze_slope_volume(
             "SPY", df,
             lookback_bars=5,
-            slope_threshold_pct=0.01,  # low threshold → definitely triggers
+            slope_threshold_pct=0.01,
             volume_multiplier=1.5,
+            require_reversal=False,  # trend-continuation (3-factor only)
+            acceleration_bars=3,
+            min_acceleration_pct=0.001,
+            persistence_bars=3,
         )
         assert result is not None
         assert result["action"] == "BUY"
@@ -129,31 +156,46 @@ class TestAnalyzeSlopeVolume:
         assert result["take_profit"] > result["entry_price"]
 
     def test_signal_contains_required_keys(self):
-        """Signal dict must have all expected keys."""
-        closes = self._bullish_reversal_closes(40)
-        df = _make_ohlcv(closes, volume_multiplier=3.0)
-        result = analyze_slope_volume("SPY", df, slope_threshold_pct=0.01, volume_multiplier=1.5)
+        """Signal dict must have all expected keys including wave indicators."""
+        closes = self._wave_closes(60)
+        df = _make_ohlcv(closes, volume_multiplier=3.0, growing_volume=True)
+        result = analyze_slope_volume(
+            "SPY", df, slope_threshold_pct=0.01, volume_multiplier=1.5,
+            require_reversal=False, acceleration_bars=3,
+            min_acceleration_pct=0.001, persistence_bars=3,
+        )
         assert result is not None
         required = {"symbol", "action", "score", "confidence", "entry_price",
                     "stop_loss", "take_profit", "rationale", "indicators"}
         assert required.issubset(result.keys())
+        # New wave indicators present
+        ind = result["indicators"]
+        assert "acceleration_pct" in ind
+        assert "volume_growing" in ind
+        assert "persistent_bars" in ind
 
     def test_confidence_in_range(self):
         """Confidence must be in [0.5, 1.0]."""
-        closes = self._bullish_reversal_closes(40)
-        df = _make_ohlcv(closes, volume_multiplier=3.0)
-        result = analyze_slope_volume("SPY", df, slope_threshold_pct=0.01, volume_multiplier=1.5)
+        closes = self._wave_closes(60)
+        df = _make_ohlcv(closes, volume_multiplier=3.0, growing_volume=True)
+        result = analyze_slope_volume(
+            "SPY", df, slope_threshold_pct=0.01, volume_multiplier=1.5,
+            require_reversal=False, acceleration_bars=3,
+            min_acceleration_pct=0.001, persistence_bars=3,
+        )
         assert result is not None
         assert 0.5 <= result["confidence"] <= 1.0
 
     def test_stop_loss_take_profit_symmetric_with_atr(self):
         """stop_loss and take_profit distances scale with ATR multipliers."""
-        closes = self._bullish_reversal_closes(40)
-        df = _make_ohlcv(closes, volume_multiplier=3.0)
+        closes = self._wave_closes(60)
+        df = _make_ohlcv(closes, volume_multiplier=3.0, growing_volume=True)
         result = analyze_slope_volume(
             "SPY", df,
             slope_threshold_pct=0.01, volume_multiplier=1.5,
             stop_loss_atr=1.5, take_profit_atr=3.0,
+            require_reversal=False, acceleration_bars=3,
+            min_acceleration_pct=0.001, persistence_bars=3,
         )
         assert result is not None
         sl_dist = result["entry_price"] - result["stop_loss"]

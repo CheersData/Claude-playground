@@ -24,6 +24,8 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
+import { callLLM, parseJSON } from "./lib/llm";
+
 import {
   isTelegramConfigured,
   sendMessage,
@@ -158,7 +160,7 @@ const TRADING_CONTEXT = `Ufficio Trading (Python/Alpaca) — stato attuale:
 - Risk management: kill switch -2% daily / -5% weekly — NON NEGOZIABILE
 - Gap conosciuti: no P&L reale su /ops dashboard, intraday disabilitato (Phase 2)`;
 
-function generatePlan(board: BoardState): Plan {
+async function generatePlan(board: BoardState): Promise<Plan> {
   const id = new Date()
     .toISOString()
     .replace(/[:.]/g, "-")
@@ -207,36 +209,34 @@ Regole:
 - priority deve essere: low | medium | high | critical
 - dept validi: quality-assurance, security, architecture, data-engineering, strategy, marketing, finance, operations, ufficio-legale, ux-ui`;
 
-  // Tenta claude -p (funziona fuori dalla sessione Claude Code)
+  // Genera piano con provider gratuiti (Gemini Flash → Groq → Cerebras)
   try {
-    const output = execSync(`claude -p ${JSON.stringify(prompt)}`, {
-      encoding: "utf-8",
-      cwd: ROOT,
-      timeout: 90_000,
+    const output = await callLLM(prompt, {
+      callerName: "PLAN-GEN",
+      maxTokens: 4096,
+      temperature: 0.3,
     });
 
-    const jsonMatch = output.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const data = JSON.parse(jsonMatch[0]) as {
-        summary?: string;
-        actions?: PlanAction[];
-        trading?: TradingSection;
-      };
-      return {
-        id,
-        timestamp,
-        status: "pending",
-        summary: data.summary ?? "Piano generato da AI.",
-        actions: data.actions ?? [],
-        trading: data.trading ?? {
-          pipelineStatus: "N/A",
-          improvements: [],
-        },
-      };
-    }
+    const data = parseJSON<{
+      summary?: string;
+      actions?: PlanAction[];
+      trading?: TradingSection;
+    }>(output);
+
+    return {
+      id,
+      timestamp,
+      status: "pending",
+      summary: data.summary ?? "Piano generato da AI.",
+      actions: data.actions ?? [],
+      trading: data.trading ?? {
+        pipelineStatus: "N/A",
+        improvements: [],
+      },
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.log(`[plan-gen] claude -p non disponibile: ${msg.slice(0, 80)}`);
+    console.log(`[plan-gen] LLM non disponibile: ${msg.slice(0, 80)}`);
     console.log("[plan-gen] Uso piano template.");
   }
 
@@ -246,7 +246,7 @@ Regole:
     timestamp,
     status: "pending",
     summary:
-      "Board vuoto — piano generato con template. claude -p non disponibile in questa sessione.",
+      "Board vuoto — piano generato con template. Nessun provider LLM gratuito disponibile.",
     actions: [
       {
         dept: "quality-assurance",
@@ -501,7 +501,7 @@ async function run(): Promise<void> {
       if (board.open === 0 && board.inProgress === 0 && !pending) {
         console.log("[scheduler] Board vuoto — genero piano...");
 
-        const plan = generatePlan(board);
+        const plan = await generatePlan(board);
         savePlan(plan);
 
         if (telegramOk) {

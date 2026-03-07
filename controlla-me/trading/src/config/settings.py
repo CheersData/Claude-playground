@@ -145,6 +145,7 @@ class RiskSettings(BaseSettings):
     stop_loss_pct: float = Field(default=-5.0, description="Stop loss % per position")
     min_risk_reward: float = Field(default=2.0, description="Minimum risk/reward ratio")
     max_correlation: float = Field(default=0.7, description="Max correlation between positions")
+    max_directional_exposure_pct: float = Field(default=60.0, description="Max portfolio % exposed in one direction (long or short) — prevents directional overconcentration")
     kelly_fraction: float = Field(default=0.5, description="Half-Kelly for position sizing")
 
     # Short selling — enabled for bidirectional slope strategy (paper account supports shorts natively)
@@ -265,6 +266,11 @@ class SlopeVolumeSettings(BaseSettings):
     stop_loss_atr: float = Field(default=1.5, description="Stop loss in ATR units")
     take_profit_atr: float = Field(default=3.0, description="Take profit in ATR units")
     atr_period: int = Field(default=14, description="ATR calculation period (14 × 1min = 14min)")
+    # --- Wave detection: 3-factor entry (angle acceleration + volume trend + persistence) ---
+    acceleration_bars: int = Field(default=5, description="Bars back to measure slope acceleration. Slope must be growing in the direction of the trade.")
+    min_acceleration_pct: float = Field(default=0.002, description="Min slope increase % per step for entry. Higher = stricter (fewer but stronger signals).")
+    volume_trend_bars: int = Field(default=5, description="Bars for volume trend OLS regression. Volume must be GROWING (positive slope), not just high on a single bar.")
+    persistence_bars: int = Field(default=5, description="Min consecutive bars with slope in the same direction. Filters out noise that flips every 1-2 bars.")
     market_open_utc: str = Field(default="14:30", description="Market open UTC — NYSE regular hours: 09:30 ET = 14:30 UTC (EST). Signals blocked outside this window.")
     market_close_utc: str = Field(default="21:00", description="Market close UTC — NYSE regular hours: 16:00 ET = 21:00 UTC (EST). Update to 13:30/20:00 when EDT (summer) is active.")
     max_trades_per_day: int = Field(default=3, description="Max trades per day (kill switch protection)")

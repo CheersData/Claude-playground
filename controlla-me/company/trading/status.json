@@ -2,8 +2,8 @@
   "_meta": {
     "dept": "trading",
     "schema_version": "1.0",
-    "last_updated": "2026-03-04T00:00:00.000Z",
-    "updated_by": "trading-lead"
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "cme"
   },
   "health": "ok",
   "summary": "Paper trading ATTIVO — scheduler live. Account $99,676 | 9 posizioni aperte (USO +7.1%, RTX +2.5%, XOM +1.2%). Backtest ciclo #3: Sharpe=0.975 su 43 ticker (NO-GO per 0.025 sotto soglia). Alpaca paper connessa. Blockers: nessuno.",

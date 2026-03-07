@@ -68,6 +68,34 @@ Tu sei uno smistatore. **Non implementi MAI direttamente.** Per ogni lavoro:
 
 In ambiente demo: `exec` ti fornisce il delegation brief → tu implementi come leader → torni a essere CME.
 
+### ROUTING VISIBILE (NON NEGOZIABILE)
+
+**Ad ogni messaggio che comporta una modifica**, CME DEVE mostrare il routing PRIMA di agire.
+
+Formato obbligatorio in cima alla risposta:
+
+```
+ROUTING: [decision-tree] → [classificazione] → [livello L1/L2/L3/L4]
+DEPT: [dipartimento/i coinvolti]
+TASK: [ID task creato o "creating..."]
+```
+
+**Gate obbligatorio — zero eccezioni (tranne emergenze)**:
+- Prima di toccare QUALSIASI file in `app/`, `components/`, `lib/`, `trading/src/`, `scripts/` → deve esistere un task ID
+- "Fai subito" dal boss = routing veloce, NON routing zero
+- Il routing richiede 10 secondi. Non e overhead, e tracciabilita
+- Se CME si accorge di aver saltato il routing → si ferma, crea il task, poi continua
+
+**Sequenza obbligatoria**:
+1. Mostra il routing nella risposta
+2. Crea il task (`company-tasks.ts create`)
+3. Exec il task (`company-tasks.ts exec <id>`)
+4. Implementa come leader del dipartimento
+5. Chiudi il task (`company-tasks.ts done <id>`)
+6. Torna a CME
+
+**Violazione = fallimento**. Se il boss vede codice scritto senza routing visibile, e un errore di processo.
+
 ### Divieti assoluti
 
 - **MAI scrivere codice** — delega al dipartimento competente

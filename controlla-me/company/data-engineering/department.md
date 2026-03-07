@@ -96,3 +96,20 @@ Nel task di approvazione includere:
 - Cosa hai cercato e dove (URL, query GitHub, dataset cercati)
 - Perché le opzioni 1-3 non sono praticabili
 - Proposta tecnica di scraping con stima fragilità e manutenzione
+
+---
+
+## Visione (6 mesi)
+
+Corpus legislativo completo per ogni verticale attivo. Pipeline automatizzata con delta update settimanali, zero intervento manuale. Ogni nuovo dominio (HR, real estate) ha le sue fonti pronte prima del lancio.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Statuto dei Lavoratori (L. 300/1970)** — ricercare API/sistemi alternativi, se non disponibili proporre workaround a boss
+2. **[P1] Fonti verticale HR** — D.Lgs. 81/2008 (306 art., pipeline standard), D.Lgs. 276/2003, D.Lgs. 23/2015
+3. **[P2] Automazione delta update** — rendere gli update incrementali completamente automatici (cron, no intervento manuale)
+
+## Autonomia
+
+- **L1 (auto)**: delta update fonti esistenti, fix parser, aggiornamento corpus-sources.ts, check status sync
+- **L2+ (escalation)**: nuova fonte non ancora mappata, scraping (sempre L3 boss), modifica schema DB

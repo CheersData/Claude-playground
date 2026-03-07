@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "dept": "architecture",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "architect"
+  },
+  "health": "ok",
+  "summary": "96 task completati. ADR in decisions.md aggiornato. Nessun tech debt critico aperto (TD-1, TD-2, TD-3 tutti risolti).",
+  "decisions": {
+    "adr_file": "company/architecture/decisions.md",
+    "total_adrs": null,
+    "last_adr_date": null
+  },
+  "tech_debt": {
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 3,
+    "resolved_recent": ["TD-1 savePhaseTiming", "TD-2 tesseract.js", "TD-3 migrations"]
+  },
+  "scalability": {
+    "multi_vertical_ready": false,
+    "notes": "Pipeline multi-verticale richiede sistema config-driven (rischio architetturale noto)"
+  },
+  "gaps": [
+    {
+      "id": "ARCH-1",
+      "description": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-driven",
+      "severity": "medium"
+    },
+    {
+      "id": "ARCH-2",
+      "description": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su Node.js, monitorare",
+      "severity": "low"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Dipartimento stabile. Focus su cost-awareness e backward compatibility nelle proposte."
+}

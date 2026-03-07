@@ -59,6 +59,8 @@ export function expandQuery(query: string): string[] {
     "privacy": "trattamento dati personali",
     "riservatezza": "obbligo di riservatezza",
     "segreto": "segreto professionale",
+    "tolleranza": "tolleranza eccedenza deficienza misura vendita a corpo ventesimo",
+    "preliminare": "contratto preliminare compravendita immobiliare trascrizione",
   };
 
   // Costruisci variante formale se ci sono sostituzioni applicabili

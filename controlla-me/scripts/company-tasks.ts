@@ -26,7 +26,8 @@ import {
   getOpenTasks,
   getTaskBoard,
 } from "../lib/company/tasks";
-import type { Department, TaskPriority, TaskStatus } from "../lib/company/types";
+import type { Department, TaskPriority, TaskStatus, CreateTaskInput } from "../lib/company/types";
+import { validateRouting, getAllValidRoutings, classifyRequest } from "../lib/company/routing";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -71,6 +72,7 @@ async function resolveId(partial: string): Promise<string> {
 async function main() {
   switch (command) {
     case "board": {
+      const approvalFilter = getFlag("approval");  // es. --approval L3
       const board = await getTaskBoard();
       console.log("\n╔══════════════════════════════════════════════╗");
       console.log("║        CONTROLLA.ME — TASK BOARD             ║");
@@ -97,18 +99,51 @@ async function main() {
           `  ${status} ${dept}: ${info.total} totali (${info.open} open, ${info.done} done)`
         );
       }
+      // In-progress tasks (visibility su cosa sta lavorando CME)
+      if (board.inProgress.length > 0) {
+        console.log("\n🔨 In progress:");
+        for (const task of board.inProgress) {
+          const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
+          const assignLabel = task.assignedTo ? ` → ${task.assignedTo}` : '';
+          const routingLabel = task.approvalLevel ? ` [${task.approvalLevel}]` : '';
+          console.log(
+            `  ${seqLabel}${task.title} (${task.department}${assignLabel}${routingLabel}) — ${task.id.slice(0, 8)}`
+          );
+        }
+      }
       if (board.recent.length > 0) {
         console.log("\nTask recenti:");
         for (const task of board.recent.slice(0, 5)) {
           const pri = task.priority === "critical" ? "🔴" : task.priority === "high" ? "🟠" : task.priority === "medium" ? "🟡" : "⚪";
           const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
+          const routingShort = task.approvalLevel ? ` [${task.approvalLevel}]` : '';
           console.log(
-            `  ${pri} [${task.status}] ${seqLabel}${task.title} (${task.department}) — ${task.id.slice(0, 8)}`
+            `  ${pri} [${task.status}] ${seqLabel}${task.title} (${task.department})${routingShort} — ${task.id.slice(0, 8)}`
           );
           if (task.description) {
             const preview = task.description.length > 100 ? task.description.slice(0, 100) + "…" : task.description;
             console.log(`     └ ${preview}`);
           }
+        }
+      }
+      // Filtro per approval level (es. board --approval L3 per task che richiedono boss)
+      if (approvalFilter) {
+        const allOpen = await getOpenTasks({ limit: 500 });
+        const filtered = allOpen.filter(
+          (t) => t.approvalLevel === approvalFilter && t.status !== "done"
+        );
+        if (filtered.length > 0) {
+          console.log(`\n📋 Task con approvazione ${approvalFilter}:`);
+          for (const task of filtered) {
+            const pri = task.priority === "critical" ? "🔴" : task.priority === "high" ? "🟠" : task.priority === "medium" ? "🟡" : "⚪";
+            const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
+            const consultStr = task.consultDepts && task.consultDepts.length > 0 ? ` (consult: ${task.consultDepts.join(',')})` : '';
+            console.log(
+              `  ${pri} [${task.status}] ${seqLabel}${task.title} (${task.department})${consultStr} — ${task.id.slice(0, 8)}`
+            );
+          }
+        } else {
+          console.log(`\n  Nessun task attivo con approvazione ${approvalFilter}`);
         }
       }
       console.log("");
@@ -136,7 +171,11 @@ async function main() {
           const preview = task.description.length > 120 ? task.description.slice(0, 120) + "…" : task.description;
           console.log(`    desc: ${preview}`);
         }
-        if (task.routing) console.log(`    routing: ${task.routing}`);
+        if (task.routing) {
+          const approvalStr = task.approvalLevel ? ` | approval: ${task.approvalLevel}` : '';
+          const consultStr = task.consultDepts && task.consultDepts.length > 0 ? ` | consult: ${task.consultDepts.join(',')}` : '';
+          console.log(`    routing: ${task.routing}${approvalStr}${consultStr}`);
+        }
         if (task.routingExempt) console.log(`    routing: EXEMPT — ${task.routingReason ?? "(no reason)"}`);
         if (task.resultSummary) console.log(`    result: ${task.resultSummary}`);
         console.log("");
@@ -171,7 +210,7 @@ async function main() {
         console.warn("ATTENZIONE: --benefit non specificato. Raccomandato: descrivere il beneficio concreto atteso.");
       }
 
-      // ─── Routing enforcement ───
+      // ─── Routing enforcement (validato contro decision tree YAML) ───
       if (routingExempt) {
         if (!routingReason) {
           console.error("ERRORE: --routing-exempt richiede --routing-reason 'motivo del bypass'.");
@@ -181,14 +220,44 @@ async function main() {
       } else {
         if (!routing) {
           console.error("ERRORE: --routing è obbligatorio. Specifica la classificazione dal decision tree.");
-          console.error("Esempi:");
-          console.error("  --routing 'feature-request:medium'");
-          console.error("  --routing 'trading-operations:routine'");
-          console.error("  --routing 'data-operations:corpus-update'");
-          console.error("  --routing 'infrastructure:maintenance'");
-          console.error("  --routing 'company-operations:prompt-change'");
-          console.error("Per bypassare (solo se autorizzato): --routing-exempt --routing-reason 'motivo'");
+          console.error("\nCombinazioni valide (da YAML):");
+          for (const r of getAllValidRoutings()) {
+            console.error(`  --routing '${r}'`);
+          }
+          console.error("\nPer bypassare (solo se autorizzato): --routing-exempt --routing-reason 'motivo'");
+          console.error("Per aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
           process.exit(1);
+        }
+        // Validazione contro i decision tree YAML reali
+        const routingResult = validateRouting(routing);
+        if (!routingResult.valid) {
+          console.error(`ERRORE ROUTING: ${routingResult.error}`);
+          if (routingResult.validOptions) {
+            console.error("\nOpzioni valide:");
+            for (const opt of routingResult.validOptions) {
+              console.error(`  --routing '${opt}'`);
+            }
+          }
+          console.error("\nPer aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
+          process.exit(1);
+        }
+        // Mostra i vincoli del nodo scelto dal decision tree
+        const node = routingResult.node!;
+        console.log(`\n  Routing validato: ${routing}`);
+        console.log(`  Tipo: ${node.type} | Approvazione: ${node.approval}`);
+        if (node.consult.length > 0) console.log(`  Consultare: ${node.consult.join(", ")}`);
+        if (node.review && node.review.length > 0) console.log(`  Review: ${node.review.join(", ")}`);
+        if (node.requirement) console.log(`  Requisito: ${node.requirement}`);
+      }
+
+      // Auto-extract approval metadata dal decision tree (se routing validato)
+      let autoApprovalLevel: string | undefined;
+      let autoConsultDepts: string[] | undefined;
+      if (routing && !routingExempt) {
+        const rr = validateRouting(routing);
+        if (rr.valid && rr.node) {
+          autoApprovalLevel = rr.node.approval;
+          autoConsultDepts = rr.node.consult.length > 0 ? rr.node.consult : undefined;
         }
       }
 
@@ -208,6 +277,8 @@ async function main() {
         routingReason: routingReason ?? undefined,
         tags: parsedTags,
         expectedBenefit: benefit ?? undefined,
+        approvalLevel: autoApprovalLevel as CreateTaskInput['approvalLevel'],
+        consultDepts: autoConsultDepts,
       });
       const statusLabel = task.assignedTo ? `in_progress → ${task.assignedTo}` : "open";
       const seqLabel = task.seqNum != null ? ` #${task.seqNum}` : '';
@@ -215,6 +286,8 @@ async function main() {
       console.log(`  "${task.title}" → ${task.department} [${task.priority}]`);
       if (task.routing) console.log(`  routing: ${task.routing}`);
       if (task.routingExempt) console.log(`  routing: EXEMPT — ${task.routingReason}`);
+      if (task.approvalLevel) console.log(`  approval: ${task.approvalLevel}`);
+      if (task.consultDepts && task.consultDepts.length > 0) console.log(`  consult: ${task.consultDepts.join(', ')}`);
       if (task.tags && task.tags.length > 0) console.log(`  tags: ${task.tags.join(', ')}`);
       if (task.expectedBenefit) console.log(`  benefit: ${task.expectedBenefit}`);
       console.log("");
@@ -286,10 +359,19 @@ async function main() {
       const benefitStatusRaw = getFlag("benefit-status") as 'achieved' | 'partial' | 'missed' | undefined;
       const benefitNotes = getFlag("benefit-notes");
       const suggestedNext = getFlag("next");
+      const noNext = hasFlag("no-next");
       const doCommit = hasFlag("commit");
       const commitFiles = getFlag("files");
       if (!rawId) {
-        console.error("Usage: done <task-id> [--summary '...'] [--data '{\"key\":\"value\"}'] [--benefit-status achieved|partial|missed] [--benefit-notes '...'] [--next '...'] [--commit] [--files 'path1 path2']");
+        console.error("Usage: done <task-id> --summary '...' --next '...' [--data '{\"key\":\"value\"}'] [--benefit-status achieved|partial|missed] [--benefit-notes '...'] [--commit] [--files 'path1 path2']");
+        console.error("       done <task-id> --summary '...' --no-next    (solo se il task non ha follow-up)");
+        process.exit(1);
+      }
+      // ─── --next enforcement: ogni task deve generare il prossimo ───
+      if (!suggestedNext && !noNext) {
+        console.error("ERRORE: --next è obbligatorio. Ogni task completato deve indicare il prossimo passo.");
+        console.error("Esempio: --next 'Aggiungere test per la nuova funzionalità'");
+        console.error("Se il task non ha follow-up: --no-next");
         process.exit(1);
       }
       let resultData: Record<string, unknown> | undefined;
@@ -492,6 +574,37 @@ async function main() {
       break;
     }
 
+    case "route": {
+      const text = args.slice(1).join(" ");
+      if (!text) {
+        console.error("Usage: route <descrizione richiesta>");
+        console.error("Esempio: npx tsx scripts/company-tasks.ts route 'aggiungi scoring multidimensionale alla UI'");
+        process.exit(1);
+      }
+
+      const matches = classifyRequest(text);
+
+      if (matches.length === 0) {
+        console.log("\nNessun decision tree corrisponde alla richiesta.");
+        console.log("Routing manuale necessario (L2 CME) o verifica i decision trees in:");
+        console.log("  company/protocols/decision-trees/\n");
+      } else {
+        console.log(`\n── ROUTING per: "${text}" ──\n`);
+        for (const match of matches.slice(0, 3)) {
+          console.log(`Tree: ${match.treeName} (score: ${match.score.toFixed(1)})`);
+          console.log(`  ${match.treeDescription}`);
+          console.log("  Categorie:");
+          for (const cat of match.categories) {
+            console.log(`    --routing '${cat.routing}'`);
+            console.log(`      ${cat.condition} [${cat.type}, ${cat.approval}]`);
+            if (cat.consult.length > 0) console.log(`      Consultare: ${cat.consult.join(", ")}`);
+          }
+          console.log("");
+        }
+      }
+      break;
+    }
+
     default:
       console.log(`
 Company Tasks CLI — Gestione task per la virtual company
@@ -503,16 +616,16 @@ Commands:
   create ... --routing-exempt --routing-reason "motivo"   Bypass routing (escape hatch)
   get <id|#N>                    Dettaglio task (mostra routing, tags, benefit, outcome, next)
   claim <id|#N> --agent <name>   Prendi in carico un task
-  done <id|#N> [--summary "..."] [--data '{"k":"v"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "f1 f2"]
+  done <id|#N> --summary "..." --next "..." [--data '{"k":"v"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--commit] [--files "f1 f2"]
+  done <id|#N> --summary "..." --no-next   (solo se il task non ha follow-up)
   exec <id|#N> [--runbook <name>]  Delegation brief: contesto dept + runbook + istruzioni leader
   update <id|#N> --status <status>  Aggiorna stato
+  route <testo richiesta>          Classifica richiesta e suggerisci routing (da YAML)
 
-Routing obbligatorio (--routing):
-  feature-request:low/medium/high    Nuove feature
-  trading-operations:routine/critical Trading pipeline
-  data-operations:corpus-update      Pipeline dati
-  infrastructure:maintenance/upgrade Infrastruttura
-  company-operations:prompt-change   Modifiche prompt/config
+Routing: validato contro decision tree YAML in company/protocols/decision-trees/
+  Per vedere le combinazioni valide: ometti --routing e il CLI le elenca
+  Per classificare una richiesta: route 'descrizione della richiesta'
+  Per bypassare (solo se autorizzato): --routing-exempt --routing-reason 'motivo'
 
 ID format: UUID completo, prefisso UUID (es. "abc12345"), o #N (es. "#42")
       `);

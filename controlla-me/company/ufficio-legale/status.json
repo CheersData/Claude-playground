@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "dept": "ufficio-legale",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "leader"
+  },
+  "health": "ok",
+  "summary": "Pipeline 4 agenti operativa. Tier system con catene N-fallback attivo. 7 agenti runtime configurati. Corpus ~5600 articoli. Test coverage ~72%.",
+  "pipeline": {
+    "agents": ["classifier", "analyzer", "investigator", "advisor"],
+    "support_agents": ["corpus-agent", "question-prep", "leader"],
+    "total_agents": 7,
+    "pipeline_target_seconds": 90,
+    "tier_system": "active",
+    "tiers": ["intern", "associate", "partner"]
+  },
+  "prompts": {
+    "location": "lib/prompts/",
+    "files": ["classifier.ts", "analyzer.ts", "investigator.ts", "advisor.ts", "corpus-agent.ts", "question-prep.ts"],
+    "output_format": "JSON puro",
+    "language": "italiano"
+  },
+  "corpus": {
+    "articles_total": 5600,
+    "sources": 18,
+    "embeddings": "voyage-law-2"
+  },
+  "features_incomplete": [
+    "OCR immagini (tesseract.js rimosso)",
+    "UI scoring multidimensionale (backend pronto)",
+    "Verticale HR (non avviato)",
+    "Sistema referral avvocati (tabelle DB esistono, no UI)"
+  ],
+  "gaps": [
+    {
+      "id": "LEG-1",
+      "description": "Verticale HR non avviato — fonti mappate in hr-sources.ts ma non caricate",
+      "severity": "medium"
+    },
+    {
+      "id": "LEG-2",
+      "description": "OCR non disponibile — tesseract.js rimosso, reinstallare quando necessario",
+      "severity": "low"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Pipeline core funzionante. Investigator usa web_search (solo Anthropic). Fairness score calibrato: scoring multidimensionale nel backend (legalCompliance, contractBalance, industryPractice)."
+}

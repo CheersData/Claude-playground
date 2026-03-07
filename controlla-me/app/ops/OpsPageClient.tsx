@@ -124,6 +124,7 @@ export default function OpsPageClient() {
   const [data, setData] = useState<OpsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Modals
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
@@ -168,11 +169,23 @@ export default function OpsPageClient() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await fetch("/api/company/status", { headers: getConsoleAuthHeaders() });
-      if (res.ok) setData(await res.json());
+      if (res.ok) {
+        setData(await res.json());
+      } else if (res.status === 401) {
+        // Token scaduto o invalido → forza re-login
+        sessionStorage.removeItem("lexmea-token");
+        setAuthed(false);
+        setData(null);
+      } else {
+        const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        setFetchError(body.error ?? `Errore ${res.status}`);
+      }
     } catch (err) {
       console.error("Failed to fetch ops data:", err);
+      setFetchError("Errore di connessione al server");
     } finally {
       setLoading(false);
       setLastRefresh(new Date());
@@ -381,6 +394,18 @@ export default function OpsPageClient() {
         default: // overview
           return (
             <div className="h-full overflow-y-auto p-4 space-y-4">
+              {/* Error banner */}
+              {fetchError && (
+                <div className="flex items-center gap-3 bg-red-950/50 border border-red-800/50 rounded-lg px-4 py-3">
+                  <span className="text-red-400 text-xs font-medium flex-1">{fetchError}</span>
+                  <button
+                    onClick={fetchData}
+                    className="text-red-300 hover:text-white text-xs underline"
+                  >
+                    Riprova
+                  </button>
+                </div>
+              )}
               {/* Summary: focus + decisions + manual notes */}
               <OverviewSummaryPanel />
               {/* Quick stats row */}

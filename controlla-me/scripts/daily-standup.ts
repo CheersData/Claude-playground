@@ -14,7 +14,6 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
-import { execSync } from "child_process";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -23,6 +22,7 @@ import { upsertDepartmentAnalysis } from "../lib/company/department-analyses";
 import type { Task, Department } from "../lib/company/types";
 import { ensureDailyControls, checkIdleAndPlan } from "./daily-controls";
 import { saveStateOfCompany } from "./lib/state-of-company";
+import { callLLM, parseJSON } from "./lib/llm";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -279,10 +279,9 @@ interface DeptAnalysisJSON {
 }
 
 /**
- * Genera analisi AI per ogni dipartimento usando `claude -p` CLI.
+ * Genera analisi AI per ogni dipartimento usando provider gratuiti (Gemini/Groq/Cerebras).
  *
- * REGOLA DEMO: questo script usa il CLI, MAI il SDK @anthropic-ai/sdk.
- * Deve girare dal terminale ESTERNO (non dentro una sessione Claude Code attiva).
+ * Usa scripts/lib/llm.ts con catena fallback su free tier.
  */
 async function generateDepartmentAnalyses(
   deptPlans: DeptPlan[],
@@ -329,27 +328,16 @@ Regole:
 - key_points: max 3 bullet, ogni punto max 80 caratteri, italiano`;
 
     try {
-      const raw = execSync(`claude -p ${JSON.stringify(prompt)}`, {
-        encoding: "utf-8",
-        timeout: 30_000,
-      }).trim();
+      const raw = await callLLM(prompt, {
+        callerName: `DEPT-ANALYSIS-${dp.dept}`,
+        maxTokens: 1024,
+        temperature: 0.3,
+      });
 
-      // Parse JSON robusto (stesso pattern di lib/anthropic.ts)
       let parsed: DeptAnalysisJSON | null = null;
       try {
-        parsed = JSON.parse(raw);
+        parsed = parseJSON<DeptAnalysisJSON>(raw);
       } catch {
-        const match = raw.match(/\{[\s\S]*\}/);
-        if (match) {
-          try {
-            parsed = JSON.parse(match[0]);
-          } catch {
-            // parse fallito
-          }
-        }
-      }
-
-      if (!parsed) {
         console.warn(`  ⚠️  ${emoji} ${label}: JSON parse fallito, skip.`);
         continue;
       }
@@ -409,6 +397,21 @@ async function cmdGenerate(): Promise<void> {
     console.warn("⚠️  Idle trigger: errore (non bloccante):", (err as Error).message);
   }
 
+  // ── 2.5. CME Inbox: harvest suggestedNext + panoramica ──
+  try {
+    const { execSync: execInbox } = await import("child_process");
+    // Harvest: converte suggestedNext in task reali
+    console.log("📬 CME Inbox: harvesting suggestedNext...\n");
+    const harvestOutput = execInbox("npx tsx scripts/cme-inbox.ts --harvest --notify", {
+      encoding: "utf-8",
+      timeout: 30_000,
+      cwd: path.resolve(__dirname, ".."),
+    });
+    console.log(harvestOutput);
+  } catch (err) {
+    console.warn("⚠️  CME Inbox harvest: errore (non bloccante):", (err as Error).message?.slice(0, 200));
+  }
+
   // ── 3. Genera piano del giorno ──
   const deptPlans = await buildDeptPlans();
   const content = await generatePlan(date);
@@ -418,8 +421,7 @@ async function cmdGenerate(): Promise<void> {
   console.log(content);
   console.log(`\n✅ Piano salvato in: company/daily-plans/${date}.md\n`);
 
-  // ── 4. Genera analisi AI per ogni dipartimento (usa claude -p CLI) ──
-  // Nota: eseguire dal terminale ESTERNO — non funziona dentro una sessione Claude Code attiva.
+  // ── 4. Genera analisi AI per ogni dipartimento (usa provider gratuiti) ──
   try {
     await generateDepartmentAnalyses(deptPlans, date);
   } catch (err) {

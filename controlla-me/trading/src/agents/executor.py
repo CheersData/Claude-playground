@@ -13,6 +13,7 @@ from typing import Any
 
 import pandas as pd
 
+from ..config import get_settings
 from ..connectors.alpaca_client import AlpacaClient
 from ..models.signals import RiskDecision, RiskDecisionStatus, SignalAction
 from ..models.orders import Order, OrderSide, OrderType, OrderStatus
@@ -77,6 +78,17 @@ class Executor(BaseAgent):
         stop_loss = round(raw_sl, 2) if raw_sl is not None else None
         take_profit = round(raw_tp, 2) if raw_tp is not None else None
 
+        # Determine side early — needed for fresh quote validation below
+        # BUY=long entry, SHORT=short entry, SELL=close long, COVER=close short
+        if action in ("BUY",):
+            side = "buy"
+        elif action in ("SHORT",):
+            side = "sell"   # Alpaca: short entry = sell without owning
+        elif action in ("SELL",):
+            side = "sell"
+        else:  # COVER
+            side = "buy"
+
         # Alpaca bracket order constraint: stop_price must be <= fill_price - 0.01.
         # When ATR is near-zero (after-hours / low volatility), the calculated stop
         # may round UP to the entry price → Alpaca rejects with code 42210000.
@@ -110,19 +122,128 @@ class Executor(BaseAgent):
                 )
                 take_profit = min_allowed_tp
 
+        # --- Crypto detection: Alpaca does NOT support bracket (OTOCO) for crypto ---
+        is_crypto = self._is_crypto(symbol)
+        if is_crypto and (stop_loss or take_profit):
+            self.logger.info(
+                "crypto_bracket_skipped",
+                symbol=symbol,
+                reason="Alpaca does not support bracket orders for crypto",
+                original_stop_loss=stop_loss,
+                original_take_profit=take_profit,
+            )
+            # Clear TP/SL — trailing stop system will manage exits separately
+            stop_loss = None
+            take_profit = None
+
+        # --- Fresh quote validation: re-clamp TP/SL against LIVE price ---
+        # The signal's entry_price may be stale (seconds to minutes old).
+        # Alpaca validates TP against the LIVE base_price, not the signal's entry.
+        # E.g. signal has entry=$604.48, TP clamped to $604.50, but live price
+        # is already $604.52 → Alpaca rejects "take_profit must be >= base_price + 0.01".
+        #
+        # Priority: quote (bid/ask mid) → snapshot (latest bar close) → drop bracket
+        # Quote is ALWAYS current (real-time bid/ask). Snapshot may return yesterday's
+        # close for pre-market ETFs — looks valid but is stale → causes TP rejection.
+        if stop_loss and take_profit and side == "buy":
+            self.logger.info(
+                "fresh_quote_check_start",
+                symbol=symbol,
+                stale_tp=take_profit,
+                stale_sl=stop_loss,
+                entry_price_ref=entry_price_ref,
+            )
+            fresh_price = None
+            try:
+                # 1. Try live quote first — bid/ask always reflects current market
+                quotes = self._alpaca.get_latest_quote([symbol])
+                if symbol in quotes:
+                    fresh_price = quotes[symbol]["mid"]
+                    self.logger.info(
+                        "fresh_price_from_quote",
+                        symbol=symbol,
+                        mid=fresh_price,
+                        bid=quotes[symbol].get("bid"),
+                        ask=quotes[symbol].get("ask"),
+                    )
+                else:
+                    # 2. Quote empty — fall back to latest bar snapshot
+                    self.logger.info(
+                        "quote_empty_trying_snapshot",
+                        symbol=symbol,
+                        note="No quote available — falling back to latest bar",
+                    )
+                    snapshot = self._alpaca.get_latest_snapshot([symbol])
+                    if symbol in snapshot:
+                        fresh_price = snapshot[symbol]["close"]
+                        self.logger.info(
+                            "fresh_price_from_snapshot",
+                            symbol=symbol,
+                            close=fresh_price,
+                        )
+            except Exception as e:
+                self.logger.warning(
+                    "fresh_quote_failed",
+                    symbol=symbol,
+                    error=str(e),
+                    note="Will try to proceed or drop bracket",
+                )
+
+            if fresh_price:
+                # Buffer: max(0.1% of price, $0.10) — works for $5 and $600 stocks
+                buffer = round(max(fresh_price * 0.001, 0.10), 2)
+                min_tp = round(fresh_price + buffer, 2)
+                max_sl = round(fresh_price - buffer, 2)
+
+                if take_profit < min_tp:
+                    self.logger.warning(
+                        "take_profit_live_adjusted",
+                        symbol=symbol,
+                        stale_tp=take_profit,
+                        fresh_price=fresh_price,
+                        adjusted_tp=min_tp,
+                        buffer=buffer,
+                    )
+                    take_profit = min_tp
+
+                if stop_loss > max_sl:
+                    self.logger.warning(
+                        "stop_loss_live_adjusted",
+                        symbol=symbol,
+                        stale_sl=stop_loss,
+                        fresh_price=fresh_price,
+                        adjusted_sl=max_sl,
+                        buffer=buffer,
+                    )
+                    stop_loss = max_sl
+            else:
+                # No fresh price available at all — drop bracket to avoid rejection.
+                # Simple market order; trailing stop will manage exits.
+                self.logger.warning(
+                    "no_fresh_price_dropping_bracket",
+                    symbol=symbol,
+                    stale_tp=take_profit,
+                    stale_sl=stop_loss,
+                    note="Sending simple market order — trailing stop will manage exits",
+                )
+                stop_loss = None
+                take_profit = None
+
+        else:
+            # Guard not entered — log why for diagnostics
+            if side == "buy" and (stop_loss or take_profit):
+                self.logger.info(
+                    "fresh_quote_skipped",
+                    symbol=symbol,
+                    stop_loss=stop_loss,
+                    take_profit=take_profit,
+                    side=side,
+                    reason="guard not met: stop_loss or take_profit is falsy",
+                )
+
         if not qty or qty <= 0:
             self.logger.warning("skip_order", symbol=symbol, reason="no quantity")
             return None
-
-        # BUY=long entry, SHORT=short entry, SELL=close long, COVER=close short
-        if action in ("BUY",):
-            side = "buy"
-        elif action in ("SHORT",):
-            side = "sell"   # Alpaca: short entry = sell without owning
-        elif action in ("SELL",):
-            side = "sell"
-        else:  # COVER
-            side = "buy"
 
         # --- Pre-sell: cancel trailing stop order if active ---
         # When shares are held by an open stop order on Alpaca, a market SELL
@@ -224,6 +345,23 @@ class Executor(BaseAgent):
                     attempt=attempt + 1,
                     error=error_msg,
                 )
+                # Bracket validation failure (TP/SL constraint) — drop bracket
+                # and retry as simple market order. Trailing stop handles exits.
+                if stop_loss and take_profit and (
+                    "take_profit" in error_msg
+                    or "stop_loss" in error_msg
+                    or "42210000" in str(error_msg)
+                ):
+                    self.logger.warning(
+                        "bracket_dropped_on_failure",
+                        symbol=symbol,
+                        stale_tp=take_profit,
+                        stale_sl=stop_loss,
+                        note="Retrying as simple market order — trailing stop will manage exits",
+                    )
+                    stop_loss = None
+                    take_profit = None
+                    continue  # next attempt uses simple market order
                 if attempt == MAX_RETRIES - 1:
                     # Log failed order
                     failed_order = {
@@ -442,6 +580,22 @@ class Executor(BaseAgent):
             stop_loss=stop_loss,
             stop_order_id=stop_order_id,
         )
+
+    @staticmethod
+    def _is_crypto(symbol: str) -> bool:
+        """Check if symbol is a crypto pair (e.g. BTCUSD, ETHUSD).
+
+        Uses the configured crypto_symbols list from settings.
+        Fallback: symbol ends with 'USD' and length > 4.
+        """
+        try:
+            crypto_syms = {
+                s.upper() for s in get_settings().slope_volume.crypto_symbols
+            }
+            return symbol.upper() in crypto_syms
+        except Exception:
+            # Fallback heuristic: BTCUSD, ETHUSD are 6 chars ending in USD
+            return symbol.upper().endswith("USD") and len(symbol) > 4
 
     async def liquidate_all(self, reason: str) -> dict:
         """Emergency: close all positions and cancel all orders."""

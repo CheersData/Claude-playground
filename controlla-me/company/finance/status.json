@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "dept": "finance",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "cost-controller"
+  },
+  "health": "ok",
+  "summary": "Costi sotto controllo. $1.03 ultimi 7 giorni su 494 chiamate. Provider gratuiti dominanti (Cerebras 84%, Groq 4%). Trading paper: account $99,676.",
+  "costs": {
+    "last_7d": {
+      "total_usd": 1.03,
+      "total_calls": 494,
+      "by_provider": {
+        "cerebras": { "usd": 0.87, "calls": 354, "pct": 84 },
+        "gemini": { "usd": 0.13, "calls": 89, "pct": 13 },
+        "groq": { "usd": 0.03, "calls": 42, "pct": 3 },
+        "mistral": { "usd": 0.01, "calls": 9, "pct": 0 }
+      }
+    },
+    "alert_daily_usd": 1.00,
+    "alert_per_query_usd": 0.10,
+    "fallback_rate_alert_pct": 30
+  },
+  "trading_pnl": {
+    "mode": "paper",
+    "portfolio_value": 99676.27,
+    "initial_capital": 100000,
+    "unrealized_pnl_pct": -0.32,
+    "open_positions": 9
+  },
+  "revenue": {
+    "stripe_active": false,
+    "mrr_usd": 0,
+    "notes": "App in fase pre-lancio, nessun revenue ancora"
+  },
+  "gaps": [],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Strategia tier system funziona: modelli gratuiti (Cerebras, Groq) coprono 87% delle chiamate. Costo medio per chiamata: $0.002."
+}
