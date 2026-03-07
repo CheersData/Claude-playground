@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "intervalMinutes": 15,
+  "lastRun": "2026-03-07T17:20:02.367Z",
+  "lastDurationMs": 69,
+  "lastExitCode": 1,
+  "lastTasksExecuted": 0,
+  "totalRuns": 1,
+  "updatedAt": "2026-03-07T17:20:02.368Z",
+  "updatedBy": "cme-autorun"
+}

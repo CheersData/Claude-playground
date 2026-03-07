@@ -28,8 +28,47 @@ const ROOT = resolve(__dirname, "..");
 const COMPANY_DIR = resolve(ROOT, "company");
 const LOG_DIR = resolve(COMPANY_DIR, "autorun-logs");
 const LOCK_FILE = resolve(LOG_DIR, ".autorun.lock");
+const DAEMON_STATE_FILE = resolve(COMPANY_DIR, "cme-daemon-state.json");
 const DEFAULT_INTERVAL_MIN = 15;
 const MAX_PROMPT_DEPT_CHARS = 600; // max chars per department vision context
+
+// ─── Daemon State ───────────────────────────────────────────────────────────
+
+interface DaemonState {
+  enabled: boolean;
+  intervalMinutes: number;
+  lastRun: string | null;
+  lastDurationMs: number | null;
+  lastExitCode: number | null;
+  lastTasksExecuted: number;
+  totalRuns: number;
+  updatedAt: string | null;
+  updatedBy: string;
+}
+
+function readDaemonState(): DaemonState {
+  try {
+    return JSON.parse(fs.readFileSync(DAEMON_STATE_FILE, "utf-8"));
+  } catch {
+    return {
+      enabled: true,
+      intervalMinutes: DEFAULT_INTERVAL_MIN,
+      lastRun: null,
+      lastDurationMs: null,
+      lastExitCode: null,
+      lastTasksExecuted: 0,
+      totalRuns: 0,
+      updatedAt: null,
+      updatedBy: "system",
+    };
+  }
+}
+
+function writeDaemonState(patch: Partial<DaemonState>): void {
+  const current = readDaemonState();
+  const updated = { ...current, ...patch, updatedAt: new Date().toISOString() };
+  fs.writeFileSync(DAEMON_STATE_FILE, JSON.stringify(updated, null, 2) + "\n", "utf-8");
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -252,25 +291,36 @@ REGOLE:
 function executeClaudeSession(prompt: string): { output: string; exitCode: number } {
   log("Lancio sessione Claude Code CLI...");
 
-  const result = spawnSync("claude", ["-p", prompt, "--verbose"], {
-    cwd: ROOT,
-    encoding: "utf-8",
-    timeout: 10 * 60 * 1000, // 10 minuti max
-    shell: true,
-    maxBuffer: 10 * 1024 * 1024, // 10MB
-  });
+  // Scrivi il prompt in un file temp per evitare il limite di 8192 chars della command line Windows
+  const tempPromptFile = resolve(ROOT, ".autorun-prompt.tmp");
+  fs.writeFileSync(tempPromptFile, prompt, "utf-8");
 
-  const output = (result.stdout || "") + (result.stderr || "");
-  const exitCode = result.status ?? 1;
+  try {
+    // Passa il prompt via stdin per evitare "La riga di comando è troppo lunga"
+    const result = spawnSync("claude", ["-p", "--verbose"], {
+      cwd: ROOT,
+      encoding: "utf-8",
+      timeout: 10 * 60 * 1000, // 10 minuti max
+      shell: true,
+      maxBuffer: 10 * 1024 * 1024, // 10MB
+      input: prompt, // stdin pipe — nessun limite di lunghezza
+    });
 
-  if (result.error) {
-    log(`Errore spawn: ${result.error.message}`);
-    if (result.error.message.includes("ENOENT")) {
-      log("ERRORE: 'claude' non trovato nel PATH. Installa Claude Code CLI o aggiungi al PATH.");
+    const output = (result.stdout || "") + (result.stderr || "");
+    const exitCode = result.status ?? 1;
+
+    if (result.error) {
+      log(`Errore spawn: ${result.error.message}`);
+      if (result.error.message.includes("ENOENT")) {
+        log("ERRORE: 'claude' non trovato nel PATH. Installa Claude Code CLI o aggiungi al PATH.");
+      }
     }
-  }
 
-  return { output, exitCode };
+    return { output, exitCode };
+  } finally {
+    // Cleanup file temp
+    try { fs.unlinkSync(tempPromptFile); } catch { /* ignore */ }
+  }
 }
 
 // ─── Log Session ────────────────────────────────────────────────────────────
@@ -324,6 +374,13 @@ async function main() {
   }
 
   const runOnce = () => {
+    // Controlla stato daemon da file JSON (modificabile da /ops)
+    const state = readDaemonState();
+    if (!state.enabled) {
+      log("Daemon DISABILITATO (enabled=false in cme-daemon-state.json). Skip.");
+      return;
+    }
+
     if (!acquireLock()) return;
 
     try {
@@ -337,6 +394,15 @@ async function main() {
       log(`Sessione completata in ${(durationMs / 1000).toFixed(0)}s — exit ${exitCode}`);
       logSession(output, exitCode, durationMs);
 
+      // Aggiorna stato daemon
+      writeDaemonState({
+        lastRun: new Date().toISOString(),
+        lastDurationMs: durationMs,
+        lastExitCode: exitCode,
+        totalRuns: state.totalRuns + 1,
+        updatedBy: "cme-autorun",
+      });
+
       if (exitCode !== 0) {
         log("Sessione terminata con errore. Controlla il log.");
       }
@@ -346,9 +412,22 @@ async function main() {
   };
 
   if (watchMode) {
-    log(`Watch mode: sessione ogni ${intervalMin} minuti. Ctrl+C per uscire.`);
+    const state = readDaemonState();
+    const effectiveInterval = state.intervalMinutes || intervalMin;
+    log(`Watch mode: sessione ogni ${effectiveInterval} minuti. Ctrl+C per uscire.`);
+    log(`Daemon enabled: ${state.enabled}`);
     runOnce();
-    setInterval(runOnce, intervalMin * 60 * 1000);
+
+    // Re-leggi intervallo dal file ad ogni ciclo (permette cambio live da /ops)
+    const scheduleNext = () => {
+      const currentState = readDaemonState();
+      const interval = currentState.intervalMinutes || effectiveInterval;
+      setTimeout(() => {
+        runOnce();
+        scheduleNext();
+      }, interval * 60 * 1000);
+    };
+    scheduleNext();
   } else {
     runOnce();
   }
