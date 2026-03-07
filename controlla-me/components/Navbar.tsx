@@ -187,6 +187,8 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
             e.stopPropagation();
             setMobileOpen(!mobileOpen);
           }}
+          aria-label={mobileOpen ? "Chiudi menu" : "Apri menu"}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? (
             <X className="w-5 h-5 text-foreground-secondary" />

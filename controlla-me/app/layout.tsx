@@ -35,7 +35,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-background text-foreground">
-        {children}
+        <a href="#main-content" className="skip-nav">
+          Vai al contenuto principale
+        </a>
+        <div id="main-content">
+          {children}
+        </div>
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         )}

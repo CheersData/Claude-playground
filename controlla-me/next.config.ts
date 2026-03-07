@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 // CSP direttive — mantenute separate per leggibilità
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  // Next.js richiede unsafe-inline per hydration script; unsafe-eval per dev
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com",
+  // Next.js richiede unsafe-inline per hydration; unsafe-eval solo in dev (HMR, error overlay)
+  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com`,
   // Stili inline usati da Tailwind e Framer Motion; Google Fonts
   "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
   // Font: self + Google Fonts CDN
