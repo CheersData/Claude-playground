@@ -213,6 +213,26 @@ function fileMtime(filePath: string): string | null {
   }
 }
 
+/**
+ * Trova la data più recente disponibile per un piano o report.
+ * Se oggi non esiste, cerca indietro fino a 30 giorni.
+ */
+function findLatestDate(root: string, type: "plan" | "master"): { date: string; filePath: string } | null {
+  const now = new Date();
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const filePath = type === "plan"
+      ? path.join(root, "company", "daily-plans", `${dateStr}.md`)
+      : path.join(root, "company", "reports", dateStr, "00-master.md");
+    if (fs.existsSync(filePath)) {
+      return { date: dateStr, filePath };
+    }
+  }
+  return null;
+}
+
 // ─── Route ───────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -225,18 +245,26 @@ export async function GET(req: NextRequest) {
   const today = new Date().toISOString().split("T")[0];
   const root = path.join(process.cwd());
 
-  const masterPath = path.join(root, "company", "reports", today, "00-master.md");
-  const planPath = path.join(root, "company", "daily-plans", `${today}.md`);
+  // Cerca prima oggi, poi fallback alla data più recente (max 30 giorni indietro)
+  const latestPlan = findLatestDate(root, "plan");
+  const latestMaster = findLatestDate(root, "master");
 
-  const masterExists = fs.existsSync(masterPath);
-  const planExists = fs.existsSync(planPath);
+  const planPath = latestPlan?.filePath ?? "";
+  const masterPath = latestMaster?.filePath ?? "";
+
+  const planExists = !!latestPlan;
+  const masterExists = !!latestMaster;
 
   const master = masterExists ? fs.readFileSync(masterPath, "utf-8") : "";
   const plan = planExists ? fs.readFileSync(planPath, "utf-8") : "";
 
   const deptReports = readDeptReports(root);
 
-  const response: SummaryResponse = {
+  const response: SummaryResponse & {
+    planDate: string | null;
+    masterDate: string | null;
+    isStale: boolean;
+  } = {
     date: today,
     focus: parseFocus(plan),
     pendingDecisions: parsePendingDecisions(master),
@@ -247,6 +275,10 @@ export async function GET(req: NextRequest) {
     masterUpdated: masterExists ? fileMtime(masterPath) : null,
     planExists,
     planUpdated: planExists ? fileMtime(planPath) : null,
+    // Nuovi campi: indicano la data effettiva e se sono dati stale
+    planDate: latestPlan?.date ?? null,
+    masterDate: latestMaster?.date ?? null,
+    isStale: (latestPlan?.date !== today) || (latestMaster?.date !== today),
   };
 
   return NextResponse.json(response);

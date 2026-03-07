@@ -194,14 +194,74 @@ function readDepartmentVisions(): DeptVisionData[] {
 
 // ─── Daily Plan ─────────────────────────────────────────────────────────────
 
-function readDailyPlan(): string | null {
+function todayPlanPath(): string {
   const today = new Date().toISOString().slice(0, 10);
-  const planPath = resolve(COMPANY_DIR, "daily-plans", `${today}.md`);
+  return resolve(COMPANY_DIR, "daily-plans", `${today}.md`);
+}
+
+function readDailyPlan(): string | null {
   try {
-    return fs.readFileSync(planPath, "utf-8").slice(0, 3000);
+    return fs.readFileSync(todayPlanPath(), "utf-8").slice(0, 3000);
   } catch {
     return null;
   }
+}
+
+/**
+ * Genera il piano giornaliero se mancante.
+ * Esegue daily-standup.ts direttamente (non dentro la sessione Claude).
+ * Anche in demo mode produce un piano parziale basato sui task.
+ */
+function ensureDailyPlanExists(): boolean {
+  const planPath = todayPlanPath();
+  if (fs.existsSync(planPath)) {
+    log("Daily plan di oggi esiste già.");
+    return true;
+  }
+
+  log("Daily plan mancante — genero automaticamente...");
+  const result = spawnSync("npx", ["tsx", "scripts/daily-standup.ts"], {
+    cwd: ROOT,
+    encoding: "utf-8",
+    timeout: 90_000, // 90s max
+    shell: true,
+  });
+
+  if (result.status === 0 || fs.existsSync(planPath)) {
+    log("Daily plan generato con successo.");
+    return true;
+  }
+
+  log(`Daily plan generazione fallita (exit ${result.status}). Creo piano minimo dal board...`);
+
+  // Fallback: crea un piano minimo leggendo direttamente il board
+  const board = readBoard();
+  const openTasks = readOpenTasks();
+  const today = new Date().toISOString().slice(0, 10);
+  const minimalPlan = `# Daily Plan — ${today}
+
+> Generato automaticamente da CME Daemon (piano minimo — daily-standup.ts non disponibile)
+
+## Focus Raccomandato
+
+Portare avanti tutti i task open sulla board, in ordine di priorità.
+
+## Board Status
+
+${board.slice(0, 2000)}
+
+## Task Open
+
+${openTasks.slice(0, 3000)}
+
+## Piano
+
+Eseguire i task open dalla board. Priorità: critical > high > medium > low.
+`;
+  ensureDir(resolve(COMPANY_DIR, "daily-plans"));
+  fs.writeFileSync(planPath, minimalPlan, "utf-8");
+  log("Piano minimo generato dal board.");
+  return true;
 }
 
 // ─── Poimandres Vision ──────────────────────────────────────────────────────
@@ -264,25 +324,49 @@ ${planSection}
 
 ## ISTRUZIONI SESSIONE AUTOMATICA
 
+### FASE 1: ESEGUI TASK ESISTENTI
 1. Se ci sono task IN PROGRESS: completali prima di tutto
 2. Se ci sono task OPEN: eseguili in ordine di priorita (critical > high > medium > low)
 3. Per ogni task:
-   a. Leggi il department.md del dipartimento assegnato
-   b. Leggi il runbook pertinente se indicato
-   c. IMPLEMENTA il task (scrivi codice, modifica file, esegui comandi)
-   d. Marca done: npx tsx scripts/company-tasks.ts done <id> --summary "..."
-4. Se il board e vuoto:
-   a. Genera daily controls: npx tsx scripts/daily-controls.ts
-   b. Genera daily plan se mancante: npx tsx scripts/daily-standup.ts
-5. Al termine, scrivi un log in company/autorun-logs/ con data-ora e riepilogo
+   a. PRIMA di tutto: npx tsx scripts/company-tasks.ts claim <id> --agent cme-daemon
+      (questo mette il task in_progress — OBBLIGATORIO, cosi il boss vede cosa stai facendo)
+   b. Leggi il department.md del dipartimento assegnato
+   c. Leggi il runbook pertinente se indicato
+   d. IMPLEMENTA il task (scrivi codice, modifica file, esegui comandi)
+   e. Marca done: npx tsx scripts/company-tasks.ts done <id> --summary "..." --no-next
+   IMPORTANTE: claim PRIMA, done DOPO. Mai saltare il claim.
+
+### FASE 2: GENERA NUOVI TASK (SISTEMA AUTOALIMENTANTE)
+Se dopo la Fase 1 non ci sono piu task open:
+1. Leggi il daily plan (company/daily-plans/{oggi}.md)
+2. Leggi i status.json dei dipartimenti per identificare gap e next_actions
+3. Leggi company/vision.json per allinearti alla strategia
+4. CREA NUOVI TASK basandoti su:
+   - Gap aperti nei dipartimenti (status.json → gaps con severity != "closed")
+   - Next actions suggerite nei status.json
+   - Priorita dal daily plan
+   - Tech debt in CLAUDE.md sezione 19
+   - Feature incomplete in CLAUDE.md sezione 17
+5. Crea almeno 3-5 nuovi task concreti e implementabili:
+   npx tsx scripts/company-tasks.ts create --title "..." --dept X --priority Y --by cme-daemon --desc "..." --routing "EXEMPT"
+
+### FASE 3: DAILY CONTROLS
+Se non fatto oggi:
+1. Genera daily controls: npx tsx scripts/daily-controls.ts
+2. Rigenera daily plan se stale: npx tsx scripts/daily-standup.ts
+
+### FASE 4: LOG
+Scrivi un riepilogo in company/autorun-logs/ con: task eseguiti, task creati, task skippati.
 
 REGOLE:
 - NON chiedere conferma. Agisci.
 - Segui il routing: crea task formali prima di implementare
 - I piani devono essere COERENTI con vision/mission/priorita dei dipartimenti
 - Se un task richiede approvazione L3/L4, saltalo e segnalalo nel log
-- Max 5 task per sessione (evita sessioni troppo lunghe)
-- Se non ci sono task e il piano e gia generato, esci con "Nessuna azione necessaria"
+- Esegui TUTTI i task open possibili in questa sessione, senza limiti
+- Se ci sono task in_progress che NON sono stati creati da te in questa sessione, fermati e lascia che vengano completati prima di agire
+- IL BOARD NON DEVE MAI RESTARE VUOTO — se finisci i task, CREA NUOVI TASK prima di uscire
+- Prediligi task di codice concreti (implementa, fix, test, refactor) rispetto a task di pianificazione
 `;
 }
 
@@ -300,7 +384,7 @@ function executeClaudeSession(prompt: string): { output: string; exitCode: numbe
     const result = spawnSync("claude", ["-p", "--verbose"], {
       cwd: ROOT,
       encoding: "utf-8",
-      timeout: 10 * 60 * 1000, // 10 minuti max
+      timeout: 30 * 60 * 1000, // 30 minuti max
       shell: true,
       maxBuffer: 10 * 1024 * 1024, // 10MB
       input: prompt, // stdin pipe — nessun limite di lunghezza
@@ -381,9 +465,27 @@ async function main() {
       return;
     }
 
+    // Controlla se ci sono task in_progress — se si, skip ciclo
+    const ipCheck = spawnSync("npx", ["tsx", "scripts/company-tasks.ts", "list", "--status", "in_progress"], {
+      cwd: ROOT,
+      encoding: "utf-8",
+      timeout: 30_000,
+      shell: true,
+    });
+    const ipOutput = (ipCheck.stdout || "").trim();
+    // Se l'output contiene task (non solo header/vuoto), skip
+    const ipLines = ipOutput.split("\n").filter((l: string) => l.match(/^\s*\d+\.\s/));
+    if (ipLines.length > 0) {
+      log(`Task in progress trovati (${ipLines.length}), skip ciclo. Lascio che vengano completati.`);
+      return;
+    }
+
     if (!acquireLock()) return;
 
     try {
+      // Genera il piano giornaliero se non esiste ancora
+      ensureDailyPlanExists();
+
       const prompt = buildPrompt();
       log(`Prompt costruito: ${prompt.length} chars`);
 

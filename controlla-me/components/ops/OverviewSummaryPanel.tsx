@@ -56,6 +56,12 @@ interface SummaryData {
   masterUpdated: string | null;
   planExists: boolean;
   planUpdated: string | null;
+  /** Data effettiva del piano (può differire da date se fallback) */
+  planDate: string | null;
+  /** Data effettiva del master report (può differire da date se fallback) */
+  masterDate: string | null;
+  /** true se il piano o il master non sono di oggi */
+  isStale: boolean;
 }
 
 const NOTES_KEY = "ops_overview_notes";
@@ -347,10 +353,15 @@ export function OverviewSummaryPanel() {
       <div className="lg:col-span-2 space-y-3">
 
         {/* Focus del giorno */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+        <div className={`rounded-lg border bg-zinc-900/60 p-3 ${data.isStale ? "border-amber-800/40" : "border-zinc-800"}`}>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Zap className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-            <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Focus del giorno</span>
+            <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Focus attivo</span>
+            {data.planDate && data.planDate !== data.date && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-950/40 text-amber-400 border border-amber-800/30">
+                dal {new Date(data.planDate).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+              </span>
+            )}
             {data.planUpdated && (
               <span className="text-[10px] text-zinc-600">— {fmtTimestamp(data.planUpdated)}</span>
             )}
@@ -383,8 +394,13 @@ export function OverviewSummaryPanel() {
           )}
           {!data.planExists && (
             <p className="text-[10px] text-zinc-600 mt-1">
-              Nessun piano per oggi — usa &quot;Genera piano&quot; o esegui dal terminale:{" "}
+              Nessun piano disponibile — usa &quot;Genera piano&quot; o esegui dal terminale:{" "}
               <code className="text-zinc-500">npx tsx scripts/daily-standup.ts</code>
+            </p>
+          )}
+          {data.isStale && data.planExists && (
+            <p className="text-[10px] text-amber-400/70 mt-1.5">
+              ⚠ Ultimo piano generato il {data.planDate} — premi &quot;Genera piano&quot; per aggiornare a oggi
             </p>
           )}
           {generateMsg && (
@@ -423,9 +439,11 @@ export function OverviewSummaryPanel() {
               Report Dipartimenti
             </span>
             {data.masterExists && data.masterUpdated && (
-              <span className="ml-auto text-[10px] text-zinc-600 flex items-center gap-1">
+              <span className={`ml-auto text-[10px] flex items-center gap-1 ${data.masterDate && data.masterDate !== data.date ? "text-amber-500" : "text-zinc-600"}`}>
                 <FileText className="w-3 h-3" />
-                master {fmtTimestamp(data.masterUpdated)}
+                master {data.masterDate && data.masterDate !== data.date
+                  ? `dal ${new Date(data.masterDate).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}`
+                  : fmtTimestamp(data.masterUpdated)}
               </span>
             )}
           </div>

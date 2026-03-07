@@ -32,6 +32,7 @@ import {
   FileText,
   Activity,
   Scale,
+  Zap,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 import { TaskBoard } from "@/components/ops/TaskBoard";
@@ -52,6 +53,7 @@ import { DebugPanel } from "@/components/ops/DebugPanel";
 import { OverviewSummaryPanel } from "@/components/ops/OverviewSummaryPanel";
 import { TradingDashboard } from "@/components/ops/TradingDashboard";
 import { TradingSlopePanel } from "@/components/ops/TradingSlopePanel";
+import { DaemonControlPanel } from "@/components/ops/DaemonControlPanel";
 import type { Department, Task } from "@/lib/company/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -81,7 +83,7 @@ interface OpsData {
 }
 
 type Workspace = "operations" | "debug" | "testing" | "trading";
-type OpsView = "overview" | "cme" | "vision" | "archive" | "reports";
+type OpsView = "overview" | "cme" | "vision" | "archive" | "reports" | "daemon";
 type TradeView = "dashboard" | "slope";
 
 // ─── Sidebar nav item component ───────────────────────────────────────────────
@@ -278,6 +280,12 @@ export default function OpsPageClient() {
             active={opsView === "reports" && !selectedDepartment}
             onClick={() => { setOpsView("reports"); setSelectedDepartment(null); }}
           />
+          <NavItem
+            label="Daemon"
+            icon={Zap}
+            active={opsView === "daemon" && !selectedDepartment}
+            onClick={() => { setOpsView("daemon"); setSelectedDepartment(null); }}
+          />
 
           {/* Department list */}
           <div className="px-3 pt-5 pb-1">
@@ -389,6 +397,12 @@ export default function OpsPageClient() {
           return (
             <div className="h-full overflow-y-auto p-4">
               <ReportsPanel onBack={() => setOpsView("overview")} />
+            </div>
+          );
+        case "daemon":
+          return (
+            <div className="h-full overflow-y-auto p-4">
+              <DaemonControlPanel />
             </div>
           );
         default: // overview
