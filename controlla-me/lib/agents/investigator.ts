@@ -42,11 +42,11 @@ async function selfRetrieveForClauses(
         searchLegalKnowledge(query, {
           limit: maxResultsPerClause,
           threshold: 0.60,
-        }).catch(() => []),
+        }).catch((err) => { console.error("[Investigator] searchLegalKnowledge failed:", err); return []; }),
         searchArticles(query, {
           threshold: 0.55,
           limit: maxResultsPerClause,
-        }).catch(() => []),
+        }).catch((err) => { console.error("[Investigator] searchArticles failed:", err); return []; }),
       ]);
 
       const parts: string[] = [];
@@ -234,7 +234,7 @@ export async function runInvestigator(
     outputTokens: totalOutputTokens,
     durationMs: Date.now() - t0,
     usedFallback: false,
-  }).catch(() => {});
+  }).catch((err) => { console.error("[Investigator] pipeline complete callback failed:", err); });
 
   return parseAgentJSON<InvestigationResult>(finalText);
 }
