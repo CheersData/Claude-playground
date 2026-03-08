@@ -119,7 +119,7 @@ def save_log(message: str, success: bool):
 
 # ─── Window Management ──────────────────────────────────────────────────────
 
-def list_candidate_windows():
+def list_candidate_windows(show_all: bool = False):
     """Elenca tutte le finestre candidate (per debug)"""
     try:
         import pygetwindow as gw
@@ -128,9 +128,12 @@ def list_candidate_windows():
             title = w.title.strip()
             if not title:
                 continue
-            lower = title.lower()
-            if any(k in lower for k in ["claude", "terminal", "powershell", "cmd", "controlla"]):
+            if show_all:
                 candidates.append(title)
+            else:
+                lower = title.lower()
+                if any(k in lower for k in ["claude", "terminal", "powershell", "cmd", "controlla", "code", "mintty", "bash", "git", "chrome", "firefox", "edge", "brave", "opera", "lexmea", "localhost"]):
+                    candidates.append(title)
         return candidates
     except Exception:
         return []
@@ -379,22 +382,26 @@ def main():
     parser.add_argument("--once", action="store_true",
                         help="Esegui una volta e esci")
     parser.add_argument("--target", type=str, default=None,
-                        help="Substring del titolo finestra da cercare (es. 'controlla-me', 'Claude')")
+                        help="Substring del TITOLO finestra (non URL). Es. 'LexMea', 'Claude', 'controlla-me'. Usa --list-all-windows per vedere i titoli.")
     parser.add_argument("--list-windows", action="store_true",
                         help="Mostra finestre candidate ed esci (per debug)")
+    parser.add_argument("--list-all-windows", action="store_true",
+                        help="Mostra TUTTE le finestre aperte (debug completo)")
 
     args = parser.parse_args()
 
     # --list-windows: mostra finestre e esci
-    if args.list_windows:
-        log("Finestre candidate:")
-        candidates = list_candidate_windows()
+    if args.list_windows or args.list_all_windows:
+        show_all = args.list_all_windows
+        label = "TUTTE le finestre" if show_all else "Finestre candidate"
+        log(f"{label}:")
+        candidates = list_candidate_windows(show_all=show_all)
         if candidates:
             for i, title in enumerate(candidates):
                 log(f"  [{i}] {title}")
             log(f"\nUsa --target \"<substring>\" per matchare la finestra giusta.")
         else:
-            log("  Nessuna finestra candidata trovata.")
+            log("  Nessuna finestra trovata.")
         return
 
     # Imposta target finestra
