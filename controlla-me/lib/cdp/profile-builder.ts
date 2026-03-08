@@ -480,7 +480,7 @@ async function updateProfileSections(
 /**
  * Calcola lo stage del lifecycle dall'attivita dell'utente.
  */
-function computeLifecycleStage(
+export function computeLifecycleStage(
   totalAnalyses: number,
   plan: string | null,
   _now: Date
@@ -494,7 +494,7 @@ function computeLifecycleStage(
 /**
  * Versione completa del lifecycle stage, usando il profilo CDP completo.
  */
-function computeLifecycleStageFromProfile(
+export function computeLifecycleStageFromProfile(
   behavior: CDPBehavior,
   lifecycle: CDPLifecycle,
   _preferences: CDPPreferences
@@ -546,7 +546,7 @@ function computeLifecycleStageFromProfile(
  * Calcola il rischio di churn (0-100).
  * Basato su inattivita e trend di utilizzo.
  */
-function computeChurnRisk(behavior: CDPBehavior, lifecycle: CDPLifecycle): number {
+export function computeChurnRisk(behavior: CDPBehavior, lifecycle: CDPLifecycle): number {
   const now = new Date();
   const lastActive = behavior.last_active_at ? new Date(behavior.last_active_at) : null;
   const daysSinceActive = lastActive
@@ -572,7 +572,7 @@ function computeChurnRisk(behavior: CDPBehavior, lifecycle: CDPLifecycle): numbe
  * Calcola l'engagement score (0-100).
  * Formula pesata: frequenza (40%) + varieta (20%) + profondita (20%) + corpus (20%)
  */
-function computeEngagementScore(behavior: CDPBehavior): number {
+export function computeEngagementScore(behavior: CDPBehavior): number {
   // Frequenza: analisi negli ultimi 30 giorni (max 10 = 100%)
   const frequencyScore = Math.min(100, ((behavior.analyses_last_30d ?? 0) / 10) * 100);
 
@@ -596,7 +596,7 @@ function computeEngagementScore(behavior: CDPBehavior): number {
 /**
  * Inferisce il settore dell'utente dai tipi di documento preferiti.
  */
-function inferSector(docTypes: string[]): string | null {
+export function inferSector(docTypes: string[]): string | null {
   const sectorMap: Record<string, string> = {
     contratto_lavoro: "employment",
     locazione: "real_estate",
@@ -682,6 +682,8 @@ export async function backfillExistingProfiles(): Promise<{
         .order("created_at", { ascending: false })
         .limit(50);
 
+      const riskProfile = createDefaultRiskProfile();
+
       if (analyses && analyses.length > 0) {
         // preferred_doc_types
         const docTypes = analyses
@@ -694,7 +696,6 @@ export async function backfillExistingProfiles(): Promise<{
           .map((a) => a.fairness_score)
           .filter((s): s is number => s !== null);
         if (scores.length > 0) {
-          const riskProfile = createDefaultRiskProfile();
           riskProfile.avg_fairness_score = clampFairnessScore(
             scores.reduce((a, b) => a + b, 0) / scores.length
           );
@@ -736,7 +737,7 @@ export async function backfillExistingProfiles(): Promise<{
         user_id: user.id,
         identity,
         behavior,
-        risk_profile: createDefaultRiskProfile(),
+        risk_profile: riskProfile,
         preferences: createDefaultPreferences(),
         lifecycle,
       });

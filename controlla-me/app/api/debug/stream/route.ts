@@ -348,7 +348,7 @@ export async function GET(req: NextRequest) {
   if (rl) return rl;
 
   const encoder = new TextEncoder();
-  const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // last 1h
+  const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // last 24h
 
   let lastSignalAt = windowStart;
   let lastCostAt = windowStart;
@@ -397,19 +397,19 @@ export async function GET(req: NextRequest) {
             .select("id, signal_type, data, created_at")
             .gte("created_at", windowStart)
             .order("created_at", { ascending: true })
-            .limit(40),
+            .limit(100),
           supabase
             .from("agent_cost_log")
             .select("id, agent_name, model_key, provider, input_tokens, output_tokens, total_cost_usd, duration_ms, used_fallback, session_type, created_at")
             .gte("created_at", windowStart)
             .order("created_at", { ascending: true })
-            .limit(40),
+            .limit(100),
           supabase
             .from("company_tasks")
             .select("id, title, department, status, priority, assigned_to, created_by, created_at, started_at, completed_at")
             .gte("created_at", windowStart)
             .order("created_at", { ascending: true })
-            .limit(30),
+            .limit(80),
         ]);
 
         // Merge and sort chronologically

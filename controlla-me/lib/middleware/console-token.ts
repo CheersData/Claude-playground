@@ -171,14 +171,25 @@ export function verifyToken(token: string): ConsoleTokenPayload | null {
 
 /**
  * Estrae e verifica il token dall'header Authorization della request.
+ * Fallback: query param `?t=<token>` per SSE (EventSource non supporta headers custom).
  * Ritorna il payload se valido, null se assente/invalido/scaduto.
  */
 export function requireConsoleAuth(
   req: NextRequest
 ): ConsoleTokenPayload | null {
+  // 1. Authorization header (fetch, XHR)
   const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  return verifyToken(auth.slice(7));
+  if (auth?.startsWith("Bearer ")) {
+    return verifyToken(auth.slice(7));
+  }
+
+  // 2. Query param fallback (EventSource/SSE — cannot send custom headers)
+  const queryToken = req.nextUrl.searchParams.get("t");
+  if (queryToken) {
+    return verifyToken(queryToken);
+  }
+
+  return null;
 }
 
 // ─── Internals ───

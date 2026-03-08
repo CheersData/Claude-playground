@@ -15,6 +15,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
+import { notifyNewLead } from "@/lib/telegram";
 
 export async function POST(req: NextRequest) {
   // SEC-F1: CSRF protection — verify Origin header
@@ -93,8 +94,10 @@ export async function POST(req: NextRequest) {
     );
 
     // TODO: inviare email di conferma all'utente (contact_email)
-    // TODO: notifica interna team per matching avvocato
-    void { name, email, phone, description }; // usati sopra nell'insert
+
+    // Notifica interna team per matching avvocato (fire-and-forget, non blocca la response)
+    console.log(`[REFERRAL] Invio notifica Telegram per referral ${data.id} | name: ${name ?? "N/A"} | email: ${email ?? "N/A"}`);
+    notifyNewLead({ name: name ?? "Anonimo", email: email ?? "N/A", source: "lawyer-referral" }).catch(() => {});
 
     return NextResponse.json({ success: true, referralId: data.id });
   } catch (err) {

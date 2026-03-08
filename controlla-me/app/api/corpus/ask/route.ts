@@ -5,6 +5,7 @@ import { checkCsrf } from "@/lib/middleware/csrf";
 import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { isVectorDBEnabled } from "@/lib/embeddings";
 import { askCorpusAgent, type CorpusAgentConfig } from "@/lib/agents/corpus-agent";
+import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export const maxDuration = 60;
 
@@ -89,6 +90,20 @@ export async function POST(req: NextRequest) {
   // Call corpus agent
   try {
     const result = await askCorpusAgent(question, config);
+
+    // Fire-and-forget CDP event recording (only if authenticated)
+    if (userId) {
+      try {
+        recordProfileEvent(userId, "corpus_query", {
+          question_topic: question,
+          confidence: result.confidence || null,
+          cited_articles_count: result.articlesRetrieved || 0,
+        }).catch((err) => console.error("[CDP] Failed:", err));
+      } catch (err) {
+        console.error("[CDP] Failed:", err);
+      }
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     const message =
