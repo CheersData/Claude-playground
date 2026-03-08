@@ -40,10 +40,23 @@ STATE_FILE = os.path.join(ROOT, "company", "gui-daemon-state.json")
 LOG_DIR = os.path.join(ROOT, "company", "gui-daemon-logs")
 
 DEFAULT_INTERVAL_MIN = 10
-DEFAULT_MESSAGE = """daemon ping: controlla il board con `npx tsx scripts/company-tasks.ts board`. Se ci sono task open o in_progress, eseguili. Se non ce ne sono, leggi `company/daemon-report.json` e crea 1-3 task dai signal azionabili più importanti, poi eseguili. Reporta cosa hai fatto in 3-5 righe."""
+DEFAULT_MESSAGE = """daemon ping. Esegui questa sequenza:
+
+1. Leggi `company/daemon-report.json` (signal da tutti i dipartimenti)
+2. Leggi tutti i `company/*/status.json` dei dipartimenti
+3. Controlla il board: `npx tsx scripts/company-tasks.ts board`
+4. Genera un PIANO DI LAVORO unificato che includa:
+   - Stato di ogni dipartimento (1 riga ciascuno)
+   - Signal azionabili dal daemon report raggruppati per priorità
+   - Decisioni pendenti del boss (D-01, D-02, ecc.)
+   - 3-5 task concreti che puoi eseguire autonomamente ORA (non human_required)
+   - Blockers che richiedono azione del boss
+5. Se ci sono task open NON human_required sul board → eseguili
+6. Se non ce ne sono → crea 1-3 task dai signal più importanti e eseguili
+7. Reporta al boss il piano + cosa hai fatto in formato conciso"""
 
 # Tempo di attesa dopo aver trovato la finestra, prima di scrivere (secondi)
-SETTLE_TIME = 1.0
+SETTLE_TIME = 5.0
 # Timeout attesa dopo invio messaggio (secondi) — non serve aspettare, Claude lavora
 TYPE_DELAY = 0.02  # delay tra caratteri per typewrite
 

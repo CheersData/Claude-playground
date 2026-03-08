@@ -191,7 +191,7 @@ export async function indexAnalysisKnowledge(
   const entries: KnowledgeEntry[] = [];
 
   // 1. Estrarre pattern di clausole dall'analisi
-  for (const clause of analysis.clauses) {
+  for (const clause of analysis?.clauses ?? []) {
     entries.push({
       category: "clause_pattern",
       title: `${clause.title} [${classification.documentTypeLabel}]`,
@@ -218,8 +218,8 @@ export async function indexAnalysisKnowledge(
   }
 
   // 2. Estrarre riferimenti normativi dall'investigazione
-  for (const finding of investigation.findings) {
-    for (const law of finding.laws) {
+  for (const finding of investigation?.findings ?? []) {
+    for (const law of finding?.laws ?? []) {
       entries.push({
         category: "law_reference",
         title: law.reference,
@@ -243,7 +243,7 @@ export async function indexAnalysisKnowledge(
     }
 
     // 3. Estrarre sentenze dall'investigazione
-    for (const courtCase of finding.courtCases) {
+    for (const courtCase of finding?.courtCases ?? []) {
       entries.push({
         category: "court_case",
         title: courtCase.reference,
@@ -270,7 +270,7 @@ export async function indexAnalysisKnowledge(
   }
 
   // 4. Estrarre pattern di rischio dall'advisor
-  for (const risk of advice.risks) {
+  for (const risk of advice?.risks ?? []) {
     entries.push({
       category: "risk_pattern",
       title: `${risk.title} [${risk.severity}]`,
