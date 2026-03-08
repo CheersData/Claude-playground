@@ -46,44 +46,6 @@ const ALL_DEPARTMENTS: string[] = [
 /** Days to look back for "recent" completed tasks. */
 const RECENT_DAYS = 7;
 
-/**
- * Fields in status.json that must NOT be overwritten by auto-update.
- * These are department-specific custom data (trading runtime, backtest history, etc.).
- */
-const PRESERVED_FIELDS = new Set([
-  "phase",
-  "paper_trading",
-  "runtime",
-  "risk",
-  "agents",
-  "backtest_history",
-  "last_backtest",
-  "pending_backtest_5min",
-  "pipeline",
-  "prompts",
-  "corpus",
-  "features_incomplete",
-  "coverage",
-  "suites",
-  "dashboard",
-  "agents_runtime",
-  "cost_tracking",
-  "findings",
-  "infrastructure",
-  "low_findings_open",
-  "compliance",
-  "decisions",
-  "tech_debt",
-  "scalability",
-  "sources_by_type",
-  "okr_q2",
-  "opportunities",
-  "competitor_snapshot",
-  "market_signals",
-  "risks",
-  "decisions_pending_boss",
-]);
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusJsonPath(dept: string): string {
@@ -104,10 +66,14 @@ function readStatusJson(dept: string): Record<string, unknown> | null {
 function writeStatusJson(dept: string, data: Record<string, unknown>): void {
   const p = statusJsonPath(dept);
   const dir = path.dirname(p);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(p, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  } catch (err) {
+    console.error(`[auto-update-dept-status] Failed to write ${p}:`, err);
   }
-  fs.writeFileSync(p, JSON.stringify(data, null, 2) + "\n", "utf-8");
 }
 
 function isWithinDays(dateStr: string, days: number): boolean {

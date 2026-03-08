@@ -22,7 +22,7 @@ import { upsertDepartmentAnalysis } from "../lib/company/department-analyses";
 import type { Task, Department } from "../lib/company/types";
 import { ensureDailyControls, checkIdleAndPlan } from "./daily-controls";
 import { saveStateOfCompany } from "./lib/state-of-company";
-import { callLLM, parseJSON } from "./lib/llm";
+import { callLLM, parseJSON } from "../lib/llm";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 

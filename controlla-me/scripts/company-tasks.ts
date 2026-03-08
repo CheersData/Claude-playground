@@ -207,6 +207,10 @@ async function main() {
         console.error("Esempio: --desc 'Analizzare le fragilità del retrieval RAG e proporre miglioramenti architetturali'");
         process.exit(1);
       }
+      if (desc.length < 20) {
+        console.error("ERRORE: --desc deve contenere almeno 20 caratteri. Ricevuto: " + desc.length + " char");
+        process.exit(1);
+      }
       if (!benefit) {
         console.warn("ATTENZIONE: --benefit non specificato. Raccomandato: descrivere il beneficio concreto atteso.");
       }

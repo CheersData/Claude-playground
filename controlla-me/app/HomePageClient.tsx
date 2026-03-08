@@ -59,7 +59,7 @@ export default function HomePageClient() {
           setView("results");
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("[HOME] usage fetch failed:", err?.message || err));
   }, []);
 
   const scrollToUpload = useCallback(() => {
@@ -139,7 +139,7 @@ export default function HomePageClient() {
                     fetch("/api/user/usage")
                       .then((r) => r.json())
                       .then(setUsage)
-                      .catch(() => {});
+                      .catch((err) => console.error("[HOME] usage fetch failed:", err?.message || err));
                     setView("paywall");
                   } else {
                     setError(data.message || data.error || "Errore sconosciuto");

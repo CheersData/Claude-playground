@@ -5,10 +5,12 @@ Scrive messaggi nella sessione Claude Code attiva ogni N minuti.
 Toggle on/off con hotkey F9. Il boss lo attiva quando non lavora.
 
 Usage:
-  python scripts/gui-daemon.py                    # Default: ogni 10 min
-  python scripts/gui-daemon.py --interval 5       # Ogni 5 min
-  python scripts/gui-daemon.py --message "custom" # Messaggio custom
-  python scripts/gui-daemon.py --once              # Esegui una volta e esci
+  python scripts/gui-daemon.py                          # Default: ogni 10 min
+  python scripts/gui-daemon.py --interval 5             # Ogni 5 min
+  python scripts/gui-daemon.py --message "custom"       # Messaggio custom
+  python scripts/gui-daemon.py --once                    # Esegui una volta e esci
+  python scripts/gui-daemon.py --target "controlla-me"  # Cerca SOLO finestre con questo nel titolo
+  python scripts/gui-daemon.py --list-windows            # Mostra finestre candidate (debug)
 
 Hotkeys:
   F9  = Toggle ON/OFF (pausa/riprendi)
@@ -44,6 +46,9 @@ DEFAULT_MESSAGE = """daemon ping: controlla il board con `npx tsx scripts/compan
 SETTLE_TIME = 1.0
 # Timeout attesa dopo invio messaggio (secondi) — non serve aspettare, Claude lavora
 TYPE_DELAY = 0.02  # delay tra caratteri per typewrite
+
+# Target finestra — se specificato, matcha solo finestre con questo substring nel titolo
+TARGET_WINDOW: str | None = None
 
 # ─── State ───────────────────────────────────────────────────────────────────
 
@@ -114,25 +119,70 @@ def save_log(message: str, success: bool):
 
 # ─── Window Management ──────────────────────────────────────────────────────
 
+def list_candidate_windows():
+    """Elenca tutte le finestre candidate (per debug)"""
+    try:
+        import pygetwindow as gw
+        candidates = []
+        for w in gw.getAllWindows():
+            title = w.title.strip()
+            if not title:
+                continue
+            lower = title.lower()
+            if any(k in lower for k in ["claude", "terminal", "powershell", "cmd", "controlla"]):
+                candidates.append(title)
+        return candidates
+    except Exception:
+        return []
+
+
 def find_claude_window():
-    """Trova la finestra Claude Code (terminal o VS Code)"""
+    """
+    Trova la finestra Claude Code corretta.
+
+    Se TARGET_WINDOW è impostato (via --target), cerca SOLO finestre
+    il cui titolo contiene quel substring. Questo evita di incollare
+    nella sessione sbagliata quando ci sono più finestre Claude aperte.
+    """
     try:
         import pygetwindow as gw
 
+        all_windows = gw.getAllWindows()
+
+        # Se c'è un target specifico, filtra SOLO su quello
+        if TARGET_WINDOW:
+            target_lower = TARGET_WINDOW.lower()
+            matches = [w for w in all_windows if target_lower in w.title.lower() and w.title.strip()]
+            if matches:
+                chosen = matches[0]
+                log(f"[WINDOW] Target '{TARGET_WINDOW}' → trovata: \"{chosen.title}\"")
+                return chosen
+            else:
+                # Log tutte le finestre candidate per aiutare il debug
+                candidates = list_candidate_windows()
+                log(f"[ERROR] Nessuna finestra con '{TARGET_WINDOW}' nel titolo.")
+                if candidates:
+                    log(f"[DEBUG] Finestre candidate: {candidates[:8]}")
+                return None
+
+        # Fallback senza target: comportamento originale ma con logging
         # Cerca finestre con "Claude" nel titolo
         windows = gw.getWindowsWithTitle("Claude")
         if windows:
+            log(f"[WINDOW] Trovata (no target): \"{windows[0].title}\"")
             return windows[0]
 
-        # Cerca terminale Windows (cmd, PowerShell, Windows Terminal) con Claude
+        # Cerca terminale Windows con Claude
         for title_part in ["claude", "Claude Code", "CLAUDE"]:
-            wins = [w for w in gw.getAllWindows() if title_part.lower() in w.title.lower()]
+            wins = [w for w in all_windows if title_part.lower() in w.title.lower()]
             if wins:
+                log(f"[WINDOW] Trovata via '{title_part}': \"{wins[0].title}\"")
                 return wins[0]
 
         # Cerca Windows Terminal (potrebbe avere Claude Code come tab)
-        for w in gw.getAllWindows():
+        for w in all_windows:
             if "windows terminal" in w.title.lower() or "terminal" in w.title.lower():
+                log(f"[WINDOW] Fallback terminal: \"{w.title}\"")
                 return w
 
     except Exception as e:
@@ -319,6 +369,8 @@ def run_daemon(interval_min: int, message: str, once: bool = False):
 # ─── Entry Point ─────────────────────────────────────────────────────────────
 
 def main():
+    global TARGET_WINDOW
+
     parser = argparse.ArgumentParser(description="GUI Daemon per Claude Code")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_MIN,
                         help=f"Intervallo in minuti (default: {DEFAULT_INTERVAL_MIN})")
@@ -326,8 +378,29 @@ def main():
                         help="Messaggio da inviare")
     parser.add_argument("--once", action="store_true",
                         help="Esegui una volta e esci")
+    parser.add_argument("--target", type=str, default=None,
+                        help="Substring del titolo finestra da cercare (es. 'controlla-me', 'Claude')")
+    parser.add_argument("--list-windows", action="store_true",
+                        help="Mostra finestre candidate ed esci (per debug)")
 
     args = parser.parse_args()
+
+    # --list-windows: mostra finestre e esci
+    if args.list_windows:
+        log("Finestre candidate:")
+        candidates = list_candidate_windows()
+        if candidates:
+            for i, title in enumerate(candidates):
+                log(f"  [{i}] {title}")
+            log(f"\nUsa --target \"<substring>\" per matchare la finestra giusta.")
+        else:
+            log("  Nessuna finestra candidata trovata.")
+        return
+
+    # Imposta target finestra
+    if args.target:
+        TARGET_WINDOW = args.target
+        log(f"[CONFIG] Target finestra: '{TARGET_WINDOW}'")
 
     try:
         run_daemon(args.interval, args.message, args.once)

@@ -216,7 +216,7 @@ export async function runOrchestrator(
   // Now that we have the analysis, we can do semantic search with clause texts
   let investigatorLegalContext = legalContext;
   try {
-    if (isVectorDBEnabled() && result.analysis.clauses.length > 0) {
+    if (isVectorDBEnabled() && result.analysis?.clauses?.length > 0) {
       const problematicTexts = result.analysis.clauses
         .filter((c) => ["critical", "high", "medium"].includes(c.riskLevel))
         .map((c) => `${c.title}: ${c.originalText?.slice(0, 200) ?? c.issue}`)
@@ -306,7 +306,7 @@ export async function runOrchestrator(
     result.investigation && "investigator",
     result.advice && "advisor",
   ].filter(Boolean) as string[];
-  onPipelineComplete({ sessionId, totalDurationMs: Date.now() - (cached ? 0 : Date.now()), phasesCompleted }).catch(() => {});
+  onPipelineComplete({ sessionId, totalDurationMs: Date.now() - (cached ? 0 : Date.now()), phasesCompleted }).catch((err) => console.error("[ORCHESTRATOR] onPipelineComplete failed:", err?.message || err));
 
   // Step 6: Auto-index in vector DB (background, non-blocking)
   // Every completed analysis enriches the collective intelligence.

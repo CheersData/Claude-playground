@@ -55,6 +55,7 @@ import { DepartmentDetailPanel } from "@/components/ops/DepartmentDetailPanel";
 import { ReportsPanel } from "@/components/ops/ReportsPanel";
 import { CMEChatPanel } from "@/components/ops/CMEChatPanel";
 import { LegalQATestPanel } from "@/components/ops/LegalQATestPanel";
+import { StressTestResultsPanel } from "@/components/ops/StressTestResultsPanel";
 import { ArchivePanel } from "@/components/ops/ArchivePanel";
 import { VisionMissionPanel } from "@/components/ops/VisionMissionPanel";
 import { DebugPanel } from "@/components/ops/DebugPanel";
@@ -460,10 +461,10 @@ export default function OpsPageClient() {
           <ActivityFeed
             events={activityEvents.map((t) => ({
               id: t.id,
-              type: t.status,
+              type: t.status as import("@/components/ops/ActivityFeed").ActivityEventType,
               title: t.title,
               department: t.department,
-              priority: t.priority,
+              priority: t.priority as import("@/components/ops/ActivityFeed").ActivityEventPriority,
             }))}
             onEventClick={(ev) => {
               const task = activityEvents.find((t) => t.id === ev.id);
@@ -610,8 +611,11 @@ export default function OpsPageClient() {
         return renderTrading();
       case "testing":
         return (
-          <div className="h-full overflow-y-auto">
-            <LegalQATestPanel />
+          <div className="h-full overflow-y-auto space-y-8 p-6">
+            <StressTestResultsPanel />
+            <div className="border-t border-[var(--ops-border)] pt-6">
+              <LegalQATestPanel />
+            </div>
           </div>
         );
       case "debug":
@@ -842,10 +846,10 @@ export default function OpsPageClient() {
                 <ActivityFeed
                   events={activityEvents.map((t) => ({
                     id: t.id,
-                    type: t.status,
+                    type: t.status as import("@/components/ops/ActivityFeed").ActivityEventType,
                     title: t.title,
                     department: t.department,
-                    priority: t.priority,
+                    priority: t.priority as import("@/components/ops/ActivityFeed").ActivityEventPriority,
                   }))}
                   maxItems={100}
                   onEventClick={(ev) => {

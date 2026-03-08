@@ -37,7 +37,7 @@ dotenv.config({ path: resolve(__dirname, "../.env.local") });
 import { askCorpusAgent, type CorpusAgentResult } from "../lib/agents/corpus-agent";
 import { isVectorDBEnabled } from "../lib/embeddings";
 import { setCurrentTier, type TierName } from "../lib/tiers";
-import { callLLM } from "./lib/llm";
+import { callLLM } from "../lib/llm";
 
 // ─── Opus per-test evaluation (--opus-eval) ────────────────────────────────────
 

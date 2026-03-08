@@ -1146,11 +1146,11 @@ company/trading/
 ## 17. FEATURE INCOMPLETE (Ufficio Legale / App)
 
 1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
-2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
+2. ~~Dashboard reale~~ — **COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa query Supabase dirette con `createClient()` e RLS.
 3. ~~Deep search limit~~ — **COMPLETATO**: Gate paywall implementato in `RiskCard.tsx`. `/api/user/usage` esteso con `deepSearchUsed/deepSearchLimit/canDeepSearch`. Paywall differenziato per non-auth vs limite raggiunto.
 4. Sistema referral avvocati — Tabelle DB esistono (`lawyer_referrals`), nessuna UI. Prerequisito: ADR GDPR su quali dati condividere con l'avvocato e con quale base giuridica.
-5. ~~Test~~ — **COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, 577+ test. Agenti core (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + suite `e2e/` (auth, upload, analysis, console). Gap P1-P5 tutti risolti: `agent-runner.ts`, `tiers.ts`, `console-token.ts`, `analysis-cache.ts`, `generate.ts` ora coperti.
-6. CI/CD — `.github/` presente ma pipeline non completamente configurata. ~~**Bloccato da**: migration duplicate 003-007 (TD-3)~~ — TD-3 risolto (migrations 001-015). Rimane da configurare: test automatici su PR, build check, deploy preview.
+5. ~~Test~~ — **COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, 703+ test. Agenti core (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + suite `e2e/` (auth, upload, analysis, console). Gap P1-P5 tutti risolti: `agent-runner.ts`, `tiers.ts`, `console-token.ts`, `analysis-cache.ts`, `generate.ts` ora coperti.
+6. ~~CI/CD~~ — **PARZIALMENTE COMPLETATO**: `.github/workflows/ci.yml` con lint, type check, unit test (Vitest), build, E2E (Playwright chromium + report artifact). Rimane: deploy preview su PR.
 7. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
 8. ~~UI scoring multidimensionale~~ — **COMPLETATO**: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) implementate in ResultsView (ScoreBreakdown), FairnessScore (pills), ChatMessage (pills), FinalEvaluationPanel (bars).
 9. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati.

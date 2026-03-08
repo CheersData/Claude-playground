@@ -207,7 +207,7 @@ function extractIncompleteFeatures(): IncompleteFeature[] {
     let status: IncompleteFeature["status"] = "incomplete";
     if (
       description.includes("**COMPLETATO**") ||
-      description.includes("~~") && !description.includes("PARZIALMENTE")
+      (description.includes("~~") && !description.includes("PARZIALMENTE"))
     ) {
       status = "completed";
     } else if (description.includes("**PARZIALMENTE COMPLETATO**")) {
@@ -570,17 +570,20 @@ function generatePlenaryMinutes(
 }
 
 function savePlenaryMinutes(content: string): string {
-  if (!fs.existsSync(PLENARY_DIR)) {
-    fs.mkdirSync(PLENARY_DIR, { recursive: true });
-  }
-
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
   const timeStr = now.toISOString().slice(11, 16).replace(":", "-");
   const fileName = `${dateStr}-auto-${timeStr}.md`;
   const filePath = path.join(PLENARY_DIR, fileName);
 
-  fs.writeFileSync(filePath, content, "utf-8");
+  try {
+    if (!fs.existsSync(PLENARY_DIR)) {
+      fs.mkdirSync(PLENARY_DIR, { recursive: true });
+    }
+    fs.writeFileSync(filePath, content, "utf-8");
+  } catch (err) {
+    console.error(`[auto-plenary] Failed to write ${filePath}:`, err);
+  }
   return filePath;
 }
 

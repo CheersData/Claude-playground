@@ -18,7 +18,7 @@ import * as dotenv from "dotenv";
 import * as path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
-import { callLLM, parseJSON } from "./lib/llm";
+import { callLLM, parseJSON } from "../lib/llm";
 import { getOpenTasks, updateTask } from "../lib/company/tasks";
 
 // ─── Config ───────────────────────────────────────────────────────────────────

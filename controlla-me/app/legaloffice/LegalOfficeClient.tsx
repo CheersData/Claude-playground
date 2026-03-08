@@ -478,7 +478,7 @@ export default function LegalOfficeClient() {
               ]);
             } else if (eventType === "error") {
               if (data.code === "LIMIT_REACHED") {
-                fetch("/api/user/usage").then(r => r.json()).then(setUsage).catch(() => {});
+                fetch("/api/user/usage").then(r => r.json()).then(setUsage).catch((err) => console.error("[LEGAL-OFFICE] usage refresh failed:", err?.message || err));
                 setView("paywall");
               } else {
                 setError(data.error || "Errore durante l'analisi");

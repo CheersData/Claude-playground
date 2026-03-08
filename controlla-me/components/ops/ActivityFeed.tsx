@@ -11,18 +11,32 @@ import {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export type ActivityEventType =
+  | "done"
+  | "completed"
+  | "in_progress"
+  | "blocked"
+  | "review_pending"
+  | "open";
+
+export type ActivityEventPriority =
+  | "critical"
+  | "high"
+  | "medium"
+  | "low";
+
 export interface ActivityEvent {
   id: string;
-  type: string;
+  type: ActivityEventType;
   title: string;
   department?: string;
-  priority?: string;
+  priority?: ActivityEventPriority;
 }
 
 // ─── Status config ──────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<
-  string,
+  ActivityEventType,
   { icon: typeof Circle; color: string; animate?: boolean }
 > = {
   done:           { icon: CheckCircle2,  color: "text-[var(--ops-teal)]" },

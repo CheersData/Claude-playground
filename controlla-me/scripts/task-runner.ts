@@ -22,7 +22,7 @@ import * as path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 import * as fs from "fs";
-import { callLLM, parseJSON } from "./lib/llm";
+import { callLLM, parseJSON } from "../lib/llm";
 import {
   getTaskBoard,
   getOpenTasks,
