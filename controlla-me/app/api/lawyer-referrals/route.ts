@@ -16,6 +16,7 @@ import { cookies } from "next/headers";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { notifyNewLead } from "@/lib/telegram";
+import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export async function POST(req: NextRequest) {
   // SEC-F1: CSRF protection — verify Origin header
@@ -98,6 +99,13 @@ export async function POST(req: NextRequest) {
     // Notifica interna team per matching avvocato (fire-and-forget, non blocca la response)
     console.log(`[REFERRAL] Invio notifica Telegram per referral ${data.id} | name: ${name ?? "N/A"} | email: ${email ?? "N/A"}`);
     notifyNewLead({ name: name ?? "Anonimo", email: email ?? "N/A", source: "lawyer-referral" }).catch(() => {});
+
+    // CDP: track lawyer referral request
+    recordProfileEvent(user.id, "lawyer_referral_requested", {
+      analysis_id: analysisId ?? null,
+      specialization,
+      region,
+    }).catch((err) => console.error("[CDP] referral event failed:", err));
 
     return NextResponse.json({ success: true, referralId: data.id });
   } catch (err) {
