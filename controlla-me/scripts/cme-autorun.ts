@@ -1,28 +1,31 @@
 /**
- * cme-autorun.ts — Sessione CME autonoma via Claude Code CLI
+ * cme-autorun.ts — Daemon AUTOALIMENTANTE per CME
  *
- * Orchestratore che:
- * 1. Legge board, daily plan, vision/mission/priorities dipartimenti
- * 2. Costruisce un prompt CME completo
- * 3. Lancia `claude -p` con il contesto per eseguire i task
- * 4. Logga output in company/autorun-logs/
+ * Il sistema è autoalimentante: il daemon scansiona, analizza, e quando serve
+ * lancia `claude -p` come CME per creare ed eseguire task autonomamente.
+ *
+ * Flusso:
+ *   FASE 1: Sensor (free, $0) → scansiona dipartimenti + analisi LLM gratuita
+ *   FASE 2: Report → scrive daemon-report.json strutturato
+ *   FASE 3: Executor → SE ci sono signal azionabili, lancia `claude -p` come CME
+ *           Claude -p legge il report, crea task mirati, li esegue. (Max subscription, $0 extra)
+ *
+ * Il daemon è gli occhi. `claude -p` è il cervello e le mani.
+ * Il boss non deve fare niente — il sistema gira da solo.
  *
  * Usage:
- *   npx tsx scripts/cme-autorun.ts              # Sessione singola
+ *   npx tsx scripts/cme-autorun.ts              # Sessione singola (sensor + executor)
  *   npx tsx scripts/cme-autorun.ts --watch       # Loop ogni INTERVAL minuti
  *   npx tsx scripts/cme-autorun.ts --dry-run     # Mostra prompt senza eseguire
- *   npx tsx scripts/cme-autorun.ts --interval 30 # Intervallo watch in minuti (default: 60)
- *   npx tsx scripts/cme-autorun.ts --scan        # Solo vision scan (mostra actionable items)
- *   npx tsx scripts/cme-autorun.ts --scan --create # Vision scan + crea task sul board
- *
- * Requisiti:
- *   - `claude` nel PATH (Claude Code CLI)
- *   - NON eseguire dentro una sessione Claude Code attiva (nested session)
+ *   npx tsx scripts/cme-autorun.ts --interval 30 # Intervallo watch in minuti (default: 15)
+ *   npx tsx scripts/cme-autorun.ts --scan        # Solo vision scan (mostra signal)
+ *   npx tsx scripts/cme-autorun.ts --sensor-only  # Solo sensor, no executor (debug)
  */
 
 import { spawnSync } from "child_process";
 import * as fs from "fs";
 import { resolve } from "path";
+import { callLLM, parseJSON } from "../lib/llm";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -33,9 +36,10 @@ const LOCK_FILE = resolve(LOG_DIR, ".autorun.lock");
 const DAEMON_STATE_FILE = resolve(COMPANY_DIR, "cme-daemon-state.json");
 const DEFAULT_INTERVAL_MIN = 15;
 const MAX_PROMPT_DEPT_CHARS = 600; // max chars per department vision context
-const VISION_TRACKER_FILE = resolve(COMPANY_DIR, "vision-scanner-created.json");
-const MIN_OPEN_DAEMON_TASKS = 5; // Board should always have at least this many daemon-executable tasks
-const MAX_GENERATE_PER_CYCLE = 10; // Max tasks to create per scanner run
+const REPORT_FILE = resolve(COMPANY_DIR, "daemon-report.json"); // Ultimo report strutturato per CME
+const CME_SESSION_LOG_DIR = resolve(COMPANY_DIR, "cme-sessions"); // Log sessioni CME autonome
+const MAX_CME_SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minuti max per sessione claude -p
+const MIN_SIGNALS_TO_TRIGGER = 1; // Minimo signal critical/high per triggerare CME
 
 // ─── Vision Scanner Types ───────────────────────────────────────────────────
 
@@ -49,9 +53,15 @@ interface ActionableItem {
   requiresHuman: boolean;
 }
 
-interface VisionTrackerData {
-  created: Record<string, string>; // sourceId → ISO timestamp
-  lastScan: string | null;
+/** Report strutturato che il daemon produce per CME */
+interface DaemonReport {
+  timestamp: string;
+  durationMs: number;
+  board: { total: number; open: number; inProgress: number; done: number };
+  signals: ActionableItem[];
+  llmAnalysis: string | null;
+  llmSuggestions: Array<{ title: string; dept: string; priority: string; description: string }>;
+  alerts: string[];
 }
 
 // Patterns that indicate a task requires physical human action
@@ -81,6 +91,10 @@ interface DaemonState {
   totalRuns: number;
   updatedAt: string | null;
   updatedBy: string;
+  /** Rate limit backoff: non triggerare CME prima di questo timestamp ISO */
+  rateLimitUntil?: string | null;
+  /** Contatore sessioni consecutive senza azioni utili → cooldown progressivo */
+  consecutiveNoOp?: number;
 }
 
 function readDaemonState(): DaemonState {
@@ -316,9 +330,9 @@ function readPoimandresVision(): string {
   return "Vision Poimandres: Diventare la prima e piu potente AGI.";
 }
 
-// ─── Prompt Builder ─────────────────────────────────────────────────────────
+// ─── Prompt Builder (ZERO COSTI — analisi e pianificazione, NO esecuzione codice) ──
 
-function buildPrompt(): string {
+function buildAnalysisPrompt(): string {
   const board = readBoard();
   const openTasks = readOpenTasks();
   const inProgressTasks = readInProgressTasks();
@@ -336,131 +350,109 @@ function buildPrompt(): string {
     .join("\n\n");
 
   const planSection = dailyPlan
-    ? `\n## DAILY PLAN (oggi)\n${dailyPlan}`
-    : "\n## DAILY PLAN\nNessun piano per oggi. Generane uno: npx tsx scripts/daily-standup.ts";
+    ? `\n## DAILY PLAN (oggi)\n${dailyPlan.slice(0, 1500)}`
+    : "";
 
-  return `Sei CME, il CEO virtuale di Poimandres / Controlla.me. Questa e una SESSIONE AUTOMATICA.
+  return `Sei il sensore automatico di Poimandres / Controlla.me.
+Il tuo compito è ANALIZZARE lo stato dell'azienda e produrre un REPORT per CME (il CEO virtuale).
+Tu NON crei task. Tu osservi, analizzi, e segnali. CME decide cosa fare.
 
-## VISION POIMANDRES
+## VISION
 ${poimandresVision}
 
-## VISIONI DIPARTIMENTALI
-Ogni dipartimento contribuisce alla vision Poimandres con le proprie priorita.
-
+## DIPARTIMENTI
 ${deptContext}
 
-## BOARD ATTUALE
-${board}
+## BOARD
+${board.slice(0, 2000)}
 
 ## TASK OPEN
-${openTasks}
+${openTasks.slice(0, 2000)}
 
 ## TASK IN PROGRESS
-${inProgressTasks}
+${inProgressTasks.slice(0, 1000)}
 ${planSection}
 
-## ISTRUZIONI SESSIONE AUTOMATICA
+## ISTRUZIONI
 
-### FASE 1: ESEGUI TASK ESISTENTI
+Produci un report per CME. Rispondi SOLO in JSON puro (inizia con { e finisci con }).
 
-AZIONE IMMEDIATA — fai questo SUBITO, PRIMA di qualsiasi ragionamento:
-1. Prendi il PRIMO task open con priorita piu alta (critical > high > medium > low)
-2. Claimalo IMMEDIATAMENTE: npx tsx scripts/company-tasks.ts claim <id> --agent cme-daemon
-3. Implementalo direttamente (Edit, Write, Bash)
-4. Marca done: npx tsx scripts/company-tasks.ts done <id> --summary "..." --no-next
-
-Poi ripeti per il task successivo. Dopo il primo task, puoi parallelizzare:
-- Se ci sono 2+ task INDIPENDENTI (file diversi), usa lo strumento Agent per lanciarli in parallelo
-- Ogni sub-agente (subagent_type: "general-purpose") riceve: task ID, cosa fare, file da modificare
-- Massimo 3 sub-agenti contemporanei
-- Claim tutti i task PRIMA di lanciare i sub-agenti
-
-IMPORTANTE: Il primo task deve essere claimato entro 30 secondi dall'inizio della sessione.
-Il boss ha PRE-APPROVATO tutti i task sul board. Esegui TUTTI, inclusi L3/L4. Non saltare nulla.
-UNICA ECCEZIONE: task con tag "human_required" nel campo tags → saltali e passa al successivo.
-Tutti gli altri task DEVONO essere eseguiti. Non classificare task come "boss-dependent" a tuo giudizio.
-Se un task sembra difficile, PROVA comunque. Se fallisce, logga l'errore e vai al successivo.
-
-### FASE 2: PIANO NUOVO (SISTEMA AUTOALIMENTANTE)
-Se dopo la Fase 1 non ci sono piu task open FATTIBILI (tutti i task rimasti hanno tag "human_required"), NON restare idle. Genera un PIANO NUOVO:
-1. Leggi il daily plan (company/daily-plans/{oggi}.md)
-2. Leggi i status.json dei dipartimenti: npx tsx scripts/update-dept-status.ts --view --all
-3. Leggi company/vision.json per allinearti alla strategia
-4. ANALIZZA lo stato reale del codebase:
-   - npx tsc --noEmit (errori TypeScript?)
-   - npm run build 2>&1 | tail -20 (build rotto?)
-   - Controlla tech debt in CLAUDE.md sezione 19
-   - Controlla feature incomplete in CLAUDE.md sezione 17
-5. CREA 5-10 nuovi task CONCRETI e IMPLEMENTABILI (codice, fix, test, refactor — MAI task vaghi):
-   npx tsx scripts/company-tasks.ts create --title "..." --dept X --priority Y --by cme-daemon --desc "..." --routing "EXEMPT"
-6. ESEGUI SUBITO i task appena creati (non aspettare la prossima sessione)
-
-### FASE 3: DAILY CONTROLS + ALERTING
-Se non fatto oggi:
-1. Esegui alerting check: npx tsx scripts/ops-alerting.ts check
-2. Genera daily controls: npx tsx scripts/daily-controls.ts
-3. Rigenera daily plan se stale: npx tsx scripts/daily-standup.ts
-
-### FASE 4: LOG
-Scrivi un riepilogo in company/autorun-logs/ con: task eseguiti, task creati, task skippati.
-
-REGOLE:
-- NON chiedere conferma. Agisci.
-- DELEGA ai sub-agenti. Tu sei CME, un router — lanci Agent tool e raccogli risultati.
-- USA PARALLELISMO AGGRESSIVO: task indipendenti = sempre sub-agenti paralleli in un singolo blocco tool_use
-- Segui il routing: crea task formali prima di implementare
-- I piani devono essere COERENTI con vision/mission/priorita dei dipartimenti
-- Il boss ha pre-approvato TUTTI i task. Esegui anche L3/L4. Salta SOLO task con tag "human_required"
-- Esegui TUTTI i task open possibili in questa sessione, senza limiti
-- Se ci sono task in_progress che NON sono stati creati da te in questa sessione, fermati e lascia che vengano completati prima di agire
-- IL BOARD NON DEVE MAI RESTARE VUOTO — se finisci i task, CREA NUOVI TASK prima di uscire
-- Prediligi task di codice concreti (implementa, fix, test, refactor) rispetto a task di pianificazione
-- Ogni sub-agente deve ricevere contesto COMPLETO: path dei file, cosa modificare, il dipartimento owner
-`;
-}
-
-// ─── Execute Claude Session ─────────────────────────────────────────────────
-
-function executeClaudeSession(prompt: string): { output: string; exitCode: number } {
-  log("Lancio sessione Claude Code CLI...");
-
-  // Scrivi il prompt in un file temp per evitare il limite di 8192 chars della command line Windows
-  const tempPromptFile = resolve(ROOT, ".autorun-prompt.tmp");
-  fs.writeFileSync(tempPromptFile, prompt, "utf-8");
-
-  try {
-    // Passa il prompt via stdin per evitare "La riga di comando è troppo lunga"
-    const result = spawnSync("claude", ["-p", "--verbose"], {
-      cwd: ROOT,
-      encoding: "utf-8",
-      timeout: 30 * 60 * 1000, // 30 minuti max
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024, // 10MB
-      input: prompt, // stdin pipe — nessun limite di lunghezza
-    });
-
-    const output = (result.stdout || "") + (result.stderr || "");
-    const exitCode = result.status ?? 1;
-
-    if (result.error) {
-      log(`Errore spawn: ${result.error.message}`);
-      if (result.error.message.includes("ENOENT")) {
-        log("ERRORE: 'claude' non trovato nel PATH. Installa Claude Code CLI o aggiungi al PATH.");
-      }
+Formato:
+{
+  "analysis": "Analisi dello stato aziendale: cosa funziona, cosa no, dove intervenire (max 300 parole)",
+  "suggestions": [
+    {
+      "title": "Cosa andrebbe fatto (max 80 char)",
+      "dept": "dipartimento suggerito",
+      "priority": "critical|high|medium|low",
+      "description": "Perché è importante e cosa comporta (max 200 char)"
     }
-
-    return { output, exitCode };
-  } finally {
-    // Cleanup file temp
-    try { fs.unlinkSync(tempPromptFile); } catch { /* ignore */ }
+  ],
+  "alerts": ["Problemi urgenti che CME deve vedere subito"],
+  "deptHealth": {
+    "nome-dept": "green|yellow|red — motivazione breve"
   }
 }
 
-// ─── Task Counter ────────────────────────────────────────────────────────────
+REGOLE:
+- Questo è un REPORT, non una lista di ordini. CME valuterà se e come agire
+- Sii specifico e concreto nelle osservazioni, non generico
+- Segnala pattern: dipartimenti fermi, task bloccati da giorni, aree senza copertura
+- alerts[] solo per cose urgenti (produzione rotta, sicurezza, perdita dati)
+- Dept validi: ufficio-legale, trading, data-engineering, quality-assurance, architecture, finance, operations, security, strategy, marketing, ux-ui
+- Priorita: critical solo per emergenze, high per cose importanti, medium per miglioramenti, low per nice-to-have
+`;
+}
 
-function countCompletedTasks(output: string): number {
-  const doneMatches = output.match(/company-tasks\.ts\s+done/g);
-  return doneMatches ? doneMatches.length : 0;
+// ─── Execute Free LLM Session (ZERO COSTI) ──────────────────────────────────
+
+interface AnalysisResult {
+  analysis: string;
+  suggestions: Array<{
+    title: string;
+    dept: string;
+    priority: string;
+    description: string;
+  }>;
+  alerts: string[];
+  deptHealth: Record<string, string>;
+}
+
+async function executeFreeSession(prompt: string): Promise<{ output: string; analysis: AnalysisResult | null; exitCode: number }> {
+  log("Lancio analisi via LLM gratuiti (ZERO COSTI)...");
+
+  try {
+    const response = await callLLM(prompt, {
+      callerName: "cme-daemon",
+      maxTokens: 4096,
+      temperature: 0.3,
+      jsonOutput: true,
+    });
+
+    log(`LLM response ricevuta: ${response.length} chars`);
+
+    let analysis: AnalysisResult | null = null;
+    try {
+      analysis = parseJSON<AnalysisResult>(response);
+    } catch (e) {
+      log(`Parsing JSON fallito: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    return { output: response, analysis, exitCode: 0 };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`ERRORE LLM gratuito: ${msg}`);
+    return { output: msg, analysis: null, exitCode: 1 };
+  }
+}
+
+/**
+ * Scrive il report strutturato per CME.
+ * CME legge questo file all'avvio della sessione interattiva e decide cosa fare.
+ */
+function writeDaemonReport(report: DaemonReport): void {
+  fs.writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2) + "\n", "utf-8");
+  log(`Report scritto: ${REPORT_FILE} (${report.signals.length} signal, ${report.llmSuggestions.length} suggestions, ${report.alerts.length} alerts)`);
 }
 
 // ─── Log Session ────────────────────────────────────────────────────────────
@@ -552,17 +544,7 @@ function mapDeptName(dirName: string): string {
   return valid.has(dirName) ? dirName : "architecture";
 }
 
-function readVisionTracker(): VisionTrackerData {
-  try {
-    return JSON.parse(fs.readFileSync(VISION_TRACKER_FILE, "utf-8"));
-  } catch {
-    return { created: {}, lastScan: null };
-  }
-}
-
-function writeVisionTracker(data: VisionTrackerData): void {
-  fs.writeFileSync(VISION_TRACKER_FILE, JSON.stringify(data, null, 2) + "\n", "utf-8");
-}
+// Vision tracker rimosso — il daemon non crea più task, solo report
 
 /**
  * Scans all department status.json files and extracts actionable items
@@ -741,101 +723,310 @@ function scanDepartmentStatus(): ActionableItem[] {
   return items;
 }
 
+// autoGenerateTasks RIMOSSO — il daemon non crea task, produce solo report per CME
+
+// ─── CME Executor (claude -p, Max subscription) ────────────────────────────
+
 /**
- * Counts open tasks that the daemon can actually execute (no human_required tag)
+ * Determina se il report ha signal che meritano di triggerare una sessione CME.
+ * Trigger solo su signal critical/high NON human_required.
  */
-function countDaemonExecutableOpenTasks(): number {
-  const result = spawnSync(
-    "npx", ["tsx", "scripts/company-tasks.ts", "list", "--status", "open"],
-    { cwd: ROOT, encoding: "utf-8", timeout: 30_000, shell: true }
-  );
-  const output = result.stdout || "";
-  const taskBlocks = output.split(/\[open\]/g).slice(1);
-  let executable = 0;
-  for (const block of taskBlocks) {
-    if (!block.includes("human_required")) executable++;
+/**
+ * Conta i task open che NON sono human_required.
+ * Legge la lista task e filtra via HUMAN_REQUIRED_PATTERNS.
+ */
+function countAutomatableTasks(): number {
+  const openTasksText = readOpenTasks();
+  // Ogni task nel list output ha formato: "ID | title | dept | status | desc"
+  // Splitta per riga e filtra righe che contengono dati task (non headers/separators)
+  const lines = openTasksText.split("\n").filter((l) => l.includes("|") && !l.includes("---"));
+  let automatable = 0;
+  for (const line of lines) {
+    const isHuman = HUMAN_REQUIRED_PATTERNS.some((p) => p.test(line));
+    if (!isHuman) automatable++;
   }
-  return executable;
+  return automatable;
 }
 
-/**
- * Main auto-generation function: scans dept visions, creates tasks if board is low.
- * Runs BEFORE the Claude session to ensure the daemon always has work.
- */
-function autoGenerateTasks(): number {
-  const executableCount = countDaemonExecutableOpenTasks();
-
-  if (executableCount >= MIN_OPEN_DAEMON_TASKS) {
-    log(`[VISION] Board ha ${executableCount} task eseguibili (min: ${MIN_OPEN_DAEMON_TASKS}). Skip generazione.`);
-    return 0;
+function shouldTriggerCME(report: DaemonReport): { trigger: boolean; reason: string; actionableCount: number } {
+  // F2: Rate limit backoff — se siamo in cooldown, non triggerare
+  const state = readDaemonState();
+  if (state.rateLimitUntil) {
+    const until = new Date(state.rateLimitUntil).getTime();
+    if (Date.now() < until) {
+      const remainMin = Math.ceil((until - Date.now()) / 60000);
+      return { trigger: false, reason: `Rate limit backoff attivo (${remainMin}min rimanenti)`, actionableCount: 0 };
+    }
+    // Reset: siamo oltre il backoff
+    writeDaemonState({ rateLimitUntil: null });
   }
 
-  const needed = Math.max(MIN_OPEN_DAEMON_TASKS - executableCount, 3);
-  log(`[VISION] Board ha ${executableCount} task eseguibili. Servono almeno ${needed} nuovi task.`);
-
-  // Scan departments
-  const allItems = scanDepartmentStatus();
-  const uniqueDepts = new Set(allItems.map((i) => i.deptId)).size;
-  log(`[VISION] Trovati ${allItems.length} actionable items da ${uniqueDepts} dipartimenti.`);
-
-  // Sort: daemon-executable first, then by priority
-  const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-  allItems.sort((a, b) => {
-    if (a.requiresHuman !== b.requiresHuman) return a.requiresHuman ? 1 : -1;
-    return (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
-  });
-
-  // Load dedup tracker
-  const tracker = readVisionTracker();
-  let created = 0;
-
-  for (const item of allItems) {
-    if (created >= Math.min(needed + 2, MAX_GENERATE_PER_CYCLE)) break;
-
-    // Skip if already created in a previous cycle
-    if (tracker.created[item.sourceId]) continue;
-
-    // Build tags
-    const tags = [`auto:${item.sourceId}`];
-    if (item.requiresHuman) tags.push("human_required");
-
-    const deptName = mapDeptName(item.deptId);
-    const args = [
-      "tsx", "scripts/company-tasks.ts", "create",
-      "--title", item.title,
-      "--dept", deptName,
-      "--priority", item.priority,
-      "--by", "vision-scanner",
-      "--desc", item.description.slice(0, 500),
-      "--routing-exempt",
-      "--routing-reason", `Auto-generated from ${item.deptId}/status.json (${item.sourceId})`,
-      "--tags", tags.join(","),
-    ];
-
-    const result = spawnSync("npx", args, {
-      cwd: ROOT,
-      encoding: "utf-8",
-      timeout: 15_000,
-      shell: true,
-    });
-
-    if (result.status === 0) {
-      created++;
-      tracker.created[item.sourceId] = new Date().toISOString();
-      const humanTag = item.requiresHuman ? " [human_required]" : "";
-      log(`  → Creato: [${item.priority}] ${item.title} (${deptName})${humanTag}`);
-    } else {
-      const err = (result.stderr || "").split("\n").pop() || "unknown error";
-      log(`  → ERRORE creazione task "${item.title}": ${err.slice(0, 120)}`);
+  // F1: Cooldown progressivo — se N sessioni consecutive senza azioni, backoff
+  const consecutiveNoOp = state.consecutiveNoOp ?? 0;
+  if (consecutiveNoOp >= 6) {
+    // Dopo 6 sessioni vuote, triggera solo ogni N cicli
+    const skipCycles = Math.min(consecutiveNoOp - 4, 5); // max 5 cicli di skip
+    const cycleNum = state.totalRuns % (skipCycles + 1);
+    if (cycleNum !== 0) {
+      return { trigger: false, reason: `Cooldown progressivo (${consecutiveNoOp} sessioni no-op, skip ciclo ${cycleNum}/${skipCycles + 1})`, actionableCount: 0 };
     }
   }
 
-  // Save tracker
-  tracker.lastScan = new Date().toISOString();
-  writeVisionTracker(tracker);
+  // Conta TUTTI i signal azionabili (non solo critical/high)
+  const actionableCritHigh = report.signals.filter(
+    (s) => !s.requiresHuman && (s.priority === "critical" || s.priority === "high")
+  );
+  const actionableMedium = report.signals.filter(
+    (s) => !s.requiresHuman && s.priority === "medium"
+  );
+  const totalActionable = actionableCritHigh.length + actionableMedium.length;
 
-  log(`[VISION] Creati ${created} nuovi task. Tracker aggiornato.`);
-  return created;
+  // Trigger anche se ci sono alert dal LLM
+  const hasAlerts = report.alerts.length > 0;
+
+  // Trigger su task open automatizzabili
+  const automatableTasks = countAutomatableTasks();
+  const hasAutomatableTasks = automatableTasks > 0;
+
+  // Trigger su suggerimenti LLM
+  const hasSuggestions = report.llmSuggestions.length > 0;
+
+  if (actionableCritHigh.length >= MIN_SIGNALS_TO_TRIGGER) {
+    return { trigger: true, reason: `${actionableCritHigh.length} signal critical/high azionabili + ${actionableMedium.length} medium`, actionableCount: totalActionable };
+  }
+  if (hasAlerts) {
+    return { trigger: true, reason: `${report.alerts.length} alert urgenti`, actionableCount: report.alerts.length };
+  }
+  if (hasAutomatableTasks) {
+    return { trigger: true, reason: `${automatableTasks} task open automatizzabili (${report.board.open} totali)`, actionableCount: automatableTasks };
+  }
+  if (hasSuggestions) {
+    return { trigger: true, reason: `${report.llmSuggestions.length} suggerimenti LLM da valutare`, actionableCount: report.llmSuggestions.length };
+  }
+  // Trigger anche su signal medium se ce ne sono abbastanza (almeno 3)
+  if (actionableMedium.length >= 3) {
+    return { trigger: true, reason: `${actionableMedium.length} signal medium azionabili (nessun critical/high)`, actionableCount: actionableMedium.length };
+  }
+
+  // Nessun trigger — loghiamo perché (utile per debug)
+  if (report.board.open > 0 && !hasAutomatableTasks) {
+    return { trigger: false, reason: `${report.board.open} task open ma TUTTI human_required — skip`, actionableCount: 0 };
+  }
+
+  return { trigger: false, reason: "Nessun signal azionabile", actionableCount: 0 };
+}
+
+/**
+ * Costruisce il prompt per claude -p. Claude -p diventa CME:
+ * legge CLAUDE.md, il report del daemon, crea task mirati, li esegue.
+ *
+ * PRINCIPIO: claude -p deve avere abbastanza contesto per agire autonomamente.
+ * Non filtrare troppo — dare visibilità completa e lasciare che CME decida.
+ */
+function buildCMEPrompt(report: DaemonReport): string {
+  // Signal azionabili (non human_required) — TUTTI, non solo critical/high
+  const actionableSignals = report.signals
+    .filter((s) => !s.requiresHuman)
+    .sort((a, b) => {
+      const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+      return (order[a.priority] ?? 3) - (order[b.priority] ?? 3);
+    })
+    .slice(0, 20);
+
+  // Signal che richiedono il boss — per contesto (CME può preparare il terreno)
+  const humanSignals = report.signals
+    .filter((s) => s.requiresHuman && (s.priority === "critical" || s.priority === "high"))
+    .slice(0, 5);
+
+  const actionableList = actionableSignals
+    .map((s) => `- [${s.priority}] ${s.deptId}: ${s.title}\n  ${s.description.slice(0, 200)}\n  routing: ${s.routing}`)
+    .join("\n");
+
+  const humanList = humanSignals
+    .map((s) => `- [${s.priority}] ${s.deptId}: ${s.title} (⚠️ richiede boss)`)
+    .join("\n");
+
+  const suggestionList = report.llmSuggestions
+    .slice(0, 5)
+    .map((s) => `- [${s.priority}] ${s.dept}: ${s.title} — ${s.description}`)
+    .join("\n");
+
+  const alertList = report.alerts.map((a) => `- ${a}`).join("\n");
+
+  // Leggi i task aperti per includerli nel prompt
+  const openTasksText = readOpenTasks().slice(0, 3000);
+  const inProgressText = readInProgressTasks().slice(0, 2000);
+
+  return `Sei CME, il CEO virtuale di Controlla.me.
+
+## IL TUO COMPITO
+
+Il daemon ha scansionato i dipartimenti e prodotto un report con ${report.signals.length} signal.
+Di questi, ${actionableSignals.length} sono AZIONABILI da te (non richiedono intervento umano).
+Tu DEVI analizzarli e agire: crea task, eseguili, chiudili.
+
+## PRIMA DI TUTTO
+
+1. Leggi CLAUDE.md per capire il progetto e le convenzioni
+2. Leggi company/cme.md per il tuo ruolo e le regole
+3. Usa \`npx tsx scripts/dept-context.ts <dept>\` per avere il contesto rapido di un dipartimento
+
+## STATO BOARD
+- Totale: ${report.board.total} | Open: ${report.board.open} | In Progress: ${report.board.inProgress} | Done: ${report.board.done}
+
+## TASK APERTI (da eseguire subito)
+${openTasksText || "(nessuno)"}
+
+## TASK IN PROGRESS
+${inProgressText || "(nessuno)"}
+
+## SIGNAL AZIONABILI (puoi agire su questi)
+${actionableList || "(nessuno — i signal azionabili sono esauriti)"}
+
+## SIGNAL CHE RICHIEDONO IL BOSS (solo contesto)
+${humanList || "(nessuno)"}
+
+## SUGGERIMENTI LLM
+${suggestionList || "(nessuno — LLM analysis non disponibile)"}
+
+## ALERT
+${alertList || "(nessuno)"}
+
+## ANALISI LLM
+${report.llmAnalysis?.slice(0, 800) || "(non disponibile — provider gratuiti esauriti, agisci sui signal grezzi)"}
+
+## COME LAVORARE
+
+### Se ci sono task OPEN o IN_PROGRESS:
+1. Eseguili SUBITO — sono già approvati
+2. Per ogni task: \`npx tsx scripts/company-tasks.ts exec <id>\` → leggi il delegation brief → implementa
+3. Quando completi: \`npx tsx scripts/company-tasks.ts done <id> --summary "..."\`
+
+### Se NON ci sono task ma ci sono signal azionabili:
+1. Scegli i TOP 3 signal più impattanti
+2. Per ognuno crea un task:
+   \`npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> --priority <p> --by cme --routing "<routing>" --desc "Cosa fare e perché"\`
+3. Eseguilo: \`npx tsx scripts/company-tasks.ts exec <id>\`
+4. Implementa il lavoro seguendo il department.md e i runbook
+5. Chiudi: \`npx tsx scripts/company-tasks.ts done <id> --summary "..." --no-next\`
+
+### Cosa puoi fare (esempi):
+- Scrivere/aggiornare codice (app/, lib/, trading/, scripts/)
+- Scrivere test (vitest, playwright)
+- Aggiornare configurazioni e documentazione
+- Fixare bug rilevati dai signal
+- Aggiornare status.json dei dipartimenti
+- Creare contenuti marketing/SEO
+- Migliorare prompt degli agenti AI
+
+### Cosa NON puoi fare (richiede il boss):
+- Deploy in produzione
+- Firmare DPA/contratti
+- Go-live trading
+- Configurare servizi esterni (GSC, GA4, Stripe dashboard)
+
+## REGOLE (NON NEGOZIABILI)
+
+1. OGNI modifica a file in app/, lib/, trading/src/, scripts/ DEVE avere un task formale
+2. Max 3 task per sessione — meglio 3 fatti bene che 10 a metà
+3. Logga cosa hai fatto alla fine della sessione (riassunto)
+4. Se un task fallisce, segnalalo nel summary e vai avanti al prossimo
+5. NON restare inattivo — se hai signal azionabili, DEVI creare almeno 1 task e completarlo
+`;
+}
+
+/**
+ * Lancia claude -p come CME autonomo.
+ * Usa la subscription Max del boss (nessun costo aggiuntivo).
+ */
+function executeCMESession(report: DaemonReport): { success: boolean; output: string; durationMs: number } {
+  const prompt = buildCMEPrompt(report);
+
+  log("[CME] Lancio sessione autonoma via claude -p (Max subscription)...");
+  const startTime = Date.now();
+
+  // F3: Usa spawnSync con `input` diretto — più affidabile di pipe via shell su Windows.
+  // Il vecchio approccio (type file | claude -p) causava troncamento intermittente del prompt.
+  // Se `input` non funziona, fallback su file temporaneo + pipe.
+  const promptFile = resolve(LOG_DIR, ".cme-prompt.tmp");
+
+  try {
+    // Metodo primario: stdin diretto via `input` — no shell, no pipe, no troncamento
+    let result: ReturnType<typeof spawnSync>;
+    const claudeCmd = process.platform === "win32" ? "claude.cmd" : "claude";
+
+    try {
+      result = spawnSync(claudeCmd, ["-p", "--verbose"], {
+        cwd: ROOT,
+        encoding: "utf-8",
+        timeout: MAX_CME_SESSION_TIMEOUT,
+        input: prompt,
+        env: { ...process.env },
+      });
+
+      // Verifica: se exit code null e output vuoto, il metodo input non ha funzionato → fallback
+      if (result.status === null && !(result.stdout || "").trim() && !(result.stderr || "").trim()) {
+        throw new Error("spawnSync input method returned empty — fallback to pipe");
+      }
+    } catch (inputErr) {
+      // Fallback: file + pipe (vecchio metodo)
+      log(`[CME] Input diretto fallito (${inputErr instanceof Error ? inputErr.message : inputErr}), fallback a pipe`);
+      fs.writeFileSync(promptFile, prompt, "utf-8");
+      const pipeCmd = process.platform === "win32"
+        ? `type "${promptFile}" | claude -p --verbose`
+        : `cat "${promptFile}" | claude -p --verbose`;
+      result = spawnSync(pipeCmd, [], {
+        cwd: ROOT,
+        encoding: "utf-8",
+        timeout: MAX_CME_SESSION_TIMEOUT,
+        shell: true,
+        env: { ...process.env },
+      });
+    }
+
+    const durationMs = Date.now() - startTime;
+    const output = (result.stdout || "") + (result.stderr || "");
+
+    // Log sessione CME
+    ensureDir(CME_SESSION_LOG_DIR);
+    const now = new Date();
+    const sessionFile = `${now.toISOString().slice(0, 16).replace(/[T:]/g, "-")}.md`;
+    const sessionLog = `# CME Session Autonoma — ${now.toLocaleString("it-IT")}
+
+- Durata: ${(durationMs / 1000).toFixed(0)}s
+- Exit code: ${result.status}
+- Trigger: ${report.signals.filter((s) => !s.requiresHuman && (s.priority === "critical" || s.priority === "high")).length} signal + ${report.board.open} task open
+
+## Prompt
+
+\`\`\`
+${prompt.slice(0, 5000)}
+\`\`\`
+
+## Output
+
+\`\`\`
+${output.slice(0, 50_000)}
+\`\`\`
+`;
+    fs.writeFileSync(resolve(CME_SESSION_LOG_DIR, sessionFile), sessionLog, "utf-8");
+
+    if (result.status === 0) {
+      log(`[CME] Sessione completata in ${(durationMs / 1000).toFixed(0)}s`);
+      return { success: true, output, durationMs };
+    } else {
+      log(`[CME] Sessione fallita (exit ${result.status}): ${output.slice(0, 200)}`);
+      return { success: false, output, durationMs };
+    }
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[CME] Errore sessione: ${msg}`);
+    return { success: false, output: msg, durationMs };
+  } finally {
+    // Pulisci file temporaneo
+    try { fs.unlinkSync(promptFile); } catch { /* ignore */ }
+  }
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -854,57 +1045,51 @@ async function main() {
 
   if (dryRun) {
     log("Modo dry-run: mostro il prompt senza eseguire.\n");
-    const prompt = buildPrompt();
-    console.log("─── PROMPT ───────────────────────────────────────");
+    const prompt = buildAnalysisPrompt();
+    console.log("─── PROMPT (FREE LLM — $0.00) ────────────────────");
     console.log(prompt);
     console.log("──────────────────────────────────────────────────");
     console.log(`\nLunghezza prompt: ${prompt.length} chars`);
+    console.log("Costo stimato: $0.00 (provider gratuiti)");
     return;
   }
 
-  // Scan-only mode: run vision scanner without starting a Claude session
+  // Scan-only mode: mostra signal dai dipartimenti (no task creation)
   if (args.includes("--scan")) {
-    log("Modo scan: eseguo solo il vision scanner.\n");
+    log("Modo scan: mostro signal dai dipartimenti.\n");
     const items = scanDepartmentStatus();
-    const tracker = readVisionTracker();
-    console.log(`\n─── VISION SCAN ─────────────────────────────────`);
-    console.log(`Actionable items trovati: ${items.length}`);
-    console.log(`Già creati (tracker): ${Object.keys(tracker.created).length}`);
-    console.log(`Ultimo scan: ${tracker.lastScan || "mai"}\n`);
 
-    const newItems = items.filter((i) => !tracker.created[i.sourceId]);
-    const daemonExec = newItems.filter((i) => !i.requiresHuman);
-    const humanReq = newItems.filter((i) => i.requiresHuman);
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    items.sort((a, b) => (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2));
 
-    console.log(`Nuovi (non ancora creati): ${newItems.length}`);
-    console.log(`  → Daemon-executable: ${daemonExec.length}`);
-    console.log(`  → Human-required: ${humanReq.length}\n`);
+    const actionable = items.filter((i) => !i.requiresHuman);
+    const humanReq = items.filter((i) => i.requiresHuman);
 
-    if (daemonExec.length > 0) {
-      console.log("─── DAEMON-EXECUTABLE ──────────────────────────");
-      for (const item of daemonExec.slice(0, 15)) {
+    console.log(`\n─── VISION SCAN (REPORT MODE) ───────────────────`);
+    console.log(`Signal totali: ${items.length}`);
+    console.log(`  → Azionabili da CME: ${actionable.length}`);
+    console.log(`  → Richiedono intervento umano: ${humanReq.length}\n`);
+
+    if (actionable.length > 0) {
+      console.log("─── SIGNAL AZIONABILI ──────────────────────────");
+      for (const item of actionable.slice(0, 20)) {
         console.log(`  [${item.priority}] ${item.deptId} | ${item.title}`);
+        if (item.description !== item.title) console.log(`    └─ ${item.description.slice(0, 120)}`);
       }
     }
     if (humanReq.length > 0) {
-      console.log("\n─── HUMAN-REQUIRED ─────────────────────────────");
+      console.log("\n─── RICHIEDONO BOSS ────────────────────────────");
       for (const item of humanReq.slice(0, 10)) {
         console.log(`  [${item.priority}] ${item.deptId} | ${item.title}`);
       }
     }
 
-    // If --scan --create, actually create the tasks
-    if (args.includes("--create")) {
-      console.log("\n─── CREATING TASKS ─────────────────────────────");
-      const created = autoGenerateTasks();
-      console.log(`\nCreati: ${created} task.`);
-    }
-
+    console.log("\nNota: il daemon NON crea task. CME legge questi signal e decide.");
     console.log("──────────────────────────────────────────────────");
     return;
   }
 
-  const runOnce = () => {
+  const runOnce = async () => {
     // Controlla stato daemon da file JSON (modificabile da /ops)
     const state = readDaemonState();
     if (!state.enabled) {
@@ -912,95 +1097,162 @@ async function main() {
       return;
     }
 
-    // Controlla task in_progress — auto-unclaim quelli stale (>30min, assegnati al daemon)
-    const ipCheck = spawnSync("npx", ["tsx", "scripts/company-tasks.ts", "list", "--status", "in_progress"], {
-      cwd: ROOT,
-      encoding: "utf-8",
-      timeout: 30_000,
-      shell: true,
-    });
-    const ipOutput = (ipCheck.stdout || "").trim();
-    // Estrai task ID e controlla se sono stale
-    const ipTaskIds = [...ipOutput.matchAll(/id:\s+([a-f0-9]+)/g)].map(m => m[1]);
-    const ipAssignedToDaemon = ipOutput.includes("cme-daemon");
-
-    if (ipTaskIds.length > 0) {
-      if (ipAssignedToDaemon) {
-        // Auto-unclaim: se il daemon ha task in_progress da una sessione precedente,
-        // li rimette in open (la sessione che li aveva claimati è già terminata)
-        log(`Task in_progress del daemon trovati (${ipTaskIds.length}). Auto-unclaim task stale...`);
-        for (const tid of ipTaskIds) {
-          spawnSync("npx", [
-            "tsx", "scripts/company-tasks.ts", "update", tid,
-            "--status", "open", "--assigned", "",
-          ], { cwd: ROOT, encoding: "utf-8", timeout: 15_000, shell: true });
-          log(`  → ${tid} rimesso in open.`);
-        }
-      } else {
-        // Task in_progress di qualcun altro (sessione interattiva CME) → skip
-        log(`Task in progress di altri agenti (${ipTaskIds.length}), skip ciclo.`);
-        return;
-      }
-    }
-
     if (!acquireLock()) return;
 
+    const startTime = Date.now();
+
     try {
-      // Genera il piano giornaliero se non esiste ancora
+      // FASE 1: Daily plan
       ensureDailyPlanExists();
 
-      // VISION SCANNER: auto-genera task dalle visioni dei dipartimenti
-      // Gira PRIMA della sessione Claude per garantire che il board abbia sempre lavoro
-      const generatedCount = autoGenerateTasks();
-      if (generatedCount > 0) {
-        log(`[VISION] ${generatedCount} nuovi task creati. Board alimentato.`);
-      }
+      // FASE 2: Vision scanner — scansiona status.json, produce SIGNAL (no task creation)
+      const signals = scanDepartmentStatus();
+      const uniqueDepts = new Set(signals.map((i) => i.deptId)).size;
+      log(`[VISION] ${signals.length} signal da ${uniqueDepts} dipartimenti.`);
 
-      const prompt = buildPrompt();
-      log(`Prompt costruito: ${prompt.length} chars`);
+      // FASE 3: Analisi LLM gratuita — $0.00
+      const prompt = buildAnalysisPrompt();
+      log(`Prompt analisi costruito: ${prompt.length} chars`);
 
-      const startTime = Date.now();
-      const { output, exitCode } = executeClaudeSession(prompt);
+      const { output, analysis, exitCode } = await executeFreeSession(prompt);
       const durationMs = Date.now() - startTime;
 
-      log(`Sessione completata in ${(durationMs / 1000).toFixed(0)}s — exit ${exitCode}`);
-      logSession(output, exitCode, durationMs);
-
-      // Log rotation: elimina log piu vecchi di 7 giorni
-      const rotated = rotateAutorunLogs(LOG_DIR);
-      if (rotated > 0) {
-        log(`Log rotation: ${rotated} file eliminati (>7 giorni).`);
+      // Log analisi
+      if (analysis?.analysis) {
+        log(`[LLM] ${analysis.analysis.slice(0, 200)}`);
+      }
+      if (analysis?.alerts) {
+        for (const alert of analysis.alerts) log(`[ALERT] ${alert}`);
       }
 
-      // PHASE 3: Daily Controls + Alerting
+      // Parse board stats dal board output
+      const boardOutput = readBoard();
+      const boardStats = { total: 0, open: 0, inProgress: 0, done: 0 };
+      const totalMatch = boardOutput.match(/Totale:\s*(\d+)/);
+      const openMatch = boardOutput.match(/Open:\s*(\d+)/);
+      const ipMatch = boardOutput.match(/In Progress:\s*(\d+)/);
+      const doneMatch = boardOutput.match(/Done:\s*(\d+)/);
+      if (totalMatch) boardStats.total = parseInt(totalMatch[1]);
+      if (openMatch) boardStats.open = parseInt(openMatch[1]);
+      if (ipMatch) boardStats.inProgress = parseInt(ipMatch[1]);
+      if (doneMatch) boardStats.done = parseInt(doneMatch[1]);
+
+      // SCRIVI REPORT STRUTTURATO per CME
+      const report: DaemonReport = {
+        timestamp: new Date().toISOString(),
+        durationMs,
+        board: boardStats,
+        signals,
+        llmAnalysis: analysis?.analysis || null,
+        llmSuggestions: analysis?.suggestions || [],
+        alerts: analysis?.alerts || [],
+      };
+      writeDaemonReport(report);
+
+      // Log session sensor (testo per archivio umano)
+      log(`[SENSOR] Completato in ${(durationMs / 1000).toFixed(0)}s — exit ${exitCode} — $0.00`);
+      logSession(
+        `Costo: $0.00\nSignal: ${signals.length}\nSuggestions: ${report.llmSuggestions.length}\nAlerts: ${report.alerts.length}\n\n${output}`,
+        exitCode,
+        durationMs
+      );
+
+      // FASE 4: Executor — lancia claude -p come CME se ci sono signal azionabili
+      const sensorOnly = process.argv.includes("--sensor-only");
+      const { trigger, reason, actionableCount } = shouldTriggerCME(report);
+
+      if (trigger && !sensorOnly) {
+        log(`[EXECUTOR] Trigger CME: ${reason}`);
+        const cmeResult = executeCMESession(report);
+        const cmeOutput = cmeResult.output || "";
+
+        if (cmeResult.success) {
+          log(`[EXECUTOR] CME ha lavorato ${(cmeResult.durationMs / 1000).toFixed(0)}s`);
+
+          // Verifica se ha EFFETTIVAMENTE fatto qualcosa (creato/completato task)
+          const didWork = /task\s+(creato|completato|done)|scripts\/company-tasks\.ts\s+done/i.test(cmeOutput);
+          if (didWork) {
+            writeDaemonState({ consecutiveNoOp: 0 });
+            log("[EXECUTOR] CME ha completato lavoro reale — reset no-op counter");
+          } else {
+            // Sessione "riuscita" ma non ha fatto niente — conta come no-op
+            const currentState = readDaemonState();
+            const noOp = (currentState.consecutiveNoOp ?? 0) + 1;
+            writeDaemonState({ consecutiveNoOp: noOp });
+            log(`[EXECUTOR] CME exit 0 ma nessun task completato — no-op #${noOp}`);
+          }
+        } else {
+          log(`[EXECUTOR] CME fallito dopo ${(cmeResult.durationMs / 1000).toFixed(0)}s`);
+
+          // F2: Detect rate limit — "You've hit your limit" o "resets Xpm"
+          const rateLimitMatch = cmeOutput.match(/You've hit your limit/i) || cmeOutput.match(/Credit balance is too low/i);
+          if (rateLimitMatch) {
+            // Cerca orario di reset nel messaggio (es. "resets 2pm (Europe/Rome)")
+            const resetMatch = cmeOutput.match(/resets?\s+(\d{1,2})(am|pm)/i);
+            let backoffUntil: Date;
+            if (resetMatch) {
+              const hour = parseInt(resetMatch[1]);
+              const isPM = resetMatch[2].toLowerCase() === "pm";
+              backoffUntil = new Date();
+              backoffUntil.setHours(isPM ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour), 5, 0, 0);
+              // Se l'ora è già passata, aggiungi 24h
+              if (backoffUntil.getTime() < Date.now()) {
+                backoffUntil.setDate(backoffUntil.getDate() + 1);
+              }
+            } else {
+              // Fallback: backoff 2 ore
+              backoffUntil = new Date(Date.now() + 2 * 3600 * 1000);
+            }
+            log(`[EXECUTOR] Rate limit rilevato! Backoff fino a ${backoffUntil.toISOString()}`);
+            writeDaemonState({ rateLimitUntil: backoffUntil.toISOString() });
+          }
+
+          // Track no-op
+          const currentState = readDaemonState();
+          const noOp = (currentState.consecutiveNoOp ?? 0) + 1;
+          writeDaemonState({ consecutiveNoOp: noOp });
+          if (noOp >= 6) {
+            log(`[EXECUTOR] ${noOp} sessioni consecutive no-op — cooldown progressivo attivato`);
+          }
+        }
+      } else if (sensorOnly) {
+        log(`[EXECUTOR] Skip (--sensor-only). Signal azionabili: ${actionableCount}`);
+      } else {
+        log(`[EXECUTOR] Skip: ${reason}`);
+        // Track no-op anche quando non triggeriamo (niente da fare)
+        const currentState = readDaemonState();
+        // Reset no-op solo se la ragione è "nessun signal" non "cooldown/backoff"
+        if (!reason.includes("backoff") && !reason.includes("Cooldown")) {
+          writeDaemonState({ consecutiveNoOp: 0 });
+        }
+      }
+
+      // Log rotation
+      const rotated = rotateAutorunLogs(LOG_DIR);
+      if (rotated > 0) log(`Log rotation: ${rotated} file eliminati.`);
+
+      // Alerting
       try {
         const alertResult = spawnSync('npx', ['tsx', 'scripts/ops-alerting.ts', 'check'], {
-          cwd: ROOT,
-          encoding: 'utf-8',
-          timeout: 30000,
-          shell: true,
+          cwd: ROOT, encoding: 'utf-8', timeout: 30000, shell: true,
         });
-        if (alertResult.stdout) {
-          log(`[PHASE 3] Alerting: ${alertResult.stdout.trim()}`);
-        }
+        if (alertResult.stdout) log(`[ALERTING] ${alertResult.stdout.trim()}`);
       } catch (e) {
-        log(`[PHASE 3] Alerting check failed: ${e}`);
+        log(`[ALERTING] Check failed: ${e}`);
       }
 
       // Aggiorna stato daemon
-      const tasksCompleted = countCompletedTasks(output);
+      const totalDuration = Date.now() - startTime;
       writeDaemonState({
         lastRun: new Date().toISOString(),
-        lastDurationMs: durationMs,
+        lastDurationMs: totalDuration,
         lastExitCode: exitCode,
-        lastTasksExecuted: tasksCompleted,
+        lastTasksExecuted: trigger && !sensorOnly ? 1 : 0,
         totalRuns: state.totalRuns + 1,
-        updatedBy: "cme-autorun",
+        updatedBy: "cme-autorun-autoalimentante",
       });
 
-      if (exitCode !== 0) {
-        log("Sessione terminata con errore. Controlla il log.");
-      }
+      log(`[DONE] ${signals.length} signal, ${report.llmSuggestions.length} suggestions, ${report.alerts.length} alerts. CME triggered: ${trigger && !sensorOnly}`);
     } finally {
       releaseLock();
     }
@@ -1009,22 +1261,26 @@ async function main() {
   if (watchMode) {
     const state = readDaemonState();
     const effectiveInterval = state.intervalMinutes || intervalMin;
-    log(`Watch mode: sessione ogni ${effectiveInterval} minuti. Ctrl+C per uscire.`);
+    log(`Watch mode [FREE $0.00/ciclo]: sessione ogni ${effectiveInterval} minuti. Ctrl+C per uscire.`);
     log(`Daemon enabled: ${state.enabled}`);
-    runOnce();
+    await runOnce();
 
     // Re-leggi intervallo dal file ad ogni ciclo (permette cambio live da /ops)
     const scheduleNext = () => {
       const currentState = readDaemonState();
       const interval = currentState.intervalMinutes || effectiveInterval;
-      setTimeout(() => {
-        runOnce();
+      setTimeout(async () => {
+        try {
+          await runOnce();
+        } catch (err) {
+          log(`[WATCH] Errore nel ciclo: ${err instanceof Error ? err.message : String(err)}`);
+        }
         scheduleNext();
       }, interval * 60 * 1000);
     };
     scheduleNext();
   } else {
-    runOnce();
+    await runOnce();
   }
 }
 
