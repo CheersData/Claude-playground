@@ -182,7 +182,7 @@ export function DaemonControlPanel() {
       )}
 
       {/* Status card */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-4 space-y-4">
+      <div className="bg-zinc-900/80 border border-[var(--ops-border-subtle)] rounded-lg p-4 space-y-4">
         {/* Power toggle + status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ export function DaemonControlPanel() {
             className={`relative w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
               state.enabled
                 ? "bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30"
-                : "bg-zinc-800 border border-zinc-700 text-zinc-500 hover:text-white hover:border-zinc-600"
+                : "bg-zinc-800 border border-[var(--ops-border)] text-zinc-500 hover:text-white hover:border-[var(--ops-border)]"
             } ${saving ? "opacity-50 cursor-wait" : ""}`}
             title={state.enabled ? "Disabilita daemon" : "Abilita daemon"}
           >
@@ -271,7 +271,7 @@ export function DaemonControlPanel() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2">
         {/* Ultimo run */}
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-3">
+        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Timer className="w-3 h-3 text-zinc-500" />
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Ultimo run</span>
@@ -282,7 +282,7 @@ export function DaemonControlPanel() {
         </div>
 
         {/* Durata */}
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-3">
+        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Clock className="w-3 h-3 text-zinc-500" />
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Durata</span>
@@ -293,7 +293,7 @@ export function DaemonControlPanel() {
         </div>
 
         {/* Exit code */}
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-3">
+        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             {state.lastExitCode === 0 ? (
               <CheckCircle className="w-3 h-3 text-green-500" />
@@ -318,7 +318,7 @@ export function DaemonControlPanel() {
         </div>
 
         {/* Total runs */}
-        <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-3">
+        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Play className="w-3 h-3 text-zinc-500" />
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Totale run</span>
@@ -334,7 +334,7 @@ export function DaemonControlPanel() {
             <FileText className="w-3 h-3 text-zinc-500" />
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Log recenti</span>
           </div>
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-lg divide-y divide-zinc-800/60">
+          <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg divide-y divide-zinc-800/60">
             {state.logs.slice(0, 5).map((log) => (
               <div key={log.name} className="px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, PLANS } from "@/lib/stripe";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
 
 export async function POST(req: NextRequest) {
+  // CSRF protection (SEC-NEW-M2)
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   if (!stripe) {
     return NextResponse.json(
       { error: "Stripe non configurato" },

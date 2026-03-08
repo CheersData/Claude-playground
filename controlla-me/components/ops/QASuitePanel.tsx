@@ -91,7 +91,7 @@ function SpecRow({ spec }: { spec: TestSpec }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800/40 transition-colors text-left group"
@@ -131,7 +131,7 @@ function SpecRow({ spec }: { spec: TestSpec }) {
             transition={{ duration: 0.15 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 pt-3 border-t border-zinc-800 bg-zinc-900/50 space-y-3">
+            <div className="px-4 pb-4 pt-3 border-t border-[var(--ops-border-subtle)] bg-zinc-900/50 space-y-3">
               {/* Comment */}
               <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
                 {spec.comment}
@@ -146,7 +146,7 @@ function SpecRow({ spec }: { spec: TestSpec }) {
                   {spec.coverage.map((area, i) => (
                     <span
                       key={i}
-                      className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700/50"
+                      className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-[var(--ops-border-subtle)]"
                     >
                       {area}
                     </span>
@@ -319,7 +319,7 @@ export function QASuitePanel() {
       </div>
 
       {/* Generate suggestions */}
-      <div className="border-t border-zinc-800 pt-4 space-y-3">
+      <div className="border-t border-[var(--ops-border-subtle)] pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-zinc-300 font-medium">Genera Nuove Domande di Test</p>
@@ -357,7 +357,7 @@ export function QASuitePanel() {
                 return (
                   <div
                     key={sug.id}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-zinc-800/40 border border-zinc-700/50"
+                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-zinc-800/40 border border-[var(--ops-border-subtle)]"
                   >
                     <PriorityDot priority={sug.priority} />
                     <div className="flex-1 min-w-0">

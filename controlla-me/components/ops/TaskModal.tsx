@@ -37,7 +37,7 @@ export interface TaskItem {
 export function TagBadge({ tag, size = "sm" }: { tag: string; size?: "xs" | "sm" }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono ${
+      className={`inline-flex items-center rounded-full bg-[var(--ops-surface-2)] text-zinc-400 border border-[var(--ops-border)] font-mono ${
         size === "xs" ? "text-[9px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
       }`}
     >
@@ -216,11 +216,11 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-xl bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-xl bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-zinc-800 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[var(--ops-border-subtle)] flex-shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-400 flex-shrink-0" />; })()}
@@ -233,7 +233,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="flex-shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="flex-shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -244,14 +244,14 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
           {/* Status + Priority row */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400 border-zinc-700"}`}>
+            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${STATUS_COLORS[task.status] ?? "bg-[var(--ops-surface-2)] text-zinc-400 border-[var(--ops-border)]"}`}>
               {task.status.replace("_", " ")}
             </span>
             <span className={`text-xs font-semibold ${PRIORITY_COLORS[task.priority] ?? "text-zinc-400"}`}>
               ● {task.priority.toUpperCase()}
             </span>
             {task.labels && task.labels.length > 0 && task.labels.map((l) => (
-              <span key={l} className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+              <span key={l} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--ops-surface-2)] text-zinc-400 border border-[var(--ops-border)]">
                 {l}
               </span>
             ))}
@@ -290,7 +290,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
           {/* Description */}
           {descBody && (
-            <div className="rounded-xl bg-zinc-800/50 border border-zinc-800 px-4 py-3">
+            <div className="rounded-xl bg-[var(--ops-surface-2)]/50 border border-[var(--ops-border-subtle)] px-4 py-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <FileText className="w-3.5 h-3.5 text-zinc-500" />
                 <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide">Attività</span>
@@ -312,7 +312,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
           {/* Stored architect review (generated via CLI) */}
           {storedReview && (
-            <div className="rounded-xl bg-zinc-800/60 border border-zinc-700 px-4 py-3 space-y-2">
+            <div className="rounded-xl bg-[var(--ops-surface-2)]/60 border border-[var(--ops-border)] px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wide">Parere Architetto</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
@@ -339,7 +339,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
           {/* CLI hint for architect review (review tasks without stored review) */}
           {isReview && !storedReview && !actionMode && (
-            <div className="rounded-lg bg-zinc-800/40 border border-zinc-700 px-3 py-2.5 flex items-center gap-2">
+            <div className="rounded-lg bg-[var(--ops-surface-2)]/40 border border-[var(--ops-border)] px-3 py-2.5 flex items-center gap-2">
               <Terminal className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
               <span className="text-[11px] text-zinc-500 font-mono">
                 npx tsx scripts/architect-review.ts {task.id.slice(0, 8)}
@@ -405,7 +405,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
                 placeholder="Nome agente (es. architect, test-runner...)"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[var(--ops-border)]"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && handleClaim()}
               />
@@ -418,7 +418,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                   Claim
                 </button>
-                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-400 transition-colors">
+                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-[var(--ops-surface-2)] hover:bg-zinc-700 rounded-lg text-sm text-zinc-400 transition-colors">
                   Annulla
                 </button>
               </div>
@@ -433,7 +433,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                 onChange={(e) => setResultText(e.target.value)}
                 placeholder="Riepilogo risultato (opzionale)..."
                 rows={3}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[var(--ops-border)] resize-none"
                 autoFocus
               />
               {task.expectedBenefit && (
@@ -450,7 +450,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                             ? s === "achieved" ? "bg-green-500/25 text-green-300 border-green-500/50"
                             : s === "partial"  ? "bg-yellow-500/25 text-yellow-300 border-yellow-500/50"
                             : "bg-red-500/25 text-red-300 border-red-500/50"
-                            : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-500"
+                            : "bg-[var(--ops-surface-2)] text-zinc-500 border-[var(--ops-border)] hover:border-[var(--ops-border)]"
                         }`}
                       >
                         {s === "achieved" ? "Raggiunto" : s === "partial" ? "Parziale" : "Mancato"}
@@ -462,7 +462,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                     onChange={(e) => setBenefitNotes(e.target.value)}
                     placeholder="Note sul beneficio (opzionale)..."
                     rows={2}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                    className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[var(--ops-border)] resize-none"
                   />
                 </div>
               )}
@@ -475,7 +475,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
                   Conferma Done
                 </button>
-                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-400 transition-colors">
+                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-[var(--ops-surface-2)] hover:bg-zinc-700 rounded-lg text-sm text-zinc-400 transition-colors">
                   Annulla
                 </button>
               </div>
@@ -483,7 +483,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
           )}
 
           {actionMode === "status" && (
-            <div className="rounded-xl bg-zinc-800/50 border border-zinc-700 px-4 py-4 space-y-3">
+            <div className="rounded-xl bg-[var(--ops-surface-2)]/50 border border-[var(--ops-border)] px-4 py-4 space-y-3">
               <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Cambia stato</p>
               <div className="flex flex-wrap gap-2">
                 {(["open", "in_progress", "review", "blocked"] as const)
@@ -511,7 +511,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
         {/* Footer — standard actions (not for review or done tasks) */}
         {!actionMode && !isDone && !isReview && (
-          <div className="px-6 py-4 border-t border-zinc-800 flex flex-wrap gap-2 flex-shrink-0">
+          <div className="px-6 py-4 border-t border-[var(--ops-border-subtle)] flex flex-wrap gap-2 flex-shrink-0">
             {task.status === "open" && (
               <button
                 onClick={(e) => { e.stopPropagation(); setActionMode("claim"); }}
@@ -534,7 +534,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
               <button
                 onClick={(e) => { e.stopPropagation(); handleStatusChange("open"); }}
                 disabled={loading}
-                className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs text-zinc-300 font-medium transition-colors disabled:opacity-50"
+                className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-[var(--ops-surface-2)] hover:bg-zinc-700 rounded-lg text-xs text-zinc-300 font-medium transition-colors disabled:opacity-50"
               >
                 {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                 Reopen
@@ -552,7 +552,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
             )}
             <button
               onClick={(e) => { e.stopPropagation(); setActionMode("status"); }}
-              className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs text-zinc-400 font-medium transition-colors"
+              className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-[var(--ops-surface-2)] hover:bg-zinc-700 rounded-lg text-xs text-zinc-400 font-medium transition-colors"
             >
               Cambia stato
             </button>

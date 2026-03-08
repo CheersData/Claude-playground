@@ -11,10 +11,25 @@ import { NextRequest } from "next/server";
 import { runLegalOfficeOrchestrator } from "@/lib/agents/legaloffice-orchestrator";
 import { sessionTierStore, type SessionTierContext, type TierName } from "@/lib/tiers";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
 export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
+  // Auth — console-only route (calls LLM)
+  const authPayload = requireConsoleAuth(req);
+  if (!authPayload) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // CSRF protection (SEC-NEW-H2)
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   // Rate limiting
   const rl = await checkRateLimit(req);
   if (rl) return rl;

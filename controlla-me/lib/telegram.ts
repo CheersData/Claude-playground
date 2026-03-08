@@ -131,3 +131,22 @@ export async function notifyDailyReport(report: {
       `Costo API oggi: <b>$${report.dailyCost.toFixed(2)}</b>`
   );
 }
+
+export async function notifyNewLead(lead: {
+  name: string;
+  email: string;
+  source: string;
+}): Promise<boolean> {
+  return send(
+    `<b>Nuovo Lead</b>
+
+` +
+      `Nome: <b>${lead.name}</b>
+` +
+      `Email: <b>${lead.email}</b>
+` +
+      `Fonte: <b>${lead.source}</b>
+` +
+      `Ora: ${new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome" })}`
+  );
+}

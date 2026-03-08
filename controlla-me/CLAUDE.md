@@ -1149,7 +1149,7 @@ company/trading/
 2. ~~Dashboard reale~~ — **PARZIALMENTE COMPLETATO**: dashboard usa query Supabase reali (180 righe, `createBrowserClient`). `/analysis/[id]/page.tsx` usa ancora mock data — serve `GET /api/analyses/[id]` con RLS.
 3. ~~Deep search limit~~ — **COMPLETATO**: Gate paywall implementato in `RiskCard.tsx`. `/api/user/usage` esteso con `deepSearchUsed/deepSearchLimit/canDeepSearch`. Paywall differenziato per non-auth vs limite raggiunto.
 4. Sistema referral avvocati — Tabelle DB esistono (`lawyer_referrals`), nessuna UI. Prerequisito: ADR GDPR su quali dati condividere con l'avvocato e con quale base giuridica.
-5. Test — **PARZIALMENTE COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, agenti core coperti (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + nuova suite `e2e/` (auth, upload, analysis, console). **Gap critici rimasti**: `lib/ai-sdk/agent-runner.ts` (P1), `lib/tiers.ts` (P2), `lib/middleware/console-token.ts` (P3), `lib/analysis-cache.ts` (P4), `lib/ai-sdk/generate.ts` (P5).
+5. ~~Test~~ — **COMPLETATO**: Vitest 4 + Playwright 1.58 configurati, 577+ test. Agenti core (classifier, analyzer, investigator, advisor, corpus-agent), 4 middleware (auth, csrf, sanitize, rate-limit), 7 spec E2E + suite `e2e/` (auth, upload, analysis, console). Gap P1-P5 tutti risolti: `agent-runner.ts`, `tiers.ts`, `console-token.ts`, `analysis-cache.ts`, `generate.ts` ora coperti.
 6. CI/CD — `.github/` presente ma pipeline non completamente configurata. ~~**Bloccato da**: migration duplicate 003-007 (TD-3)~~ — TD-3 risolto (migrations 001-015). Rimane da configurare: test automatici su PR, build check, deploy preview.
 7. ~~Corpus legislativo~~ — **COMPLETATO**: ~5600 articoli da 13 fonti (Normattiva + EUR-Lex), embeddings Voyage AI attivi, pagina UI `/corpus` operativa. Data Connector pipeline CONNECT→MODEL→LOAD funzionante.
 8. ~~UI scoring multidimensionale~~ — **COMPLETATO**: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) implementate in ResultsView (ScoreBreakdown), FairnessScore (pills), ChatMessage (pills), FinalEvaluationPanel (bars).
@@ -1159,9 +1159,9 @@ company/trading/
 
 ---
 
-## 18. SECURITY STATUS (aggiornato 2026-03-02)
+## 18. SECURITY STATUS (aggiornato 2026-03-08)
 
-**Stato complessivo: 🟢 VERDE** — Tutti i finding medi risolti. Finding bassi residui non bloccanti.
+**Stato complessivo: 🟢 VERDE** — Audit completo su 50 route, 100% coverage. Tutti i finding medi/alti risolti. Finding bassi residui non bloccanti.
 
 ### Infrastruttura security esistente (SEC-001..006)
 
@@ -1187,12 +1187,14 @@ company/trading/
 | M7 | `/api/company/costs` usa `requireAuth` anziché `requireConsoleAuth` | ✅ Cambiato a `requireConsoleAuth` + rate-limit |
 | M8 | `/api/corpus` GET e `/api/vector-search` GET senza rate-limit | ✅ `checkRateLimit` per IP aggiunto |
 | M9 | `/api/company/cron` POST senza rate-limit | ✅ `checkRateLimit` aggiunto |
+| H3 | `/api/legaloffice/leader` e `/orchestrator` senza auth (chiama LLM senza autenticazione) | ✅ `requireConsoleAuth` aggiunto |
+| M10 | 8 POST route senza CSRF: console/company/*, company/cron, company/tasks, corpus/ask, platform/cron/data-connector | ✅ `checkCsrf` aggiunto |
+| M11 | `/api/webhook` e `/api/auth/callback` senza rate-limit | ✅ `checkRateLimit` aggiunto (webhook: 30/min, callback: 10/min) |
 
 ### Finding bassi residui
 
 - Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente — bassa priorità
 - CSP include `'unsafe-eval'` — necessario per Next.js, rimovibile in prod con nonce-based CSP
-- `/api/company/*` routes (board, tasks, status, files, departments, reports) senza rate-limit — protetti da console auth, basso rischio
 - DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI (task CME aperto)
 - Consulente EU AI Act — scadenza agosto 2026 (task CME aperto)
 

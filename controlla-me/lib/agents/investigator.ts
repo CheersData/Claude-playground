@@ -42,16 +42,16 @@ async function selfRetrieveForClauses(
         searchLegalKnowledge(query, {
           limit: maxResultsPerClause,
           threshold: 0.60,
-        }),
+        }).catch(() => []),
         searchArticles(query, {
           threshold: 0.55,
           limit: maxResultsPerClause,
-        }),
+        }).catch(() => []),
       ]);
 
       const parts: string[] = [];
 
-      if (knowledgeResults.length > 0) {
+      if (knowledgeResults?.length > 0) {
         parts.push(
           knowledgeResults
             .map(
@@ -62,7 +62,7 @@ async function selfRetrieveForClauses(
         );
       }
 
-      if (articleResults.length > 0) {
+      if (articleResults?.length > 0) {
         parts.push(
           articleResults
             .map(
@@ -108,10 +108,13 @@ export async function runInvestigator(
   ragContext?: string
 ): Promise<InvestigationResult> {
   // ALL critical and high clauses are MANDATORY, medium if possible
-  const criticalAndHigh = analysis.clauses.filter((c) =>
+  // Guard: analysis or analysis.clauses may be undefined/null when the analyzer
+  // returns malformed JSON or is disabled — gracefully return empty findings.
+  const clauses = Array.isArray(analysis?.clauses) ? analysis.clauses : [];
+  const criticalAndHigh = clauses.filter((c) =>
     ["critical", "high"].includes(c.riskLevel)
   );
-  const medium = analysis.clauses.filter((c) => c.riskLevel === "medium");
+  const medium = clauses.filter((c) => c.riskLevel === "medium");
 
   if (criticalAndHigh.length === 0 && medium.length === 0) {
     return { findings: [] };
@@ -138,7 +141,7 @@ export async function runInvestigator(
     classification.relevantInstitutes?.length
       ? `Istituti giuridici: ${classification.relevantInstitutes.join(", ")}`
       : null,
-    `Leggi applicabili: ${classification.applicableLaws.map((l) => l.reference).join(", ")}`,
+    `Leggi applicabili: ${(classification.applicableLaws ?? []).map((l) => l.reference).join(", ")}`,
     legalContext ? `\n${legalContext}` : null,
     ragContext ? `\n${ragContext}` : null,
     selfRAGContext ? `\n${selfRAGContext}` : null,
@@ -181,7 +184,10 @@ export async function runInvestigator(
     totalInputTokens += response.usage.input_tokens;
     totalOutputTokens += response.usage.output_tokens;
 
-    const textBlocks = response.content
+    // Guard: response.content may be undefined in edge cases (malformed API response)
+    const contentBlocks = response.content ?? [];
+
+    const textBlocks = contentBlocks
       .filter(
         (block): block is Anthropic.Messages.TextBlock => block.type === "text"
       )
@@ -195,7 +201,7 @@ export async function runInvestigator(
       break;
     }
 
-    const hasToolUse = response.content.some(
+    const hasToolUse = contentBlocks.some(
       (block) => block.type === "tool_use"
     );
 
@@ -206,7 +212,7 @@ export async function runInvestigator(
     messages.push({ role: "assistant", content: response.content });
 
     const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-      response.content
+      contentBlocks
         .filter(
           (block): block is Anthropic.Messages.ToolUseBlock =>
             block.type === "tool_use"
@@ -278,7 +284,10 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
       messages,
     });
 
-    const textBlocks = response.content
+    // Guard: response.content may be undefined in edge cases (malformed API response)
+    const deepContentBlocks = response.content ?? [];
+
+    const textBlocks = deepContentBlocks
       .filter(
         (block): block is Anthropic.Messages.TextBlock => block.type === "text"
       )
@@ -290,7 +299,7 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
 
     if (response.stop_reason === "end_turn") break;
 
-    const hasToolUse = response.content.some(
+    const hasToolUse = deepContentBlocks.some(
       (block) => block.type === "tool_use"
     );
     if (!hasToolUse) break;
@@ -298,7 +307,7 @@ Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispo
     messages.push({ role: "assistant", content: response.content });
 
     const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-      response.content
+      deepContentBlocks
         .filter(
           (block): block is Anthropic.Messages.ToolUseBlock =>
             block.type === "tool_use"

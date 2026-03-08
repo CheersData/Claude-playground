@@ -139,7 +139,7 @@ const ChartTooltip = ({
   if (!active || !payload?.length) return null;
   const val = payload[0]?.value;
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs shadow-xl">
+    <div className="bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-xs shadow-xl">
       <p className="text-zinc-400 mb-1">{label}</p>
       <p className="text-white font-semibold">${fmt(val, 0)}</p>
       {payload[1] && (
@@ -186,7 +186,7 @@ export function TradingDashboard() {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-6">
+      <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-6">
         <div className="flex items-center gap-2 text-zinc-400 text-sm">
           <RefreshCw className="w-4 h-4 animate-spin" />
           Caricamento dati trading...
@@ -197,7 +197,7 @@ export function TradingDashboard() {
 
   if (error) {
     return (
-      <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-6">
+      <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-6">
         <div className="flex items-center gap-2 text-red-400 text-sm">
           <AlertTriangle className="w-4 h-4" />
           {error}
@@ -272,26 +272,26 @@ export function TradingDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-3">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
           <p className="text-xs text-zinc-500 mb-1">Portfolio</p>
           <p className="text-base font-semibold text-white">${fmt(portfolioValue, 0)}</p>
           <p className="text-xs text-zinc-500 mt-0.5">cash ${fmt(cashValue, 0)}</p>
         </div>
-        <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-3">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
           <p className="text-xs text-zinc-500 mb-1">P&L aperto</p>
           <p className={`text-base font-semibold ${pnlColor(totalPnL)}`}>
             {totalPnL >= 0 ? "+" : ""}${fmt(Math.abs(totalPnL))}
           </p>
           <p className="text-xs text-zinc-500 mt-0.5">{positions.length} posizioni</p>
         </div>
-        <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-3">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
           <p className="text-xs text-zinc-500 mb-1">Ordini (30gg)</p>
           <p className="text-base font-semibold text-white">{filledOrders.length}</p>
           <p className="text-xs text-zinc-500 mt-0.5">
             {buyCount} buy · {sellCount} sell
           </p>
         </div>
-        <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-3">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
           <p className="text-xs text-zinc-500 mb-1">Win Rate</p>
           <p className={`text-base font-semibold ${winRate != null ? (winRate >= 0.5 ? "text-emerald-400" : "text-red-400") : "text-zinc-400"}`}>
             {winRate != null ? `${fmt(winRate * 100, 0)}%` : "—"}
@@ -304,7 +304,7 @@ export function TradingDashboard() {
 
       {/* Grafico P&L */}
       {chartData.length > 0 ? (
-        <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-4">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-4">
           <p className="text-xs font-medium text-zinc-400 mb-3">Performance Portfolio (30gg)</p>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
@@ -343,15 +343,15 @@ export function TradingDashboard() {
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-4 text-center">
+        <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-4 text-center">
           <p className="text-xs text-zinc-500">Nessuno snapshot disponibile per il grafico</p>
           <p className="text-xs text-zinc-600 mt-1">I dati appaiono dopo il primo portfolio snapshot giornaliero</p>
         </div>
       )}
 
       {/* Tabs: Posizioni / Ordini */}
-      <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl overflow-hidden">
-        <div className="flex border-b border-zinc-700/50">
+      <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl overflow-hidden">
+        <div className="flex border-b border-[var(--ops-border-subtle)]">
           <button
             onClick={() => setActiveTab("positions")}
             className={`px-4 py-2.5 text-xs font-medium transition-colors ${
@@ -385,7 +385,7 @@ export function TradingDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-zinc-700/50">
+                    <tr className="border-b border-[var(--ops-border-subtle)]">
                       <th className="text-left px-4 py-2 text-zinc-500 font-medium">Simbolo</th>
                       <th className="text-right px-4 py-2 text-zinc-500 font-medium">Qtà</th>
                       <th className="text-right px-4 py-2 text-zinc-500 font-medium">Entry</th>
@@ -398,7 +398,7 @@ export function TradingDashboard() {
                   </thead>
                   <tbody>
                     {positions.map((p) => (
-                      <tr key={p.symbol} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={p.symbol} className="border-b border-[var(--ops-border-subtle)] hover:bg-zinc-800/30 transition-colors">
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-white">{p.symbol}</span>
@@ -425,7 +425,7 @@ export function TradingDashboard() {
                   </tbody>
                   {positions.length > 1 && (
                     <tfoot>
-                      <tr className="border-t border-zinc-700">
+                      <tr className="border-t border-[var(--ops-border)]">
                         <td colSpan={4} className="px-4 py-2 text-zinc-500 font-medium">Totale</td>
                         <td className="px-4 py-2 text-right text-white font-semibold">${fmt(totalValue, 0)}</td>
                         <td className={`px-4 py-2 text-right font-semibold ${pnlColor(totalPnL)}`}>
@@ -452,7 +452,7 @@ export function TradingDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-zinc-700/50">
+                    <tr className="border-b border-[var(--ops-border-subtle)]">
                       <th className="text-left px-4 py-2 text-zinc-500 font-medium">Data</th>
                       <th className="text-left px-4 py-2 text-zinc-500 font-medium">Simbolo</th>
                       <th className="text-left px-4 py-2 text-zinc-500 font-medium">Lato</th>
@@ -465,7 +465,7 @@ export function TradingDashboard() {
                   </thead>
                   <tbody>
                     {orders.map((o) => (
-                      <tr key={o.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={o.id} className="border-b border-[var(--ops-border-subtle)] hover:bg-zinc-800/30 transition-colors">
                         <td className="px-4 py-2.5 text-zinc-400">
                           {fmtDateTime(o.filled_at ?? o.created_at)}
                         </td>

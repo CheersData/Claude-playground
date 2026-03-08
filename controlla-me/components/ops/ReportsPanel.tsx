@@ -52,7 +52,7 @@ function renderInline(text: string): React.ReactNode {
         }
         if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
           return (
-            <code key={i} className="bg-zinc-800 px-1 rounded text-[#FF6B35] font-mono text-xs">
+            <code key={i} className="bg-[var(--ops-surface-2)] px-1 rounded text-[#FF6B35] font-mono text-xs">
               {part.slice(1, -1)}
             </code>
           );
@@ -86,7 +86,7 @@ function MarkdownContent({ content }: { content: string }) {
     // H2
     if (line.startsWith("## ")) {
       elements.push(
-        <h2 key={key++} className="text-base font-semibold text-zinc-200 mt-5 mb-2 border-b border-zinc-700/50 pb-1">
+        <h2 key={key++} className="text-base font-semibold text-zinc-200 mt-5 mb-2 border-b border-[var(--ops-border-subtle)] pb-1">
           {line.slice(3)}
         </h2>
       );
@@ -107,7 +107,7 @@ function MarkdownContent({ content }: { content: string }) {
 
     // HR
     if (line.trim() === "---") {
-      elements.push(<hr key={key++} className="border-zinc-700 my-4" />);
+      elements.push(<hr key={key++} className="border-[var(--ops-border)] my-4" />);
       i++;
       continue;
     }
@@ -122,7 +122,7 @@ function MarkdownContent({ content }: { content: string }) {
       }
       i++; // skip closing ```
       elements.push(
-        <pre key={key++} className="bg-zinc-900 border border-zinc-700 rounded p-3 my-3 text-xs text-zinc-300 overflow-x-auto font-mono leading-relaxed">
+        <pre key={key++} className="bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded p-3 my-3 text-xs text-zinc-300 overflow-x-auto font-mono leading-relaxed">
           {codeLines.join("\n")}
         </pre>
       );
@@ -150,10 +150,10 @@ function MarkdownContent({ content }: { content: string }) {
         const rows = tableRows.slice(1).map(parseRow);
 
         elements.push(
-          <div key={key++} className="overflow-x-auto my-3 rounded border border-zinc-700/50">
+          <div key={key++} className="overflow-x-auto my-3 rounded border border-[var(--ops-border-subtle)]">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="border-b border-zinc-700 bg-zinc-800/60">
+                <tr className="border-b border-[var(--ops-border)] bg-[var(--ops-surface-2)]/60">
                   {header.map((h, j) => (
                     <th key={j} className="text-left py-2 px-3 text-zinc-300 font-medium whitespace-nowrap">
                       {renderInline(h)}
@@ -163,7 +163,7 @@ function MarkdownContent({ content }: { content: string }) {
               </thead>
               <tbody>
                 {rows.map((row, j) => (
-                  <tr key={j} className="border-b border-zinc-800 hover:bg-zinc-800/30 transition-colors">
+                  <tr key={j} className="border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-2)]/30 transition-colors">
                     {row.map((cell, k) => (
                       <td key={k} className="py-2 px-3 text-zinc-400 align-top">
                         {renderInline(cell)}
@@ -351,11 +351,11 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2 }}
-      className="bg-zinc-900 border border-zinc-700/50 rounded-xl overflow-hidden"
+      className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl overflow-hidden"
       style={{ minHeight: "600px" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-700/50 bg-zinc-800/40">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface-2)]/40">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors text-sm"
@@ -381,7 +381,7 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
 
       <div className="flex" style={{ height: "calc(600px - 49px)" }}>
         {/* Sidebar */}
-        <div className="w-56 shrink-0 border-r border-zinc-700/50 overflow-y-auto">
+        <div className="w-56 shrink-0 border-r border-[var(--ops-border-subtle)] overflow-y-auto">
           {loadingList ? (
             <div className="flex items-center justify-center h-32">
               <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
@@ -421,7 +421,7 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
                             className={`w-full text-left px-4 py-1.5 text-xs transition-colors truncate ${
                               selectedItem?.id === item.id
                                 ? "text-[#FF6B35] bg-[#FF6B35]/10"
-                                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                                : "text-zinc-400 hover:text-zinc-200 hover:bg-[var(--ops-surface-2)]/50"
                             }`}
                           >
                             {item.label}

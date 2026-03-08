@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
+import { notifyNewLead } from "@/lib/telegram";
 
 interface SubscribeBody {
   name: string;
@@ -7,6 +10,14 @@ interface SubscribeBody {
 }
 
 export async function POST(req: NextRequest) {
+  // CSRF protection (SEC-NEW-FINDING)
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
+  // Rate limiting anti-spam (SEC-NEW-FINDING)
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   try {
     const body: SubscribeBody = await req.json();
 
@@ -34,11 +45,22 @@ export async function POST(req: NextRequest) {
       ip: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown",
     });
 
-    // TODO: integrate with email marketing service (e.g. Brevo, Mailchimp, Resend)
-    // await addContactToList({ name: sanitizedName, email: sanitizedEmail, tag: sanitizedSource });
+    // Notify boss via Telegram (fire-and-forget — never blocks response)
+    notifyNewLead({
+      name: sanitizedName,
+      email: sanitizedEmail,
+      source: sanitizedSource,
+    }).catch(() => {
+      // Silently ignore — Telegram notification is best-effort
+    });
 
-    // TODO: store lead in Supabase (table: marketing_leads)
-    // await supabaseAdmin.from("marketing_leads").insert({ name: sanitizedName, email: sanitizedEmail, source: sanitizedSource });
+    // Internal subscription log (structured, for future aggregation/export)
+    console.log("[resources/subscribe] Lead registered:", JSON.stringify({
+      name: sanitizedName,
+      email: sanitizedEmail,
+      source: sanitizedSource,
+      timestamp: new Date().toISOString(),
+    }));
 
     return NextResponse.json({
       success: true,

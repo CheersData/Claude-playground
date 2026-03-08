@@ -7,9 +7,22 @@ interface QAStatusProps {
     recent: Array<{
       department: string;
       status: string;
+      completedAt?: string | null;
       resultData?: Record<string, unknown> | null;
     }>;
   } | null;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / (1000 * 60));
+  if (mins < 1) return "ora";
+  if (mins < 60) return `${mins}m fa`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h fa`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "1g fa";
+  return `${days}g fa`;
 }
 
 export function QAStatus({ board }: QAStatusProps) {
@@ -25,45 +38,52 @@ export function QAStatus({ board }: QAStatusProps) {
     testbook?: { accuracy: number };
   } | undefined;
 
+  const lastRunAt = (latestQA as { completedAt?: string | null } | undefined)?.completedAt;
+
   return (
-    <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+    <div className="bg-[var(--ops-surface)] rounded-xl p-5 border border-[var(--ops-border-subtle)]">
+      <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-3 uppercase tracking-wider">
         <ShieldCheck className="w-4 h-4" />
-        QA STATUS
+        QA Status
+        {lastRunAt && (
+          <span className="ml-auto text-[10px] font-normal normal-case tracking-normal text-[var(--ops-muted)]">
+            {timeAgo(lastRunAt)}
+          </span>
+        )}
       </h3>
 
       {!qaData ? (
-        <p className="text-zinc-500 text-sm">Nessun report QA disponibile</p>
+        <p className="text-[var(--ops-muted)] text-sm">Nessun report QA disponibile</p>
       ) : (
         <div className="space-y-2 text-sm">
           {qaData.unitTests && (
             <div className="flex items-center justify-between">
-              <span className="text-zinc-400">Tests</span>
-              <span className={qaData.unitTests.pass === qaData.unitTests.total ? "text-green-400" : "text-red-400"}>
+              <span className="text-[var(--ops-fg-muted)]">Tests</span>
+              <span className={qaData.unitTests.pass === qaData.unitTests.total ? "text-[var(--ops-teal)]" : "text-[var(--ops-error)]"}>
                 {qaData.unitTests.pass}/{qaData.unitTests.total}
               </span>
             </div>
           )}
           {qaData.typeCheck !== undefined && (
             <div className="flex items-center justify-between">
-              <span className="text-zinc-400">Types</span>
-              <span className={qaData.typeCheck.pass ? "text-green-400" : "text-red-400"}>
+              <span className="text-[var(--ops-fg-muted)]">Types</span>
+              <span className={qaData.typeCheck.pass ? "text-[var(--ops-teal)]" : "text-[var(--ops-error)]"}>
                 {qaData.typeCheck.pass ? "pass" : "fail"}
               </span>
             </div>
           )}
           {qaData.lint !== undefined && (
             <div className="flex items-center justify-between">
-              <span className="text-zinc-400">Lint</span>
-              <span className={qaData.lint.pass ? "text-green-400" : "text-red-400"}>
+              <span className="text-[var(--ops-fg-muted)]">Lint</span>
+              <span className={qaData.lint.pass ? "text-[var(--ops-teal)]" : "text-[var(--ops-error)]"}>
                 {qaData.lint.pass ? "pass" : "fail"}
               </span>
             </div>
           )}
           {qaData.testbook && (
             <div className="flex items-center justify-between">
-              <span className="text-zinc-400">Testbook</span>
-              <span className={qaData.testbook.accuracy >= 0.75 ? "text-green-400" : "text-yellow-400"}>
+              <span className="text-[var(--ops-fg-muted)]">Testbook</span>
+              <span className={qaData.testbook.accuracy >= 0.75 ? "text-[var(--ops-teal)]" : "text-[#FFC832]"}>
                 {(qaData.testbook.accuracy * 100).toFixed(0)}%
               </span>
             </div>

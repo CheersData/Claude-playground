@@ -8,13 +8,30 @@
  * Response: { answer: string }
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { generate } from "@/lib/ai-sdk/generate";
 import { LEGALOFFICE_LEADER_SYSTEM, buildLeaderPrompt } from "@/lib/prompts/legaloffice-leader";
 import { getAgentChain } from "@/lib/tiers";
 import { MODELS, isProviderEnabled } from "@/lib/models";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
+import { requireConsoleAuth } from "@/lib/middleware/console-token";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Auth — console-only route (calls LLM)
+  const authPayload = requireConsoleAuth(req);
+  if (!authPayload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // CSRF protection (SEC-NEW-H1)
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
+  // Rate limiting — protegge crediti LLM (SEC-NEW-H1)
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   try {
     const body = await req.json();
     const {

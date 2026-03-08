@@ -197,7 +197,7 @@ function DeptReportCard({ report }: { report: DeptReport }) {
   const hasContent = report.gaps.length > 0 || report.blockers.length > 0 || report.nextActions.length > 0 || report.notes;
 
   return (
-    <div className="border border-zinc-800/80 rounded-lg overflow-hidden bg-zinc-900/30">
+    <div className="border border-[var(--ops-border-subtle)]/80 rounded-lg overflow-hidden bg-zinc-900/30">
       <button
         onClick={() => setExpanded((e) => !e)}
         className="w-full px-3 py-2 flex items-center gap-2.5 hover:bg-zinc-800/30 transition-colors text-left"
@@ -213,7 +213,7 @@ function DeptReportCard({ report }: { report: DeptReport }) {
       </button>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-2 border-t border-zinc-800/60 space-y-2.5">
+        <div className="px-3 pb-3 pt-2 border-t border-[var(--ops-border-subtle)]/60 space-y-2.5">
           {/* Summary completo */}
           <p className="text-xs text-zinc-400 leading-relaxed">{report.summary}</p>
 
@@ -263,11 +263,11 @@ function DeptReportCard({ report }: { report: DeptReport }) {
 
           {/* Notes */}
           {report.notes && (
-            <p className="text-xs text-zinc-500 italic border-t border-zinc-800/60 pt-2">{report.notes}</p>
+            <p className="text-xs text-zinc-500 italic border-t border-[var(--ops-border-subtle)]/60 pt-2">{report.notes}</p>
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-2 text-[10px] text-zinc-600 border-t border-zinc-800/60 pt-2">
+          <div className="flex items-center gap-2 text-[10px] text-zinc-600 border-t border-[var(--ops-border-subtle)]/60 pt-2">
             <Clock className="w-3 h-3" />
             <span>Aggiornato {fmtTimestamp(report.lastUpdated)}</span>
             {report.updatedBy && <span>da <span className="text-zinc-500">{report.updatedBy}</span></span>}
@@ -353,7 +353,7 @@ export function OverviewSummaryPanel() {
       <div className="lg:col-span-2 space-y-3">
 
         {/* Focus del giorno */}
-        <div className={`rounded-lg border bg-zinc-900/60 p-3 ${data.isStale ? "border-amber-800/40" : "border-zinc-800"}`}>
+        <div className={`rounded-lg border bg-zinc-900/60 p-3 ${data.isStale ? "border-amber-800/40" : "border-[var(--ops-border-subtle)]"}`}>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Zap className="w-3.5 h-3.5 text-orange-400 shrink-0" />
             <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Focus attivo</span>
@@ -412,7 +412,7 @@ export function OverviewSummaryPanel() {
 
         {/* Prossime azioni con "Crea task" */}
         {data.nextActions.length > 0 && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/60 p-3">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
               <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
@@ -433,7 +433,7 @@ export function OverviewSummaryPanel() {
         )}
 
         {/* Report dipartimenti espandibili */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 space-y-1.5">
+        <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/60 p-3 space-y-1.5">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
               Report Dipartimenti
@@ -466,7 +466,7 @@ export function OverviewSummaryPanel() {
 
         {/* Empty state globale */}
         {!data.masterExists && data.nextActions.length === 0 && data.deptReports.length === 0 && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 text-center">
+          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/40 p-4 text-center">
             <Lightbulb className="w-5 h-5 text-zinc-600 mx-auto mb-2" />
             <p className="text-xs text-zinc-500">Nessun report disponibile per oggi.</p>
           </div>
@@ -474,7 +474,7 @@ export function OverviewSummaryPanel() {
       </div>
 
       {/* ── Col 2: Note manuali ────────────────────────────────────────── */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 flex flex-col">
+      <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/60 p-3 flex flex-col">
         <div className="flex items-center gap-2 mb-2">
           <NotebookPen className="w-3.5 h-3.5 text-violet-400" />
           <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Note & Priorità</span>
@@ -489,7 +489,7 @@ export function OverviewSummaryPanel() {
           onChange={(e) => setNotes(e.target.value)}
           onBlur={saveNotes}
           placeholder={"Scrivi qui priorità, decisioni, note per la sessione...\n\nEs:\n• Chiamare avvocato per DPA\n• Review backtest results\n• Decidere verticale Q2"}
-          className="flex-1 min-h-[160px] bg-zinc-950 border border-zinc-700 rounded-md p-2.5 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-500 transition-colors font-mono leading-relaxed"
+          className="flex-1 min-h-[160px] bg-zinc-950 border border-[var(--ops-border)] rounded-md p-2.5 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-[var(--ops-border)] transition-colors font-mono leading-relaxed"
         />
         <div className="flex items-center justify-between mt-2">
           <span className="text-[10px] text-zinc-600">

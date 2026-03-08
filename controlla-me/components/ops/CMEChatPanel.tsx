@@ -198,11 +198,11 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2 }}
-      className="bg-zinc-900 border border-zinc-700/50 rounded-xl overflow-hidden flex flex-col"
+      className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl overflow-hidden flex flex-col"
       style={{ minHeight: "600px" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-700/50 bg-zinc-800/40">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface-2)]/40">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors text-sm"
@@ -213,7 +213,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
         <span className="text-zinc-600">/</span>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#FF6B35]" />
-          <span className="text-zinc-200 text-sm font-medium">CME (CEO) — Opus</span>
+          <span className="text-[var(--ops-fg)] text-sm font-medium">CME (CEO) — Opus</span>
         </div>
         {responding && (
           <span className="text-[11px] text-amber-400 animate-pulse ml-2">
@@ -228,7 +228,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
       {/* Input */}
       <form
         onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
-        className="flex items-center gap-3 px-4 py-3 border-b border-zinc-700/50"
+        className="flex items-center gap-3 px-4 py-3 border-b border-[var(--ops-border-subtle)]"
       >
         <input
           ref={inputRef}
@@ -262,7 +262,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
         {/* Waiting */}
         {responding && !streaming && (
           <div className="flex justify-start">
-            <div className="bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3 flex items-center gap-2">
+            <div className="bg-[var(--ops-surface-2)] border border-[var(--ops-border-subtle)] rounded-xl px-4 py-3 flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
               <span className="text-xs text-zinc-400">CME sta elaborando...</span>
             </div>
@@ -272,12 +272,12 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
         {/* Streaming */}
         {streaming && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3">
+            <div className="max-w-[85%] bg-[var(--ops-surface-2)] border border-[var(--ops-border-subtle)] rounded-xl px-4 py-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="w-[5px] h-[5px] rounded-full bg-[#FF6B35] animate-pulse" />
                 <span className="text-[10px] text-zinc-500 font-medium">CME (CEO) — Opus</span>
               </div>
-              <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">{streaming}</p>
+              <p className="text-sm text-[var(--ops-fg)] whitespace-pre-wrap leading-relaxed">{streaming}</p>
             </div>
           </div>
         )}
@@ -289,7 +289,7 @@ export function CMEChatPanel({ onBack }: CMEChatPanelProps) {
               className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                 msg.role === "user"
                   ? "bg-[#FF6B35] text-white"
-                  : "bg-zinc-800 border border-zinc-700/50 text-zinc-200"
+                  : "bg-[var(--ops-surface-2)] border border-[var(--ops-border-subtle)] text-[var(--ops-fg)]"
               }`}
             >
               {msg.role === "assistant" && (

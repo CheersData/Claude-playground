@@ -14,6 +14,7 @@ import { getTotalSpend } from "@/lib/company/cost-logger";
 import { setSession, deleteSession } from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import type { NextRequest } from "next/server";
 
 export const maxDuration = 300; // Sessioni interattive possono durare di più
@@ -44,6 +45,10 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // CSRF protection
+  const csrfError = checkCsrf(req as unknown as NextRequest);
+  if (csrfError) return csrfError;
 
   try {
     const body = await req.json();

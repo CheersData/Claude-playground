@@ -65,3 +65,7 @@ supabase/.temp/
 # Claude Code local config
 .claude/
 trading/logs/
+
+# CME daemon temp files
+.autorun-prompt.tmp
+company/autorun-logs/.autorun.lock

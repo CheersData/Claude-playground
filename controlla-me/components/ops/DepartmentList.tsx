@@ -67,7 +67,7 @@ const PRIORITY_DOT: Record<string, string> = {
   critical: "bg-red-500",
   high: "bg-orange-500",
   medium: "bg-yellow-500",
-  low: "bg-zinc-500",
+  low: "bg-[var(--ops-muted)]",
 };
 
 export function DepartmentList({
@@ -109,7 +109,7 @@ export function DepartmentList({
   };
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+    <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden">
       <div className="px-5 pt-5 pb-3">
         <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2">
           <Building2 className="w-4 h-4" />
@@ -137,7 +137,7 @@ export function DepartmentList({
               <div className="flex items-center">
                 <button
                   onClick={() => onSelectDepartment?.(dept)}
-                  className="flex-1 flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/50 transition-colors text-left group cursor-pointer"
+                  className="flex-1 flex items-center gap-3 px-5 py-3 hover:bg-[var(--ops-surface-2)]/50 transition-colors text-left group cursor-pointer"
                 >
                   {(() => { const Icon = DEPT_ICONS[dept]; return Icon ? <Icon className="w-4 h-4 text-zinc-400 flex-shrink-0" /> : null; })()}
 
@@ -184,7 +184,7 @@ export function DepartmentList({
 
               {/* Expanded task list */}
               {isExpanded && (
-                <div className="bg-zinc-950/60 border-t border-zinc-800/40">
+                <div className="bg-zinc-950/60 border-t border-[var(--ops-border-subtle)]/40">
                   {isLoading ? (
                     <div className="flex items-center justify-center py-4 gap-2 text-zinc-500 text-xs">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -198,10 +198,10 @@ export function DepartmentList({
                         <button
                           key={task.id}
                           onClick={() => onSelectTask?.(task)}
-                          className="w-full flex items-start gap-2.5 px-5 py-2.5 hover:bg-zinc-800/50 transition-colors text-left group/task"
+                          className="w-full flex items-start gap-2.5 px-5 py-2.5 hover:bg-[var(--ops-surface-2)]/50 transition-colors text-left group/task"
                         >
                           <span
-                            className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.priority] ?? "bg-zinc-500"}`}
+                            className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.priority] ?? "bg-[var(--ops-muted)]"}`}
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-zinc-300 truncate group-hover/task:text-white transition-colors">
@@ -214,7 +214,7 @@ export function DepartmentList({
                             )}
                           </div>
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400"}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[task.status] ?? "bg-[var(--ops-surface-2)] text-zinc-400"}`}
                           >
                             {task.status.replace("_", " ")}
                           </span>

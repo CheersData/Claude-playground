@@ -1,9 +1,11 @@
 /**
  * GET /api/debug/stream — SSE endpoint for live debug log stream.
  *
- * Streams from TWO sources in real time:
+ * Streams from FOUR sources in real time:
  *   1. trading_signals  → slope/conventional trade events, scans, risk checks
  *   2. agent_cost_log   → AI agent executions with timing, cost, tokens
+ *   3. company_tasks    → task state changes (created, in_progress, done, blocked)
+ *   4. agent_cost_log   → derived: pipeline phases, rate limit events, errors
  *
  * Auth: requireConsoleAuth (HMAC token)
  * Protocol: Server-Sent Events — text/event-stream
@@ -13,6 +15,7 @@
 import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +27,7 @@ interface LogLine {
   id: string;
   timestamp: string;
   level: "INFO" | "DEBUG" | "WARN" | "ERROR";
-  source: "trading" | "ai" | "system";
+  source: "trading" | "ai" | "system" | "task" | "pipeline" | "ratelimit" | "error";
   message: string;
   meta?: {
     // AI agent fields
@@ -43,6 +46,22 @@ interface LogLine {
     approved?: number;
     total?: number;
     killSwitch?: boolean;
+    // Task fields
+    taskId?: string;
+    taskStatus?: string;
+    department?: string;
+    priority?: string;
+    assignedTo?: string;
+    // Pipeline fields
+    phase?: string;
+    pipelineStatus?: string;
+    // Rate limit fields
+    endpoint?: string;
+    remaining?: number;
+    limit?: number;
+    // Error fields
+    errorType?: string;
+    route?: string;
   };
 }
 
@@ -65,6 +84,19 @@ interface CostRow {
   used_fallback: boolean;
   session_type: string | null;
   created_at: string;
+}
+
+interface TaskRow {
+  id: string;
+  title: string;
+  department: string;
+  status: string;
+  priority: string;
+  assigned_to: string | null;
+  created_by: string;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
 }
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
@@ -168,6 +200,138 @@ function formatCost(row: CostRow): LogLine {
   };
 }
 
+function formatTask(row: TaskRow): LogLine {
+  const ts = fmtTime(row.created_at);
+  const statusIcons: Record<string, string> = {
+    open: "NEW",
+    in_progress: "WIP",
+    review: "REV",
+    done: "DONE",
+    blocked: "BLOCK",
+  };
+  const tag = statusIcons[row.status] ?? row.status.toUpperCase();
+  const assignee = row.assigned_to ? ` → ${row.assigned_to}` : "";
+  const message = `[${tag}] ${row.title} (${row.department})${assignee}`;
+
+  let level: LogLine["level"] = "DEBUG";
+  if (row.status === "done") level = "INFO";
+  else if (row.status === "blocked") level = "WARN";
+  else if (row.status === "in_progress") level = "INFO";
+
+  return {
+    id: `task-${row.id}`,
+    timestamp: ts,
+    level,
+    source: "task",
+    message,
+    meta: {
+      taskId: row.id,
+      taskStatus: row.status,
+      department: row.department,
+      priority: row.priority,
+      assignedTo: row.assigned_to ?? undefined,
+    },
+  };
+}
+
+/**
+ * Derive pipeline events from agent_cost_log entries.
+ * Groups consecutive agent calls into pipeline phases:
+ * classifier → analyzer → investigator → advisor
+ */
+function formatPipelineEvent(row: CostRow): LogLine | null {
+  const pipelineAgents = ["classifier", "analyzer", "investigator", "advisor"];
+  const agentLower = row.agent_name.toLowerCase();
+  if (!pipelineAgents.includes(agentLower)) return null;
+
+  const ts = fmtTime(row.created_at);
+  const durationSec = (row.duration_ms / 1000).toFixed(1);
+  const cost = row.total_cost_usd.toFixed(4);
+  const totalTokens = row.input_tokens + row.output_tokens;
+  const fallbackTag = row.used_fallback ? " [fallback]" : "";
+  const message = `[pipeline] ${agentLower} completed | ${row.model_key} | ${totalTokens} tok | $${cost} | ${durationSec}s${fallbackTag}`;
+
+  return {
+    id: `pipeline-${row.id}`,
+    timestamp: ts,
+    level: row.used_fallback ? "WARN" : "INFO",
+    source: "pipeline",
+    message,
+    meta: {
+      phase: agentLower,
+      pipelineStatus: "done",
+      agent: row.agent_name,
+      model: row.model_key,
+      provider: row.provider,
+      durationMs: row.duration_ms,
+      costUsd: row.total_cost_usd,
+      fallback: row.used_fallback,
+    },
+  };
+}
+
+/**
+ * Derive rate limit events from agent_cost_log entries.
+ * If an agent used fallback, it likely hit a rate limit on the primary provider.
+ */
+function formatRateLimitEvent(row: CostRow): LogLine | null {
+  if (!row.used_fallback) return null;
+
+  const ts = fmtTime(row.created_at);
+  const message = `[rate-limit] ${row.agent_name} fell back from primary → ${row.model_key} (${row.provider})`;
+
+  return {
+    id: `rl-${row.id}`,
+    timestamp: ts,
+    level: "WARN",
+    source: "ratelimit",
+    message,
+    meta: {
+      agent: row.agent_name,
+      model: row.model_key,
+      provider: row.provider,
+      endpoint: `agent/${row.agent_name}`,
+    },
+  };
+}
+
+/**
+ * Derive error events from agent_cost_log entries with very high duration
+ * (> 120s indicates timeout/retry cycles) or $0 cost with fallback (failed primary).
+ */
+function formatErrorEvent(row: CostRow): LogLine | null {
+  const isSlowCall = row.duration_ms > 120_000;
+  const isZeroCostFallback = row.used_fallback && row.total_cost_usd === 0;
+
+  if (!isSlowCall && !isZeroCostFallback) return null;
+
+  const ts = fmtTime(row.created_at);
+  const durationSec = (row.duration_ms / 1000).toFixed(1);
+  let message: string;
+
+  if (isSlowCall) {
+    message = `[slow] ${row.agent_name} took ${durationSec}s on ${row.model_key} (${row.provider}) — possible timeout/retry`;
+  } else {
+    message = `[error] ${row.agent_name} zero-cost fallback to ${row.model_key} — primary provider likely failed`;
+  }
+
+  return {
+    id: `err-${row.id}`,
+    timestamp: ts,
+    level: "ERROR",
+    source: "error",
+    message,
+    meta: {
+      errorType: isSlowCall ? "slow_call" : "provider_failure",
+      agent: row.agent_name,
+      model: row.model_key,
+      provider: row.provider,
+      durationMs: row.duration_ms,
+      route: `agent/${row.agent_name}`,
+    },
+  };
+}
+
 // ─── Route ───────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -179,12 +343,20 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // Defense-in-depth: rate limit dopo auth
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   const encoder = new TextEncoder();
   const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // last 1h
 
   let lastSignalAt = windowStart;
   let lastCostAt = windowStart;
+  let lastTaskAt = windowStart;
   let timer: ReturnType<typeof setInterval> | null = null;
+
+  // Track seen cost IDs to avoid emitting duplicate derived events
+  const seenCostIds = new Set<string>();
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -194,9 +366,32 @@ export async function GET(req: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(line)}\n\n`));
       };
 
-      // ── Initial batch: merge and sort both sources by created_at ────────
+      /**
+       * Process cost rows: emit the primary AI event + derived events
+       * (pipeline, rate_limit, error) from the same row.
+       */
+      const processCostRow = (row: CostRow, batch: Array<{ line: LogLine; ts: string }>) => {
+        // Primary AI event
+        batch.push({ line: formatCost(row), ts: row.created_at });
+
+        // Derived events (only emit once per cost row)
+        if (!seenCostIds.has(row.id)) {
+          seenCostIds.add(row.id);
+
+          const pipelineEvt = formatPipelineEvent(row);
+          if (pipelineEvt) batch.push({ line: pipelineEvt, ts: row.created_at });
+
+          const rlEvt = formatRateLimitEvent(row);
+          if (rlEvt) batch.push({ line: rlEvt, ts: row.created_at });
+
+          const errEvt = formatErrorEvent(row);
+          if (errEvt) batch.push({ line: errEvt, ts: row.created_at });
+        }
+      };
+
+      // ── Initial batch: merge and sort all sources by created_at ────────
       try {
-        const [{ data: initSignals }, { data: initCosts }] = await Promise.all([
+        const [{ data: initSignals }, { data: initCosts }, { data: initTasks }] = await Promise.all([
           supabase
             .from("trading_signals")
             .select("id, signal_type, data, created_at")
@@ -209,6 +404,12 @@ export async function GET(req: NextRequest) {
             .gte("created_at", windowStart)
             .order("created_at", { ascending: true })
             .limit(40),
+          supabase
+            .from("company_tasks")
+            .select("id, title, department, status, priority, assigned_to, created_by, created_at, started_at, completed_at")
+            .gte("created_at", windowStart)
+            .order("created_at", { ascending: true })
+            .limit(30),
         ]);
 
         // Merge and sort chronologically
@@ -218,7 +419,10 @@ export async function GET(req: NextRequest) {
           merged.push({ line: formatSignal(row as SignalRow), ts: row.created_at });
         }
         for (const row of initCosts ?? []) {
-          merged.push({ line: formatCost(row as CostRow), ts: row.created_at });
+          processCostRow(row as CostRow, merged);
+        }
+        for (const row of initTasks ?? []) {
+          merged.push({ line: formatTask(row as TaskRow), ts: row.created_at });
         }
 
         merged.sort((a, b) => a.ts.localeCompare(b.ts));
@@ -230,11 +434,14 @@ export async function GET(req: NextRequest) {
         if (initCosts && initCosts.length > 0) {
           lastCostAt = initCosts[initCosts.length - 1].created_at;
         }
+        if (initTasks && initTasks.length > 0) {
+          lastTaskAt = initTasks[initTasks.length - 1].created_at;
+        }
       } catch (err) {
         console.error("[debug/stream] initial fetch error:", err);
       }
 
-      // ── Poll every 5s for new rows from both tables ──────────────────────
+      // ── Poll every 5s for new rows from all tables ──────────────────────
       let pingCounter = 0;
       timer = setInterval(async () => {
         try {
@@ -243,7 +450,7 @@ export async function GET(req: NextRequest) {
             controller.enqueue(encoder.encode(`: ping\n\n`));
           }
 
-          const [{ data: newSignals }, { data: newCosts }] = await Promise.all([
+          const [{ data: newSignals }, { data: newCosts }, { data: newTasks }] = await Promise.all([
             supabase
               .from("trading_signals")
               .select("id, signal_type, data, created_at")
@@ -256,6 +463,12 @@ export async function GET(req: NextRequest) {
               .gt("created_at", lastCostAt)
               .order("created_at", { ascending: true })
               .limit(20),
+            supabase
+              .from("company_tasks")
+              .select("id, title, department, status, priority, assigned_to, created_by, created_at, started_at, completed_at")
+              .gt("created_at", lastTaskAt)
+              .order("created_at", { ascending: true })
+              .limit(20),
           ]);
 
           // Merge and emit chronologically
@@ -265,7 +478,10 @@ export async function GET(req: NextRequest) {
             batch.push({ line: formatSignal(row as SignalRow), ts: row.created_at });
           }
           for (const row of newCosts ?? []) {
-            batch.push({ line: formatCost(row as CostRow), ts: row.created_at });
+            processCostRow(row as CostRow, batch);
+          }
+          for (const row of newTasks ?? []) {
+            batch.push({ line: formatTask(row as TaskRow), ts: row.created_at });
           }
 
           batch.sort((a, b) => a.ts.localeCompare(b.ts));
@@ -277,6 +493,9 @@ export async function GET(req: NextRequest) {
           if (newCosts && newCosts.length > 0) {
             lastCostAt = newCosts[newCosts.length - 1].created_at;
           }
+          if (newTasks && newTasks.length > 0) {
+            lastTaskAt = newTasks[newTasks.length - 1].created_at;
+          }
         } catch (err) {
           console.error("[debug/stream] poll error:", err);
         }
@@ -285,6 +504,8 @@ export async function GET(req: NextRequest) {
 
     cancel() {
       if (timer) clearInterval(timer);
+      // Prevent unbounded growth of seenCostIds
+      seenCostIds.clear();
     },
   });
 

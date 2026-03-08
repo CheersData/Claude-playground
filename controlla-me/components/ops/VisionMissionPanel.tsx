@@ -60,7 +60,7 @@ const PLAN_STATUS_STYLES: Record<string, string> = {
   pending:   "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   approved:  "bg-green-500/15 text-green-400 border-green-500/30",
   modified:  "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  cancelled: "bg-zinc-700/60 text-zinc-400 border-zinc-600",
+  cancelled: "bg-[var(--ops-surface-2)]/60 text-zinc-400 border-[var(--ops-border)]",
 };
 
 const PLAN_STATUS_LABELS: Record<string, string> = {
@@ -95,7 +95,7 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: index * 0.03 }}
-      className="bg-zinc-800/40 rounded-xl border border-zinc-700/50 hover:border-zinc-600/60 transition-all group"
+      className="bg-zinc-800/40 rounded-xl border border-[var(--ops-border-subtle)] hover:border-[var(--ops-border)] transition-all group"
     >
       {/* Header */}
       <button
@@ -130,7 +130,7 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-4 space-y-3 border-t border-zinc-700/30 pt-3">
+            <div className="px-5 pb-4 space-y-3 border-t border-[var(--ops-border-subtle)] pt-3">
               {/* Mission */}
               <div>
                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mb-1">Missione</p>
@@ -286,7 +286,7 @@ export function VisionMissionPanel() {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-8 flex items-center justify-center">
+      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-8 flex items-center justify-center">
         <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />
       </div>
     );
@@ -295,7 +295,7 @@ export function VisionMissionPanel() {
   return (
     <div className="space-y-6">
       {/* ═══ Poimandres Vision ═══ */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-5">
+      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <Target className="w-4 h-4 text-[#FF6B35]" />
@@ -335,7 +335,7 @@ export function VisionMissionPanel() {
               onChange={(e) => setEditVision(e.target.value)}
               rows={3}
               placeholder="Es: Diventare la prima e piu potente AGI..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 resize-none transition-colors"
+              className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[var(--ops-border)] resize-none transition-colors"
             />
           </div>
 
@@ -348,7 +348,7 @@ export function VisionMissionPanel() {
               onChange={(e) => setEditMission(e.target.value)}
               rows={3}
               placeholder="Es: Costruiamo agenti AI autonomi che risolvono problemi complessi in domini specifici..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 resize-none transition-colors"
+              className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[var(--ops-border)] resize-none transition-colors"
             />
           </div>
 
@@ -378,7 +378,7 @@ export function VisionMissionPanel() {
                 onChange={(e) => setNewPriority(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addPriority()}
                 placeholder="Aggiungi priorita..."
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+                className="flex-1 bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[var(--ops-border)]"
                 aria-label="Nuova priorita strategica"
               />
               <button
@@ -427,7 +427,7 @@ export function VisionMissionPanel() {
       </div>
 
       {/* ═══ Department Visions Grid ═══ */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <Building2 className="w-4 h-4 text-zinc-400" />
@@ -491,7 +491,7 @@ export function VisionMissionPanel() {
       </div>
 
       {/* ═══ Scheduler Status ═══ */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <Clock className="w-4 h-4 text-zinc-400" />
@@ -526,7 +526,7 @@ export function VisionMissionPanel() {
             </div>
 
             {(latestPlan.plan_content?.tasks ?? []).length > 0 && (
-              <div className="rounded-lg bg-zinc-800/50 border border-zinc-700/50 px-3 py-2.5">
+              <div className="rounded-lg bg-[var(--ops-surface-2)]/50 border border-[var(--ops-border-subtle)] px-3 py-2.5">
                 <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide mb-2">
                   Task proposti ({latestPlan.plan_content.tasks!.length})
                 </p>
@@ -561,7 +561,7 @@ export function VisionMissionPanel() {
           </div>
         )}
 
-        <div className="pt-2 border-t border-zinc-800/60">
+        <div className="pt-2 border-t border-[var(--ops-border-subtle)]">
           <p className="text-[11px] text-zinc-600">
             Lo scheduler verifica il board ogni 5 minuti (via AVVIA_SCHEDULER.ps1).
             Quando il board e vuoto, genera un piano allineato alla vision e lo invia su Telegram per approvazione.

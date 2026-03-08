@@ -138,7 +138,7 @@ function TestCard({
   }, [externalResult]);
 
   const diffBadge = DIFFICULTY_BADGE[tc.difficulty] ?? DIFFICULTY_BADGE.medium;
-  const blockColor = BLOCK_COLORS[tc.block] ?? "border-zinc-700";
+  const blockColor = BLOCK_COLORS[tc.block] ?? "border-[var(--ops-border)]";
 
   const isRunning = running || (externalRunning ?? false);
 
@@ -271,7 +271,7 @@ function TestCard({
             transition={{ duration: 0.18, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-4 border-t border-zinc-700/50 pt-3">
+            <div className="px-4 pb-4 space-y-4 border-t border-[var(--ops-border-subtle)] pt-3">
 
               {/* Scope */}
               <div>
@@ -296,7 +296,7 @@ function TestCard({
                     <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1.5 font-medium">
                       Risposta agente
                     </p>
-                    <div className="bg-zinc-900/70 rounded-lg p-3 border border-zinc-700/50">
+                    <div className="bg-zinc-900/70 rounded-lg p-3 border border-[var(--ops-border-subtle)]">
                       <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
                         {displayResult.agentAnswer}
                       </p>
@@ -326,7 +326,7 @@ function TestCard({
                           transition={{ duration: 0.15 }}
                           className="overflow-hidden"
                         >
-                          <div className="bg-zinc-900/70 rounded-lg p-3 border border-zinc-700/50">
+                          <div className="bg-zinc-900/70 rounded-lg p-3 border border-[var(--ops-border-subtle)]">
                             <p className="text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap">
                               {displayResult.expectedAnswer}
                             </p>
@@ -372,7 +372,7 @@ function TestCard({
                         ))}
 
                         {/* Total + verdict */}
-                        <div className="flex items-center justify-between pt-1.5 border-t border-zinc-700/50">
+                        <div className="flex items-center justify-between pt-1.5 border-t border-[var(--ops-border-subtle)]">
                           <span className="text-xs text-zinc-400 font-medium">
                             Totale
                           </span>
@@ -459,7 +459,7 @@ function BlockSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const block = tests[0]?.block ?? "";
-  const blockColor = BLOCK_COLORS[block] ?? "border-zinc-700";
+  const blockColor = BLOCK_COLORS[block] ?? "border-[var(--ops-border)]";
 
   return (
     <div className="space-y-2">
@@ -530,7 +530,7 @@ function FilterBar({
       <select
         value={filters.block}
         onChange={(e) => onChange({ ...filters, block: e.target.value })}
-        className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
+        className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
       >
         <option value="">Tutti i blocchi</option>
         {["A", "B", "C", "D", "E", "F", "G", "H"].map((b) => (
@@ -544,7 +544,7 @@ function FilterBar({
       <select
         value={filters.difficulty}
         onChange={(e) => onChange({ ...filters, difficulty: e.target.value })}
-        className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
+        className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
       >
         <option value="">Tutte le difficoltà</option>
         <option value="easy">Easy</option>
@@ -556,7 +556,7 @@ function FilterBar({
       <select
         value={filters.type}
         onChange={(e) => onChange({ ...filters, type: e.target.value })}
-        className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
+        className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
       >
         <option value="">Tutti i tipi</option>
         <option value="trap">Solo trappole</option>
@@ -569,7 +569,7 @@ function FilterBar({
 // ─── Tier Selector ────────────────────────────────────────────────────────────
 
 const TIER_CONFIG: Record<TierName, { label: string; desc: string; color: string }> = {
-  intern:    { label: "Intern",    desc: "Groq / Cerebras",        color: "border-zinc-600 text-zinc-400" },
+  intern:    { label: "Intern",    desc: "Groq / Cerebras",        color: "border-[var(--ops-border)] text-zinc-400" },
   associate: { label: "Associate", desc: "Gemini / Haiku",         color: "border-blue-500/50 text-blue-400" },
   partner:   { label: "Partner",   desc: "Sonnet / Gemini Pro",    color: "border-[#FF6B35]/50 text-[#FF6B35]" },
 };
@@ -588,7 +588,7 @@ function TierSelector({ value, onChange }: { value: TierName; onChange: (t: Tier
             className={`px-2.5 py-1 rounded-lg border text-[10px] font-medium transition-all ${
               active
                 ? `${cfg.color} bg-zinc-800`
-                : "border-zinc-700/50 text-zinc-600 hover:text-zinc-400 hover:border-zinc-600"
+                : "border-[var(--ops-border-subtle)] text-zinc-600 hover:text-zinc-400 hover:border-[var(--ops-border)]"
             }`}
           >
             {cfg.label}
@@ -830,7 +830,7 @@ export function LegalQATestPanel() {
             <button
               onClick={handleGenerate}
               disabled={generating || loading || runAll.active}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-300 rounded-lg text-xs font-medium transition-colors border border-zinc-700"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-surface-2)] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-300 rounded-lg text-xs font-medium transition-colors border border-[var(--ops-border)]"
             >
               {generating ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -881,7 +881,7 @@ export function LegalQATestPanel() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
-            className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 space-y-3"
+            className="bg-[var(--ops-surface-2)]/60 border border-[var(--ops-border)]/60 rounded-xl p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-zinc-300 uppercase tracking-widest">

@@ -35,7 +35,7 @@ const PRIORITY_DOTS: Record<string, string> = {
   critical: "bg-red-500",
   high: "bg-orange-500",
   medium: "bg-yellow-500",
-  low: "bg-zinc-500",
+  low: "bg-[var(--ops-muted)]",
 };
 
 const DEPT_ICONS: Record<string, LucideIcon> = {
@@ -164,22 +164,22 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
 
       <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="relative w-full max-w-4xl h-[90vh] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col pointer-events-auto"
+          className="relative w-full max-w-4xl h-[90vh] bg-zinc-950 border border-[var(--ops-border-subtle)] rounded-2xl shadow-2xl flex flex-col pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 flex-shrink-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--ops-border-subtle)] flex-shrink-0">
             <h2 className="text-lg font-semibold text-white">Task Board</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Tabs + Search */}
-          <div className="px-6 py-3 border-b border-zinc-800 flex items-center gap-4 flex-shrink-0 flex-wrap">
+          <div className="px-6 py-3 border-b border-[var(--ops-border-subtle)] flex items-center gap-4 flex-shrink-0 flex-wrap">
             <div className="flex gap-1 flex-wrap">
               {STATUS_TABS.map((tab) => (
                 <button
@@ -188,7 +188,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                   className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                     activeStatus === tab.key
                       ? "bg-[#FF6B35] text-white"
-                      : "bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                      : "bg-[var(--ops-surface-2)] text-zinc-400 hover:text-white hover:bg-zinc-700"
                   }`}
                 >
                   {tab.label}
@@ -203,14 +203,14 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                 placeholder="Cerca task..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-zinc-800 border border-zinc-700 rounded-lg pl-9 pr-4 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 w-52"
+                className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg pl-9 pr-4 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[var(--ops-border)] w-52"
               />
             </div>
           </div>
 
           {/* Archive filters — visible only on "done" tab */}
           {isArchive && (
-            <div className="px-6 py-2.5 border-b border-zinc-800 flex items-center gap-3 flex-shrink-0 flex-wrap bg-zinc-950/60">
+            <div className="px-6 py-2.5 border-b border-[var(--ops-border-subtle)] flex items-center gap-3 flex-shrink-0 flex-wrap bg-zinc-950/60">
               <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
                 Archivio
               </span>
@@ -219,7 +219,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 px-2 py-1.5 focus:outline-none focus:border-zinc-500 cursor-pointer"
+                className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg text-xs text-zinc-300 px-2 py-1.5 focus:outline-none focus:border-[var(--ops-border)] cursor-pointer"
               >
                 <option value="all">Tutti i dipartimenti</option>
                 {allDepts.map((dept) => (
@@ -234,7 +234,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                 <div className="relative">
                   <button
                     onClick={() => setTagDropdownOpen((o) => !o)}
-                    className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 px-2.5 py-1.5 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg text-xs text-zinc-300 px-2.5 py-1.5 hover:bg-zinc-700 transition-colors cursor-pointer"
                   >
                     {selectedTags.length === 0
                       ? "Tutti i tag"
@@ -242,19 +242,19 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                     <ChevronDown className={`w-3 h-3 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`} />
                   </button>
                   {tagDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl py-1.5 min-w-[180px] max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-xl shadow-xl py-1.5 min-w-[180px] max-h-60 overflow-y-auto">
                       {allTags.map((tag) => {
                         const active = selectedTags.includes(tag);
                         return (
                           <button
                             key={tag}
                             onClick={() => toggleTag(tag)}
-                            className={`w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-zinc-800 ${
+                            className={`w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--ops-surface-2)] ${
                               active ? "text-white" : "text-zinc-400"
                             }`}
                           >
                             <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${
-                              active ? "bg-[#FF6B35] border-[#FF6B35]" : "border-zinc-600"
+                              active ? "bg-[#FF6B35] border-[#FF6B35]" : "border-[var(--ops-border)]"
                             }`}>
                               {active && (
                                 <svg viewBox="0 0 8 8" className="w-2 h-2 text-white fill-current">
@@ -343,9 +343,9 @@ function FullscreenTaskRow({ task, onClick }: { task: TaskItem; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-zinc-900 hover:bg-zinc-800 transition-colors group border border-zinc-800/50 hover:border-zinc-700"
+      className="w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-[var(--ops-surface)] hover:bg-[var(--ops-surface-2)] transition-colors group border border-[var(--ops-border-subtle)]/50 hover:border-[var(--ops-border)]"
     >
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-zinc-500"}`} />
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-[var(--ops-muted)]"}`} />
 
       {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" />; })()}
 
@@ -370,7 +370,7 @@ function FullscreenTaskRow({ task, onClick }: { task: TaskItem; onClick: () => v
         {DEPT_LABELS[task.department] ?? task.department}
       </span>
 
-      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400"}`}>
+      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[task.status] ?? "bg-[var(--ops-surface-2)] text-zinc-400"}`}>
         {task.status.replace("_", " ")}
       </span>
     </button>

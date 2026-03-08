@@ -177,6 +177,7 @@ async function main() {
           console.log(`    routing: ${task.routing}${approvalStr}${consultStr}`);
         }
         if (task.routingExempt) console.log(`    routing: EXEMPT — ${task.routingReason ?? "(no reason)"}`);
+        if (task.tags && task.tags.length > 0) console.log(`    tags: ${task.tags.join(', ')}`);
         if (task.resultSummary) console.log(`    result: ${task.resultSummary}`);
         console.log("");
       }
@@ -564,13 +565,23 @@ async function main() {
     case "update": {
       const rawId = args[1];
       const status = getFlag("status") as TaskStatus | undefined;
-      if (!rawId || !status) {
-        console.error("Usage: update <task-id> --status <status>");
+      const updateTagsRaw = getFlag("tags");
+      const updateAssigned = getFlag("assigned");
+      if (!rawId || (!status && !updateTagsRaw && updateAssigned === undefined)) {
+        console.error("Usage: update <task-id> --status <status> [--tags 'tag1,tag2'] [--assigned <agent|''>]");
         process.exit(1);
       }
       const id = await resolveId(rawId);
-      const task = await updateTask(id, { status });
-      console.log(`\n✓ Task ${task.id.slice(0, 8)} aggiornato a "${status}"\n`);
+      const updatePayload: UpdateTaskInput = {};
+      if (status) updatePayload.status = status;
+      if (updateTagsRaw) updatePayload.tags = updateTagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+      if (updateAssigned !== undefined) updatePayload.assignedTo = updateAssigned || "";
+      const task = await updateTask(id, updatePayload);
+      const changes: string[] = [];
+      if (status) changes.push(`status="${status}"`);
+      if (updateTagsRaw) changes.push(`tags=[${(task.tags || []).join(', ')}]`);
+      if (updateAssigned !== undefined) changes.push(`assigned="${task.assignedTo ?? '-'}"`);
+      console.log(`\n✓ Task ${task.id.slice(0, 8)} aggiornato: ${changes.join(', ')}\n`);
       break;
     }
 

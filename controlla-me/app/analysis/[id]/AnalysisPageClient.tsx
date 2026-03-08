@@ -4,9 +4,9 @@ import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { createBrowserClient } from "@supabase/ssr";
 import Navbar from "@/components/Navbar";
 import ResultsView from "@/components/ResultsView";
+import { createClient } from "@/lib/supabase/client";
 import type { Analysis } from "@/lib/types";
 
 export default function AnalysisPageClient({
@@ -22,10 +22,7 @@ export default function AnalysisPageClient({
   useEffect(() => {
     async function loadAnalysis() {
       try {
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createClient();
 
         const { data, error: queryError } = await supabase
           .from("analyses")

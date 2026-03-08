@@ -1,0 +1,42 @@
+[
+  {
+    "tier": "intern",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 65236,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 1812
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 39866
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 1,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 23557
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata per uscire prima",
+      "Deposito cauzionale troppo alto",
+      "Manca il diritto di recesso per gravi motivi"
+    ]
+  }
+]

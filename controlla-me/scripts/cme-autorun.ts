@@ -325,48 +325,60 @@ ${planSection}
 ## ISTRUZIONI SESSIONE AUTOMATICA
 
 ### FASE 1: ESEGUI TASK ESISTENTI
-1. Se ci sono task IN PROGRESS: completali prima di tutto
-2. Se ci sono task OPEN: eseguili in ordine di priorita (critical > high > medium > low)
-3. Per ogni task:
-   a. PRIMA di tutto: npx tsx scripts/company-tasks.ts claim <id> --agent cme-daemon
-      (questo mette il task in_progress — OBBLIGATORIO, cosi il boss vede cosa stai facendo)
-   b. Leggi il department.md del dipartimento assegnato
-   c. Leggi il runbook pertinente se indicato
-   d. IMPLEMENTA il task (scrivi codice, modifica file, esegui comandi)
-   e. Marca done: npx tsx scripts/company-tasks.ts done <id> --summary "..." --no-next
-   IMPORTANTE: claim PRIMA, done DOPO. Mai saltare il claim.
 
-### FASE 2: GENERA NUOVI TASK (SISTEMA AUTOALIMENTANTE)
-Se dopo la Fase 1 non ci sono piu task open:
+AZIONE IMMEDIATA — fai questo SUBITO, PRIMA di qualsiasi ragionamento:
+1. Prendi il PRIMO task open con priorita piu alta (critical > high > medium > low)
+2. Claimalo IMMEDIATAMENTE: npx tsx scripts/company-tasks.ts claim <id> --agent cme-daemon
+3. Implementalo direttamente (Edit, Write, Bash)
+4. Marca done: npx tsx scripts/company-tasks.ts done <id> --summary "..." --no-next
+
+Poi ripeti per il task successivo. Dopo il primo task, puoi parallelizzare:
+- Se ci sono 2+ task INDIPENDENTI (file diversi), usa lo strumento Agent per lanciarli in parallelo
+- Ogni sub-agente (subagent_type: "general-purpose") riceve: task ID, cosa fare, file da modificare
+- Massimo 3 sub-agenti contemporanei
+- Claim tutti i task PRIMA di lanciare i sub-agenti
+
+IMPORTANTE: Il primo task deve essere claimato entro 30 secondi dall'inizio della sessione.
+Il boss ha PRE-APPROVATO tutti i task sul board. Esegui TUTTI, inclusi L3/L4. Non saltare nulla.
+UNICA ECCEZIONE: task con tag "human_required" nel campo tags → saltali e passa al successivo.
+Tutti gli altri task DEVONO essere eseguiti. Non classificare task come "boss-dependent" a tuo giudizio.
+Se un task sembra difficile, PROVA comunque. Se fallisce, logga l'errore e vai al successivo.
+
+### FASE 2: PIANO NUOVO (SISTEMA AUTOALIMENTANTE)
+Se dopo la Fase 1 non ci sono piu task open FATTIBILI (tutti i task rimasti hanno tag "human_required"), NON restare idle. Genera un PIANO NUOVO:
 1. Leggi il daily plan (company/daily-plans/{oggi}.md)
-2. Leggi i status.json dei dipartimenti per identificare gap e next_actions
+2. Leggi i status.json dei dipartimenti: npx tsx scripts/update-dept-status.ts --view --all
 3. Leggi company/vision.json per allinearti alla strategia
-4. CREA NUOVI TASK basandoti su:
-   - Gap aperti nei dipartimenti (status.json → gaps con severity != "closed")
-   - Next actions suggerite nei status.json
-   - Priorita dal daily plan
-   - Tech debt in CLAUDE.md sezione 19
-   - Feature incomplete in CLAUDE.md sezione 17
-5. Crea almeno 3-5 nuovi task concreti e implementabili:
+4. ANALIZZA lo stato reale del codebase:
+   - npx tsc --noEmit (errori TypeScript?)
+   - npm run build 2>&1 | tail -20 (build rotto?)
+   - Controlla tech debt in CLAUDE.md sezione 19
+   - Controlla feature incomplete in CLAUDE.md sezione 17
+5. CREA 5-10 nuovi task CONCRETI e IMPLEMENTABILI (codice, fix, test, refactor — MAI task vaghi):
    npx tsx scripts/company-tasks.ts create --title "..." --dept X --priority Y --by cme-daemon --desc "..." --routing "EXEMPT"
+6. ESEGUI SUBITO i task appena creati (non aspettare la prossima sessione)
 
-### FASE 3: DAILY CONTROLS
+### FASE 3: DAILY CONTROLS + ALERTING
 Se non fatto oggi:
-1. Genera daily controls: npx tsx scripts/daily-controls.ts
-2. Rigenera daily plan se stale: npx tsx scripts/daily-standup.ts
+1. Esegui alerting check: npx tsx scripts/ops-alerting.ts check
+2. Genera daily controls: npx tsx scripts/daily-controls.ts
+3. Rigenera daily plan se stale: npx tsx scripts/daily-standup.ts
 
 ### FASE 4: LOG
 Scrivi un riepilogo in company/autorun-logs/ con: task eseguiti, task creati, task skippati.
 
 REGOLE:
 - NON chiedere conferma. Agisci.
+- DELEGA ai sub-agenti. Tu sei CME, un router — lanci Agent tool e raccogli risultati.
+- USA PARALLELISMO AGGRESSIVO: task indipendenti = sempre sub-agenti paralleli in un singolo blocco tool_use
 - Segui il routing: crea task formali prima di implementare
 - I piani devono essere COERENTI con vision/mission/priorita dei dipartimenti
-- Se un task richiede approvazione L3/L4, saltalo e segnalalo nel log
+- Il boss ha pre-approvato TUTTI i task. Esegui anche L3/L4. Salta SOLO task con tag "human_required"
 - Esegui TUTTI i task open possibili in questa sessione, senza limiti
 - Se ci sono task in_progress che NON sono stati creati da te in questa sessione, fermati e lascia che vengano completati prima di agire
 - IL BOARD NON DEVE MAI RESTARE VUOTO — se finisci i task, CREA NUOVI TASK prima di uscire
 - Prediligi task di codice concreti (implementa, fix, test, refactor) rispetto a task di pianificazione
+- Ogni sub-agente deve ricevere contesto COMPLETO: path dei file, cosa modificare, il dipartimento owner
 `;
 }
 
@@ -407,6 +419,13 @@ function executeClaudeSession(prompt: string): { output: string; exitCode: numbe
   }
 }
 
+// ─── Task Counter ────────────────────────────────────────────────────────────
+
+function countCompletedTasks(output: string): number {
+  const doneMatches = output.match(/company-tasks\.ts\s+done/g);
+  return doneMatches ? doneMatches.length : 0;
+}
+
 // ─── Log Session ────────────────────────────────────────────────────────────
 
 function logSession(output: string, exitCode: number, durationMs: number): string {
@@ -431,6 +450,25 @@ ${output.slice(0, 50_000)}
   fs.writeFileSync(logPath, content, "utf-8");
   log(`Log salvato: ${logPath}`);
   return logPath;
+}
+
+// ─── Log Rotation ────────────────────────────────────────────────────────────
+
+function rotateAutorunLogs(logsDir: string, retentionDays: number = 7): number {
+  const files = fs.readdirSync(logsDir).filter(f => f.endsWith('.md'));
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  let cleaned = 0;
+  for (const file of files) {
+    const match = file.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) {
+      const fileDate = new Date(match[1]).getTime();
+      if (fileDate < cutoff) {
+        fs.unlinkSync(resolve(logsDir, file));
+        cleaned++;
+      }
+    }
+  }
+  return cleaned;
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -465,7 +503,7 @@ async function main() {
       return;
     }
 
-    // Controlla se ci sono task in_progress — se si, skip ciclo
+    // Controlla task in_progress — auto-unclaim quelli stale (>30min, assegnati al daemon)
     const ipCheck = spawnSync("npx", ["tsx", "scripts/company-tasks.ts", "list", "--status", "in_progress"], {
       cwd: ROOT,
       encoding: "utf-8",
@@ -473,11 +511,27 @@ async function main() {
       shell: true,
     });
     const ipOutput = (ipCheck.stdout || "").trim();
-    // Se l'output contiene task (non solo header/vuoto), skip
-    const ipLines = ipOutput.split("\n").filter((l: string) => l.match(/^\s*\d+\.\s/));
-    if (ipLines.length > 0) {
-      log(`Task in progress trovati (${ipLines.length}), skip ciclo. Lascio che vengano completati.`);
-      return;
+    // Estrai task ID e controlla se sono stale
+    const ipTaskIds = [...ipOutput.matchAll(/id:\s+([a-f0-9]+)/g)].map(m => m[1]);
+    const ipAssignedToDaemon = ipOutput.includes("cme-daemon");
+
+    if (ipTaskIds.length > 0) {
+      if (ipAssignedToDaemon) {
+        // Auto-unclaim: se il daemon ha task in_progress da una sessione precedente,
+        // li rimette in open (la sessione che li aveva claimati è già terminata)
+        log(`Task in_progress del daemon trovati (${ipTaskIds.length}). Auto-unclaim task stale...`);
+        for (const tid of ipTaskIds) {
+          spawnSync("npx", [
+            "tsx", "scripts/company-tasks.ts", "update", tid,
+            "--status", "open", "--assigned", "",
+          ], { cwd: ROOT, encoding: "utf-8", timeout: 15_000, shell: true });
+          log(`  → ${tid} rimesso in open.`);
+        }
+      } else {
+        // Task in_progress di qualcun altro (sessione interattiva CME) → skip
+        log(`Task in progress di altri agenti (${ipTaskIds.length}), skip ciclo.`);
+        return;
+      }
     }
 
     if (!acquireLock()) return;
@@ -496,11 +550,34 @@ async function main() {
       log(`Sessione completata in ${(durationMs / 1000).toFixed(0)}s — exit ${exitCode}`);
       logSession(output, exitCode, durationMs);
 
+      // Log rotation: elimina log piu vecchi di 7 giorni
+      const rotated = rotateAutorunLogs(LOG_DIR);
+      if (rotated > 0) {
+        log(`Log rotation: ${rotated} file eliminati (>7 giorni).`);
+      }
+
+      // PHASE 3: Daily Controls + Alerting
+      try {
+        const alertResult = spawnSync('npx', ['tsx', 'scripts/ops-alerting.ts', 'check'], {
+          cwd: ROOT,
+          encoding: 'utf-8',
+          timeout: 30000,
+          shell: true,
+        });
+        if (alertResult.stdout) {
+          log(`[PHASE 3] Alerting: ${alertResult.stdout.trim()}`);
+        }
+      } catch (e) {
+        log(`[PHASE 3] Alerting check failed: ${e}`);
+      }
+
       // Aggiorna stato daemon
+      const tasksCompleted = countCompletedTasks(output);
       writeDaemonState({
         lastRun: new Date().toISOString(),
         lastDurationMs: durationMs,
         lastExitCode: exitCode,
+        lastTasksExecuted: tasksCompleted,
         totalRuns: state.totalRuns + 1,
         updatedBy: "cme-autorun",
       });

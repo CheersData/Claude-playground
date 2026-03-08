@@ -1,6 +1,6 @@
 # Controlla.me — Architettura, Fragilità e Roadmap
 
-> **Ultimo aggiornamento**: 2026-03-01 — Audit completo: Security, Architecture, QA, Strategy.
+> **Ultimo aggiornamento**: 2026-03-08 — Sync con CLAUDE.md: Statuto Lavoratori completato (41 art.), security findings M1-M9/H1-H2 dettagliati, CSP unsafe-eval gated NODE_ENV, WCAG 2.1 AA, Telegram alerting, CME daemon, Legal Office workspace.
 >
 > Controlla.me è il **primo prototipo** di una piattaforma madre per molteplici team
 > di agenti AI. Ogni servizio è progettato per essere **scalabile e parametrizzabile**,
@@ -218,7 +218,7 @@ Il corpus legislativo è **caricato e operativo** su Supabase pgvector, alimenta
 | Sorgente dati IT | Normattiva Open Data API (AKN XML) |
 | Sorgente dati EU | EUR-Lex Cellar REST (HTML) |
 
-**Fonti IT caricate** (Normattiva — 7/8):
+**Fonti IT caricate** (Normattiva — 8/8):
 
 | Fonte | Articoli | Formato |
 |-------|:--------:|---------|
@@ -229,7 +229,7 @@ Il corpus legislativo è **caricato e operativo** su Supabase pgvector, alimenta
 | TU Edilizia (DPR 380/2001) | 151 | AKN standard |
 | D.Lgs. 231/2001 (Resp. amm. enti) | 109 | AKN standard |
 | D.Lgs. 122/2005 (Tutela acquirenti) | 19 | AKN standard |
-| Statuto Lavoratori (L. 300/1970) | — | Bloccato (API async rotta) |
+| Statuto Lavoratori (L. 300/1970) | 41 | ✅ Completato (seed-statuto-lavoratori.ts) |
 
 **Fonti EU caricate** (EUR-Lex — 6/6):
 GDPR (99), DSA (93), Dir. 2011/83 (35), Roma I (29), Dir. 2019/771 (28), Dir. 93/13 (11)
@@ -320,6 +320,7 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 | Analisi | `app/analysis/[id]/page.tsx` | Dettaglio singola analisi |
 | **Corpus** | `app/corpus/page.tsx` | **Browser legislativo + Q&A AI in fondo** |
 | **Articolo** | `app/corpus/article/[id]/page.tsx` | **Dettaglio articolo legislativo (linkato da CorpusChat)** |
+| **Legal Office** | `app/legaloffice/page.tsx` | **Workspace unificato ufficio legale** |
 
 **Corpus Browser** (`app/corpus/page.tsx`):
 - 3 viste: lista fonti → albero gerarchico → dettaglio articolo
@@ -364,8 +365,25 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 | **setup-dev** | `scripts/setup-dev.ps1` | Setup ambiente dev: git, npm install, .env.local, corpus loading |
 | **SETUP_PC_NUOVO.bat** | root | Launcher batch per setup-new-pc.ps1 |
 | **AVVIA_SITO.bat** | root | One-command: git pull + npm install + npm run dev |
+| **cme-autorun** | `scripts/cme-autorun.ts` | **Orchestratore sessioni automatiche CME (daemon)** |
+| **ops-alerting** | `scripts/ops-alerting.ts` | **CLI alerting con integrazione Telegram e dedup 12h** |
+| **stress-test** | `scripts/stress-test.ts` | **Stress test infrastruttura** |
 
-### 1.9 Migrazioni Database
+### 1.9 Operations & Alerting
+
+**Telegram Alerting** (`lib/telegram.ts` + `scripts/ops-alerting.ts`):
+- Alert functions: cost spike, test failure, sync failure, blocked tasks, daily reports
+- CLI alerting con integrazione Telegram e deduplicazione 12h
+- Stato alert persistito in `company/ops-alert-state.json`
+
+**CME Daemon** (`scripts/cme-autorun.ts`):
+- Orchestratore sessioni automatiche CME — esegue task board in autonomia
+- Stato daemon persistito in `company/cme-daemon-state.json`
+- API: `/api/company/daemon/route.ts` — stato daemon (GET/POST)
+- Dashboard: `DaemonControlPanel.tsx` in `/ops`
+- Log sessioni in `company/autorun-logs/`
+
+### 1.10 Migrazioni Database
 
 | Migrazione | File | Descrizione |
 |-----------|------|-------------|
@@ -376,7 +394,7 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 | **005** | `supabase/migrations/005_fix_hierarchy_data.sql` | **Normalizzazione JSONB hierarchy (deduplica nodi Libri Codice Civile)** |
 | **006** | `supabase/migrations/006_connector_sync_log.sql` | **Tabella sync log per Data Connector pipeline** |
 
-### 1.10 Struttura Monorepo
+### 1.11 Struttura Monorepo
 
 Il repository `Claude-playground` contiene più progetti:
 
@@ -538,7 +556,7 @@ sanitizeUserQuestion(question: string): string // Max 2.000 char
 sanitizeSessionId(sessionId: string): string  // Alfanumerico + hyphens, path traversal protection
 ```
 
-### 3.2 Priorità ALTA — Stato Misto
+### 3.2 Priorità ALTA — ✅ Quasi Completata
 
 #### D. Session ID non prevedibili — ✅ FATTO
 
@@ -552,7 +570,7 @@ const sessionId = `${docHash}-${randomPart}`;
 // 28 char di entropia, combina ripetibilità con imprevedibilità
 ```
 
-#### E. Security Headers — ⚠️ PARZIALE
+#### E. Security Headers — ⚠️ QUASI COMPLETO
 
 **File**: `next.config.ts`
 
@@ -562,7 +580,7 @@ Headers implementati:
 - ✅ `X-XSS-Protection: 1; mode=block`
 - ✅ `Referrer-Policy: strict-origin-when-cross-origin`
 - ✅ `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-- ❌ `Content-Security-Policy` — da aggiungere
+- ✅ `Content-Security-Policy` — implementata, `unsafe-eval` gated dietro `NODE_ENV` (solo development, rimosso in production)
 - ❌ `Strict-Transport-Security` — da aggiungere
 
 #### F. Eliminare eval() da extract-text.ts — ✅ FATTO
@@ -573,10 +591,11 @@ const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse");
 ```
 
-#### G. CSRF Protection — ❌ NON IMPLEMENTATO
+#### G. CSRF Protection — ✅ FATTO
 
-Nessun middleware CSRF. Le API si basano su auth cookies Supabase (same-origin).
-Rischio medio per endpoint Stripe checkout.
+**File**: `lib/middleware/csrf.ts`
+
+Origin check su FormData endpoints (SEC-004). Implementato su `/api/analyze` e altri endpoint sensibili.
 
 ---
 
@@ -983,7 +1002,7 @@ e mantiene un catalogo di integrazioni.
 
 | Sistema | Tipo | Metodo probabile | Valore |
 |---------|------|-------------------|--------|
-| **Normattiva.it** | DB legislativo | ✅ **API Open Data** (AKN XML) | Testo ufficiale leggi italiane — **7/8 fonti caricate** |
+| **Normattiva.it** | DB legislativo | ✅ **API Open Data** (AKN XML) | Testo ufficiale leggi italiane — **8/8 fonti caricate** |
 | **Brocardi.it** | Enciclopedia legale | Scraping + RSS | Commenti, massime, correlazioni |
 | **ItalGiure** | Giurisprudenza | Scraping (accesso limitato) | Sentenze Cassazione |
 | **EUR-Lex** | Normativa EU | ✅ **API Cellar REST** (HTML) | Regolamenti e direttive EU — **6/6 fonti caricate** |
@@ -1115,7 +1134,7 @@ create policy "Service role manages runs" on public.integration_runs
 
 ## 7. Roadmap di Implementazione
 
-### Fase 1 — Hardening (1-2 settimane) — ✅ ~95% COMPLETATA
+### Fase 1 — Hardening (1-2 settimane) — ✅ ~98% COMPLETATA
 
 ```
 [x] Auth middleware centralizzato per tutti gli endpoint
@@ -1124,8 +1143,8 @@ create policy "Service role manages runs" on public.integration_runs
 [x] Session ID con hash + crypto.randomUUID()
 [x] Security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy)
 [x] Rimuovere eval() da extract-text.ts (usa createRequire)
-[ ] CSRF protection
-[ ] Content-Security-Policy header
+[x] CSRF protection — `lib/middleware/csrf.ts` (Origin check) su FormData endpoints (SEC-004)
+[x] Content-Security-Policy header — `unsafe-eval` gated dietro NODE_ENV (development only)
 [ ] Strict-Transport-Security header
 [ ] Uniformare auth pattern in api/analyze e api/stripe/* (usano auth inline)
 ```
@@ -1166,7 +1185,7 @@ create policy "Service role manages runs" on public.integration_runs
 [ ] Refactor dei 4 agenti esistenti sulla nuova interfaccia
 ```
 
-### Fase 5 — Data Connector (2-3 settimane) — ⚠️ ~70% COMPLETATA
+### Fase 5 — Data Connector (2-3 settimane) — ⚠️ ~80% COMPLETATA
 
 ```
 [x] Pipeline CONNECT→MODEL→LOAD con orchestratore e CLI
@@ -1178,9 +1197,9 @@ create policy "Service role manages runs" on public.integration_runs
 [x] Model verifica schema legal_articles
 [x] Store con adattatore per ingestArticles() + Voyage AI embeddings
 [x] Validatore articoli
-[x] Caricamento 13/14 fonti (~5600 articoli con embeddings)
+[x] Caricamento 14/14 fonti (~5600+ articoli con embeddings)
 [x] Cron API per delta updates
-[ ] Statuto Lavoratori (L. 300/1970) — bloccato da API async Normattiva
+[x] Statuto Lavoratori (L. 300/1970) — ✅ 41 articoli caricati via seed-statuto-lavoratori.ts
 [ ] Delta updates testati end-to-end
 [ ] Discovery engine AI autonomo (Connect Agent propriamente detto)
 [ ] Dashboard admin per gestione catalogo integrazioni
@@ -1261,34 +1280,56 @@ riutilizzabili per i futuri team di agenti:
 
 ---
 
-## Appendice C: Security Status & Tech Debt (2026-03-01)
+## Appendice C: Security Status & Tech Debt (2026-03-08)
 
-### Security — Stato GIALLO
+### Security — Stato 🟢 VERDE
 
-Nessun finding critico. 4 finding medi aperti (vedi CLAUDE.md § 17 per dettaglio completo).
+**Stato complessivo: 🟢 VERDE** — Tutti i finding medi e alti risolti. Finding bassi residui non bloccanti.
 
-**Fix prioritari:**
-1. Aggiungere `requireConsoleAuth` a `/api/company/*` e `/api/console/company*`
-2. Rendere `CRON_SECRET` obbligatorio con fail-fast (ora opzionale → bypass silenzioso)
-3. Rate limiting IP su route corpus READ pubbliche (`/hierarchy`, `/institutes`, `/article`)
-4. Documentare `CONSOLE_JWT_SECRET` e `CRON_SECRET` in `.env.local.example` (ora fatto)
+Vedi CLAUDE.md § 18 per dettaglio completo.
+
+**Finding medi e alti — tutti risolti ✅:**
+
+| ID | Problema | Stato |
+|----|---------|-------|
+| M1 | `/api/company/*` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
+| M2 | `/api/console/company` + `/message` + `/stop` senza auth | ✅ `requireConsoleAuth` aggiunto (commit 2c7648f) |
+| M3 | `CRON_SECRET` opzionale | ✅ Fail-closed: 500 se non configurato (commit 2c7648f) |
+| M4 | Route corpus READ senza rate-limit | ✅ `checkRateLimit` per IP su hierarchy/institutes/article (commit 2c7648f) |
+| M5 | `/api/lawyer-referrals` senza rate-limit | ✅ `checkRateLimit` 5/h aggiunto |
+| M6 | `/api/console/company/*` senza rate-limit (spawna `claude -p`) | ✅ `checkRateLimit` 5-10/min aggiunto su company, message, stop |
+| M7 | `/api/company/costs` usa `requireAuth` anziché `requireConsoleAuth` | ✅ Cambiato a `requireConsoleAuth` + rate-limit |
+| M8 | `/api/corpus` GET e `/api/vector-search` GET senza rate-limit | ✅ `checkRateLimit` per IP aggiunto |
+| M9 | `/api/company/cron` POST senza rate-limit | ✅ `checkRateLimit` aggiunto |
+| H1 | `/api/platform/cron/data-connector` GET senza auth (espone infrastruttura) | ✅ `CRON_SECRET` check aggiunto a GET |
+| H2 | `/api/corpus/ask` rate-limit bypassato per utenti anonimi | ✅ `checkRateLimit` applicato SEMPRE (per userId o IP) |
+
+**Finding bassi residui:**
+- Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente — bassa priorità
+- CSP include `'unsafe-eval'` — gated dietro `NODE_ENV` (solo development, rimosso in production)
+- `/api/company/*` routes (board, tasks, status, files, departments, reports) senza rate-limit — protetti da console auth, basso rischio
+
+**Accessibility WCAG 2.1 AA:**
+| Area | Severità | Stato |
+|------|---------|-------|
+| Accessibility WCAG 2.1 AA | MEDIA | ✅ focus-visible, skip-nav, prefers-reduced-motion, aria-labels |
 
 ### Tech Debt Critici
 
 | ID | Problema | Impatto | Effort |
 |----|---------|---------|--------|
-| **TD-1** | `savePhaseTiming`: 2 roundtrip Supabase/fase → 8 totali/pipeline | +100-200ms × 4 fasi | Basso — `jsonb_set` atomico |
-| **TD-2** | `let currentTier` global mutable in `lib/tiers.ts` — condiviso tra richieste sullo stesso worker serverless | Race condition sotto carico | Basso — request-scoped |
-| **TD-3** | Migration 003-007 duplicate (ogni numero ha 2 file) | **Bloccante per CI/CD automatico** | Medio — rinumerare |
+| **TD-1** | ~~`savePhaseTiming`: 2 roundtrip Supabase/fase~~ **RISOLTO 2026-03-01**: RPC `update_phase_timing` atomico (migration 016) | — | — |
+| **TD-2** | `let currentTier` global mutable in `lib/tiers.ts` — rischio teorico, non attuale. `getAgentChain()` ora usa `getCurrentTier()` (AsyncLocalStorage-aware) | Race condition sotto carico | Basso — request-scoped |
+| **TD-3** | ~~Migration 003-007 duplicate~~ **RISOLTO 2026-03-01**: rinumerati 001-015, REGISTRY.md aggiunto | — | — |
 
-### Gap Test Coverage
+### Gap Test Coverage — RISOLTO
 
-File critici senza test (priorità):
-1. `lib/ai-sdk/agent-runner.ts` — fallback chain (P1 CRITICA)
-2. `lib/tiers.ts` — logica tier (P2 ALTA)
-3. `lib/middleware/console-token.ts` — HMAC security (P3 ALTA)
-4. `lib/analysis-cache.ts` — migrata Supabase (P4 ALTA)
-5. `lib/ai-sdk/generate.ts` — router provider (P5 MEDIA)
+~~File critici senza test~~ — Tutti coperti (577+ test totali):
+1. ~~`lib/ai-sdk/agent-runner.ts` — fallback chain (P1)~~ ✅
+2. ~~`lib/tiers.ts` — logica tier (P2)~~ ✅
+3. ~~`lib/middleware/console-token.ts` — HMAC security (P3)~~ ✅
+4. ~~`lib/analysis-cache.ts` — migrata Supabase (P4)~~ ✅
+5. ~~`lib/ai-sdk/generate.ts` — router provider (P5)~~ ✅
 
 ### Verticali Strategici (OKR Q2 2026)
 
@@ -1300,6 +1341,6 @@ File critici senza test (priorità):
 
 ---
 
-*Documento di architettura — controlla.me v1.2*
-*Verificato contro il codebase il 2026-03-01*
+*Documento di architettura — controlla.me v1.3*
+*Sincronizzato con CLAUDE.md il 2026-03-08*
 *Per domande o aggiornamenti: aggiornare questo file nel branch di sviluppo.*

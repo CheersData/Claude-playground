@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { isVectorDBEnabled } from "@/lib/embeddings";
 import { askCorpusAgent, type CorpusAgentConfig } from "@/lib/agents/corpus-agent";
@@ -17,6 +18,10 @@ export const maxDuration = 60;
  *   { answer, citedArticles, confidence, followUpQuestions, provider, articlesRetrieved, durationMs }
  */
 export async function POST(req: NextRequest) {
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   // Auth (opzionale — se non loggato, prosegui con rate limit per IP)
   const auth = await requireAuth();
   const userId = isAuthError(auth) ? null : auth.user.id;

@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle, XCircle, RefreshCw, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, ChevronRight, Zap } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 import { LiveConsolePanel } from "@/components/ops/LiveConsolePanel";
 
@@ -50,54 +50,63 @@ interface CostsData {
   fallbackRate: number;
 }
 
+interface ProviderHealthData {
+  [provider: string]: {
+    lastCallAt: string | null;
+    recentCalls: number;
+    recentErrors: number;
+    status: "ok" | "degraded" | "error";
+  };
+}
+
 // ─── Left column sections ─────────────────────────────────────────────────────
 
 function TierSection({ data }: { data: TierData | null }) {
   if (!data) return null;
 
   const tierColor: Record<string, string> = {
-    intern: "text-emerald-400",
-    associate: "text-amber-400",
-    partner: "text-blue-400",
+    intern: "text-[var(--ops-teal)]",
+    associate: "text-[#FFC832]",
+    partner: "text-[var(--ops-cyan)]",
   };
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
           Tier & Agenti
         </h3>
-        <span className={`text-xs font-bold uppercase ${tierColor[data.current] ?? "text-white"}`}>
+        <span className={`text-sm font-bold uppercase ${tierColor[data.current] ?? "text-[var(--ops-fg)]"}`}>
           {data.current}
-          <span className="ml-1.5 text-[10px] font-normal text-zinc-500 normal-case">
+          <span className="ml-2 text-xs font-normal text-[var(--ops-muted)] normal-case">
             {data.estimatedCost.label}/q
           </span>
         </span>
       </div>
 
       {/* Agents table */}
-      <div className="rounded border border-zinc-700/50 overflow-hidden">
-        <table className="w-full text-[11px]">
+      <div className="rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden">
+        <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-zinc-700/50 bg-zinc-800/50">
-              <th className="text-left px-2 py-1.5 text-zinc-400 font-medium">Agente</th>
-              <th className="text-center px-2 py-1.5 text-zinc-400 font-medium">On</th>
-              <th className="text-left px-2 py-1.5 text-zinc-400 font-medium">Modello attivo</th>
+            <tr className="border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
+              <th className="text-left px-3 py-2.5 text-[var(--ops-muted)] font-medium text-[11px] uppercase tracking-wider">Agente</th>
+              <th className="text-center px-2.5 py-2.5 text-[var(--ops-muted)] font-medium text-[11px] uppercase tracking-wider">On</th>
+              <th className="text-left px-3 py-2.5 text-[var(--ops-muted)] font-medium text-[11px] uppercase tracking-wider">Modello attivo</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(data.agents).map(([name, info]) => (
-              <tr key={name} className="border-b border-zinc-800/80 last:border-0">
-                <td className="px-2 py-1.5 font-mono text-zinc-200 truncate max-w-[80px]">{name}</td>
-                <td className="px-2 py-1.5 text-center">
+              <tr key={name} className="border-b border-[var(--ops-border-subtle)] last:border-0 hover:bg-[rgba(255,255,255,0.03)]">
+                <td className="px-3 py-2.5 font-mono text-[var(--ops-fg)] truncate max-w-[90px]">{name}</td>
+                <td className="px-2.5 py-2.5 text-center">
                   {info.enabled ? (
-                    <CheckCircle className="w-3 h-3 text-emerald-400 mx-auto" />
+                    <CheckCircle className="w-3.5 h-3.5 text-[var(--ops-teal)] mx-auto" />
                   ) : (
-                    <XCircle className="w-3 h-3 text-red-400 mx-auto" />
+                    <XCircle className="w-3.5 h-3.5 text-[var(--ops-error)] mx-auto" />
                   )}
                 </td>
-                <td className="px-2 py-1.5 font-mono text-[#FF6B35] truncate max-w-[110px]">
+                <td className="px-3 py-2.5 font-mono text-[var(--ops-accent)] truncate max-w-[120px]">
                   {info.chain[info.activeIndex]?.displayName ?? info.activeModel}
                 </td>
               </tr>
@@ -108,24 +117,24 @@ function TierSection({ data }: { data: TierData | null }) {
 
       {/* Fallback chains — collapsible via HTML details */}
       <details className="group">
-        <summary className="flex items-center gap-1 text-[10px] text-zinc-500 cursor-pointer select-none hover:text-zinc-400 transition-colors list-none">
+        <summary className="flex items-center gap-1 text-[10px] text-[var(--ops-muted)] cursor-pointer select-none hover:text-[var(--ops-fg-muted)] transition-colors list-none">
           <ChevronRight className="w-3 h-3 group-open:rotate-90 transition-transform shrink-0" />
           Catene fallback
         </summary>
         <div className="mt-2 space-y-2 pl-1">
           {Object.entries(data.agents).map(([name, info]) => (
             <div key={name}>
-              <div className="text-[10px] text-zinc-500 font-mono mb-1">{name}</div>
+              <div className="text-[10px] text-[var(--ops-muted)] font-mono mb-1">{name}</div>
               <div className="flex flex-wrap gap-1">
                 {info.chain.map((m, i) => (
                   <span
                     key={m.key}
                     className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${
                       i === info.activeIndex
-                        ? "bg-[#FF6B35]/20 text-[#FF6B35] ring-1 ring-[#FF6B35]/40"
+                        ? "bg-[rgba(255,107,53,0.12)] text-[var(--ops-accent)] ring-1 ring-[rgba(255,107,53,0.3)]"
                         : m.available
-                        ? "bg-zinc-700/50 text-zinc-300"
-                        : "bg-zinc-800 text-zinc-500 line-through"
+                        ? "bg-[var(--ops-surface)] text-[var(--ops-fg-muted)]"
+                        : "bg-[var(--ops-bg)] text-[var(--ops-muted)] line-through"
                     }`}
                   >
                     {m.displayName}
@@ -170,32 +179,32 @@ function EnvSection({ data }: { data: EnvVars | null }) {
   const total = Object.keys(data.vars).length;
 
   return (
-    <div className="p-4 space-y-3 border-t border-zinc-800">
+    <div className="p-5 space-y-4 border-t border-[var(--ops-border-subtle)]">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
           Environment
         </h3>
-        <span className="text-[10px] text-zinc-500">
+        <span className="text-xs text-[var(--ops-muted)]">
           {presentCount}/{total} configurate
         </span>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {groups.map((group) => (
-          <div key={group.label} className="rounded border border-zinc-700/50 overflow-hidden">
-            <div className="px-2 py-1 bg-zinc-800/60 text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">
+          <div key={group.label} className="rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden">
+            <div className="px-3 py-2 bg-[var(--ops-surface)] text-[11px] text-[var(--ops-muted)] font-semibold uppercase tracking-wider">
               {group.label}
             </div>
-            <div className="divide-y divide-zinc-800/80">
+            <div className="divide-y divide-[var(--ops-border-subtle)]">
               {group.keys.map((k) => {
                 const present = data.vars[k] ?? false;
                 return (
-                  <div key={k} className="flex items-center justify-between px-2 py-1.5 hover:bg-zinc-800/20">
-                    <span className="text-[10px] font-mono text-zinc-300 truncate">{k}</span>
+                  <div key={k} className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(255,255,255,0.03)]">
+                    <span className="text-xs font-mono text-[var(--ops-fg-muted)] truncate">{k}</span>
                     {present ? (
-                      <CheckCircle className="w-3 h-3 text-emerald-400 shrink-0 ml-2" />
+                      <CheckCircle className="w-3.5 h-3.5 text-[var(--ops-teal)] shrink-0 ml-2" />
                     ) : (
-                      <XCircle className="w-3 h-3 text-red-400 shrink-0 ml-2" />
+                      <XCircle className="w-3.5 h-3.5 text-[var(--ops-error)] shrink-0 ml-2" />
                     )}
                   </div>
                 );
@@ -219,16 +228,16 @@ function CostsSection({ data }: { data: CostsData | null }) {
     .slice(0, 6);
 
   return (
-    <div className="flex-none px-4 py-3 border-b border-zinc-800 space-y-2">
+    <div className="flex-none px-4 py-3 border-b border-[var(--ops-border-subtle)] space-y-2">
       {/* Header + summary inline */}
       <div className="flex items-center gap-3 flex-wrap">
-        <h3 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-          Costi API 24h
+        <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
+          Costi API 7d
         </h3>
         <div className="flex items-center gap-3 ml-auto text-[11px] font-mono">
-          <span className="text-zinc-300">{data.total > 0 ? `$${data.total.toFixed(5)}` : "$0.00"}</span>
-          <span className="text-zinc-500">{data.calls} chiamate</span>
-          <span className="text-zinc-500">{(data.fallbackRate * 100).toFixed(0)}% fallback</span>
+          <span className="text-[var(--ops-fg)]">{data.total > 0 ? `$${data.total.toFixed(5)}` : "$0.00"}</span>
+          <span className="text-[var(--ops-muted)]">{data.calls} chiamate</span>
+          <span className={`${data.fallbackRate > 0.3 ? "text-[var(--ops-error)]" : "text-[var(--ops-muted)]"}`}>{(data.fallbackRate * 100).toFixed(0)}% fallback</span>
         </div>
       </div>
 
@@ -238,19 +247,118 @@ function CostsSection({ data }: { data: CostsData | null }) {
           {topAgents.map((e) => (
             <span
               key={e.agent}
-              className="inline-flex items-center gap-1.5 px-2 py-1 bg-zinc-800/60 rounded-md text-[10px] font-mono"
+              className="inline-flex items-center gap-1.5 px-2 py-1 bg-[var(--ops-surface)] rounded-md text-[10px] font-mono border border-[var(--ops-border-subtle)]"
             >
-              <span className="text-zinc-300">{e.agent}</span>
-              <span className="text-[#FF6B35]">
+              <span className="text-[var(--ops-fg-muted)]">{e.agent}</span>
+              <span className="text-[var(--ops-accent)]">
                 {e.cost > 0 ? `$${e.cost.toFixed(4)}` : "~gratis"}
               </span>
-              <span className="text-zinc-500">×{e.calls}</span>
+              <span className="text-[var(--ops-muted)]">{"\u00d7"}{e.calls}</span>
             </span>
           ))}
         </div>
       ) : (
-        <p className="text-[10px] text-zinc-500">Nessuna chiamata nelle ultime 24h.</p>
+        <p className="text-[10px] text-[var(--ops-muted)]">Nessuna chiamata negli ultimi 7 giorni.</p>
       )}
+    </div>
+  );
+}
+
+// ─── Right column — Provider Health (compact, flex-none) ──────────────────────
+
+function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
+  if (!data || Object.keys(data).length === 0) return null;
+
+  const statusIcon = (status: "ok" | "degraded" | "error") => {
+    switch (status) {
+      case "ok":
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-teal)" }} />;
+      case "degraded":
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "#FFC832" }} />;
+      case "error":
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-error)" }} />;
+    }
+  };
+
+  const statusLabel = (status: "ok" | "degraded" | "error") => {
+    switch (status) {
+      case "ok": return "OK";
+      case "degraded": return "Rate limited";
+      case "error": return "Errori";
+    }
+  };
+
+  const formatLastCall = (iso: string | null): string => {
+    if (!iso) return "—";
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60) return `${diff}s fa`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m fa`;
+    return `${Math.floor(diff / 3600)}h fa`;
+  };
+
+  // Sort: errors first, then degraded, then ok
+  const sortedProviders = Object.entries(data).sort(([, a], [, b]) => {
+    const order = { error: 0, degraded: 1, ok: 2 };
+    return order[a.status] - order[b.status];
+  });
+
+  const totalErrors = Object.values(data).reduce((s, p) => s + p.recentErrors, 0);
+
+  return (
+    <div className="flex-none px-4 py-3 border-b border-[var(--ops-border-subtle)] space-y-2">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] uppercase tracking-wider flex items-center gap-1.5">
+          <Zap className="w-3 h-3" />
+          Provider Health 1h
+        </h3>
+        <div className="flex items-center gap-3 ml-auto text-[11px] font-mono">
+          <span className="text-[var(--ops-muted)]">{sortedProviders.length} providers</span>
+          {totalErrors > 0 && (
+            <span className="text-[var(--ops-error)]">{totalErrors} errori</span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 xl:grid-cols-3">
+        {sortedProviders.map(([name, info]) => (
+          <div
+            key={name}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[10px] font-mono"
+            style={{
+              backgroundColor: info.status === "error" ? "rgba(229, 141, 120, 0.06)" :
+                               info.status === "degraded" ? "rgba(255, 200, 50, 0.04)" :
+                               "var(--ops-surface)",
+              borderColor: info.status === "error" ? "rgba(229, 141, 120, 0.3)" :
+                           info.status === "degraded" ? "rgba(255, 200, 50, 0.2)" :
+                           "var(--ops-border-subtle)",
+            }}
+          >
+            {statusIcon(info.status)}
+            <span className="text-[var(--ops-fg-muted)] font-semibold truncate">{name}</span>
+            <span className="ml-auto text-[var(--ops-muted)] shrink-0">
+              {info.recentCalls} calls
+            </span>
+            {info.recentErrors > 0 && (
+              <span className="shrink-0" style={{ color: info.status === "error" ? "var(--ops-error)" : "#FFC832" }}>
+                {info.recentErrors} err
+              </span>
+            )}
+            <span className="text-[var(--ops-muted)] shrink-0" title={info.lastCallAt ?? undefined}>
+              {formatLastCall(info.lastCallAt)}
+            </span>
+            <span
+              className="shrink-0 text-[9px]"
+              style={{
+                color: info.status === "ok" ? "var(--ops-teal)" :
+                       info.status === "degraded" ? "#FFC832" :
+                       "var(--ops-error)",
+              }}
+            >
+              {statusLabel(info.status)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -261,6 +369,7 @@ export function DebugPanel() {
   const [tierData, setTierData] = useState<TierData | null>(null);
   const [envData, setEnvData] = useState<EnvVars | null>(null);
   const [costsData, setCostsData] = useState<CostsData | null>(null);
+  const [providerHealth, setProviderHealth] = useState<ProviderHealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
@@ -270,19 +379,22 @@ export function DebugPanel() {
     setError(null);
     try {
       const headers = getConsoleAuthHeaders();
-      const [tierRes, envRes, costsRes] = await Promise.all([
+      const [tierRes, envRes, costsRes, healthRes] = await Promise.all([
         fetch("/api/console/tier", { headers }),
         fetch("/api/company/env-check", { headers }),
-        fetch("/api/company/costs?view=total&days=1", { headers }),
+        fetch("/api/company/costs?view=total&days=7", { headers }),
+        fetch("/api/company/costs?view=provider-health", { headers }),
       ]);
-      const [tier, env, costs] = await Promise.all([
+      const [tier, env, costs, health] = await Promise.all([
         tierRes.ok ? tierRes.json() : null,
         envRes.ok ? envRes.json() : null,
         costsRes.ok ? costsRes.json() : null,
+        healthRes.ok ? healthRes.json() : null,
       ]);
       setTierData(tier);
       setEnvData(env);
       setCostsData(costs);
+      setProviderHealth(health);
       setLastFetch(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore nel caricamento dei dati debug");
@@ -303,47 +415,48 @@ export function DebugPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-zinc-950">
+    <div className="h-full flex flex-col bg-[var(--ops-bg)]">
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
-      <div className="flex-none h-10 px-4 border-b border-zinc-800 flex items-center gap-3 bg-zinc-900/60">
-        <span className="text-xs font-semibold text-zinc-300">Debug</span>
+      <div className="flex-none h-12 px-5 border-b border-[var(--ops-border-subtle)] flex items-center gap-4 bg-[var(--ops-surface)]">
+        <span className="text-sm font-semibold text-[var(--ops-fg)]">Stato Sistema</span>
         {lastFetch && (
-          <span className="text-[10px] text-zinc-500">aggiornato {timeSince()}</span>
+          <span className="text-xs text-[var(--ops-muted)]">aggiornato {timeSince()}</span>
         )}
         <button
           onClick={fetchAll}
           disabled={loading}
-          className="ml-auto flex items-center gap-1.5 px-2.5 h-6 bg-zinc-800 hover:bg-zinc-700 rounded text-[11px] text-zinc-300 transition-colors disabled:opacity-50"
+          className="ml-auto flex items-center gap-2 px-3 h-7 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] rounded-lg text-xs text-[var(--ops-fg-muted)] transition-all duration-150 disabled:opacity-40"
         >
-          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
           Aggiorna
         </button>
       </div>
 
       {/* ── Error banner ─────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex-none px-4 py-2 bg-red-900/20 border-b border-red-700/40 text-xs text-red-300">
+        <div className="flex-none px-4 py-2 bg-[rgba(229,141,120,0.08)] border-b border-[var(--ops-error)]/20 text-xs text-[var(--ops-error)]">
           {error}
         </div>
       )}
 
       {/* ── Body ─────────────────────────────────────────────────────────────── */}
       {loading && !tierData ? (
-        <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm gap-2">
+        <div className="flex-1 flex items-center justify-center text-[var(--ops-muted)] text-sm gap-2">
           <RefreshCw className="w-4 h-4 animate-spin" />
           Caricamento stato sistema…
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex">
           {/* ── Left column: Tier + Env (scrollable) ─────────────────────── */}
-          <div className="w-72 flex-none border-r border-zinc-800 overflow-y-auto">
+          <div className="w-72 flex-none border-r border-[var(--ops-border-subtle)] overflow-y-auto">
             <TierSection data={tierData} />
             <EnvSection data={envData} />
           </div>
 
-          {/* ── Right column: Costs (fixed) + LiveConsole (fills) ────────── */}
+          {/* ── Right column: Costs + Provider Health (fixed) + LiveConsole (fills) */}
           <div className="flex-1 flex flex-col min-h-0">
             <CostsSection data={costsData} />
+            <ProviderHealthSection data={providerHealth} />
             {/* LiveConsolePanel takes remaining height */}
             <div className="flex-1 min-h-0 p-3">
               <LiveConsolePanel />

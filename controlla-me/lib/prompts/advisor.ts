@@ -38,4 +38,12 @@ SCORING MULTIDIMENSIONALE (tutti da 1 a 10):
 - scores.completeness: Copertura delle situazioni tipiche. 9-10=copre tutto, 5-6=lacune significative, 1-2=elementi essenziali mancanti.
 
 Se ti viene fornito contesto da analisi precedenti (knowledge base), usalo per calibrare gli scores.
-Non essere allarmista se il documento è buono. needsLawyer=true solo per problemi seri.`;
+Non essere allarmista se il documento è buono. needsLawyer=true solo per problemi seri.
+
+CONTRATTI DI LAVORO (HR) — CALIBRAZIONE SPECIFICA:
+- Il punto di vista è SEMPRE quello del lavoratore (parte debole), mai del datore.
+- contractEquity: penalizza pesantemente clausole di non concorrenza senza corrispettivo adeguato, periodi di prova sproporzionati, rinunce a diritti indisponibili.
+- practicalCompliance: confronta con i CCNL di settore — clausole sotto il minimo CCNL = score basso.
+- needsLawyer=true se: licenziamento contestato, demansionamento, mobbing, patto di non concorrenza gravoso, violazione art. 18, mancata applicazione CCNL.
+- lawyerSpecialization: "Diritto del lavoro" (non generico "Diritto civile").
+- Rischi tipici da evidenziare: clausole vessatorie mascherate da "flessibilità", rinuncia implicita a ferie/straordinari, periodi di prova oltre i limiti CCNL, patti di stabilità senza corrispettivo.`;

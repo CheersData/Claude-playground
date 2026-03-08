@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";

@@ -80,7 +80,7 @@ const PRIORITY_DOT: Record<string, string> = {
   critical: "bg-red-500",
   high:     "bg-orange-500",
   medium:   "bg-yellow-500",
-  low:      "bg-zinc-500",
+  low:      "bg-[var(--ops-muted)]",
 };
 
 const ANALYSIS_BADGE: Record<string, { bg: string; text: string; label: string; icon: typeof CheckCircle2 }> = {
@@ -248,7 +248,7 @@ export function DepartmentDetailPanel({
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 flex items-center justify-center min-h-[400px]">
+      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-3 text-zinc-500">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span className="text-sm">Caricamento dipartimento...</span>
@@ -259,7 +259,7 @@ export function DepartmentDetailPanel({
 
   if (!data) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] flex flex-col items-center justify-center min-h-[400px] gap-4">
         <p className="text-zinc-500 text-sm">Impossibile caricare i dati del dipartimento.</p>
         <button onClick={onBack} className="text-[#FF6B35] text-sm hover:underline">
           ← Torna al Board
@@ -306,10 +306,10 @@ export function DepartmentDetailPanel({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -24 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
-        className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden"
+        className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden"
       >
         {/* Header */}
-        <div className="px-6 pt-5 pb-4 border-b border-zinc-800">
+        <div className="px-6 pt-5 pb-4 border-b border-[var(--ops-border-subtle)]">
           <button
             onClick={onBack}
             className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors mb-3"
@@ -345,7 +345,7 @@ export function DepartmentDetailPanel({
         </div>
 
         {/* Tab bar */}
-        <div className="flex border-b border-zinc-800 px-2">
+        <div className="flex border-b border-[var(--ops-border-subtle)] px-2">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -401,7 +401,7 @@ export function DepartmentDetailPanel({
                 )}
 
                 {/* Missione */}
-                <div className={`border-l-2 ${meta.vision ? "border-zinc-700" : "border-[#FF6B35]/60"} pl-4 py-1`}>
+                <div className={`border-l-2 ${meta.vision ? "border-[var(--ops-border)]" : "border-[#FF6B35]/60"} pl-4 py-1`}>
                   <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1 font-medium">
                     Missione
                   </p>
@@ -486,7 +486,7 @@ export function DepartmentDetailPanel({
                   )}
 
                   {/* Metriche live */}
-                  <div className="flex gap-4 pt-1 border-t border-zinc-700/50">
+                  <div className="flex gap-4 pt-1 border-t border-[var(--ops-border-subtle)]">
                     <div className="text-center">
                       <p className="text-lg font-bold text-yellow-400">
                         {analysis?.inProgressCount ?? inProgressTasks.length}
@@ -653,7 +653,7 @@ export function DepartmentDetailPanel({
                       onChange={(e) => setCreateTitle(e.target.value)}
                       required
                       placeholder="Cosa deve fare questo task?"
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 transition-colors"
+                      className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 transition-colors"
                     />
                   </div>
 
@@ -666,7 +666,7 @@ export function DepartmentDetailPanel({
                       onChange={(e) => setCreateDesc(e.target.value)}
                       placeholder="Cosa fare e perché. Appare nel board per dare contesto a chi legge."
                       rows={3}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 transition-colors resize-none"
+                      className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 transition-colors resize-none"
                     />
                   </div>
 
@@ -688,8 +688,8 @@ export function DepartmentDetailPanel({
                                 ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
                                 : p === "medium"
                                 ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-400"
-                                : "bg-zinc-700 border-zinc-600 text-zinc-300"
-                              : "bg-zinc-800/50 border-zinc-700/50 text-zinc-500 hover:text-zinc-300"
+                                : "bg-[var(--ops-surface-2)] border-[var(--ops-border)] text-zinc-300"
+                              : "bg-[var(--ops-surface-2)]/50 border-[var(--ops-border-subtle)] text-zinc-500 hover:text-zinc-300"
                           }`}
                         >
                           <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
@@ -820,10 +820,10 @@ export function DepartmentDetailPanel({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.22 }}
-              className="fixed right-0 top-0 h-full w-full max-w-[520px] bg-zinc-950 border-l border-zinc-800 overflow-y-auto z-50 flex flex-col"
+              className="fixed right-0 top-0 h-full w-full max-w-[520px] bg-zinc-950 border-l border-[var(--ops-border-subtle)] overflow-y-auto z-50 flex flex-col"
             >
               {/* Drawer header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 flex-shrink-0 sticky top-0 bg-zinc-950">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--ops-border-subtle)] flex-shrink-0 sticky top-0 bg-zinc-950">
                 <div className="flex items-center gap-2.5">
                   <FileText className="w-4 h-4 text-[#FF6B35]" />
                   <h3 className="text-sm font-semibold text-white">{drawerContent.title}</h3>

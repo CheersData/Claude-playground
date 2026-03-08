@@ -9,6 +9,7 @@ import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
 import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
 import { AGENT_MODELS, MODELS } from "@/lib/models";
+import { getTierInfoForSession } from "@/lib/tiers";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -29,13 +30,19 @@ export async function GET(req: NextRequest) {
       getConnectorStatus().catch(() => []),
     ]);
 
-    // Agent config summary
-    const agents: Record<string, { model: string; maxTokens: number; temperature: number }> = {};
+    // Agent config summary enriched with tier/enabled/chain position
+    const disabled = new Set(payload.disabledAgents);
+    const tierInfo = getTierInfoForSession(payload.tier, disabled);
+
+    const agents: Record<string, { model: string; maxTokens: number; temperature: number; enabled: boolean; chainPosition: number }> = {};
     for (const [name, config] of Object.entries(AGENT_MODELS)) {
+      const tierAgent = tierInfo.agents[name as keyof typeof tierInfo.agents];
       agents[name] = {
-        model: MODELS[config.primary].displayName,
+        model: tierAgent?.chain[tierAgent.activeIndex]?.displayName ?? MODELS[config.primary].displayName,
         maxTokens: config.maxTokens,
         temperature: config.temperature,
+        enabled: tierAgent?.enabled ?? true,
+        chainPosition: tierAgent?.activeIndex ?? 0,
       };
     }
 

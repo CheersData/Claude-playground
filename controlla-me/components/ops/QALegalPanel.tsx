@@ -145,7 +145,7 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
     : null;
 
   return (
-    <div className="border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden">
       {/* Row header */}
       <button
         onClick={() => setExpanded((v) => !v)}
@@ -233,7 +233,7 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
             transition={{ duration: 0.18 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-zinc-800 pt-3 space-y-3 bg-zinc-900/50">
+            <div className="px-4 pb-4 border-t border-[var(--ops-border-subtle)] pt-3 space-y-3 bg-zinc-900/50">
               {/* Legal notes */}
               <div className="text-xs text-zinc-400 leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
                 {test.legalNotes}
@@ -257,14 +257,14 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                         key={i}
                         className={`flex items-start gap-2.5 px-2.5 py-2 rounded border text-xs ${
                           isPassed === null
-                            ? "bg-zinc-800/50 border-zinc-700/50"
+                            ? "bg-zinc-800/50 border-[var(--ops-border-subtle)]"
                             : isPassed
                             ? "bg-green-500/5 border-green-500/15"
                             : "bg-red-500/5 border-red-500/15"
                         }`}
                       >
                         {isPassed === null ? (
-                          <span className="w-3 h-3 rounded-full border border-zinc-600 flex-shrink-0 mt-0.5" />
+                          <span className="w-3 h-3 rounded-full border border-[var(--ops-border)] flex-shrink-0 mt-0.5" />
                         ) : isPassed ? (
                           <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
                         ) : (
@@ -517,7 +517,7 @@ export function QALegalPanel() {
           {summary.historyCount > 1 && ` · ${summary.historyCount} run storici`}
         </p>
       ) : (
-        <div className="flex items-center gap-2 bg-zinc-800/40 border border-zinc-700/50 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 bg-zinc-800/40 border border-[var(--ops-border-subtle)] rounded-lg px-3 py-2">
           <Clock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
           <p className="text-xs text-zinc-500">
             Nessun eval eseguito. I risultati appariranno dopo il primo run da terminale esterno.

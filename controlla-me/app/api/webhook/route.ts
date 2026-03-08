@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { profiles } from "@/lib/db";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Defense-in-depth: rate limit before heavy processing (Stripe signature is primary auth)
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   if (!stripe) {
     return NextResponse.json(
       { error: "Stripe not configured" },
