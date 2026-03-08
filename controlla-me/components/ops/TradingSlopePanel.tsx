@@ -207,10 +207,10 @@ function pnlColor(n: number | null): string {
 }
 
 function TrendIcon({ angle }: { angle: number | null }) {
-  if (angle === null) return <Minus className="h-3.5 w-3.5 text-white/20" />;
-  if (angle > 2) return <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />;
-  if (angle < -2) return <TrendingDown className="h-3.5 w-3.5 text-red-400" />;
-  return <Minus className="h-3.5 w-3.5 text-white/40" />;
+  if (angle === null) return <Minus className="h-4 w-4 text-white/20" />;
+  if (angle > 2) return <TrendingUp className="h-4 w-4 text-emerald-400" />;
+  if (angle < -2) return <TrendingDown className="h-4 w-4 text-red-400" />;
+  return <Minus className="h-4 w-4 text-white/40" />;
 }
 
 // Converte "2m fa", "25m fa", "1h fa"
@@ -264,13 +264,13 @@ function PnlBar({ pnl, loading }: { pnl: PnlSummary | null; loading: boolean }) 
       {items.map(({ label, value, sub }) => (
         <div
           key={label}
-          className="flex-1 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2.5"
+          className="flex-1 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-3"
         >
-          <div className="mb-0.5 text-[10px] text-white/35">{label}</div>
+          <div className="mb-0.5 text-xs text-white/35">{label}</div>
           <div className={`font-mono text-base font-semibold ${pnlColor(value)}`}>
             {fmt$(value, 0)}
           </div>
-          <div className="text-[10px] text-white/25">{sub}</div>
+          <div className="text-xs text-white/25">{sub}</div>
         </div>
       ))}
     </div>
@@ -334,7 +334,7 @@ function SectorHeatmap({ signals }: { signals: SlopeSignal[] }) {
       <div className="mb-2.5 flex items-center justify-between">
         <span className="text-xs font-medium text-white/60">Rotazione Settori</span>
         {!hasAnySignal && (
-          <span className="text-[10px] text-white/25">Nessun segnale nelle ultime 24h</span>
+          <span className="text-xs text-white/25">Nessun segnale nelle ultime 24h</span>
         )}
       </div>
 
@@ -343,7 +343,7 @@ function SectorHeatmap({ signals }: { signals: SlopeSignal[] }) {
           const cells = byCategory.get(cat) ?? [];
           return (
             <div key={cat}>
-              <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-white/25">
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-white/25">
                 {cat}
               </div>
               <div className="flex flex-col gap-1">
@@ -359,24 +359,24 @@ function SectorHeatmap({ signals }: { signals: SlopeSignal[] }) {
                   return (
                     <div
                       key={ticker}
-                      className={`flex items-center gap-1.5 rounded border px-2 py-1 ${colorCls}`}
+                      className={`flex items-center gap-2 rounded border px-2 py-1 ${colorCls}`}
                       title={
                         signalAt
                           ? `${action} · ${relativeTime(signalAt)} (${fmtTimeET(signalAt)} ET)`
                           : "Nessun segnale recente"
                       }
                     >
-                      <span className="w-8 font-mono text-[11px] font-semibold">{ticker}</span>
+                      <span className="w-8 font-mono text-xs font-semibold">{ticker}</span>
                       <TrendIcon angle={angle} />
                       {angle !== null ? (
-                        <span className="text-[10px] font-mono">
+                        <span className="text-xs font-mono">
                           {angle >= 0 ? "+" : ""}
                           {angle.toFixed(1)}°
                         </span>
                       ) : (
-                        <span className="text-[10px] text-white/20">—</span>
+                        <span className="text-xs text-white/20">—</span>
                       )}
-                      <span className="text-[9px] text-white/20 truncate max-w-[52px]">
+                      <span className="text-xs text-white/20 truncate max-w-[52px]">
                         {info.name}
                       </span>
                     </div>
@@ -668,7 +668,7 @@ export function TradingSlopePanel() {
             disabled={loading}
             className="rounded p-1 hover:text-white/80 disabled:opacity-30"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
@@ -709,7 +709,7 @@ export function TradingSlopePanel() {
                     className={`hover:bg-white/[0.02] ${!row.isOpen ? "opacity-55" : ""}`}
                   >
                     {/* Titolo */}
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-semibold text-white">
                           {row.symbol}
@@ -724,22 +724,22 @@ export function TradingSlopePanel() {
                     </td>
 
                     {/* Qty — nascosta su mobile */}
-                    <td className="hidden md:table-cell py-2.5 px-3 text-right font-mono text-white/50">
+                    <td className="hidden md:table-cell py-3 px-3 text-right font-mono text-white/50">
                       {row.qty !== null ? row.qty : "—"}
                     </td>
 
                     {/* Acquisto */}
-                    <td className="py-2.5 px-3 text-right font-mono text-white/70">
+                    <td className="py-3 px-3 text-right font-mono text-white/70">
                       {row.buyPrice !== null ? fmt$abs(row.buyPrice) : "—"}
                     </td>
 
                     {/* Vendita */}
-                    <td className="py-2.5 px-3 text-right font-mono text-white/70">
+                    <td className="py-3 px-3 text-right font-mono text-white/70">
                       {row.sellPrice !== null ? fmt$abs(row.sellPrice) : "—"}
                     </td>
 
                     {/* Ultimo prezzo */}
-                    <td className="py-2.5 px-3 text-right font-mono text-white/70">
+                    <td className="py-3 px-3 text-right font-mono text-white/70">
                       {row.isOpen
                         ? row.lastPrice !== null
                           ? fmt$abs(row.lastPrice)
@@ -750,7 +750,7 @@ export function TradingSlopePanel() {
                     </td>
 
                     {/* P&L — colonna dedicata */}
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-3 px-3 text-right">
                       {row.isOpen ? (
                         // Posizione aperta: P&L unrealizzato
                         row.unrealizedPnl !== null ? (
@@ -762,7 +762,7 @@ export function TradingSlopePanel() {
                             </span>
                             {row.unrealizedPnlPct !== null && (
                               <span
-                                className={`text-[10px] font-mono ${pnlColor(row.unrealizedPnlPct)}`}
+                                className={`text-xs font-mono ${pnlColor(row.unrealizedPnlPct)}`}
                               >
                                 {fmtPct(row.unrealizedPnlPct)}
                               </span>
@@ -782,7 +782,7 @@ export function TradingSlopePanel() {
                             </span>
                             {row.realizedPnlPct !== null && (
                               <span
-                                className={`text-[10px] font-mono ${pnlColor(row.realizedPnlPct)}`}
+                                className={`text-xs font-mono ${pnlColor(row.realizedPnlPct)}`}
                               >
                                 {fmtPct(row.realizedPnlPct)}
                               </span>
@@ -795,12 +795,12 @@ export function TradingSlopePanel() {
                     </td>
 
                     {/* Trend */}
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3">
                       <div className="flex items-center justify-center gap-1">
                         <TrendIcon angle={row.trendAngle} />
                         {row.trendAngle !== null && (
                           <span
-                            className={`text-[10px] font-mono ${
+                            className={`text-xs font-mono ${
                               row.trendAngle > 2
                                 ? "text-emerald-400"
                                 : row.trendAngle < -2
@@ -816,27 +816,27 @@ export function TradingSlopePanel() {
                     </td>
 
                     {/* Segnale */}
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3">
                       <div className="flex flex-col gap-0.5">
                         <span
-                          className={`inline-flex w-fit rounded px-1.5 py-0.5 text-xs font-medium ${badge.cls}`}
+                          className={`inline-flex w-fit rounded px-2 py-0.5 text-xs font-medium ${badge.cls}`}
                         >
                           {badge.label}
                         </span>
                         {row.signalAt && (
-                          <span className="text-[10px] text-white/30">
+                          <span className="text-xs text-white/30">
                             {fmtTimeET(row.signalAt)} ET
                           </span>
                         )}
                         {/* Execution status — mostra solo se rilevante */}
                         {row.executionStatus === "failed" && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-400">
+                          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-amber-400">
                             <AlertTriangle className="h-2.5 w-2.5" />
                             Non eseguito
                           </span>
                         )}
                         {row.executionStatus === "filled" && row.isOpen === false && (
-                          <span className="text-[10px] text-emerald-400/60">
+                          <span className="text-xs text-emerald-400/60">
                             ✓ Eseguito
                           </span>
                         )}
@@ -844,7 +844,7 @@ export function TradingSlopePanel() {
                     </td>
 
                     {/* Perché */}
-                    <td className="py-2.5 px-3 max-w-xs text-white/55">
+                    <td className="py-3 px-3 max-w-xs text-white/55">
                       {row.rationale}
                     </td>
                   </tr>

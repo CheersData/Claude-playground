@@ -25,7 +25,7 @@ function timeAgo(dateStr: string): string {
 export function PipelineStatus({ pipeline }: PipelineStatusProps) {
   return (
     <div className="bg-[var(--ops-surface)] rounded-xl p-6 border border-[var(--ops-border-subtle)]">
-      <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-4 uppercase tracking-wider">
+      <h3 className="text-xs font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-4 uppercase tracking-wider">
         <Database className="w-4 h-4" />
         Data Pipeline
       </h3>

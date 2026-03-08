@@ -101,13 +101,13 @@ function fmtDateTime(iso: string) {
 function pnlColor(v: number) {
   if (v > 0) return "text-emerald-400";
   if (v < 0) return "text-red-400";
-  return "text-zinc-400";
+  return "text-[var(--ops-fg-muted)]";
 }
 
 function pnlBg(v: number) {
   if (v > 0) return "bg-emerald-500/10 text-emerald-400";
   if (v < 0) return "bg-red-500/10 text-red-400";
-  return "bg-zinc-700/50 text-zinc-400";
+  return "bg-[var(--ops-hover)]/50 text-[var(--ops-fg-muted)]";
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -140,7 +140,7 @@ const ChartTooltip = ({
   const val = payload[0]?.value;
   return (
     <div className="bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-xs shadow-xl">
-      <p className="text-zinc-400 mb-1">{label}</p>
+      <p className="text-[var(--ops-fg-muted)] mb-1">{label}</p>
       <p className="text-white font-semibold">${fmt(val, 0)}</p>
       {payload[1] && (
         <p className={`mt-0.5 ${payload[1].value >= 0 ? "text-emerald-400" : "text-red-400"}`}>
@@ -187,7 +187,7 @@ export function TradingDashboard() {
   if (loading) {
     return (
       <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-6">
-        <div className="flex items-center gap-2 text-zinc-400 text-sm">
+        <div className="flex items-center gap-2 text-[var(--ops-fg-muted)] text-sm">
           <RefreshCw className="w-4 h-4 animate-spin" />
           Caricamento dati trading...
         </div>
@@ -250,7 +250,7 @@ export function TradingDashboard() {
         </div>
         <button
           onClick={fetchData}
-          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="flex items-center gap-1 text-xs text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors"
         >
           <RefreshCw className="w-3 h-3" />
           aggiorna
@@ -273,31 +273,31 @@ export function TradingDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
-          <p className="text-xs text-zinc-500 mb-1">Portfolio</p>
+          <p className="text-xs text-[var(--ops-muted)] mb-1">Portfolio</p>
           <p className="text-base font-semibold text-white">${fmt(portfolioValue, 0)}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">cash ${fmt(cashValue, 0)}</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">cash ${fmt(cashValue, 0)}</p>
         </div>
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
-          <p className="text-xs text-zinc-500 mb-1">P&L aperto</p>
+          <p className="text-xs text-[var(--ops-muted)] mb-1">P&L aperto</p>
           <p className={`text-base font-semibold ${pnlColor(totalPnL)}`}>
             {totalPnL >= 0 ? "+" : ""}${fmt(Math.abs(totalPnL))}
           </p>
-          <p className="text-xs text-zinc-500 mt-0.5">{positions.length} posizioni</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">{positions.length} posizioni</p>
         </div>
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
-          <p className="text-xs text-zinc-500 mb-1">Ordini (30gg)</p>
+          <p className="text-xs text-[var(--ops-muted)] mb-1">Ordini (30gg)</p>
           <p className="text-base font-semibold text-white">{filledOrders.length}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">
             {buyCount} buy · {sellCount} sell
           </p>
         </div>
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-3">
-          <p className="text-xs text-zinc-500 mb-1">Win Rate</p>
-          <p className={`text-base font-semibold ${winRate != null ? (winRate >= 0.5 ? "text-emerald-400" : "text-red-400") : "text-zinc-400"}`}>
+          <p className="text-xs text-[var(--ops-muted)] mb-1">Win Rate</p>
+          <p className={`text-base font-semibold ${winRate != null ? (winRate >= 0.5 ? "text-emerald-400" : "text-red-400") : "text-[var(--ops-fg-muted)]"}`}>
             {winRate != null ? `${fmt(winRate * 100, 0)}%` : "—"}
           </p>
           {latestSnapshot?.sharpe_30d != null && (
-            <p className="text-xs text-zinc-500 mt-0.5">Sharpe {fmt(latestSnapshot.sharpe_30d)}</p>
+            <p className="text-xs text-[var(--ops-muted)] mt-0.5">Sharpe {fmt(latestSnapshot.sharpe_30d)}</p>
           )}
         </div>
       </div>
@@ -305,7 +305,7 @@ export function TradingDashboard() {
       {/* Grafico P&L */}
       {chartData.length > 0 ? (
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-4">
-          <p className="text-xs font-medium text-zinc-400 mb-3">Performance Portfolio (30gg)</p>
+          <p className="text-xs font-medium text-[var(--ops-fg-muted)] mb-3">Performance Portfolio (30gg)</p>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
               <defs>
@@ -344,8 +344,8 @@ export function TradingDashboard() {
         </div>
       ) : (
         <div className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl p-4 text-center">
-          <p className="text-xs text-zinc-500">Nessuno snapshot disponibile per il grafico</p>
-          <p className="text-xs text-zinc-600 mt-1">I dati appaiono dopo il primo portfolio snapshot giornaliero</p>
+          <p className="text-xs text-[var(--ops-muted)]">Nessuno snapshot disponibile per il grafico</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-1">I dati appaiono dopo il primo portfolio snapshot giornaliero</p>
         </div>
       )}
 
@@ -354,20 +354,20 @@ export function TradingDashboard() {
         <div className="flex border-b border-[var(--ops-border-subtle)]">
           <button
             onClick={() => setActiveTab("positions")}
-            className={`px-4 py-2.5 text-xs font-medium transition-colors ${
+            className={`px-4 py-3 text-xs font-medium transition-colors ${
               activeTab === "positions"
                 ? "text-white border-b-2 border-[#FF6B35] -mb-px"
-                : "text-zinc-500 hover:text-zinc-300"
+                : "text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)]"
             }`}
           >
             Posizioni aperte ({positions.length})
           </button>
           <button
             onClick={() => setActiveTab("orders")}
-            className={`px-4 py-2.5 text-xs font-medium transition-colors ${
+            className={`px-4 py-3 text-xs font-medium transition-colors ${
               activeTab === "orders"
                 ? "text-white border-b-2 border-[#FF6B35] -mb-px"
-                : "text-zinc-500 hover:text-zinc-300"
+                : "text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)]"
             }`}
           >
             Ordini recenti ({orders.length})
@@ -379,54 +379,54 @@ export function TradingDashboard() {
           <div>
             {positions.length === 0 ? (
               <div className="p-6 text-center">
-                <p className="text-xs text-zinc-500">Nessuna posizione aperta</p>
+                <p className="text-xs text-[var(--ops-muted)]">Nessuna posizione aperta</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-[var(--ops-border-subtle)]">
-                      <th className="text-left px-4 py-2 text-zinc-500 font-medium">Simbolo</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">Qtà</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">Entry</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">Attuale</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">Valore</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">P&L $</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">P&L %</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium hidden sm:table-cell">Giorni</th>
+                      <th className="text-left px-4 py-2 text-[var(--ops-muted)] font-medium">Simbolo</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">Qtà</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">Entry</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">Attuale</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">Valore</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">P&L $</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">P&L %</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium hidden sm:table-cell">Giorni</th>
                     </tr>
                   </thead>
                   <tbody>
                     {positions.map((p) => (
-                      <tr key={p.symbol} className="border-b border-[var(--ops-border-subtle)] hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-4 py-2.5">
+                      <tr key={p.symbol} className="border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-2)]/30 transition-colors">
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-white">{p.symbol}</span>
                             {p.sector && (
-                              <span className="text-zinc-600 hidden sm:inline">{p.sector}</span>
+                              <span className="text-[var(--ops-muted)] hidden sm:inline">{p.sector}</span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">{p.qty}</td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">${fmt(p.avg_entry_price)}</td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">${fmt(p.current_price)}</td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">${fmt(p.market_value, 0)}</td>
-                        <td className={`px-4 py-2.5 text-right font-medium ${pnlColor(p.unrealized_pnl)}`}>
+                        <td className="px-4 py-3 text-right text-[var(--ops-fg-muted)]">{p.qty}</td>
+                        <td className="px-4 py-3 text-right text-[var(--ops-fg-muted)]">${fmt(p.avg_entry_price)}</td>
+                        <td className="px-4 py-3 text-right text-[var(--ops-fg-muted)]">${fmt(p.current_price)}</td>
+                        <td className="px-4 py-3 text-right text-[var(--ops-fg-muted)]">${fmt(p.market_value, 0)}</td>
+                        <td className={`px-4 py-3 text-right font-medium ${pnlColor(p.unrealized_pnl)}`}>
                           {p.unrealized_pnl >= 0 ? "+" : ""}${fmt(Math.abs(p.unrealized_pnl))}
                         </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${pnlBg(p.unrealized_pnl_pct)}`}>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${pnlBg(p.unrealized_pnl_pct)}`}>
                             {p.unrealized_pnl_pct >= 0 ? "+" : ""}{fmt(p.unrealized_pnl_pct)}%
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-500 hidden sm:table-cell">{p.days_held}gg</td>
+                        <td className="px-4 py-3 text-right text-[var(--ops-muted)] hidden sm:table-cell">{p.days_held}gg</td>
                       </tr>
                     ))}
                   </tbody>
                   {positions.length > 1 && (
                     <tfoot>
                       <tr className="border-t border-[var(--ops-border)]">
-                        <td colSpan={4} className="px-4 py-2 text-zinc-500 font-medium">Totale</td>
+                        <td colSpan={4} className="px-4 py-2 text-[var(--ops-muted)] font-medium">Totale</td>
                         <td className="px-4 py-2 text-right text-white font-semibold">${fmt(totalValue, 0)}</td>
                         <td className={`px-4 py-2 text-right font-semibold ${pnlColor(totalPnL)}`}>
                           {totalPnL >= 0 ? "+" : ""}${fmt(Math.abs(totalPnL))}
@@ -446,31 +446,31 @@ export function TradingDashboard() {
           <div>
             {orders.length === 0 ? (
               <div className="p-6 text-center">
-                <p className="text-xs text-zinc-500">Nessun ordine registrato</p>
+                <p className="text-xs text-[var(--ops-muted)]">Nessun ordine registrato</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-[var(--ops-border-subtle)]">
-                      <th className="text-left px-4 py-2 text-zinc-500 font-medium">Data</th>
-                      <th className="text-left px-4 py-2 text-zinc-500 font-medium">Simbolo</th>
-                      <th className="text-left px-4 py-2 text-zinc-500 font-medium">Lato</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">Qtà</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium">Prezzo</th>
-                      <th className="text-left px-4 py-2 text-zinc-500 font-medium">Stato</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium hidden sm:table-cell">SL</th>
-                      <th className="text-right px-4 py-2 text-zinc-500 font-medium hidden sm:table-cell">TP</th>
+                      <th className="text-left px-4 py-2 text-[var(--ops-muted)] font-medium">Data</th>
+                      <th className="text-left px-4 py-2 text-[var(--ops-muted)] font-medium">Simbolo</th>
+                      <th className="text-left px-4 py-2 text-[var(--ops-muted)] font-medium">Lato</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">Qtà</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium">Prezzo</th>
+                      <th className="text-left px-4 py-2 text-[var(--ops-muted)] font-medium">Stato</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium hidden sm:table-cell">SL</th>
+                      <th className="text-right px-4 py-2 text-[var(--ops-muted)] font-medium hidden sm:table-cell">TP</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.map((o) => (
-                      <tr key={o.id} className="border-b border-[var(--ops-border-subtle)] hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-4 py-2.5 text-zinc-400">
+                      <tr key={o.id} className="border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-2)]/30 transition-colors">
+                        <td className="px-4 py-3 text-[var(--ops-fg-muted)]">
                           {fmtDateTime(o.filled_at ?? o.created_at)}
                         </td>
-                        <td className="px-4 py-2.5 font-semibold text-white">{o.symbol}</td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-3 font-semibold text-white">{o.symbol}</td>
+                        <td className="px-4 py-3">
                           <span
                             className={`flex items-center gap-1 font-medium ${
                               o.side === "buy" ? "text-emerald-400" : "text-red-400"
@@ -484,34 +484,34 @@ export function TradingDashboard() {
                             {o.side === "buy" ? "BUY" : "SELL"}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">
+                        <td className="px-4 py-3 text-right text-[var(--ops-fg-muted)]">
                           {o.filled_qty ?? o.qty}
                           {o.filled_qty != null && o.filled_qty !== o.qty && (
-                            <span className="text-zinc-600"> /{o.qty}</span>
+                            <span className="text-[var(--ops-muted)]"> /{o.qty}</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">
+                        <td className="px-4 py-3 text-right text-[var(--ops-fg-muted)]">
                           {o.filled_avg_price != null ? `$${fmt(o.filled_avg_price)}` : "—"}
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-3">
                           <span
-                            className={`px-1.5 py-0.5 rounded text-xs ${
+                            className={`px-2 py-0.5 rounded text-xs ${
                               o.status === "filled"
                                 ? "bg-emerald-500/10 text-emerald-400"
                                 : o.status === "partially_filled"
                                   ? "bg-yellow-500/10 text-yellow-400"
                                   : o.status === "cancelled" || o.status === "rejected"
                                     ? "bg-red-500/10 text-red-400"
-                                    : "bg-zinc-700/50 text-zinc-400"
+                                    : "bg-[var(--ops-hover)]/50 text-[var(--ops-fg-muted)]"
                             }`}
                           >
                             {STATUS_LABELS[o.status] ?? o.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-500 hidden sm:table-cell">
+                        <td className="px-4 py-3 text-right text-[var(--ops-muted)] hidden sm:table-cell">
                           {o.stop_loss != null ? `$${fmt(o.stop_loss)}` : "—"}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-500 hidden sm:table-cell">
+                        <td className="px-4 py-3 text-right text-[var(--ops-muted)] hidden sm:table-cell">
                           {o.take_profit != null ? `$${fmt(o.take_profit)}` : "—"}
                         </td>
                       </tr>

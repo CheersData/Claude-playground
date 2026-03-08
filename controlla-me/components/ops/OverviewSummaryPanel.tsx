@@ -85,10 +85,10 @@ const DEPT_LABELS: Record<string, string> = {
 };
 
 const HEALTH_STYLES: Record<string, { dot: string; badge: string }> = {
-  ok:      { dot: "bg-green-400",  badge: "text-green-400" },
-  warning: { dot: "bg-yellow-400", badge: "text-yellow-400" },
-  critical:{ dot: "bg-red-400",    badge: "text-red-400" },
-  unknown: { dot: "bg-zinc-500",   badge: "text-zinc-500" },
+  ok:      { dot: "bg-[var(--ops-teal)]",  badge: "text-[var(--ops-teal)]" },
+  warning: { dot: "bg-[var(--ops-id-cost)]", badge: "text-[var(--ops-id-cost)]" },
+  critical:{ dot: "bg-[var(--ops-error)]",    badge: "text-[var(--ops-error)]" },
+  unknown: { dot: "bg-[var(--ops-muted)]",   badge: "text-[var(--ops-muted)]" },
 };
 
 function healthStyle(health: string) {
@@ -137,8 +137,8 @@ function normalizeDept(display: string): string {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PriorityDot({ priority }: { priority: NextAction["priority"] }) {
-  const colors = { critical: "bg-red-400", high: "bg-orange-400", medium: "bg-yellow-400" };
-  return <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${colors[priority]}`} />;
+  const colors = { critical: "bg-[var(--ops-error)]", high: "bg-[var(--ops-accent)]", medium: "bg-[var(--ops-id-cost)]" };
+  return <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-2 ${colors[priority]}`} />;
 }
 
 function CreateTaskButton({ action }: { action: NextAction }) {
@@ -166,10 +166,10 @@ function CreateTaskButton({ action }: { action: NextAction }) {
   }, [action]);
 
   const styles = {
-    idle:    "bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200",
-    loading: "bg-zinc-800 text-zinc-500 cursor-wait",
-    done:    "bg-green-500/20 text-green-400 border border-green-500/30",
-    error:   "bg-red-500/20 text-red-400 border border-red-500/30",
+    idle:    "bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)]",
+    loading: "bg-[var(--ops-surface-2)] text-[var(--ops-muted)] cursor-wait",
+    done:    "bg-[rgba(93,228,199,0.12)] text-[var(--ops-teal)] border border-[rgba(93,228,199,0.2)]",
+    error:   "bg-[rgba(229,141,120,0.12)] text-[var(--ops-error)] border border-[rgba(229,141,120,0.2)]",
   };
 
   const labels = {
@@ -183,7 +183,7 @@ function CreateTaskButton({ action }: { action: NextAction }) {
     <button
       onClick={create}
       disabled={status !== "idle"}
-      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors shrink-0 ${styles[status]}`}
+      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors shrink-0 ${styles[status]}`}
     >
       {labels[status]}
     </button>
@@ -197,36 +197,36 @@ function DeptReportCard({ report }: { report: DeptReport }) {
   const hasContent = report.gaps.length > 0 || report.blockers.length > 0 || report.nextActions.length > 0 || report.notes;
 
   return (
-    <div className="border border-[var(--ops-border-subtle)]/80 rounded-lg overflow-hidden bg-zinc-900/30">
+    <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden bg-[var(--ops-bg)]/60">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full px-3 py-2 flex items-center gap-2.5 hover:bg-zinc-800/30 transition-colors text-left"
+        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-[var(--ops-surface)]/30 transition-colors text-left"
       >
         <span className={`w-2 h-2 rounded-full shrink-0 ${hs.dot}`} />
-        <span className="text-xs font-medium text-zinc-200 shrink-0">{label}</span>
-        <span className="text-xs text-zinc-500 flex-1 truncate min-w-0">{report.summary.slice(0, 90)}{report.summary.length > 90 ? "…" : ""}</span>
-        <span className="text-[10px] text-zinc-600 shrink-0 hidden sm:block">{fmtTimestamp(report.lastUpdated)}</span>
+        <span className="text-xs font-medium text-[var(--ops-fg)] shrink-0">{label}</span>
+        <span className="text-xs text-[var(--ops-fg-muted)] flex-1 truncate min-w-0">{report.summary.slice(0, 90)}{report.summary.length > 90 ? "…" : ""}</span>
+        <span className="text-xs text-[var(--ops-muted)] shrink-0 hidden sm:block">{fmtTimestamp(report.lastUpdated)}</span>
         {hasContent && (
-          <ChevronDown className={`w-3.5 h-3.5 text-zinc-600 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-4 h-4 text-[var(--ops-muted)] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
         )}
-        {!hasContent && <span className="w-3.5 h-3.5 shrink-0" />}
+        {!hasContent && <span className="w-4 h-4 shrink-0" />}
       </button>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-2 border-t border-[var(--ops-border-subtle)]/60 space-y-2.5">
+        <div className="px-3 pb-3 pt-2 border-t border-[var(--ops-border-subtle)] space-y-2.5">
           {/* Summary completo */}
-          <p className="text-xs text-zinc-400 leading-relaxed">{report.summary}</p>
+          <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{report.summary}</p>
 
           {/* Gaps */}
           {report.gaps.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[10px] font-semibold text-yellow-500 uppercase tracking-wider">Gap</span>
+              <span className="text-xs font-semibold text-[var(--ops-id-cost)] uppercase tracking-wider">Gap</span>
               {report.gaps.map((g) => (
-                <div key={g.id} className="flex items-start gap-1.5 text-xs text-zinc-400">
-                  <span className="text-zinc-600 shrink-0 font-mono">{g.id}</span>
+                <div key={g.id} className="flex items-start gap-2 text-xs text-[var(--ops-fg-muted)]">
+                  <span className="text-[var(--ops-muted)] shrink-0 font-mono">{g.id}</span>
                   <span>{g.description}</span>
                   {g.severity && g.severity !== "low" && (
-                    <span className={`shrink-0 text-[10px] px-1 rounded ${g.severity === "high" ? "text-red-400 bg-red-500/10" : "text-yellow-400 bg-yellow-500/10"}`}>
+                    <span className={`shrink-0 text-xs px-1 rounded ${g.severity === "high" ? "text-[var(--ops-error)] bg-[rgba(229,141,120,0.1)]" : "text-[var(--ops-id-cost)] bg-[rgba(255,199,50,0.1)]"}`}>
                       {g.severity}
                     </span>
                   )}
@@ -238,10 +238,10 @@ function DeptReportCard({ report }: { report: DeptReport }) {
           {/* Blockers */}
           {report.blockers.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wider">Blockers</span>
+              <span className="text-xs font-semibold text-[var(--ops-error)] uppercase tracking-wider">Blockers</span>
               {report.blockers.map((b, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-xs text-red-300">
-                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5 text-red-400" />
+                <div key={i} className="flex items-start gap-2 text-xs text-[rgba(229,141,120,0.85)]">
+                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5 text-[var(--ops-error)]" />
                   <span>{b}</span>
                 </div>
               ))}
@@ -251,10 +251,10 @@ function DeptReportCard({ report }: { report: DeptReport }) {
           {/* Next actions */}
           {report.nextActions.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Next actions</span>
+              <span className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">Next actions</span>
               {report.nextActions.map((a, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-xs text-zinc-400">
-                  <ChevronRight className="w-3 h-3 shrink-0 mt-0.5 text-zinc-600" />
+                <div key={i} className="flex items-start gap-2 text-xs text-[var(--ops-fg-muted)]">
+                  <ChevronRight className="w-3 h-3 shrink-0 mt-0.5 text-[var(--ops-muted)]" />
                   <span>{a}</span>
                 </div>
               ))}
@@ -263,14 +263,14 @@ function DeptReportCard({ report }: { report: DeptReport }) {
 
           {/* Notes */}
           {report.notes && (
-            <p className="text-xs text-zinc-500 italic border-t border-[var(--ops-border-subtle)]/60 pt-2">{report.notes}</p>
+            <p className="text-xs text-[var(--ops-muted)] italic border-t border-[var(--ops-border-subtle)] pt-2">{report.notes}</p>
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-2 text-[10px] text-zinc-600 border-t border-[var(--ops-border-subtle)]/60 pt-2">
+          <div className="flex items-center gap-2 text-xs text-[var(--ops-muted)] border-t border-[var(--ops-border-subtle)] pt-2">
             <Clock className="w-3 h-3" />
             <span>Aggiornato {fmtTimestamp(report.lastUpdated)}</span>
-            {report.updatedBy && <span>da <span className="text-zinc-500">{report.updatedBy}</span></span>}
+            {report.updatedBy && <span>da <span className="text-[var(--ops-fg-muted)]">{report.updatedBy}</span></span>}
           </div>
         </div>
       )}
@@ -338,8 +338,8 @@ export function OverviewSummaryPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-zinc-500 py-3">
-        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+      <div className="flex items-center gap-2 text-xs text-[var(--ops-fg-muted)] py-3">
+        <RefreshCw className="w-4 h-4 animate-spin" />
         Carico sintesi del giorno...
       </div>
     );
@@ -353,24 +353,24 @@ export function OverviewSummaryPanel() {
       <div className="lg:col-span-2 space-y-3">
 
         {/* Focus del giorno */}
-        <div className={`rounded-lg border bg-zinc-900/60 p-3 ${data.isStale ? "border-amber-800/40" : "border-[var(--ops-border-subtle)]"}`}>
+        <div className={`rounded-lg border bg-[var(--ops-surface)]/60 p-3 ${data.isStale ? "border-[rgba(229,141,120,0.3)]" : "border-[var(--ops-border-subtle)]"}`}>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <Zap className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-            <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Focus attivo</span>
+            <Zap className="w-4 h-4 text-[var(--ops-accent)] shrink-0" />
+            <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">Focus attivo</span>
             {data.planDate && data.planDate !== data.date && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-950/40 text-amber-400 border border-amber-800/30">
+              <span className="text-xs px-2 py-0.5 rounded bg-[rgba(229,141,120,0.1)] text-[var(--ops-error)] border border-[rgba(229,141,120,0.2)]">
                 dal {new Date(data.planDate).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
               </span>
             )}
             {data.planUpdated && (
-              <span className="text-[10px] text-zinc-600">— {fmtTimestamp(data.planUpdated)}</span>
+              <span className="text-xs text-[var(--ops-muted)]">— {fmtTimestamp(data.planUpdated)}</span>
             )}
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-2">
               {/* Genera piano */}
               <button
                 onClick={generatePlan}
                 disabled={generating}
-                className="flex items-center gap-1 px-2 py-1 bg-[#FF6B35]/15 hover:bg-[#FF6B35]/25 text-[#FF6B35] rounded text-[10px] font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-1 bg-[#FF6B35]/15 hover:bg-[#FF6B35]/25 text-[#FF6B35] rounded text-xs font-medium transition-colors disabled:opacity-50"
                 title="Genera piano giornaliero"
               >
                 {generating
@@ -381,7 +381,7 @@ export function OverviewSummaryPanel() {
               {/* Refresh */}
               <button
                 onClick={fetchSummary}
-                className="p-1 rounded hover:bg-zinc-800 text-zinc-600 hover:text-zinc-400 transition-colors"
+                className="p-1 rounded hover:bg-[var(--ops-surface-2)] text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors"
                 title="Aggiorna"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -390,21 +390,21 @@ export function OverviewSummaryPanel() {
           </div>
 
           {data.focus && (
-            <p className="text-xs text-zinc-400 leading-relaxed">{data.focus}</p>
+            <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{data.focus}</p>
           )}
           {!data.planExists && (
-            <p className="text-[10px] text-zinc-600 mt-1">
+            <p className="text-xs text-[var(--ops-muted)] mt-1">
               Nessun piano disponibile — usa &quot;Genera piano&quot; o esegui dal terminale:{" "}
-              <code className="text-zinc-500">npx tsx scripts/daily-standup.ts</code>
+              <code className="text-[var(--ops-fg-muted)]">npx tsx scripts/daily-standup.ts</code>
             </p>
           )}
           {data.isStale && data.planExists && (
-            <p className="text-[10px] text-amber-400/70 mt-1.5">
+            <p className="text-xs text-[var(--ops-error)] mt-2">
               ⚠ Ultimo piano generato il {data.planDate} — premi &quot;Genera piano&quot; per aggiornare a oggi
             </p>
           )}
           {generateMsg && (
-            <p className="text-[10px] mt-2 text-amber-400 bg-amber-950/30 border border-amber-800/40 rounded px-2 py-1">
+            <p className="text-xs mt-2 text-[var(--ops-error)] bg-[rgba(229,141,120,0.08)] border border-[rgba(229,141,120,0.15)] rounded px-2 py-1">
               {generateMsg}
             </p>
           )}
@@ -412,10 +412,10 @@ export function OverviewSummaryPanel() {
 
         {/* Prossime azioni con "Crea task" */}
         {data.nextActions.length > 0 && (
-          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/60 p-3">
+          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/60 p-3">
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
-              <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+              <CheckCircle2 className="w-4 h-4 text-[var(--ops-teal)]" />
+              <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">
                 Prossime azioni ({data.nextActions.length})
               </span>
             </div>
@@ -423,8 +423,8 @@ export function OverviewSummaryPanel() {
               {data.nextActions.map((action, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <PriorityDot priority={action.priority} />
-                  <span className="text-xs text-zinc-400 flex-1 leading-snug">{action.text}</span>
-                  <span className="text-[10px] text-zinc-600 shrink-0">{action.dept}</span>
+                  <span className="text-xs text-[var(--ops-fg-muted)] flex-1 leading-snug">{action.text}</span>
+                  <span className="text-xs text-[var(--ops-muted)] shrink-0">{action.dept}</span>
                   <CreateTaskButton action={action} />
                 </div>
               ))}
@@ -433,13 +433,13 @@ export function OverviewSummaryPanel() {
         )}
 
         {/* Report dipartimenti espandibili */}
-        <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/60 p-3 space-y-1.5">
+        <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/60 p-3 space-y-2">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">
               Report Dipartimenti
             </span>
             {data.masterExists && data.masterUpdated && (
-              <span className={`ml-auto text-[10px] flex items-center gap-1 ${data.masterDate && data.masterDate !== data.date ? "text-amber-500" : "text-zinc-600"}`}>
+              <span className={`ml-auto text-xs flex items-center gap-1 ${data.masterDate && data.masterDate !== data.date ? "text-[var(--ops-error)]" : "text-[var(--ops-muted)]"}`}>
                 <FileText className="w-3 h-3" />
                 master {data.masterDate && data.masterDate !== data.date
                   ? `dal ${new Date(data.masterDate).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}`
@@ -456,8 +456,8 @@ export function OverviewSummaryPanel() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <Lightbulb className="w-5 h-5 text-zinc-600 mx-auto mb-1" />
-              <p className="text-xs text-zinc-500">
+              <Lightbulb className="w-5 h-5 text-[var(--ops-muted)] mx-auto mb-1" />
+              <p className="text-xs text-[var(--ops-fg-muted)]">
                 Nessun status.json trovato nei dipartimenti.
               </p>
             </div>
@@ -466,20 +466,20 @@ export function OverviewSummaryPanel() {
 
         {/* Empty state globale */}
         {!data.masterExists && data.nextActions.length === 0 && data.deptReports.length === 0 && (
-          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/40 p-4 text-center">
-            <Lightbulb className="w-5 h-5 text-zinc-600 mx-auto mb-2" />
-            <p className="text-xs text-zinc-500">Nessun report disponibile per oggi.</p>
+          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-bg)]/60 p-4 text-center">
+            <Lightbulb className="w-5 h-5 text-[var(--ops-muted)] mx-auto mb-2" />
+            <p className="text-xs text-[var(--ops-fg-muted)]">Nessun report disponibile per oggi.</p>
           </div>
         )}
       </div>
 
       {/* ── Col 2: Note manuali ────────────────────────────────────────── */}
-      <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-zinc-900/60 p-3 flex flex-col">
+      <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/60 p-3 flex flex-col">
         <div className="flex items-center gap-2 mb-2">
-          <NotebookPen className="w-3.5 h-3.5 text-violet-400" />
-          <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Note & Priorità</span>
+          <NotebookPen className="w-4 h-4 text-[var(--ops-id-health)]" />
+          <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">Note & Priorità</span>
           {notesSaved && (
-            <span className="ml-auto text-[10px] text-teal-400 flex items-center gap-1">
+            <span className="ml-auto text-xs text-[var(--ops-teal)] flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> Salvato
             </span>
           )}
@@ -489,16 +489,16 @@ export function OverviewSummaryPanel() {
           onChange={(e) => setNotes(e.target.value)}
           onBlur={saveNotes}
           placeholder={"Scrivi qui priorità, decisioni, note per la sessione...\n\nEs:\n• Chiamare avvocato per DPA\n• Review backtest results\n• Decidere verticale Q2"}
-          className="flex-1 min-h-[160px] bg-zinc-950 border border-[var(--ops-border)] rounded-md p-2.5 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-[var(--ops-border)] transition-colors font-mono leading-relaxed"
+          className="flex-1 min-h-[160px] bg-[var(--ops-bg)] border border-[var(--ops-border)] rounded-md p-3 text-xs text-[var(--ops-fg-muted)] placeholder:text-[var(--ops-muted)] resize-none focus:outline-none focus:border-[var(--ops-border)] transition-colors font-mono leading-relaxed"
         />
         <div className="flex items-center justify-between mt-2">
-          <span className="text-[10px] text-zinc-600">
+          <span className="text-xs text-[var(--ops-muted)]">
             <Clock className="w-3 h-3 inline mr-1" />
             Salvataggio automatico al click fuori
           </span>
           <button
             onClick={saveNotes}
-            className="text-[10px] px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] transition-colors"
           >
             Salva
           </button>

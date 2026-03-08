@@ -66,7 +66,7 @@ function TierSection({ data }: { data: TierData | null }) {
 
   const tierColor: Record<string, string> = {
     intern: "text-[var(--ops-teal)]",
-    associate: "text-[#FFC832]",
+    associate: "text-[var(--ops-id-cost)]",
     partner: "text-[var(--ops-cyan)]",
   };
 
@@ -90,23 +90,23 @@ function TierSection({ data }: { data: TierData | null }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
-              <th className="text-left px-3 py-2.5 text-[var(--ops-muted)] font-medium text-[11px] uppercase tracking-wider">Agente</th>
-              <th className="text-center px-2.5 py-2.5 text-[var(--ops-muted)] font-medium text-[11px] uppercase tracking-wider">On</th>
-              <th className="text-left px-3 py-2.5 text-[var(--ops-muted)] font-medium text-[11px] uppercase tracking-wider">Modello attivo</th>
+              <th className="text-left px-3 py-3 text-[var(--ops-muted)] font-medium text-xs uppercase tracking-wider">Agente</th>
+              <th className="text-center px-3 py-3 text-[var(--ops-muted)] font-medium text-xs uppercase tracking-wider">On</th>
+              <th className="text-left px-3 py-3 text-[var(--ops-muted)] font-medium text-xs uppercase tracking-wider">Modello attivo</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(data.agents).map(([name, info]) => (
               <tr key={name} className="border-b border-[var(--ops-border-subtle)] last:border-0 hover:bg-[rgba(255,255,255,0.03)]">
-                <td className="px-3 py-2.5 font-mono text-[var(--ops-fg)] truncate max-w-[90px]">{name}</td>
-                <td className="px-2.5 py-2.5 text-center">
+                <td className="px-3 py-3 font-mono text-[var(--ops-fg)] truncate max-w-[90px]">{name}</td>
+                <td className="px-3 py-3 text-center">
                   {info.enabled ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-[var(--ops-teal)] mx-auto" />
+                    <CheckCircle className="w-4 h-4 text-[var(--ops-teal)] mx-auto" />
                   ) : (
-                    <XCircle className="w-3.5 h-3.5 text-[var(--ops-error)] mx-auto" />
+                    <XCircle className="w-4 h-4 text-[var(--ops-error)] mx-auto" />
                   )}
                 </td>
-                <td className="px-3 py-2.5 font-mono text-[var(--ops-accent)] truncate max-w-[120px]">
+                <td className="px-3 py-3 font-mono text-[var(--ops-accent)] truncate max-w-[120px]">
                   {info.chain[info.activeIndex]?.displayName ?? info.activeModel}
                 </td>
               </tr>
@@ -117,19 +117,19 @@ function TierSection({ data }: { data: TierData | null }) {
 
       {/* Fallback chains — collapsible via HTML details */}
       <details className="group">
-        <summary className="flex items-center gap-1 text-[10px] text-[var(--ops-muted)] cursor-pointer select-none hover:text-[var(--ops-fg-muted)] transition-colors list-none">
+        <summary className="flex items-center gap-1 text-xs text-[var(--ops-muted)] cursor-pointer select-none hover:text-[var(--ops-fg-muted)] transition-colors list-none">
           <ChevronRight className="w-3 h-3 group-open:rotate-90 transition-transform shrink-0" />
           Catene fallback
         </summary>
         <div className="mt-2 space-y-2 pl-1">
           {Object.entries(data.agents).map(([name, info]) => (
             <div key={name}>
-              <div className="text-[10px] text-[var(--ops-muted)] font-mono mb-1">{name}</div>
+              <div className="text-xs text-[var(--ops-muted)] font-mono mb-1">{name}</div>
               <div className="flex flex-wrap gap-1">
                 {info.chain.map((m, i) => (
                   <span
                     key={m.key}
-                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${
+                    className={`px-2 py-0.5 rounded text-xs font-mono ${
                       i === info.activeIndex
                         ? "bg-[rgba(255,107,53,0.12)] text-[var(--ops-accent)] ring-1 ring-[rgba(255,107,53,0.3)]"
                         : m.available
@@ -192,7 +192,7 @@ function EnvSection({ data }: { data: EnvVars | null }) {
       <div className="space-y-3">
         {groups.map((group) => (
           <div key={group.label} className="rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden">
-            <div className="px-3 py-2 bg-[var(--ops-surface)] text-[11px] text-[var(--ops-muted)] font-semibold uppercase tracking-wider">
+            <div className="px-3 py-2 bg-[var(--ops-surface)] text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wider">
               {group.label}
             </div>
             <div className="divide-y divide-[var(--ops-border-subtle)]">
@@ -202,9 +202,9 @@ function EnvSection({ data }: { data: EnvVars | null }) {
                   <div key={k} className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(255,255,255,0.03)]">
                     <span className="text-xs font-mono text-[var(--ops-fg-muted)] truncate">{k}</span>
                     {present ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-[var(--ops-teal)] shrink-0 ml-2" />
+                      <CheckCircle className="w-4 h-4 text-[var(--ops-teal)] shrink-0 ml-2" />
                     ) : (
-                      <XCircle className="w-3.5 h-3.5 text-[var(--ops-error)] shrink-0 ml-2" />
+                      <XCircle className="w-4 h-4 text-[var(--ops-error)] shrink-0 ml-2" />
                     )}
                   </div>
                 );
@@ -231,10 +231,10 @@ function CostsSection({ data }: { data: CostsData | null }) {
     <div className="flex-none px-4 py-3 border-b border-[var(--ops-border-subtle)] space-y-2">
       {/* Header + summary inline */}
       <div className="flex items-center gap-3 flex-wrap">
-        <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
           Costi API 7d
         </h3>
-        <div className="flex items-center gap-3 ml-auto text-[11px] font-mono">
+        <div className="flex items-center gap-3 ml-auto text-xs font-mono">
           <span className="text-[var(--ops-fg)]">{data.total > 0 ? `$${data.total.toFixed(5)}` : "$0.00"}</span>
           <span className="text-[var(--ops-muted)]">{data.calls} chiamate</span>
           <span className={`${data.fallbackRate > 0.3 ? "text-[var(--ops-error)]" : "text-[var(--ops-muted)]"}`}>{(data.fallbackRate * 100).toFixed(0)}% fallback</span>
@@ -243,11 +243,11 @@ function CostsSection({ data }: { data: CostsData | null }) {
 
       {/* Agent badges */}
       {topAgents.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {topAgents.map((e) => (
             <span
               key={e.agent}
-              className="inline-flex items-center gap-1.5 px-2 py-1 bg-[var(--ops-surface)] rounded-md text-[10px] font-mono border border-[var(--ops-border-subtle)]"
+              className="inline-flex items-center gap-2 px-2 py-1 bg-[var(--ops-surface)] rounded-md text-xs font-mono border border-[var(--ops-border-subtle)]"
             >
               <span className="text-[var(--ops-fg-muted)]">{e.agent}</span>
               <span className="text-[var(--ops-accent)]">
@@ -258,7 +258,7 @@ function CostsSection({ data }: { data: CostsData | null }) {
           ))}
         </div>
       ) : (
-        <p className="text-[10px] text-[var(--ops-muted)]">Nessuna chiamata negli ultimi 7 giorni.</p>
+        <p className="text-xs text-[var(--ops-muted)]">Nessuna chiamata negli ultimi 7 giorni.</p>
       )}
     </div>
   );
@@ -274,7 +274,7 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
       case "ok":
         return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-teal)" }} />;
       case "degraded":
-        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "#FFC832" }} />;
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-id-cost)" }} />;
       case "error":
         return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-error)" }} />;
     }
@@ -307,11 +307,11 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
   return (
     <div className="flex-none px-4 py-3 border-b border-[var(--ops-border-subtle)] space-y-2">
       <div className="flex items-center gap-3 flex-wrap">
-        <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] uppercase tracking-wider flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider flex items-center gap-2">
           <Zap className="w-3 h-3" />
           Provider Health 1h
         </h3>
-        <div className="flex items-center gap-3 ml-auto text-[11px] font-mono">
+        <div className="flex items-center gap-3 ml-auto text-xs font-mono">
           <span className="text-[var(--ops-muted)]">{sortedProviders.length} providers</span>
           {totalErrors > 0 && (
             <span className="text-[var(--ops-error)]">{totalErrors} errori</span>
@@ -319,11 +319,11 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-1.5 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
         {sortedProviders.map(([name, info]) => (
           <div
             key={name}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[10px] font-mono"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono"
             style={{
               backgroundColor: info.status === "error" ? "rgba(229, 141, 120, 0.06)" :
                                info.status === "degraded" ? "rgba(255, 200, 50, 0.04)" :
@@ -339,7 +339,7 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
               {info.recentCalls} calls
             </span>
             {info.recentErrors > 0 && (
-              <span className="shrink-0" style={{ color: info.status === "error" ? "var(--ops-error)" : "#FFC832" }}>
+              <span className="shrink-0" style={{ color: info.status === "error" ? "var(--ops-error)" : "var(--ops-id-cost)" }}>
                 {info.recentErrors} err
               </span>
             )}
@@ -347,10 +347,10 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
               {formatLastCall(info.lastCallAt)}
             </span>
             <span
-              className="shrink-0 text-[9px]"
+              className="shrink-0 text-xs"
               style={{
                 color: info.status === "ok" ? "var(--ops-teal)" :
-                       info.status === "degraded" ? "#FFC832" :
+                       info.status === "degraded" ? "var(--ops-id-cost)" :
                        "var(--ops-error)",
               }}
             >
@@ -427,7 +427,7 @@ export function DebugPanel() {
           disabled={loading}
           className="ml-auto flex items-center gap-2 px-3 h-7 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] rounded-lg text-xs text-[var(--ops-fg-muted)] transition-all duration-150 disabled:opacity-40"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Aggiorna
         </button>
       </div>

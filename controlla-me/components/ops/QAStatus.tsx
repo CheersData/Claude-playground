@@ -42,11 +42,11 @@ export function QAStatus({ board }: QAStatusProps) {
 
   return (
     <div className="bg-[var(--ops-surface)] rounded-xl p-5 border border-[var(--ops-border-subtle)]">
-      <h3 className="text-[11px] font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-3 uppercase tracking-wider">
+      <h3 className="text-xs font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-3 uppercase tracking-wider">
         <ShieldCheck className="w-4 h-4" />
         QA Status
         {lastRunAt && (
-          <span className="ml-auto text-[10px] font-normal normal-case tracking-normal text-[var(--ops-muted)]">
+          <span className="ml-auto text-xs font-normal normal-case tracking-normal text-[var(--ops-muted)]">
             {timeAgo(lastRunAt)}
           </span>
         )}
@@ -83,7 +83,7 @@ export function QAStatus({ board }: QAStatusProps) {
           {qaData.testbook && (
             <div className="flex items-center justify-between">
               <span className="text-[var(--ops-fg-muted)]">Testbook</span>
-              <span className={qaData.testbook.accuracy >= 0.75 ? "text-[var(--ops-teal)]" : "text-[#FFC832]"}>
+              <span className={qaData.testbook.accuracy >= 0.75 ? "text-[var(--ops-teal)]" : "text-[var(--ops-id-cost)]"}>
                 {(qaData.testbook.accuracy * 100).toFixed(0)}%
               </span>
             </div>

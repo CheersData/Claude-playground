@@ -139,16 +139,16 @@ export function DaemonControlPanel() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <RefreshCw className="w-5 h-5 text-zinc-500 animate-spin" />
+        <RefreshCw className="w-5 h-5 text-[var(--ops-muted)] animate-spin" />
       </div>
     );
   }
 
   if (!state) {
     return (
-      <div className="bg-red-950/30 border border-red-800/40 rounded-lg p-4">
-        <p className="text-red-400 text-xs">{error || "Impossibile caricare stato daemon"}</p>
-        <button onClick={fetchState} className="text-red-300 hover:text-white text-xs underline mt-2">
+      <div className="bg-[var(--ops-error)]/10 border border-[var(--ops-error)]/30 rounded-lg p-4">
+        <p className="text-[var(--ops-error)] text-xs">{error || "Impossibile caricare stato daemon"}</p>
+        <button onClick={fetchState} className="text-[var(--ops-error)] hover:text-[var(--ops-fg)] text-xs underline mt-2">
           Riprova
         </button>
       </div>
@@ -161,28 +161,28 @@ export function DaemonControlPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Zap className="w-4 h-4 text-orange-400" />
-          <h2 className="text-sm font-semibold text-white">CME Daemon</h2>
+        <div className="flex items-center gap-3">
+          <Zap className="w-4 h-4 text-[var(--ops-accent)]" />
+          <h2 className="text-sm font-semibold text-[var(--ops-fg)]">CME Daemon</h2>
         </div>
         <button
           onClick={fetchState}
-          className="text-zinc-500 hover:text-white transition-colors p-1"
+          className="text-[var(--ops-muted)] hover:text-[var(--ops-fg)] transition-colors p-1"
           title="Aggiorna"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Errore */}
       {error && (
-        <div className="bg-red-950/30 border border-red-800/40 rounded-lg px-3 py-2 text-red-400 text-xs">
+        <div className="bg-[var(--ops-error)]/10 border border-[var(--ops-error)]/30 rounded-lg px-3 py-2 text-[var(--ops-error)] text-xs">
           {error}
         </div>
       )}
 
       {/* Status card */}
-      <div className="bg-zinc-900/80 border border-[var(--ops-border-subtle)] rounded-lg p-4 space-y-4">
+      <div className="bg-[var(--ops-surface)]/80 border border-[var(--ops-border-subtle)] rounded-lg p-4 space-y-4">
         {/* Power toggle + status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -190,17 +190,17 @@ export function DaemonControlPanel() {
             <div
               className={`w-2.5 h-2.5 rounded-full ${
                 state.running
-                  ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)] animate-pulse"
+                  ? "bg-[var(--ops-teal)] shadow-[0_0_8px_rgba(93,228,199,0.5)] animate-pulse"
                   : state.enabled
-                    ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.3)]"
-                    : "bg-zinc-600"
+                    ? "bg-[var(--ops-id-cost)] shadow-[0_0_8px_rgba(255,200,50,0.3)]"
+                    : "bg-[var(--ops-border)]"
               }`}
             />
             <div>
-              <p className="text-xs font-medium text-white">
+              <p className="text-xs font-medium text-[var(--ops-fg)]">
                 {state.running ? "In esecuzione" : state.enabled ? "Attivo — in attesa" : "Disabilitato"}
               </p>
-              <p className="text-[10px] text-zinc-500">
+              <p className="text-xs text-[var(--ops-muted)]">
                 {state.running
                   ? "Sessione Claude in corso..."
                   : state.enabled
@@ -216,8 +216,8 @@ export function DaemonControlPanel() {
             disabled={saving}
             className={`relative w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
               state.enabled
-                ? "bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30"
-                : "bg-zinc-800 border border-[var(--ops-border)] text-zinc-500 hover:text-white hover:border-[var(--ops-border)]"
+                ? "bg-[var(--ops-accent)]/20 border border-[var(--ops-accent)]/40 text-[var(--ops-accent)] hover:bg-[var(--ops-accent)]/30"
+                : "bg-[var(--ops-surface-2)] border border-[var(--ops-border)] text-[var(--ops-muted)] hover:text-[var(--ops-fg)] hover:border-[var(--ops-border)]"
             } ${saving ? "opacity-50 cursor-wait" : ""}`}
             title={state.enabled ? "Disabilita daemon" : "Abilita daemon"}
           >
@@ -228,11 +228,11 @@ export function DaemonControlPanel() {
         {/* Interval slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-zinc-500" />
-              <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Frequenza</span>
+            <div className="flex items-center gap-2">
+              <Clock className="w-3 h-3 text-[var(--ops-muted)]" />
+              <span className="text-xs text-[var(--ops-muted)] uppercase tracking-wider">Frequenza</span>
             </div>
-            <span className="text-xs font-mono text-white">{displayInterval} min</span>
+            <span className="text-xs font-mono text-[var(--ops-fg)]">{displayInterval} min</span>
           </div>
 
           <input
@@ -253,13 +253,13 @@ export function DaemonControlPanel() {
               }
             }}
             disabled={saving}
-            className="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orange-500
+            className="w-full h-1 bg-[var(--ops-surface-2)] rounded-lg appearance-none cursor-pointer accent-[var(--ops-accent)]
               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:shadow-md
-              [&::-webkit-slider-thumb]:hover:bg-orange-400"
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--ops-accent)] [&::-webkit-slider-thumb]:shadow-md
+              [&::-webkit-slider-thumb]:hover:bg-[var(--ops-accent)]"
           />
 
-          <div className="flex justify-between text-[9px] text-zinc-600">
+          <div className="flex justify-between text-xs text-[var(--ops-muted)]">
             <span>5min</span>
             <span>30min</span>
             <span>60min</span>
@@ -271,46 +271,46 @@ export function DaemonControlPanel() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2">
         {/* Ultimo run */}
-        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Timer className="w-3 h-3 text-zinc-500" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Ultimo run</span>
+        <div className="bg-[var(--ops-surface)]/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Timer className="w-3 h-3 text-[var(--ops-muted)]" />
+            <span className="text-xs text-[var(--ops-muted)] uppercase tracking-wider">Ultimo run</span>
           </div>
-          <p className="text-xs font-mono text-white">
+          <p className="text-xs font-mono text-[var(--ops-fg)]">
             {state.lastRun ? formatTimeAgo(state.lastRun) : "—"}
           </p>
         </div>
 
         {/* Durata */}
-        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Clock className="w-3 h-3 text-zinc-500" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Durata</span>
+        <div className="bg-[var(--ops-surface)]/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-3 h-3 text-[var(--ops-muted)]" />
+            <span className="text-xs text-[var(--ops-muted)] uppercase tracking-wider">Durata</span>
           </div>
-          <p className="text-xs font-mono text-white">
+          <p className="text-xs font-mono text-[var(--ops-fg)]">
             {state.lastDurationMs !== null ? formatDuration(state.lastDurationMs) : "—"}
           </p>
         </div>
 
         {/* Exit code */}
-        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
+        <div className="bg-[var(--ops-surface)]/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
             {state.lastExitCode === 0 ? (
-              <CheckCircle className="w-3 h-3 text-green-500" />
+              <CheckCircle className="w-3 h-3 text-[var(--ops-teal)]" />
             ) : state.lastExitCode !== null ? (
-              <XCircle className="w-3 h-3 text-red-500" />
+              <XCircle className="w-3 h-3 text-[var(--ops-error)]" />
             ) : (
-              <AlertTriangle className="w-3 h-3 text-zinc-500" />
+              <AlertTriangle className="w-3 h-3 text-[var(--ops-muted)]" />
             )}
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Exit code</span>
+            <span className="text-xs text-[var(--ops-muted)] uppercase tracking-wider">Exit code</span>
           </div>
           <p
             className={`text-xs font-mono ${
               state.lastExitCode === 0
-                ? "text-green-400"
+                ? "text-[var(--ops-teal)]"
                 : state.lastExitCode !== null
-                  ? "text-red-400"
-                  : "text-white"
+                  ? "text-[var(--ops-error)]"
+                  : "text-[var(--ops-fg)]"
             }`}
           >
             {state.lastExitCode !== null ? state.lastExitCode : "—"}
@@ -318,32 +318,32 @@ export function DaemonControlPanel() {
         </div>
 
         {/* Total runs */}
-        <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Play className="w-3 h-3 text-zinc-500" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Totale run</span>
+        <div className="bg-[var(--ops-surface)]/60 border border-[var(--ops-border-subtle)]/60 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Play className="w-3 h-3 text-[var(--ops-muted)]" />
+            <span className="text-xs text-[var(--ops-muted)] uppercase tracking-wider">Totale run</span>
           </div>
-          <p className="text-xs font-mono text-white">{state.totalRuns}</p>
+          <p className="text-xs font-mono text-[var(--ops-fg)]">{state.totalRuns}</p>
         </div>
       </div>
 
       {/* Log recenti */}
       {state.logs.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <FileText className="w-3 h-3 text-zinc-500" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Log recenti</span>
+          <div className="flex items-center gap-2">
+            <FileText className="w-3 h-3 text-[var(--ops-muted)]" />
+            <span className="text-xs text-[var(--ops-muted)] uppercase tracking-wider">Log recenti</span>
           </div>
-          <div className="bg-zinc-900/60 border border-[var(--ops-border-subtle)]/60 rounded-lg divide-y divide-zinc-800/60">
+          <div className="bg-[var(--ops-surface)]/60 border border-[var(--ops-border-subtle)]/60 rounded-lg divide-y divide-[var(--ops-border)]/60">
             {state.logs.slice(0, 5).map((log) => (
               <div key={log.name} className="px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-3 h-3 text-zinc-600" />
-                  <span className="text-[11px] text-zinc-300 font-mono">
+                  <FileText className="w-3 h-3 text-[var(--ops-muted)]" />
+                  <span className="text-xs text-[var(--ops-fg-muted)] font-mono">
                     {log.name.replace(".md", "")}
                   </span>
                 </div>
-                <span className="text-[10px] text-zinc-600">
+                <span className="text-xs text-[var(--ops-muted)]">
                   {(log.size / 1024).toFixed(1)}KB
                 </span>
               </div>
@@ -353,7 +353,7 @@ export function DaemonControlPanel() {
       )}
 
       {/* Footer info */}
-      <div className="text-[10px] text-zinc-600 text-center space-y-0.5">
+      <div className="text-xs text-[var(--ops-muted)] text-center space-y-0.5">
         {state.updatedAt && (
           <p>
             Aggiornato {formatTimeAgo(state.updatedAt)} da {state.updatedBy}

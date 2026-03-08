@@ -40,7 +40,7 @@ export function CostSummary({ costs, days = 7 }: CostSummaryProps) {
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {Object.entries(costs.byProvider)
               .sort(([, a], [, b]) => b.cost - a.cost)
               .map(([provider, info]) => (

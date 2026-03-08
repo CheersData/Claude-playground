@@ -19,7 +19,8 @@ import {
   ChevronDown, ChevronRight, ClipboardList,
   Layers, Shield, XOctagon,
 } from "lucide-react";
-import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
+// NOTE: getConsoleAuthHeaders() not used here — EventSource cannot send
+// custom headers. Token is read directly from sessionStorage (line ~553).
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ function useRelativeTime(connectedAt: number | null) {
 function ExpandDetail({ line }: { line: LogLine }) {
   return (
     <div className="px-3 pb-3 pt-1 bg-[var(--ops-surface)] border-b border-[var(--ops-border-subtle)]">
-      <div className="text-[10px] font-mono space-y-1">
+      <div className="text-xs font-mono space-y-1">
         {Object.entries(line.meta ?? {}).map(([k, v]) => (
           <div key={k} className="flex gap-2">
             <span className="shrink-0 w-24" style={{ color: 'var(--ops-muted)' }}>{k}</span>
@@ -159,7 +160,7 @@ function AiRow({
         </span>
 
         {/* Icon */}
-        <Bot className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--ops-rose)' }} />
+        <Bot className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ops-rose)' }} />
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -172,15 +173,15 @@ function AiRow({
               {modelShort || m.model}
             </span>
             {m.provider && (
-              <span className="text-[10px] px-1.5 py-0 rounded border" style={{ backgroundColor: 'var(--ops-surface)', color: 'var(--ops-muted)', borderColor: 'var(--ops-border)' }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: 'var(--ops-surface)', color: 'var(--ops-muted)', borderColor: 'var(--ops-border)' }}>
                 {m.provider}
               </span>
             )}
             {m.sessionType && (
-              <span className="text-[10px]" style={{ color: 'var(--ops-muted)' }}>{`{${m.sessionType}}`}</span>
+              <span className="text-xs" style={{ color: 'var(--ops-muted)' }}>{`{${m.sessionType}}`}</span>
             )}
             {m.fallback && (
-              <span className="text-[10px] px-1.5 py-0 rounded border" style={{ backgroundColor: 'rgba(255, 107, 53, 0.15)', color: 'var(--ops-accent)', borderColor: 'rgba(255, 107, 53, 0.3)' }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: 'rgba(255, 107, 53, 0.15)', color: 'var(--ops-accent)', borderColor: 'rgba(255, 107, 53, 0.3)' }}>
                 fallback
               </span>
             )}
@@ -201,7 +202,7 @@ function AiRow({
         </div>
 
         {/* Absolute timestamp — always visible */}
-        <span className="font-mono text-[10px] shrink-0 mt-0.5" style={{ color: 'var(--ops-muted)' }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: 'var(--ops-muted)' }}>
           {line.timestamp}
         </span>
       </div>
@@ -248,8 +249,8 @@ function TradeRow({
 
         {/* Icon */}
         {isKillSwitch
-          ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--ops-error)' }} />
-          : <TrendingUp className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--ops-teal)' }} />
+          ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ops-error)' }} />
+          : <TrendingUp className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ops-teal)' }} />
         }
 
         {/* Message */}
@@ -265,7 +266,7 @@ function TradeRow({
         </span>
 
         {/* Absolute timestamp — always visible */}
-        <span className="font-mono text-[10px] shrink-0 mt-0.5" style={{ color: 'var(--ops-muted)' }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: 'var(--ops-muted)' }}>
           {line.timestamp}
         </span>
       </div>
@@ -286,7 +287,7 @@ function SystemRow({
   return (
     <>
       <div
-        className="flex items-center gap-3 px-3 py-1.5 border-b border-[var(--ops-border-subtle)] cursor-pointer hover:bg-[var(--ops-surface)]/30"
+        className="flex items-center gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] cursor-pointer hover:bg-[var(--ops-surface)]/30"
         onClick={onToggle}
       >
         <span className="shrink-0" style={{ color: 'var(--ops-border)' }}>
@@ -298,7 +299,7 @@ function SystemRow({
         <span className="font-mono text-xs shrink-0 w-14 tabular-nums" style={{ color: 'var(--ops-border)' }}>{relTime}</span>
         <Activity className="w-3 h-3 shrink-0" style={{ color: 'var(--ops-muted)' }} />
         <span className="font-mono text-xs flex-1" style={{ color: 'var(--ops-muted)' }}>{line.message}</span>
-        <span className="font-mono text-[10px] shrink-0" style={{ color: 'var(--ops-border)' }}>{line.timestamp}</span>
+        <span className="font-mono text-xs shrink-0" style={{ color: 'var(--ops-border)' }}>{line.timestamp}</span>
       </div>
 
       {expanded && <ExpandDetail line={line} />}
@@ -320,7 +321,7 @@ function TaskRow({
     in_progress: "var(--ops-accent)",
     done: "var(--ops-teal)",
     blocked: "var(--ops-error)",
-    review: "#FFC832",
+    review: "var(--ops-id-cost)",
   };
   const color = statusColors[m.taskStatus ?? ""] ?? "var(--ops-muted)";
   const priorityBadge = m.priority === "high" || m.priority === "critical";
@@ -340,19 +341,19 @@ function TaskRow({
         <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color }}>
           {relTime}
         </span>
-        <ClipboardList className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color }} />
+        <ClipboardList className="w-4 h-4 shrink-0 mt-0.5" style={{ color }} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-xs font-semibold" style={{ color }}>
               {m.taskStatus?.toUpperCase() ?? "TASK"}
             </span>
             {m.department && (
-              <span className="text-[10px] px-1.5 py-0 rounded border" style={{ backgroundColor: "var(--ops-surface)", color: "var(--ops-muted)", borderColor: "var(--ops-border)" }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "var(--ops-surface)", color: "var(--ops-muted)", borderColor: "var(--ops-border)" }}>
                 {m.department}
               </span>
             )}
             {priorityBadge && (
-              <span className="text-[10px] px-1.5 py-0 rounded border" style={{ backgroundColor: "rgba(229, 141, 120, 0.15)", color: "var(--ops-error)", borderColor: "rgba(229, 141, 120, 0.3)" }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "rgba(229, 141, 120, 0.15)", color: "var(--ops-error)", borderColor: "rgba(229, 141, 120, 0.3)" }}>
                 {m.priority}
               </span>
             )}
@@ -361,7 +362,7 @@ function TaskRow({
             {line.message.replace(/^\[.*?\]\s*/, "")}
           </div>
         </div>
-        <span className="font-mono text-[10px] shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -383,7 +384,7 @@ function PipelineRow({
     classifier: "#4ECDC4",
     analyzer: "#FF6B6B",
     investigator: "#A78BFA",
-    advisor: "#FFC832",
+    advisor: "var(--ops-id-cost)",
   };
   const color = phaseColors[m.phase ?? ""] ?? "var(--ops-cyan)";
   const durationSec = m.durationMs ? `${(m.durationMs / 1000).toFixed(1)}s` : null;
@@ -404,7 +405,7 @@ function PipelineRow({
         <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color }}>
           {relTime}
         </span>
-        <Layers className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color }} />
+        <Layers className="w-4 h-4 shrink-0 mt-0.5" style={{ color }} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-xs font-semibold" style={{ color }}>
@@ -416,7 +417,7 @@ function PipelineRow({
               </span>
             )}
             {m.fallback && (
-              <span className="text-[10px] px-1.5 py-0 rounded border" style={{ backgroundColor: "rgba(255, 107, 53, 0.15)", color: "var(--ops-accent)", borderColor: "rgba(255, 107, 53, 0.3)" }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "rgba(255, 107, 53, 0.15)", color: "var(--ops-accent)", borderColor: "rgba(255, 107, 53, 0.3)" }}>
                 fallback
               </span>
             )}
@@ -427,7 +428,7 @@ function PipelineRow({
             {m.provider && <span style={{ color: "var(--ops-muted)" }}>{m.provider}</span>}
           </div>
         </div>
-        <span className="font-mono text-[10px] shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -454,14 +455,14 @@ function RateLimitRow({
         <span className="shrink-0 mt-0.5" style={{ color: "var(--ops-border)" }}>
           {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </span>
-        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "#FFC832" }}>
+        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "var(--ops-id-cost)" }}>
           {relTime}
         </span>
-        <Shield className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "#FFC832" }} />
+        <Shield className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--ops-id-cost)" }} />
         <span className="font-mono text-xs flex-1 leading-snug pt-0.5" style={{ color: "var(--ops-accent)" }}>
           {line.message}
         </span>
-        <span className="font-mono text-[10px] shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -491,11 +492,11 @@ function ErrorRow({
         <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "var(--ops-error)" }}>
           {relTime}
         </span>
-        <XOctagon className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "var(--ops-error)" }} />
+        <XOctagon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--ops-error)" }} />
         <span className="font-mono text-xs flex-1 leading-snug pt-0.5 font-semibold" style={{ color: "var(--ops-error)" }}>
           {line.message}
         </span>
-        <span className="font-mono text-[10px] shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -517,7 +518,7 @@ function FilterPill({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono border transition-all duration-150 ${
+      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono border transition-all duration-150 ${
         active
           ? "bg-[var(--ops-surface-2)] border-[var(--ops-border)] text-[var(--ops-fg)]"
           : "bg-transparent border-[var(--ops-border-subtle)] text-[var(--ops-muted)] hover:border-[var(--ops-border)] hover:text-[var(--ops-fg-muted)]"
@@ -549,8 +550,12 @@ export function LiveConsolePanel() {
     if (esRef.current) { esRef.current.close(); esRef.current = null; }
     setStatus("connecting");
 
-    const headers = getConsoleAuthHeaders() as Record<string, string>;
-    const token = headers["x-console-token"] ?? "";
+    // EventSource cannot send custom headers — pass token via query param.
+    // getConsoleAuthHeaders() returns { Authorization: "Bearer <token>" },
+    // so we read the raw token directly from sessionStorage.
+    const token = typeof window !== "undefined"
+      ? (sessionStorage.getItem("lexmea-token") ?? "")
+      : "";
     const url = `/api/debug/stream?t=${encodeURIComponent(token)}`;
     const es = new EventSource(url);
     esRef.current = es;
@@ -632,22 +637,22 @@ export function LiveConsolePanel() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] shrink-0">
         <div className="flex items-center gap-2">
-          <Terminal className="w-3.5 h-3.5 text-[var(--ops-fg-muted)]" />
+          <Terminal className="w-4 h-4 text-[var(--ops-fg-muted)]" />
           <span className="text-xs font-semibold text-[var(--ops-fg)]">Console Live</span>
           {/* Status */}
           <span className="flex items-center gap-1">
             {status === "connected" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-teal)] animate-pulse" />}
-            {status === "connecting" && <Loader2 className="w-3 h-3 text-[#FFC832] animate-spin" />}
+            {status === "connecting" && <Loader2 className="w-3 h-3 text-[var(--ops-id-cost)] animate-spin" />}
             {status === "disconnected" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-muted)]" />}
-            <span className={`text-[10px] ${
+            <span className={`text-xs ${
               status === "connected" ? "text-[var(--ops-teal)]" :
-              status === "connecting" ? "text-[#FFC832]" : "text-[var(--ops-muted)]"
+              status === "connecting" ? "text-[var(--ops-id-cost)]" : "text-[var(--ops-muted)]"
             }`}>{status}</span>
           </span>
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-3 font-mono text-[10px]">
+        <div className="flex items-center gap-3 font-mono text-xs">
           {aiLines.length > 0 && (
             <span style={{ color: 'var(--ops-rose)' }}>
               <Bot className="w-3 h-3 inline mr-1" />
@@ -683,7 +688,7 @@ export function LiveConsolePanel() {
       </div>
 
       {/* ── Filter bar ── */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/40 shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/40 shrink-0 flex-wrap">
         <FilterPill
           active={sourceFilter === "all"}
           label="Tutti"
@@ -772,13 +777,13 @@ export function LiveConsolePanel() {
 
       {/* ── Scroll indicator ── */}
       {!autoScroll && filteredLines.length > 0 && (
-        <div className="shrink-0 px-3 py-1.5 border-t border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
+        <div className="shrink-0 px-3 py-2 border-t border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
           <button
             onClick={() => {
               setAutoScroll(true);
               if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight;
             }}
-            className="text-[10px] text-[#FFC832] hover:text-[var(--ops-fg)] transition-colors"
+            className="text-xs text-[var(--ops-id-cost)] hover:text-[var(--ops-fg)] transition-colors"
           >
             {"\u2193"} Scroll disabilitato — clicca per tornare in fondo
           </button>

@@ -164,7 +164,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
 
       <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="relative w-full max-w-4xl h-[90vh] bg-zinc-950 border border-[var(--ops-border-subtle)] rounded-2xl shadow-2xl flex flex-col pointer-events-auto"
+          className="relative w-full max-w-4xl h-[90vh] bg-[var(--ops-bg)] border border-[var(--ops-border-subtle)] rounded-2xl shadow-2xl flex flex-col pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -172,7 +172,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
             <h2 className="text-lg font-semibold text-white">Task Board</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors"
+              className="p-2 rounded-lg text-[var(--ops-muted)] hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -185,10 +185,10 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                 <button
                   key={tab.key}
                   onClick={() => setActiveStatus(tab.key)}
-                  className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                  className={`text-xs px-3 py-2 rounded-full font-medium transition-colors ${
                     activeStatus === tab.key
                       ? "bg-[#FF6B35] text-white"
-                      : "bg-[var(--ops-surface-2)] text-zinc-400 hover:text-white hover:bg-zinc-700"
+                      : "bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] hover:text-white hover:bg-[var(--ops-hover)]"
                   }`}
                 >
                   {tab.label}
@@ -197,21 +197,21 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
             </div>
 
             <div className="ml-auto relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--ops-muted)]" />
               <input
                 type="text"
                 placeholder="Cerca task..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg pl-9 pr-4 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[var(--ops-border)] w-52"
+                className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)] w-52"
               />
             </div>
           </div>
 
           {/* Archive filters — visible only on "done" tab */}
           {isArchive && (
-            <div className="px-6 py-2.5 border-b border-[var(--ops-border-subtle)] flex items-center gap-3 flex-shrink-0 flex-wrap bg-zinc-950/60">
-              <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
+            <div className="px-6 py-3 border-b border-[var(--ops-border-subtle)] flex items-center gap-3 flex-shrink-0 flex-wrap bg-[var(--ops-bg)]/60">
+              <span className="text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide flex-shrink-0">
                 Archivio
               </span>
 
@@ -219,7 +219,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg text-xs text-zinc-300 px-2 py-1.5 focus:outline-none focus:border-[var(--ops-border)] cursor-pointer"
+                className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg text-xs text-[var(--ops-fg-muted)] px-2 py-2 focus:outline-none focus:border-[var(--ops-border)] cursor-pointer"
               >
                 <option value="all">Tutti i dipartimenti</option>
                 {allDepts.map((dept) => (
@@ -234,7 +234,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                 <div className="relative">
                   <button
                     onClick={() => setTagDropdownOpen((o) => !o)}
-                    className="flex items-center gap-1.5 bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg text-xs text-zinc-300 px-2.5 py-1.5 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg text-xs text-[var(--ops-fg-muted)] px-3 py-2 hover:bg-[var(--ops-hover)] transition-colors cursor-pointer"
                   >
                     {selectedTags.length === 0
                       ? "Tutti i tag"
@@ -242,15 +242,15 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                     <ChevronDown className={`w-3 h-3 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`} />
                   </button>
                   {tagDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-xl shadow-xl py-1.5 min-w-[180px] max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-xl shadow-xl py-2 min-w-[180px] max-h-60 overflow-y-auto">
                       {allTags.map((tag) => {
                         const active = selectedTags.includes(tag);
                         return (
                           <button
                             key={tag}
                             onClick={() => toggleTag(tag)}
-                            className={`w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--ops-surface-2)] ${
-                              active ? "text-white" : "text-zinc-400"
+                            className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-[var(--ops-surface-2)] ${
+                              active ? "text-white" : "text-[var(--ops-fg-muted)]"
                             }`}
                           >
                             <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${
@@ -282,12 +282,12 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
                       title={`Rimuovi filtro "${tag}"`}
                     >
                       <TagBadge tag={tag} size="xs" />
-                      <X className="w-2.5 h-2.5 text-zinc-500 group-hover:text-zinc-300 -ml-0.5" />
+                      <X className="w-2.5 h-2.5 text-[var(--ops-muted)] group-hover:text-[var(--ops-fg-muted)] -ml-0.5" />
                     </button>
                   ))}
                   <button
                     onClick={() => setSelectedTags([])}
-                    className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer underline"
+                    className="text-xs text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors cursor-pointer underline"
                   >
                     Pulisci
                   </button>
@@ -298,7 +298,7 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
 
           {/* Count */}
           <div className="px-6 py-2 flex-shrink-0">
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-[var(--ops-muted)]">
               {loading ? "Caricamento..." : `${filtered.length} task`}
             </span>
           </div>
@@ -307,12 +307,12 @@ export function TaskBoardFullscreen({ initialStatus = "all", onClose }: TaskBoar
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             {loading ? (
               <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+                <Loader2 className="w-5 h-5 text-[var(--ops-muted)] animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-zinc-500 text-sm text-center py-12">Nessun task trovato.</p>
+              <p className="text-[var(--ops-muted)] text-sm text-center py-12">Nessun task trovato.</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {filtered.map((task) => (
                   <FullscreenTaskRow
                     key={task.id}
@@ -345,12 +345,12 @@ function FullscreenTaskRow({ task, onClick }: { task: TaskItem; onClick: () => v
       onClick={onClick}
       className="w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-[var(--ops-surface)] hover:bg-[var(--ops-surface-2)] transition-colors group border border-[var(--ops-border-subtle)]/50 hover:border-[var(--ops-border)]"
     >
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-[var(--ops-muted)]"}`} />
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${PRIORITY_DOTS[task.priority] ?? "bg-[var(--ops-muted)]"}`} />
 
-      {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" />; })()}
+      {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0 mt-0.5" />; })()}
 
       <span className="flex-1 min-w-0">
-        <span className="text-sm text-zinc-200 block truncate group-hover:text-white">
+        <span className="text-sm text-[var(--ops-fg)] block truncate group-hover:text-white">
           {task.title}
         </span>
         {visibleTags.length > 0 && (
@@ -362,15 +362,15 @@ function FullscreenTaskRow({ task, onClick }: { task: TaskItem; onClick: () => v
         )}
       </span>
 
-      <span className="text-xs text-zinc-500 hidden md:block truncate max-w-[100px] flex-shrink-0 mt-0.5">
-        {task.assignedTo ?? <span className="italic text-zinc-700">—</span>}
+      <span className="text-xs text-[var(--ops-muted)] hidden md:block truncate max-w-[100px] flex-shrink-0 mt-0.5">
+        {task.assignedTo ?? <span className="italic text-[var(--ops-muted)]">—</span>}
       </span>
 
-      <span className="text-xs text-zinc-500 hidden sm:block flex-shrink-0 mt-0.5">
+      <span className="text-xs text-[var(--ops-muted)] hidden sm:block flex-shrink-0 mt-0.5">
         {DEPT_LABELS[task.department] ?? task.department}
       </span>
 
-      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[task.status] ?? "bg-[var(--ops-surface-2)] text-zinc-400"}`}>
+      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[task.status] ?? "bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)]"}`}>
         {task.status.replace("_", " ")}
       </span>
     </button>

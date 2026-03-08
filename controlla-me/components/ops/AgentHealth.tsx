@@ -49,7 +49,7 @@ function getStatusLabel(agent: AgentInfo): string {
 export function AgentHealth({ agents }: AgentHealthProps) {
   return (
     <div className="bg-[var(--ops-surface)] rounded-xl p-6 border border-[var(--ops-border-subtle)]">
-      <h3 className="text-sm font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-4 uppercase tracking-wider text-[11px]">
+      <h3 className="text-sm font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-4 uppercase tracking-wider text-xs">
         <Activity className="w-4 h-4" />
         Agent Health
       </h3>

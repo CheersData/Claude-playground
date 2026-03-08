@@ -58,19 +58,19 @@ function ScoreBadge({ score }: { score: number }) {
 
 function StatusIcon({ status }: { status: TestSpec["status"] }) {
   if (status === "pass")
-    return <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />;
+    return <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />;
   if (status === "fail")
-    return <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />;
-  return <Clock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />;
+    return <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />;
+  return <Clock className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />;
 }
 
 function TypeBadge({ type }: { type: "e2e" | "unit" }) {
   return type === "e2e" ? (
-    <span className="text-[10px] font-mono bg-violet-500/10 text-violet-400 border border-violet-500/20 px-1.5 py-0.5 rounded">
+    <span className="text-xs font-mono bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded">
       E2E
     </span>
   ) : (
-    <span className="text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded">
+    <span className="text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
       UNIT
     </span>
   );
@@ -80,7 +80,7 @@ function PriorityDot({ priority }: { priority: "high" | "medium" | "low" }) {
   const colors = {
     high: "bg-orange-400",
     medium: "bg-yellow-400",
-    low: "bg-zinc-500",
+    low: "bg-[var(--ops-muted)]",
   };
   return <span className={`w-2 h-2 rounded-full flex-shrink-0 ${colors[priority]}`} />;
 }
@@ -94,30 +94,30 @@ function SpecRow({ spec }: { spec: TestSpec }) {
     <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800/40 transition-colors text-left group"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--ops-surface-2)]/40 transition-colors text-left group"
       >
         <StatusIcon status={spec.status} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <TypeBadge type={spec.type} />
-            <span className="text-sm text-zinc-200 font-medium group-hover:text-white transition-colors truncate">
+            <span className="text-sm text-[var(--ops-fg)] font-medium group-hover:text-white transition-colors truncate">
               {spec.name}
             </span>
           </div>
-          <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">{spec.file}</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5 font-mono">{spec.file}</p>
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right hidden sm:block">
-            <p className="text-xs text-zinc-400">{spec.testCount} test</p>
-            <p className="text-[10px] text-zinc-600">{spec.category}</p>
+            <p className="text-xs text-[var(--ops-fg-muted)]">{spec.testCount} test</p>
+            <p className="text-xs text-[var(--ops-muted)]">{spec.category}</p>
           </div>
           <ScoreBadge score={spec.score} />
           {expanded ? (
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-600" />
+            <ChevronDown className="w-4 h-4 text-[var(--ops-muted)]" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
+            <ChevronRight className="w-4 h-4 text-[var(--ops-muted)]" />
           )}
         </div>
       </button>
@@ -131,22 +131,22 @@ function SpecRow({ spec }: { spec: TestSpec }) {
             transition={{ duration: 0.15 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 pt-3 border-t border-[var(--ops-border-subtle)] bg-zinc-900/50 space-y-3">
+            <div className="px-4 pb-4 pt-3 border-t border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/50 space-y-3">
               {/* Comment */}
-              <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
+              <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
                 {spec.comment}
               </p>
 
               {/* Coverage areas */}
               <div>
-                <p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1.5 font-medium">
+                <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
                   Aree coperte
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {spec.coverage.map((area, i) => (
                     <span
                       key={i}
-                      className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-[var(--ops-border-subtle)]"
+                      className="text-xs bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] px-2 py-0.5 rounded border border-[var(--ops-border-subtle)]"
                     >
                       {area}
                     </span>
@@ -214,7 +214,7 @@ export function QASuitePanel() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-zinc-500 gap-3">
+      <div className="flex items-center justify-center py-16 text-[var(--ops-muted)] gap-3">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">Caricamento suite test...</span>
       </div>
@@ -246,39 +246,39 @@ export function QASuitePanel() {
             <FlaskConical className="w-4 h-4 text-[#FF6B35]" />
             Suite Test — Quality Assurance
           </h3>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">
             {summary.total} spec · {summary.totalTests} test totali
           </p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors disabled:opacity-50"
+          className="p-2 rounded-lg bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] transition-colors disabled:opacity-50"
           aria-label="Aggiorna"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
           <p className="text-xl font-bold text-white">{summary.totalTests}</p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Test totali</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Test totali</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.passCount > 0 ? "text-green-400" : "text-zinc-600"}`}>
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.passCount > 0 ? "text-green-400" : "text-[var(--ops-muted)]"}`}>
             {summary.passCount}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Suite pass</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Suite pass</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.unknownCount > 0 ? "text-zinc-400" : "text-zinc-600"}`}>
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.unknownCount > 0 ? "text-[var(--ops-fg-muted)]" : "text-[var(--ops-muted)]"}`}>
             {summary.unknownCount}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Non eseguiti</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Non eseguiti</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
           <p
             className={`text-xl font-bold ${
               summary.avgScore >= 9
@@ -290,20 +290,20 @@ export function QASuitePanel() {
           >
             {summary.avgScore.toFixed(1)}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Score medio</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Score medio</p>
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-1 p-1 bg-zinc-800/50 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-[var(--ops-surface-2)]/50 rounded-lg w-fit">
         {(["e2e", "unit"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded text-xs font-medium transition-colors ${
+            className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
               activeTab === tab
-                ? "bg-zinc-700 text-white"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-[var(--ops-hover)] text-white"
+                : "text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)]"
             }`}
           >
             {tab === "e2e" ? `E2E Playwright (${summary.e2e})` : `Unit Vitest (${summary.unit})`}
@@ -322,8 +322,8 @@ export function QASuitePanel() {
       <div className="border-t border-[var(--ops-border-subtle)] pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-zinc-300 font-medium">Genera Nuove Domande di Test</p>
-            <p className="text-[10px] text-zinc-600 mt-0.5">
+            <p className="text-xs text-[var(--ops-fg-muted)] font-medium">Genera Nuove Domande di Test</p>
+            <p className="text-xs text-[var(--ops-muted)] mt-0.5">
               Suggerimenti basati su gap di copertura identificati
             </p>
           </div>
@@ -333,9 +333,9 @@ export function QASuitePanel() {
             className="flex items-center gap-2 px-4 py-2 bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 border border-[#FF6B35]/30 text-[#FF6B35] rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingSuggestions ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-4 h-4" />
             )}
             Genera Domande
           </button>
@@ -350,36 +350,36 @@ export function QASuitePanel() {
               className="space-y-2"
             >
               {suggestionsNote && (
-                <p className="text-[10px] text-zinc-600 italic">{suggestionsNote}</p>
+                <p className="text-xs text-[var(--ops-muted)] italic">{suggestionsNote}</p>
               )}
               {suggestions.map((sug) => {
                 const targetSpec = data.specs.find((s) => s.id === sug.target);
                 return (
                   <div
                     key={sug.id}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-zinc-800/40 border border-[var(--ops-border-subtle)]"
+                    className="flex items-start gap-3 px-3 py-3 rounded-lg bg-[var(--ops-surface-2)]/40 border border-[var(--ops-border-subtle)]"
                   >
                     <PriorityDot priority={sug.priority} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {targetSpec && (
-                          <span className="text-[10px] font-mono text-zinc-500 bg-zinc-700/50 px-1.5 py-0.5 rounded">
+                          <span className="text-xs font-mono text-[var(--ops-muted)] bg-[var(--ops-hover)]/50 px-2 py-0.5 rounded">
                             {targetSpec.file}
                           </span>
                         )}
                         <span
-                          className={`text-[10px] font-medium ${
+                          className={`text-xs font-medium ${
                             sug.priority === "high"
                               ? "text-orange-400"
                               : sug.priority === "medium"
                               ? "text-yellow-400"
-                              : "text-zinc-500"
+                              : "text-[var(--ops-muted)]"
                           }`}
                         >
                           {sug.priority}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{sug.description}</p>
+                      <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{sug.description}</p>
                     </div>
                   </div>
                 );
@@ -391,7 +391,7 @@ export function QASuitePanel() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-xs text-zinc-500"
+              className="text-xs text-[var(--ops-muted)]"
             >
               Nessun suggerimento disponibile.
             </motion.p>

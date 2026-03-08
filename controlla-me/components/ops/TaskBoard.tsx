@@ -21,9 +21,9 @@ interface TaskBoardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  open: "bg-[rgba(96,165,250,0.15)] text-[#60a5fa]",
-  in_progress: "bg-[rgba(250,204,21,0.15)] text-[#facc15]",
-  review: "bg-[rgba(245,158,11,0.15)] text-[var(--ops-accent)]",
+  open: "bg-[rgba(173,215,255,0.15)] text-[var(--ops-cyan)]",
+  in_progress: "bg-[rgba(255,200,50,0.15)] text-[var(--ops-id-cost)]",
+  review: "bg-[rgba(255,107,53,0.15)] text-[var(--ops-accent)]",
   done: "bg-[rgba(93,228,199,0.15)] text-[var(--ops-teal)]",
   blocked: "bg-[rgba(229,141,120,0.15)] text-[var(--ops-error)]",
 };
@@ -31,7 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
 const PRIORITY_DOTS: Record<string, string> = {
   critical: "bg-[var(--ops-error)]",
   high: "bg-[var(--ops-accent)]",
-  medium: "bg-[#facc15]",
+  medium: "bg-[var(--ops-id-cost)]",
   low: "bg-[var(--ops-muted)]",
 };
 
@@ -41,7 +41,7 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
     return (
       <div className="bg-[var(--ops-surface)] rounded-xl p-6 border border-[var(--ops-border-subtle)]">
         <h2 className="text-lg font-semibold text-[var(--ops-fg)] flex items-center gap-2">
-          <ClipboardList className="w-5 h-5 text-[#FF6B35]" />
+          <ClipboardList className="w-5 h-5 text-[var(--ops-accent)]" />
           Task Board
         </h2>
         <p className="text-[var(--ops-muted)] mt-4 text-sm">Caricamento...</p>
@@ -59,7 +59,7 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
     <div className="bg-[var(--ops-surface)] rounded-xl p-6 border border-[var(--ops-border-subtle)]">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-[var(--ops-fg)] flex items-center gap-2">
-          <ClipboardList className="w-5 h-5 text-[#FF6B35]" />
+          <ClipboardList className="w-5 h-5 text-[var(--ops-accent)]" />
           Task Board
           <span className="text-sm text-[var(--ops-muted)] font-normal">({board.total})</span>
         </h2>
@@ -67,7 +67,7 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
           <button
             onClick={(e) => { e.stopPropagation(); onExpand("all"); }}
             title="Espandi a tutta pagina"
-            className="cursor-pointer p-1.5 rounded-lg text-[var(--ops-muted)] hover:text-[var(--ops-fg)] hover:bg-[var(--ops-surface)] transition-colors"
+            className="cursor-pointer p-2 rounded-lg text-[var(--ops-muted)] hover:text-[var(--ops-fg)] hover:bg-[var(--ops-surface)] transition-colors"
           >
             <Maximize2 className="w-4 h-4" />
           </button>
@@ -86,13 +86,13 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
               onClick={(e) => { e.stopPropagation(); onExpand?.(status); }}
               className={`cursor-pointer rounded-lg p-3 text-center transition-all hover:scale-105 hover:brightness-110 ${
                 isReview
-                  ? "bg-amber-500/10 border border-amber-500/30"
+                  ? "bg-[rgba(255,107,53,0.1)] border border-[rgba(255,107,53,0.3)]"
                   : isInProg
-                  ? "bg-yellow-500/10 border border-yellow-500/30"
+                  ? "bg-[rgba(255,200,50,0.1)] border border-[rgba(255,200,50,0.3)]"
                   : "bg-[var(--ops-surface-2)]/50 hover:bg-[var(--ops-surface-2)]"
               }`}
             >
-              <div className={`text-2xl font-bold ${isReview ? "text-amber-400" : isInProg ? "text-yellow-400" : "text-[var(--ops-fg)]"}`}>
+              <div className={`text-2xl font-bold ${isReview ? "text-[var(--ops-accent)]" : isInProg ? "text-[var(--ops-id-cost)]" : "text-[var(--ops-fg)]"}`}>
                 {count}
               </div>
               <div className="text-xs text-[var(--ops-fg-muted)] mt-1">
@@ -106,11 +106,11 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
       {/* Review tasks — DA APPROVARE (uses reviewPending, always complete) */}
       {reviewTasks.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-amber-500/90 font-semibold mb-2 flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5" />
+          <p className="text-xs text-[var(--ops-accent)] font-semibold mb-2 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
             DA APPROVARE ({reviewTasks.length})
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {reviewTasks.map((task) => (
               <TaskRow
                 key={task.id}
@@ -126,11 +126,11 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
       {/* In-progress tasks */}
       {inProgressTasks.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-yellow-500/80 font-medium mb-2 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse inline-block" />
+          <p className="text-xs text-[var(--ops-id-cost)] font-medium mb-2 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-id-cost)] animate-pulse inline-block" />
             IN LAVORAZIONE
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {inProgressTasks.map((task) => (
               <TaskRow
                 key={task.id}
@@ -145,7 +145,7 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
 
       {/* Other recent tasks */}
       {otherTasks.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {otherTasks.slice(0, 5).map((task) => (
             <TaskRow key={task.id} task={task} onClick={() => onSelectTask?.(task)} />
           ))}
@@ -178,17 +178,17 @@ function TaskRow({
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className={`cursor-pointer w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left transition-colors group ${
         review
-          ? "bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20"
+          ? "bg-[rgba(255,107,53,0.1)] border border-[rgba(255,107,53,0.25)] hover:bg-[rgba(255,107,53,0.2)]"
           : highlighted
-          ? "bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/15"
+          ? "bg-[rgba(255,200,50,0.1)] border border-[rgba(255,200,50,0.2)] hover:bg-[rgba(255,200,50,0.15)]"
           : "bg-[var(--ops-surface)]/5 hover:bg-[var(--ops-surface-2)]/30"
       }`}
     >
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${PRIORITY_DOTS[task.priority] ?? "bg-[var(--ops-muted)]"}`} />
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${PRIORITY_DOTS[task.priority] ?? "bg-[var(--ops-muted)]"}`} />
       <span className="flex-1 min-w-0">
-        <span className="text-sm flex items-center gap-1.5 truncate">
-          {(() => { const Icon = DEPT_ICONS[task.department]; return Icon ? <Icon className="w-3.5 h-3.5 text-[var(--ops-muted)] flex-shrink-0" /> : <ClipboardList className="w-3.5 h-3.5 text-[var(--ops-muted)] flex-shrink-0" />; })()}
-          <span className={`${review ? "text-amber-100" : "text-[var(--ops-fg-muted)]"} group-hover:text-[var(--ops-fg)] transition-all duration-150 truncate`}>
+        <span className="text-sm flex items-center gap-2 truncate">
+          {(() => { const Icon = DEPT_ICONS[task.department]; return Icon ? <Icon className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" /> : <ClipboardList className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />; })()}
+          <span className={`${review ? "text-[var(--ops-fg)]" : "text-[var(--ops-fg-muted)]"} group-hover:text-[var(--ops-fg)] transition-all duration-150 truncate`}>
             {task.title}
           </span>
         </span>

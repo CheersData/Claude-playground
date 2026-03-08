@@ -105,7 +105,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 function StatusBadge({ result }: { result: LastResult | null }) {
   if (!result) {
     return (
-      <span className="flex items-center gap-1 text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
+      <span className="flex items-center gap-1 text-xs text-[var(--ops-muted)] bg-[var(--ops-surface-2)] px-2 py-0.5 rounded-full">
         <Clock className="w-3 h-3" />
         Mai eseguito
       </span>
@@ -149,27 +149,27 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
       {/* Row header */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-start gap-4 px-4 py-3.5 hover:bg-zinc-800/40 transition-colors text-left group"
+        className="w-full flex items-start gap-4 px-4 py-3.5 hover:bg-[var(--ops-surface-2)]/40 transition-colors text-left group"
       >
         {/* Index */}
-        <span className="text-xs text-zinc-600 font-mono mt-0.5 flex-shrink-0 w-5">
+        <span className="text-xs text-[var(--ops-muted)] font-mono mt-0.5 flex-shrink-0 w-5">
           {String(index + 1).padStart(2, "0")}
         </span>
 
         {/* Name + doc type */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-zinc-200 group-hover:text-white transition-colors font-medium">
+          <p className="text-sm text-[var(--ops-fg)] group-hover:text-white transition-colors font-medium">
             {test.name}
           </p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] font-mono bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">
+            <span className="text-xs font-mono bg-[var(--ops-surface-2)] text-[var(--ops-muted)] px-2 py-0.5 rounded">
               {test.expectedDocumentType}
             </span>
-            <span className="text-[10px] text-zinc-600">
+            <span className="text-xs text-[var(--ops-muted)]">
               {test.clauseCount} clausole · max score {test.maxFairnessScore}
             </span>
             {test.expectNeedsLawyer && (
-              <span className="text-[10px] text-orange-400/70">avvocato atteso</span>
+              <span className="text-xs text-orange-400/70">avvocato atteso</span>
             )}
           </div>
         </div>
@@ -183,12 +183,12 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                   ? result.actualScore <= test.maxFairnessScore
                     ? "text-green-400"
                     : "text-red-400"
-                  : "text-zinc-500"
+                  : "text-[var(--ops-muted)]"
               }`}
             >
               {result.actualScore !== null ? result.actualScore.toFixed(1) : "—"}
             </p>
-            <p className="text-[10px] text-zinc-600">fairness</p>
+            <p className="text-xs text-[var(--ops-muted)]">fairness</p>
           </div>
         )}
 
@@ -206,7 +206,7 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
             >
               {accuracy}%
             </p>
-            <p className="text-[10px] text-zinc-600">
+            <p className="text-xs text-[var(--ops-muted)]">
               {result!.passedChecks}/{result!.totalChecks}
             </p>
           </div>
@@ -216,9 +216,9 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
         <div className="flex items-center gap-2 flex-shrink-0">
           <StatusBadge result={result} />
           {expanded ? (
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-600" />
+            <ChevronDown className="w-4 h-4 text-[var(--ops-muted)]" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
+            <ChevronRight className="w-4 h-4 text-[var(--ops-muted)]" />
           )}
         </div>
       </button>
@@ -233,18 +233,18 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
             transition={{ duration: 0.18 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-[var(--ops-border-subtle)] pt-3 space-y-3 bg-zinc-900/50">
+            <div className="px-4 pb-4 border-t border-[var(--ops-border-subtle)] pt-3 space-y-3 bg-[var(--ops-surface)]/50">
               {/* Legal notes */}
-              <div className="text-xs text-zinc-400 leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
+              <div className="text-xs text-[var(--ops-fg-muted)] leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
                 {test.legalNotes}
               </div>
 
               {/* Clause checks */}
               <div>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-medium">
+                <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
                   Clausole da rilevare
                 </p>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {test.clauses.map((clause, i) => {
                     // Find matching clause check result if available
                     const checkResult = result?.clauseChecks?.find(
@@ -255,9 +255,9 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                     return (
                       <div
                         key={i}
-                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded border text-xs ${
+                        className={`flex items-start gap-3 px-3 py-2 rounded border text-xs ${
                           isPassed === null
-                            ? "bg-zinc-800/50 border-[var(--ops-border-subtle)]"
+                            ? "bg-[var(--ops-surface-2)]/50 border-[var(--ops-border-subtle)]"
                             : isPassed
                             ? "bg-green-500/5 border-green-500/15"
                             : "bg-red-500/5 border-red-500/15"
@@ -271,24 +271,24 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                           <XCircle className="w-3 h-3 text-red-500 flex-shrink-0 mt-0.5" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <code className="text-zinc-300 font-mono bg-zinc-700/50 px-1 rounded text-[10px]">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <code className="text-[var(--ops-fg-muted)] font-mono bg-[var(--ops-hover)]/50 px-1 rounded text-xs">
                               {clause.keyword}
                             </code>
                             <span
-                              className={`text-[10px] font-medium ${
-                                SEVERITY_COLORS[clause.minSeverity] ?? "text-zinc-500"
+                              className={`text-xs font-medium ${
+                                SEVERITY_COLORS[clause.minSeverity] ?? "text-[var(--ops-muted)]"
                               }`}
                             >
                               {clause.minSeverity}
                             </span>
                             {checkResult?.foundIn && (
-                              <span className="text-[10px] text-zinc-500 truncate">
+                              <span className="text-xs text-[var(--ops-muted)] truncate">
                                 → in &quot;{checkResult.foundIn}&quot;
                               </span>
                             )}
                           </div>
-                          <p className="text-zinc-500 leading-relaxed">{clause.description}</p>
+                          <p className="text-[var(--ops-muted)] leading-relaxed">{clause.description}</p>
                         </div>
                       </div>
                     );
@@ -299,14 +299,14 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
               {/* Failed checks list */}
               {result && result.failedChecks.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-red-400/70 uppercase tracking-widest mb-1.5 font-medium">
+                  <p className="text-xs text-red-400/70 uppercase tracking-widest mb-2 font-medium">
                     Check falliti ({result.failedChecks.length})
                   </p>
                   <div className="space-y-1">
                     {result.failedChecks.map((fc, i) => (
                       <div
                         key={i}
-                        className="flex items-start gap-2 text-xs text-red-300/80 bg-red-500/5 border border-red-500/10 px-2.5 py-1.5 rounded"
+                        className="flex items-start gap-2 text-xs text-red-300/80 bg-red-500/5 border border-red-500/10 px-3 py-2 rounded"
                       >
                         <CornerDownRight className="w-3 h-3 text-red-500 flex-shrink-0" />
                         {fc}
@@ -319,14 +319,14 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
               {/* Error */}
               {result?.error && (
                 <div className="text-xs text-red-300 bg-red-500/5 border border-red-500/20 px-3 py-2 rounded flex items-start gap-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                   {result.error}
                 </div>
               )}
 
               {/* Duration */}
               {result && (
-                <p className="text-[10px] text-zinc-600">
+                <p className="text-xs text-[var(--ops-muted)]">
                   Durata: {fmtDuration(result.durationMs)}
                 </p>
               )}
@@ -393,7 +393,7 @@ export function QALegalPanel() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-zinc-500 gap-3">
+      <div className="flex items-center justify-center py-16 text-[var(--ops-muted)] gap-3">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">Caricamento QA report...</span>
       </div>
@@ -429,7 +429,7 @@ export function QALegalPanel() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-white">QA Report — Agenti Legali</h3>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">
             {summary.total} contratti golden · Eval suite adversariale
           </p>
         </div>
@@ -437,20 +437,20 @@ export function QALegalPanel() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] transition-colors disabled:opacity-50"
             aria-label="Aggiorna dati"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
             onClick={handleRunEval}
             disabled={runStatus === "running"}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 border border-[#FF6B35]/30 text-[#FF6B35] rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 py-2 bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 border border-[#FF6B35]/30 text-[#FF6B35] rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {runStatus === "running" ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Terminal className="w-3.5 h-3.5" />
+              <Terminal className="w-4 h-4" />
             )}
             Esegui Eval
           </button>
@@ -469,14 +469,14 @@ export function QALegalPanel() {
             <Terminal className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-xs text-amber-300 font-medium mb-1">Ambiente demo</p>
-              <p className="text-xs text-zinc-400 leading-relaxed">{runMessage}</p>
-              <code className="block mt-1.5 text-xs font-mono bg-zinc-800 text-zinc-300 px-2.5 py-1.5 rounded">
+              <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{runMessage}</p>
+              <code className="block mt-2 text-xs font-mono bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] px-3 py-2 rounded">
                 npx tsx tests/eval/eval-runner.ts
               </code>
             </div>
             <button
               onClick={() => { setRunStatus("idle"); setRunMessage(null); }}
-              className="text-zinc-600 hover:text-zinc-400 text-xs transition-colors flex-shrink-0"
+              className="text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] text-xs transition-colors flex-shrink-0"
             >
               ×
             </button>
@@ -486,40 +486,40 @@ export function QALegalPanel() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
           <p className="text-xl font-bold text-white">{summary.total}</p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Test totali</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Test totali</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.passed > 0 ? "text-green-400" : "text-zinc-600"}`}>
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.passed > 0 ? "text-green-400" : "text-[var(--ops-muted)]"}`}>
             {summary.passed}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Passati</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Passati</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.failed > 0 ? "text-red-400" : "text-zinc-600"}`}>
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.failed > 0 ? "text-red-400" : "text-[var(--ops-muted)]"}`}>
             {summary.failed}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Falliti</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Falliti</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${accuracy !== null ? (accuracy >= 80 ? "text-green-400" : accuracy >= 50 ? "text-yellow-400" : "text-red-400") : "text-zinc-600"}`}>
+        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${accuracy !== null ? (accuracy >= 80 ? "text-green-400" : accuracy >= 50 ? "text-yellow-400" : "text-red-400") : "text-[var(--ops-muted)]"}`}>
             {accuracy !== null ? `${accuracy}%` : "—"}
           </p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Accuracy</p>
+          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Accuracy</p>
         </div>
       </div>
 
       {/* Last run info */}
       {summary.lastRunAt ? (
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-[var(--ops-muted)]">
           Ultimo run: {fmtDate(summary.lastRunAt)}
           {summary.historyCount > 1 && ` · ${summary.historyCount} run storici`}
         </p>
       ) : (
-        <div className="flex items-center gap-2 bg-zinc-800/40 border border-[var(--ops-border-subtle)] rounded-lg px-3 py-2">
-          <Clock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-          <p className="text-xs text-zinc-500">
+        <div className="flex items-center gap-2 bg-[var(--ops-surface-2)]/40 border border-[var(--ops-border-subtle)] rounded-lg px-3 py-2">
+          <Clock className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+          <p className="text-xs text-[var(--ops-muted)]">
             Nessun eval eseguito. I risultati appariranno dopo il primo run da terminale esterno.
           </p>
         </div>
@@ -527,7 +527,7 @@ export function QALegalPanel() {
 
       {/* Test cases table */}
       <div>
-        <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-medium">
+        <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
           Contratti golden ({tests.length})
         </p>
         <div className="space-y-2">
@@ -540,20 +540,20 @@ export function QALegalPanel() {
       {/* History */}
       {history.length > 0 && (
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-medium">
+          <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
             Storico run ({history.length})
           </p>
           <div className="space-y-1">
             {history.map((run, i) => (
               <div
                 key={run.file}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-zinc-800/30 text-xs"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--ops-surface-2)]/30 text-xs"
               >
-                <span className="text-zinc-600 font-mono text-[10px] w-4">{i + 1}</span>
-                <span className="text-zinc-500 flex-1">{fmtDate(run.runAt)}</span>
+                <span className="text-[var(--ops-muted)] font-mono text-xs w-4">{i + 1}</span>
+                <span className="text-[var(--ops-muted)] flex-1">{fmtDate(run.runAt)}</span>
                 <span className="flex items-center gap-1 text-green-400"><CheckCircle2 size={10} />{run.passed}</span>
                 {run.failed > 0 && <span className="flex items-center gap-1 text-red-400"><XCircle size={10} />{run.failed}</span>}
-                <span className="text-zinc-600 text-[10px]">
+                <span className="text-[var(--ops-muted)] text-xs">
                   {Math.round((run.passed / run.total) * 100)}%
                 </span>
               </div>
