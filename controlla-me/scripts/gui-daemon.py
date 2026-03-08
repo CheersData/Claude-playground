@@ -237,7 +237,13 @@ def run_daemon(interval_min: int, message: str, once: bool = False):
     log("=" * 60)
     log("  GUI Daemon per Claude Code")
     log(f"  Intervallo: ogni {interval_min} minuti")
-    log(f"  Hotkeys: F9=toggle, F10=esegui ora, Ctrl+F10=esci")
+    log("")
+    log("  COMANDI:")
+    log("  ------------------------------------------------")
+    log("   F9         Pausa / Riprendi")
+    log("   F10        Esegui subito (skip timer)")
+    log("   Ctrl+F10   Esci dal daemon")
+    log("  ------------------------------------------------")
     log("=" * 60)
 
     # Setup hotkeys
