@@ -184,3 +184,11 @@ Per ogni agente: creare identity card `company/<dept>/agents/<nome>.md`. Aggiorn
 5. Il dipartimento e responsabile del Beauty Report (`docs/BEAUTY-REPORT.md`)
 6. Flusso: richiesta UI → UX/UI propone mockup → CME approva → UX/UI implementa → QA valida accessibilita
 **Conseguenze**: (+) Responsabilita chiara, design system manutenuto, accessibilita come processo. (-) 1 dipartimento in piu da coordinare. L'agente ora implementa codice direttamente (non solo propone), riducendo i passaggi.
+
+### ADR-015: Daemon Idle Detection — Plenaria CME + Auto-Task Generation
+
+**Data**: 2026-03-08
+**Stato**: proposed
+**Contesto**: Quando il daemon esaurisce i task open, la Phase 2 attuale genera task tramite scansione codebase (tsc, npm build, tech debt). Questo approccio è disconnesso dalla visione dei dipartimenti e dai loro gap reali. Il boss vuole: board vuoto → CME convoca plenaria → legge report dipartimenti aggiornati → genera task allineati alle visioni. I report devono riflettere le ultime attività.
+**Decisione**: Vedere design document `company/architecture/designs/daemon-idle-plenary.md`.
+**Conseguenze**: (+) Task generati da gap reali dei dipartimenti, non da lint del codice. Sistema autoalimentante allineato alle visioni. (-) Dipendenza dalla qualità dei status.json; se un dept non aggiorna il suo status, la plenaria non lo vede. Mitigazione: auto-update status dopo ogni task completato.

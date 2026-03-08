@@ -1,7 +1,7 @@
-# CONTROLLA.ME — BRAND BOOK & DESIGN SYSTEM
+# BRAND BOOK & DESIGN SYSTEM
 
 Data: 2026-03-08
-Versione: 2.0
+Versione: 3.0
 Comandamento: "Ogni cosa che produciamo a livello di interfaccia con umano deve essere bella. Le cose che funzionano sono solo le cose belle."
 
 ---
@@ -10,11 +10,13 @@ Comandamento: "Ogni cosa che produciamo a livello di interfaccia con umano deve 
 
 La bellezza non e decorazione. La bellezza e un attributo funzionale.
 
-L'aesthetic-usability effect (Kurosu & Kashimura, 1995) dimostra che gli utenti percepiscono le interfacce belle come piu funzionali. La correlazione tra appeal estetico e facilita d'uso percepita e r=0.79. Per una piattaforma di analisi legale, dove la fiducia e tutto, la bellezza non e un lusso — e un requisito.
+Questo documento e **la guida universale della bellezza** per tutto cio che produciamo. Non e specifico per un verticale, un prodotto o un dipartimento. Ogni interfaccia, ogni dashboard, ogni output — legale, trading, operations, qualsiasi futuro prodotto — deve rispettare questi principi.
+
+L'aesthetic-usability effect (Kurosu & Kashimura, 1995) dimostra che gli utenti percepiscono le interfacce belle come piu funzionali. La correlazione tra appeal estetico e facilita d'uso percepita e r=0.79. Per qualsiasi prodotto che gestisce dati critici — analisi legali, operazioni finanziarie, monitoring aziendale — la bellezza non e un lusso. E un requisito. La fiducia si costruisce con la precisione visiva.
 
 Dieter Rams: "Good design is as little design as possible." Meno, ma meglio. Ogni pixel, ogni transizione, ogni colore deve giustificare la sua esistenza. Quello che rimuovi e piu importante di quello che aggiungi.
 
-Harvey AI, il competitor da $1.5B: "Precision in design reflects the precision our customers bring to their work." Se un avvocato vede un'interfaccia disordinata, non si fida dell'analisi.
+"Precision in design reflects the precision our customers bring to their work." Se un professionista vede un'interfaccia disordinata, non si fida del sistema. Questo vale per un avvocato, un trader, un CEO che guarda la sua dashboard.
 
 ---
 
@@ -42,7 +44,7 @@ La tipografia non e styling — e lo scheletro dell'interfaccia. Contrasto serif
 Lo spazio non e "vuoto" — e uno strumento compositivo. Crea focus tramite isolamento, raggruppa contenuti per prossimita, fornisce respiro cognitivo. L'uso corretto aumenta la comprensione fino al 20%.
 
 ### 8. Onesta Visiva (Rams #6)
-Mai fingere capacita che non hai. Se la confidenza dell'AI e bassa, mostralo. Se una feature e beta, etichettala. Skeleton screen > contenuto falso. Per un prodotto legale, l'onesta visiva costruisce fiducia.
+Mai fingere capacita che non hai. Se la confidenza dell'AI e bassa, mostralo. Se una feature e beta, etichettala. Skeleton screen > contenuto falso. In ogni prodotto — legale, finanziario, operativo — l'onesta visiva costruisce fiducia.
 
 ### 9. Colore Semantico (Poimandres)
 Il colore deve significare qualcosa, non decorare. Insight chiave del tema Poimandres: "semantic meaning instead of color variety". Quando teal significa sempre successo e rosa significa sempre attenzione, il cervello costruisce modelli mentali piu veloci. Il carico cognitivo cala. L'interfaccia sembra piu semplice di quanto sia.
@@ -122,16 +124,34 @@ Il `#FF6B35` raggiunge 6.7:1 di contrasto su #0A0A0A — eccellente. Si posizion
 
 I colori semantici sono **desaturati**. Su sfondi scuri, colori saturi "vibrano" al confine con lo sfondo — la desaturazione li fa comunicare senza urlare. Anche i colori "bright" di Poimandres hanno saturazione ~56%, non ~100%.
 
-### 2.5 Colori Identita Agenti
+### 2.5 Colori Identita: Pattern Universale
 
-| Agente | Hex | Nome | Ruolo visivo |
-|--------|-----|------|-------------|
-| Leo (Catalogatore) | `#4ECDC4` | Teal | Classificazione, ordine |
-| Marta (Analista) | `#FF6B6B` | Coral | Analisi rischi, attenzione |
-| Giulia (Giurista) | `#A78BFA` | Violet | Ricerca legale, profondita |
-| Enzo (Consulente) | `#FFC832` | Gold | Consiglio, saggezza |
+Ogni sistema multi-agente o multi-funzione riceve colori identita distinti. Pattern ispirato a Figma: ogni entita ha il suo colore per **memoria spaziale**. L'utente associa inconsciamente colore → funzione.
 
-Pattern ispirato a Figma: ogni agente/feature ha il suo colore per memoria spaziale. L'utente associa inconsciamente colore → funzione.
+**Regole per assegnare colori identita:**
+1. Distanza cromatica sufficiente (min 60° di hue di separazione)
+2. Luminosita LCH simile tra agenti (nessuno "urla" piu degli altri)
+3. Significato semantico coerente con la funzione (teal=ordine, coral=attenzione, violet=profondita, gold=saggezza)
+4. Mai piu di 5-6 colori identita per sistema
+
+**Palette identita disponibile:**
+
+| Token | Hex | Nome | Funzione tipo |
+|-------|-----|------|---------------|
+| `--identity-teal` | `#4ECDC4` | Teal | Classificazione, scansione, ordine |
+| `--identity-coral` | `#FF6B6B` | Coral | Analisi, rischio, attenzione |
+| `--identity-violet` | `#A78BFA` | Violet | Ricerca, investigazione, profondita |
+| `--identity-gold` | `#FFC832` | Gold | Consiglio, sintesi, saggezza |
+| `--identity-cyan` | `#89ddff` | Cyan | Monitoraggio, dati live, flusso |
+| `--identity-rose` | `#d0679d` | Rose | Alert, sicurezza, soglie critiche |
+
+**Applicazioni per verticale:**
+
+| Verticale | Agenti | Colori assegnati |
+|-----------|--------|-----------------|
+| Legal | Leo, Marta, Giulia, Enzo | Teal, Coral, Violet, Gold |
+| Trading | Scanner, Signal, Risk, Executor, Monitor | Teal, Gold, Rose, Coral, Cyan |
+| Ops Center | Task, Cost, Health, Pipeline | Teal, Gold, Cyan, Violet |
 
 ### 2.6 Regole d'Uso Colore
 
@@ -301,16 +321,26 @@ Se un'animazione non risponde ad almeno una di queste domande, eliminala.
 | Notifica | Entrata | Slide da destra + settle con spring | 400ms |
 | Loading | Skeleton | Shimmer gradient da sinistra a destra | 1500ms loop |
 
-### 5.5 Animazioni Agenti (Identita)
+### 5.5 Animazioni Identita (Pattern Universale)
 
-Ogni agente ha un'animazione che riflette la sua funzione:
+Ogni entita (agente, modulo, funzione) **puo** avere un'animazione firma che riflette la sua funzione. L'animazione deve:
+1. Durare max 800ms (token `--duration-scenic`)
+2. Comunicare la funzione metaforicamente
+3. Non competere con il contenuto
+4. Rispettare `prefers-reduced-motion`
 
-| Agente | Animazione | Metafora |
-|--------|-----------|----------|
-| Leo (Catalogatore) | Scan line top-to-bottom | Scanner documenti |
-| Marta (Analista) | Magnifying glass sweep + glow | Lente d'ingrandimento |
-| Giulia (Giurista) | Scale di bilancia oscillanti | Giustizia, ponderazione |
-| Enzo (Consulente) | Lightbulb pulse + rays rotate | Idea, illuminazione |
+**Esempi per verticale:**
+
+| Verticale | Entita | Animazione | Metafora |
+|-----------|--------|-----------|----------|
+| Legal | Catalogatore | Scan line top-to-bottom | Scanner documenti |
+| Legal | Analista | Magnifying glass sweep + glow | Lente d'ingrandimento |
+| Legal | Giurista | Scale di bilancia oscillanti | Giustizia, ponderazione |
+| Legal | Consulente | Lightbulb pulse + rays rotate | Idea, illuminazione |
+| Trading | Scanner | Radar sweep circolare | Scanning mercato |
+| Trading | Risk Manager | Shield pulse | Protezione |
+| Ops | Pipeline | Flow dots left-to-right | Flusso dati |
+| Ops | Health | Heartbeat line | Vitalita sistema |
 
 ---
 
@@ -357,19 +387,24 @@ Surface: `bg-raised`, rounded-16px, p-24px.
 Shadow: `0 24px 64px rgba(0,0,0,0.5)`.
 Entrata: `scale 0.95->1` + `opacity 0->1`, 300ms spring.
 
-### 6.7 Score / Metriche
+### 6.7 Score / Metriche (Pattern Universale)
 
-Fairness score colori:
-- 9-10: `#2ECC40` (verde, equilibrato)
-- 7-8: `#7BC67E` (verde-giallo, buono)
-- 5-6: `#FF851B` (arancione, problematico)
-- 3-4: `#E8601C` (arancione scuro, preoccupante)
-- 1-2: `#FF4136` (rosso, grave)
+**Scala numerica 1-10** (applicabile a qualsiasi metrica: fairness, rischio, performance, salute):
+- 9-10: `#2ECC40` (verde — eccellente, conforme, sano)
+- 7-8: `#7BC67E` (verde-giallo — buono, nella norma)
+- 5-6: `#FF851B` (arancione — attenzione, sotto soglia)
+- 3-4: `#E8601C` (arancione scuro — preoccupante, intervento richiesto)
+- 1-2: `#FF4136` (rosso — critico, azione immediata)
 
-Severita rischi:
-- Alta: bg `rgba(239,68,68,0.08)`, border `rgba(239,68,68,0.4)`, text red
-- Media: bg `rgba(245,158,11,0.08)`, border `rgba(245,158,11,0.4)`, text amber
-- Bassa: bg `rgba(34,197,94,0.08)`, border `rgba(34,197,94,0.4)`, text green
+**Severita/priorita** (applicabile a rischi, alert, task, incidenti):
+- Alta/Critica: bg `rgba(239,68,68,0.08)`, border `rgba(239,68,68,0.4)`, text red
+- Media/Warning: bg `rgba(245,158,11,0.08)`, border `rgba(245,158,11,0.4)`, text amber
+- Bassa/Info: bg `rgba(34,197,94,0.08)`, border `rgba(34,197,94,0.4)`, text green
+
+**Applicazioni:**
+- Legal: fairness score, severita clausole
+- Trading: P&L giornaliero, risk exposure, Sharpe ratio
+- Ops: health dipartimento, task priority, pipeline status
 
 ---
 
@@ -406,20 +441,20 @@ Severita rischi:
 **Figma** — Dark mode ottimizzato per sessioni lunghe. Rainbow accent per memoria spaziale.
 **Arc** — Colore come personalita. Animazioni fluide.
 
-### Tier 3: Legal Tech / Fintech
+### Tier 3: Eccellenza di Dominio
 
-**Harvey AI** (harvey.ai) — IL riferimento per legal AI design
+Ogni settore ha i suoi leader di design. Studiarli per capire come la bellezza si adatta al dominio senza perdere universalita.
+
+**Harvey AI** (harvey.ai) — Eccellenza nel design AI professionale
 - Color tokens semantici e role-based ("foreground-base", non "neutral-400")
-- Prefisso "hy-" per tutti i token, mappati a Tailwind
 - Warm neutral palette con chroma calibrato per evitare shift marroni
-- "Saying the most with the least" — eco dell'economia del linguaggio legale
-- 3 principi: Domain Awareness, Effortless Complexity, Intentional Design
+- 3 principi applicabili ovunque: Domain Awareness, Effortless Complexity, Intentional Design
 - Trasparenza come feature di design: mostra i reasoning steps dell'AI
 
-**Normand PLLC** — Deep gray-black con arancione bruciato per heading/CTA — l'analogo piu vicino alla nostra palette nel settore legale
-
-**Mercury** (mercury.com) — Dark mode con screenshot high-fidelity. Gold standard per fintech dark.
+**Mercury** (mercury.com) — Dark mode con screenshot high-fidelity. Gold standard per dashboard finanziarie.
 **Wealthsimple** — "Emotionally intelligent, aesthetically mature." Dimostra che la finanza non deve essere fredda.
+**Normand PLLC** — Deep gray-black con arancione bruciato — l'analogo piu vicino alla nostra palette.
+**TradingView** — Riferimento per UI dati real-time: densita informativa senza caos visivo.
 
 ### Pattern Comuni dei Migliori
 
@@ -465,7 +500,7 @@ La working memory trattiene ~4 item simultaneamente. Ogni elemento UI, ogni colo
 
 ## PARTE 9: LIGHT THEME (Lightlife)
 
-Per le pagine pubbliche (landing, pricing, corpus):
+Per le pagine pubbliche e consumer-facing (landing, pricing, pagine informative):
 
 ### 9.1 Palette Light
 
@@ -546,11 +581,13 @@ SEMANTIC (Poimandres-derived)
   --caution:        #fffac2
   --special:        #a78bfa
 
-AGENTS
-  --agent-leo:      #4ECDC4
-  --agent-marta:    #FF6B6B
-  --agent-giulia:   #A78BFA
-  --agent-enzo:     #FFC832
+IDENTITY (assegnare per verticale — vedi sezione 2.5)
+  --identity-teal:    #4ECDC4
+  --identity-coral:   #FF6B6B
+  --identity-violet:  #A78BFA
+  --identity-gold:    #FFC832
+  --identity-cyan:    #89ddff
+  --identity-rose:    #d0679d
 
 SPACING (8px grid)
   2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96
@@ -612,6 +649,50 @@ Prima di rilasciare qualsiasi interfaccia, verificare:
 - [ ] Skeleton screen durante loading, mai contenuto falso
 - [ ] Stato errore chiaro e actionable
 
+### Dashboard / Ops (per interfacce operative)
+- [ ] Informazione critica visibile senza scroll
+- [ ] Stato del sistema comprensibile in 3 secondi
+- [ ] Gerarchie informative: summary → dettaglio on-demand
+- [ ] Colori semantici coerenti (verde=ok, arancione=warning, rosso=critico)
+- [ ] Dati live distinguibili da dati storici (timestamp sempre visibile)
+- [ ] Azioni disponibili chiare (cosa posso fare da qui?)
+
+---
+
+## PARTE 12: APPLICABILITA — COME USARE QUESTO BRAND BOOK
+
+Questo Brand Book si applica a **ogni interfaccia** che produciamo. Non e una guida per un singolo prodotto.
+
+### Per ogni nuovo verticale/prodotto
+
+1. **Palette**: usa la palette Poimandres (Parte 2). Non creare nuove palette.
+2. **Identita**: assegna colori dalla tabella `--identity-*` (sezione 2.5) agli agenti/moduli del nuovo verticale.
+3. **Tipografia**: stessa scala, stessi font. DM Sans + Instrument Serif. Nessuna eccezione.
+4. **Spaziatura**: grid 8px. Nessuna eccezione.
+5. **Motion**: stessi token durata e stesse regole. Crea animazioni firma specifiche se necessario.
+6. **Checklist**: applica la checklist bellezza (Parte 11) prima di ogni rilascio.
+
+### Per l'Ops Center (dashboard interna)
+
+L'Ops Center e un'interfaccia operativa per il CEO. Deve essere:
+- **Denso ma leggibile**: piu informazione per viewport di una landing, ma mai caotico
+- **Azionabile**: ogni dato mostrato deve suggerire un'azione possibile
+- **Real-time**: timestamp visibili, stati aggiornati, nessun dato stantio senza indicazione
+- **Dark theme obbligatorio**: un operatore lavora per ore, il dark theme riduce affaticamento
+
+### Per le landing page (interfacce pubbliche)
+
+- Light o dark theme in base al posizionamento del prodotto
+- Hero drammatici con Instrument Serif
+- Conversione chiara: un CTA per sezione, non di piu
+- Video/animazioni come firma visiva (non decorazione)
+
+### Per i report e output stampabili
+
+- Gerarchia tipografica rispettata anche in formato testo/markdown
+- Colori semantici coerenti con la palette (se il report ha grafici)
+- Brevita: stesso principio "riduzione intenzionale" applicato alla parola scritta
+
 ---
 
 ## FONTI
@@ -643,11 +724,11 @@ Prima di rilasciare qualsiasi interfaccia, verificare:
 - Material Design 3: Tone-based Surface Color, Dark Theme
 - Harvey AI: Rebuilding Design System from the Ground Up
 
-### Legal Tech / Fintech Design
-- Harvey AI: How We Approach Design
-- Harvey AI: Design System (basement.studio case study)
-- Normand PLLC: Black + orange legal website
+### Domain-Specific Design Excellence
+- Harvey AI: How We Approach Design + Design System (basement.studio case study)
+- Normand PLLC: Black + orange professional website
 - Mercury, Wealthsimple, Revolut: Fintech design leaders
+- TradingView: Densita informativa per dati real-time senza caos visivo
 
 ### SaaS/Product Design
 - Linear: How We Redesigned the UI + Brand Guidelines

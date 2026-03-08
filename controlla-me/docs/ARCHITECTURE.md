@@ -1,6 +1,6 @@
 # Controlla.me — Architettura, Fragilità e Roadmap
 
-> **Ultimo aggiornamento**: 2026-03-08 — Sync con CLAUDE.md: Statuto Lavoratori completato (41 art.), security findings M1-M9/H1-H2 dettagliati, CSP unsafe-eval gated NODE_ENV, WCAG 2.1 AA, Telegram alerting, CME daemon, Legal Office workspace.
+> **Ultimo aggiornamento**: 2026-03-08 — CDP (Customer Data Profile) module aggiunto: customer_profiles + profile_events, lib/cdp/, migration 026. Sync con CLAUDE.md: security findings M1-M11/H1-H3 risolti, CSP unsafe-eval gated NODE_ENV, WCAG 2.1 AA, Telegram alerting, CME daemon, Legal Office workspace.
 >
 > Controlla.me è il **primo prototipo** di una piattaforma madre per molteplici team
 > di agenti AI. Ogni servizio è progettato per essere **scalabile e parametrizzabile**,
@@ -205,6 +205,32 @@ Utente carica documento (PDF/DOCX/TXT)
                           └──────────────────────┘  └──────────────────┘
 ```
 
+### 1.3.1 Customer Data Profile (CDP)
+
+Il CDP unifica i dati utente sparsi in un profilo coerente, bonificato e GDPR-compliant. Documentazione completa: `docs/CDP-ARCHITECTURE.md`.
+
+**Tabelle:**
+
+| Tabella | Tipo | Descrizione |
+|---------|------|-------------|
+| `customer_profiles` | JSONB sections | Profilo unificato: identity, behavior, risk_profile, preferences, lifecycle. Versioning ottimistico. |
+| `profile_events` | Append-only log | Event sourcing: analysis_completed, deep_search_performed, corpus_query, plan_changed, login. TTL 365 giorni. |
+
+**Modulo `lib/cdp/`:**
+
+```
+lib/cdp/
+├── types.ts            — Interfacce TypeScript (5 sezioni profilo + 7 tipi evento)
+├── profile-builder.ts  — Costruzione e aggiornamento incrementale profili
+└── data-cleanser.ts    — Validazione, normalizzazione (email domain, doc types, regions, score clamping)
+```
+
+**Integrazione:** fire-and-forget nelle API routes (`/api/analyze`, `/api/deep-search`, `/api/corpus/ask`, webhook Stripe). Se il CDP fallisce, il flusso principale continua normalmente.
+
+**Privacy:** GDPR-first — solo dominio email (non l'email intera), nessun testo documento persistito, retention 365 giorni su eventi, profilo eliminato con account. RLS attivo.
+
+**Migration:** `026_cdp.sql` — tabelle, RLS, indici, funzione cleanup.
+
 ### 1.4 Corpus Legislativo — Stato Operativo
 
 Il corpus legislativo è **caricato e operativo** su Supabase pgvector, alimentato dal **Data Connector** (pipeline CONNECT→MODEL→LOAD):
@@ -393,6 +419,7 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 | **004** | `supabase/migrations/004_align_legal_articles.sql` | **Allineamento schema: source_id, source_type, article_number, url, hierarchy** |
 | **005** | `supabase/migrations/005_fix_hierarchy_data.sql` | **Normalizzazione JSONB hierarchy (deduplica nodi Libri Codice Civile)** |
 | **006** | `supabase/migrations/006_connector_sync_log.sql` | **Tabella sync log per Data Connector pipeline** |
+| **026** | `supabase/migrations/026_cdp.sql` | **CDP: customer_profiles (JSONB), profile_events (append-only), RLS, indici, cleanup** |
 
 ### 1.11 Struttura Monorepo
 
@@ -1284,9 +1311,9 @@ riutilizzabili per i futuri team di agenti:
 
 ### Security — Stato 🟢 VERDE
 
-**Stato complessivo: 🟢 VERDE** — Tutti i finding medi e alti risolti. Finding bassi residui non bloccanti.
+**Stato complessivo: 🟢 VERDE** — Audit completo su 50 route, 100% coverage. Tutti i finding medi/alti risolti. Finding bassi residui non bloccanti.
 
-Vedi CLAUDE.md § 18 per dettaglio completo.
+Vedi CLAUDE.md § 18 per dettaglio completo (M1-M11, H1-H3 tutti risolti ✅).
 
 **Finding medi e alti — tutti risolti ✅:**
 
@@ -1301,8 +1328,11 @@ Vedi CLAUDE.md § 18 per dettaglio completo.
 | M7 | `/api/company/costs` usa `requireAuth` anziché `requireConsoleAuth` | ✅ Cambiato a `requireConsoleAuth` + rate-limit |
 | M8 | `/api/corpus` GET e `/api/vector-search` GET senza rate-limit | ✅ `checkRateLimit` per IP aggiunto |
 | M9 | `/api/company/cron` POST senza rate-limit | ✅ `checkRateLimit` aggiunto |
+| M10 | 8 POST route senza CSRF | ✅ `checkCsrf` aggiunto |
+| M11 | `/api/webhook` e `/api/auth/callback` senza rate-limit | ✅ `checkRateLimit` aggiunto |
 | H1 | `/api/platform/cron/data-connector` GET senza auth (espone infrastruttura) | ✅ `CRON_SECRET` check aggiunto a GET |
 | H2 | `/api/corpus/ask` rate-limit bypassato per utenti anonimi | ✅ `checkRateLimit` applicato SEMPRE (per userId o IP) |
+| H3 | `/api/legaloffice/*` senza auth (chiama LLM) | ✅ `requireConsoleAuth` aggiunto |
 
 **Finding bassi residui:**
 - Whitelist console (`AUTHORIZED_USERS`) hardcoded nel sorgente — bassa priorità

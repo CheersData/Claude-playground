@@ -129,9 +129,9 @@ Il dashboard `/ops` usa il tema Poimandres (dark) separato dal tema light della 
 | Token | Valore | Uso |
 |-------|--------|-----|
 | Page background | zinc-950 / bg-[#0a0a0a] | Sfondo pagina |
-| Surface | zinc-900 | Card, pannelli |
-| Surface elevated | zinc-800 | Hover, input, bottoni secondari |
-| Border | zinc-800 / zinc-700/50 | Bordi card e separatori |
+| Surface | var(--ops-surface) | Card, pannelli |
+| Surface elevated | var(--ops-surface-2) | Hover, input, bottoni secondari |
+| Border | var(--ops-surface-2) / zinc-700/50 | Bordi card e separatori |
 | Text primary | white | Titoli, valori |
 | Text secondary | zinc-300 / zinc-400 | Etichette, descrizioni |
 | Text muted | zinc-500 / zinc-600 | Timestamp, info secondarie |
@@ -146,7 +146,7 @@ Il dashboard `/ops` usa il tema Poimandres (dark) separato dal tema light della 
 
 **Card:**
 ```
-bg-zinc-900 rounded-xl border border-zinc-800 p-4
+bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border)] p-4
 ```
 
 **Bottone primario:**
@@ -156,7 +156,7 @@ bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white rounded-lg px-4 py-2 text-sm font-
 
 **Bottone secondario:**
 ```
-bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-lg px-4 py-2 text-sm
+bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] border border-[var(--ops-border)] text-[var(--ops-fg-muted)] rounded-lg px-4 py-2 text-sm
 ```
 
 **Badge status:**
@@ -167,7 +167,7 @@ text-xs bg-{color}/20 text-{color}-400 px-2 py-0.5 rounded-full
 **Tab navigazione header:**
 ```
 attiva: bg-[#FF6B35] text-white
-inattiva: bg-zinc-800 hover:bg-zinc-700 text-zinc-300
+inattiva: bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] text-[var(--ops-fg-muted)]
 ```
 
 ### Regole icone ops
