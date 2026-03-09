@@ -143,6 +143,19 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   ensureInstitute(/reato|fattispecie.*penale|penalment/i, ["appropriazione_indebita", "truffa", "circonvenzione_incapace"]);
   ensureInstitute(/incapac|non.*lucid|interdett|inabilitat|anzian.*(?:confus|dement)/i, ["incapacità", "circonvenzione_incapace"]);
 
+  // Pignoramento prima casa (distinzione creditore privato vs Agenzia Entrate)
+  ensureInstitute(/pignoramento.*(?:prima casa|abitazion|immobil)|(?:prima casa|abitazion).*pignoramento/i, ["esecuzione_immobiliare", "pignoramento"]);
+
+  // Ultra petita / extra petita (violazione art. 112 c.p.c.)
+  ensureInstitute(/ultrapetizion|extrapetizion/i, ["corrispondenza_chiesto_pronunciato", "nullità_sentenza"]);
+
+  // Violazione obblighi familiari / mantenimento figli (civile + penale)
+  ensureInstitute(/(?:violazion|inadempiment).*(?:obbligh.*familiar|manteniment|assisten.*familiar)/i, ["obblighi_familiari", "mantenimento"]);
+  ensureInstitute(/(?:padre|madre|genitore).*(?:non.*pag|mancato).*manteniment|manteniment.*(?:figli|minor)/i, ["obblighi_familiari", "mantenimento"]);
+
+  // Prova testimoniale / testimonianza (limiti art. 2721 c.c.)
+  ensureInstitute(/prova.*testimonial|testimonianz|test[ie].*(?:giudizi|tribunal|processo)/i, ["prova_testimoniale", "limiti_prova"]);
+
   // 4. needsCaseLaw for topics dominated by case law
   if (/responsabilit[àa].*precontrattual|culpa in contrahendo/i.test(combined)) {
     result.needsCaseLaw = true;
@@ -199,6 +212,21 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   // NO article numbers — reference boost pollution
   if (/asta.*(?:giudiziari|immobil)|(?:vendita|esecuzion).*forzat/i.test(combined) && !/abuso.*ediliz|DPR.*380|nullit[àa].*atto/i.test(result.legalQuery)) {
     result.legalQuery += " vendita forzata immobile abuso edilizio nullità atto trasferimento regolarità urbanistica edilizia";
+  }
+
+  // 13. Enrich legalQuery for pignoramento prima casa
+  if (/pignoramento.*(?:prima casa|abitazion|immobil)/i.test(combined) && !/esecuzion.*immobiliar|creditore.*privat/i.test(result.legalQuery)) {
+    result.legalQuery += " esecuzione immobiliare pignoramento prima casa creditore privato Agenzia Entrate Riscossione impignorabilità";
+  }
+
+  // 14. Enrich legalQuery for mantenimento figli (civile + penale)
+  if (/(?:manteniment.*figli|padre.*non.*pag|mancato.*manteniment)/i.test(combined) && !/obbligh.*assistenz.*familiar|570/i.test(result.legalQuery)) {
+    result.legalQuery += " violazione obblighi assistenza familiare mantenimento figli esecuzione forzata pignoramento stipendio";
+  }
+
+  // 15. Enrich legalQuery for prova testimoniale / prestito verbale
+  if (/prova.*testimonial|testimonianz|prestit.*verbal/i.test(combined) && !/limit.*prova|2721/i.test(result.legalQuery)) {
+    result.legalQuery += " limiti prova testimoniale contratti valore superiore ammissibilità";
   }
 
   return result;
