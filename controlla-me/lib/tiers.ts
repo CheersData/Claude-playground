@@ -62,43 +62,43 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
   leader: [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
     "sambanova-llama4-maverick",
-    "mistral-small-3",
+    "mistral-small-3",        // 2 RPM (ultimo resort)
   ],
   "question-prep": [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
     "sambanova-llama4-maverick",
     "mistral-small-3",
   ],
   classifier: [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
     "sambanova-llama3-70b",
     "mistral-small-3",
   ],
   "corpus-agent": [
     "claude-sonnet-4.5",      // partner
     "claude-haiku-4.5",       // associate
-    "gemini-2.5-flash",       // intern
-    "cerebras-gpt-oss-120b",
-    "groq-llama4-scout",
-    "sambanova-llama3-70b",   // 70B, buona qualità legale
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM (più generoso)
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day, 70B qualità legale
+    "gemini-2.5-flash",       // 20 req/day (risparmiare per associate)
     "mistral-small-3",        // fallback ultimo (2 RPM free)
   ],
   analyzer: [
     "claude-sonnet-4.5",      // partner
     "gemini-2.5-pro",         // associate
-    "mistral-large-3",        // intern (MoE 675B, 2 RPM)
-    "groq-llama3-70b",
-    "cerebras-gpt-oss-120b",
-    "sambanova-llama3-70b",
+    "groq-llama3-70b",        // intern — 500K tok/day
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-large-3",        // MoE 675B, 2 RPM (ultimo resort)
   ],
   investigator: [
     "claude-sonnet-4.5",      // partner
@@ -107,10 +107,10 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
   advisor: [
     "claude-sonnet-4.5",      // partner
     "gemini-2.5-pro",         // associate
-    "mistral-large-3",        // intern
-    "groq-llama3-70b",
-    "cerebras-gpt-oss-120b",
-    "sambanova-llama3-70b",
+    "groq-llama3-70b",        // intern — 500K tok/day
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-large-3",        // 2 RPM (ultimo resort)
   ],
   // ── Company Tasks (dipartimenti + CME) — Opus con fallback ──
   "task-executor": [
