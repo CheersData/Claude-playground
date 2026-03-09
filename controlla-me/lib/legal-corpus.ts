@@ -61,6 +61,14 @@ export function expandQuery(query: string): string[] {
     "segreto": "segreto professionale",
     "tolleranza": "tolleranza eccedenza deficienza misura vendita a corpo ventesimo",
     "preliminare": "contratto preliminare compravendita immobiliare trascrizione",
+    "costruttore": "costruttore immobile fideiussione tutela acquirente D.Lgs. 122/2005",
+    "fallito": "fallimento insolvenza procedura concorsuale fideiussione",
+    "difettoso": "difetto conformità garanzia legale vizi venditore",
+    "registrato": "registrazione conversazione intercettazione comunicazioni",
+    "registrazione": "registrazione conversazione intercettazione comunicazioni",
+    "asta": "vendita forzata esecuzione immobiliare asta giudiziaria",
+    "mutuo": "mutuo prestito prova testimoniale forma scritta",
+    "comproprietà": "comunione divisione scioglimento comproprietà",
   };
 
   // Costruisci variante formale se ci sono sostituzioni applicabili

@@ -1,0 +1,29 @@
+{
+  "testId": "TC27",
+  "question": "Ho un debito con un privato. Possono pignorare la mia prima casa?",
+  "agentAnswer": "RISPOSTA DIRETTA — In linea generale, la prima casa è pignorabile, ma con alcune limitazioni. L'art. 514 del Codice di Procedura Civile (c.p.c.) elenca le cose mobili assolutamente impignorabili, ma non include la prima casa. Tuttavia, l'art. 515 c.p.c. stabilisce che le cose destinate al servizio e alla coltivazione di un fondo possono essere pignorate separatamente dall'immobile solo in mancanza di altri mobili, e il giudice può escludere dal pignoramento quelle cose di uso necessario per la coltura del fondo. Inoltre, l'art. 545 c.p.c. stabilisce che i crediti alimentari e le somme dovute a titolo di stipendio, salario o altre indennità relative al rapporto di lavoro o di impiego possono essere pignorati solo in misura limitata e con autorizzazione del presidente del tribunale o di un giudice da lui delegato. Tuttavia, per quanto riguarda la prima casa, l'art. 515 c.p.c. non la include tra le cose assolutamente impignorabili, quindi potrebbe essere pignorata, ma con le limitazioni previste dalla legge. RIFERIMENTI NORMATIVI — Gli articoli pertinenti sono l'art. 514 c.p.c., che elenca le cose mobili assolutamente impignorabili, e l'art. 515 c.p.c., che stabilisce le limitazioni al pignoramento delle cose destinate al servizio e alla coltivazione di un fondo. Inoltre, l'art. 545 c.p.c. stabilisce le limitazioni al pignoramento dei crediti alimentari e delle somme dovute a titolo di stipendio, salario o altre indennità relative al rapporto di lavoro o di impiego. Tuttavia, per quanto riguarda la prima casa, l'art. 515 c.p.c. non la include tra le cose assolutamente impignorabili, quindi potrebbe essere pignorata, ma con le limitazioni previste dalla legge. IN PRATICA — Se hai un debito con un privato e temi che la tua prima casa possa essere pignorata, è importante consultare un avvocato per valutare le tue opzioni e difendere i tuoi diritti. Potresti dover presentare un'istanza al giudice per chiedere che la tua prima casa sia esclusa dal pignoramento, citando l'art. 515 c.p.c. e dimostrando che la tua casa è di uso necessario per la tua famiglia.",
+  "expectedAnswer": "TRAPPOLA: l'impignorabilità della prima casa vale SOLO per Agenzia Entrate Riscossione (art. 76 DPR 602/73). I creditori privati POSSONO pignorare la prima casa senza limiti.",
+  "scoringHints": {
+    "prep": "Ha distinto tra creditore privato e Agenzia Entrate nella query?",
+    "search": "Ha trovato art. 76 DPR 602/73 con il limite del soggetto?",
+    "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Senza ambiguità?"
+  },
+  "trapType": "falsa_tutela",
+  "institutes": [
+    "pignoramento_prima_casa",
+    "impignorabilità",
+    "creditori_privati"
+  ],
+  "scope": "art. 76 DPR 602/1973: impignorabilità SOLO per Agenzia Entrate Riscossione, non per privati",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 5,
+    "quality": 5,
+    "total": 15,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha distinto tra creditore privato e Agenzia Entrate e non ha citato l'art. 76 DPR 602/73, che è la norma chiave. Ha recuperato articoli del c.p.c. non pertinenti e non chiarisce esplicitamente che la tutela non vale per i privati, fornendo informazioni fuorvianti."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:08:16.926Z"
+}

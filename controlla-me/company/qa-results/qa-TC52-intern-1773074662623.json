@@ -1,0 +1,29 @@
+{
+  "testId": "TC52",
+  "question": "Ho prestato €5.000 a un amico verbalmente. Posso recuperarli?",
+  "agentAnswer": "Per recuperare i €5.000 prestati verbalmente a un amico, puoi agire in base all'art. 2033 c.c. sull'indebito oggettivo. Hai diritto alla ripetizione di quanto hai pagato, con interessi legali dal giorno della domanda se il debitore era in mala fede, o dal giorno del pagamento se era in buona fede. Tuttavia, se il prestito era basato su un dovere morale o sociale, l'art. 2034 c.c. esclude la ripetizione, salvo che il pagamento sia stato fatto da un incapace. Se il prestito era invece un pagamento di un debito prescritto, l'art. 2940 c.c. vieta la ripetizione. Inoltre, se il prestito era contrario al buon costume, l'art. 2035 c.c. ti impedisce di ripetere quanto pagato. Se il tuo amico si è arricchito ingiustamente a tuo danno senza giusta causa, puoi agire con l'azione di arricchimento ex art. 2041 c.c., ma solo se non hai altre azioni a disposizione (art. 2042 c.c.).\n\nRiferimenti normativi:\nL'art. 2033 c.c. stabilisce che chi ha eseguito un pagamento non dovuto ha diritto di ripetere ciò che ha pagato, con interessi legali. L'art. 2041 c.c. prevede l'azione di arricchimento per chi si è arricchito ingiustamente a danno di un'altra persona. L'art. 2034 c.c. esclude la ripetizione per obbligazioni naturali, salvo che il pagamento sia stato fatto da un incapace. L'art. 2940 c.c. vieta la ripetizione di pagamenti spontanei di debiti prescritti. L'art. 2035 c.c. esclude la ripetizione per prestazioni contrarie al buon costume.\n\nIn pratica:\nSe il prestito non rientra nelle eccezioni degli artt. 2034, 2940 o 2035 c.c., puoi agire per la ripetizione del pagamento con interessi legali. Se il tuo amico si è arricchito ingiustamente, puoi considerare l'azione di arricchimento ex art. 2041 c.c., ma solo se non hai altre azioni a disposizione.",
+  "expectedAnswer": "Il prestito verbale è valido (nessuna forma scritta richiesta per il mutuo). MA: la prova testimoniale è limitata per importi superiori a €2.58 (art. 2721 c.c. — limite storico non aggiornato). Gli SMS/WhatsApp possono valere come prova documentale scritta.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 2721 e limiti prova testimoniale?",
+    "search": "Ha trovato art. 2721 c.c.?",
+    "quality": "Menziona il limite (€2.58)? Suggerisce SMS come prova alternativa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mutuo",
+    "forma_libera",
+    "prova_testimoniale"
+  ],
+  "scope": "Valido senza forma scritta. MA prova testimoniale limitata sopra €2.58 (art. 2721). SMS può bastare.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 5,
+    "quality": 5,
+    "total": 15,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha identificato il tema centrale (art. 2721 c.c. e il limite di €2.58) e non ha citato la prova tramite SMS/WhatsApp. Ha fornito norme non pertinenti (art. 2033, 2034, 2041, ecc.) dimostrando scarsa preparazione, ricerca e accuratezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:43:09.822Z"
+}

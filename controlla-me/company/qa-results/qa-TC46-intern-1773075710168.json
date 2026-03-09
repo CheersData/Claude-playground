@@ -1,0 +1,29 @@
+{
+  "testId": "TC46",
+  "question": "Sono proprietario di un terreno agricolo confinante. Quando vendono quello accanto, ho diritto di prelazione?",
+  "agentAnswer": "Il diritto di prelazione per terreni agricoli confinanti è disciplinato dall'Art. 8 della L. 590/1965. Secondo questa norma, il coltivatore diretto proprietario di terreni confinanti con fondi offerti in vendita ha diritto di prelazione, purché sugli stessi non siano insediati mezzadri, coloni, affittuari, compartecipanti o enfiteuti coltivatori diretti. Questo diritto è stato introdotto con l'aggiornamento (7) della legge, che ha ridotto il termine di coltivazione da quattro a due anni e ha esteso il diritto di prelazione anche ai coltivatori diretti proprietari di terreni confinanti.\n\nRiferimenti normativi:\nL'Art. 8 della L. 590/1965 stabilisce che il coltivatore diretto proprietario di terreni confinanti ha diritto di prelazione, purché non ci siano altri coltivatori insediati sui terreni confinanti. L'Art. 14 della stessa legge esclude il diritto di prelazione in alcuni casi specifici, come quando i terreni vengono acquistati da enti pubblici o dall'ISMEA.\n\nIn pratica:\nSe sei un coltivatore diretto e il terreno confinante non è coltivato da altri, puoi esercitare il diritto di prelazione. Assicurati di verificare le condizioni specifiche dell'Art. 8 e di agire entro i termini previsti dalla legge.",
+  "expectedAnswer": "TRAPPOLA: non basta essere proprietari del fondo confinante. La prelazione agraria spetta SOLO al coltivatore diretto che coltiva personalmente il fondo (L.590/1965, L.817/1971). La mera proprietà del terreno confinante non attribuisce il diritto.",
+  "scoringHints": {
+    "prep": "Ha distinto proprietà da coltivazione diretta nella query?",
+    "search": "Ha trovato L.590/65 e L.817/71 con il requisito della coltivazione?",
+    "quality": "Chiarisce ESPLICITAMENTE che la proprietà da sola non basta?"
+  },
+  "trapType": "requisito_non_ovvio",
+  "institutes": [
+    "prelazione_agraria",
+    "coltivatore_diretto",
+    "fondo_confinante"
+  ],
+  "scope": "TRAPPOLA: NON basta essere proprietari. Bisogna coltivare direttamente (L.590/65, L.817/71).",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 20,
+    "quality": 35,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha recuperato la normativa pertinente. Tuttavia, non ha esplicitamente chiarito che la mera proprietà non basta, cadendo nella trappola. La risposta è accurata ma non completa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:00:24.560Z"
+}

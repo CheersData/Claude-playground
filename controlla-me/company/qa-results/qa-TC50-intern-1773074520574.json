@@ -1,0 +1,29 @@
+{
+  "testId": "TC50",
+  "question": "Il condominio ha deliberato il divieto di tenere animali in appartamento. È valido?",
+  "agentAnswer": "Il divieto di tenere animali in appartamento deliberato dal condominio non è valido. L'art. 1138 c.c. stabilisce espressamente che 'le norme del regolamento non possono in alcun modo menomare i diritti di ciascun condomino, quali risultano dagli atti di acquisto e dalle convenzioni, e in nessun caso possono derogare alle disposizioni degli artt. 1118, 1120, 1129, 1131, 1132 e 1137 c.c.'. Inoltre, l'art. 1138 c.c. specifica che 'le norme del regolamento non possono vietare di possedere o detenere animali domestici'. Pertanto, qualsiasi delibera condominiale che vieti la detenzione di animali domestici è nulla di diritto.\n\nRiferimenti normativi: L'art. 1138 c.c. è chiaro nel vietare espressamente qualsiasi regolamento condominiale che limiti il diritto di possedere o detenere animali domestici. L'art. 1137 c.c. stabilisce che le deliberazioni contrarie alla legge sono annullabili, ma in questo caso non è necessario neppure impugnare la delibera perché è nulla fin dall'origine.\n\nIn pratica: Il condomino che subisce il divieto può chiedere all'amministratore di annullare la delibera, oppure può agire in giudizio per farla dichiarare nulla. Non è necessario attendere i 30 giorni per l'impugnazione perché la delibera è nulla e può essere contestata immediatamente.",
+  "expectedAnswer": "La delibera è NULLA: l'art. 1138 co.5 c.c. (modificato dalla L. 220/2012) stabilisce che le norme del regolamento condominiale non possono vietare di possedere animali domestici. Solo un regolamento contrattuale (approvato da tutti i proprietari) potrebbe imporlo.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 1138 co.5 e L. 220/2012?",
+    "search": "Ha trovato art. 1138 co.5 c.c. con la modifica del 2012?",
+    "quality": "Qualifica la delibera come nulla? Distingue regolamento contrattuale da assembleare?"
+  },
+  "trapType": null,
+  "institutes": [
+    "condominio",
+    "delibera_assembleare",
+    "animali_domestici"
+  ],
+  "scope": "NULLA per art. 1138 co.5 c.c. come modificato da L.220/2012. Solo il regolamento contrattuale originario può vietarli.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 20,
+    "quality": 35,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente è sostanzialmente corretta. Riconosce l'invalidità della delibera condominiale che vieta di tenere animali in appartamento, citando l'art. 1138 c.c. e sostenendo che tale delibera è nulla. Tuttavia, non cita espressamente l'art. 1138 co.5 c.c. e la L. 220/2012, né distingue chiaramente tra regolamento contrattuale e assembleare, pur se la sostanza della risposta è corretta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:40:22.198Z"
+}

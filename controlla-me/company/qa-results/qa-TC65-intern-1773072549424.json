@@ -1,0 +1,29 @@
+{
+  "testId": "TC65",
+  "question": "La palestra mi ha fatto firmare un contratto di 12 mesi senza clausola di recesso. Devo pagare tutto anche se smetto di andare?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Gli articoli forniti riguardano principalmente il diritto di recesso in contratti di consumo, servizi finanziari e contratti di agenzia, ma non specificano le norme applicabili ai contratti di abbonamento a palestre.\n\nRIFERIMENTI NORMATIVI\nGli articoli citati nel contesto non sono direttamente pertinenti alla domanda specifica riguardante i contratti di abbonamento a palestre. Tuttavia, il Codice del Consumo (Art. 53, Art. 59-octies, Art. 52, Art. 67-duodecies) contiene disposizioni sul diritto di recesso in contratti a distanza o negoziati fuori dei locali commerciali, che potrebbero essere rilevanti se il contratto è stato stipulato in tali condizioni. Gli articoli del Codice Civile (Art. 1341, Art. 1418, Art. 1419, Art. 1342, Art. 1423, Art. 1354, Art. 1750, Art. 2237, Art. 1833, Art. 2172, Art. 2119, Art. 1373, Art. 2244) riguardano principalmente la nullità del contratto, le condizioni generali di contratto e il recesso in vari contesti, ma non specificano le norme per i contratti di abbonamento a palestre.\n\nGIURISPRUDENZA\nNon sono presenti nel contesto approfondimenti giurisprudenziali pertinenti alla domanda.\n\nIN PRATICA\nPer una risposta completa e precisa, è necessario consultare un avvocato specializzato in diritto del consumo o un esperto in contratti di abbonamento, che possa esaminare le specifiche clausole del contratto e determinare se esistono norme o giurisprudenza applicabili al tuo caso specifico.",
+  "expectedAnswer": "La clausola che esclude completamente il recesso è NULLA per essere clausola vessatoria (art. 33 lett.g D.Lgs. 206/2005 Codice Consumo). Il consumatore ha sempre diritto di recedere per giusta causa. Le palestre non possono contrattualmente eliminare il diritto di recesso.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 33 lett.g Codice Consumo?",
+    "search": "Ha trovato art. 33 lett.g Codice del Consumo?",
+    "quality": "Qualifica la clausola come nulla/vessatoria? Menziona il recesso per giusta causa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_vessatoria",
+    "recesso_consumatore",
+    "Codice_Consumo"
+  ],
+  "scope": "Mancanza assoluta recesso = clausola vessatoria art. 33 lett.g. Per giusta causa: sempre possibile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 22,
+    "search": 18,
+    "quality": 30,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente il tema della clausola vessatoria e ha citato l'art. 33 lett.g del Codice del Consumo, ma la ricerca è stata poco mirata e ha elencato norme non pertinenti. La risposta è accurata e non contiene invenzioni, ma è eccessivamente prolissa e non fornisce una risposta diretta e sintetica come atteso."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:07:54.307Z"
+}

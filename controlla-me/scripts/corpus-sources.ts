@@ -421,12 +421,12 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     connector: {
       normattivaSearchTerms: ["prelazione agraria", "legge 590 1965", "proprieta coltivatrice"],
       normattivaActType: "legge",
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 142 del 9 giugno 1965
+      codiceRedazionale: "065U0590",
+      normattivaDataGU: "19650609",
       directAkn: true,
       preferredFormat: "akn",
     },
-    lifecycle: "planned",
+    lifecycle: "loaded", // 39 articoli caricati 2026-03-09
   },
   {
     id: "legge_817_1971",
@@ -441,9 +441,8 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     connector: {
       normattivaSearchTerms: ["legge 817 1971", "prelazione confinante", "proprieta coltivatrice rifinanziamento"],
       normattivaActType: "legge",
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 224 del 4 settembre 1971
-      directAkn: true,
+      codiceRedazionale: "071U0817",
+      // normattivaDataGU 19710904 restituisce HTML — provo async search senza directAkn
       preferredFormat: "akn",
     },
     lifecycle: "planned",

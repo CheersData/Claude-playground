@@ -1,0 +1,29 @@
+{
+  "testId": "TC63",
+  "question": "Il vicino usa il mio terreno da anni come se fosse suo. Posso ancora recuperarlo?",
+  "agentAnswer": "Per recuperare il tuo terreno, devi considerare se il vicino ha acquisito la proprietà per usucapione. L'usucapione è un modo di acquisto della proprietà che si verifica dopo un possesso continuato per un periodo di tempo determinato dalla legge.\n\nRiferimenti normativi:\nL'art. 1158 c.c. stabilisce che la proprietà dei beni immobili si acquista con il possesso continuato per venti anni. L'art. 1159 c.c. prevede un termine ridotto a quindici anni per i fondi rustici in comuni montani o con reddito limitato. L'art. 1161 c.c. regola l'usucapione dei beni mobili, mentre l'art. 1162 c.c. si applica ai beni mobili iscritti in pubblici registri.\n\nIn pratica:\nSe il vicino ha posseduto il tuo terreno ininterrottamente per venti anni (o quindici anni se si applicano le condizioni dell'art. 1159 c.c.), potrebbe aver acquisito la proprietà per usucapione. Per verificare se l'usucapione si è verificata, è necessario esaminare la continuità del possesso e l'assenza di interruzioni. Se il possesso è stato interrotto per più di un anno, l'usucapione non si è completata (Art. 1167 c.c.).",
+  "expectedAnswer": "TRAPPOLA: dipende da quanto tempo il vicino usa il terreno. Se sono passati 20 anni (art. 1158 c.c.) l'usucapione potrebbe essere già completata — serve azione di accertamento. Se non sono ancora 20 anni: si può interrompere con atto formale (azione di reintegrazione, diffida formale). L'agente deve chiedere da quanto tempo.",
+  "scoringHints": {
+    "prep": "Ha distinto usucapione completata da in corso nella query?",
+    "search": "Ha trovato art. 1158 c.c.?",
+    "quality": "Distingue i due scenari? Chiede da quanto tempo dura la situazione?"
+  },
+  "trapType": "dipende_dal_tempo",
+  "institutes": [
+    "usucapione",
+    "atto_interruttivo",
+    "termine_ventennale"
+  ],
+  "scope": "DIPENDE: se completata (20 anni, art. 1158) = molto difficile. Se in corso = atto interruttivo.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta identifica correttamente l'art. 1158 c.c. e distingue tra usucapione completata e in corso, ma non chiede esplicitamente da quanto tempo dura la situazione, mancando il bonus per aver evitato la trappola. La qualità è ridotta per l'assenza di questa domanda chiave."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:05:24.087Z"
+}

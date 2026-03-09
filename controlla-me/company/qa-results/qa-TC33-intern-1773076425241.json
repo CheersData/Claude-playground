@@ -1,0 +1,29 @@
+{
+  "testId": "TC33",
+  "question": "Il mio datore mi ha licenziato per giusta causa mentre ero in malattia. È valido il licenziamento?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Gli articoli forniti trattano principalmente di recesso dal contratto di lavoro, licenziamento per giustificato motivo e giusta causa, ma non specificano la validità del licenziamento durante un periodo di malattia.\n\nRiferimenti normativi: L'art. 2110 c.c. stabilisce che in caso di infortunio, malattia, gravidanza o puerperio, il lavoratore ha diritto alla retribuzione o a un'indennità, e l'imprenditore può recedere dal contratto solo dopo il periodo stabilito dalla legge o dagli usi. Tuttavia, non specifica se il licenziamento per giusta causa durante la malattia sia valido. Gli articoli 2119 c.c., 3 del Jobs Act, 3 del D.Lgs. 23/2015 e 18 dello Statuto dei Lavoratori trattano di recesso per giusta causa e licenziamento illegittimo, ma non affrontano direttamente la situazione di malattia.\n\nIn pratica: Per una risposta completa, è necessario consultare un avvocato specializzato in diritto del lavoro che possa esaminare il caso specifico e verificare se il licenziamento è stato effettuato in conformità con le normative vigenti. In particolare, è importante verificare se il licenziamento per giusta causa è stato motivato da un comportamento grave del lavoratore che giustifica la cessazione immediata del rapporto di lavoro, indipendentemente dalla malattia.",
+  "expectedAnswer": "TRAPPOLA DOPPIA: il periodo di comporto (art. 2110) protegge il lavoratore SOLO dal licenziamento per ragioni oggettive/soggettive ordinarie. NON protegge dal licenziamento per giusta causa (art. 2119). Se c'è giusta causa vera, il licenziamento è valido anche durante la malattia.",
+  "scoringHints": {
+    "prep": "Ha distinto tra art. 2110 e art. 2119 nella query?",
+    "search": "Ha trovato entrambi gli articoli con il rapporto tra loro?",
+    "quality": "Spiega ESPLICITAMENTE che art. 2110 non si applica alla giusta causa? Non crea confusione tra i due istituti?"
+  },
+  "trapType": "doppia_trappola",
+  "institutes": [
+    "licenziamento_giusta_causa",
+    "malattia",
+    "periodo_di_comporto"
+  ],
+  "scope": "TRAPPOLA DOPPIA: art. 2110 (periodo di comporto) NON si applica alla giusta causa (art. 2119)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 10,
+    "quality": 10,
+    "total": 35,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha citato gli articoli 2110 e 2119 ma non ha fornito una risposta chiara e corretta: non afferma esplicitamente che il licenziamento per giusta causa è valido anche durante la malattia. Inoltre la risposta è vaga, invita a consultare un avvocato e non dimostra una ricerca normativa efficace."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:12:58.746Z"
+}

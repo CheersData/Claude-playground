@@ -1,0 +1,29 @@
+{
+  "testId": "TC44",
+  "question": "Ho comprato un appartamento che è 8 mq più piccolo di quanto indicato nel contratto. Posso fare qualcosa?",
+  "agentAnswer": "La risposta dipende dal tipo di vendita (a misura o a corpo) e dalla percentuale di differenza. Se la vendita è a misura (prezzo per unità di misura), hai diritto a una riduzione del prezzo proporzionale alla differenza, anche se inferiore al 5%. Se la vendita è a corpo (prezzo globale), non hai diritto a nulla se la differenza è inferiore al 5%. Se la differenza supera il 5%, puoi chiedere una riduzione del prezzo o recedere dal contratto. La tolleranza edilizia (Art. 34-bis TUE) non influisce sui tuoi diritti civili.\n\nRiferimenti normativi:\nL'Art. 1537 c.c. regola la vendita a misura, dove qualsiasi differenza di misura dà diritto a rettifica del prezzo. L'Art. 1538 c.c. regola la vendita a corpo, dove solo differenze superiori al 5% danno diritto a rettifica o recesso. L'Art. 34-bis TUE stabilisce tolleranze edilizie, ma non influisce sui diritti civili del compratore.\n\nIn pratica:\nVerifica se il contratto è a misura o a corpo. Se è a misura, contatta il venditore per la riduzione del prezzo. Se è a corpo e la differenza supera il 5%, valuta il recesso o la riduzione del prezzo.",
+  "expectedAnswer": "Dipende dal tipo di vendita. Vendita a corpo (art. 1538): rimedio solo se differenza supera 1/20 del prezzo. Vendita a misura (art. 1537): diritto a riduzione prezzo o recesso per qualsiasi differenza. Per nuove costruzioni: D.Lgs. 122/2005 e art. 34-bis DPR 380/2001 (tolleranza costruttiva 2%).",
+  "scoringHints": {
+    "prep": "Ha distinto vendita a corpo da vendita a misura nella query?",
+    "search": "Ha trovato artt. 1537-1538 e art. 34-bis DPR 380?",
+    "quality": "Distingue le due tipologie? Indica le soglie di tolleranza corrette?"
+  },
+  "trapType": null,
+  "institutes": [
+    "vendita_a_corpo",
+    "vendita_a_misura",
+    "difetto_di_superficie"
+  ],
+  "scope": "art. 1538 (corpo, tolleranza 1/20) vs art. 1537 (misura, restituzione/recesso). Per nuove costruzioni: art. 34-bis DPR 380/2001 (2%)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha distinto correttamente le due tipologie di vendita e ha recuperato i riferimenti normativi pertinenti. Tuttavia, ha commesso un errore sulla soglia di tolleranza per la vendita a corpo (5% invece di 1/20 del prezzo). La qualità è stata ridotta di conseguenza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:59:10.088Z"
+}

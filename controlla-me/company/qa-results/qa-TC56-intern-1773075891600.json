@@ -1,0 +1,29 @@
+{
+  "testId": "TC56",
+  "question": "Il padre dei miei figli non paga il mantenimento. Cosa posso fare?",
+  "agentAnswer": "Per ottenere il pagamento del mantenimento da parte del padre dei tuoi figli, puoi seguire i seguenti passaggi:\n\n1. **Richiesta di pagamento**: Invia una richiesta formale al padre dei tuoi figli, specificando l'importo del mantenimento e le modalità di pagamento. Puoi farlo tramite lettera raccomandata con ricevuta di ritorno.\n\n2. **Accordo volontario**: Se il padre è disposto a pagare, potete stipulare un accordo scritto che regoli l'importo e le modalità di pagamento. Questo accordo può essere omologato dal tribunale per renderlo esecutivo.\n\n3. **Intervento del tribunale**: Se il padre non paga volontariamente, puoi rivolgerti al tribunale per ottenere un provvedimento che ordini il pagamento del mantenimento. Il giudice può emettere un decreto che stabilisce l'importo del mantenimento e le modalità di pagamento.\n\n4. **Esecuzione forzata**: Se il padre non rispetta il decreto del tribunale, puoi richiedere l'esecuzione forzata del pagamento. Il decreto del tribunale costituisce titolo esecutivo e può essere eseguito tramite pignoramento dei beni del padre.\n\nRiferimenti normativi:\nL'art. 315-bis c.c. stabilisce che il figlio ha diritto di essere mantenuto, educato, istruito e assistito moralmente dai genitori. L'art. 316-bis c.c. prevede che i genitori devono adempiere i loro obblighi nei confronti dei figli in proporzione alle rispettive sostanze e secondo la loro capacità di lavoro professionale o casalingo. L'art. 337-ter c.c. stabilisce che il giudice può adottare provvedimenti relativi alla prole con esclusivo riferimento all'interesse morale e materiale di essa, determinando i tempi e le modalità della loro presenza presso ciascun genitore e fissando la misura e il modo con cui ciascuno di essi deve contribuire al mantenimento, alla cura, all'istruzione e all'educazione dei figli.\n\nIn pratica:\nSe il padre non paga il mantenimento, puoi richiedere l'intervento del tribunale per ottenere un provvedimento che ordini il pagamento. Se il padre non rispetta il provvedimento del tribunale, puoi richiedere l'esecuzione forzata del pagamento tramite pignoramento dei suoi beni.",
+  "expectedAnswer": "Due strade parallele: penale (art. 570-bis c.p., D.Lgs. 21/2018 — fino a 1 anno di reclusione) e civile (esecuzione forzata: pignoramento stipendio, conto corrente). Il giudice può anche autorizzare sequestro conservativo. Entrambe percorribili contemporaneamente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambe le strade (penale e civile)?",
+    "search": "Ha trovato art. 570-bis c.p.?",
+    "quality": "Illustra entrambe le strade (penale e civile)? Menziona il D.Lgs. 21/2018?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mantenimento_figli",
+    "art_570-bis_cp",
+    "esecuzione_forzata"
+  ],
+  "scope": "art. 570-bis c.p. (D.Lgs. 21/2018) + esecuzione forzata civile (sequestro stipendio/conto)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 10,
+    "quality": 20,
+    "total": 50,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente è incompleta e non menziona l'art. 570-bis c.p. né il D.Lgs. 21/2018. Inoltre, non illustra chiaramente entrambe le strade (penale e civile) come richiesto. La risposta è pertinente ma non sufficientemente accurata e completa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:03:05.134Z"
+}

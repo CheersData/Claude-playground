@@ -1,0 +1,29 @@
+{
+  "testId": "TC42",
+  "question": "Ho versato un acconto al costruttore ma è fallito prima di consegnarmi l'appartamento. Recupero i soldi?",
+  "agentAnswer": "RISPOSTA DIRETTA\nSe il costruttore è fallito prima di consegnarti l'appartamento, puoi recuperare i soldi versati grazie alla fideiussione obbligatoria prevista dalla legge. La fideiussione deve essere escussa entro 30 giorni dalla richiesta scritta, corredata da documentazione che comprova l'importo versato.\n\nRiferimenti normativi:\nL'art. 3 della legge sulla tutela degli acquirenti immobili da costruire stabilisce che la fideiussione deve garantire la restituzione delle somme versate in caso di crisi del costruttore. La crisi si verifica con il fallimento (Art. 3, comma 2, lettera b). L'art. 3, comma 3, lettera a) prevede che la fideiussione sia escutibile dalla data del fallimento, a condizione che tu abbia comunicato al costruttore la tua volontà di recedere dal contratto. L'art. 3, comma 6, impone al fideiussore di pagare entro 30 giorni dalla richiesta.\n\nIn pratica:\nInvia una richiesta scritta al fideiussore, allegando la documentazione che prova l'importo versato e la dichiarazione di fallimento del costruttore. Se il fideiussore non paga entro 30 giorni, puoi agire per il recupero delle somme e delle spese sostenute.",
+  "expectedAnswer": "D.Lgs. 122/2005 tutela chi acquista da costruttore: fideiussione obbligatoria per gli acconti (se non rilasciata, contratto nullo di protezione). In caso di fallimento: l'acquirente ha prelazione nell'asta e può escutere la fideiussione per recuperare gli acconti.",
+  "scoringHints": {
+    "prep": "Ha formulato query su D.Lgs. 122/2005?",
+    "search": "Ha trovato D.Lgs. 122/2005 con fideiussione e prelazione?",
+    "quality": "Menziona fideiussione, prelazione e nullità relativa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "acquisto_immobile_da_costruire",
+    "fideiussione_obbligatoria",
+    "prelazione_fallimento"
+  ],
+  "scope": "D.Lgs. 122/2005: fideiussione obbligatoria per acconti, prelazione nell'asta fallimentare",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema (D.Lgs. 122/2005 e la fideiussione obbligatoria) e ha fornito riferimenti normativi pertinenti. La risposta è accurata, completa e non contiene invenzioni, meritando un punteggio elevato nella qualità."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:15:05.686Z"
+}

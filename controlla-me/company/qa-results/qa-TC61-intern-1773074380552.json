@@ -1,0 +1,29 @@
+{
+  "testId": "TC61",
+  "question": "Ho comprato un immobile all'asta giudiziaria ma scopro che ha abusi edilizi. Il tribunale mi garantisce la conformità?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti alla domanda specifica riguardo alla garanzia del tribunale per la conformità edilizia di un immobile acquistato all'asta giudiziaria. Gli articoli presenti riguardano principalmente il Codice del Consumo, il Codice Penale, il Codice Civile e il Testo Unico Edilizia, ma non trattano esplicitamente della responsabilità del tribunale in caso di abusi edilizi in immobili venduti all'asta.\n\nRiferimenti normativi: Gli articoli citati nel contesto non forniscono una risposta diretta alla domanda. Tuttavia, il Testo Unico Edilizia (Art. 31) disciplina le sanzioni per gli abusi edilizi, mentre il Codice di Procedura Civile (Art. 586) riguarda il trasferimento del bene espropriato, ma non tratta specificamente della garanzia per la conformità edilizia.\n\nIn pratica: Per risolvere la situazione, è consigliabile consultare un avvocato specializzato in diritto edilizio e procedura civile per valutare le opzioni legali disponibili, come eventuali azioni di risarcimento danni o richieste di sanatoria degli abusi.",
+  "expectedAnswer": "TRAPPOLA INTERDISCIPLINARE: la vendita forzata (asta) non è garantita per conformità urbanistica. Il tribunale NON garantisce che l'immobile sia regolare. Art. 46 DPR 380/2001 si applica diversamente: nelle vendite forzate l'acquirente non può eccepire la nullità per mancata menzione della conformità. Gli abusi restano però a carico dell'acquirente.",
+  "scoringHints": {
+    "prep": "Ha distinto vendita forzata da volontaria nella query?",
+    "search": "Ha trovato art. 46 DPR 380/2001 con la disciplina delle vendite forzate?",
+    "quality": "Chiarisce che il tribunale non garantisce? Spiega le conseguenze per l'acquirente?"
+  },
+  "trapType": "interdisciplinare",
+  "institutes": [
+    "asta_giudiziaria",
+    "abusi_edilizi",
+    "responsabilità_acquirente"
+  ],
+  "scope": "INTERDISCIPLINARE: vendita forzata ≠ volontaria. Il tribunale NON garantisce conformità urbanistica.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 5,
+    "quality": 15,
+    "total": 30,
+    "verdict": "FAIL",
+    "reasoning": "La risposta non ha identificato correttamente il tema giuridico specifico (vendita forzata vs. volontaria) e non ha recuperato l'articolo pertinente (Art. 46 DPR 380/2001). La qualità è bassa perché non chiarisce sufficientemente la mancanza di garanzia del tribunale e le conseguenze per l'acquirente."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:37:47.268Z"
+}

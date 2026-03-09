@@ -1,0 +1,29 @@
+{
+  "testId": "TC34",
+  "question": "Mio padre ha lasciato tutto alla badante nel testamento. I figli non prendono niente?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nIl contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Gli articoli forniti trattano principalmente di successione legittima, riserva a favore dei legittimari e disposizioni testamentarie, ma non specificano se i figli hanno diritto a una quota dell'eredità quando il padre ha lasciato tutto a un'altra persona.\n\nRiferimenti normativi:\n\nGli articoli forniti non contengono informazioni specifiche sulla situazione descritta. Tuttavia, alcuni articoli rilevanti che potrebbero essere pertinenti sono:\n\n- Art. 537 c.c. (riserva a favore dei figli): stabilisce che i figli hanno diritto a una quota dell'eredità, ma non specifica cosa accade se il testamento lascia tutto a un'altra persona.\n- Art. 538 c.c. (riserva a favore degli ascendenti): simile all'articolo precedente, ma riguarda gli ascendenti.\n- Art. 565 c.c. (categorie dei successibili): elenca le categorie di persone che possono ereditare, ma non specifica le quote.\n\nOrientamenti giurisprudenziali:\n\nNon sono presenti nel contesto fornito.\n\nIn pratica:\n\nConsultare un avvocato specializzato in diritto successorio per verificare se i figli hanno diritto a una quota dell'eredità nonostante il testamento lasciato dal padre.",
+  "expectedAnswer": "I figli sono legittimari (art. 536) e hanno diritto a una quota riservata. Il testamento non è nullo ma possono agire in riduzione (art. 553-554) per recuperare la loro quota. Il termine per l'azione è 10 anni dall'apertura della successione.",
+  "scoringHints": {
+    "prep": "Ha formulato query su legittimari e azione di riduzione?",
+    "search": "Ha trovato art. 536 e 553-554 c.c.?",
+    "quality": "Distingue nullità (errata) da riducibilità (corretta)? Menziona i termini?"
+  },
+  "trapType": null,
+  "institutes": [
+    "legittimari",
+    "quota_riserva",
+    "azione_riduzione"
+  ],
+  "scope": "art. 536 (legittimari), art. 553-554 (azione di riduzione). Il testamento non è nullo ma riducibile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 5,
+    "quality": 15,
+    "total": 30,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non identifica correttamente il tema giuridico e non recupera gli articoli pertinenti. Non distingue tra nullità e riducibilità del testamento e non menziona i termini specifici per l'azione di riduzione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:13:45.326Z"
+}

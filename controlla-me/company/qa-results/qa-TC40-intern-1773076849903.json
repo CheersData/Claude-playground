@@ -1,0 +1,29 @@
+{
+  "testId": "TC40",
+  "question": "Il contratto prevede una 'penale a titolo di caparra'. È valido?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nIl contratto che prevede una 'penale a titolo di caparra' è valido se si tratta di una clausola penale o di una caparra confirmatoria. Tuttavia, la 'caparra penitenziale' ha una funzione diversa e richiede specifici requisiti per essere valida.\n\nRiferimenti normativi:\n\nL'Art. 1382 c.c. disciplina la clausola penale, che limita il risarcimento del danno alla prestazione promessa in caso di inadempimento. L'Art. 1385 c.c. regola la caparra confirmatoria, che può essere trattenuta o raddoppiata a seconda della parte inadempiente. L'Art. 1386 c.c. riguarda la caparra penitenziale, che ha la sola funzione di corrispettivo del recesso.\n\nIn pratica:\n\nVerifica se la 'penale a titolo di caparra' è stata intesa come clausola penale o caparra confirmatoria. Se è una caparra penitenziale, assicurati che il contratto preveda esplicitamente il diritto di recesso per una o entrambe le parti.",
+  "expectedAnswer": "TRAPPOLA: penale (art. 1382) e caparra confirmatoria (art. 1385) sono istituti diversi con regole diverse (cumulabilità con risarcimento, facoltà di riduzione, etc.). La formulazione 'penale a titolo di caparra' è una contraddizione in termini. L'agente deve segnalare l'anomalia e non accettarla come valida senza riserve.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambi gli istituti separatamente?",
+    "search": "Ha trovato artt. 1382 e 1385 c.c.?",
+    "quality": "Segnala la contraddizione? Non risponde 'sì, è valido' senza segnalare il problema?"
+  },
+  "trapType": "contraddizione_contrattuale",
+  "institutes": [
+    "clausola_penale",
+    "caparra_confirmatoria",
+    "contraddizione_contrattuale"
+  ],
+  "scope": "TRAPPOLA: penale e caparra sono istituti DIVERSI. La clausola è contraddittoria e va segnalata.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente gli istituti giuridici e ha recuperato i riferimenti normativi pertinenti. Tuttavia, non ha segnalato chiaramente la contraddizione in termini della formulazione 'penale a titolo di caparra', limitandosi a descrivere le differenze tra gli istituti senza evidenziare l'anomalia. La risposta è complessivamente accurata ma manca di un'analisi critica più incisiva."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:20:01.019Z"
+}

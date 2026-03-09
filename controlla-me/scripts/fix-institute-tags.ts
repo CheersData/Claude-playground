@@ -494,13 +494,13 @@ const CPC: TagRule[] = [
   { min: 258, max: 276, tags: ["consulenza_tecnica", "prove"] },
   // Decisione — cosa giudicata
   { min: 277, max: 322, tags: ["decisione", "sentenza"] },
-  // ★ Cosa giudicata
-  { min: 324, max: 340, tags: ["cosa_giudicata", "efficacia_sentenza"] },
-  // Impugnazioni
-  { min: 323, max: 403, tags: ["impugnazioni", "appello", "cassazione"] },
-  { min: 341, max: 359, tags: ["appello"] },
-  { min: 360, max: 394, tags: ["ricorso_cassazione"] },
-  { min: 395, max: 403, tags: ["revocazione"] },
+  // Impugnazioni (range generale — poi sovrascritto da sotto-range specifici)
+  { min: 323, max: 403, tags: ["impugnazioni"] },
+  // ★ Cosa giudicata (Art. 324-340) — deve venire DOPO impugnazioni per "last match wins"
+  { min: 324, max: 340, tags: ["cosa_giudicata", "efficacia_sentenza", "impugnazioni"] },
+  { min: 341, max: 359, tags: ["appello", "impugnazioni"] },
+  { min: 360, max: 394, tags: ["ricorso_cassazione", "impugnazioni"] },
+  { min: 395, max: 403, tags: ["revocazione", "impugnazioni"] },
   // Libro III: Processo di esecuzione
   { min: 474, max: 632, tags: ["esecuzione_forzata"] },
   // ★ Titolo esecutivo — fondamentale

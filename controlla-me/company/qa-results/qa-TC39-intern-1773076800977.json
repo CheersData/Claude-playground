@@ -1,0 +1,29 @@
+{
+  "testId": "TC39",
+  "question": "Il contratto dice: 'Se non paghi entro 30 giorni, il contratto si intende risolto'. È una clausola risolutiva espressa o una condizione?",
+  "agentAnswer": "La clausola 'Se non paghi entro 30 giorni, il contratto si intende risolto' è una clausola risolutiva espressa. Essa stabilisce che il contratto si risolve automaticamente in caso di inadempimento, senza necessità di un'ulteriore dichiarazione o azione da parte della parte interessata.\n\nRiferimenti normativi:\nL'art. 1456 c.c. stabilisce che i contraenti possono convenire espressamente che il contratto si risolva nel caso che una determinata obbligazione non sia adempiuta secondo le modalità stabilite. In questo caso, la risoluzione si verifica di diritto quando la parte interessata dichiara all'altra che intende valersi della clausola risolutiva. L'art. 1453 c.c. conferma che nei contratti con prestazioni corrispettive, quando uno dei contraenti non adempie le sue obbligazioni, l'altro può a sua scelta chiedere l'adempimento o la risoluzione del contratto.\n\nIn pratica:\nVerifica che la clausola sia redatta in modo chiaro e specifico, indicando esplicitamente la condizione di inadempimento e il termine entro il quale deve avvenire il pagamento. Assicurati che la clausola sia conforme alle disposizioni degli articoli 1453 e 1456 del Codice Civile.",
+  "expectedAnswer": "Dipende dalla formulazione esatta: clausola risolutiva espressa (art. 1456) richiede dichiarazione della parte; condizione risolutiva (art. 1353) opera automaticamente. L'agente deve segnalare l'ambiguità e chiedere il testo completo prima di rispondere.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambe le fattispecie (art. 1456 e 1353)?",
+    "search": "Ha trovato art. 1456 e art. 1353 c.c.?",
+    "quality": "Segnala l'ambiguità? Distingue i due istituti? Chiede il testo completo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_risolutiva_espressa",
+    "condizione_risolutiva",
+    "interpretazione_contratto"
+  ],
+  "scope": "Dipende dalla formulazione. L'agente DEVE segnalare ambiguità e richiedere il testo completo.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 8,
+    "search": 12,
+    "quality": 8,
+    "total": 28,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha riconosciuto l'ambiguità della formulazione e non ha chiesto il testo completo, limitandosi a una sola interpretazione errata. Ha citato l'art. 1456 ma ha omesso l'art. 1353 e ha confuso clausola risolutiva espressa con condizione risolutiva, risultando in una risposta imprecisa e incompleta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:19:19.568Z"
+}

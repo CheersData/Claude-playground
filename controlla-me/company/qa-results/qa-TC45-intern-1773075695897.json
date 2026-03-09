@@ -1,0 +1,29 @@
+{
+  "testId": "TC45",
+  "question": "Il notaio non ha verificato che sull'immobile c'era un'ipoteca. Posso chiedergli i danni?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Gli articoli forniti trattano principalmente di responsabilità civile, ipoteche e risarcimento danni, ma non specificano la responsabilità del notaio per mancata verifica delle ipoteche.\n\nRiferimenti normativi: Gli articoli pertinenti per la responsabilità del notaio per mancata verifica delle ipoteche non sono presenti nel contesto fornito. Gli articoli citati trattano di responsabilità civile, ipoteche e risarcimento danni, ma non specificano la responsabilità del notaio in questo contesto.\n\nIn pratica: Per una risposta completa, è necessario consultare un avvocato specializzato in diritto immobiliare che possa verificare la responsabilità del notaio in base alla normativa specifica e alla giurisprudenza pertinente.",
+  "expectedAnswer": "Sì, il notaio è responsabile: ha l'obbligo professionale di effettuare le visure ipotecarie. La mancata verifica viola la diligenza qualificata (art. 1176 co.2 c.c.). Cassazione 2020/24048 conferma la responsabilità. Prescrizione 10 anni.",
+  "scoringHints": {
+    "prep": "Ha formulato query su responsabilità notaio e obbligo visure?",
+    "search": "Ha trovato art. 1176 e giurisprudenza sulla responsabilità notarile?",
+    "quality": "Afferma la responsabilità? Cita art. 1176 co.2 e/o Cassazione?"
+  },
+  "trapType": null,
+  "institutes": [
+    "responsabilità_notaio",
+    "obbligo_visure",
+    "diligenza_professionale"
+  ],
+  "scope": "Sì: responsabilità notaio per mancata visura. Art. 1176 co.2 + Cass. 2020/24048.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 5,
+    "quality": 10,
+    "total": 20,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente il tema giuridico specifico della responsabilità del notaio per mancata verifica delle ipoteche. Non ha recuperato gli articoli pertinenti come l'art. 1176 co.2 c.c. e la giurisprudenza rilevante (Cassazione 2020/24048). La risposta è generica e non fornisce una soluzione specifica al problema giuridico posto."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:59:44.406Z"
+}

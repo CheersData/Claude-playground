@@ -1,0 +1,29 @@
+{
+  "testId": "TC43",
+  "question": "Il costruttore vuole inserire una clausola che gli permette di cambiare i materiali e il progetto senza il mio consenso. È legale?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Gli articoli forniti riguardano principalmente la tutela degli acquirenti di immobili da costruire, la fideiussione, l'assicurazione dell'immobile e il diritto di prelazione, ma non trattano specificamente delle variazioni al progetto o ai materiali da parte del costruttore senza il consenso dell'acquirente.\n\nRiferimenti normativi: Il contesto include articoli relativi alla tutela degli acquirenti di immobili da costruire, ma non contiene norme specifiche sulle variazioni al progetto o ai materiali. Gli articoli pertinenti sarebbero gli Art. 1659 e 1660 del Codice Civile, che regolano le variazioni al progetto nell'appalto, ma non sono direttamente applicabili al caso specifico.\n\nIn pratica: Consulta un avvocato specializzato in diritto immobiliare per verificare la legittimità della clausola proposta dal costruttore e per capire come tutelare i tuoi diritti.",
+  "expectedAnswer": "TRAPPOLA: la clausola che consente al costruttore di modificare unilateralmente il progetto è NULLA per essere clausola vessatoria (art. 33 co.2 lett.m D.Lgs. 206/2005 Codice del Consumo). L'acquirente ha diritto che le varianti siano concordate.",
+  "scoringHints": {
+    "prep": "Ha formulato query su clausole vessatorie nel B2C immobiliare?",
+    "search": "Ha trovato art. 33 co.2 lett.m Codice del Consumo?",
+    "quality": "Qualifica la clausola come nulla/vessatoria? Cita correttamente la norma?"
+  },
+  "trapType": "clausola_abusiva",
+  "institutes": [
+    "clausola_vessatoria",
+    "Codice_Consumo",
+    "varianti_costruttore"
+  ],
+  "scope": "TRAPPOLA: clausola unilaterale = VESSATORIA art. 33 co.2 lett.m Codice Consumo",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 10,
+    "quality": 15,
+    "total": 45,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente la trappola, mancando di citare l'art. 33 co.2 lett.m del Codice del Consumo. La qualità è bassa perché non ha qualificato la clausola come vessatoria e nulla, nonostante la trappola fosse evidente. La preparazione è parziale, la ricerca insufficiente."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:58:42.371Z"
+}

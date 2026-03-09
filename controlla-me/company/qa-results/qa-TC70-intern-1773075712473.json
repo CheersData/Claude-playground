@@ -1,0 +1,29 @@
+{
+  "testId": "TC70",
+  "question": "Mio nonno ha scritto il testamento a mano ma ha messo solo l'anno senza giorno e mese. È valido?",
+  "agentAnswer": "Il testamento olografo è valido solo se contiene la data completa, con l'indicazione del giorno, mese e anno. Secondo l'art. 602 c.c., la data deve contenere l'indicazione del giorno, mese e anno. La prova della non verità della data è ammessa soltanto quando si tratta di giudicare della capacità del testatore, della priorità di data tra più testamenti o di altra questione da decidersi in base al tempo del testamento.\n\nRiferimenti normativi:\nL'art. 602 c.c. stabilisce che il testamento olografo deve essere scritto per intero, datato e sottoscritto di mano del testatore. La data deve contenere l'indicazione del giorno, mese e anno. L'art. 606 c.c. stabilisce che il testamento è nullo quando manca l'autografia o la sottoscrizione nel caso di testamento olografo.\n\nIn pratica:\nIl testamento del tuo nonno non è valido perché mancano il giorno e il mese. Per renderlo valido, è necessario redigerne uno nuovo che rispetti tutti i requisiti di forma previsti dalla legge.",
+  "expectedAnswer": "Il testamento olografo con data incompleta (solo anno) non è nullo ma ANNULLABILE (art. 606 co.2 c.c.). Se non viene impugnato entro 5 anni dall'apertura della successione, diventa definitivamente valido. Le Sezioni Unite (2015/15295) hanno confermato questa interpretazione: la data incompleta non produce nullità automatica.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 606 co.2 e data incompleta?",
+    "search": "Ha trovato art. 606 co.2 c.c. e/o SU 2015/15295?",
+    "quality": "Usa 'annullabile' (non 'nullo')? Menziona il termine 5 anni e le SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "testamento_olografo",
+    "data_incompleta",
+    "annullabilità_testamento"
+  ],
+  "scope": "ANNULLABILE (non nullo, art. 606 co.2). Se non impugnato entro 5 anni = valido. SU 2015/15295.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 10,
+    "quality": 10,
+    "total": 35,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente il tema giuridico, non ha recuperato i riferimenti normativi pertinenti (art. 606 co.2 c.c. e SU 2015/15295), e ha fornito informazioni inaccurate, sostenendo che il testamento è nullo invece che annullabile. Inoltre, non ha menzionato il termine di 5 anni per l'impugnazione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:59:16.568Z"
+}

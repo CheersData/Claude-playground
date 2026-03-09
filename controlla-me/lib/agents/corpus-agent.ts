@@ -263,7 +263,7 @@ export async function askCorpusAgent(
 
   const scopeHints: string[] = [];
   if (prep.needsProceduralLaw) {
-    scopeHints.push("ATTENZIONE: La domanda richiede norme processuali (c.p.c.) NON presenti nel corpus. Segnala esplicitamente questa limitazione.");
+    scopeHints.push("ATTENZIONE: La domanda richiede norme di procedura PENALE (c.p.p.) NON presenti nel corpus. Il Codice di Procedura Civile (c.p.c.) È invece disponibile. Segnala esplicitamente questa limitazione.");
   }
   if (prep.needsCaseLaw) {
     scopeHints.push("ATTENZIONE: La domanda richiede giurisprudenza NON disponibile. Segnala la limitazione e indica in missingArticles le fonti giurisprudenziali necessarie.");

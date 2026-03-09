@@ -133,12 +133,12 @@ export async function generateWithGemini(
         throw err;
       }
 
-      if (isRateLimit && attempt < MAX_RETRIES) {
+      if (isRateLimit) {
+        // Rate limit: propaga errore subito → agent-runner passerà al prossimo provider
         console.log(
-          `[API] ⏳ ${label} rate limit! Attendo ${RETRY_WAIT_MS / 1000}s (tentativo ${attempt + 1}/${MAX_RETRIES})...`
+          `[API] ⚡ ${label} rate limit → skip al prossimo provider nella catena`
         );
-        await new Promise((r) => setTimeout(r, RETRY_WAIT_MS));
-        continue;
+        throw err;
       }
 
       throw err;

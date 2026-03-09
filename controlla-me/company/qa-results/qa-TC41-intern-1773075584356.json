@@ -1,0 +1,29 @@
+{
+  "testId": "TC41",
+  "question": "Il mio avvocato ha perso la causa. Posso chiedergli i danni?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Per una risposta completa a questa domanda servono riferimenti giurisprudenziali che non sono nel corpus normativo disponibile.\n\nRiferimenti normativi: L'art. 2236 c.c. stabilisce che se la prestazione implica la soluzione di problemi tecnici di speciale difficoltà, il prestatore d'opera non risponde dei danni, se non in caso di dolo o di colpa grave. Tuttavia, questo articolo non è direttamente applicabile alla situazione descritta.\n\nIn pratica: Consulta un avvocato specializzato in responsabilità professionale per valutare se ci sono i presupposti per chiedere un risarcimento danni.",
+  "expectedAnswer": "L'avvocato ha un'obbligazione di MEZZI (non di risultato): non garantisce la vittoria. Perdere la causa non è inadempimento. Per ottenere risarcimento serve provare: violazione della diligenza professionale (art. 1176 co.2) E nesso causale tra la colpa e la perdita della causa.",
+  "scoringHints": {
+    "prep": "Ha formulato query su obbligazione di mezzi e nesso causale?",
+    "search": "Ha trovato la distinzione obbligazioni mezzi/risultato?",
+    "quality": "Spiega che perdere la causa non è inadempimento? Richiede il nesso causale?"
+  },
+  "trapType": null,
+  "institutes": [
+    "obbligazione_di_mezzi",
+    "responsabilità_professionale",
+    "nesso_causale"
+  ],
+  "scope": "L'avvocato ha un'obbligazione di mezzi (non risultato). Perdere la causa ≠ inadempimento. Serve nesso causale.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 22,
+    "search": 15,
+    "quality": 20,
+    "total": 57,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha individuato il tema dell'obbligazione di mezzi e la necessità del nesso causale, ma non ha citato l'articolo corretto (art. 1176 c.c.) e ha introdotto un riferimento normativo non pertinente (art. 2236 c.c.). La risposta è parzialmente corretta ma incompleta e contiene informazioni superflue."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:58:18.226Z"
+}

@@ -215,7 +215,7 @@ export const MODELS = {
   },
   "mistral-medium-3": {
     provider: "mistral" as const,
-    model: "mistral-medium-3.1",
+    model: "mistral-medium-2508",
     displayName: "Mistral Medium 3.1",
     inputCostPer1M: 0.4,
     outputCostPer1M: 2.0,
@@ -263,7 +263,7 @@ export const MODELS = {
   },
   "magistral-small": {
     provider: "mistral" as const,
-    model: "magistral-small-2506",
+    model: "magistral-small-2509",
     displayName: "Magistral Small",
     inputCostPer1M: 0.5,
     outputCostPer1M: 1.5,
@@ -271,7 +271,7 @@ export const MODELS = {
   },
   "magistral-medium": {
     provider: "mistral" as const,
-    model: "magistral-medium-2506",
+    model: "magistral-medium-2509",
     displayName: "Magistral Medium",
     inputCostPer1M: 2.0,
     outputCostPer1M: 5.0,
@@ -363,8 +363,8 @@ export const MODELS = {
   },
   "cerebras-qwen3-235b": {
     provider: "cerebras" as const,
-    model: "qwen3-235b",
-    displayName: "Qwen 3 235B (Cerebras)",
+    model: "gpt-oss-120b",
+    displayName: "GPT-OSS 120B (Cerebras, ex-Qwen slot)",
     inputCostPer1M: 0.6,
     outputCostPer1M: 1.2,
     contextWindow: 128_000,

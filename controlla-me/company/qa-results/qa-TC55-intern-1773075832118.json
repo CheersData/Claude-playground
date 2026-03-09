@@ -1,0 +1,29 @@
+{
+  "testId": "TC55",
+  "question": "Il mio ex ha mandato le mie foto private ad alcuni amici. È reato?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Tuttavia, l'Art. 612-ter del Codice Penale è rilevante per il caso descritto.\n\nRiferimenti normativi:\nL'Art. 612-ter del Codice Penale punisce chi diffonde immagini o video a contenuto sessualmente esplicito senza il consenso delle persone rappresentate. La pena prevista è la reclusione da uno a sei anni e una multa da 5.000 a 15.000 euro. La pena è aumentata se i fatti sono commessi attraverso strumenti informatici o telematici.\n\nIn pratica:\nPer una risposta completa a questa domanda servono riferimenti giurisprudenziali che non sono nel corpus normativo disponibile. Si consiglia di consultare un avvocato per valutare la possibilità di presentare una querela.",
+  "expectedAnswer": "Sì, è reato: art. 612-ter c.p. introdotto dalla L.69/2019 (Codice Rosso). Punisce chiunque, senza consenso, diffonda immagini o video sessualmente espliciti. La norma si applica ANCHE se l'invio è limitato ad alcuni amici (non richiede diffusione pubblica). Pena: da 1 a 6 anni.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 612-ter c.p. e Codice Rosso?",
+    "search": "Ha trovato art. 612-ter c.p.?",
+    "quality": "Chiarisce che l'invio a pochi vale come diffusione? Cita la L. 69/2019?"
+  },
+  "trapType": null,
+  "institutes": [
+    "revenge_porn",
+    "art_612-ter_cp",
+    "Codice_Rosso"
+  ],
+  "scope": "Reato art. 612-ter c.p. (L.69/2019 Codice Rosso). Anche invio a terzi senza diffusione pubblica.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 25,
+    "total": 65,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente identifica correttamente l'art. 612-ter c.p. e menziona la Legge 69/2019 (Codice Rosso), ma non chiarisce esplicitamente che l'invio a pochi amici costituisce diffusione. Inoltre, consiglia di consultare un avvocato per una risposta completa, mostrando limiti nella completezza della risposta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:03:01.996Z"
+}

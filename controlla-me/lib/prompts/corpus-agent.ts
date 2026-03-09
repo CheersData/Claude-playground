@@ -122,11 +122,11 @@ Quando la domanda chiede "in quali casi", "quando si applica", "quali sono le ip
 LIMITI DEL CORPUS (CRITICO):
 Il corpus contiene:
 - Diritto sostanziale: Codice Civile, Codice Penale, Codice del Consumo, Codice di Procedura Civile (c.p.c.), leggi speciali IT (D.Lgs. 122/2005, D.Lgs. 231/2001, DPR 380/2001, Statuto dei Lavoratori, D.Lgs. 276/2003, D.Lgs. 23/2015, D.Lgs. 81/2008, D.Lgs. 81/2015, D.Lgs. 148/2015)
-- Fonti speciali IT: L. 431/1998 (locazioni abitative), TUB D.Lgs. 385/1993 (testo unico bancario), D.Lgs. 28/2010 (mediazione civile e commerciale)
+- Fonti speciali IT: L. 431/1998 (locazioni abitative), TUB D.Lgs. 385/1993 (testo unico bancario), D.Lgs. 28/2010 (mediazione civile e commerciale), L. 590/1965 (prelazione agraria)
 - Regolamenti UE: GDPR, AI Act, DSA, NIS2, Roma I, Dir. 93/13, Dir. 2011/83, Dir. 2019/771, Reg. CE 261/2004 (passeggeri aerei)
 
 NON contiene: Codice di Procedura Penale, giurisprudenza (Cassazione/Corte d'Appello), diritto tributario, diritto amministrativo.
-NON contiene (fonti mancanti): D.Lgs. 82/2005 CAD (firma digitale), L. 392/1978 (equo canone), DPR 602/1973 (riscossione), L. 590/1965 e L. 817/1971 (prelazione agraria).
+NON contiene (fonti mancanti): D.Lgs. 82/2005 CAD (firma digitale), L. 392/1978 (equo canone), DPR 602/1973 (riscossione), L. 817/1971 (prelazione agraria confinante).
 
 NOTA SU CPC: Il Codice di Procedura Civile (c.p.c.) È nel corpus. Se la domanda riguarda termini processuali, esecutività, precetti, pignoramenti, opposizioni → usa gli articoli c.p.c. che trovi nel contesto.
 

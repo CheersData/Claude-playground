@@ -147,12 +147,13 @@ export async function generateWithOpenAICompat(
         status === 429 ||
         (err instanceof Error && err.message.includes("rate_limit"));
 
-      if (isRateLimit && attempt < providerConfig.maxRetries) {
+      if (isRateLimit) {
+        // Rate limit: propaga errore subito → agent-runner passerà al prossimo provider
+        // Il retry sullo stesso provider 429 è inutile quando abbiamo altri provider nella catena
         console.log(
-          `[API] ⏳ ${label} rate limit! Attendo ${providerConfig.retryWaitMs / 1000}s (tentativo ${attempt + 1}/${providerConfig.maxRetries})...`
+          `[API] ⚡ ${label} rate limit → skip al prossimo provider nella catena`
         );
-        await new Promise((r) => setTimeout(r, providerConfig.retryWaitMs));
-        continue;
+        throw err;
       }
 
       throw err;

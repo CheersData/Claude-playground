@@ -1,0 +1,29 @@
+{
+  "testId": "TC48",
+  "question": "Ho registrato di nascosto una conversazione con il mio capo. Posso usarla in giudizio?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Per una risposta completa a questa domanda servono riferimenti giurisprudenziali che non sono nel corpus normativo disponibile.\n\nRiferimenti normativi: L'art. 617-bis c.p. punisce chi detiene o installa apparecchiature per intercettare comunicazioni altrui. L'art. 617-ter c.p. punisce chi falsifica o altera il contenuto di comunicazioni. Tuttavia, questi articoli riguardano la sfera penale e non la validità delle prove in un processo civile.\n\nIn pratica: Consulti un avvocato per valutare la validità della registrazione come prova nel suo caso specifico, considerando la giurisprudenza pertinente.",
+  "expectedAnswer": "TRAPPOLA: se eri presente alla conversazione (partecipante), registrarla è LECITA (non è intercettazione ai sensi dell'art. 617 c.p.) e utilizzabile come prova in giudizio civile. Se invece non eri presente (registrazione di terzi), è reato. La distinzione è fondamentale.",
+  "scoringHints": {
+    "prep": "Ha distinto partecipante da terzo nella query?",
+    "search": "Ha trovato la distinzione intercettazione/registrazione e art. 617 c.p.?",
+    "quality": "Distingue nettamente i due casi? Non risponde genericamente 'è illegale'?"
+  },
+  "trapType": "distinzione_partecipante_terzo",
+  "institutes": [
+    "registrazione_conversazione",
+    "intercettazione",
+    "prova_civile"
+  ],
+  "scope": "TRAPPOLA: se PARTECIPANTE è lecita. Se terzo non partecipante = reato art. 617 c.p.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 15,
+    "quality": 25,
+    "total": 50,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha colto la distinzione fondamentale tra la registrazione effettuata da un partecipante alla conversazione e quella effettuata da un terzo. Non ha correttamente identificato l'art. 617 c.p. come riferimento normativo chiave e si è limitata a fornire una risposta generica, consigliando di consultare un avvocato senza approfondire la questione giuridica."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:15:58.617Z"
+}

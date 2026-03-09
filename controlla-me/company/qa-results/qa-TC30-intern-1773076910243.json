@@ -1,0 +1,29 @@
+{
+  "testId": "TC30",
+  "question": "Ho firmato una fideiussione. Se il debitore non paga, mi possono chiamare subito?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nIl fideiussore è obbligato in solido col debitore principale al pagamento del debito. Tuttavia, le parti possono convenire che il fideiussore non sia tenuto a pagare prima dell'escussione del debitore principale. In tal caso, il fideiussore può essere chiamato a pagare solo dopo che il creditore ha tentato invano di recuperare il credito dal debitore principale.\n\nRiferimenti normativi:\n\nL'Art. 1944 c.c. stabilisce che il fideiussore è obbligato in solido col debitore principale, ma le parti possono pattuire il beneficio dell'escussione, che obbliga il creditore a tentare prima il recupero dal debitore principale. L'Art. 2868 c.c. specifica che chi ha costituito un'ipoteca a garanzia del debito altrui non può invocare il beneficio della preventiva escussione del debitore, se il beneficio non è stato convenuto.\n\nIn pratica:\n\nVerifica se nel contratto di fideiussione è stato pattuito il beneficio dell'escussione. Se sì, il creditore dovrà prima tentare di recuperare il credito dal debitore principale prima di chiamarti al pagamento. Se no, potresti essere chiamato a pagare immediatamente.",
+  "expectedAnswer": "TRAPPOLA: dipende dal tipo di fideiussione. Con beneficio di escussione (art. 1944 co.2): devono prima escutere il debitore. Fideiussione bancaria o con rinuncia al beneficio: possono chiamare il fideiussore direttamente.",
+  "scoringHints": {
+    "prep": "Ha distinto fideiussione normale da bancaria nella query?",
+    "search": "Ha trovato art. 1944 c.c. con entrambe le varianti?",
+    "quality": "Distingue esplicitamente i due tipi? Non risponde 'sì' o 'no' senza distinguere?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "fideiussione",
+    "beneficio_escussione",
+    "fideiussione_bancaria"
+  ],
+  "scope": "art. 1944: dipende dal tipo. Con beneficio escussione: no. Fideiussione bancaria o con rinuncia: sì.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha recuperato i riferimenti normativi pertinenti. La risposta è accurata e completa, distinguendo chiaramente tra i diversi tipi di fideiussione. Ha anche evitato di cadere nella trappola, ottenendo il bonus per la qualità."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:20:17.987Z"
+}

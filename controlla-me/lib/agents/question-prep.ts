@@ -25,7 +25,7 @@ export interface QuestionPrepResult {
   targetArticles: string | null;
   /** Tipo di domanda: "specific" (caso concreto) o "systematic" (tassonomia/rassegna) */
   questionType: "specific" | "systematic";
-  /** La domanda richiede norme processuali (c.p.c.) non presenti nel corpus */
+  /** La domanda richiede norme di procedura PENALE (c.p.p.) non presenti nel corpus. Il c.p.c. È invece disponibile. */
   needsProceduralLaw: boolean;
   /** La domanda richiede giurisprudenza (Cassazione, orientamenti) */
   needsCaseLaw: boolean;
@@ -53,9 +53,16 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
     result.questionType = "systematic";
   }
 
-  // 2. "il giudice può" + azione d'ufficio → needsProceduralLaw
-  if (/giudice.*(?:può|puo|potere|d'ufficio|ridurre|riduzione|riqualificare)/i.test(q)) {
+  // 2. needsProceduralLaw: il c.p.c. È NEL CORPUS. Solo c.p.p. (penale) manca.
+  // Se il modello ha settato needsProceduralLaw=true per domande civili, CORREGGI a false.
+  // Forza true SOLO per contesto esplicitamente penale.
+  const isPenale = /(?:processo penale|imputat[oa]|pubblico ministero|p\.m\.|udienza preliminare|dibattimento penale|reato|condanna penale)/i.test(q);
+  const isCivile = /(?:primo grado|impugn|appello|sentenza|giudice.*decis|cassazione|ricorso|ultrapetizion|extrapetizion|decreto ingiuntiv|pignoramento|esecuzion.*forzat|mediazion|sfratto|arbitrat|competenz.*territorial)/i.test(q);
+  if (isPenale && !isCivile) {
     result.needsProceduralLaw = true;
+  } else if (isCivile || !isPenale) {
+    // Il c.p.c. è nel corpus — non segnalare come mancante
+    result.needsProceduralLaw = false;
   }
 
   // 3. Ensure key institutes based on question + model output keywords
@@ -95,6 +102,40 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   ensureInstitute(/collazion|conferimento.*ereditari/i, ["collazione", "successione", "donazione"]);
   ensureInstitute(/donazion|regal[oa]t|donato/i, ["donazione", "revoca_donazione", "collazione"]);
 
+  // Procedura civile (CPC) — istituti per migliorare retrieval articoli c.p.c.
+  ensureInstitute(/decreto ingiuntiv|ingiunzion.*pagament/i, ["decreto_ingiuntivo"]);
+  ensureInstitute(/esecuzion.*forzat|pignoramento|precetto/i, ["esecuzione_forzata"]);
+  ensureInstitute(/arbitrat|lodo arbitral|clausola.*compromissori/i, ["arbitrato"]);
+  ensureInstitute(/sfratt|convalida.*sfratt|licenz.*finita locazione/i, ["sfratto"]);
+  ensureInstitute(/provvediment.*cautelar|sequestro.*giudiziari|sequestro.*conservativ/i, ["provvedimenti_cautelari"]);
+  ensureInstitute(/competenz.*(?:territorial|per materia|per valore)|foro competent/i, ["competenza"]);
+  ensureInstitute(/appello|impugnazion|ricorso.*cassazione/i, ["impugnazioni"]);
+  ensureInstitute(/mediazion.*(?:obbligatori|civile)|tentativo.*conciliazione/i, ["mediazione"]);
+  ensureInstitute(/ultrapetizion|extrapetizion|corrispondenza.*chiesto.*pronunciat/i, ["corrispondenza_chiesto_pronunciato"]);
+  ensureInstitute(/deposito.*document|riform.*cartabia|art.*171/i, ["deposito_atti"]);
+
+  // Prelazione agraria
+  ensureInstitute(/prelazion.*agrar|coltivator.*dirett|riscatto.*agrar|confinant.*agrar/i, ["prelazione_agraria"]);
+
+  // Acquisto immobile da costruttore / fideiussione obbligatoria (D.Lgs. 122/2005)
+  ensureInstitute(/costrutt(?:ore|rice)|immobil.*(?:da costruir|in costruzion)|accont.*(?:costrutt|impresa)|fideiussion.*(?:costrutt|immobil)/i, ["acquisto_immobile_da_costruire", "fideiussione_obbligatoria"]);
+  ensureInstitute(/fall(?:it|iment).*(?:costrutt|impresa.*edil)/i, ["acquisto_immobile_da_costruire", "fideiussione_obbligatoria"]);
+
+  // Registrazione conversazione / intercettazione (art. 617 c.p.)
+  ensureInstitute(/registr(?:at|azion).*(?:conversazion|telefonat|colloqui|di nascosto)|intercettazion/i, ["intercettazione", "registrazione_conversazione"]);
+
+  // Vizi di conformità vs recesso (distinzione critica per diritto consumatore)
+  ensureInstitute(/difettos[oa]|non.*(?:funziona|conform)|viziat[oa]|rott[oa]/i, ["vizi_conformita", "garanzia_legale"]);
+
+  // Mutuo / prova testimoniale
+  ensureInstitute(/mutuo.*(?:privat|amici|parenti)|prest(?:it|at).*(?:privat|amici|senza.*scritto)/i, ["mutuo", "prova_testimoniale"]);
+
+  // Asta giudiziaria / abusi edilizi
+  ensureInstitute(/asta.*(?:giudiziari|immobiliar)|esecuzion.*immobiliar|vendita.*forzat/i, ["esecuzione_immobiliare", "vendita_forzata"]);
+
+  // Comproprietà / divisione
+  ensureInstitute(/compropriet[àa]|comunion.*(?:ereditari|beni)|divisi(?:one|bil)/i, ["comunione", "divisione"]);
+
   // Penale / Patrimonio
   ensureInstitute(/pres[oi].*soldi|sottratt.*denaro|appropriat.*indebit|portato via.*soldi/i, ["appropriazione_indebita"]);
   ensureInstitute(/circonvenz|raggir.*(?:anzian|incapac)|approfitt.*(?:anzian|incapac|non.*lucid)/i, ["circonvenzione_incapace", "incapacità"]);
@@ -129,6 +170,35 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   // 7. Enrich legalQuery for tolleranza/vendita a corpo (helps vector ranking find Art. 1537-1538)
   if (/tolleranz/i.test(combined) && !/vendita.*corpo|eccedenz|deficienz|ventesimo/i.test(result.legalQuery)) {
     result.legalQuery += " vendita a corpo eccedenza deficienza misura ventesimo Art. 1538";
+  }
+
+  // 8. Enrich legalQuery for costruttore/acconto (helps find D.Lgs. 122/2005)
+  if (/costrutt(?:ore|rice).*(?:fall|accont|versat)|accont.*costrutt/i.test(combined) && !/fideiussion|122.*2005|tutela.*acquir/i.test(result.legalQuery)) {
+    result.legalQuery += " fideiussione obbligatoria tutela acquirente immobile da costruire D.Lgs. 122/2005";
+  }
+
+  // 9. Enrich legalQuery for registrazione conversazione (helps find art. 617 c.p.)
+  // NO article numbers — reference boost matches wrong articles across sources
+  if (/registr.*(?:conversazion|nascosto|telefonat)|intercettazion/i.test(combined) && !/intercettazion.*abusiv|cognizione.*illecit/i.test(result.legalQuery)) {
+    result.legalQuery += " intercettazione abusiva cognizione illecita comunicazioni conversazioni telefoniche registrazione partecipante terzo";
+  }
+
+  // 10. Enrich legalQuery for difettoso/restituzione (helps distinguish vizi conformità from recesso)
+  // NO article numbers — reference boost on generic numbers pollutes results
+  if (/difettos[oa]|(?:prodott|acquist).*(?:rott|non funzion)|viziat[oa]/i.test(combined) && !/conformit[àa]|garanzia.*legal/i.test(result.legalQuery)) {
+    result.legalQuery += " difetto conformità garanzia legale codice consumo riparazione sostituzione spese restituzione venditore";
+  }
+
+  // 11. Enrich legalQuery for mediazione assenza (helps find D.Lgs. 28/2010)
+  // NO article numbers — "art. 8" is too generic and matches wrong sources in reference boost
+  if (/mediazion.*(?:non.*present|assent|assenz|mancata)/i.test(combined) && !/sanzione.*mediazion|conseguenz.*mancata/i.test(result.legalQuery)) {
+    result.legalQuery += " conseguenze mancata partecipazione mediazione obbligatoria sanzione pecuniaria argomento prova giudice";
+  }
+
+  // 12. Enrich legalQuery for asta/abusi edilizi
+  // NO article numbers — reference boost pollution
+  if (/asta.*(?:giudiziari|immobil)|(?:vendita|esecuzion).*forzat/i.test(combined) && !/abuso.*ediliz|DPR.*380|nullit[àa].*atto/i.test(result.legalQuery)) {
+    result.legalQuery += " vendita forzata immobile abuso edilizio nullità atto trasferimento regolarità urbanistica edilizia";
   }
 
   return result;

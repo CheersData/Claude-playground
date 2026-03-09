@@ -234,7 +234,7 @@ export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
   "question-prep": "sdk",
   classifier:      "sdk",
   // ── Heavy agents → CLI (subscription, zero costi) ──
-  "corpus-agent":  "cli",
+  "corpus-agent":  "sdk",
   analyzer:        "cli",
   investigator:    "cli",
   advisor:         "cli",

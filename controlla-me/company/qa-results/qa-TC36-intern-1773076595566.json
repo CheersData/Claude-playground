@@ -1,0 +1,29 @@
+{
+  "testId": "TC36",
+  "question": "La banca ha modificato il tasso del mio mutuo senza avvisarmi. È legale?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nLa modifica unilaterale del tasso di interesse di un mutuo da parte della banca è soggetta a specifiche condizioni legali. Secondo l'art. 118 del TUB (Testo Unico Bancario), la banca può modificare unilateralmente le condizioni contrattuali, inclusi i tassi di interesse, solo se:\n1. È prevista una clausola specifica nel contratto che approvi tale facoltà.\n2. La modifica è comunicata al cliente con un preavviso di almeno due mesi.\n3. La modifica è giustificata da un motivo valido.\n4. Il cliente ha la possibilità di recedere dal contratto senza spese entro la data prevista per l'applicazione della modifica.\n\nSe queste condizioni non sono state rispettate, la modifica è inefficace e il cliente ha diritto all'applicazione delle condizioni precedentemente praticate.\n\nRIFERIMENTI NORMATIVI\n\nL'art. 118 del TUB stabilisce che le modifiche unilaterali delle condizioni contrattuali devono essere comunicate al cliente con un preavviso di almeno due mesi e che il cliente ha diritto di recedere dal contratto senza spese entro la data prevista per l'applicazione della modifica. Inoltre, le variazioni contrattuali per le quali non siano state osservate le prescrizioni del presente articolo sono inefficaci se sfavorevoli per il cliente.\n\nL'art. 118-bis del TUB riguarda le modifiche sostanziali o la cessazione di un indice di riferimento, ma non è direttamente pertinente in questo caso.\n\nL'art. 126-sexies del TUB si applica ai servizi di pagamento e non è pertinente per i mutui.\n\nL'art. 125-bis del TUB riguarda la comunicazione delle modifiche delle condizioni contrattuali nei contratti di credito, ma non specifica le condizioni per la modifica unilaterale dei tassi di interesse.\n\nL'art. 33 del Codice del Consumo riguarda le clausole vessatorie nei contratti tra professionisti e consumatori, ma non è direttamente pertinente per la modifica unilaterale dei tassi di interesse.\n\nIN PRATICA\n\nVerifica se nel contratto di mutuo è prevista una clausola che consente alla banca di modificare unilateralmente il tasso di interesse. Se la banca ha modificato il tasso senza rispettare le condizioni previste dall'art. 118 del TUB, puoi contestare la modifica e richiedere l'applicazione delle condizioni precedentemente praticate. Se necessario, consulta un avvocato specializzato in diritto bancario per assisterti nella contestazione.",
+  "expectedAnswer": "La modifica unilaterale del tasso è ammessa (art. 118 TUB) SOLO con: giustificato motivo obiettivo, preavviso di 2 mesi, e diritto di recesso senza penali per il cliente. Senza questi requisiti, la modifica è nulla.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 118 TUB e jus variandi?",
+    "search": "Ha trovato art. 118 TUB con i requisiti?",
+    "quality": "Elenca tutti e tre i requisiti? Indica che senza requisiti la modifica è nulla?"
+  },
+  "trapType": null,
+  "institutes": [
+    "jus_variandi",
+    "art_118_TUB",
+    "modifica_tasso"
+  ],
+  "scope": "art. 118 TUB: modifica unilaterale solo con giustificato motivo + 2 mesi di preavviso + diritto di recesso",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente è accurata e completa, elenca correttamente i requisiti dell'art. 118 TUB e spiega che senza di essi la modifica è inefficace. Ha anche citato correttamente gli articoli pertinenti e ha fornito una spiegazione chiara e dettagliata. La risposta è ben strutturata e risponde alla domanda in modo esaustivo."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:15:26.929Z"
+}

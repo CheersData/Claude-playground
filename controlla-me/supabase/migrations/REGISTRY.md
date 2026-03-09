@@ -32,10 +32,15 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 021 | `021_trailing_stop.sql` | Trailing stop state per posizioni live: `trailing_stop_state` con 4-tier tracking (breakeven→lock→trail→tight) + RLS service_role | — |
 | 022 | `022_routing_enforcement.sql` | Routing audit trail su `company_tasks`: colonne `routing`, `routing_exempt`, `routing_reason` + indici | — |
 | 023 | `023_task_enhancements.sql` | Task enhancements: `seq_num` (numerazione sequenziale), `tags` (GIN index), `expected_benefit`, `benefit_status`, `benefit_notes`, `suggested_next` | — |
+| 024 | `024_signal_type_pending_retry.sql` | Tipo segnale `pending_retry` per ordini falliti con TTL 10min | — |
+| 025 | `025_task_approval_metadata.sql` | Metadata approvazione task | — |
+| 026 | `026_cdp.sql` | Schema CDP | — |
+| 027 | `027_medical_vertical.sql` | Schema verticale medico (studia.me) | — |
+| 028 | `028_populate_institutes_all_sources.sql` | Popola `related_institutes` per TUTTE le fonti: CC gap fill (Libri I-VI), CPC, CP, Codice Consumo esteso, fonti specialistiche IT, fonti HR, fonti EU. Fix per ~80% corpus con institutes vuoti. | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 023) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 028) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -64,6 +69,11 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 021 → dipende da 019 (schema trading, trailing stop per posizioni)
 022 → dipende da 013 (alter table company_tasks)
 023 → dipende da 013 (alter table company_tasks)
+024 → dipende da 019 (alter type signal_type)
+025 → dipende da 013 (alter table company_tasks)
+026 → indipendente
+027 → indipendente
+028 → dipende da 012 (usa extract_article_number, update su legal_articles)
 ```
 
 ## Storico rinumerazione

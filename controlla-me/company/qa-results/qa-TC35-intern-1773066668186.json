@@ -1,0 +1,29 @@
+{
+  "testId": "TC35",
+  "question": "Ho comprato un'auto con la clausola 'vista e piaciuta'. Il motore è rotto. Non posso fare niente?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nIl contesto disponibile contiene articoli direttamente pertinenti alla tua situazione. La clausola 'vista e piaciuta' non esclude la garanzia per i vizi della cosa venduta se il venditore ha taciuto in mala fede i vizi della cosa (Art. 1490 c.c.). Inoltre, il Codice del Consumo prevede che le clausole che limitano i diritti del consumatore sono nulle (Art. 135-sexies e 135-vicies-bis).\n\nRiferimenti normativi:\n\nL'Art. 1490 c.c. stabilisce che il venditore è tenuto a garantire che la cosa venduta sia immune da vizi che la rendano inidonea all'uso a cui è destinata o ne diminuiscano in modo apprezzabile il valore. La clausola 'vista e piaciuta' non esclude la garanzia se il venditore ha taciuto in mala fede i vizi della cosa. L'Art. 135-sexies del Codice del Consumo stabilisce che è nullo ogni patto, anteriore alla comunicazione al venditore del difetto di conformità, volto ad escludere o limitare a danno del consumatore i diritti riconosciuti dal presente capo. L'Art. 135-vicies-bis del Codice del Consumo stabilisce che è nullo ogni patto, anteriore alla comunicazione al professionista del difetto di conformità, volto ad escludere o limitare a danno del consumatore i diritti riconosciuti dal presente capo.\n\nIn pratica:\n\nPuoi contestare la clausola 'vista e piaciuta' e richiedere la riparazione o la sostituzione del veicolo, oppure una riduzione del prezzo o la risoluzione del contratto, in base agli articoli citati. Se il venditore ha taciuto in mala fede i vizi del motore, la clausola è nulla e puoi far valere i tuoi diritti.",
+  "expectedAnswer": "TRAPPOLA: 'vista e piaciuta' esclude solo i vizi APPARENTI (visibili all'ispezione). NON esclude i vizi occulti (come un motore difettoso non visibile). Se il venditore conosceva il difetto (dolo), la clausola è nulla per art. 1491 c.c. e si può agire per risoluzione o riduzione del prezzo.",
+  "scoringHints": {
+    "prep": "Ha distinto tra vizi apparenti e occulti nella query?",
+    "search": "Ha trovato art. 1491 c.c.?",
+    "quality": "Distingue chiaramente apparenti/occulti? Menziona il dolo come causa di nullità?"
+  },
+  "trapType": "falsa_esclusione",
+  "institutes": [
+    "vista_e_piaciuta",
+    "vizi_occulti",
+    "esclusione_garanzia"
+  ],
+  "scope": "art. 1491: esclude vizi apparenti ma NON occulti. Con dolo del venditore = clausola nulla.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 22,
+    "quality": 40,
+    "total": 87,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema della clausola 'vista e piaciuta' e la distinzione tra vizi apparenti e occulti, recuperando gli articoli pertinenti (1491 c.c. e riferimenti al Codice del Consumo). La risposta è accurata, completa e non contiene invenzioni, guadagnando il bonus per aver evitato la trappola."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:26:07.921Z"
+}

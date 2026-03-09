@@ -1,0 +1,29 @@
+{
+  "testId": "TC32",
+  "question": "Ho dato in pegno un bene. Il creditore può venderlo senza che io lo sappia?",
+  "agentAnswer": "Il creditore non può vendere il bene dato in pegno senza rispettare le procedure previste dalla legge. Secondo l'art. 2797 c.c., prima di procedere alla vendita, il creditore deve intimare al debitore di pagare il debito e gli accessori, avvertendolo che, in mancanza, si procederà alla vendita. L'intimazione deve essere notificata anche al terzo che abbia costituito il pegno. Se entro cinque giorni dall'intimazione non è proposta opposizione, o se questa è rigettata, il creditore può far vendere la cosa al pubblico incanto o a prezzo corrente, a mezzo di persona autorizzata a tali atti. Quindi, il creditore deve notificarti l'intimazione di pagamento prima di procedere alla vendita.\n\nRiferimenti normativi:\nL'art. 2797 c.c. stabilisce che il creditore deve intimare al debitore di pagare il debito e gli accessori prima di procedere alla vendita del bene dato in pegno. L'intimazione deve essere notificata anche al terzo che abbia costituito il pegno. Se entro cinque giorni dall'intimazione non è proposta opposizione, o se questa è rigettata, il creditore può far vendere la cosa al pubblico incanto o a prezzo corrente.\n\nIn pratica:\nSe il creditore ha già venduto il bene senza notificarti l'intimazione di pagamento, puoi contestare la vendita per violazione delle procedure legali. Se invece hai ricevuto l'intimazione e non hai pagato o proposto opposizione entro cinque giorni, la vendita è valida.",
+  "expectedAnswer": "TRAPPOLA: il pegno non trasferisce la proprietà — il bene resta del debitore. Il creditore ha il possesso e diritto di seguito, ma la vendita deve avvenire nelle forme di legge (art. 2797 c.c.): asta pubblica o vendita autorizzata dal giudice.",
+  "scoringHints": {
+    "prep": "Ha distinto tra possesso e proprietà nella query?",
+    "search": "Ha trovato art. 2797 c.c. o le norme sulla vendita del bene in pegno?",
+    "quality": "Chiarisce che la proprietà resta al debitore? Descrive il procedimento corretto di vendita?"
+  },
+  "trapType": "misconcezione_proprietà",
+  "institutes": [
+    "pegno",
+    "diritto_di_seguito",
+    "proprietà_bene_gravato"
+  ],
+  "scope": "Il pegno non trasferisce la proprietà (resta al debitore). Il creditore pignoratizio ha diritto di seguito ma non può vendere liberamente.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 30,
+    "quality": 35,
+    "total": 90,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha recuperato l'articolo pertinente (art. 2797 c.c.). La risposta è accurata e completa, descrivendo il procedimento corretto di vendita. Tuttavia, non ha esplicitamente chiarito che la proprietà del bene resta al debitore, ma ha evitato di cadere nella trappola della misconcezione sulla proprietà."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:12:21.421Z"
+}

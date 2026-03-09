@@ -1,0 +1,29 @@
+{
+  "testId": "TC23",
+  "question": "Voglio depositare un documento nuovo in udienza. Quando è il termine?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti alla domanda sul deposito di documenti nuovi in udienza. Gli articoli presenti riguardano principalmente aspetti procedurali e normativi del codice civile e di procedura civile, ma non specificano i termini per il deposito di documenti nuovi in udienza.\n\nRiferimenti normativi: Gli articoli presenti nel contesto non contengono informazioni dirette sul termine per il deposito di documenti nuovi in udienza. Tuttavia, articoli come l'Art. 378 c.p.c. trattano il deposito di memorie, ma non specificano i termini per documenti nuovi.\n\nIn pratica: Per ottenere informazioni precise sul termine per il deposito di documenti nuovi in udienza, è necessario consultare gli articoli specifici del codice di procedura civile che regolano tale aspetto. Si consiglia di verificare con un avvocato o di consultare direttamente il codice di procedura civile per trovare la normativa pertinente.",
+  "expectedAnswer": "Con la riforma Cartabia (2022): memorie e documenti vanno depositati prima dell'udienza secondo art. 171-ter c.p.c. Se l'agente cita art. 183 vecchio rito è FAIL.",
+  "scoringHints": {
+    "prep": "Ha formulato query che include 'Cartabia' o 'riforma 2022' o art. 171-ter?",
+    "search": "Ha trovato art. 171-ter e NON solo art. 183 (vecchio rito)?",
+    "quality": "Distingue chiaramente il vecchio dal nuovo rito? Segnala la riforma Cartabia?"
+  },
+  "trapType": "norma_superata",
+  "institutes": [
+    "preclusioni_istruttorie",
+    "deposito_documenti",
+    "riforma_Cartabia"
+  ],
+  "scope": "art. 171-ter c.p.c. (riforma Cartabia, D.Lgs. 149/2022)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 5,
+    "quality": 15,
+    "total": 25,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha correttamente identificato il tema giuridico specifico relativo al termine per il deposito di documenti nuovi in udienza secondo la riforma Cartabia. Non ha recuperato correttamente l'art. 171-ter c.p.c. e si è limitato a fornire informazioni generiche senza distinguere tra vecchio e nuovo rito."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:17:37.488Z"
+}

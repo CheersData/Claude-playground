@@ -1,0 +1,29 @@
+{
+  "testId": "TC57",
+  "question": "Un minorenne ha firmato un contratto da solo. Il contratto è nullo?",
+  "agentAnswer": "Il contratto firmato da un minorenne senza l'assistenza dei genitori o del tutore è annullabile, non nullo. L'art. 1425 c.c. stabilisce che il contratto è annullabile se una delle parti era legalmente incapace di contrattare. L'art. 165 c.c. specifica che il minore ammesso a contrarre matrimonio è capace di prestare il consenso per tutte le relative convenzioni matrimoniali solo se assistito dai genitori o dal tutore. Per gli altri contratti, il minore non emancipato non ha la capacità di agire autonomamente. L'art. 1426 c.c. precisa che il contratto non è annullabile se il minore ha occultato la sua minore età con raggiri, ma la semplice dichiarazione di essere maggiorenne non impedisce l'annullamento.\n\nRiferimenti normativi:\nL'art. 1425 c.c. stabilisce che il contratto è annullabile se una delle parti era legalmente incapace di contrattare. L'art. 165 c.c. specifica che il minore ammesso a contrarre matrimonio è capace di prestare il consenso per tutte le relative convenzioni matrimoniali solo se assistito dai genitori o dal tutore. L'art. 1426 c.c. precisa che il contratto non è annullabile se il minore ha occultato la sua minore età con raggiri.\n\nIn pratica:\nIl contratto può essere annullato su istanza del minore o dei suoi genitori/tutori entro cinque anni dalla conclusione del contratto, ai sensi dell'art. 1442 c.c. Se il contratto è stato concluso senza raggiri e il minore non era assistito, è consigliabile avviare un'azione di annullamento per incapacità legale.",
+  "expectedAnswer": "TRAPPOLA: il contratto è ANNULLABILE (non nullo). Art. 1425 c.c.: i contratti conclusi da minorenni senza rappresentante legale sono annullabili, non nulli. Eccezione (art. 1426): se il minore ha dolosamente taciuto la sua età, il contratto non è annullabile.",
+  "scoringHints": {
+    "prep": "Ha distinto nullità da annullabilità nella query?",
+    "search": "Ha trovato artt. 1425 e 1426 c.c.?",
+    "quality": "Usa 'annullabile' e NON 'nullo'? Menziona l'eccezione del raggiro (art. 1426)?"
+  },
+  "trapType": "falsa_nullità",
+  "institutes": [
+    "incapacità_legale",
+    "annullabilità_contratto",
+    "minorenne"
+  ],
+  "scope": "TRAPPOLA: ANNULLABILE (art. 1425) non nullo. Se ha raggirato = non annullabile (art. 1426).",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 40,
+    "total": 100,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha correttamente identificato il tema giuridico e ha recuperato gli articoli pertinenti. La risposta è accurata, completa e non inventa norme. Ha evitato la trappola della nullità e ha menzionato l'eccezione del raggiro."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T17:03:16.484Z"
+}
