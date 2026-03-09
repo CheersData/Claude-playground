@@ -37,10 +37,11 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 026 | `026_cdp.sql` | Schema CDP | — |
 | 027 | `027_medical_vertical.sql` | Schema verticale medico (studia.me) | — |
 | 028 | `028_populate_institutes_all_sources.sql` | Popola `related_institutes` per TUTTE le fonti: CC gap fill (Libri I-VI), CPC, CP, Codice Consumo esteso, fonti specialistiche IT, fonti HR, fonti EU. Fix per ~80% corpus con institutes vuoti. | — |
+| 029 | `029_legal_articles_fts.sql` | Full-Text Search su `legal_articles`: colonna `article_text_ts` tsvector (Italian stemming), GIN index, trigger auto-update, RPC `search_legal_articles_fts` con `ts_rank` | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 028) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 029) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -74,6 +75,7 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 026 → indipendente
 027 → indipendente
 028 → dipende da 012 (usa extract_article_number, update su legal_articles)
+029 → dipende da 004+005 (aggiunge colonna e trigger su legal_articles)
 ```
 
 ## Storico rinumerazione

@@ -203,6 +203,7 @@ export async function askCorpusAgent(
     searchArticles(prep.legalQuery, {
       threshold,
       limit: maxArticles,
+      targetArticles: prep.targetArticles ?? undefined,
     }),
     prep.mechanismQuery
       ? searchArticles(prep.mechanismQuery, { threshold, limit: 6 })

@@ -291,6 +291,7 @@ export async function searchArticles(
     institutes?: string[];
     threshold?: number;
     limit?: number;
+    targetArticles?: string;
   } = {}
 ): Promise<LegalArticleSearchResult[]> {
   if (!isVectorDBEnabled()) return [];
@@ -298,12 +299,15 @@ export async function searchArticles(
   // Fix QA: soglia 0.65 troppo restrittiva — articoli corretti hanno sim 0.50-0.65
   // Voyage AI voyage-law-2 produce sim più basse per testi legali italiani vs inglesi
   // 2026-03-09: abbassato 0.50→0.45 per recuperare più articoli marginali (QA cycle iterativo)
-  const { lawSource, institutes, threshold = 0.45, limit = 10 } = options;
+  const { lawSource, institutes, threshold = 0.45, limit = 10, targetArticles } = options;
 
   // ── Fix 4: Boost exact reference matches ──────────────────────────────────
   // Se la query contiene "art. N" o "articolo N", cerca quell'articolo direttamente
   // per reference e prepend i risultati (bypass soglia semantica).
-  const articleNumber = extractArticleNumber(query);
+  // Fallback: se la query non contiene un riferimento esplicito, prova con
+  // prep.targetArticles (es. "Art. 1537-1541 c.c." dal question-prep agent).
+  const articleNumber = extractArticleNumber(query)
+    || (targetArticles ? extractArticleNumber(targetArticles) : null);
   const referenceBoostResults: LegalArticleSearchResult[] = [];
 
   if (articleNumber) {
