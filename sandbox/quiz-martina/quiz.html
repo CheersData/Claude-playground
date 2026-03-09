@@ -1193,15 +1193,25 @@ let musicPlaying = false;
 
 function startMusic() {
   bgMusic.volume = 0.35;
+  bgMusic.load();
   bgMusic.play().then(() => {
     musicPlaying = true;
     musicBtn.classList.remove('hidden');
     musicBtn.classList.add('playing');
     musicBtn.textContent = '🎵';
   }).catch(() => {
-    // autoplay blocked, show button anyway so user can start manually
+    // autoplay blocked — show button so user can tap to start
     musicBtn.classList.remove('hidden');
     musicBtn.textContent = '🔇';
+    // retry on next user interaction anywhere on the page
+    document.addEventListener('touchstart', function resumeAudio() {
+      bgMusic.play().then(() => {
+        musicPlaying = true;
+        musicBtn.classList.add('playing');
+        musicBtn.textContent = '🎵';
+      }).catch(() => {});
+      document.removeEventListener('touchstart', resumeAudio);
+    }, { once: true });
   });
 }
 
@@ -1213,11 +1223,12 @@ function toggleMusic() {
     musicBtn.textContent = '🔇';
   } else {
     bgMusic.volume = 0.35;
+    bgMusic.load();
     bgMusic.play().then(() => {
       musicPlaying = true;
       musicBtn.classList.add('playing');
       musicBtn.textContent = '🎵';
-    });
+    }).catch(() => {});
   }
 }
 
