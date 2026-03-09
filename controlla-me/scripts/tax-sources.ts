@@ -2,12 +2,21 @@
  * tax-sources.ts — Fonti per il verticale Tax/Commercialista.
  *
  * Verticale: "tax"
- * Fonti:
+ *
+ * === FONTI CARICATE (lifecycle: "loaded") ===
  *   1. TUIR — D.P.R. 917/1986 — Testo Unico Imposte sui Redditi (Normattiva)
  *   2. IVA  — D.P.R. 633/1972 — Decreto IVA (Normattiva)
  *   3. Statuto del Contribuente — L. 212/2000 (Normattiva)
- *   4. D.Lgs. 231/2001 — Responsabilità amministrativa enti (già in corpus "legal")
- *      → aggiunto qui con vertical="tax" per cross-tagging, NON ricaricato
+ *   4. D.Lgs. 231/2001 — Responsabilità amministrativa enti (cross-ref da "legal")
+ *
+ * === FONTI PIANIFICATE (lifecycle: "planned") ===
+ *   5. D.P.R. 600/1973 — Accertamento imposte sui redditi
+ *   6. D.P.R. 602/1973 — Riscossione imposte
+ *   7. D.Lgs. 74/2000  — Reati tributari (penale fiscale)
+ *   8. D.Lgs. 446/1997 — IRAP
+ *   9. D.Lgs. 472/1997 — Sanzioni tributarie non penali
+ *  10. D.Lgs. 546/1992 — Processo tributario
+ *  11. L. 190/2014 (art. 1, co. 54-89) — Regime forfettario (cross-ref da TUIR)
  *
  * NOTE: D.Lgs. 231/2001 è già caricato nel verticale "legal" (lifecycle: "loaded").
  * Il cross-tagging avviene a livello applicativo: quando si esegue una query
@@ -18,10 +27,20 @@
  * Considerare delta-update automatico (lifecycle: "delta-active") una volta caricato.
  * Il testo consolidato corrente ha ~185 articoli principali con molti commi numerosi.
  *
+ * NOTE D.P.R. 600/1973 e 602/1973: sono le due "gambe procedurali" del sistema fiscale.
+ * Il 600 regola l'accertamento (dichiarazioni, controlli, rettifiche, accertamenti sintetici),
+ * il 602 regola la riscossione (ruoli, cartelle, fermi, ipoteche, pignoramenti).
+ * Essenziali per qualsiasi consulente tributarista.
+ *
+ * NOTE D.Lgs. 74/2000: reati tributari (dichiarazione fraudolenta, infedele, omessa,
+ * occultamento documenti, emissione fatture false). Cross-link con D.Lgs. 231/2001
+ * (reati presupposto ex art. 25-quinquiesdecies).
+ *
  * Registrazione automatica: all'import di questo file le fonti Tax
  * vengono aggiunte al registry via registerVertical().
  *
- * Censimento: 2026-03-03 (Strategy + Data Engineering)
+ * Censimento completo: 2026-03-09 (Data Engineering)
+ * Censimento iniziale: 2026-03-03 (Strategy + Data Engineering)
  */
 
 import { registerVertical, type CorpusSource } from "./corpus-sources";
@@ -127,6 +146,152 @@ export const TAX_SOURCES: CorpusSource[] = [
     lifecycle: "loaded", // già caricato nel verticale "legal"
     vertical: "tax",
   },
+
+  // ─── Fonti pianificate — censimento completo 2026-03-09 ───
+
+  {
+    id: "dpr_600_1973",
+    name: "Accertamento imposte sui redditi — D.P.R. 600/1973",
+    shortName: "D.P.R. 600/1973",
+    type: "normattiva",
+    description: "D.P.R. 29 settembre 1973, n. 600 — Disposizioni comuni in materia di accertamento delle imposte sui redditi: dichiarazioni, scritture contabili, ritenute alla fonte, accertamento sintetico/analitico, rettifiche",
+    urn: "urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;600",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;600",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 83,
+    connector: {
+      normattivaActType: "decreto.del.presidente.della.repubblica",
+      normattivaSearchTerms: ["accertamento imposte redditi", "dpr 600 1973"],
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 268 del 16 ottobre 1973
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+    vertical: "tax",
+  },
+  {
+    id: "dpr_602_1973",
+    name: "Riscossione imposte — D.P.R. 602/1973",
+    shortName: "D.P.R. 602/1973",
+    type: "normattiva",
+    description: "D.P.R. 29 settembre 1973, n. 602 — Disposizioni sulla riscossione delle imposte sul reddito: iscrizione a ruolo, cartelle di pagamento, rateizzazione, fermo amministrativo, ipoteca, pignoramento",
+    urn: "urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 92,
+    connector: {
+      normattivaActType: "decreto.del.presidente.della.repubblica",
+      normattivaSearchTerms: ["riscossione imposte reddito", "dpr 602 1973"],
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 268 del 16 ottobre 1973
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+    vertical: "tax",
+  },
+  {
+    id: "dlgs_74_2000",
+    name: "Reati tributari — D.Lgs. 74/2000",
+    shortName: "D.Lgs. 74/2000",
+    type: "normattiva",
+    description: "D.Lgs. 10 marzo 2000, n. 74 — Nuova disciplina dei reati in materia di imposte sui redditi e IVA: dichiarazione fraudolenta, infedele, omessa, occultamento documenti contabili, emissione fatture false, indebita compensazione",
+    urn: "urn:nir:stato:decreto.legislativo:2000-03-10;74",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2000-03-10;74",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+    ],
+    estimatedArticles: 24,
+    connector: {
+      normattivaActType: "decreto.legislativo",
+      normattivaSearchTerms: ["reati tributari", "decreto legislativo 74 2000", "dichiarazione fraudolenta"],
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 76 del 31 marzo 2000
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+    vertical: "tax",
+  },
+  {
+    id: "dlgs_446_1997",
+    name: "IRAP — D.Lgs. 446/1997",
+    shortName: "IRAP",
+    type: "normattiva",
+    description: "D.Lgs. 15 dicembre 1997, n. 446 — Istituzione dell'imposta regionale sulle attività produttive (IRAP): base imponibile, aliquote, soggetti passivi, deduzioni",
+    urn: "urn:nir:stato:decreto.legislativo:1997-12-15;446",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1997-12-15;446",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 45,
+    connector: {
+      normattivaActType: "decreto.legislativo",
+      normattivaSearchTerms: ["irap", "decreto legislativo 446 1997", "imposta regionale attivita produttive"],
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 298 del 23 dicembre 1997, S.O. n. 252
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+    vertical: "tax",
+  },
+  {
+    id: "dlgs_472_1997",
+    name: "Sanzioni tributarie — D.Lgs. 472/1997",
+    shortName: "D.Lgs. 472/1997",
+    type: "normattiva",
+    description: "D.Lgs. 18 dicembre 1997, n. 472 — Disposizioni generali in materia di sanzioni amministrative per le violazioni di norme tributarie: principi generali, determinazione sanzione, ravvedimento operoso, definizione agevolata",
+    urn: "urn:nir:stato:decreto.legislativo:1997-12-18;472",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1997-12-18;472",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 31,
+    connector: {
+      normattivaActType: "decreto.legislativo",
+      normattivaSearchTerms: ["sanzioni tributarie", "decreto legislativo 472 1997", "ravvedimento operoso"],
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 5 dell'8 gennaio 1998, S.O. n. 4
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+    vertical: "tax",
+  },
+  {
+    id: "dlgs_546_1992",
+    name: "Processo tributario — D.Lgs. 546/1992",
+    shortName: "D.Lgs. 546/1992",
+    type: "normattiva",
+    description: "D.Lgs. 31 dicembre 1992, n. 546 — Disposizioni sul processo tributario: giurisdizione, competenza, atti impugnabili, ricorso, istruttoria, sentenza, appello, Corte di Giustizia Tributaria",
+    urn: "urn:nir:stato:decreto.legislativo:1992-12-31;546",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 70,
+    connector: {
+      normattivaActType: "decreto.legislativo",
+      normattivaSearchTerms: ["processo tributario", "decreto legislativo 546 1992", "commissione tributaria"],
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 9 del 13 gennaio 1993, S.O. n. 8
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+    vertical: "tax",
+  },
 ];
 
 // ─── Auto-registrazione ───
@@ -144,21 +309,42 @@ export const TAX_SOURCE_IDS = TAX_SOURCES.map((s) => s.id);
 /**
  * Istruzioni per caricare il verticale Tax:
  *
- * PREREQUISITO: verificare i codiceRedazionale via API Normattiva prima di eseguire directAkn.
- * Tutti e tre i nuovi atti hanno TODO nel connector — usare prima la ricerca asincrona:
- *   npx tsx scripts/data-connector.ts connect tuir
- *   npx tsx scripts/data-connector.ts connect dpr_633_1972_iva
- *   npx tsx scripts/data-connector.ts connect statuto_contribuente
+ * === FONTI GIA' CARICATE (lifecycle: "loaded") ===
+ * Le prime 3 fonti (TUIR, IVA, Statuto Contribuente) sono già in DB.
+ * D.Lgs. 231/2001 è cross-ref dal verticale "legal" — NON eseguire data-connector.
  *
- * Se la ricerca asincrona produce ZIP vuoti (come per leggi storiche), aggiungere:
- *   directAkn: true + codiceRedazionale verificato + normattivaDataGU
+ * === FONTI PIANIFICATE — ORDINE DI CARICAMENTO SUGGERITO ===
+ *
+ * PREREQUISITO: verificare i codiceRedazionale via API Normattiva prima di eseguire directAkn.
+ * Per ogni fonte pianificata, eseguire prima:
+ *   npx tsx scripts/data-connector.ts connect <source_id>
+ * per ottenere il codiceRedazionale, poi aggiornare il connector config.
+ *
+ * Ordine suggerito (priorità per completezza verticale):
+ *
+ * Fase 1 — Core procedurale (essenziali per consulente tributarista):
+ *   4. npx tsx scripts/data-connector.ts connect dpr_600_1973   (83 art. — accertamento)
+ *   5. npx tsx scripts/data-connector.ts connect dpr_602_1973   (92 art. — riscossione)
+ *
+ * Fase 2 — Penale e sanzioni (compliance e contenzioso):
+ *   6. npx tsx scripts/data-connector.ts connect dlgs_74_2000   (24 art. — reati tributari)
+ *   7. npx tsx scripts/data-connector.ts connect dlgs_472_1997  (31 art. — sanzioni amministrative)
+ *
+ * Fase 3 — Imposte e processo:
+ *   8. npx tsx scripts/data-connector.ts connect dlgs_446_1997  (45 art. — IRAP)
+ *   9. npx tsx scripts/data-connector.ts connect dlgs_546_1992  (70 art. — processo tributario)
  *
  * D.Lgs. 231/2001: NON eseguire data-connector su "dlgs_231_2001_tax".
  * I dati sono già in DB (id="dlgs_231_2001", vertical="legal").
  * Per query cross-verticale: usare getSourcesByVertical("tax") + filtro su id.
  *
- * Ordine di caricamento suggerito (priorità per MVP):
- * 1. statuto_contribuente (21 art., piccolo, test pipeline)
- * 2. dpr_633_1972_iva     (81 art., IVA — molto richiesto)
- * 3. tuir                 (185 art., core fiscale — più grande)
+ * === NOTE PER FUTURI AMPLIAMENTI ===
+ *
+ * Fonti NON incluse perché non su Normattiva in formato strutturato:
+ * - Circolari e risoluzioni AdE: richiederebbero un connettore custom per il sito
+ *   dell'Agenzia delle Entrate (https://def.finanze.it). Valutare in Phase 2.
+ * - Principi contabili OIC/IFRS: non sono normativa, ma prassi contabile.
+ *   Rilevanti per contabilità, non per diritto tributario puro.
+ * - L. 190/2014 (Regime forfettario): sono pochi commi (art. 1, co. 54-89) dentro
+ *   una legge di bilancio enorme. Meglio estrarre manualmente o come knowledge entry.
  */

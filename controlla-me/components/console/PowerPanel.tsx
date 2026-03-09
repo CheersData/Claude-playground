@@ -117,6 +117,16 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
     if (open && !data) fetchTierData();
   }, [open, data, fetchTierData]);
 
+  // Escape key to close panel (WCAG 2.1.1)
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   const switchTier = useCallback(async (tier: TierName) => {
     if (data?.current === tier) return;
     setSwitching(true);
@@ -179,22 +189,25 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
-        className="relative w-[480px] max-w-full sm:max-w-[90vw] h-full bg-white flex flex-col shadow-2xl"
+        className="relative w-[480px] max-w-full sm:max-w-[90vw] h-full bg-[var(--surface)] flex flex-col shadow-2xl"
+        role="dialog"
+        aria-label="Pannello Power — modelli e catene di fallback"
       >
         {/* Header */}
-        <div className="px-4 pt-5 pb-4 md:px-8 md:pt-7 md:pb-5 border-b border-[#E5E5E5]">
+        <div className="px-4 pt-5 pb-4 md:px-8 md:pt-7 md:pb-5 border-b border-[var(--border)]">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-serif text-xl md:text-2xl text-[#1A1A1A] tracking-tight">
+              <h2 className="font-serif text-xl md:text-2xl text-[var(--foreground)] tracking-tight">
                 Power
               </h2>
-              <p className="text-sm text-[#6B6B6B] mt-1">
+              <p className="text-sm text-[var(--foreground-secondary)] mt-1">
                 Modelli e catene di fallback
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors mt-1"
+              className="text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors mt-1"
+              aria-label="Chiudi pannello Power"
             >
               <X className="w-5 h-5" />
             </button>
@@ -207,7 +220,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
             <div className="px-4 md:px-8 py-4 md:py-8">
               <div className="space-y-4 animate-pulse">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-[#F0F0F0] rounded-xl" />
+                  <div key={i} className="h-16 bg-[var(--border-subtle)] rounded-xl" />
                 ))}
               </div>
             </div>
@@ -215,7 +228,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
             <>
               {/* Tier selector */}
               <div className="px-4 md:px-8 pt-4 md:pt-6 pb-4">
-                <p className="text-[10px] tracking-[2px] uppercase text-[#9B9B9B] font-medium mb-3">
+                <p className="text-[10px] tracking-[2px] uppercase text-[var(--foreground-tertiary)] font-medium mb-3">
                   Tier
                 </p>
                 <div className="grid grid-cols-3 gap-2">
@@ -230,14 +243,14 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                         className={`relative flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border transition-all ${
                           isActive
                             ? `${cfg.bg} border-current`
-                            : "bg-white border-[#E5E5E5] hover:border-[#9B9B9B]"
+                            : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--foreground-tertiary)]"
                         } ${switching ? "opacity-50" : ""}`}
                       >
                         <TierIcon tier={tier} active={isActive} />
-                        <span className={`text-xs font-medium ${isActive ? cfg.color : "text-[#6B6B6B]"}`}>
+                        <span className={`text-xs font-medium ${isActive ? cfg.color : "text-[var(--foreground-secondary)]"}`}>
                           {cfg.label}
                         </span>
-                        <span className="text-[10px] text-[#9B9B9B] leading-tight text-center">
+                        <span className="text-[10px] text-[var(--foreground-tertiary)] leading-tight text-center">
                           {cfg.description}
                         </span>
                         {isActive && (
@@ -257,10 +270,10 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
 
                 {/* Cost estimate */}
                 {data?.estimatedCost && (
-                  <div className="flex items-center gap-2 mt-3 py-2 px-3 rounded-lg bg-[#F8F8FA]">
-                    <Coins className="w-3.5 h-3.5 text-[#9B9B9B]" />
-                    <span className="text-xs text-[#6B6B6B]">
-                      Costo stimato per query: <span className="font-medium text-[#1A1A1A]">{data.estimatedCost.label}</span>
+                  <div className="flex items-center gap-2 mt-3 py-2 px-3 rounded-lg bg-[var(--background-secondary)]">
+                    <Coins className="w-3.5 h-3.5 text-[var(--foreground-tertiary)]" />
+                    <span className="text-xs text-[var(--foreground-secondary)]">
+                      Costo stimato per query: <span className="font-medium text-[var(--foreground)]">{data.estimatedCost.label}</span>
                     </span>
                   </div>
                 )}
@@ -268,7 +281,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
 
               {/* Agent chains */}
               <div className="px-4 md:px-8 pb-4 md:pb-6">
-                <p className="text-[10px] tracking-[2px] uppercase text-[#9B9B9B] font-medium mb-3">
+                <p className="text-[10px] tracking-[2px] uppercase text-[var(--foreground-tertiary)] font-medium mb-3">
                   Agenti
                 </p>
                 <div className="space-y-2">
@@ -290,8 +303,8 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-8 py-3 md:py-4 border-t border-[#E5E5E5] text-center">
-          <p className="text-[10px] text-[#9B9B9B]">
+        <div className="px-4 md:px-8 py-3 md:py-4 border-t border-[var(--border)] text-center">
+          <p className="text-[10px] text-[var(--foreground-tertiary)]">
             Su errore 429, il sistema scende automaticamente al modello successivo nella catena
           </p>
         </div>
@@ -306,7 +319,7 @@ function TierIcon({ tier, active }: { tier: TierName; active: boolean }) {
   const size = "w-5 h-5";
   const color = active
     ? tier === "intern" ? "text-emerald-500" : tier === "associate" ? "text-blue-500" : "text-amber-500"
-    : "text-[#9B9B9B]";
+    : "text-[var(--foreground-tertiary)]";
 
   if (tier === "intern") return <GraduationCap className={`${size} ${color}`} />;
   if (tier === "associate") return <Briefcase className={`${size} ${color}`} />;
@@ -329,19 +342,21 @@ function AgentRow({ agent, info, index, onToggle }: {
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
-      className={`rounded-xl border border-[#F0F0F0] overflow-hidden transition-opacity ${
+      className={`rounded-xl border border-[var(--border-subtle)] overflow-hidden transition-opacity ${
         enabled ? "" : "opacity-40"
       }`}
     >
       <div className="flex items-center">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-[#F8F8FA] transition-colors text-left"
+          className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-[var(--background-secondary)] transition-colors text-left"
+          aria-expanded={expanded}
+          aria-label={`${label.name} — ${label.description}. ${expanded ? "Comprimi" : "Espandi"} catena di fallback`}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-medium text-[#1A1A1A]">{label.name}</span>
-              <span className="text-[10px] text-[#9B9B9B]">{label.description}</span>
+              <span className="text-sm font-medium text-[var(--foreground)]">{label.name}</span>
+              <span className="text-[10px] text-[var(--foreground-tertiary)]">{label.description}</span>
             </div>
           </div>
 
@@ -355,7 +370,7 @@ function AgentRow({ agent, info, index, onToggle }: {
           )}
 
           {!enabled && (
-            <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] font-medium bg-[#F0F0F0] text-[#9B9B9B]">
+            <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--border-subtle)] text-[var(--foreground-tertiary)]">
               off
             </span>
           )}
@@ -363,7 +378,7 @@ function AgentRow({ agent, info, index, onToggle }: {
           <motion.svg
             animate={{ rotate: expanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
-            className="w-3.5 h-3.5 text-[#9B9B9B] shrink-0"
+            className="w-3.5 h-3.5 text-[var(--foreground-tertiary)] shrink-0"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -377,7 +392,7 @@ function AgentRow({ agent, info, index, onToggle }: {
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(agent, !enabled); }}
           className={`shrink-0 mr-4 w-8 h-[18px] rounded-full transition-colors relative ${
-            enabled ? "bg-[#1A1A1A]" : "bg-[#D5D5D5]"
+            enabled ? "bg-[var(--foreground)]" : "bg-[#D5D5D5]"
           }`}
           aria-label={`${enabled ? "Disattiva" : "Attiva"} ${label.name}`}
         >
@@ -398,8 +413,8 @@ function AgentRow({ agent, info, index, onToggle }: {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3 pt-1 space-y-1 border-t border-[#F0F0F0]">
-              <p className="text-[10px] text-[#9B9B9B] mb-1.5">Catena di fallback:</p>
+            <div className="px-4 pb-3 pt-1 space-y-1 border-t border-[var(--border-subtle)]">
+              <p className="text-[10px] text-[var(--foreground-tertiary)] mb-1.5">Catena di fallback:</p>
               {info.chain.map((entry, i) => {
                 const isActive = i === info.activeIndex;
                 const isPast = i < info.activeIndex;
@@ -407,20 +422,20 @@ function AgentRow({ agent, info, index, onToggle }: {
                   <div
                     key={entry.key}
                     className={`flex items-center gap-2 py-1 px-2 rounded-lg text-xs ${
-                      isActive ? "bg-[#F0F0F0]" : ""
+                      isActive ? "bg-[var(--border-subtle)]" : ""
                     } ${isPast ? "opacity-40" : ""}`}
                   >
                     {/* Position indicator */}
                     <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
                       isActive
-                        ? "bg-[#1A1A1A] text-white"
-                        : "bg-[#F0F0F0] text-[#9B9B9B]"
+                        ? "bg-[var(--foreground)] text-white"
+                        : "bg-[var(--border-subtle)] text-[var(--foreground-tertiary)]"
                     }`}>
                       {i + 1}
                     </span>
 
                     {/* Model name */}
-                    <span className={`flex-1 ${isActive ? "font-medium text-[#1A1A1A]" : "text-[#6B6B6B]"}`}>
+                    <span className={`flex-1 ${isActive ? "font-medium text-[var(--foreground)]" : "text-[var(--foreground-secondary)]"}`}>
                       {entry.displayName}
                     </span>
 

@@ -105,7 +105,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 function StatusBadge({ result }: { result: LastResult | null }) {
   if (!result) {
     return (
-      <span className="flex items-center gap-1 text-xs text-[var(--ops-muted)] bg-[var(--ops-surface-2)] px-2 py-0.5 rounded-full">
+      <span className="flex items-center gap-1 text-xs text-[var(--fg-invisible)] bg-[var(--bg-overlay)] px-2 py-0.5 rounded-full">
         <Clock className="w-3 h-3" />
         Mai eseguito
       </span>
@@ -145,27 +145,27 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
     : null;
 
   return (
-    <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden">
+    <div className="border border-[var(--border-dark-subtle)] rounded-lg overflow-hidden">
       {/* Row header */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-start gap-4 px-4 py-3.5 hover:bg-[var(--ops-surface-2)]/40 transition-colors text-left group"
+        className="w-full flex items-start gap-4 px-4 py-3.5 hover:bg-[var(--bg-overlay)]/40 transition-colors text-left group"
       >
         {/* Index */}
-        <span className="text-xs text-[var(--ops-muted)] font-mono mt-0.5 flex-shrink-0 w-5">
+        <span className="text-xs text-[var(--fg-invisible)] font-mono mt-0.5 flex-shrink-0 w-5">
           {String(index + 1).padStart(2, "0")}
         </span>
 
         {/* Name + doc type */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-[var(--ops-fg)] group-hover:text-white transition-colors font-medium">
+          <p className="text-sm text-[var(--fg-primary)] group-hover:text-white transition-colors font-medium">
             {test.name}
           </p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs font-mono bg-[var(--ops-surface-2)] text-[var(--ops-muted)] px-2 py-0.5 rounded">
+            <span className="text-xs font-mono bg-[var(--bg-overlay)] text-[var(--fg-invisible)] px-2 py-0.5 rounded">
               {test.expectedDocumentType}
             </span>
-            <span className="text-xs text-[var(--ops-muted)]">
+            <span className="text-xs text-[var(--fg-invisible)]">
               {test.clauseCount} clausole · max score {test.maxFairnessScore}
             </span>
             {test.expectNeedsLawyer && (
@@ -183,12 +183,12 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                   ? result.actualScore <= test.maxFairnessScore
                     ? "text-green-400"
                     : "text-red-400"
-                  : "text-[var(--ops-muted)]"
+                  : "text-[var(--fg-invisible)]"
               }`}
             >
               {result.actualScore !== null ? result.actualScore.toFixed(1) : "—"}
             </p>
-            <p className="text-xs text-[var(--ops-muted)]">fairness</p>
+            <p className="text-xs text-[var(--fg-invisible)]">fairness</p>
           </div>
         )}
 
@@ -206,7 +206,7 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
             >
               {accuracy}%
             </p>
-            <p className="text-xs text-[var(--ops-muted)]">
+            <p className="text-xs text-[var(--fg-invisible)]">
               {result!.passedChecks}/{result!.totalChecks}
             </p>
           </div>
@@ -216,9 +216,9 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
         <div className="flex items-center gap-2 flex-shrink-0">
           <StatusBadge result={result} />
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-[var(--ops-muted)]" />
+            <ChevronDown className="w-4 h-4 text-[var(--fg-invisible)]" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-[var(--ops-muted)]" />
+            <ChevronRight className="w-4 h-4 text-[var(--fg-invisible)]" />
           )}
         </div>
       </button>
@@ -233,15 +233,15 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
             transition={{ duration: 0.18 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-[var(--ops-border-subtle)] pt-3 space-y-3 bg-[var(--ops-surface)]/50">
+            <div className="px-4 pb-4 border-t border-[var(--border-dark-subtle)] pt-3 space-y-3 bg-[var(--bg-raised)]/50">
               {/* Legal notes */}
-              <div className="text-xs text-[var(--ops-fg-muted)] leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
+              <div className="text-xs text-[var(--fg-secondary)] leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
                 {test.legalNotes}
               </div>
 
               {/* Clause checks */}
               <div>
-                <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
+                <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-2 font-medium">
                   Clausole da rilevare
                 </p>
                 <div className="space-y-2">
@@ -257,14 +257,14 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                         key={i}
                         className={`flex items-start gap-3 px-3 py-2 rounded border text-xs ${
                           isPassed === null
-                            ? "bg-[var(--ops-surface-2)]/50 border-[var(--ops-border-subtle)]"
+                            ? "bg-[var(--bg-overlay)]/50 border-[var(--border-dark-subtle)]"
                             : isPassed
                             ? "bg-green-500/5 border-green-500/15"
                             : "bg-red-500/5 border-red-500/15"
                         }`}
                       >
                         {isPassed === null ? (
-                          <span className="w-3 h-3 rounded-full border border-[var(--ops-border)] flex-shrink-0 mt-0.5" />
+                          <span className="w-3 h-3 rounded-full border border-[var(--border-dark)] flex-shrink-0 mt-0.5" />
                         ) : isPassed ? (
                           <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
                         ) : (
@@ -272,23 +272,23 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <code className="text-[var(--ops-fg-muted)] font-mono bg-[var(--ops-hover)]/50 px-1 rounded text-xs">
+                            <code className="text-[var(--fg-secondary)] font-mono bg-[var(--bg-hover)]/50 px-1 rounded text-xs">
                               {clause.keyword}
                             </code>
                             <span
                               className={`text-xs font-medium ${
-                                SEVERITY_COLORS[clause.minSeverity] ?? "text-[var(--ops-muted)]"
+                                SEVERITY_COLORS[clause.minSeverity] ?? "text-[var(--fg-invisible)]"
                               }`}
                             >
                               {clause.minSeverity}
                             </span>
                             {checkResult?.foundIn && (
-                              <span className="text-xs text-[var(--ops-muted)] truncate">
+                              <span className="text-xs text-[var(--fg-invisible)] truncate">
                                 → in &quot;{checkResult.foundIn}&quot;
                               </span>
                             )}
                           </div>
-                          <p className="text-[var(--ops-muted)] leading-relaxed">{clause.description}</p>
+                          <p className="text-[var(--fg-invisible)] leading-relaxed">{clause.description}</p>
                         </div>
                       </div>
                     );
@@ -326,7 +326,7 @@ function TestRow({ test, index }: { test: TestCase; index: number }) {
 
               {/* Duration */}
               {result && (
-                <p className="text-xs text-[var(--ops-muted)]">
+                <p className="text-xs text-[var(--fg-invisible)]">
                   Durata: {fmtDuration(result.durationMs)}
                 </p>
               )}
@@ -393,7 +393,7 @@ export function QALegalPanel() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-[var(--ops-muted)] gap-3">
+      <div className="flex items-center justify-center py-16 text-[var(--fg-invisible)] gap-3">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">Caricamento QA report...</span>
       </div>
@@ -429,7 +429,7 @@ export function QALegalPanel() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-white">QA Report — Agenti Legali</h3>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">
             {summary.total} contratti golden · Eval suite adversariale
           </p>
         </div>
@@ -437,7 +437,7 @@ export function QALegalPanel() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-2 rounded-lg bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg bg-[var(--bg-overlay)] hover:bg-[var(--bg-hover)] text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-50"
             aria-label="Aggiorna dati"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -469,14 +469,14 @@ export function QALegalPanel() {
             <Terminal className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-xs text-amber-300 font-medium mb-1">Ambiente demo</p>
-              <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{runMessage}</p>
-              <code className="block mt-2 text-xs font-mono bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] px-3 py-2 rounded">
+              <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">{runMessage}</p>
+              <code className="block mt-2 text-xs font-mono bg-[var(--bg-overlay)] text-[var(--fg-secondary)] px-3 py-2 rounded">
                 npx tsx tests/eval/eval-runner.ts
               </code>
             </div>
             <button
               onClick={() => { setRunStatus("idle"); setRunMessage(null); }}
-              className="text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] text-xs transition-colors flex-shrink-0"
+              className="text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] text-xs transition-colors flex-shrink-0"
             >
               ×
             </button>
@@ -486,40 +486,40 @@ export function QALegalPanel() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
           <p className="text-xl font-bold text-white">{summary.total}</p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Test totali</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Test totali</p>
         </div>
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.passed > 0 ? "text-green-400" : "text-[var(--ops-muted)]"}`}>
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.passed > 0 ? "text-green-400" : "text-[var(--fg-invisible)]"}`}>
             {summary.passed}
           </p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Passati</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Passati</p>
         </div>
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.failed > 0 ? "text-red-400" : "text-[var(--ops-muted)]"}`}>
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.failed > 0 ? "text-red-400" : "text-[var(--fg-invisible)]"}`}>
             {summary.failed}
           </p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Falliti</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Falliti</p>
         </div>
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${accuracy !== null ? (accuracy >= 80 ? "text-green-400" : accuracy >= 50 ? "text-yellow-400" : "text-red-400") : "text-[var(--ops-muted)]"}`}>
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${accuracy !== null ? (accuracy >= 80 ? "text-green-400" : accuracy >= 50 ? "text-yellow-400" : "text-red-400") : "text-[var(--fg-invisible)]"}`}>
             {accuracy !== null ? `${accuracy}%` : "—"}
           </p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Accuracy</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Accuracy</p>
         </div>
       </div>
 
       {/* Last run info */}
       {summary.lastRunAt ? (
-        <p className="text-xs text-[var(--ops-muted)]">
+        <p className="text-xs text-[var(--fg-invisible)]">
           Ultimo run: {fmtDate(summary.lastRunAt)}
           {summary.historyCount > 1 && ` · ${summary.historyCount} run storici`}
         </p>
       ) : (
-        <div className="flex items-center gap-2 bg-[var(--ops-surface-2)]/40 border border-[var(--ops-border-subtle)] rounded-lg px-3 py-2">
-          <Clock className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
-          <p className="text-xs text-[var(--ops-muted)]">
+        <div className="flex items-center gap-2 bg-[var(--bg-overlay)]/40 border border-[var(--border-dark-subtle)] rounded-lg px-3 py-2">
+          <Clock className="w-4 h-4 text-[var(--fg-invisible)] flex-shrink-0" />
+          <p className="text-xs text-[var(--fg-invisible)]">
             Nessun eval eseguito. I risultati appariranno dopo il primo run da terminale esterno.
           </p>
         </div>
@@ -527,7 +527,7 @@ export function QALegalPanel() {
 
       {/* Test cases table */}
       <div>
-        <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
+        <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-2 font-medium">
           Contratti golden ({tests.length})
         </p>
         <div className="space-y-2">
@@ -540,20 +540,20 @@ export function QALegalPanel() {
       {/* History */}
       {history.length > 0 && (
         <div>
-          <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
+          <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-2 font-medium">
             Storico run ({history.length})
           </p>
           <div className="space-y-1">
             {history.map((run, i) => (
               <div
                 key={run.file}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--ops-surface-2)]/30 text-xs"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--bg-overlay)]/30 text-xs"
               >
-                <span className="text-[var(--ops-muted)] font-mono text-xs w-4">{i + 1}</span>
-                <span className="text-[var(--ops-muted)] flex-1">{fmtDate(run.runAt)}</span>
+                <span className="text-[var(--fg-invisible)] font-mono text-xs w-4">{i + 1}</span>
+                <span className="text-[var(--fg-invisible)] flex-1">{fmtDate(run.runAt)}</span>
                 <span className="flex items-center gap-1 text-green-400"><CheckCircle2 size={10} />{run.passed}</span>
                 {run.failed > 0 && <span className="flex items-center gap-1 text-red-400"><XCircle size={10} />{run.failed}</span>}
-                <span className="text-[var(--ops-muted)] text-xs">
+                <span className="text-[var(--fg-invisible)] text-xs">
                   {Math.round((run.passed / run.total) * 100)}%
                 </span>
               </div>

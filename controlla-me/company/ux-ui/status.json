@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "ux-ui",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "ui-ux-designer"
+    "last_updated": "2026-03-08T22:11:42.210Z",
+    "updated_by": "auto-update-dept-status"
   },
-  "health": "ok",
-  "summary": "11 task completati. Design system coerente (palette, typography, spacing). 20+ componenti React. WCAG 2.1 AA parziale — audit accessibilita su console components pendente.",
+  "health": "warning",
+  "summary": "5 task aperti. 37 completati (ultimi 7gg). 37 completati (totale).",
   "design_system": {
     "palette": {
       "background": "#0a0a0a",
@@ -35,7 +35,9 @@
     "wcag_level": "AA",
     "status": "partial",
     "last_audit": null,
-    "gaps": ["Console components non auditati per accessibilita"]
+    "gaps": [
+      "Console components non auditati per accessibilita"
+    ]
   },
   "gaps": [
     {
@@ -49,7 +51,38 @@
       "severity": "medium"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "fc4cb9c9",
+      "title": "Applicare brand book al redesign Ops Center (task P3)",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "63217463",
+      "title": "Armonizzare componenti secondari (TaskBoardFullscreen, DepartmentList, CMEChatPanel, TradingDashboard, ecc.)",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "fe905345",
+      "title": "Applicare Brand Book universale a Ops Center dopo customer journey analysis",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "87c18643",
+      "title": "Redesign Ops Center basato su Brand Book v3 + Customer Journey",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "4cd4aaf0",
+      "title": "Redesign completo Gherardi Pro: UX professionale",
+      "priority": "high",
+      "status": "open"
+    }
+  ],
   "blockers": [],
   "notes": "Beauty Report in docs/BEAUTY-REPORT.md. Animazioni standard: 150-300ms, natural easing."
 }

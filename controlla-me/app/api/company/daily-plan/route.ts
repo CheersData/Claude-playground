@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { spawnSync } from "child_process";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
   if (rl) return rl;
 
   try {
+    broadcastConsoleAgent("daily-plan", "running", { task: "Generazione piano giornaliero" });
+
     const result = spawnSync("npx", ["tsx", "scripts/daily-standup.ts"], {
       cwd: process.cwd(),
       encoding: "utf-8",
@@ -32,6 +35,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (result.error) {
+      broadcastConsoleAgent("daily-plan", "error", { task: result.error.message });
       return NextResponse.json(
         {
           ok: false,
@@ -46,6 +50,10 @@ export async function POST(req: NextRequest) {
     const stderr = result.stderr?.slice(0, 500) ?? "";
     const exitCode = result.status ?? 0;
 
+    broadcastConsoleAgent("daily-plan", exitCode === 0 ? "done" : "error", {
+      task: exitCode === 0 ? "Piano generato" : "Piano parziale (demo)",
+    });
+
     // Piano generato anche se ci sono errori parziali (demo: claude -p fallisce ma il piano viene creato)
     return NextResponse.json({
       ok: exitCode === 0,
@@ -59,6 +67,7 @@ export async function POST(req: NextRequest) {
           : "Piano generato parzialmente (analisi AI non disponibili in demo — crediti API assenti).",
     });
   } catch (err) {
+    broadcastConsoleAgent("daily-plan", "error", { task: "Errore generazione piano" });
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
       {

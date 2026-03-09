@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "test",
+  "agentAnswer": "Non ho trovato articoli di legge pertinenti alla tua domanda nel corpus legislativo disponibile. Prova a riformulare la domanda o a essere più specifico.",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 2,
+    "search": 0,
+    "quality": 0,
+    "total": 2,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha compreso la distinzione tra ultrapetizione ed extrapetizione né ha formulato una query adeguata. Non ha recuperato gli articoli 112 e 360 n.4 c.p.c. né la sentenza della Cassazione. La risposta è vuota e fuori tema."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:15:51.476Z"
+}

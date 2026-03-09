@@ -1,0 +1,29 @@
+{
+  "testId": "TC47",
+  "question": "La penale nel mio contratto è esagerata. Il giudice può ridurla anche se non lo chiedo io?",
+  "agentAnswer": "Il giudice può ridurre la penale anche d'ufficio se è manifestamente eccessiva rispetto all'interesse del creditore all'adempimento. Tuttavia, la riduzione d'ufficio della penale non è prevista se l'obbligazione principale è stata eseguita in parte. La domanda di riduzione può essere avanzata anche dalla parte che ha stipulato la penale.",
+  "expectedAnswer": "Sì. Le Sezioni Unite (Cass. SU 18128/2005) hanno stabilito che il giudice PUÒ ridurre la penale manifestamente eccessiva d'ufficio, anche senza domanda di parte, in applicazione dell'art. 1384 c.c. È una svolta rispetto all'orientamento precedente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su SU 18128/2005 o riduzione d'ufficio?",
+    "search": "Ha trovato art. 1384 e/o Cass. SU 18128/2005?",
+    "quality": "Cita la sentenza SU? Spiega che è una svolta rispetto al precedente orientamento?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_penale",
+    "riduzione_d_ufficio",
+    "poteri_giudice"
+  ],
+  "scope": "SU 18128/2005: il giudice PUÒ ridurre d'ufficio anche senza domanda di parte. Svolta giurisprudenziale.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 30,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una buona comprensione del tema, citando la sentenza SU 18128/2005 e l'art. 1384 c.c. Tuttavia, manca una spiegazione esplicita che la riduzione d'ufficio sia una svolta rispetto all'orientamento precedente e introduce una limitazione non richiesta ('se l'obbligazione principale è stata eseguita in parte')."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:04:29.574Z"
+}

@@ -1,0 +1,22 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "RISPOSTA DIRETTA\nL'altra parte può impugnare la decisione perché il giudice ha pronunciato su una questione non sollevata dalle parti, violando il principio del contraddittorio.\n\nRIFERIMENTI NORMATIVI:\nArt. 101 c.p.c. (Codice di Procedura Civile) stabilisce che il giudice, salvo diversa disposizione di legge, non può decidere su una domanda se la parte contro la quale è proposta non è stata regolarmente citata o non è comparsa. In caso di violazione del contraddittorio, il giudice deve riservare la decisione e concedere alle parti, a pena di nullità, un termine per depositare memorie contenenti osservazioni sulla questione.\n\nIN PRATICA\nL'altra parte deve proporre appello entro il termine di legge (di solito 30 giorni dalla notifica della sentenza) chiedendo la nullità della parte della decisione pronunciata su quella questione non sollevata, ai sensi dell'art. 101 c.p.c., e chiedere che la sentenza sia riformata o che il giudice sia tenuto a riesaminare la causa con le sole questioni regolarmente sollevate.\n\n",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": null,
+  "runAt": "2026-03-09T10:33:13.569Z"
+}

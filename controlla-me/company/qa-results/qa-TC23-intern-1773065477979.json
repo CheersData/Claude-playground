@@ -1,0 +1,29 @@
+{
+  "testId": "TC23",
+  "question": "Voglio depositare un documento nuovo in udienza. Quando è il termine?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Tuttavia, l'Art. 171 del Codice di Procedura Civile disciplina le nuove produzioni in corso di causa, ma non è presente nel contesto fornito. In generale, per depositare un documento nuovo in udienza, è necessario verificare se esistono termini perentori o se il giudice ha già fissato una data per la discussione della causa. \n\n Riferimenti normativi: Gli articoli del Codice di Procedura Civile come l'Art. 183 e l'Art. 415 forniscono indicazioni generali sulla trattazione della causa e sul deposito del ricorso, ma non rispondono direttamente alla domanda sulla produzione di nuovi documenti in udienza. \n\n In pratica: Per una risposta precisa, è necessario consultare il Codice di Procedura Civile e verificare gli articoli specifici che disciplinano la produzione di documenti nuovi durante il processo. In particolare, l'Art. 171 e altri articoli pertinenti non presenti nel contesto fornito potrebbero fornire indicazioni utili.",
+  "expectedAnswer": "Con la riforma Cartabia (2022): memorie e documenti vanno depositati prima dell'udienza secondo art. 171-ter c.p.c. Se l'agente cita art. 183 vecchio rito è FAIL.",
+  "scoringHints": {
+    "prep": "Ha formulato query che include 'Cartabia' o 'riforma 2022' o art. 171-ter?",
+    "search": "Ha trovato art. 171-ter e NON solo art. 183 (vecchio rito)?",
+    "quality": "Distingue chiaramente il vecchio dal nuovo rito? Segnala la riforma Cartabia?"
+  },
+  "trapType": "norma_superata",
+  "institutes": [
+    "preclusioni_istruttorie",
+    "deposito_documenti",
+    "riforma_Cartabia"
+  ],
+  "scope": "art. 171-ter c.p.c. (riforma Cartabia, D.Lgs. 149/2022)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 5,
+    "quality": 5,
+    "total": 20,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha individuato correttamente l'articolo 171-ter c.p.c. della riforma Cartabia e si limita a citare norme obsolete (art. 183, art. 415). La risposta è imprecisa, incompleta e contiene contraddizioni, perciò il punteggio è molto basso."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:06:50.765Z"
+}

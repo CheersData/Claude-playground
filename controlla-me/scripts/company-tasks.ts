@@ -55,7 +55,7 @@ async function resolveId(partial: string): Promise<string> {
     throw new Error(`Nessun task trovato con seq_num ${seqNum}`);
   }
   if (partial.length >= 36) return partial;
-  const all = await getOpenTasks({ limit: 200 });
+  const all = await getOpenTasks({ limit: 1000 });
   const matches = all.filter((t) => t.id.startsWith(partial));
   if (matches.length === 0) {
     // Try also in done tasks
@@ -425,6 +425,24 @@ async function main() {
           console.warn(`  WARN: commit fallito — ${msg}`);
           console.warn(`  Esegui manualmente: git add -A && git commit -m ${JSON.stringify(commitMsg)}\n`);
         }
+      }
+
+      // ─── Hook: aggiorna status.json del dipartimento dopo chiusura task ───
+      try {
+        const { spawnSync } = await import("child_process");
+        const deptToUpdate = task.department;
+        const updateResult = spawnSync("npx", ["tsx", "scripts/auto-update-dept-status.ts", "--dept", deptToUpdate], {
+          cwd: resolve(__dirname, ".."),
+          encoding: "utf-8",
+          timeout: 15000,
+          shell: true,
+          windowsHide: true,
+        });
+        if (updateResult.status === 0) {
+          console.log(`  📊 Status ${deptToUpdate} aggiornato`);
+        }
+      } catch {
+        // Non bloccare se l'update fallisce
       }
 
       // ─── Hook: controlla se il board è vuoto dopo la chiusura ───

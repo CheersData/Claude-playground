@@ -1,0 +1,32 @@
+{
+  "id": "fornitura_servizi_IT_squilibrata",
+  "name": "fornitura servizi IT squilibrata",
+  "category": "fornitura",
+  "documentText": "CONTRATTO DI FORNITURA DI SERVIZI INFORMATICI\n\nTRA\nLa società WebDesign Pro S.r.l., con sede in Milano, Via Torino 22, P.IVA 98765432101,\nin persona del legale rappresentante Ing. Laura Conti (di seguito \"Fornitore\"),\n\nE\nLa società PMI Manufacturing S.p.A., con sede in Roma, Viale Europa 120, P.IVA 11122233344,\nin persona dell'Amministratore Delegato Dott. Roberto Ferrara (di seguito \"Committente\"),\n\nSI CONVIENE E SI STIPULA QUANTO SEGUE:\n\nArt. 1 - OGGETTO\nIl Fornitore si impegna a sviluppare una piattaforma e-commerce personalizzata per il Committente,\ncomprensiva di hosting, manutenzione e assistenza tecnica per la durata del contratto.\n\nArt. 2 - CORRISPETTIVO E PAGAMENTO\nIl corrispettivo per lo sviluppo è di EUR 25.000,00 oltre IVA.\nIl canone mensile per hosting e manutenzione è di EUR 500,00 oltre IVA.\nIl pagamento avverrà a 120 (centoventi) giorni dalla data di emissione della fattura.\nNon è previsto alcun anticipo. Il saldo sarà corrisposto a collaudo positivo.\n\nArt. 3 - PROPRIETÀ INTELLETTUALE\nTutto il codice sorgente, il design, la documentazione tecnica e qualsiasi opera dell'ingegno\nprodotta nell'ambito del presente contratto è di proprietà esclusiva del Committente.\nTale proprietà si estende anche al codice preesistente, alle librerie, ai framework\ne agli strumenti proprietari del Fornitore utilizzati nel progetto.\nIl Fornitore rinuncia a ogni diritto morale e patrimoniale sulle opere create.\n\nArt. 4 - RESPONSABILITÀ\nIl Fornitore è responsabile per qualsiasi danno diretto, indiretto, consequenziale,\nperdita di profitto, danno reputazionale e qualsiasi altra perdita subita dal Committente\nderivante dall'esecuzione o dalla mancata esecuzione del presente contratto,\nsenza alcun limite di importo.\n\nArt. 5 - PENALE PER RITARDO\nIn caso di ritardo nella consegna superiore a 7 (sette) giorni rispetto al cronoprogramma,\nil Fornitore corrisponderà una penale pari al 5% del corrispettivo totale per ogni giorno\ndi ritardo, senza necessità di messa in mora e senza limite massimo.\n\nArt. 6 - RINNOVO E DISDETTA\nIl contratto di manutenzione si rinnova automaticamente di anno in anno.\nLa disdetta deve essere comunicata con preavviso di 120 (centoventi) giorni\nprima della scadenza annuale, a mezzo raccomandata A/R.\n\nArt. 7 - FORO COMPETENTE\nPer ogni controversia è competente esclusivamente il Foro di Roma.\n\nRoma, 20 gennaio 2025",
+  "expectations": {
+    "classifier": [
+      "documentType deve contenere 'fornitura' o 'servizi' o 'appalto'",
+      "relevantInstitutes deve includere proprietà_intellettuale o cessione_IP",
+      "relevantInstitutes deve includere clausola_penale",
+      "applicableLaws deve citare norme del Codice Civile su appalto/opera (art. 1655 ss.)"
+    ],
+    "analyzer": [
+      "Deve segnalare la cessione IP preesistente come critical (espropriazione illegittima)",
+      "Deve segnalare la responsabilità illimitata come high risk",
+      "Deve segnalare la penale 5%/giorno senza tetto come critical (potenzialmente superiore al corrispettivo)",
+      "Deve segnalare il pagamento a 120 giorni come sfavorevole (D.Lgs. 231/2002 prevede max 60 gg)"
+    ],
+    "investigator": [
+      "Deve citare D.Lgs. 231/2002 per i termini di pagamento",
+      "Deve citare art. 2589-2590 c.c. per diritto d'autore/IP preesistente",
+      "Deve citare art. 1384 c.c. per la riducibilità della penale",
+      "NON deve inventare sentenze"
+    ],
+    "advisor": [
+      "fairnessScore tra 2 e 4 (contratto gravemente squilibrato verso il committente)",
+      "risks max 3, actions max 3",
+      "needsLawyer = true",
+      "Deve raccomandare di negoziare il cap sulla responsabilità e la clausola IP"
+    ]
+  }
+}

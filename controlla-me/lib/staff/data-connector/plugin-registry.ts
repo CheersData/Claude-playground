@@ -144,6 +144,43 @@ function registerDefaults(): void {
     const { LegalCorpusStore } = require("./stores/legal-corpus-store");
     return new LegalCorpusStore(log);
   });
+
+  // ── Medical connectors (studia.me) ──
+
+  // StatPearls — NCBI Bookshelf (E-utilities API)
+  registerConnector("ncbi-bookshelf", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StatPearlsConnector } = require("./connectors/statpearls");
+    return new StatPearlsConnector(source, log);
+  });
+
+  // Europe PMC — Open Access biomedical papers
+  registerConnector("europe-pmc", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { EuropePMCConnector } = require("./connectors/europepmc");
+    return new EuropePMCConnector(source, log);
+  });
+
+  // OpenStax — Open access university textbooks
+  registerConnector("openstax", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { OpenStaxConnector } = require("./connectors/openstax");
+    return new OpenStaxConnector(source, log);
+  });
+
+  // Alias: medical-articles usa lo stesso model/store di legal-articles
+  // (stessa tabella legal_articles, filtrata per vertical='medical')
+  registerModel("medical-articles", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { LegalArticleModel } = require("./models/legal-article-model");
+    return new LegalArticleModel();
+  });
+
+  registerStore("medical-articles", (_source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { LegalCorpusStore } = require("./stores/legal-corpus-store");
+    return new LegalCorpusStore(log);
+  });
 }
 
 // Eseguito al primo import

@@ -60,7 +60,7 @@ const PLAN_STATUS_STYLES: Record<string, string> = {
   pending:   "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   approved:  "bg-green-500/15 text-green-400 border-green-500/30",
   modified:  "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  cancelled: "bg-[var(--ops-surface-2)]/60 text-[var(--ops-fg-muted)] border-[var(--ops-border)]",
+  cancelled: "bg-[var(--bg-overlay)]/60 text-[var(--fg-secondary)] border-[var(--border-dark)]",
 };
 
 const PLAN_STATUS_LABELS: Record<string, string> = {
@@ -95,7 +95,7 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: index * 0.03 }}
-      className="bg-[var(--ops-surface-2)]/40 rounded-xl border border-[var(--ops-border-subtle)] hover:border-[var(--ops-border)] transition-all group"
+      className="bg-[var(--bg-overlay)]/40 rounded-xl border border-[var(--border-dark-subtle)] hover:border-[var(--border-dark)] transition-all group"
     >
       {/* Header */}
       <button
@@ -113,9 +113,9 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
             </span>
           </div>
           {/* Vision summary — sempre visibile */}
-          <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed line-clamp-2">{dept.vision}</p>
+          <p className="text-xs text-[var(--fg-secondary)] leading-relaxed line-clamp-2">{dept.vision}</p>
         </div>
-        <span className="text-[var(--ops-muted)] group-hover:text-[var(--ops-fg-muted)] transition-colors mt-1 flex-shrink-0">
+        <span className="text-[var(--fg-invisible)] group-hover:text-[var(--fg-secondary)] transition-colors mt-1 flex-shrink-0">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
       </button>
@@ -130,28 +130,28 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-4 space-y-3 border-t border-[var(--ops-border-subtle)] pt-3">
+            <div className="px-5 pb-4 space-y-3 border-t border-[var(--border-dark-subtle)] pt-3">
               {/* Mission */}
               <div>
-                <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest font-semibold mb-1">Missione</p>
-                <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{dept.mission}</p>
+                <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest font-semibold mb-1">Missione</p>
+                <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">{dept.mission}</p>
               </div>
 
               {/* Priorities */}
               {dept.priorities.length > 0 && (
                 <div>
-                  <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest font-semibold mb-2">Priorita</p>
+                  <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest font-semibold mb-2">Priorita</p>
                   <div className="space-y-1">
                     {dept.priorities.map((p, i) => (
                       <div key={i} className="flex items-start gap-2">
                         <span className={`w-5 h-5 flex items-center justify-center rounded text-xs font-bold flex-shrink-0 ${
                           i === 0 ? "bg-[#FF6B35]/20 text-[#FF6B35]" :
-                          i === 1 ? "bg-[var(--ops-hover)] text-[var(--ops-fg-muted)]" :
-                                    "bg-[var(--ops-surface-2)] text-[var(--ops-muted)]"
+                          i === 1 ? "bg-[var(--bg-hover)] text-[var(--fg-secondary)]" :
+                                    "bg-[var(--bg-overlay)] text-[var(--fg-invisible)]"
                         }`}>
                           P{i}
                         </span>
-                        <span className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{p}</span>
+                        <span className="text-xs text-[var(--fg-secondary)] leading-relaxed">{p}</span>
                       </div>
                     ))}
                   </div>
@@ -161,10 +161,10 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
               {/* KPIs */}
               {dept.kpis.length > 0 && (
                 <div>
-                  <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest font-semibold mb-2">KPI</p>
+                  <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest font-semibold mb-2">KPI</p>
                   <div className="flex flex-wrap gap-2">
                     {dept.kpis.map((kpi, i) => (
-                      <span key={i} className="text-xs bg-[var(--ops-surface-2)] text-[var(--ops-muted)] px-2 py-0.5 rounded-full">
+                      <span key={i} className="text-xs bg-[var(--bg-overlay)] text-[var(--fg-invisible)] px-2 py-0.5 rounded-full">
                         {kpi}
                       </span>
                     ))}
@@ -173,7 +173,7 @@ function DeptCard({ dept, index }: { dept: DeptVision; index: number }) {
               )}
 
               {/* Agent count */}
-              <div className="flex items-center gap-2 text-xs text-[var(--ops-muted)]">
+              <div className="flex items-center gap-2 text-xs text-[var(--fg-invisible)]">
                 <Sparkles className="w-3 h-3" />
                 {dept.agentCount} {dept.agentCount === 1 ? "agente" : "agenti"}
               </div>
@@ -286,8 +286,8 @@ export function VisionMissionPanel() {
 
   if (loading) {
     return (
-      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-8 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--ops-muted)]" />
+      <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] p-8 flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--fg-invisible)]" />
       </div>
     );
   }
@@ -295,7 +295,7 @@ export function VisionMissionPanel() {
   return (
     <div className="space-y-6">
       {/* ═══ Poimandres Vision ═══ */}
-      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-6 space-y-5">
+      <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <Target className="w-4 h-4 text-[#FF6B35]" />
@@ -303,14 +303,14 @@ export function VisionMissionPanel() {
           </h2>
           <div className="flex items-center gap-3">
             {vision && (
-              <span className="text-xs text-[var(--ops-muted)] font-mono">
+              <span className="text-xs text-[var(--fg-invisible)] font-mono">
                 Aggiornato {formatDateTime(vision.updated_at)} da {vision.updated_by}
               </span>
             )}
             <button
               onClick={fetchData}
               disabled={loading}
-              className="cursor-pointer p-2 rounded-lg text-[var(--ops-muted)] hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors disabled:opacity-50"
+              className="cursor-pointer p-2 rounded-lg text-[var(--fg-invisible)] hover:text-white hover:bg-[var(--bg-overlay)] transition-colors disabled:opacity-50"
               aria-label="Aggiorna"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -327,7 +327,7 @@ export function VisionMissionPanel() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide mb-2">
+            <label className="block text-xs text-[var(--fg-invisible)] font-semibold uppercase tracking-wide mb-2">
               Vision — dove vogliamo arrivare
             </label>
             <textarea
@@ -335,12 +335,12 @@ export function VisionMissionPanel() {
               onChange={(e) => setEditVision(e.target.value)}
               rows={3}
               placeholder="Es: Diventare la prima e piu potente AGI..."
-              className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-3 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)] resize-none transition-colors"
+              className="w-full bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-3 text-sm text-white placeholder-[var(--fg-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] resize-none transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide mb-2">
+            <label className="block text-xs text-[var(--fg-invisible)] font-semibold uppercase tracking-wide mb-2">
               Mission — cosa facciamo oggi e perche
             </label>
             <textarea
@@ -348,22 +348,22 @@ export function VisionMissionPanel() {
               onChange={(e) => setEditMission(e.target.value)}
               rows={3}
               placeholder="Es: Costruiamo agenti AI autonomi che risolvono problemi complessi in domini specifici..."
-              className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-3 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)] resize-none transition-colors"
+              className="w-full bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-3 text-sm text-white placeholder-[var(--fg-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] resize-none transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide mb-2">
+            <label className="block text-xs text-[var(--fg-invisible)] font-semibold uppercase tracking-wide mb-2">
               Priorita strategiche (guidano i piani dello scheduler)
             </label>
             <div className="space-y-2 mb-2">
               {editPriorities.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-2">
-                  <span className="text-xs text-[var(--ops-muted)] font-mono w-4">{i + 1}.</span>
-                  <span className="text-sm text-[var(--ops-fg-muted)] flex-1">{p}</span>
+                <div key={i} className="flex items-center gap-2 bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-2">
+                  <span className="text-xs text-[var(--fg-invisible)] font-mono w-4">{i + 1}.</span>
+                  <span className="text-sm text-[var(--fg-secondary)] flex-1">{p}</span>
                   <button
                     onClick={() => removePriority(i)}
-                    className="cursor-pointer text-[var(--ops-muted)] hover:text-red-400 transition-colors"
+                    className="cursor-pointer text-[var(--fg-invisible)] hover:text-red-400 transition-colors"
                     aria-label={`Rimuovi priorita ${i + 1}`}
                   >
                     <X className="w-4 h-4" />
@@ -378,13 +378,13 @@ export function VisionMissionPanel() {
                 onChange={(e) => setNewPriority(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addPriority()}
                 placeholder="Aggiungi priorita..."
-                className="flex-1 bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)]"
+                className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-2 text-sm text-white placeholder-[var(--fg-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)]"
                 aria-label="Nuova priorita strategica"
               />
               <button
                 onClick={addPriority}
                 disabled={!newPriority.trim()}
-                className="cursor-pointer px-3 py-2 bg-[var(--ops-hover)] hover:bg-[var(--ops-border)] disabled:opacity-40 rounded-lg text-[var(--ops-fg-muted)] transition-colors"
+                className="cursor-pointer px-3 py-2 bg-[var(--bg-hover)] hover:bg-[var(--border-dark)] disabled:opacity-40 rounded-lg text-[var(--fg-secondary)] transition-colors"
                 aria-label="Aggiungi"
               >
                 <Plus className="w-4 h-4" />
@@ -418,7 +418,7 @@ export function VisionMissionPanel() {
           {isDirty && !saving && (
             <button
               onClick={fetchData}
-              className="cursor-pointer text-xs text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors"
+              className="cursor-pointer text-xs text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors"
             >
               Annulla modifiche
             </button>
@@ -427,18 +427,18 @@ export function VisionMissionPanel() {
       </div>
 
       {/* ═══ Department Visions Grid ═══ */}
-      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-6 space-y-4">
+      <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-[var(--ops-fg-muted)]" />
+            <Building2 className="w-4 h-4 text-[var(--fg-secondary)]" />
             Visioni Dipartimentali
-            <span className="text-xs text-[var(--ops-muted)] font-normal ml-1">
+            <span className="text-xs text-[var(--fg-invisible)] font-normal ml-1">
               — allineate alla vision Poimandres
             </span>
           </h2>
 
           {/* Filter tabs */}
-          <div className="flex items-center gap-1 bg-[var(--ops-surface-2)]/60 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-[var(--bg-overlay)]/60 rounded-lg p-0.5">
             {([
               { key: "all" as const, label: "Tutti", count: departments.length },
               { key: "revenue" as const, label: "Revenue", count: revenueCount },
@@ -449,12 +449,12 @@ export function VisionMissionPanel() {
                 onClick={() => setDeptFilter(key)}
                 className={`cursor-pointer px-3 py-2 rounded-md text-xs font-medium transition-colors flex items-center gap-2 ${
                   deptFilter === key
-                    ? "bg-[var(--ops-hover)] text-white"
-                    : "text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)]"
+                    ? "bg-[var(--bg-hover)] text-white"
+                    : "text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)]"
                 }`}
               >
                 {label}
-                <span className={`text-xs ${deptFilter === key ? "text-[var(--ops-fg-muted)]" : "text-[var(--ops-muted)]"}`}>
+                <span className={`text-xs ${deptFilter === key ? "text-[var(--fg-secondary)]" : "text-[var(--fg-invisible)]"}`}>
                   {count}
                 </span>
               </button>
@@ -467,11 +467,11 @@ export function VisionMissionPanel() {
           <div className="rounded-lg bg-[#FF6B35]/5 border border-[#FF6B35]/15 px-4 py-3 flex items-start gap-3">
             <Telescope className="w-4 h-4 text-[#FF6B35] flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">
+              <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">
                 <span className="text-[#FF6B35] font-semibold">Vision Poimandres:</span>{" "}
                 {vision.vision}
               </p>
-              <p className="text-xs text-[var(--ops-muted)] mt-1">
+              <p className="text-xs text-[var(--fg-invisible)] mt-1">
                 Ogni dipartimento contribuisce a questa visione con le proprie priorita.
               </p>
             </div>
@@ -486,25 +486,25 @@ export function VisionMissionPanel() {
         </div>
 
         {filteredDepts.length === 0 && (
-          <p className="text-sm text-[var(--ops-muted)] text-center py-8">Nessun dipartimento trovato.</p>
+          <p className="text-sm text-[var(--fg-invisible)] text-center py-8">Nessun dipartimento trovato.</p>
         )}
       </div>
 
       {/* ═══ Scheduler Status ═══ */}
-      <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] p-6 space-y-4">
+      <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[var(--ops-fg-muted)]" />
+            <Clock className="w-4 h-4 text-[var(--fg-secondary)]" />
             Scheduler Status
           </h2>
         </div>
 
         {!latestPlan ? (
-          <p className="text-sm text-[var(--ops-muted)]">Nessun piano generato ancora.</p>
+          <p className="text-sm text-[var(--fg-invisible)]">Nessun piano generato ancora.</p>
         ) : (
           <div className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm text-[var(--ops-fg-muted)] font-medium">
+              <span className="text-sm text-[var(--fg-secondary)] font-medium">
                 Piano #{latestPlan.plan_number}
               </span>
               <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${PLAN_STATUS_STYLES[latestPlan.status] ?? ""}`}>
@@ -514,30 +514,30 @@ export function VisionMissionPanel() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <span className="text-[var(--ops-muted)] block">Generato il</span>
-                <span className="text-[var(--ops-fg-muted)]">{formatDateTime(latestPlan.created_at)}</span>
+                <span className="text-[var(--fg-invisible)] block">Generato il</span>
+                <span className="text-[var(--fg-secondary)]">{formatDateTime(latestPlan.created_at)}</span>
               </div>
               {latestPlan.approved_at && (
                 <div>
-                  <span className="text-[var(--ops-muted)] block">Approvato il</span>
+                  <span className="text-[var(--fg-invisible)] block">Approvato il</span>
                   <span className="text-green-400">{formatDateTime(latestPlan.approved_at)}</span>
                 </div>
               )}
             </div>
 
             {(latestPlan.plan_content?.tasks ?? []).length > 0 && (
-              <div className="rounded-lg bg-[var(--ops-surface-2)]/50 border border-[var(--ops-border-subtle)] px-3 py-3">
-                <p className="text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide mb-2">
+              <div className="rounded-lg bg-[var(--bg-overlay)]/50 border border-[var(--border-dark-subtle)] px-3 py-3">
+                <p className="text-xs text-[var(--fg-invisible)] font-semibold uppercase tracking-wide mb-2">
                   Task proposti ({latestPlan.plan_content.tasks!.length})
                 </p>
                 <ul className="space-y-1">
                   {latestPlan.plan_content.tasks!.slice(0, 5).map((t, i) => (
-                    <li key={i} className="text-xs text-[var(--ops-fg-muted)]">
-                      <span className="text-[var(--ops-muted)]">[{t.dept}]</span> {t.title}
+                    <li key={i} className="text-xs text-[var(--fg-secondary)]">
+                      <span className="text-[var(--fg-invisible)]">[{t.dept}]</span> {t.title}
                     </li>
                   ))}
                   {latestPlan.plan_content.tasks!.length > 5 && (
-                    <li className="text-xs text-[var(--ops-muted)]">+{latestPlan.plan_content.tasks!.length - 5} altri...</li>
+                    <li className="text-xs text-[var(--fg-invisible)]">+{latestPlan.plan_content.tasks!.length - 5} altri...</li>
                   )}
                 </ul>
               </div>
@@ -545,13 +545,13 @@ export function VisionMissionPanel() {
 
             {(latestPlan.recommendations ?? []).length > 0 && (
               <div>
-                <p className="text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide mb-2">
+                <p className="text-xs text-[var(--fg-invisible)] font-semibold uppercase tracking-wide mb-2">
                   Raccomandazioni per il prossimo piano
                 </p>
                 <ul className="space-y-1">
                   {(latestPlan.recommendations ?? []).map((r, i) => (
-                    <li key={i} className="text-xs text-[var(--ops-fg-muted)] flex items-start gap-2">
-                      <span className="text-[var(--ops-muted)] flex-shrink-0">{i + 1}.</span>
+                    <li key={i} className="text-xs text-[var(--fg-secondary)] flex items-start gap-2">
+                      <span className="text-[var(--fg-invisible)] flex-shrink-0">{i + 1}.</span>
                       {r}
                     </li>
                   ))}
@@ -561,8 +561,8 @@ export function VisionMissionPanel() {
           </div>
         )}
 
-        <div className="pt-2 border-t border-[var(--ops-border-subtle)]">
-          <p className="text-xs text-[var(--ops-muted)]">
+        <div className="pt-2 border-t border-[var(--border-dark-subtle)]">
+          <p className="text-xs text-[var(--fg-invisible)]">
             Lo scheduler verifica il board ogni 5 minuti (via AVVIA_SCHEDULER.ps1).
             Quando il board e vuoto, genera un piano allineato alla vision e lo invia su Telegram per approvazione.
           </p>

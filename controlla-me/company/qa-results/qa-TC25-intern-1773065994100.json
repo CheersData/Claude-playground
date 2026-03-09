@@ -1,0 +1,29 @@
+{
+  "testId": "TC25",
+  "question": "Ho ricevuto un decreto ingiuntivo ma non me ne sono accorto in tempo per fare opposizione. Cosa posso fare?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nSe non hai presentato opposizione al decreto ingiuntivo nei termini previsti, potresti comunque proporre un'opposizione tardiva se dimostri di non averne avuto tempestiva conoscenza per irregolarità nella notificazione o per caso fortuito o forza maggiore. L'art. 650 c.p.c. prevede che l'intimato possa fare opposizione anche dopo la scadenza del termine se prova di non averne avuto conoscenza per tali motivi. In questo caso, l'esecutorietà del decreto può essere sospesa.\n\nRiferimenti normativi:\n\nL'art. 650 c.p.c. stabilisce che l'opposizione tardiva è ammessa se l'intimato prova di non aver avuto conoscenza del decreto per irregolarità della notificazione o per caso fortuito o forza maggiore. L'opposizione non è più ammessa decorsi dieci giorni dal primo atto di esecuzione.\n\nIn pratica:\n\nVerifica se la notificazione del decreto ingiuntivo è stata eseguita correttamente. Se ritieni che ci siano stati errori nella notificazione o che tu non abbia avuto conoscenza del decreto per motivi indipendenti dalla tua volontà, raccogli prove documentali e presenta un'opposizione tardiva entro dieci giorni dal primo atto di esecuzione.",
+  "expectedAnswer": "Si può fare opposizione tardiva ex art. 650 c.p.c. se si prova di non aver avuto conoscenza per caso fortuito, forza maggiore o irregolarità della notifica. Termine: 10 giorni dalla conoscenza.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 650 e opposizione tardiva?",
+    "search": "Ha trovato art. 650 c.p.c.?",
+    "quality": "Chiarisce le condizioni (caso fortuito/forza maggiore/irregolarità)? Indica il termine?"
+  },
+  "trapType": null,
+  "institutes": [
+    "decreto_ingiuntivo",
+    "opposizione_tardiva",
+    "rimessione_termini"
+  ],
+  "scope": "art. 650 c.p.c. (opposizione tardiva); art. 294 c.p.c. (rimessione in termini)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 38,
+    "total": 93,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha individuato correttamente il tema giuridico (opposizione tardiva) e ha citato l'art. 650 c.p.c. con le condizioni richieste. Ha fornito una risposta accurata, completa e priva di invenzioni, indicando anche il termine di 10 giorni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:15:15.185Z"
+}

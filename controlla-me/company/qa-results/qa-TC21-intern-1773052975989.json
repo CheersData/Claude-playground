@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "RISPOSTA DIRETTA\nL'altra parte può impugnare la decisione perché il giudice ha violato il principio del contraddittorio decidendo su una questione non sollevata dalle parti. Tale violazione comporta la nullità della parte di decisione interessata e può essere contestata mediante appello.\n\nRIFERIMENTI NORMATIVI\nRiferimenti normativi:\n- Art. 101 c.p.c. (principio del contraddittorio): il giudice non può statuire su una domanda se la parte contro la quale è proposta non è stata regolarmente citata e non è comparsa; se la violazione del contraddittorio ha provocato una lesione del diritto di difesa, il giudice deve adottare i provvedimenti opportuni, tra cui la nullità della decisione.\n\nIN PRATICA\nIn pratica, la parte soccombente deve presentare l'appello entro il termine di 30 giorni dalla notifica della sentenza, chiedendo la nullità della parte di decisione impugnata per violazione del contraddittorio ai sensi dell'art. 101 c.p.c. e, se opportuno, chiedere la riforma della sentenza su quel punto.\n\n",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 12,
+    "quality": 20,
+    "total": 42,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha spiegato la distinzione tra ultrapetizione ed extrapetizione e ha citato l'art. 101 c.p.c. anziché gli articoli 112 e 360 n.4 c.p.c. richiesti. Ha menzionato solo superficialmente la Cassazione SU 2001/841 e manca di riferimenti normativi corretti, riducendo così la completezza e l'accuratezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:41:56.210Z"
+}

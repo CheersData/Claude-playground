@@ -16,6 +16,7 @@ import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import type { NextRequest } from "next/server";
+import { broadcastAgentEvent } from "@/lib/agent-broadcast";
 
 export const maxDuration = 300; // Sessioni interattive possono durare di più
 
@@ -138,6 +139,14 @@ export async function POST(req: Request) {
         ];
 
         send("debug", { type: "spawn", msg: `claude -p --model ${targetConfig.model} (interactive)`, ts: Date.now() });
+
+        // Broadcast agent activity to Ops dashboard
+        broadcastAgentEvent({
+          id: `company-${target}`,
+          department: target === "cme" ? "cme" : target,
+          task: `${targetConfig.label} chat`,
+          status: "running",
+        });
 
         // Remove env vars that would interfere:
         // - CLAUDECODE + CLAUDE_CODE_*: avoid "nested session" error and DLL init crashes
@@ -271,6 +280,13 @@ export async function POST(req: Request) {
 
         child.on("close", (code) => {
           deleteSession(sessionId);
+          // Broadcast completion to Ops dashboard
+          broadcastAgentEvent({
+            id: `company-${target}`,
+            department: target === "cme" ? "cme" : target,
+            task: `${targetConfig.label} chat`,
+            status: code === 0 ? "done" : "error",
+          });
           send("debug", { type: "exit", msg: `Codice uscita: ${code}`, ts: Date.now() });
           if (code !== 0) {
             // Check for credit/rate limit errors in stderr
@@ -287,6 +303,12 @@ export async function POST(req: Request) {
 
         child.on("error", (err) => {
           deleteSession(sessionId);
+          broadcastAgentEvent({
+            id: `company-${target}`,
+            department: target === "cme" ? "cme" : target,
+            task: `${targetConfig.label} errore`,
+            status: "error",
+          });
           send("debug", { type: "spawn-error", msg: err.message, ts: Date.now() });
           send("error", { error: `Errore spawn: ${err.message}. Claude Code è installato?` });
           controller.close();

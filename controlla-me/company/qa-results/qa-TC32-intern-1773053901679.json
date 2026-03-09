@@ -1,0 +1,29 @@
+{
+  "testId": "TC32",
+  "question": "Ho dato in pegno un bene. Il creditore può venderlo senza che io lo sappia?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl creditore pignoratizio non può vendere il bene dato in pegno senza che il costituente ne sia informato. La vendita richiede, infatti, l’intimazione al debitore e, salvo casi di emergenza, l’autorizzazione del giudice, che provvede anche al deposito del prezzo a garanzia del credito.\n\nRIFERIMENTI NORMATIVI\nArt. 2795 c.c. – vendita anticipata: il creditore può chiedere al giudice l’autorizzazione a vendere la cosa, ma deve avvisare il costituente, il quale può evitare la vendita offrendo altra garanzia.\nArt. 2796 c.c. – vendita della cosa: il creditore può far vendere la cosa secondo le forme stabilite dall’art. 2797.\nArt. 2797 c.c. – forme della vendita: prima di procedere alla vendita il creditore, a mezzo di ufficiale giudiziario, deve intimare al debitore di pagare il debito e avvertirlo che, in mancanza, si procederà alla vendita; l’intimazione deve essere notificata anche al terzo che ha costituito il pegno.\nArt. 2793 c.c. – sequestro della cosa: il costituente può domandare il sequestro della cosa se il creditore ne abusa, dimostrando che la vendita non è legittima.\nArt. 2790 c.c. – conservazione della cosa e spese: il creditore è tenuto a custodire la cosa e a rispondere del suo deterioramento, ma non può disporne unilateralmente.\n\nIN PRATICA\nIl creditore deve prima notificare al costituente l’intimazione di vendita (art. 2797) e, se necessario, ottenere l’autorizzazione giudiziale (art. 2795). Pertanto, se non ricevi alcuna comunicazione, la vendita è illegittima; puoi opporre eccezione di mancata intimazione e, se necessario, chiedere al giudice l’annullamento della vendita o il sequestro della cosa (art. 2793).",
+  "expectedAnswer": "TRAPPOLA: il pegno non trasferisce la proprietà — il bene resta del debitore. Il creditore ha il possesso e diritto di seguito, ma la vendita deve avvenire nelle forme di legge (art. 2797 c.c.): asta pubblica o vendita autorizzata dal giudice.",
+  "scoringHints": {
+    "prep": "Ha distinto tra possesso e proprietà nella query?",
+    "search": "Ha trovato art. 2797 c.c. o le norme sulla vendita del bene in pegno?",
+    "quality": "Chiarisce che la proprietà resta al debitore? Descrive il procedimento corretto di vendita?"
+  },
+  "trapType": "misconcezione_proprietà",
+  "institutes": [
+    "pegno",
+    "diritto_di_seguito",
+    "proprietà_bene_gravato"
+  ],
+  "scope": "Il pegno non trasferisce la proprietà (resta al debitore). Il creditore pignoratizio ha diritto di seguito ma non può vendere liberamente.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 40,
+    "total": 95,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema del pegno, distinguendo proprietà e possesso, e ha recuperato le disposizioni pertinenti del codice civile (art. 2795‑2797, 2793, 2790). La risposta è accurata, completa e non contiene invenzioni, rispondendo adeguatamente alla trappola proposta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:56:18.273Z"
+}

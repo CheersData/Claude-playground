@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "marketing",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "growth-hacker"
+    "last_updated": "2026-03-08T22:11:42.206Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "SEO a zero, nessun utente reale, nessun contenuto pubblicato — ma il mercato è pronto. La finestra nel quadrante Consumer Italia è ancora aperta: Lexroom (€16M) resta B2B, Lawhive ($60M) non ha ancora attraversato il Mediterraneo. Q2 2026 è la finestra per costruire autorità di dominio prima che la competizione si accorga del segmento consumer IT. OKR Q2: ≥4 articoli SEO pubblicati, ≥1 utente Pro pagante, ≥20 analisi reali. Il content calendar è pianificato su 8 settimane (marzo-aprile), il keyword research è strutturato in 5 cluster, gli esperimenti di crescita sono definiti e pronti all'esecuzione.",
+  "summary": "1 task aperti. 14 completati (ultimi 7gg). 22 completati (totale).",
   "keyword_research": {
     "primary_clusters": [
       {
@@ -324,81 +324,11 @@
   ],
   "open_tasks": [
     {
-      "id": "MKT-001",
-      "title": "Pubblicare articolo settimana 1: clausole illegali contratto lavoro",
-      "priority": "alta",
-      "owner": "content-writer",
-      "due": "2026-03-07",
-      "status": "planned",
-      "notes": "Pillar article. Target keyword: clausole illegali contratto lavoro (2.300/mese). Usare corpus Codice Civile — Statuto Lavoratori non ancora disponibile, compensare con riferimenti giurisprudenziali via Giulia."
-    },
-    {
-      "id": "MKT-002",
-      "title": "Setup Google Search Console + Analytics 4",
-      "priority": "alta",
-      "owner": "operations",
-      "due": "2026-03-07",
-      "status": "planned",
-      "notes": "Prerequisito per misurare traffico organico e validare OKR. Senza GSC non sappiamo se gli articoli vengono indicizzati."
-    },
-    {
-      "id": "MKT-003",
-      "title": "Pubblicare articolo settimana 2: caparra confirmatoria vs penitenziale",
-      "priority": "alta",
-      "owner": "content-writer",
-      "due": "2026-03-14",
-      "status": "planned",
-      "notes": "FAQ ad alta intento. Corpus Art. 1385-1386 Codice Civile disponibile."
-    },
-    {
-      "id": "MKT-004",
-      "title": "Pubblicare pillar affitti settimana 3",
-      "priority": "alta",
-      "owner": "content-writer",
-      "due": "2026-03-21",
-      "status": "planned",
-      "notes": "Pillar principale verticale affitti. Keyword cluster 5.800/mese. Corpus L. 431/1998 disponibile."
-    },
-    {
-      "id": "MKT-005",
-      "title": "Outreach 5 studi legali (avvocati-referral-template.md) — Milano o Roma",
-      "priority": "media",
-      "owner": "growth-hacker",
-      "due": "2026-03-21",
-      "status": "planned",
-      "notes": "Template disponibile in company/marketing/outreach/avvocati-referral-template.md. Target: studi 1-5 avv., diritto civile/lavoro/consumatori. Obiettivo: 1 partnership attiva entro fine Q2."
-    },
-    {
-      "id": "MKT-006",
-      "title": "Segnalare a Strategy: corpus Statuto Lavoratori è bloccante per verticale HR",
-      "priority": "alta",
-      "owner": "growth-hacker",
-      "due": "2026-03-07",
-      "status": "planned",
-      "notes": "Il keyword cluster contratto lavoro vale 10.100/mese aggregati. Il corpus L. 300/1970 non è disponibile. Strategy deve formalizzare task a Data Engineering. Riferimento: company/marketing/market-signal-report-2026-03.md — sezione Data Gap."
+      "id": "c4cb8f9b",
+      "title": "Attivare piano al deploy: creare contenuti SEO, configurare GSC e GA4",
+      "priority": "medium",
+      "status": "open"
     }
   ],
-  "blockers": [
-    {
-      "id": "B-1",
-      "description": "Statuto dei Lavoratori (L. 300/1970) non nel corpus — blocca il verticale HR e i contenuti SEO su contratti di lavoro. Keyword cluster stimato >10.000/mese aggregati. Data Engineering ha segnalato che l'API async Normattiva produce ZIP vuoti per questa fonte. Serve approvazione boss su approccio alternativo: HTML scraping Normattiva web o testo consolidato via EUR-Lex.",
-      "owner": "boss",
-      "impact": "alto — blocca cluster keyword da 10.100/mese, posticipa verticale HR a Q3 minimo",
-      "suggested_path": "Approvare Data Engineering per tentare HTML scraping Normattiva web per L. 300/1970. Effort stimato: 1-2 giorni. Sblocca verticale HR da 10K+ keyword/mese."
-    },
-    {
-      "id": "B-2",
-      "description": "Google Search Console e Analytics 4 non configurati — impossibile misurare traffico organico, indicizzazione articoli, performance keyword. Senza questi strumenti l'OKR 'organic_sessions' è non misurabile.",
-      "owner": "boss",
-      "impact": "medio — blocca la misurazione degli OKR. Non blocca la pubblicazione di contenuto, ma rende impossibile validare l'efficacia.",
-      "suggested_path": "Configurare GSC e GA4 su controlla.me prima della pubblicazione del primo articolo SEO. Effort: 2-4 ore. Prerequisito: accesso DNS e Google account del dominio."
-    },
-    {
-      "id": "B-3",
-      "description": "Nessun utente reale — impossibile raccogliere segnali di domanda interna (quali clausole vengono cercate via deep search, quali tipi di contratti vengono caricati). Il feedback loop prodotto→marketing è attualmente assente.",
-      "owner": "boss",
-      "impact": "medio — il content calendar è basato su segnali esterni (keyword research, community). I segnali interni migliorerebbero la prioritizzazione. Si attenua automaticamente quando arrivano i primi 20 utenti (OKR Q2).",
-      "suggested_path": "Prioritizzare acquisizione primi utenti (beta tester) via canali diretti: LinkedIn personal network del fondatore, community legali, avvocati referral. Obiettivo: 5-10 beta tester entro fine marzo."
-    }
-  ]
+  "blockers": []
 }

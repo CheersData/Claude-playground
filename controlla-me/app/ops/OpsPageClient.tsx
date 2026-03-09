@@ -1,48 +1,40 @@
 "use client";
 
 /**
- * OpsPageClient v2 — Redesign basato su Brand Book v3 + Customer Journey
+ * OpsPageClient v5 — Tab-based navigation
  *
- * Principi:
- *   1. 3-Second Rule: stato sistema comprensibile in 3 secondi
- *   2. Information Comes to You: activity feed cronologico
- *   3. Single Command Point: command bar sempre visibile
- *   4. Drill-Down Not Navigate: pannello laterale contestuale
- *   5. Palette Poimandres: zero deviazioni
+ * Restored full tab navigation with all functional sections:
+ * Dashboard, Trading, CME Chat, Vision, Reports, Archivio, Daemon, Agenti, QA/Testing
  *
  * Layout:
- *   ┌──────────────────────────────────────────────────────────────┐
- *   │  HEADER — title + health pill + view icons + actions + stats │
- *   ├──────────────────────────────────────────────────────────────┤
- *   │  MAIN (scrollable)              │  DRILL PANEL (optional)    │
- *   │  Activity + Stats + TaskBoard   │  Dept / CME / Reports      │
- *   ├──────────────────────────────────────────────────────────────┤
- *   │  COMMAND BAR — always visible                                │
- *   └──────────────────────────────────────────────────────────────┘
+ *   +---------------------------------------------------------------+
+ *   | HEADER: Ops Center | Health | Stats | Refresh                  |
+ *   +---------------------------------------------------------------+
+ *   | TAB BAR: Dashboard | Trading | CME | Vision | Reports | ...   |
+ *   +---------------------------------------------------------------+
+ *   | CONTENT AREA (full height, scrollable per tab)                 |
+ *   +---------------------------------------------------------------+
  */
 
-import { useState, useEffect, useCallback, useMemo, type ComponentType } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RefreshCw,
-  LayoutDashboard,
-  Terminal,
-  Microscope,
-  TrendingUp,
-  Bot,
-  FileText,
-  Zap,
   X,
+  LayoutDashboard,
+  TrendingUp,
+  MessageSquare,
   Telescope,
+  FileText,
   Archive,
+  Zap,
   Activity,
-  ChevronRight,
-  AlertCircle,
-  Maximize2,
+  Microscope,
+  Users,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
-// ── Existing components ─────────────────────────────────────────────────────
+// ── Ops-specific components ─────────────────────────────────────────────────
 
 import { TaskBoard } from "@/components/ops/TaskBoard";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";
@@ -53,22 +45,25 @@ import { PipelineStatus } from "@/components/ops/PipelineStatus";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { DepartmentDetailPanel } from "@/components/ops/DepartmentDetailPanel";
 import { ReportsPanel } from "@/components/ops/ReportsPanel";
-import { CMEChatPanel } from "@/components/ops/CMEChatPanel";
 import { LegalQATestPanel } from "@/components/ops/LegalQATestPanel";
 import { StressTestResultsPanel } from "@/components/ops/StressTestResultsPanel";
 import { ArchivePanel } from "@/components/ops/ArchivePanel";
 import { VisionMissionPanel } from "@/components/ops/VisionMissionPanel";
 import { DebugPanel } from "@/components/ops/DebugPanel";
+import { QAResultsDashboard } from "@/components/ops/QAResultsDashboard";
 import { OverviewSummaryPanel } from "@/components/ops/OverviewSummaryPanel";
 import { TradingDashboard } from "@/components/ops/TradingDashboard";
 import { TradingSlopePanel } from "@/components/ops/TradingSlopePanel";
 import { DaemonControlPanel } from "@/components/ops/DaemonControlPanel";
+import { ActivityFeed } from "@/components/ops/ActivityFeed";
+import { AgentDots } from "@/components/ops/AgentDots";
+import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
+import { CompanyRoadmap } from "@/components/ops/CompanyRoadmap";
 import type { Department, Task } from "@/lib/company/types";
 
-// ── New components ──────────────────────────────────────────────────────────
+// ── CompanyPanel (core CME interface — same as /console) ────────────────────
 
-import { ActivityFeed } from "@/components/ops/ActivityFeed";
-import { CommandBar } from "@/components/ops/CommandBar";
+import CompanyPanel from "@/components/console/CompanyPanel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -99,73 +94,36 @@ interface OpsData {
   >;
 }
 
-type ActiveView = "dashboard" | "trading" | "testing" | "debug";
-type DrillType = "department" | "cme" | "reports" | "vision" | "archive" | "daemon";
-type TradeView = "dashboard" | "slope";
+type TabId =
+  | "dashboard"
+  | "trading"
+  | "cme"
+  | "vision"
+  | "reports"
+  | "archive"
+  | "daemon"
+  | "agents"
+  | "testing";
 
-interface DrillState {
-  type: DrillType;
-  id?: string;
+interface TabDef {
+  id: TabId;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
 }
+
+const TABS: TabDef[] = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "trading", label: "Trading", icon: TrendingUp },
+  { id: "cme", label: "CME", icon: MessageSquare },
+  { id: "vision", label: "Vision", icon: Telescope },
+  { id: "reports", label: "Reports", icon: FileText },
+  { id: "archive", label: "Archivio", icon: Archive },
+  { id: "daemon", label: "Daemon", icon: Zap },
+  { id: "agents", label: "Agenti", icon: Users },
+  { id: "testing", label: "QA & Test", icon: Microscope },
+];
 
 // ─── Shared UI ──────────────────────────────────────────────────────────────
-
-function IconButton({
-  icon: Icon,
-  active,
-  onClick,
-  label,
-  accent,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  active?: boolean;
-  onClick: () => void;
-  label: string;
-  accent?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={label}
-      className={`relative flex items-center gap-2 px-3 h-8 rounded-lg text-[12px] font-medium
-        transition-all duration-150 ${
-          active
-            ? accent
-              ? "bg-[var(--ops-accent)] text-white shadow-[0_2px_8px_rgba(255,107,53,0.25)]"
-              : "bg-[var(--ops-surface-2)] text-[var(--ops-fg)] border border-[rgba(255,255,255,0.08)]"
-            : "text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] hover:bg-[var(--ops-surface-2)]"
-        }`}
-    >
-      <Icon className="w-3.5 h-3.5" />
-      <span className="hidden lg:inline">{label}</span>
-    </button>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
-      {children}
-    </h2>
-  );
-}
-
-function ExpandButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      title="Espandi a tutto schermo"
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-        bg-[var(--ops-surface-2)] border border-[var(--ops-border-subtle)]
-        text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)]
-        hover:border-[var(--ops-border)] hover:bg-[var(--ops-border)]
-        transition-all duration-150"
-    >
-      <Maximize2 className="w-3.5 h-3.5" />
-      <span className="text-xs font-medium hidden md:inline">Espandi</span>
-    </button>
-  );
-}
 
 function FullscreenOverlay({
   title,
@@ -184,15 +142,27 @@ function FullscreenOverlay({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-50 bg-[var(--ops-bg)] flex flex-col"
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: "var(--bg-base)" }}
     >
-      <div className="h-12 flex-none flex items-center justify-between px-6 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
-        <span className="text-sm font-medium text-[var(--ops-fg)]">{title}</span>
+      <div
+        className="h-12 flex-none flex items-center justify-between px-6"
+        style={{
+          borderBottom: "1px solid var(--border-dark-subtle)",
+          background: "var(--bg-raised)",
+        }}
+      >
+        <span className="text-sm font-medium" style={{ color: "var(--fg-primary)" }}>
+          {title}
+        </span>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-md hover:bg-[var(--ops-surface-2)] transition-colors"
+          className="p-1.5 rounded-md transition-colors"
+          style={{ color: "var(--fg-secondary)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-overlay)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
-          <X className="w-4 h-4 text-[var(--ops-fg-muted)]" />
+          <X className="w-4 h-4" />
         </button>
       </div>
       <div className={`flex-1 min-h-0 ${noPadding ? "" : "overflow-y-auto p-6"}`}>
@@ -201,32 +171,6 @@ function FullscreenOverlay({
     </motion.div>
   );
 }
-
-// ─── View & action definitions ──────────────────────────────────────────────
-
-const VIEWS: { id: ActiveView; icon: ComponentType<{ className?: string }>; label: string }[] = [
-  { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { id: "trading", icon: TrendingUp, label: "Trading" },
-  { id: "testing", icon: Microscope, label: "Testing" },
-  { id: "debug", icon: Terminal, label: "Debug" },
-];
-
-const ACTIONS: { type: DrillType; icon: ComponentType<{ className?: string }>; label: string }[] = [
-  { type: "cme", icon: Bot, label: "CME" },
-  { type: "reports", icon: FileText, label: "Reports" },
-  { type: "vision", icon: Telescope, label: "Vision" },
-  { type: "archive", icon: Archive, label: "Archivio" },
-  { type: "daemon", icon: Zap, label: "Daemon" },
-];
-
-const DRILL_TITLES: Record<DrillType, string> = {
-  department: "",
-  cme: "CME",
-  reports: "Reports",
-  vision: "Vision",
-  archive: "Archivio",
-  daemon: "Daemon",
-};
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
@@ -243,26 +187,15 @@ export default function OpsPageClient() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
-  const [activeView, setActiveView] = useState<ActiveView>(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("ops_view_v2") as ActiveView) ?? "dashboard";
-    }
-    return "dashboard";
-  });
-  const [drill, setDrill] = useState<DrillState | null>(null);
-  const [tradeView, setTradeView] = useState<TradeView>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
 
-  // ── Modals ──────────────────────────────────────────────────────────────────
+  // ── Modals / Fullscreen ────────────────────────────────────────────────────
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [fullscreenPanel, setFullscreenPanel] = useState<string | null>(null);
+  const [showSlope, setShowSlope] = useState(false);
 
-  // ── Persist view ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    localStorage.setItem("ops_view_v2", activeView);
-  }, [activeView]);
-
-  // ── Auth check ──────────────────────────────────────────────────────────────
+  // ── Auth check ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
       setAuthed(true);
@@ -290,7 +223,7 @@ export default function OpsPageClient() {
     }
   };
 
-  // ── Data fetch ──────────────────────────────────────────────────────────────
+  // ── Data fetch ─────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
@@ -325,7 +258,7 @@ export default function OpsPageClient() {
     return () => clearInterval(iv);
   }, [authed, fetchData]);
 
-  // ── Derived data ────────────────────────────────────────────────────────────
+  // ── Derived data ───────────────────────────────────────────────────────────
 
   const activityEvents = useMemo(() => {
     if (!data) return [];
@@ -342,9 +275,116 @@ export default function OpsPageClient() {
       done: 4,
     };
     return [...tasks, ...review].sort(
-      (a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5)
+      (a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5),
     );
   }, [data]);
+
+  // ── Real-time agent activity via SSE ────────────────────────────────────────
+  type AgentEntry = { department: string; task?: string; status: "running" | "done" | "error"; timestamp?: number };
+  const [liveAgents, setLiveAgents] = useState<Map<string, AgentEntry>>(new Map());
+  const liveAgentsRef = useRef(liveAgents);
+  liveAgentsRef.current = liveAgents;
+
+  useEffect(() => {
+    if (!authed) return;
+
+    let eventSource: EventSource | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout>;
+
+    const connect = () => {
+      const token = sessionStorage.getItem("lexmea-token") ?? "";
+      const sseUrl = `/api/company/agents/live?t=${encodeURIComponent(token)}`;
+      console.log("[SSE] Connecting to", sseUrl.slice(0, 60) + "...");
+      eventSource = new EventSource(sseUrl);
+
+      eventSource.onopen = () => {
+        console.log("[SSE] Connected — listening for agent events");
+      };
+
+      eventSource.addEventListener("snapshot", (e) => {
+        try {
+          const events: Array<{ id: string; department: string; task?: string; status: "running" | "done" | "error"; timestamp: number }> = JSON.parse(e.data);
+          console.log(`[SSE] snapshot: ${events.length} active agents`, events.map(ev => `${ev.department}:${ev.status}`));
+          const map = new Map<string, AgentEntry>();
+          for (const evt of events) {
+            map.set(evt.id, { department: evt.department, task: evt.task, status: evt.status, timestamp: evt.timestamp });
+          }
+          setLiveAgents(map);
+        } catch { /* ignore parse errors */ }
+      });
+
+      eventSource.addEventListener("agent", (e) => {
+        try {
+          const evt: { id: string; department: string; task?: string; status: "running" | "done" | "error"; timestamp: number } = JSON.parse(e.data);
+          console.log(`[SSE] agent: ${evt.department} → ${evt.status} (${evt.task ?? evt.id})`);
+          setLiveAgents((prev) => {
+            const next = new Map(prev);
+            next.set(evt.id, { department: evt.department, task: evt.task, status: evt.status, timestamp: evt.timestamp });
+            return next;
+          });
+
+          // Auto-expire done/error events after 8 seconds
+          if (evt.status === "done" || evt.status === "error") {
+            setTimeout(() => {
+              setLiveAgents((prev) => {
+                const next = new Map(prev);
+                const current = next.get(evt.id);
+                // Only remove if the event hasn't been updated since
+                if (current && current.timestamp === evt.timestamp) {
+                  next.delete(evt.id);
+                }
+                return next;
+              });
+            }, 8_000);
+          }
+        } catch { /* ignore parse errors */ }
+      });
+
+      eventSource.onerror = (err) => {
+        console.warn("[SSE] Error — reconnecting in 5s", err);
+        eventSource?.close();
+        // Retry after 5 seconds
+        retryTimeout = setTimeout(connect, 5_000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      eventSource?.close();
+      clearTimeout(retryTimeout);
+    };
+  }, [authed]);
+
+  // ── Agent activity data for AgentDots + CapacityIndicator ─────────────────
+  // Merge: task board data + real-time SSE events (SSE takes priority for running)
+  const activeAgentsMap = useMemo(() => {
+    const map = new Map<string, { department: string; task?: string; status: "running" | "done" | "error" }>();
+    if (!data) return map;
+
+    // Layer 1: Derive from recent tasks (in_progress → running, blocked → error)
+    const tasks = data.board.recent ?? [];
+    for (const t of tasks) {
+      if (t.status === "in_progress") {
+        map.set(`task-${t.id}`, { department: t.department, task: t.title, status: "running" });
+      } else if (t.status === "blocked") {
+        map.set(`task-${t.id}`, { department: t.department, task: t.title, status: "error" });
+      }
+    }
+
+    // Layer 2: Overlay real-time SSE events (these are actual agent executions)
+    liveAgents.forEach((value, key) => {
+      map.set(key, { department: value.department, task: value.task, status: value.status });
+    });
+
+    return map;
+  }, [data, liveAgents]);
+
+  const activeAgentCount = useMemo(() => {
+    let count = 0;
+    activeAgentsMap.forEach((v) => { if (v.status === "running") count++; });
+    return count;
+  }, [activeAgentsMap]);
 
   const systemHealth = useMemo(() => {
     if (!data) return { healthy: true, label: "\u2014" };
@@ -364,29 +404,31 @@ export default function OpsPageClient() {
     return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m`;
   };
 
-  // ── Command handler ─────────────────────────────────────────────────────────
-  const handleCommand = (cmd: string) => {
-    // Store command for CME to pick up, then open CME panel
-    sessionStorage.setItem("ops_pending_command", cmd);
-    setDrill({ type: "cme" });
-  };
-
-  // ── Login screen ────────────────────────────────────────────────────────────
+  // ── Login screen ───────────────────────────────────────────────────────────
 
   if (!authed) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[var(--ops-bg)]">
+      <div
+        className="flex items-center justify-center min-h-screen"
+        style={{ background: "var(--bg-base)" }}
+      >
         <form
           onSubmit={handleLogin}
-          className="bg-[var(--ops-surface)] border border-[rgba(255,255,255,0.06)]
-            rounded-2xl p-8 w-full max-w-sm space-y-5
-            shadow-[0_24px_64px_rgba(0,0,0,0.5)]"
+          className="rounded-2xl p-8 w-full max-w-sm space-y-5"
+          style={{
+            background: "var(--bg-raised)",
+            border: "1px solid var(--border-dark-subtle)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+          }}
         >
           <div>
-            <h2 className="text-lg font-semibold text-[var(--ops-fg)] font-serif">
+            <h2
+              className="text-lg font-semibold font-serif"
+              style={{ color: "var(--fg-primary)" }}
+            >
               Operations Center
             </h2>
-            <p className="text-sm text-[var(--ops-fg-muted)] mt-1">
+            <p className="text-sm mt-1" style={{ color: "var(--fg-secondary)" }}>
               Inserisci le credenziali per accedere.
             </p>
           </div>
@@ -395,23 +437,34 @@ export default function OpsPageClient() {
             value={authInput}
             onChange={(e) => setAuthInput(e.target.value)}
             placeholder="Nome Cognome, Ruolo"
-            className="w-full px-4 py-3 bg-[var(--ops-bg)]
-              border border-[rgba(255,255,255,0.08)] rounded-lg text-sm
-              text-[var(--ops-fg)] placeholder-[var(--ops-muted)] outline-none
-              focus:border-[var(--ops-accent)]
-              focus:ring-2 focus:ring-[rgba(255,107,53,0.25)] transition-all"
+            className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
+            style={{
+              background: "var(--bg-base)",
+              border: "1px solid var(--border-dark-subtle)",
+              color: "var(--fg-primary)",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "var(--accent)";
+              e.currentTarget.style.boxShadow = "0 0 0 2px rgba(255,107,53,0.25)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-dark-subtle)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
             autoFocus
           />
           {authError && (
-            <p className="text-xs text-[var(--ops-error)]">{authError}</p>
+            <p className="text-xs" style={{ color: "var(--error)" }}>{authError}</p>
           )}
           <button
             type="submit"
             disabled={!authInput.trim()}
-            className="w-full px-4 py-2.5 bg-[var(--ops-accent)] hover:bg-[#FF8557]
-              active:bg-[#E85A24] text-white rounded-lg text-sm font-semibold
-              transition-all disabled:opacity-40
-              shadow-[0_2px_8px_rgba(255,107,53,0.25)]"
+            className="w-full px-4 py-2.5 text-white rounded-lg text-sm font-semibold
+              transition-all disabled:opacity-40"
+            style={{
+              background: "var(--accent)",
+              boxShadow: "0 2px 8px rgba(255,107,53,0.25)",
+            }}
           >
             Accedi
           </button>
@@ -420,319 +473,111 @@ export default function OpsPageClient() {
     );
   }
 
-  // ── Dashboard view ──────────────────────────────────────────────────────────
-
-  const depts = data?.board.byDepartment ?? {};
-  const deptEntries = Object.entries(depts).sort((a, b) => b[1].open - a[1].open);
-
-  const renderDashboard = () => (
-    <div className="p-6 space-y-6 max-w-[1440px] mx-auto">
-      {/* Error banner */}
-      {fetchError && (
-        <div className="flex items-center gap-3 bg-[rgba(229,141,120,0.08)] border border-[rgba(229,141,120,0.2)] rounded-xl px-5 py-4">
-          <AlertCircle className="w-4 h-4 text-[var(--ops-error)] shrink-0" />
-          <span className="text-sm text-[var(--ops-error)] flex-1">{fetchError}</span>
-          <button
-            onClick={fetchData}
-            className="text-[var(--ops-error)] hover:text-white text-sm underline"
-          >
-            Riprova
-          </button>
-        </div>
-      )}
-
-      {/* ── Activity Feed ──────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <SectionLabel>Attivit&agrave; recente</SectionLabel>
-          <div className="flex items-center gap-2">
-            {activityEvents.length > 10 && (
-              <button
-                onClick={() => setExpandedStatus("all")}
-                className="text-xs text-[var(--ops-cyan)] hover:underline"
-              >
-                Vedi tutto
-              </button>
-            )}
-            <ExpandButton onClick={() => setFullscreenPanel("activity")} />
-          </div>
-        </div>
-        <div className="bg-[var(--ops-surface)] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden">
-          <ActivityFeed
-            events={activityEvents.map((t) => ({
-              id: t.id,
-              type: t.status as import("@/components/ops/ActivityFeed").ActivityEventType,
-              title: t.title,
-              department: t.department,
-              priority: t.priority as import("@/components/ops/ActivityFeed").ActivityEventPriority,
-            }))}
-            onEventClick={(ev) => {
-              const task = activityEvents.find((t) => t.id === ev.id);
-              if (task) setSelectedTask(task);
-            }}
-          />
-        </div>
-      </section>
-
-      {/* ── Quick Stats (3 columns) ────────────────────────────────── */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Task summary */}
-        <div className="bg-[var(--ops-surface)] border border-[rgba(255,255,255,0.06)] rounded-xl p-5 space-y-3">
-          <SectionLabel>Task</SectionLabel>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Open", value: data?.board.byStatus?.open ?? 0, color: "text-[var(--ops-cyan)]" },
-              { label: "In corso", value: data?.board.byStatus?.in_progress ?? 0, color: "text-[#FFC832]" },
-              { label: "Review", value: data?.board.byStatus?.review_pending ?? 0, color: "text-[#A78BFA]" },
-              { label: "Bloccati", value: data?.board.byStatus?.blocked ?? 0, color: "text-[var(--ops-error)]" },
-            ].map((s) => (
-              <div key={s.label} className="flex items-baseline gap-2">
-                <span className={`text-xl font-semibold font-mono ${s.color}`}>
-                  {s.value}
-                </span>
-                <span className="text-xs text-[var(--ops-fg-muted)]">{s.label}</span>
-              </div>
-            ))}
-          </div>
-          <div className="pt-2 border-t border-[rgba(255,255,255,0.04)]">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold text-[var(--ops-teal)] font-mono">
-                {data?.board.byStatus?.done ?? 0}
-              </span>
-              <span className="text-xs text-[var(--ops-fg-muted)]">completati</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Department health */}
-        <div className="bg-[var(--ops-surface)] border border-[rgba(255,255,255,0.06)] rounded-xl p-5 space-y-3">
-          <SectionLabel>Dipartimenti</SectionLabel>
-          <div className="space-y-1 max-h-48 overflow-y-auto">
-            {deptEntries.map(([dept, info]) => (
-              <button
-                key={dept}
-                onClick={() => setDrill({ type: "department", id: dept })}
-                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg
-                  hover:bg-[var(--ops-surface-2)] transition-colors text-left group"
-              >
-                <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    info.open === 0
-                      ? "bg-[var(--ops-teal)]"
-                      : info.open <= 2
-                        ? "bg-[var(--ops-cyan)]"
-                        : "bg-[#FFC832]"
-                  }`}
-                />
-                <span className="text-sm text-[var(--ops-fg)] flex-1 truncate">
-                  {dept}
-                </span>
-                <span className="text-xs text-[var(--ops-muted)] font-mono">
-                  {info.open > 0 ? `${info.open} open` : "\u2713"}
-                </span>
-                <ChevronRight className="w-3 h-3 text-[var(--ops-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Costs */}
-        <CostSummary costs={data?.costs ?? null} />
-      </section>
-
-      {/* ── Overview Summary ───────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <SectionLabel>Sintesi</SectionLabel>
-          <ExpandButton onClick={() => setFullscreenPanel("overview")} />
-        </div>
-        <OverviewSummaryPanel />
-      </section>
-
-      {/* ── Task Board ─────────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <SectionLabel>Task Board</SectionLabel>
-          <ExpandButton onClick={() => setFullscreenPanel("taskboard")} />
-        </div>
-      </section>
-      <TaskBoard
-        board={data?.board ?? null}
-        onSelectTask={setSelectedTask}
-        onExpand={(status) => setExpandedStatus(status)}
-      />
-
-      {/* ── Health + Pipeline ──────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <SectionLabel>Health &amp; Pipeline</SectionLabel>
-          <ExpandButton onClick={() => setFullscreenPanel("health")} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AgentHealth agents={data?.agents ?? null} />
-          <PipelineStatus pipeline={data?.pipeline ?? []} />
-        </div>
-      </section>
-
-      {/* ── QA Status ──────────────────────────────────────────────── */}
-      <QAStatus board={data?.board ?? null} />
-    </div>
-  );
-
-  // ── Trading view ────────────────────────────────────────────────────────────
-
-  const renderTrading = () => (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-6 py-3 border-b border-[var(--ops-border-subtle)]">
-        <IconButton
-          icon={LayoutDashboard}
-          label="Portfolio"
-          active={tradeView === "dashboard"}
-          onClick={() => setTradeView("dashboard")}
-        />
-        <IconButton
-          icon={Activity}
-          label="Slope"
-          active={tradeView === "slope"}
-          onClick={() => setTradeView("slope")}
-        />
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {tradeView === "slope" ? <TradingSlopePanel /> : <TradingDashboard />}
-      </div>
-    </div>
-  );
-
-  // ── Content router ──────────────────────────────────────────────────────────
-
-  const renderContent = () => {
-    switch (activeView) {
-      case "trading":
-        return renderTrading();
-      case "testing":
-        return (
-          <div className="h-full overflow-y-auto space-y-8 p-6">
-            <StressTestResultsPanel />
-            <div className="border-t border-[var(--ops-border)] pt-6">
-              <LegalQATestPanel />
-            </div>
-          </div>
-        );
-      case "debug":
-        return <DebugPanel />;
-      default:
-        return <div className="h-full overflow-y-auto">{renderDashboard()}</div>;
-    }
-  };
-
-  // ── Drill panel content ─────────────────────────────────────────────────────
-
-  const closeDrill = () => setDrill(null);
-
-  const renderDrillContent = () => {
-    if (!drill) return null;
-    switch (drill.type) {
-      case "department":
-        return drill.id ? (
-          <DepartmentDetailPanel
-            department={drill.id as Department}
-            onBack={closeDrill}
-            onSelectTask={(task: Task) => setSelectedTask(task as TaskItem)}
-          />
-        ) : null;
-      case "cme":
-        return <CMEChatPanel onBack={closeDrill} />;
-      case "reports":
-        return <ReportsPanel onBack={closeDrill} />;
-      case "vision":
-        return <VisionMissionPanel />;
-      case "archive":
-        return <ArchivePanel onBack={closeDrill} />;
-      case "daemon":
-        return <DaemonControlPanel />;
-      default:
-        return null;
-    }
-  };
-
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-[var(--ops-bg)]">
+    <div
+      className="h-screen overflow-hidden flex flex-col"
+      style={{ background: "var(--bg-base)" }}
+    >
       {/* ── HEADER ─────────────────────────────────────────────────── */}
-      <header className="h-14 flex-none flex items-center gap-4 px-6 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
+      <header
+        className="h-12 flex-none flex items-center gap-3 px-4 md:px-6"
+        style={{
+          borderBottom: "1px solid var(--border-dark-subtle)",
+          background: "var(--bg-raised)",
+        }}
+      >
         {/* Title */}
-        <h1 className="text-base font-bold text-[var(--ops-fg)] font-serif tracking-tight whitespace-nowrap">
+        <h1
+          className="text-sm font-bold font-serif tracking-tight whitespace-nowrap"
+          style={{ color: "var(--fg-primary)" }}
+        >
           Ops Center
         </h1>
 
         {/* System health pill */}
         <span
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${
-            systemHealth.healthy
-              ? "bg-[rgba(93,228,199,0.08)] border-[rgba(93,228,199,0.15)] text-[var(--ops-teal)]"
-              : "bg-[rgba(229,141,120,0.08)] border-[rgba(229,141,120,0.2)] text-[var(--ops-error)]"
-          }`}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+          style={{
+            background: systemHealth.healthy
+              ? "rgba(93,228,199,0.08)"
+              : "rgba(229,141,120,0.08)",
+            border: `1px solid ${
+              systemHealth.healthy
+                ? "rgba(93,228,199,0.15)"
+                : "rgba(229,141,120,0.2)"
+            }`,
+            color: systemHealth.healthy ? "var(--success)" : "var(--error)",
+          }}
         >
           <span
-            className={`w-2 h-2 rounded-full ${
-              systemHealth.healthy
-                ? "bg-[var(--ops-teal)]"
-                : "bg-[var(--ops-error)] animate-pulse"
-            }`}
+            className={`w-1.5 h-1.5 rounded-full ${!systemHealth.healthy ? "animate-pulse" : ""}`}
+            style={{
+              background: systemHealth.healthy ? "var(--success)" : "var(--error)",
+            }}
           />
           {systemHealth.label}
         </span>
 
-        {/* Separator */}
-        <div className="w-px h-5 bg-[var(--ops-border)]" />
-
-        {/* View switcher */}
-        <nav className="flex items-center gap-1">
-          {VIEWS.map((v) => (
-            <IconButton
-              key={v.id}
-              icon={v.icon}
-              label={v.label}
-              active={activeView === v.id}
-              accent={activeView === v.id}
-              onClick={() => {
-                setActiveView(v.id);
-                setDrill(null);
+        {/* Agent activity dots + test button */}
+        {data && (
+          <div className="flex items-center gap-1">
+            <AgentDots activeAgents={activeAgentsMap} />
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/company/agents/test", {
+                    method: "POST",
+                    headers: getConsoleAuthHeaders(),
+                  });
+                  const json = await res.json();
+                  console.log("[TEST PALLINI]", json);
+                } catch (err) {
+                  console.error("[TEST PALLINI] Error:", err);
+                }
               }}
-            />
-          ))}
-        </nav>
+              className="ml-1 px-1.5 py-0.5 text-[9px] rounded border opacity-40 hover:opacity-100 transition-opacity"
+              style={{ borderColor: "var(--border)", color: "var(--fg-secondary)" }}
+              title="Test: attiva 5 pallini per 4 secondi"
+            >
+              Test
+            </button>
+          </div>
+        )}
 
-        {/* Separator */}
-        <div className="w-px h-5 bg-[var(--ops-border)]" />
-
-        {/* Quick actions */}
-        <nav className="flex items-center gap-1">
-          {ACTIONS.map((a) => (
-            <IconButton
-              key={a.type}
-              icon={a.icon}
-              label={a.label}
-              active={drill?.type === a.type}
-              onClick={() =>
-                setDrill(drill?.type === a.type ? null : { type: a.type })
-              }
-            />
-          ))}
-        </nav>
+        {/* Error indicator */}
+        {fetchError && (
+          <span
+            className="text-[10px] truncate max-w-[200px]"
+            style={{ color: "var(--error)" }}
+          >
+            {fetchError}
+          </span>
+        )}
 
         {/* Spacer */}
         <div className="flex-1" />
 
         {/* Stats */}
         {data && (
-          <div className="hidden md:flex items-center gap-3 text-xs text-[var(--ops-fg-muted)] font-mono">
-            <span className="text-[var(--ops-teal)]">
+          <div className="hidden md:flex items-center gap-3 text-xs font-mono"
+            style={{ color: "var(--fg-secondary)" }}
+          >
+            <span style={{ color: "var(--success)" }}>
               {data.board.byStatus?.done ?? 0} done
             </span>
-            <span className="text-[var(--ops-muted)]">&middot;</span>
+            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+            <span>{data.board.byStatus?.open ?? 0} open</span>
+            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
             <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
+          </div>
+        )}
+
+        {/* Capacity indicator */}
+        {data && (
+          <div className="hidden md:block">
+            <CapacityIndicator activeCount={activeAgentCount} maxCapacity={10} />
           </div>
         )}
 
@@ -740,67 +585,207 @@ export default function OpsPageClient() {
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-3 h-8 bg-[var(--ops-surface-2)]
-            hover:bg-[var(--ops-border)] rounded-lg text-xs text-[var(--ops-fg-muted)]
+          className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs
             transition-all duration-150 disabled:opacity-40 whitespace-nowrap"
+          style={{
+            background: "var(--bg-overlay)",
+            color: "var(--fg-secondary)",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border-dark)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-overlay)")}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
           {timeSince()}
         </button>
       </header>
 
-      {/* ── BODY ───────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden flex">
-        {/* Main */}
-        <main className="flex-1 overflow-hidden">{renderContent()}</main>
-
-        {/* Drill panel */}
-        <AnimatePresence>
-          {drill && (
-            <motion.aside
-              key="drill"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 480, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="flex-none border-l border-[var(--ops-border-subtle)]
-                bg-[var(--ops-bg)] overflow-hidden"
+      {/* ── TAB BAR ─────────────────────────────────────────────────── */}
+      <nav
+        className="flex-none flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto scrollbar-none"
+        style={{
+          height: "40px",
+          borderBottom: "1px solid var(--border-dark-subtle)",
+          background: "var(--bg-raised)",
+        }}
+      >
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                whitespace-nowrap transition-all duration-150 shrink-0"
+              style={{
+                background: active ? "var(--bg-overlay)" : "transparent",
+                color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
+                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = "transparent";
+              }}
             >
-              <div className="w-[480px] h-full flex flex-col">
-                {/* Drill header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--ops-border-subtle)]">
-                  <span className="text-sm font-medium text-[var(--ops-fg)] capitalize">
-                    {drill.type === "department"
-                      ? drill.id ?? ""
-                      : DRILL_TITLES[drill.type]}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <ExpandButton onClick={() => {
-                      const title = drill.type === "department"
-                        ? drill.id ?? "Department"
-                        : DRILL_TITLES[drill.type];
-                      setFullscreenPanel(`drill:${drill.type}:${drill.id ?? ""}`);
-                    }} />
-                    <button
-                      onClick={closeDrill}
-                      className="p-1.5 rounded-md hover:bg-[var(--ops-surface)] transition-colors"
-                    >
-                      <X className="w-4 h-4 text-[var(--ops-fg-muted)]" />
-                    </button>
-                  </div>
-                </div>
-                {/* Drill content */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  {renderDrillContent()}
-                </div>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-      </div>
+              <Icon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* ── COMMAND BAR ────────────────────────────────────────────── */}
-      <CommandBar onSubmit={handleCommand} />
+      {/* ── CONTENT AREA ─────────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {/* Dashboard */}
+        {activeTab === "dashboard" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
+            {/* Overview Summary */}
+            <OverviewSummaryPanel />
+
+            {/* Roadmap & Progressi */}
+            <CompanyRoadmap />
+
+            {/* Task Board + Activity in 2-column */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <SectionCard title="Task Board">
+                  <TaskBoard
+                    board={data?.board ?? null}
+                    onSelectTask={(task) => setSelectedTask(task)}
+                    onExpand={(status) => setExpandedStatus(status)}
+                  />
+                </SectionCard>
+              </div>
+              <div>
+                <SectionCard title="Attività recente">
+                  <ActivityFeed
+                    events={activityEvents.map((t) => ({
+                      id: t.id,
+                      type: t.status as import("@/components/ops/ActivityFeed").ActivityEventType,
+                      title: t.title,
+                      department: t.department,
+                      priority: t.priority as import("@/components/ops/ActivityFeed").ActivityEventPriority,
+                    }))}
+                    maxItems={15}
+                    onEventClick={(ev) => {
+                      const task = activityEvents.find((t) => t.id === ev.id);
+                      if (task) setSelectedTask(task);
+                    }}
+                  />
+                </SectionCard>
+              </div>
+            </div>
+
+            {/* Costs + QA Status in 2-column */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SectionCard title="Costi (7 giorni)">
+                <CostSummary costs={data?.costs ?? null} />
+              </SectionCard>
+              <SectionCard title="QA Status">
+                <QAStatus board={data?.board ?? null} />
+              </SectionCard>
+            </div>
+          </div>
+        )}
+
+        {/* Trading */}
+        {activeTab === "trading" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
+            <TradingDashboard />
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={() => setShowSlope((p) => !p)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{
+                  background: showSlope ? "var(--accent)" : "var(--bg-overlay)",
+                  color: showSlope ? "white" : "var(--fg-secondary)",
+                }}
+              >
+                {showSlope ? "Nascondi Slope" : "Mostra Slope"}
+              </button>
+            </div>
+            <AnimatePresence>
+              {showSlope && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <TradingSlopePanel />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* CME Chat */}
+        {activeTab === "cme" && (
+          <div className="h-full flex flex-col">
+            <CompanyPanel open={true} onClose={() => {}} embedded />
+          </div>
+        )}
+
+        {/* Vision & Mission */}
+        {activeTab === "vision" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6">
+            <VisionMissionPanel />
+          </div>
+        )}
+
+        {/* Reports */}
+        {activeTab === "reports" && (
+          <div className="h-full overflow-y-auto">
+            <ReportsPanel onBack={() => setActiveTab("dashboard")} />
+          </div>
+        )}
+
+        {/* Archivio */}
+        {activeTab === "archive" && (
+          <div className="h-full overflow-y-auto">
+            <ArchivePanel onBack={() => setActiveTab("dashboard")} />
+          </div>
+        )}
+
+        {/* Daemon */}
+        {activeTab === "daemon" && (
+          <div className="h-full overflow-y-auto">
+            <DaemonControlPanel />
+          </div>
+        )}
+
+        {/* Agenti attivi + Pipeline */}
+        {activeTab === "agents" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SectionCard title="Agenti attivi">
+                <AgentHealth agents={data?.agents ?? null} />
+              </SectionCard>
+              <SectionCard title="Data Pipeline">
+                <PipelineStatus pipeline={data?.pipeline ?? []} />
+              </SectionCard>
+            </div>
+          </div>
+        )}
+
+        {/* QA & Testing */}
+        {activeTab === "testing" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
+            <SectionCard title="Risultati QA & Stress Test">
+              <QAResultsDashboard />
+            </SectionCard>
+            <SectionCard title="Esecuzione Test Q&A">
+              <LegalQATestPanel />
+            </SectionCard>
+            <SectionCard title="Debug">
+              <DebugPanel />
+            </SectionCard>
+          </div>
+        )}
+      </div>
 
       {/* ── Modals ─────────────────────────────────────────────────── */}
       {selectedTask && (
@@ -820,102 +805,69 @@ export default function OpsPageClient() {
         />
       )}
 
-      {/* ── Fullscreen panel overlay ─────────────────────────────── */}
+      {/* ── Fullscreen panel overlay (for dept detail drill-down) ─── */}
       <AnimatePresence>
         {fullscreenPanel && (
           <FullscreenOverlay
             title={
-              fullscreenPanel === "activity" ? "Attività recente" :
-              fullscreenPanel === "overview" ? "Sintesi" :
-              fullscreenPanel === "taskboard" ? "Task Board" :
-              fullscreenPanel === "health" ? "Health & Pipeline" :
-              fullscreenPanel === "debug" ? "Debug" :
-              fullscreenPanel?.startsWith("drill:") ? (() => {
-                const parts = fullscreenPanel.split(":");
-                const type = parts[1];
-                const id = parts[2];
-                return type === "department" ? (id || "Department") : (DRILL_TITLES[type as DrillType] ?? type);
-              })() :
-              fullscreenPanel ?? ""
+              fullscreenPanel?.startsWith("dept:")
+                ? fullscreenPanel.slice(5)
+                : fullscreenPanel ?? ""
             }
             onClose={() => setFullscreenPanel(null)}
-            noPadding={fullscreenPanel === "debug" || fullscreenPanel?.startsWith("drill:")}
+            noPadding={fullscreenPanel?.startsWith("dept:")}
           >
-            {fullscreenPanel === "activity" && (
-              <div className="bg-[var(--ops-surface)] border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden">
-                <ActivityFeed
-                  events={activityEvents.map((t) => ({
-                    id: t.id,
-                    type: t.status as import("@/components/ops/ActivityFeed").ActivityEventType,
-                    title: t.title,
-                    department: t.department,
-                    priority: t.priority as import("@/components/ops/ActivityFeed").ActivityEventPriority,
-                  }))}
-                  maxItems={100}
-                  onEventClick={(ev) => {
-                    const task = activityEvents.find((t) => t.id === ev.id);
-                    if (task) {
-                      setFullscreenPanel(null);
-                      setSelectedTask(task);
-                    }
+            {fullscreenPanel?.startsWith("dept:") && (() => {
+              const dept = fullscreenPanel.slice(5);
+              return (
+                <DepartmentDetailPanel
+                  department={dept as Department}
+                  onBack={() => setFullscreenPanel(null)}
+                  onSelectTask={(task: Task) => {
+                    setFullscreenPanel(null);
+                    setSelectedTask(task as TaskItem);
                   }}
                 />
-              </div>
-            )}
-            {fullscreenPanel === "overview" && <OverviewSummaryPanel />}
-            {fullscreenPanel === "taskboard" && (
-              <TaskBoard
-                board={data?.board ?? null}
-                onSelectTask={(task) => {
-                  setFullscreenPanel(null);
-                  setSelectedTask(task);
-                }}
-                onExpand={(status) => {
-                  setFullscreenPanel(null);
-                  setExpandedStatus(status);
-                }}
-              />
-            )}
-            {fullscreenPanel === "health" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AgentHealth agents={data?.agents ?? null} />
-                <PipelineStatus pipeline={data?.pipeline ?? []} />
-              </div>
-            )}
-            {fullscreenPanel === "debug" && <DebugPanel />}
-            {fullscreenPanel?.startsWith("drill:") && (() => {
-              const parts = fullscreenPanel.split(":");
-              const type = parts[1] as DrillType;
-              const id = parts[2] || undefined;
-              switch (type) {
-                case "department":
-                  return id ? (
-                    <DepartmentDetailPanel
-                      department={id as Department}
-                      onBack={() => setFullscreenPanel(null)}
-                      onSelectTask={(task: Task) => {
-                        setFullscreenPanel(null);
-                        setSelectedTask(task as TaskItem);
-                      }}
-                    />
-                  ) : null;
-                case "cme":
-                  return <CMEChatPanel onBack={() => setFullscreenPanel(null)} />;
-                case "reports":
-                  return <ReportsPanel onBack={() => setFullscreenPanel(null)} />;
-                case "vision":
-                  return <VisionMissionPanel />;
-                case "archive":
-                  return <ArchivePanel onBack={() => setFullscreenPanel(null)} />;
-                case "daemon":
-                  return <DaemonControlPanel />;
-                default:
-                  return null;
-              }
+              );
             })()}
           </FullscreenOverlay>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Section Card wrapper ────────────────────────────────────────────────────
+
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        background: "var(--bg-raised)",
+        border: "1px solid var(--border-dark-subtle)",
+      }}
+    >
+      <div
+        className="px-4 py-3 flex items-center"
+        style={{
+          borderBottom: "1px solid var(--border-dark-subtle)",
+        }}
+      >
+        <h3
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "var(--fg-secondary)" }}
+        >
+          {title}
+        </h3>
+      </div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }

@@ -532,14 +532,14 @@ export default function ConsolePageClient() {
           <main className="px-4 py-4 md:px-8 md:py-6 max-w-3xl mx-auto space-y-4">
             {/* Auth message */}
             {authMessage && (!isAuthenticated || (isAuthenticated && status === "idle" && !activeEvent)) && (
-              <div className="rounded-xl border border-[#F0F0F0] p-5">
+              <div className="rounded-xl border border-[var(--border-subtle)] p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-block w-[7px] h-[7px] rounded-full bg-[#1A1A1A]" />
-                  <span className="text-xs font-serif italic text-[#1A1A1A]">
+                  <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--foreground)]" />
+                  <span className="text-xs font-serif italic text-[var(--foreground)]">
                     lexmea
                   </span>
                 </div>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed text-[#1A1A1A]">
+                <p className="text-sm whitespace-pre-wrap leading-relaxed text-[var(--foreground)]">
                   {authMessage}
                 </p>
                 {authPhase === "denied" && (
@@ -548,7 +548,7 @@ export default function ConsolePageClient() {
                       setAuthPhase("idle");
                       setAuthMessage(AUTH_PROMPT);
                     }}
-                    className="mt-3 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] hover:underline transition-colors"
+                    className="mt-3 text-xs text-[var(--foreground-secondary)] hover:text-[var(--foreground)] hover:underline transition-colors"
                   >
                     Riprovare
                   </button>
@@ -573,7 +573,7 @@ export default function ConsolePageClient() {
               <div className="flex justify-end">
                 <button
                   onClick={handleAbort}
-                  className="text-xs text-[#9B9B9B] hover:text-red-500 hover:underline transition-colors"
+                  className="text-xs text-[var(--foreground-tertiary)] hover:text-red-500 hover:underline transition-colors"
                 >
                   Interrompi elaborazione
                 </button>
@@ -600,7 +600,7 @@ export default function ConsolePageClient() {
               <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="inline-block w-[7px] h-[7px] rounded-full bg-amber-500 animate-pulse" />
-                  <span className="text-xs font-medium text-[#1A1A1A]">Leader</span>
+                  <span className="text-xs font-medium text-[var(--foreground)]">Leader</span>
                 </div>
                 <p className="text-sm text-amber-700">{clarificationQ}</p>
               </div>
@@ -671,13 +671,13 @@ export default function ConsolePageClient() {
             })()}
 
             {status === "done" && activeEvent?.status !== "done" && (
-              <div className="text-xs text-[#9B9B9B] py-2">
+              <div className="text-xs text-[var(--foreground-tertiary)] py-2">
                 Elaborazione completata.
               </div>
             )}
           </main>
 
-          <footer className="text-center text-[10px] text-[#9B9B9B] opacity-30 py-4">
+          <footer className="text-center text-[10px] text-[var(--foreground-tertiary)] opacity-30 py-4">
             lexmea v1.0
           </footer>
         </>

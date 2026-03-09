@@ -41,8 +41,12 @@ REGOLE CRITICHE:
   * Appalto: "appalto_privato", "appalto_pubblico", "subappalto"
   * Società: "costituzione_srl", "cessione_quote", "patto_parasociale"
   * Lavoro: "subordinato_tempo_indeterminato", "subordinato_tempo_determinato", "part_time",
-             "apprendistato", "collaborazione_coordinata", "lavoro_autonomo",
-             "stage_tirocinio", "somministrazione", "appalto_servizi"
+             "apprendistato", "collaborazione_coordinata", "co_co_co",
+             "lavoro_autonomo", "lavoro_autonomo_occasionale",
+             "stage_tirocinio", "somministrazione", "appalto_servizi",
+             "lavoro_intermittente", "lavoro_a_chiamata", "distacco",
+             "lavoro_agile_smart_working", "cessione_contratto_lavoro",
+             "contratto_dirigente", "contratto_domestico"
   * Se non riesci a determinarlo: null
 
 - relevantInstitutes: identifica TUTTI gli istituti giuridici presenti o richiamati.
@@ -67,9 +71,39 @@ REGOLE CRITICHE:
   * "periodo di prova" → periodo_di_prova
   * "patto di stabilità" / "clausola di stabilità" → patto_stabilita
   * "trasferimento" (lavoratore) → trasferimento_lavoratore
+  -- ISTITUTI HR (D.Lgs. 81/2015 — Jobs Act Contratti) --
+  * "tempo determinato" / "causale" / "proroga" / "rinnovo" → contratto_tempo_determinato
+  * "somministrazione" / "agenzia interinale" / "lavoro in somministrazione" → somministrazione_lavoro
+  * "apprendistato" / "formazione professionalizzante" → apprendistato
+  * "lavoro intermittente" / "a chiamata" / "job on call" → lavoro_intermittente
+  * "part-time" / "lavoro parziale" / "clausole elastiche" / "supplementare" → part_time
+  * "lavoro agile" / "smart working" / "telelavoro" → lavoro_agile
+  * "collaborazione coordinata" / "co.co.co" / "parasubordinato" → collaborazione_coordinata
+  -- ISTITUTI HR (D.Lgs. 23/2015 — Jobs Act Tutele Crescenti) --
+  * "tutele crescenti" / "indennità licenziamento" / "offerta conciliazione" → tutele_crescenti
+  * "licenziamento giustificato motivo" / "giustificato motivo oggettivo" / "GMO" → licenziamento_giustificato_motivo
+  * "licenziamento giusta causa" / "giusta causa" → licenziamento_giusta_causa
+  * "licenziamento collettivo" / "procedura mobilità" / "L. 223/1991" → licenziamento_collettivo
+  * "dimissioni" / "dimissioni telematiche" / "risoluzione consensuale" → dimissioni
+  -- ISTITUTI HR (D.Lgs. 148/2015 — CIG + Ammortizzatori) --
+  * "cassa integrazione" / "CIG" / "CIGO" / "CIGS" → cassa_integrazione
+  * "NASpI" / "disoccupazione" / "indennità disoccupazione" → naspi
+  * "contratti di solidarietà" → contratti_solidarieta
+  -- ISTITUTI HR (D.Lgs. 81/2008 — Sicurezza Lavoro) --
+  * "sicurezza" / "DVR" / "documento valutazione rischi" → sicurezza_lavoro_dvr
+  * "RSPP" / "responsabile prevenzione" → sicurezza_rspp
+  * "infortunio" / "malattia professionale" → infortunio_malattia_professionale
+  * "DPI" / "dispositivi protezione" → sicurezza_dpi
+  -- ISTITUTI HR (D.Lgs. 276/2003 — Riforma Biagi) --
+  * "distacco" / "comando" (lavoratore) → distacco_lavoratore
+  * "appalto genuino" / "interposizione illecita" → appalto_genuino
+  * "certificazione contratto" / "commissione certificazione" → certificazione_contratto
 
 - legalFocusAreas: indica le aree di diritto rilevanti per guidare l'analisi.
   Esempio: ["diritto_immobiliare", "diritto_urbanistico"] per un contratto immobiliare.
+  Per contratti di lavoro: ["diritto_del_lavoro", "previdenza_sociale", "sicurezza_sul_lavoro", "diritto_sindacale"]
+  Per contratti atipici/flessibili: ["diritto_del_lavoro", "contratti_flessibili", "tutela_lavoratore_parasubordinato"]
+  Per contratti dirigenziali: ["diritto_del_lavoro", "dirigenza", "patto_non_concorrenza"]
 
 - applicableLaws: includi articoli specifici c.c. e leggi speciali. Sii preciso.
 - Campi incerti = null. Non inventare dati assenti.`;

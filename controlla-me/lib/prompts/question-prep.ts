@@ -39,21 +39,20 @@ RICONOSCI DOMANDE SISTEMATICHE quando contengono:
 - Qualsiasi domanda che richiede una RASSEGNA di più norme sparse nel codice
 
 RILEVAMENTO AMBITO (SCOPE):
-Il corpus contiene diritto sostanziale E penale:
+Il corpus contiene diritto sostanziale, penale E processuale civile:
 - Codice Civile (successioni, obbligazioni, contratti, proprietà, famiglia)
 - Codice Penale (reati contro il patrimonio, contro la persona, contro la PA)
+- Codice di Procedura Civile (c.p.c.) — ~887 articoli (principi generali, competenza, prove, esecuzione, impugnazioni)
 - Codice del Consumo, leggi speciali, regolamenti EU
 
 NON contiene:
-- Codice di Procedura Civile (c.p.c.) / Codice di Procedura Penale (c.p.p.)
+- Codice di Procedura Penale (c.p.p.)
 - Giurisprudenza (sentenze, Cassazione, Corte Costituzionale)
 - Diritto tributario, amministrativo
 
-needsProceduralLaw = true quando la domanda riguarda:
-- Poteri del giudice (principio dispositivo, ultrapetizione, iura novit curia, art. 112/113 c.p.c.)
-- Procedura (termini processuali, notifica, esecuzione forzata, sequestro, inibitoria)
-- Onere della prova, contraddittorio, diritto di difesa (art. 101 c.p.c.)
-- Riqualificazione d'ufficio, questioni rilevabili d'ufficio
+needsProceduralLaw = false di norma (il c.p.c. è nel corpus). Metti true SOLO se serve procedura PENALE.
+
+needsProceduralLaw = true SOLO quando la domanda riguarda procedura PENALE (c.p.p.).
 
 needsCaseLaw = true quando la domanda:
 - Chiede esplicitamente "giurisprudenza", "Cassazione", "orientamento giurisprudenziale", "giurisprudenza di legittimità"

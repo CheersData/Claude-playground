@@ -1,0 +1,29 @@
+{
+  "testId": "TC24",
+  "question": "Quali sono i motivi per ricorrere in Cassazione?",
+  "agentAnswer": "I motivi per ricorrere in Cassazione possono essere così classificati:\n\n1) Motivi attinenti alla giurisdizione (Art. 360, primo comma, n. 1) c.p.c.)\nLa Corte di Cassazione può essere adita per motivi attinenti alla giurisdizione, ovvero quando si discute sulla legittimazione del giudice a pronunciarsi sulla causa.\n\n2) Violazione delle norme sulla competenza (Art. 360, primo comma, n. 2) c.p.c.)\nLa Cassazione può essere impugnata per violazione delle norme sulla competenza, ad esempio quando il giudice non ha rispettato le regole sulla competenza per territorio o per valore.\n\n3) Violazione o falsa applicazione di norme di diritto (Art. 360, primo comma, n. 3) c.p.c.)\nLa Corte di Cassazione può essere adita per violazione o falsa applicazione di norme di diritto, ad esempio quando il giudice ha applicato una norma in modo errato o ha omesso di applicarla.\n\n4) Nullità della sentenza o del procedimento (Art. 360, primo comma, n. 4) c.p.c.)\nLa Cassazione può essere impugnata per nullità della sentenza o del procedimento, ad esempio quando il giudice ha omesso di motivare la sentenza o ha violato le regole sulla pubblicità dell'udienza.\n\n5) Omesso esame circa un fatto decisivo per il giudizio (Art. 360, primo comma, n. 5) c.p.c.)\nLa Corte di Cassazione può essere adita per omesso esame circa un fatto decisivo per il giudizio, ad esempio quando il giudice ha omesso di esaminare un fatto rilevante per la decisione della causa.\n\nRiferimenti normativi:\nArt. 360 c.p.c.\nArt. 384 c.p.c.\nArt. 366 c.p.c.\n\nIn pratica:\nPer ricorrere in Cassazione, è necessario individuare il motivo specifico di impugnazione e verificare se esso rientra tra quelli previsti dall'art. 360 c.p.c. È inoltre necessario rispettare le regole sulla competenza e sulla procedura di impugnazione.",
+  "expectedAnswer": "L'agente deve elencare tutti e 5 i motivi ex art. 360 c.p.c. e segnalare che il n.5 (motivazione) è stato riformato nel 2012: oggi si può ricorrere solo per motivazione 'omessa, insufficiente o contraddittoria' su fatto decisivo.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 360 con tutti i motivi?",
+    "search": "Ha trovato art. 360 c.p.c. con tutti i 5 numeri?",
+    "quality": "Elenca tutti i motivi? Segnala la riforma 2012 del n.5?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ricorso_cassazione",
+    "motivi_impugnazione",
+    "art_360_cpc"
+  ],
+  "scope": "art. 360 c.p.c. tutti e 5 i motivi; n.5 riformato nel 2012",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente elenca correttamente tutti e 5 i motivi ex art. 360 c.p.c. per ricorrere in Cassazione. Tuttavia, non segnala espressamente la riforma del 2012 per il n. 5, che limita la motivazione a 'omessa, insufficiente o contraddittoria' su fatto decisivo."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:46:12.868Z"
+}

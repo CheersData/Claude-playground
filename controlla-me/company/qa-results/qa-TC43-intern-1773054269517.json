@@ -1,0 +1,29 @@
+{
+  "testId": "TC43",
+  "question": "Il costruttore vuole inserire una clausola che gli permette di cambiare i materiali e il progetto senza il mio consenso. È legale?",
+  "agentAnswer": "La clausola che consente al costruttore di cambiare i materiali e il progetto senza il tuo consenso può essere considerata legale, ma con alcune limitazioni e condizioni. Secondo l'Art. 1341 c.c., le condizioni generali di contratto predisposte da uno dei contraenti sono efficaci nei confronti dell'altro, se al momento della conclusione del contratto questi le ha conosciute o avrebbe dovuto conoscerle usando l'ordinaria diligenza. Tuttavia, non hanno effetto se non sono specificamente approvate per iscritto, le condizioni che stabiliscono limitazioni di responsabilità, facoltà di recedere dal contratto o di sospenderne l'esecuzione, ovvero sanciscono a carico dell'altro contraente decadenze, limitazioni alla facoltà di opporre eccezioni, restrizioni alla libertà contrattuale nei rapporti coi terzi, tacita proroga o rinnovazione del contratto, clausole compromissorie o deroghe alla competenza dell'autorità giudiziaria.\n\nRiferimenti normativi:\n- Art. 1341 c.c. (condizioni generali di contratto)\n- Art. 1418 c.c. (cause di nullità del contratto)\n- Art. 1419 c.c. (nullità parziale)\n\nIn pratica: La clausola potrebbe essere considerata valida se è stata specificamente approvata per iscritto e non contiene disposizioni che limitano la tua libertà contrattuale o ti pregiudichino. Tuttavia, se la clausola è troppo ampia o non è stata correttamente approvata, potrebbe essere considerata nulla o inefficace. È consigliabile consultare un avvocato per esaminare la clausola e il contratto nel suo complesso.",
+  "expectedAnswer": "TRAPPOLA: la clausola che consente al costruttore di modificare unilateralmente il progetto è NULLA per essere clausola vessatoria (art. 33 co.2 lett.m D.Lgs. 206/2005 Codice del Consumo). L'acquirente ha diritto che le varianti siano concordate.",
+  "scoringHints": {
+    "prep": "Ha formulato query su clausole vessatorie nel B2C immobiliare?",
+    "search": "Ha trovato art. 33 co.2 lett.m Codice del Consumo?",
+    "quality": "Qualifica la clausola come nulla/vessatoria? Cita correttamente la norma?"
+  },
+  "trapType": "clausola_abusiva",
+  "institutes": [
+    "clausola_vessatoria",
+    "Codice_Consumo",
+    "varianti_costruttore"
+  ],
+  "scope": "TRAPPOLA: clausola unilaterale = VESSATORIA art. 33 co.2 lett.m Codice Consumo",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 5,
+    "quality": 15,
+    "total": 30,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente la natura vessatoria della clausola unilaterale nel contesto del diritto del consumo, non citando l'art. 33 co.2 lett.m del Codice del Consumo. La risposta si concentra su aspetti generali del diritto contrattuale senza applicare correttamente le norme specifiche relative alle clausole vessatorie nei contratti B2C."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:01:50.804Z"
+}

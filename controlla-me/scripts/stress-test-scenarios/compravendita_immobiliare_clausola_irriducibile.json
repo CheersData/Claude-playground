@@ -1,0 +1,32 @@
+{
+  "id": "compravendita_immobiliare_clausola_irriducibile",
+  "name": "compravendita immobiliare clausola irriducibile",
+  "category": "compravendita",
+  "documentText": "CONTRATTO PRELIMINARE DI COMPRAVENDITA IMMOBILIARE\n\nTRA\nIl Sig. Giuseppe Verdi, nato a Napoli il 12/03/1965, C.F. VRDGPP65C12F839N,\nresidente in Napoli, Corso Umberto I 50 (di seguito \"Promittente Venditore\"),\n\nE\nLa Sig.ra Anna Bianchi, nata a Firenze il 22/08/1990, C.F. BNCNNA90M62D612X,\nresidente in Firenze, Via dei Calzaiuoli 15 (di seguito \"Promissaria Acquirente\"),\n\nArt. 1 - OGGETTO\nIl Promittente Venditore promette di vendere e la Promissaria Acquirente promette di acquistare\nl'immobile sito in Roma, Via Condotti 20, piano 5, composto da 6 vani, cat. A/1.\n\nArt. 2 - PREZZO\nIl prezzo di vendita è convenuto in EUR 450.000,00.\nLa caparra confirmatoria è di EUR 90.000,00 pari al 20% del prezzo.\n\nArt. 3 - TERMINE PER IL ROGITO\nIl rogito notarile dovrà essere stipulato entro e non oltre il 30/06/2025.\nIn caso di inadempimento del Promittente Venditore, l'Acquirente avrà diritto al doppio della caparra.\nIn caso di inadempimento dell'Acquirente, il Venditore tratterrà la caparra.\n\nArt. 4 - CLAUSOLA PENALE AGGIUNTIVA\nIndipendentemente dalla caparra, la parte inadempiente dovrà corrispondere una penale\npari al 30% del prezzo di vendita, senza possibilità di riduzione giudiziale.\nLa rinuncia alla riduzione ex art. 1384 c.c. è espressamente convenuta.\n\nArt. 5 - CONSEGNA IMMOBILE\nL'immobile sarà consegnato nello stato di fatto in cui si trova, senza alcuna garanzia\nper vizi apparenti o occulti. L'Acquirente dichiara di aver visionato l'immobile.\n\nArt. 6 - CONFORMITÀ URBANISTICA\nIl Venditore dichiara che l'immobile è conforme alle norme urbanistiche.\nEventuali difformità saranno a carico esclusivo dell'Acquirente post-rogito.\n\nNapoli, 10 febbraio 2025",
+  "expectations": {
+    "classifier": [
+      "documentType deve contenere 'preliminare' o 'compravendita'",
+      "relevantInstitutes deve includere caparra_confirmatoria",
+      "relevantInstitutes deve includere clausola_penale",
+      "applicableLaws deve citare art. 1385 c.c. (caparra confirmatoria)"
+    ],
+    "analyzer": [
+      "Deve segnalare la penale del 30% con rinuncia riduzione come critical",
+      "Deve segnalare l'esclusione garanzia vizi come high risk",
+      "Deve segnalare il ribaltamento difformità urbanistiche sull'acquirente",
+      "Deve citare art. 1384 c.c. e la questione della riducibilità"
+    ],
+    "investigator": [
+      "Findings per la clausola penale irriducibile",
+      "Findings per l'esclusione garanzia vizi",
+      "Deve coprire TUTTE le clausole critical e high",
+      "NON deve inventare sentenze"
+    ],
+    "advisor": [
+      "fairnessScore tra 3 e 5 (contratto molto sbilanciato)",
+      "risks max 3, actions max 3",
+      "needsLawyer = true",
+      "Deve menzionare il rischio della rinuncia alla riduzione della penale"
+    ]
+  }
+}

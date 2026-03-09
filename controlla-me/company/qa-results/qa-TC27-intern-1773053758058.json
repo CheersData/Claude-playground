@@ -1,0 +1,29 @@
+{
+  "testId": "TC27",
+  "question": "Ho un debito con un privato. Possono pignorare la mia prima casa?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl pignoramento può riguardare beni immobili, compresa la tua abitazione, salvo che la legge preveda una specifica tutela per la prima casa. Nel corpus normativo fornito non è presente alcun articolo che escluda espressamente la prima casa dal pignoramento.\n\nRIFERIMENTI NORMATIVI:\n- Art. 492 c.p.c. (Forma del pignoramento): disciplina la forma dell'atto di pignoramento e prevede che il pignoramento possa riguardare “i beni … e i frutti di essi”, includendo quindi anche beni immobili.\n- Art. 543 c.p.c. (Forma del pignoramento): elenca i contenuti dell’atto di pignoramento, tra cui l’indicazione delle cose o delle somme dovute, senza escludere i beni immobili.\n- Art. 567 c.p.c. (Istanza di vendita): prevede che, decorso il termine di cui all’art. 501, il creditore possa chiedere la vendita dell’immobile pignorato.\n- Art. 560 c.p.c. (Modo della custodia): vieta al debitore di dare in locazione l’immobile pignorato senza autorizzazione del giudice, confermando che l’immobile è soggetto a pignoramento.\n\nMANCANO ARTICOLI:\n- Art. 545 c.p.c. (impignorabilità della prima casa) – disciplina l’esclusione della prima casa dal pignoramento in presenza di determinati requisiti.\n- Eventuali disposizioni di legge speciale (es. L. 431/1998) che regolano la protezione della prima casa.\n\nIN PRATICA:\nVerifica se la tua abitazione è iscritta come “prima casa” e se rientra nei requisiti di impignorabilità previsti dalla normativa (art. 545 c.p.c. e successive). Se la casa è tutelata, chiedi al giudice l’applicazione di tale tutela; altrimenti, il creditore può procedere al pignoramento e, successivamente, alla vendita dell’immobile.\n",
+  "expectedAnswer": "TRAPPOLA: l'impignorabilità della prima casa vale SOLO per Agenzia Entrate Riscossione (art. 76 DPR 602/73). I creditori privati POSSONO pignorare la prima casa senza limiti.",
+  "scoringHints": {
+    "prep": "Ha distinto tra creditore privato e Agenzia Entrate nella query?",
+    "search": "Ha trovato art. 76 DPR 602/73 con il limite del soggetto?",
+    "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Senza ambiguità?"
+  },
+  "trapType": "falsa_tutela",
+  "institutes": [
+    "pignoramento_prima_casa",
+    "impignorabilità",
+    "creditori_privati"
+  ],
+  "scope": "art. 76 DPR 602/1973: impignorabilità SOLO per Agenzia Entrate Riscossione, non per privati",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 5,
+    "quality": 5,
+    "total": 15,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha distinto tra creditore privato e Agenzia Entrate e non ha citato l'art. 76 DPR 602/73. Ha invece inventato l'art. 545 c.p.c. e ha suggerito una tutela per creditori privati, contraria alla risposta attesa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:55:06.935Z"
+}

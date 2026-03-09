@@ -12,6 +12,7 @@
 
 export type DataType =
   | "legal-articles"
+  | "medical-articles"     // Corpus medico — stesso schema legal_articles, vertical = 'medical'
   | "hr-articles"          // Diritto del lavoro + sicurezza — stesso stack di legal-articles
   | "market-data"
   | "model-benchmark"

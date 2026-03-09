@@ -38,9 +38,9 @@ export function CommandBar({
     <form
       onSubmit={submit}
       className="flex-none h-12 flex items-center gap-3 px-6
-        border-t border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]"
+        border-t border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]"
     >
-      <Terminal className="w-4 h-4 text-[var(--ops-muted)] shrink-0" />
+      <Terminal className="w-4 h-4 text-[var(--fg-invisible)] shrink-0" />
       <input
         ref={ref}
         type="text"
@@ -48,23 +48,24 @@ export function CommandBar({
         onChange={(e) => setValue(e.target.value)}
         placeholder="Scrivi un comando..."
         disabled={disabled}
-        className="flex-1 bg-transparent text-sm text-[var(--ops-fg)]
-          placeholder-[var(--ops-muted)] outline-none"
+        className="flex-1 bg-transparent text-sm text-[var(--fg-primary)]
+          placeholder-[var(--fg-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)]"
         autoComplete="off"
       />
       <kbd
-        className="hidden sm:inline text-xs text-[var(--ops-muted)]
-          border border-[var(--ops-border)] rounded px-2 py-0.5 font-mono"
+        className="hidden sm:inline text-xs text-[var(--fg-invisible)]
+          border border-[var(--border-dark)] rounded px-2 py-0.5 font-mono"
       >
         Ctrl+K
       </kbd>
       <button
         type="submit"
         disabled={!value.trim() || disabled}
-        className="p-2 rounded-md hover:bg-[var(--ops-surface-2)]
+        aria-label="Invia comando"
+        className="p-2 rounded-md hover:bg-[var(--bg-overlay)]
           transition-colors disabled:opacity-20"
       >
-        <Send className="w-4 h-4 text-[var(--ops-accent)]" />
+        <Send className="w-4 h-4 text-[var(--accent)]" />
       </button>
     </form>
   );

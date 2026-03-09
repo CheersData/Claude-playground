@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "La situazione descritta potrebbe rientrare nel caso di omesso esame di un fatto decisivo, ma la norma specifica che disciplina questo aspetto è l'Art. 360, primo comma, n. 5, del Codice di Procedura Civile, che consente il ricorso per cassazione per omesso esame di un fatto decisivo. Tuttavia, la possibilità di impugnare per una questione non sollevata dalle parti dipende dalle specifiche circostanze del caso e dalle norme applicabili.\n\nRiferimenti normativi: L'Art. 360 del Codice di Procedura Civile disciplina le ipotesi in cui è ammesso il ricorso per cassazione, compreso il caso di omesso esame di un fatto decisivo. L'Art. 101 del Codice di Procedura Civile sottolinea l'importanza del contraddittorio e del rispetto del diritto di difesa.\n\nIn pratica: La parte interessata dovrebbe valutare attentamente le norme applicabili e le specifiche circostanze del caso per determinare se è possibile impugnare la decisione del giudice di primo grado.",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 12,
+    "search": 8,
+    "quality": 8,
+    "total": 28,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha distinto correttamente ultrapetizione da extrapetizione e ha citato l'art. 360 n.5, inesistente, invece dell'art. 360 n.4 e dell'art. 112 c.p.c. La risposta è imprecisa e incompleta, con errori normativi che penalizzano fortemente la qualità."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:51:21.622Z"
+}

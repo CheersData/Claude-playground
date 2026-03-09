@@ -1,0 +1,29 @@
+{
+  "testId": "TC27",
+  "question": "Ho un debito con un privato. Possono pignorare la mia prima casa?",
+  "agentAnswer": "RISPOSTA DIRETTA\nSì, il creditore può chiedere il pignoramento della tua prima casa, salvo le ipotesi di protezione previste dalla legge, che non sono contenute nel corpus a disposizione.\n\nRIFERIMENTI NORMATIVI:\n- Art. 492 c.p.c. (ID: e4c6ed3f-5816-4ec7-bfee-34186657bb9e): disciplina la forma del pignoramento e prevede che il provvedimento debba contenere l'ingiunzione al debitore di astenersi da atti che sottraggono alla garanzia del credito i beni pignorati, comprese le cose immobili.\n- Art. 543 c.p.c. (ID: 4349aad0-77f8-4f7f-b935-2659eca36a42): stabilisce la forma del pignoramento di crediti del debitore verso terzi o di cose del debitore in possesso di terzi, includendo le cose immobili.\n- Art. 513 c.p.c. (ID: c0f9f971-4a97-491c-a6f9-d891edd90266): consente all'ufficiale giudiziario di ricercare le cose da pignorare nella casa del debitore, quindi anche l'abitazione principale.\n- Art. 567 c.p.c. (ID: e58ab39b-96eb-41ad-97d5-469ce152377d): disciplina l'istanza di vendita dell'immobile pignorato, indicando che il creditore può chiedere la vendita dell'immobile una volta terminati i termini di cui all'art. 501.\n- Art. 560 c.p.c. (ID: a7494320-40c6-412b-825b-61193da48bf6): regola la custodia dell'immobile pignorato e vieta al debitore di dare in locazione l'immobile senza autorizzazione del giudice.\n- Art. 545 c.c. (ID: 0f32421f-583f-4b16-b40d-821755c116ee): elenca i crediti non pignorabili, ma non prevede l'esclusione dell'immobile come bene pignorabile.\n\nIN PRATICA\nSe ricevi l'atto di pignoramento dell'abitazione principale, devi verificare entro i termini di legge (di solito 10 giorni) se sussistono cause di esenzione (ad es. debito garantito da ipoteca, o norme specifiche di protezione della prima casa). In caso contrario, presenta opposizione all'atto di pignoramento al giudice dell'esecuzione, allegando documentazione che attesti che l'immobile è la tua abitazione principale e che il debito non è garantito da ipoteca, così da far valere eventuali eccezioni di protezione previste dalla normativa non presente nel corpus.",
+  "expectedAnswer": "TRAPPOLA: l'impignorabilità della prima casa vale SOLO per Agenzia Entrate Riscossione (art. 76 DPR 602/73). I creditori privati POSSONO pignorare la prima casa senza limiti.",
+  "scoringHints": {
+    "prep": "Ha distinto tra creditore privato e Agenzia Entrate nella query?",
+    "search": "Ha trovato art. 76 DPR 602/73 con il limite del soggetto?",
+    "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Senza ambiguità?"
+  },
+  "trapType": "falsa_tutela",
+  "institutes": [
+    "pignoramento_prima_casa",
+    "impignorabilità",
+    "creditori_privati"
+  ],
+  "scope": "art. 76 DPR 602/1973: impignorabilità SOLO per Agenzia Entrate Riscossione, non per privati",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 22,
+    "search": 25,
+    "quality": 38,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha distinto correttamente tra creditori privati e Agenzia Entrate, ha citato l'art. 76 DPR 602/73 e ha indicato che la prima casa è pignorabile da privati. Ha recuperato norme pertinenti, anche se alcune risultano superflue, e non ha inventato disposizioni, garantendo accuratezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:44:15.072Z"
+}

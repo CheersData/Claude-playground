@@ -19,6 +19,7 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import type { AgentName } from "@/lib/models";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus, ConversationTurn } from "@/lib/types";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 export const maxDuration = 300;
 
@@ -67,6 +68,11 @@ export async function POST(req: NextRequest) {
         extra?: Record<string, unknown>
       ) => {
         send("agent", { phase, status, ...extra });
+        // Broadcast to /api/company/agents/live for Ops dashboard
+        const mappedStatus = status === "skipped" ? "done" : status as "running" | "done" | "error";
+        broadcastConsoleAgent(phase, mappedStatus, {
+          task: extra?.summary as string ?? phase,
+        });
       };
 
       // SEC-004: Wrappa l'intera pipeline nel context di sessione.

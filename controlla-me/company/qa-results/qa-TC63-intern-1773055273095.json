@@ -1,0 +1,29 @@
+{
+  "testId": "TC63",
+  "question": "Il vicino usa il mio terreno da anni come se fosse suo. Posso ancora recuperarlo?",
+  "agentAnswer": "La possibilità di recuperare il terreno dipende da diversi fattori, in particolare dal tipo di possesso esercitato dal vicino e dalla durata dello stesso.\n\nSe il vicino ha iniziato a utilizzare il terreno senza un titolo legittimo (ad esempio, senza un contratto di affitto o un atto di proprietà) e senza la tua autorizzazione, potrebbe trattarsi di un possesso illegittimo.\n\nSecondo l'art. 1158 c.c., la proprietà dei beni immobili si acquista con il possesso continuato per 20 anni. Tuttavia, se il vicino ha posseduto il terreno in buona fede e con un titolo idoneo (anche se poi выяснилось essere illegittimo), il termine per l'usucapione si riduce a 10 anni (art. 1161 c.c.).\n\nSe il possesso è stato esercitato in modo violento o clandestino, l'usucapione non inizia finché tali condizioni non cessano (art. 1163 c.c.).\n\nPer recuperare il terreno, puoi:\n1. Richiedere la restituzione del terreno se il possesso del vicino è illegittimo e non ha ancora maturato il termine per l'usucapione.\n2. Agire con un'azione di reintegrazione del possesso (art. 1168 c.c.) entro un anno dallo spoglio.\n3. Se il vicino ha maturato il termine per l'usucapione, potresti dover riconoscere la sua proprietà.\n\nÈ consigliabile consultare un avvocato per valutare la situazione specifica e determinare la strategia migliore.",
+  "expectedAnswer": "TRAPPOLA: dipende da quanto tempo il vicino usa il terreno. Se sono passati 20 anni (art. 1158 c.c.) l'usucapione potrebbe essere già completata — serve azione di accertamento. Se non sono ancora 20 anni: si può interrompere con atto formale (azione di reintegrazione, diffida formale). L'agente deve chiedere da quanto tempo.",
+  "scoringHints": {
+    "prep": "Ha distinto usucapione completata da in corso nella query?",
+    "search": "Ha trovato art. 1158 c.c.?",
+    "quality": "Distingue i due scenari? Chiede da quanto tempo dura la situazione?"
+  },
+  "trapType": "dipende_dal_tempo",
+  "institutes": [
+    "usucapione",
+    "atto_interruttivo",
+    "termine_ventennale"
+  ],
+  "scope": "DIPENDE: se completata (20 anni, art. 1158) = molto difficile. Se in corso = atto interruttivo.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una buona conoscenza degli istituti giuridici pertinenti, come l'usucapione e il termine ventennale. Tuttavia, non ha correttamente identificato la trappola nella domanda, ossia la necessità di sapere da quanto tempo il vicino utilizza il terreno per determinare se l'usucapione sia già completata o meno. Inoltre, non ha chiesto informazioni cruciali come la durata del possesso."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:18:32.215Z"
+}

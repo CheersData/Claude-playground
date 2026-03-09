@@ -1,0 +1,29 @@
+{
+  "testId": "TC31",
+  "question": "Ho ceduto un credito a terzi ma il debitore non lo sa e ha già pagato me. Il pagamento è valido?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl pagamento effettuato al cedente è valido e libera il debitore, a condizione che il debitore non fosse a conoscenza della cessione. Infatti, l'art. 1264 c.c. prevede che il debitore non è liberato dal pagamento al cedente solo se il cessionario dimostra che il debitore era a conoscenza della cessione; in assenza di tale prova, il pagamento al cedente estingue l’obbligazione.\n\nRIFERIMENTI NORMATIVI:\n- Art. 1264 c.c. – \"la cessione ha effetto nei confronti del debitore ceduto quando questi l'ha accettata o quando gli è stata notificata. tuttavia, anche prima della notificazione, il debitore che paga al cedente non è liberato, se il cessionario prova che il debitore medesimo era a conoscenza dell'avvenuta cessione.\"\n\nGIURISPRUDENZA\nNessuna giurisprudenza è presente nel contesto.\n\nIN PRATICA:\nVerifichi se il debitore era stato informato della cessione (ad esempio tramite comunicazione scritta). Se non vi è prova di conoscenza, il pagamento al cedente è efficace; pertanto, il cessionario dovrà agire contro il cedente per il credito non più esigibile.\n\n",
+  "expectedAnswer": "Sì, il pagamento al cedente è liberatorio se il debitore lo ha fatto in buona fede prima di ricevere notifica della cessione (art. 1264 c.c.). Il nuovo creditore (cessionario) dovrà rivalersi sul cedente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 1264 e pagamento liberatorio?",
+    "search": "Ha trovato art. 1264 c.c.?",
+    "quality": "Chiarisce la condizione (prima della notifica) e la buona fede?"
+  },
+  "trapType": null,
+  "institutes": [
+    "cessione_credito",
+    "pagamento_liberatorio",
+    "notifica_cessione"
+  ],
+  "scope": "art. 1264 c.c.: pagamento al cedente è liberatorio se avvenuto prima della notifica della cessione",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 27,
+    "quality": 35,
+    "total": 87,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha citato l'art. 1264 c.c. pertinente. La risposta è accurata e completa, senza invenzioni, e spiega le condizioni di liberazione del debitore. Il punteggio complessivo supera la soglia di 80."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:56:14.386Z"
+}

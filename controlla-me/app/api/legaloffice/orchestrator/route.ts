@@ -13,6 +13,7 @@ import { sessionTierStore, type SessionTierContext, type TierName } from "@/lib/
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 export const maxDuration = 120;
 
@@ -52,7 +53,13 @@ export async function POST(req: NextRequest) {
         phase: string,
         status: "running" | "done" | "error",
         extra?: Record<string, unknown>
-      ) => send("agent", { phase, status, ...extra });
+      ) => {
+        send("agent", { phase, status, ...extra });
+        // Broadcast to AgentDots in /ops
+        broadcastConsoleAgent(phase, status, {
+          task: extra?.summary as string ?? `Legal Q&A: ${phase}`,
+        });
+      };
 
       // Parse body
       let body: {

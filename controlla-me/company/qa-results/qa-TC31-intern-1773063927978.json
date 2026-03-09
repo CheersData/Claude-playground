@@ -1,0 +1,29 @@
+{
+  "testId": "TC31",
+  "question": "Ho ceduto un credito a terzi ma il debitore non lo sa e ha già pagato me. Il pagamento è valido?",
+  "agentAnswer": "Il pagamento effettuato dal debitore ceduto al cedente prima della notificazione della cessione non è valido se il cessionario prova che il debitore medesimo era a conoscenza dell'avvenuta cessione. Tuttavia, se il debitore ha pagato in buona fede, il pagamento è valido. \n\n Riferimenti normativi: L'Art. 1264 del Codice Civile stabilisce che la cessione ha effetto nei confronti del debitore ceduto quando questi l'ha accettata o quando gli è stata notificata. Inoltre, il medesimo articolo prevede che il debitore che paga al cedente non è liberato se il cessionario prova che il debitore medesimo era a conoscenza dell'avvenuta cessione. \n\n In pratica: Il cessionario deve provare che il debitore era a conoscenza della cessione per poter considerare non valido il pagamento effettuato dal debitore al cedente. Se il debitore ha pagato in buona fede, il pagamento è considerato valido.",
+  "expectedAnswer": "Sì, il pagamento al cedente è liberatorio se il debitore lo ha fatto in buona fede prima di ricevere notifica della cessione (art. 1264 c.c.). Il nuovo creditore (cessionario) dovrà rivalersi sul cedente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 1264 e pagamento liberatorio?",
+    "search": "Ha trovato art. 1264 c.c.?",
+    "quality": "Chiarisce la condizione (prima della notifica) e la buona fede?"
+  },
+  "trapType": null,
+  "institutes": [
+    "cessione_credito",
+    "pagamento_liberatorio",
+    "notifica_cessione"
+  ],
+  "scope": "art. 1264 c.c.: pagamento al cedente è liberatorio se avvenuto prima della notifica della cessione",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente dimostra una buona comprensione dell'art. 1264 c.c. e dei concetti giuridici relativi alla cessione di credito e al pagamento liberatorio. La risposta chiarisce correttamente la condizione del pagamento effettuato prima della notifica della cessione e il ruolo della buona fede del debitore. Tuttavia, la formulazione è leggermente più complessa di quanto necessario."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:41:51.424Z"
+}

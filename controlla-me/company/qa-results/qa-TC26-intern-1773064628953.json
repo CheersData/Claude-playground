@@ -1,0 +1,29 @@
+{
+  "testId": "TC26",
+  "question": "Quanto possono pignorare del mio stipendio?",
+  "agentAnswer": "Il pignoramento del tuo stipendio può avvenire solo entro certi limiti. Secondo l'Art. 545 del Codice di Procedura Civile, le somme dovute a titolo di stipendio, salario o altre indennità relative al rapporto di lavoro o di impiego possono essere pignorate per crediti alimentari nella misura autorizzata dal presidente del tribunale o da un giudice da lui delegato. Inoltre, tali somme possono essere pignorate nella misura di un quinto per i tributi dovuti allo Stato, alle province e ai comuni, ed in eguale misura per ogni altro credito. Il pignoramento per il simultaneo concorso delle cause indicate precedentemente non può estendersi oltre la metà dell'ammontare delle somme predette.\n\nRiferimenti normativi: L'Art. 545 del Codice di Procedura Civile disciplina i limiti del pignoramento sullo stipendio. Inoltre, l'Art. 546 del Codice di Procedura Civile specifica gli obblighi del terzo pignorato in caso di accredito su conto bancario o postale intestato al debitore.\n\nIn pratica: Per evitare il pignoramento dello stipendio, è importante essere tempestivi nel pagamento dei debiti e cercare di trovare un accordo con i creditori. Se il pignoramento è già stato eseguito, è possibile chiedere la riduzione del pignoramento o la sospensione dello stesso. È consigliabile consultare un avvocato per valutare la possibilità di opporsi al pignoramento o di trovare alternative per il pagamento dei debiti.",
+  "expectedAnswer": "Per crediti ordinari: massimo 1/5. Per crediti alimentari: 1/3. In caso di concorso: massimo 1/2. Fonte: art. 545 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 545 e pignoramento stipendio?",
+    "search": "Ha trovato art. 545 c.p.c.?",
+    "quality": "Distingue i tre casi (ordinari/alimentari/concorso)? Cita correttamente le frazioni?"
+  },
+  "trapType": null,
+  "institutes": [
+    "pignoramento_stipendio",
+    "limiti_pignorabilità",
+    "art_545_cpc"
+  ],
+  "scope": "art. 545 c.p.c.: 1/5 crediti ordinari, 1/3 crediti alimentari, max 1/2 concorso",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 27,
+    "quality": 38,
+    "total": 90,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema del pignoramento dello stipendio e ha citato l'art. 545 c.p.c. con le frazioni richieste (1/5, 1/3, 1/2). Ha recuperato la norma pertinente senza inventare disposizioni e ha fornito una risposta accurata e completa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:53:53.983Z"
+}

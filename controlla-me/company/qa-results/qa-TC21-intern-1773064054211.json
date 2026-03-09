@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "La situazione descritta potrebbe rientrare nel caso di omesso esame di un fatto decisivo, ma la norma specifica che disciplina questo aspetto è l'Art. 360, n. 5, c.p.c. Tuttavia, il contesto fornito non contiene informazioni sufficienti per determinare se la decisione del giudice di primo grado sia stata basata su una questione non sollevata dalle parti e se questo costituisca un motivo di impugnazione valido.\n\nRiferimenti normativi: L'Art. 360 c.p.c. disciplina i motivi di ricorso per cassazione, ma il contesto non fornisce informazioni dirette sulla possibilità di impugnare una sentenza per una questione non sollevata dalle parti.\n\nIn pratica: La parte interessata dovrebbe consultare un avvocato per valutare la possibilità di impugnare la sentenza di primo grado. La valutazione dell'omesso esame di un fatto decisivo richiede un'analisi approfondita del caso e della normativa applicabile.",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 12,
+    "quality": 12,
+    "total": 39,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha compreso in parte il tema, ma non ha formulato correttamente la distinzione tra ultrapetizione ed extrapetizione e cita l'art. 360 n.5 anziché il n.4. La ricerca di norme è parziale e imprecisa, e la risposta manca di completezza e accuratezza richieste."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:44:22.761Z"
+}

@@ -39,7 +39,7 @@ export default function ReasoningGraph({
   return (
     <div className="rounded-xl border border-[#F0F0F0] px-4 py-3">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] text-[#9B9B9B] tracking-[2px] uppercase font-medium">
+        <span className="text-[10px] text-[#767676] tracking-[2px] uppercase font-medium">
           Istituti rilevati
         </span>
         {questionType === "systematic" && (
@@ -69,6 +69,7 @@ export default function ReasoningGraph({
                 <span
                   className="inline-block w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: color }}
+                  aria-hidden="true"
                 />
                 {formatInstitute(inst)}
               </motion.span>
@@ -99,7 +100,7 @@ export default function ReasoningGraph({
             )}
           </div>
           {scopeNotes && (
-            <p className="text-[10px] text-[#9B9B9B] mt-1 italic">{scopeNotes}</p>
+            <p className="text-[10px] text-[#767676] mt-1 italic">{scopeNotes}</p>
           )}
         </motion.div>
       )}

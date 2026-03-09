@@ -1,0 +1,29 @@
+{
+  "testId": "TC38",
+  "question": "Ho sentito parlare di risoluzione, recesso e rescissione del contratto. Sono la stessa cosa?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLe istituzioni di \"risoluzione\", \"recesso\" e \"rescissione\" non sono sinonimi: ciascuna è disciplinata da norme specifiche e comporta effetti giuridici differenti. Il recesso è la facoltà di una parte di porre fine al contratto in base a una clausola o a una disposizione di legge (art. 1373 c.c., art. 2119 c.c., art. 1833 c.c., art. 2237 c.c., art. 1539 c.c., art. 1386 c.c., art. 120‑bis TUB). La risoluzione è il meccanismo che si attiva per inadempimento o per clausola risolutiva espressa, con effetti retroattivi o limitati a seconda del tipo di contratto (art. 1517 c.c., art. 1456 c.c., art. 1453 c.c., art. 1458 c.c., art. 1455 c.c., art. 1457 c.c., art. 1459 c.c.). La rescissione è l'azione di annullamento del contratto per lesione grave o per stato di pericolo, con effetti sulla validità del contratto ma non sui diritti dei terzi (art. 1448 c.c., art. 1447 c.c.).\n\nRIFERIMENTI NORMATIVI\n- Art. 1373 c.c. (recesso unilaterale): disciplina la facoltà di recedere prima dell'esecuzione o, nei contratti a esecuzione continuata, anche successivamente, salvo patto contrario.\n- Art. 2119 c.c. (recesso per giusta causa): prevede il recesso per cause che impediscono la prosecuzione del rapporto.\n- Art. 1833 c.c. (recesso dal contratto): indica le modalità di preavviso per contratti a tempo indeterminato.\n- Art. 2237 c.c. (recesso): disciplina il recesso del cliente e del prestatore d'opera con rimborso delle spese.\n- Art. 1539 c.c. (recesso dal contratto): obbliga il venditore a restituire il prezzo e le spese.\n- Art. 1386 c.c. (caparra penitenziale): disciplina la caparra in caso di recesso.\n- Art. 120‑bis TUB (recesso): prevede il diritto del cliente di recedere da contratti a tempo indeterminato senza penali.\n- Art. 1517 c.c. (risoluzione di diritto): la risoluzione ha luogo di diritto a favore del contraente che ha offerto la prestazione entro il termine.\n- Art. 1456 c.c. (clausola risolutiva espressa): le parti possono convenire una clausola che risolve il contratto per inadempimento.\n- Art. 1453 c.c. (risolubilità per inadempimento): il contraente può scegliere tra adempimento o risoluzione.\n- Art. 1458 c.c. (effetti della risoluzione): la risoluzione ha effetto retroattivo, salvo contratti a esecuzione continuata.\n- Art. 1455 c.c. (importanza dell'inadempimento): la risoluzione non è ammessa se l'inadempimento è di scarsa importanza.\n- Art. 1457 c.c. (termine essenziale): disciplina la risoluzione per mancato rispetto di termini essenziali.\n- Art. 1459 c.c. (risoluzione nel contratto plurilaterale): prevede la risoluzione solo per la parte inadempiente.\n- Art. 1448 c.c. (azione di rescissione per lesione): consente la rescissione per sproporzione lesiva della prestazione.\n- Art. 1447 c.c. (contratto concluso in stato di pericolo): permette la rescissione per obbligazioni inique assunte in stato di pericolo.\n- Art. 1367 c.c. (conservazione del contratto): indica che, in dubbio, le clausole vanno interpretate in modo da avere effetto.\n- Art. 1363 c.c. (interpretazione complessiva delle clausole): le clausole si interpretano con riferimento reciproco.\n\nIN PRATICA\nPer capire quale istituto si applica al tuo caso, verifica innanzitutto se il contratto contiene una clausola di \"recesso\" (es. art. 1373 c.c.) e, in tal caso, rispetta i termini di preavviso e le eventuali penali previste. Se manca una clausola di recesso ma il contratto prevede una \"clausola risolutiva espressa\" o si è verificato un inadempimento, applica le regole di risoluzione (art. 1456 c.c., art. 1453 c.c.). Qualora vi siano elementi di lesione grave o di stato di pericolo, valuta la possibilità di rescissione secondo gli artt. 1448 e 1447 c.c., tenendo conto della necessità di dimostrare la sproporzione o l'iniquità. In tutti i casi, interpreta le clausole secondo gli artt. 1367 e 1363 c.c. per determinare il significato più favorevole alle parti.\n\nORIENTAMENTI GIURISPRUDENZIALI\nNessun riferimento giurisprudenziale è presente nel contesto fornito.",
+  "expectedAnswer": "KILLER: sono tre istituti distinti. Risoluzione: causa sopravvenuta (inadempimento, impossibilità, eccessiva onerosità) art. 1453. Recesso: volontà unilaterale di uscire dal contratto art. 1373. Rescissione: squilibrio esistente AL MOMENTO della conclusione (pericolo/lesione) art. 1447-1448.",
+  "scoringHints": {
+    "prep": "Ha formulato query su tutti e 3 gli istituti separatamente?",
+    "search": "Ha trovato artt. 1453, 1373, 1447-1448?",
+    "quality": "Distingue chiaramente i presupposti di ciascun istituto? Non li confonde tra loro?"
+  },
+  "trapType": "confusione_istituti",
+  "institutes": [
+    "risoluzione",
+    "recesso",
+    "rescissione"
+  ],
+  "scope": "Tre istituti distinti: risoluzione (inadempimento, art.1453), recesso (volontà unilaterale, art.1373), rescissione (squilibrio originario, art.1447-1448)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 35,
+    "total": 90,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente i tre istituti e ha fornito una distinzione chiara tra risoluzione, recesso e rescissione, citando gli articoli fondamentali (1453, 1373, 1447‑1448). Ha inoltre recuperato numerosi articoli pertinenti, sebbene alcuni fossero superflui, ma non ha inventato norme inesistenti. La risposta è accurata, completa e priva di falsità, meritando un punteggio elevato."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:58:31.211Z"
+}

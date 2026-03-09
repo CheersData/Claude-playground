@@ -1,0 +1,29 @@
+{
+  "testId": "TC35",
+  "question": "Ho comprato un'auto con la clausola 'vista e piaciuta'. Il motore è rotto. Non posso fare niente?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl compratore di un’automobile con clausola “vista e piaciuta” può comunque far valere la garanzia per i vizi della cosa. La clausola non esclude la responsabilità del venditore se il vizio (il motore rotto) era occulto o non è stato comunicato in buona fede.\n\nRIFERIMENTI NORMATIVI\nArt. 1490 c.c. (ID: 85ebe56a-db57-424e-867b-aa03d626661d): il venditore è tenuto a garantire che la cosa sia immune da vizi che la rendano inidonea all’uso o ne diminuiscano il valore; il patto di esclusione è inefficace se il venditore ha taciuto il vizio in mala fede.\nArt. 1491 c.c. (ID: 1484281c-2240-49cc-860b-e991cb1004b9): la garanzia non è dovuta se il compratore conosceva i vizi o erano facilmente riconoscibili, salvo che il venditore abbia dichiarato la cosa esente da vizi.\nArt. 1492 c.c. (ID: 95322b6d-45be-474f-83d8-604c240fcf9d): il compratore può domandare, a sua scelta, la risoluzione del contratto o la riduzione del prezzo.\nArt. 1495 c.c. (ID: 9e3cc339-90a8-4345-a705-431da3e12496): il compratore deve denunciare i vizi entro otto giorni dalla scoperta; l’azione si prescrive in un anno.\nArt. 135-bis c.c. (ID: 1484281c-2240-49cc-860b-e991cb1004b9): il consumatore ha diritto al ripristino della conformità, alla riduzione proporzionale del prezzo o alla risoluzione del contratto.\nArt. 135-sexies c.c. (ID: 067ecac8-dc6d-46f9-90ad-17cebc5efc95): è nullo qualsiasi patto che escluda o limiti i diritti del consumatore, anche se precedente alla comunicazione del difetto.\n\nIN PRATICA\nInvii al venditore, entro otto giorni dalla scoperta del motore rotto, una comunicazione scritta di denuncia del vizio, chiedendo la riparazione o, in alternativa, la riduzione del prezzo o la risoluzione del contratto ai sensi degli art. 1490, 1492 e 135-bis c.c. Se il venditore rifiuta, potrai agire in giudizio per ottenere la risoluzione o il risarcimento, facendo valere la nullità della clausola “vista e piaciuta” ai sensi dell’art. 135‑sexies.",
+  "expectedAnswer": "TRAPPOLA: 'vista e piaciuta' esclude solo i vizi APPARENTI (visibili all'ispezione). NON esclude i vizi occulti (come un motore difettoso non visibile). Se il venditore conosceva il difetto (dolo), la clausola è nulla per art. 1491 c.c. e si può agire per risoluzione o riduzione del prezzo.",
+  "scoringHints": {
+    "prep": "Ha distinto tra vizi apparenti e occulti nella query?",
+    "search": "Ha trovato art. 1491 c.c.?",
+    "quality": "Distingue chiaramente apparenti/occulti? Menziona il dolo come causa di nullità?"
+  },
+  "trapType": "falsa_esclusione",
+  "institutes": [
+    "vista_e_piaciuta",
+    "vizi_occulti",
+    "esclusione_garanzia"
+  ],
+  "scope": "art. 1491: esclude vizi apparenti ma NON occulti. Con dolo del venditore = clausola nulla.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 24,
+    "quality": 9,
+    "total": 60,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente la questione e ha citato gli articoli pertinenti, ma ha introdotto riferimenti normativi inventati (ID fittizi e articoli 135-bis/135-sexies non esistenti), riducendo notevolmente la qualità della risposta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:57:25.298Z"
+}

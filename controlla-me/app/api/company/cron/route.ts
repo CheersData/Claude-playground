@@ -14,6 +14,7 @@ import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 const STALE_DAYS = 7;
 const SYNC_GAP_DAYS = 7;
@@ -36,6 +37,8 @@ export async function POST(req: NextRequest) {
   const alerts: string[] = [];
 
   try {
+    broadcastConsoleAgent("cron-monitor", "running", { task: "Controlli periodici" });
+
     // 1. Stale tasks
     const openTasks = await getOpenTasks({ status: "open" });
     const now = Date.now();
@@ -90,12 +93,17 @@ export async function POST(req: NextRequest) {
       alerts.push(`daily cost $${costs.total.toFixed(2)}`);
     }
 
+    broadcastConsoleAgent("cron-monitor", "done", {
+      task: alerts.length > 0 ? `${alerts.length} alert: ${alerts.join(", ")}` : "Nessun alert",
+    });
+
     return NextResponse.json({
       ok: true,
       alerts,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    broadcastConsoleAgent("cron-monitor", "error", { task: "Errore cron" });
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -1,0 +1,29 @@
+{
+  "testId": "TC28",
+  "question": "La controparte non si è presentata alla mediazione obbligatoria. Cosa succede?",
+  "agentAnswer": "La mancata partecipazione senza giustificato motivo al primo incontro del procedimento di mediazione può comportare conseguenze processuali. Il giudice può desumere argomenti di prova nel successivo giudizio e, se la mediazione costituisce condizione di procedibilità, può condannare la parte costituita che non ha partecipato al primo incontro senza giustificato motivo al versamento di una somma di importo corrispondente al doppio del contributo unificato dovuto per il giudizio.\n\nRiferimenti normativi: L'articolo 12-bis del D.Lgs. 28/2010 disciplina le conseguenze processuali della mancata partecipazione al procedimento di mediazione. Inoltre, l'articolo 5 del D.Lgs. 28/2010 stabilisce che l'esperimento del procedimento di mediazione è condizione di procedibilità della domanda giudiziale in determinate materie.\n\nIn pratica: Se la controparte non si è presentata alla mediazione obbligatoria, è possibile che il giudice le infligga una sanzione pecuniaria e che la domanda giudiziale sia dichiarata improcedibile fino a quando la mediazione non sarà stata esperita.",
+  "expectedAnswer": "L'assenza ingiustificata comporta: sanzione pecuniaria fino a €250 verso lo Stato, e il giudice può trarre argomenti di prova dall'assenza (art. 8 co. 4-bis D.Lgs. 28/2010).",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 8 D.Lgs. 28/2010 e conseguenze assenza?",
+    "search": "Ha trovato art. 8 co. 4-bis D.Lgs. 28/2010?",
+    "quality": "Menziona entrambe le conseguenze (sanzione + argomento prova)?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mediazione_obbligatoria",
+    "sanzione_assenza",
+    "argomento_prova"
+  ],
+  "scope": "art. 8 co. 4-bis D.Lgs. 28/2010: sanzione pecuniaria + argomento di prova",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 30,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente affronta il tema giuridico correttamente, menzionando le conseguenze processuali della mancata partecipazione alla mediazione obbligatoria. Tuttavia, non cita esplicitamente l'art. 8 co. 4-bis D.Lgs. 28/2010 nella sua risposta e omette alcuni dettagli precisi sulla sanzione pecuniaria."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:00:55.864Z"
+}

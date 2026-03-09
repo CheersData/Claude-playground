@@ -1,0 +1,29 @@
+{
+  "testId": "TC57",
+  "question": "Un minorenne ha firmato un contratto da solo. Il contratto è nullo?",
+  "agentAnswer": "Sì, il contratto firmato da un minorenne senza la presenza di un rappresentante legale è nullo.\n\nRiferimenti normativi:\n- Art. 1425 c.c.: il contratto è annullabile se una delle parti era legalmente incapace di contrattare.\n- Art. 2 c.c.: la maggiore età è fissata al compimento del diciottesimo anno; con la maggiore età si acquista la capacità di compiere tutti gli atti per i quali non sia stabilita un'età diversa.\n\nGiurisprudenza e approfondimenti:\nNon sono presenti nel contesto normativo.\n\nIn pratica:\nIl minorenne non ha la capacità legale per stipulare contratti. Tuttavia, in alcuni casi specifici previsti dalla legge, come nel matrimonio, il minore può avere una capacità speciale limitata (Art. 165 c.c.).\n\nLa nullità del contratto può essere fatta valere da chiunque vi ha interesse e può essere rilevata d'ufficio dal giudice (Art. 1421 c.c.).",
+  "expectedAnswer": "TRAPPOLA: il contratto è ANNULLABILE (non nullo). Art. 1425 c.c.: i contratti conclusi da minorenni senza rappresentante legale sono annullabili, non nulli. Eccezione (art. 1426): se il minore ha dolosamente taciuto la sua età, il contratto non è annullabile.",
+  "scoringHints": {
+    "prep": "Ha distinto nullità da annullabilità nella query?",
+    "search": "Ha trovato artt. 1425 e 1426 c.c.?",
+    "quality": "Usa 'annullabile' e NON 'nullo'? Menziona l'eccezione del raggiro (art. 1426)?"
+  },
+  "trapType": "falsa_nullità",
+  "institutes": [
+    "incapacità_legale",
+    "annullabilità_contratto",
+    "minorenne"
+  ],
+  "scope": "TRAPPOLA: ANNULLABILE (art. 1425) non nullo. Se ha raggirato = non annullabile (art. 1426).",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 10,
+    "quality": 5,
+    "total": 20,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha distinto correttamente la nullità dall'annullabilità nella risposta, utilizzando erroneamente il termine 'nullo' al posto di 'annullabile'. Non ha menzionato l'eccezione prevista dall'art. 1426 c.c. in caso di raggiro. La risposta non soddisfa i criteri specifici richiesti."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:13:21.630Z"
+}

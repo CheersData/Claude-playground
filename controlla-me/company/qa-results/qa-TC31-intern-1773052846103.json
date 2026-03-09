@@ -1,0 +1,29 @@
+{
+  "testId": "TC31",
+  "question": "Ho ceduto un credito a terzi ma il debitore non lo sa e ha gia pagato me. Il pagamento e valido?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl pagamento effettuato dal debitore al cedente è valido e libera il debitore dal credito, a meno che il cessionario riesca a dimostrare che il debitore era a conoscenza della cessione.\n\nRIFERIMENTI NORMATIVI:\n- Art. 1264 c.c. (ID: 7e8ade92-d3fc-42ca-925b-1fda14113bcc): la cessione ha effetto nei confronti del debitore quando è accettata o notificata; tuttavia, \"il debitore che paga al cedente non è liberato, se il cessionario prova che il debitore medesimo era a conoscenza dell'avvenuta cessione\".\n- Art. 1260 c.c. (ID: 6c741279-4cee-4fe2-80d4-8f124614c00b): disciplina la cedibilità del credito e la possibilità di escluderla per patto; conferma che la cessione è valida anche se il debitore non è informato, salvo prova contraria di conoscenza.\n\nIN PRATICA:\nSe il debitore ha pagato il cedente senza sapere della cessione, il pagamento è efficace. Il cessionario dovrà richiedere al cedente la restituzione dell'importo pagato, dimostrando la buona fede del debitore. Per evitare futuri contenziosi, notifichi formalmente la cessione al debitore (ad esempio mediante raccomandata con ricevuta di ritorno) prima di esigere il pagamento.\n\nORIENTAMENTI GIURISPRUDENZIALI:\nNessun orientamento giurisprudenziale è presente nel contesto.\n",
+  "expectedAnswer": "Sì, il pagamento al cedente è liberatorio se il debitore lo ha fatto in buona fede prima di ricevere notifica della cessione (art. 1264 c.c.). Il nuovo creditore (cessionario) dovrà rivalersi sul cedente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 1264 e pagamento liberatorio?",
+    "search": "Ha trovato art. 1264 c.c.?",
+    "quality": "Chiarisce la condizione (prima della notifica) e la buona fede?"
+  },
+  "trapType": null,
+  "institutes": [
+    "cessione_credito",
+    "pagamento_liberatorio",
+    "notifica_cessione"
+  ],
+  "scope": "art. 1264 c.c.: pagamento al cedente è liberatorio se avvenuto prima della notifica della cessione",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 38,
+    "total": 93,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema della cessione del credito e ha citato gli articoli pertinenti (1264 c.c. e 1260 c.c.). La risposta è accurata, completa e non contiene invenzioni, spiegando la liberazione del debitore in buona fede prima della notifica e il diritto del cessionario di rivalersi sul cedente."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:39:58.867Z"
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Send, Square, RefreshCw, AlertCircle } from "lucide-react";
+import { X, Send, Square, RefreshCw, AlertCircle, Paperclip } from "lucide-react";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";
 import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
@@ -52,6 +52,8 @@ interface DashboardData {
 interface CompanyPanelProps {
   open: boolean;
   onClose: () => void;
+  /** When true: no top bar, always open, fills parent space */
+  embedded?: boolean;
 }
 
 // ── Constants ──
@@ -85,7 +87,7 @@ const DEPT_NAMES: Record<string, string> = {
 
 // ── Component ──
 
-export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
+export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelProps) {
   const [target, setTarget] = useState<TargetKey>("cme");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -100,12 +102,60 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
   const [debugLog, setDebugLog] = useState<Array<{ type: string; msg: string; ts: number }>>([]);
   const [showDebug, setShowDebug] = useState(true);
   const [_childPid, setChildPid] = useState<number | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // debugEndRef removed — newest debug entries are at top, no auto-scroll
   const fullTextRef = useRef("");
 
   // No auto-scroll needed — newest messages and debug entries are always at top
+
+  // Clipboard paste handler (images)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const blob = item.getAsFile();
+          if (blob) {
+            const imageFile = new File([blob], `screenshot-${Date.now()}.png`, { type: blob.type });
+            setFile(imageFile);
+            setFilePreview(URL.createObjectURL(imageFile));
+          }
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, []);
+
+  // File input change handler
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      if (selected.type.startsWith("image/")) {
+        setFilePreview(URL.createObjectURL(selected));
+      } else {
+        setFilePreview(null);
+      }
+    }
+    e.target.value = "";
+  }, []);
+
+  // Remove attached file
+  const removeFile = useCallback(() => {
+    setFile(null);
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+      setFilePreview(null);
+    }
+  }, [filePreview]);
 
   // Focus input when panel opens
   useEffect(() => {
@@ -140,7 +190,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
 
   // Init on first open — fetch dashboard only, no auto-message
   useEffect(() => {
-    if (open && !initialized) {
+    if ((open || embedded) && !initialized) {
       setInitialized(true);
       fetchDashboard();
     }
@@ -149,10 +199,10 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
 
   // Auto-refresh dashboard every 60 seconds while open (silent — no error noise)
   useEffect(() => {
-    if (!open) return;
+    if (!open && !embedded) return;
     const interval = setInterval(() => fetchDashboard(true), 60_000);
     return () => clearInterval(interval);
-  }, [open, fetchDashboard]);
+  }, [open, embedded, fetchDashboard]);
 
   // ── Start a new interactive session ──
   const startSession = async (text: string, isAuto = false, overrideTarget?: TargetKey) => {
@@ -385,15 +435,34 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
   };
 
   // ── Main send handler ──
-  const sendMessage = (text: string, isAuto = false) => {
-    if (!text.trim()) return;
+  const sendMessage = async (text: string, isAuto = false) => {
+    if (!text.trim() && !file) return;
+
+    // Build message text with file info
+    let messageText = text.trim();
+    if (file) {
+      if (file.type.startsWith("image/")) {
+        messageText = `${messageText}${messageText ? " " : ""}[📎 Immagine allegata: ${file.name}]`;
+      } else {
+        try {
+          const fileContent = await file.text();
+          messageText = `${messageText}${messageText ? "\n\n" : ""}[📎 ${file.name}]\n${fileContent}`;
+        } catch {
+          messageText = `${messageText}${messageText ? " " : ""}[📎 ${file.name}]`;
+        }
+      }
+      setFile(null);
+      setFilePreview(null);
+    }
+
+    if (!messageText.trim()) return;
 
     if (sessionId && !isAuto) {
       // Follow-up to existing session
-      sendFollowUp(text);
+      sendFollowUp(messageText);
     } else {
       // New session
-      startSession(text, isAuto);
+      startSession(messageText, isAuto);
     }
   };
 
@@ -434,7 +503,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     }, 100);
   };
 
-  if (!open) return null;
+  if (!open && !embedded) return null;
 
   // In-progress tasks — dedicated array from API (all tasks, not just recent)
   const inProgressTasks = dashboard?.board?.inProgress ?? [];
@@ -443,36 +512,38 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[#E5E5E5]">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-[#1A1A1A]">Company</span>
-          <span className="text-[10px] text-[#9B9B9B]">
-            {TARGETS.find((t) => t.key === target)?.label}
-          </span>
-          {responding && (
-            <span className="text-[10px] text-amber-500 animate-pulse">
-              Claude Code in esecuzione...
+      {/* Top bar — hidden when embedded */}
+      {!embedded && (
+        <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-dark-subtle)]">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-[var(--fg-primary)]">Company</span>
+            <span className="text-[10px] text-[var(--fg-muted)]">
+              {TARGETS.find((t) => t.key === target)?.label}
             </span>
-          )}
-          {sessionId && !responding && (
-            <span className="text-[10px] text-emerald-500">
-              Sessione attiva
-            </span>
-          )}
+            {responding && (
+              <span className="text-[10px] text-[var(--identity-gold)] animate-pulse">
+                Claude Code in esecuzione...
+              </span>
+            )}
+            {sessionId && !responding && (
+              <span className="text-[10px] text-[var(--success)]">
+                Sessione attiva
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+      )}
 
       {/* Two-column layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: Dashboard sidebar ── */}
-        <aside className="w-64 border-r border-[#E5E5E5] overflow-y-auto p-4 space-y-5 hidden md:block">
+        <aside className="w-64 border-r border-[var(--border-dark-subtle)] overflow-y-auto p-4 space-y-5 hidden md:block">
           {/* DA APPROVARE — review tasks awaiting boss approval */}
           {reviewTasks.length > 0 && (
             <DashboardSection title={`Da Approvare (${reviewTasks.length})`}>
@@ -482,12 +553,12 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                     key={task.id}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                    className="cursor-pointer w-full flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors text-left"
+                    className="cursor-pointer w-full flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg bg-[rgba(255,200,50,0.1)] border border-[rgba(255,200,50,0.2)] hover:bg-[rgba(255,200,50,0.15)] transition-colors text-left"
                   >
-                    <AlertCircle className="w-[10px] h-[10px] text-amber-500 mt-0.5 shrink-0" />
+                    <AlertCircle className="w-[10px] h-[10px] text-[var(--identity-gold)] mt-0.5 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[#1A1A1A] truncate font-medium">{task.title}</p>
-                      <p className="text-[#9B9B9B] text-[10px]">
+                      <p className="text-[var(--fg-primary)] truncate font-medium">{task.title}</p>
+                      <p className="text-[var(--fg-muted)] text-[10px]">
                         {DEPT_NAMES[task.department] ?? task.department}
                       </p>
                     </div>
@@ -506,31 +577,31 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                     key={task.id}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                    className="cursor-pointer w-full flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg hover:bg-[#F5F5F5] transition-colors text-left"
+                    className="cursor-pointer w-full flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg hover:bg-[var(--bg-overlay)] transition-colors text-left"
                   >
-                    <span className="w-[6px] h-[6px] rounded-full bg-blue-400 animate-pulse mt-1 shrink-0" />
+                    <span className="w-[6px] h-[6px] rounded-full bg-[var(--info)] animate-pulse mt-1 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[#1A1A1A] truncate font-medium">{task.title}</p>
-                      <p className="text-[#9B9B9B] text-[10px]">
+                      <p className="text-[var(--fg-primary)] truncate font-medium">{task.title}</p>
+                      <p className="text-[var(--fg-muted)] text-[10px]">
                         {DEPT_NAMES[task.department] ?? task.department}
-                        {task.assignedTo && <> · <span className="text-blue-400">{task.assignedTo}</span></>}
+                        {task.assignedTo && <> · <span className="text-[var(--info)]">{task.assignedTo}</span></>}
                       </p>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <span className="text-[10px] text-[#C0C0C0]">Nessun task attivo</span>
+              <span className="text-[10px] text-[var(--fg-invisible)]">Nessun task attivo</span>
             )}
           </DashboardSection>
 
           <DashboardSection title="Task Board" loading={dashLoading}>
             {dashboard?.board ? (
               <div className="grid grid-cols-2 gap-1 text-[11px]">
-                <StatusBadge label="Open" count={dashboard.board.byStatus.open ?? 0} color="#1A1A1A" onClick={() => setExpandedStatus("open")} />
-                <StatusBadge label="In Prog" count={dashboard.board.byStatus.in_progress ?? 0} color="#3B82F6" onClick={() => setExpandedStatus("in_progress")} />
-                <StatusBadge label="Review" count={dashboard.board.byStatus.review ?? 0} color="#F59E0B" onClick={() => setExpandedStatus("review")} />
-                <StatusBadge label="Done" count={dashboard.board.byStatus.done ?? 0} color="#22C55E" onClick={() => setExpandedStatus("done")} />
+                <StatusBadge label="Open" count={dashboard.board.byStatus.open ?? 0} color="var(--fg-primary)" onClick={() => setExpandedStatus("open")} />
+                <StatusBadge label="In Prog" count={dashboard.board.byStatus.in_progress ?? 0} color="var(--info)" onClick={() => setExpandedStatus("in_progress")} />
+                <StatusBadge label="Review" count={dashboard.board.byStatus.review ?? 0} color="var(--identity-gold)" onClick={() => setExpandedStatus("review")} />
+                <StatusBadge label="Done" count={dashboard.board.byStatus.done ?? 0} color="var(--success)" onClick={() => setExpandedStatus("done")} />
               </div>
             ) : (
               <NoData />
@@ -547,17 +618,17 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                     <span
                       className={`w-[6px] h-[6px] rounded-full shrink-0 ${
                         info.inProgress > 0
-                          ? "bg-blue-400 animate-pulse"
+                          ? "bg-[var(--info)] animate-pulse"
                           : info.open > 0
-                            ? "bg-amber-400"
-                            : "bg-emerald-400"
+                            ? "bg-[var(--identity-gold)]"
+                            : "bg-[var(--success)]"
                       }`}
                     />
                   );
                   const counter = (
-                    <span className={isActive ? "text-zinc-300" : "text-[#9B9B9B]"}>
+                    <span className={isActive ? "text-[var(--fg-secondary)]" : "text-[var(--fg-muted)]"}>
                       {info.inProgress > 0 && (
-                        <span className={`${isActive ? "text-blue-300" : "text-blue-400"} mr-1`}>{info.inProgress}&#9654;</span>
+                        <span className={`${isActive ? "text-[var(--info-bright)]" : "text-[var(--info)]"} mr-1`}>{info.inProgress}&#9654;</span>
                       )}
                       {info.open}o/{info.done}d
                     </span>
@@ -571,13 +642,13 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                         disabled={responding}
                         className={`w-full flex items-center justify-between text-[11px] px-1.5 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 ${
                           isActive
-                            ? "bg-[#1A1A1A] text-white"
-                            : "hover:bg-[#F5F5F5]"
+                            ? "bg-[var(--bg-active)] text-[var(--fg-primary)]"
+                            : "hover:bg-[var(--bg-overlay)]"
                         }`}
                       >
                         <div className="flex items-center gap-1.5">
                           {dot}
-                          <span className={isActive ? "text-white font-medium" : "text-[#6B6B6B]"}>
+                          <span className={isActive ? "text-white font-medium" : "text-[var(--fg-secondary)]"}>
                             {DEPT_NAMES[dept] ?? dept}
                           </span>
                         </div>
@@ -589,7 +660,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                     <div key={dept} className="flex items-center justify-between text-[11px] px-1.5 py-1">
                       <div className="flex items-center gap-1.5">
                         {dot}
-                        <span className="text-[#9B9B9B]">{DEPT_NAMES[dept] ?? dept}</span>
+                        <span className="text-[var(--fg-muted)]">{DEPT_NAMES[dept] ?? dept}</span>
                       </div>
                       {counter}
                     </div>
@@ -605,15 +676,15 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
             {dashboard?.costs ? (
               <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between">
-                  <span className="text-[#6B6B6B]">Totale</span>
-                  <span className="font-medium text-[#1A1A1A]">${dashboard.costs.total.toFixed(4)}</span>
+                  <span className="text-[var(--fg-secondary)]">Totale</span>
+                  <span className="font-medium text-[var(--fg-primary)]">${dashboard.costs.total.toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#6B6B6B]">Chiamate</span>
-                  <span className="text-[#1A1A1A]">{dashboard.costs.calls}</span>
+                  <span className="text-[var(--fg-secondary)]">Chiamate</span>
+                  <span className="text-[var(--fg-primary)]">{dashboard.costs.calls}</span>
                 </div>
                 {Object.entries(dashboard.costs.byProvider).map(([prov, info]) => (
-                  <div key={prov} className="flex justify-between text-[#9B9B9B]">
+                  <div key={prov} className="flex justify-between text-[var(--fg-muted)]">
                     <span>{prov}</span>
                     <span>${info.cost.toFixed(4)}</span>
                   </div>
@@ -628,8 +699,8 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
             {dashboard?.pipeline && dashboard.pipeline.length > 0 ? (
               <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between">
-                  <span className="text-[#6B6B6B]">Fonti</span>
-                  <span className="text-[#1A1A1A]">{dashboard.pipeline.length}</span>
+                  <span className="text-[var(--fg-secondary)]">Fonti</span>
+                  <span className="text-[var(--fg-primary)]">{dashboard.pipeline.length}</span>
                 </div>
                 {(() => {
                   const last = dashboard.pipeline
@@ -641,8 +712,8 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                     )[0];
                   return last?.lastSync?.completedAt ? (
                     <div className="flex justify-between">
-                      <span className="text-[#6B6B6B]">Ultimo sync</span>
-                      <span className="text-[#9B9B9B]">{timeAgo(last.lastSync.completedAt)}</span>
+                      <span className="text-[var(--fg-secondary)]">Ultimo sync</span>
+                      <span className="text-[var(--fg-muted)]">{timeAgo(last.lastSync.completedAt)}</span>
                     </div>
                   ) : null;
                 })()}
@@ -653,8 +724,8 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
           </DashboardSection>
 
           {/* Target selector */}
-          <div className="pt-2 border-t border-[#F0F0F0]">
-            <span className="text-[10px] text-[#9B9B9B] uppercase tracking-wider mb-2 block">
+          <div className="pt-2 border-t border-[var(--border-dark-subtle)]">
+            <span className="text-[10px] text-[var(--fg-muted)] uppercase tracking-wider mb-2 block">
               Parla con
             </span>
             <div className="flex flex-wrap gap-1">
@@ -665,8 +736,8 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                   disabled={responding}
                   className={`text-[10px] px-2 py-1 rounded transition-colors disabled:opacity-50 ${
                     target === t.key
-                      ? "bg-[#1A1A1A] text-white"
-                      : "bg-[#F5F5F5] text-[#6B6B6B] hover:bg-[#EBEBEB]"
+                      ? "bg-[var(--bg-active)] text-[var(--fg-primary)]"
+                      : "bg-[var(--bg-overlay)] text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)]"
                   }`}
                 >
                   {t.short}
@@ -678,7 +749,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
           <button
             onClick={() => fetchDashboard(false)}
             disabled={dashLoading}
-            className="flex items-center gap-1.5 text-[10px] text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
+            className="flex items-center gap-1.5 text-[10px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors"
           >
             <RefreshCw className={`w-3 h-3 ${dashLoading ? "animate-spin" : ""}`} />
             Aggiorna dati
@@ -688,14 +759,14 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
         {/* ── Center: Chat area ── */}
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile target selector */}
-          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-[#F0F0F0] overflow-x-auto md:hidden scrollbar-none">
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-[var(--border-dark-subtle)] overflow-x-auto md:hidden scrollbar-none">
             {TARGETS.map((t) => (
               <button
                 key={t.key}
                 onClick={() => handleTargetChange(t.key)}
                 disabled={responding}
                 className={`text-[11px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors touch-manipulation disabled:opacity-50 ${
-                  target === t.key ? "bg-[#1A1A1A] text-white" : "bg-[#F5F5F5] text-[#6B6B6B]"
+                  target === t.key ? "bg-[var(--bg-active)] text-[var(--fg-primary)]" : "bg-[var(--bg-overlay)] text-[var(--fg-secondary)]"
                 }`}
               >
                 {t.short}
@@ -704,27 +775,63 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
           </div>
 
           {/* Input — at TOP, always visible without scrolling */}
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 border-b border-[#E5E5E5]">
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="text"
-              autoComplete="off"
-              autoCorrect="off"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={
-                responding
-                  ? "Scrivi per interrompere o chiedere altro..."
-                  : `Scrivi a ${TARGETS.find((t) => t.key === target)?.short ?? "CME"}...`
-              }
-              className="flex-1 text-sm text-[#1A1A1A] placeholder:text-[#C0C0C0] bg-transparent outline-none min-w-0"
-            />
+          <form onSubmit={handleSubmit} className="border-b border-[var(--border-dark-subtle)]">
+            {/* File preview */}
+            {file && (
+              <div className="flex items-center gap-2 px-4 md:px-6 pt-3 pb-1">
+                {filePreview ? (
+                  <img src={filePreview} alt={file.name} className="w-10 h-10 rounded object-cover border border-[var(--border-dark-subtle)]" />
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
+                    <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" />
+                    <span className="text-xs text-[var(--fg-secondary)] max-w-[200px] truncate">{file.name}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--fg-primary)] transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-2 px-4 md:px-6 py-3 md:py-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+                accept="image/*,.pdf,.docx,.txt,.json,.csv"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors shrink-0"
+                title="Allega file (o incolla immagine)"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="text"
+                autoComplete="off"
+                autoCorrect="off"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={
+                  responding
+                    ? "Scrivi per interrompere o chiedere altro..."
+                    : `Scrivi a ${TARGETS.find((t) => t.key === target)?.short ?? "CME"}...`
+                }
+                className="flex-1 text-sm text-[var(--fg-primary)] placeholder:text-[var(--fg-invisible)] bg-transparent outline-none min-w-0"
+              />
             {responding && (
               <button
                 type="button"
                 onClick={handleStop}
-                className="flex items-center gap-1.5 px-3 py-2 rounded bg-red-50 text-red-500 hover:bg-red-100 transition-colors text-xs shrink-0 touch-manipulation"
+                className="flex items-center gap-1.5 px-3 py-2 rounded bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 transition-colors text-xs shrink-0 touch-manipulation"
               >
                 <Square className="w-3 h-3 fill-current" />
                 Stop
@@ -732,11 +839,12 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
             )}
             <button
               type="submit"
-              disabled={!input.trim()}
-              className="p-2 -m-1 text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors disabled:opacity-30 shrink-0 touch-manipulation"
+              disabled={!input.trim() && !file}
+              className="p-2 -m-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-30 shrink-0 touch-manipulation"
             >
               <Send className="w-5 h-5 md:w-4 md:h-4" />
             </button>
+            </div>
           </form>
 
           {/* Messages — newest first (reverse chronological) */}
@@ -744,10 +852,10 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
               {/* Waiting indicator — most recent, always on top */}
               {responding && !streaming && (
                 <div className="flex justify-start">
-                  <div className="bg-[#F5F5F5] border border-[#E5E5E5] rounded-xl px-4 py-3">
+                  <div className="bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)] rounded-xl px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-[5px] h-[5px] rounded-full bg-amber-500 animate-pulse" />
-                      <span className="text-[10px] text-[#9B9B9B]">Claude Code in esecuzione...</span>
+                      <span className="w-[5px] h-[5px] rounded-full bg-[var(--identity-gold)] animate-pulse" />
+                      <span className="text-[10px] text-[var(--fg-muted)]">Claude Code in esecuzione...</span>
                     </div>
                   </div>
                 </div>
@@ -756,10 +864,10 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
               {/* Streaming text — current response, on top */}
               {streaming && (
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed bg-[#F5F5F5] text-[#1A1A1A] border border-[#E5E5E5]">
+                  <div className="max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed bg-[var(--bg-overlay)] text-[var(--fg-primary)] border border-[var(--border-dark-subtle)]">
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="w-[5px] h-[5px] rounded-full bg-amber-500 animate-pulse" />
-                      <span className="text-[10px] font-medium text-[#6B6B6B]">
+                      <span className="w-[5px] h-[5px] rounded-full bg-[var(--identity-gold)] animate-pulse" />
+                      <span className="text-[10px] font-medium text-[var(--fg-secondary)]">
                         {TARGETS.find((t) => t.key === target)?.label}
                       </span>
                     </div>
@@ -781,12 +889,12 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
 
         {/* ── Right: Debug Monitor ── */}
         {showDebug ? (
-          <aside className="w-72 border-l border-[#E5E5E5] bg-[#FAFAFA] flex flex-col overflow-hidden hidden lg:flex">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[#E5E5E5]">
-              <span className="text-[10px] text-[#9B9B9B] uppercase tracking-wider">Debug</span>
+          <aside className="w-72 border-l border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] flex flex-col overflow-hidden hidden lg:flex">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-dark-subtle)]">
+              <span className="text-[10px] text-[var(--fg-muted)] uppercase tracking-wider">Debug</span>
               <button
                 onClick={() => setShowDebug(false)}
-                className="text-[#C0C0C0] hover:text-[#6B6B6B] transition-colors"
+                className="text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -794,8 +902,8 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
             <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[10px] space-y-0.5">
                 {/* Waiting indicator — newest, always on top */}
                 {responding && (
-                  <div className="flex gap-1.5 text-amber-400 animate-pulse">
-                    <span className="text-[#C0C0C0] w-10 text-right shrink-0">
+                  <div className="flex gap-1.5 text-[var(--identity-gold)] animate-pulse">
+                    <span className="text-[var(--fg-invisible)] w-10 text-right shrink-0">
                       {debugLog.length > 0
                         ? `+${((Date.now() - debugLog[0].ts) / 1000).toFixed(0)}s`
                         : "..."}
@@ -811,7 +919,7 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                   const { color, icon } = debugStyle(entry.type);
                   return (
                     <div key={origIdx} className={`flex gap-1.5 ${color}`}>
-                      <span className="text-[#C0C0C0] w-10 text-right shrink-0">
+                      <span className="text-[var(--fg-invisible)] w-10 text-right shrink-0">
                         {elapsed > 0 ? `+${(elapsed / 1000).toFixed(1)}s` : "0.0s"}
                       </span>
                       <span className="w-4 shrink-0 text-center">{icon}</span>
@@ -820,17 +928,17 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
                   );
                 })}
                 {debugLog.length === 0 && !responding && (
-                  <span className="text-[#C0C0C0]">Nessun evento.</span>
+                  <span className="text-[var(--fg-invisible)]">Nessun evento.</span>
                 )}
             </div>
           </aside>
         ) : (
           <button
             onClick={() => setShowDebug(true)}
-            className="w-6 border-l border-[#E5E5E5] bg-[#FAFAFA] hover:bg-[#F0F0F0] transition-colors hidden lg:flex items-center justify-center"
+            className="w-6 border-l border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors hidden lg:flex items-center justify-center"
             title="Mostra debug"
           >
-            <span className="text-[10px] text-[#C0C0C0] [writing-mode:vertical-lr]">debug</span>
+            <span className="text-[10px] text-[var(--fg-invisible)] [writing-mode:vertical-lr]">debug</span>
           </button>
         )}
       </div>
@@ -859,20 +967,20 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
 
 function debugStyle(type: string): { color: string; icon: string } {
   switch (type) {
-    case "spawn":       return { color: "text-[#9B9B9B]",   icon: ">" };
-    case "pid":         return { color: "text-[#9B9B9B]",   icon: "#" };
-    case "stdin":       return { color: "text-[#9B9B9B]",   icon: ">" };
-    case "init":        return { color: "text-blue-400",     icon: "*" };
-    case "thinking":    return { color: "text-purple-400",   icon: "~" };
-    case "text":        return { color: "text-emerald-500",  icon: "+" };
-    case "tool":        return { color: "text-amber-400",    icon: "$" };
-    case "tool-result": return { color: "text-amber-300",    icon: "<" };
-    case "result":      return { color: "text-emerald-400",  icon: "=" };
-    case "rate-limit":  return { color: "text-orange-400",   icon: "!" };
-    case "stderr":      return { color: "text-red-400",      icon: "x" };
-    case "error":       return { color: "text-red-500",      icon: "X" };
-    case "exit":        return { color: "text-blue-300",     icon: "." };
-    default:            return { color: "text-[#9B9B9B]",   icon: " " };
+    case "spawn":       return { color: "text-[var(--fg-muted)]",   icon: ">" };
+    case "pid":         return { color: "text-[var(--fg-muted)]",   icon: "#" };
+    case "stdin":       return { color: "text-[var(--fg-muted)]",   icon: ">" };
+    case "init":        return { color: "text-[var(--info)]",     icon: "*" };
+    case "thinking":    return { color: "text-[var(--identity-violet)]", icon: "~" };
+    case "text":        return { color: "text-[var(--success)]",         icon: "+" };
+    case "tool":        return { color: "text-[var(--identity-gold)]",   icon: "$" };
+    case "tool-result": return { color: "text-[var(--identity-gold)]",   icon: "<" };
+    case "result":      return { color: "text-[var(--success)]",         icon: "=" };
+    case "rate-limit":  return { color: "text-[var(--accent)]",          icon: "!" };
+    case "stderr":      return { color: "text-[var(--error)]",           icon: "x" };
+    case "error":       return { color: "text-[var(--error)]",           icon: "X" };
+    case "exit":        return { color: "text-[var(--info-bright)]",     icon: "." };
+    default:            return { color: "text-[var(--fg-muted)]",   icon: " " };
   }
 }
 
@@ -884,14 +992,14 @@ function ChatBubble({ msg, targetLabel }: { msg: ChatMessage; targetLabel: strin
       <div
         className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
           msg.role === "user"
-            ? "bg-[#1A1A1A] text-white"
-            : "bg-[#F5F5F5] text-[#1A1A1A] border border-[#E5E5E5]"
+            ? "bg-[var(--bg-active)] text-[var(--fg-primary)]"
+            : "bg-[var(--bg-overlay)] text-[var(--fg-primary)] border border-[var(--border-dark-subtle)]"
         }`}
       >
         {msg.role === "assistant" && (
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="w-[5px] h-[5px] rounded-full bg-[#1A1A1A]" />
-            <span className="text-[10px] font-medium text-[#6B6B6B]">{targetLabel}</span>
+            <span className="w-[5px] h-[5px] rounded-full bg-[var(--accent)]" />
+            <span className="text-[10px] font-medium text-[var(--fg-secondary)]">{targetLabel}</span>
           </div>
         )}
         <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -912,8 +1020,8 @@ function DashboardSection({
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] text-[#9B9B9B] uppercase tracking-wider">{title}</span>
-        {loading && <RefreshCw className="w-2.5 h-2.5 text-[#C0C0C0] animate-spin" />}
+        <span className="text-[10px] text-[var(--fg-muted)] uppercase tracking-wider">{title}</span>
+        {loading && <RefreshCw className="w-2.5 h-2.5 text-[var(--fg-invisible)] animate-spin" />}
       </div>
       {children}
     </div>
@@ -925,9 +1033,9 @@ function StatusBadge({ label, count, color, onClick }: { label: string; count: n
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      className="cursor-pointer flex items-center justify-between px-2 py-1 rounded bg-[#FAFAFA] hover:bg-[#F0F0F0] transition-colors w-full text-left"
+      className="cursor-pointer flex items-center justify-between px-2 py-1 rounded bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors w-full text-left"
     >
-      <span className="text-[#6B6B6B]">{label}</span>
+      <span className="text-[var(--fg-secondary)]">{label}</span>
       <span className="font-medium" style={{ color }}>
         {count}
       </span>
@@ -936,7 +1044,7 @@ function StatusBadge({ label, count, color, onClick }: { label: string; count: n
 }
 
 function NoData() {
-  return <span className="text-[10px] text-[#C0C0C0]">Nessun dato</span>;
+  return <span className="text-[10px] text-[var(--fg-invisible)]">Nessun dato</span>;
 }
 
 function timeAgo(dateStr: string): string {

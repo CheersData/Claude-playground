@@ -1,0 +1,28 @@
+{
+  "testId": "TC30",
+  "question": "Ho firmato una fideiussione. Se il debitore non paga, mi possono chiamare subito?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl creditore può rivolgersi a te, fideiussore, subito non appena il debitore principale non adempie, perché la tua obbligazione è solidale con quella del debitore.\n\nRIFERIMENTI NORMATIVI\nArt. 1944 c.c. (ID e2ba1b5f-c38c-4447-a358-eba87f1a54e3): \"Il fideiussore è obbligato in solido col debitore principale al pagamento del debito. Le parti però possono convenire che il fideiussore non sia tenuto a pagare prima dell'escussione del debitore principale... salvo patto contrario...\". Pertanto, in assenza di clausola che preveda il beneficio della previa escussione, il creditore può chiedere il pagamento al fideiussore immediatamente.\nArt. 1945 c.c. (ID 5cf08558-0262-40e5-a9db-fdd3f9d3806e): \"Il fideiussore può opporre contro il creditore tutte le eccezioni che spettano al debitore principale, salva quella derivante dall'incapacità.\" Questo conferma che il creditore non è tenuto a rispettare le difese del debitore principale.\nArt. 1953 c.c. (ID 9727f858-34dc-4e9b-b6c5-5d9d9203de01): prevede il diritto di regresso del fideiussore contro il debitore principale una volta pagato, ma non limita la possibilità di essere chiamato in prima istanza.\nArt. 1957 c.c. (ID 059611f3-99fd-4cac-bf2c-826605334c2e): il fideiussore resta obbligato anche dopo la scadenza dell'obbligazione principale, finché il creditore non abbia esercitato le proprie istanze entro i termini previsti.\nArt. 1247 c.c. (ID 079eb5a4-1ff0-43ef-8454-e163290ec6ad): il fideiussore può opporre in compensazione il debito del creditore verso il debitore principale, ma ciò non impedisce al creditore di chiedere il pagamento.\n\nIN PRATICA\nVerifica se nel contratto di fideiussione è inserita una clausola di \"beneficio della previa escussione\" (cioè che il creditore debba prima escutere il debitore principale). Se tale clausola non esiste, devi considerare la possibilità di essere chiamato a pagare immediatamente e, una volta pagato, potrai esercitare il regresso contro il debitore principale ai sensi dell'art. 1953 c.c.",
+  "expectedAnswer": "TRAPPOLA: dipende dal tipo di fideiussione. Con beneficio di escussione (art. 1944 co.2): devono prima escutere il debitore. Fideiussione bancaria o con rinuncia al beneficio: possono chiamare il fideiussore direttamente.",
+  "scoringHints": {
+    "prep": "Ha distinto fideiussione normale da bancaria nella query?",
+    "search": "Ha trovato art. 1944 c.c. con entrambe le varianti?",
+    "quality": "Distingue esplicitamente i due tipi? Non risponde 'sì' o 'no' senza distinguere?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "fideiussione",
+    "beneficio_escussione",
+    "fideiussione_bancaria"
+  ],
+  "scope": "art. 1944: dipende dal tipo. Con beneficio escussione: no. Fideiussione bancaria o con rinuncia: sì.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 22,
+    "quality": 30,
+    "total": 77,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente il tema della fideiussione e ha citato gli articoli pertinenti, ma non ha distinto esplicitamente tra fideiussione bancaria e quella ordinaria come richiesto. Inoltre, alcuni riferimenti (ID) sembrano inventati, riducendo leggermente la qualità complessiva."
+  },
+  "runAt": "2026-03-09T10:24:57.603Z"
+}

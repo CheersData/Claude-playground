@@ -47,14 +47,14 @@ const AGENT_META: Record<BlockAgentId, {
     label: "Classificatore",
     role: "Analisi documento",
     description: "Identifica il tipo di documento, le parti coinvolte, la giurisdizione e le leggi applicabili.",
-    color: "#4ECDC4",
+    color: "var(--agent-classifier)",
     Icon: FileSearch,
   },
   analyzer: {
     label: "Analista",
     role: "Analisi rischi",
     description: "Esamina ogni clausola e identifica i rischi per la parte debole, con riferimento al quadro normativo.",
-    color: "#FF6B6B",
+    color: "var(--agent-analyzer)",
     Icon: Scale,
   },
   "corpus-search": {
@@ -68,14 +68,14 @@ const AGENT_META: Record<BlockAgentId, {
     label: "Investigatore",
     role: "Ricerca normativa",
     description: "Ricerca normativa aggiornata e giurisprudenza rilevante per le clausole rischiose identificate.",
-    color: "#A78BFA",
+    color: "var(--agent-investigator)",
     Icon: Search,
   },
   advisor: {
     label: "Consulente",
     role: "Valutazione finale",
     description: "Produce il giudizio finale con scoring multidimensionale, rischi prioritizzati e azioni consigliate.",
-    color: "#FFC832",
+    color: "var(--agent-advisor)",
     Icon: Lightbulb,
   },
 };

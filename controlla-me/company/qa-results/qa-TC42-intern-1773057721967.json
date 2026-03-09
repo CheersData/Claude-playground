@@ -1,0 +1,29 @@
+{
+  "testId": "TC42",
+  "question": "Ho versato un acconto al costruttore ma e fallito prima di consegnarmi l appartamento. Recupero i soldi?",
+  "agentAnswer": "In caso di fallimento del costruttore, l'acquirente può recuperare le somme versate attraverso la fideiussione prevista dall'art. 3 del Decreto Legge 31 marzo 2009, n. 30, convertito con modificazioni dalla Legge 26 giugno 2009, n. 77. Questa fideiussione deve essere rilasciata da una banca o da un'impresa esercente le assicurazioni e garantisce la restituzione delle somme versate dall'acquirente in caso di crisi del costruttore o di inadempimento dell'obbligo assicurativo.",
+  "expectedAnswer": "D.Lgs. 122/2005 tutela chi acquista da costruttore: fideiussione obbligatoria per gli acconti (se non rilasciata, contratto nullo di protezione). In caso di fallimento: l'acquirente ha prelazione nell'asta e può escutere la fideiussione per recuperare gli acconti.",
+  "scoringHints": {
+    "prep": "Ha formulato query su D.Lgs. 122/2005?",
+    "search": "Ha trovato D.Lgs. 122/2005 con fideiussione e prelazione?",
+    "quality": "Menziona fideiussione, prelazione e nullità relativa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "acquisto_immobile_da_costruire",
+    "fideiussione_obbligatoria",
+    "prelazione_fallimento"
+  ],
+  "scope": "D.Lgs. 122/2005: fideiussione obbligatoria per acconti, prelazione nell'asta fallimentare",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 15,
+    "quality": 25,
+    "total": 60,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente menziona correttamente l'esistenza di una fideiussione per gli acconti versati in caso di fallimento del costruttore, ma non cita esplicitamente il D.Lgs. 122/2005 e omette la possibilità di prelazione nell'asta fallimentare e la nullità del contratto in caso di mancanza della fideiussione. La risposta è quindi borderline, in quanto tocca gli elementi essenziali ma con alcune omissioni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:58:01.569Z"
+}

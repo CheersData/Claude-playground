@@ -5,6 +5,7 @@ import { checkCsrf } from "@/lib/middleware/csrf";
 import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { isVectorDBEnabled } from "@/lib/embeddings";
 import { askCorpusAgent, type CorpusAgentConfig } from "@/lib/agents/corpus-agent";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export const maxDuration = 60;
@@ -87,9 +88,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Call corpus agent
+  // Call corpus agent — broadcast to AgentDots
   try {
+    broadcastConsoleAgent("question-prep", "running", { task: "Riformulazione domanda" });
+    broadcastConsoleAgent("corpus-agent", "running", { task: "Ricerca corpus" });
+
     const result = await askCorpusAgent(question, config);
+
+    broadcastConsoleAgent("question-prep", "done", { task: "Domanda riformulata" });
+    broadcastConsoleAgent("corpus-agent", "done", {
+      task: `Risposta (confidence: ${((result.confidence || 0) * 100).toFixed(0)}%)`,
+    });
 
     // Fire-and-forget CDP event recording (only if authenticated)
     if (userId) {
@@ -106,6 +115,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    broadcastConsoleAgent("question-prep", "error", { task: "Errore" });
+    broadcastConsoleAgent("corpus-agent", "error", { task: "Errore" });
     const message =
       error instanceof Error ? error.message : "Errore sconosciuto";
     console.error(`[API /corpus/ask] Errore: ${message}`);

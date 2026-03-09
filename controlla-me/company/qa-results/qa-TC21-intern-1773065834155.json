@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "La decisione del giudice di primo grado che ha deciso su una questione non sollevata dalle parti può essere impugnata. Secondo l'Art. 101 del Codice di Procedura Civile, il giudice assicura il rispetto del contraddittorio e, quando accerta che dalla sua violazione è derivata una lesione del diritto di difesa, adotta i provvedimenti opportuni. Tuttavia, per una risposta completa a questa domanda, servono riferimenti giurisprudenziali che non sono nel corpus normativo disponibile, in particolare sulla giurisprudenza della Cassazione in materia di 'iura novit curia' e principi dispositivo.\n\nRiferimenti normativi: L'Art. 101 del Codice di Procedura Civile disciplina il principio del contraddittorio, mentre l'Art. 360 del Codice di Procedura Civile regola i motivi di ricorso per cassazione. Tuttavia, gli articoli presenti non coprono pienamente la questione sollevata.\n\nIn pratica: La parte interessata può impugnare la decisione del giudice di primo grado per violazione del principio del contraddittorio e per non avere il giudice deciso oltre i limiti della domanda. Tuttavia, è fondamentale consultare un avvocato per valutare le specifiche circostanze del caso e le possibilità di successo dell'impugnazione.",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 15,
+    "quality": 25,
+    "total": 60,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una comprensione parziale della questione giuridica. Riconosce che la decisione del giudice su una questione non sollevata dalle parti può essere impugnata e menziona il principio del contraddittorio (art. 101 c.p.c.). Tuttavia, non cita correttamente gli articoli pertinenti come l'art. 112 e l'art. 360 n.4 c.p.c., e non approfondisce adeguatamente la distinzione tra ultrapetizione ed extrapetizione. La menzione della Cassazione è superficiale e senza riferimento specifico."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:12:30.398Z"
+}

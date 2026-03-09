@@ -1,0 +1,29 @@
+{
+  "testId": "TC34",
+  "question": "Mio padre ha lasciato tutto alla badante nel testamento. I figli non prendono niente?",
+  "agentAnswer": "RISPOSTA DIRETTA\nI figli hanno diritto alla legittima: la legge riserva loro una quota dell’eredità che non può essere lesa dal testatore. Pertanto, se il testamento dispone che tutto il patrimonio vada alla badante, tale disposizione è valida solo nella parte di quota disponibile; la quota di legittima dei figli resta loro di diritto.\n\nRIFERIMENTI NORMATIVI:\n- Art. 536 c.c. (legittimari): la legge riserva una quota di eredità al coniuge, ai figli e agli ascendenti.\n- Art. 537 c.c. (riserva a favore dei figli): se vi è un solo figlio, gli spetta la metà del patrimonio; se più figli, la quota è pari a due‑terzi, divisa in parti uguali.\n\nIN PRATICA\nI figli devono presentare un’azione per la legittima entro il termine previsto dall’art. 804 c.c. (cinque anni dal giorno della nascita dell’ultimo figlio o dalla notizia dell’esistenza del figlio). L’azione deve essere proposta contro l’erede o il fiduciario dell’eredità per ottenere la quota di legittima a cui hanno diritto.\n",
+  "expectedAnswer": "I figli sono legittimari (art. 536) e hanno diritto a una quota riservata. Il testamento non è nullo ma possono agire in riduzione (art. 553-554) per recuperare la loro quota. Il termine per l'azione è 10 anni dall'apertura della successione.",
+  "scoringHints": {
+    "prep": "Ha formulato query su legittimari e azione di riduzione?",
+    "search": "Ha trovato art. 536 e 553-554 c.c.?",
+    "quality": "Distingue nullità (errata) da riducibilità (corretta)? Menziona i termini?"
+  },
+  "trapType": null,
+  "institutes": [
+    "legittimari",
+    "quota_riserva",
+    "azione_riduzione"
+  ],
+  "scope": "art. 536 (legittimari), art. 553-554 (azione di riduzione). Il testamento non è nullo ma riducibile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 22,
+    "quality": 15,
+    "total": 62,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha individuato correttamente il tema della legittima e ha citato gli articoli pertinenti, ma ha fornito informazioni errate sul termine per l'azione (cinque anni invece di dieci) e ha citato l'art. 804 in modo impreciso. La risposta è parzialmente corretta ma presenta imprecisioni rilevanti."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:56:57.682Z"
+}

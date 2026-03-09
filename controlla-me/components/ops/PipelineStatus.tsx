@@ -24,28 +24,28 @@ function timeAgo(dateStr: string): string {
 
 export function PipelineStatus({ pipeline }: PipelineStatusProps) {
   return (
-    <div className="bg-[var(--ops-surface)] rounded-xl p-6 border border-[var(--ops-border-subtle)]">
-      <h3 className="text-xs font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-4 uppercase tracking-wider">
+    <div className="bg-[var(--bg-raised)] rounded-xl p-6 border border-[var(--border-dark-subtle)]">
+      <h3 className="text-xs font-semibold text-[var(--fg-invisible)] flex items-center gap-2 mb-4 uppercase tracking-wider">
         <Database className="w-4 h-4" />
         Data Pipeline
       </h3>
 
       {pipeline.length === 0 ? (
-        <p className="text-[var(--ops-muted)] text-sm">Nessun dato pipeline</p>
+        <p className="text-[var(--fg-invisible)] text-sm">Nessun dato pipeline</p>
       ) : (
         <div className="space-y-2">
           {pipeline.slice(0, 8).map((source) => {
             const isOk = source.lastSync?.status === "completed";
             return (
               <div key={source.sourceId} className="flex items-center gap-3 text-sm">
-                <span className={`w-2 h-2 rounded-full ${isOk ? "bg-[var(--ops-teal)]" : "bg-[var(--ops-error)]"}`} />
-                <span className="text-[var(--ops-fg-muted)] flex-1 truncate">
+                <span className={`w-2 h-2 rounded-full ${isOk ? "bg-[var(--success)]" : "bg-[var(--error)]"}`} />
+                <span className="text-[var(--fg-secondary)] flex-1 truncate">
                   {source.sourceId}
                 </span>
-                <span className="text-xs text-[var(--ops-muted)] font-mono">
+                <span className="text-xs text-[var(--fg-invisible)] font-mono">
                   {source.lastSync?.itemsFetched ?? 0} art.
                 </span>
-                <span className="text-xs text-[var(--ops-muted)]">
+                <span className="text-xs text-[var(--fg-invisible)]">
                   {source.lastSync?.completedAt ? timeAgo(source.lastSync.completedAt) : "mai"}
                 </span>
               </div>

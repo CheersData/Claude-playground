@@ -1,0 +1,29 @@
+{
+  "testId": "TC30",
+  "question": "Ho firmato una fideiussione. Se il debitore non paga, mi possono chiamare subito?",
+  "agentAnswer": "La risposta dipende dalle condizioni specifiche della fideiussione che hai firmato. Secondo l'Art. 1944 del Codice Civile, il fideiussore è obbligato in solido col debitore principale al pagamento del debito, ma le parti possono convenire che il fideiussore non sia tenuto a pagare prima dell'escussione del debitore principale. \n\n Riferimenti normativi: L'Art. 1944 c.c. disciplina l'obbligazione del fideiussore e prevede la possibilità di convenire il beneficio dell'escussione. L'Art. 2868 c.c. si riferisce al beneficio di escussione per chi ha costituito un'ipoteca a garanzia del debito altrui. \n\n In pratica: se non hai convenuto il beneficio dell'escussione, potresti essere chiamato a pagare subito. Tuttavia, se è stato convenuto tale beneficio, dovrai indicare i beni del debitore principale da sottoporre ad esecuzione prima di essere tenuto al pagamento.",
+  "expectedAnswer": "TRAPPOLA: dipende dal tipo di fideiussione. Con beneficio di escussione (art. 1944 co.2): devono prima escutere il debitore. Fideiussione bancaria o con rinuncia al beneficio: possono chiamare il fideiussore direttamente.",
+  "scoringHints": {
+    "prep": "Ha distinto fideiussione normale da bancaria nella query?",
+    "search": "Ha trovato art. 1944 c.c. con entrambe le varianti?",
+    "quality": "Distingue esplicitamente i due tipi? Non risponde 'sì' o 'no' senza distinguere?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "fideiussione",
+    "beneficio_escussione",
+    "fideiussione_bancaria"
+  ],
+  "scope": "art. 1944: dipende dal tipo. Con beneficio escussione: no. Fideiussione bancaria o con rinuncia: sì.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 20,
+    "quality": 35,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente la questione centrale (dipendenza dal tipo di fideiussione) e ha citato l'art. 1944 c.c., ma ha inserito un riferimento non pertinente (art. 2868). La risposta distingue i casi, ma non approfondisce la fideiussione bancaria, pur restando sostanzialmente corretta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:02:59.169Z"
+}

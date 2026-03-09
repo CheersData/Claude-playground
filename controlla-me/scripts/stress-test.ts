@@ -257,6 +257,165 @@ Milano, 1 marzo 2025`,
       ],
     },
   },
+  {
+    name: "fornitura_servizi_IT_squilibrata",
+    type: "fornitura",
+    text: `CONTRATTO DI FORNITURA DI SERVIZI INFORMATICI
+
+TRA
+La società WebDesign Pro S.r.l., con sede in Milano, Via Torino 22, P.IVA 98765432101,
+in persona del legale rappresentante Ing. Laura Conti (di seguito "Fornitore"),
+
+E
+La società PMI Manufacturing S.p.A., con sede in Roma, Viale Europa 120, P.IVA 11122233344,
+in persona dell'Amministratore Delegato Dott. Roberto Ferrara (di seguito "Committente"),
+
+SI CONVIENE E SI STIPULA QUANTO SEGUE:
+
+Art. 1 - OGGETTO
+Il Fornitore si impegna a sviluppare una piattaforma e-commerce personalizzata per il Committente,
+comprensiva di hosting, manutenzione e assistenza tecnica per la durata del contratto.
+
+Art. 2 - CORRISPETTIVO E PAGAMENTO
+Il corrispettivo per lo sviluppo è di EUR 25.000,00 oltre IVA.
+Il canone mensile per hosting e manutenzione è di EUR 500,00 oltre IVA.
+Il pagamento avverrà a 120 (centoventi) giorni dalla data di emissione della fattura.
+Non è previsto alcun anticipo. Il saldo sarà corrisposto a collaudo positivo.
+
+Art. 3 - PROPRIETÀ INTELLETTUALE
+Tutto il codice sorgente, il design, la documentazione tecnica e qualsiasi opera dell'ingegno
+prodotta nell'ambito del presente contratto è di proprietà esclusiva del Committente.
+Tale proprietà si estende anche al codice preesistente, alle librerie, ai framework
+e agli strumenti proprietari del Fornitore utilizzati nel progetto.
+Il Fornitore rinuncia a ogni diritto morale e patrimoniale sulle opere create.
+
+Art. 4 - RESPONSABILITÀ
+Il Fornitore è responsabile per qualsiasi danno diretto, indiretto, consequenziale,
+perdita di profitto, danno reputazionale e qualsiasi altra perdita subita dal Committente
+derivante dall'esecuzione o dalla mancata esecuzione del presente contratto,
+senza alcun limite di importo.
+
+Art. 5 - PENALE PER RITARDO
+In caso di ritardo nella consegna superiore a 7 (sette) giorni rispetto al cronoprogramma,
+il Fornitore corrisponderà una penale pari al 5% del corrispettivo totale per ogni giorno
+di ritardo, senza necessità di messa in mora e senza limite massimo.
+
+Art. 6 - RINNOVO E DISDETTA
+Il contratto di manutenzione si rinnova automaticamente di anno in anno.
+La disdetta deve essere comunicata con preavviso di 120 (centoventi) giorni
+prima della scadenza annuale, a mezzo raccomandata A/R.
+
+Art. 7 - FORO COMPETENTE
+Per ogni controversia è competente esclusivamente il Foro di Roma.
+
+Roma, 20 gennaio 2025`,
+    expectations: {
+      classifier: [
+        "documentType deve contenere 'fornitura' o 'servizi' o 'appalto'",
+        "relevantInstitutes deve includere proprietà_intellettuale o cessione_IP",
+        "relevantInstitutes deve includere clausola_penale",
+        "applicableLaws deve citare norme del Codice Civile su appalto/opera (art. 1655 ss.)",
+      ],
+      analyzer: [
+        "Deve segnalare la cessione IP preesistente come critical (espropriazione illegittima)",
+        "Deve segnalare la responsabilità illimitata come high risk",
+        "Deve segnalare la penale 5%/giorno senza tetto come critical (potenzialmente superiore al corrispettivo)",
+        "Deve segnalare il pagamento a 120 giorni come sfavorevole (D.Lgs. 231/2002 prevede max 60 gg)",
+      ],
+      investigator: [
+        "Deve citare D.Lgs. 231/2002 per i termini di pagamento",
+        "Deve citare art. 2589-2590 c.c. per diritto d'autore/IP preesistente",
+        "Deve citare art. 1384 c.c. per la riducibilità della penale",
+        "NON deve inventare sentenze",
+      ],
+      advisor: [
+        "fairnessScore tra 2 e 4 (contratto gravemente squilibrato verso il committente)",
+        "risks max 3, actions max 3",
+        "needsLawyer = true",
+        "Deve raccomandare di negoziare il cap sulla responsabilità e la clausola IP",
+      ],
+    },
+  },
+  {
+    name: "locazione_transitoria_irregolare",
+    type: "locazione_transitoria",
+    text: `CONTRATTO DI LOCAZIONE AD USO ABITATIVO TRANSITORIO
+(ai sensi dell'art. 5 della Legge 431/1998)
+
+TRA
+La Sig.ra Francesca Moretti, nata a Bologna il 18/07/1972, C.F. MRTFNC72L58A944X,
+residente in Bologna, Via Indipendenza 35 (di seguito "Locatore"),
+
+E
+Il Sig. Ahmed El Fassi, nato a Casablanca (Marocco) il 03/02/1995, titolare di permesso
+di soggiorno n. PS-2024-123456, residente in Bologna, Via Rizzoli 8 (di seguito "Conduttore"),
+
+SI CONVIENE E SI STIPULA QUANTO SEGUE:
+
+Art. 1 - OGGETTO
+Il Locatore concede in locazione transitoria al Conduttore l'immobile sito in Bologna,
+Via Santo Stefano 18, piano 2, composto da 3 vani, categoria A/3.
+
+Art. 2 - DURATA
+Il contratto ha durata di 24 (ventiquattro) mesi con decorrenza dal 01/03/2025.
+Non è previsto rinnovo automatico.
+
+Art. 3 - MOTIVAZIONE DELLA TRANSITORIETÀ
+[Non specificata]
+
+Art. 4 - CANONE
+Il canone mensile è stabilito in EUR 1.200,00 da corrispondersi entro il giorno 1
+di ogni mese. Il canone è libero e non soggetto ad accordi territoriali.
+
+Art. 5 - DEPOSITO CAUZIONALE
+Il Conduttore versa a titolo di deposito cauzionale la somma di EUR 4.800,00
+pari a 4 mensilità del canone, infruttifero.
+
+Art. 6 - DIVIETO ANIMALI
+È fatto assoluto divieto al Conduttore di detenere animali di qualsiasi tipo
+nell'immobile locato. La violazione comporta risoluzione immediata del contratto.
+
+Art. 7 - MANUTENZIONE
+Tutte le riparazioni, sia ordinarie che straordinarie, sono a totale carico
+del Conduttore, inclusi gli interventi strutturali e impiantistici.
+
+Art. 8 - SUBLOCAZIONE
+La sublocazione, anche parziale, è vietata in ogni forma.
+La cessione del contratto è parimenti vietata.
+
+Art. 9 - RECESSO DEL CONDUTTORE
+Il Conduttore può recedere con preavviso di 6 (sei) mesi.
+Il mancato rispetto del preavviso comporta la perdita integrale del deposito cauzionale.
+
+Bologna, 15 febbraio 2025`,
+    expectations: {
+      classifier: [
+        "documentType deve contenere 'locazione' e 'transitoria'",
+        "documentSubType = locazione_transitoria o simile",
+        "relevantInstitutes deve includere locazione_transitoria",
+        "applicableLaws deve citare art. 5 L. 431/1998 e DM 30/12/2002",
+      ],
+      analyzer: [
+        "Deve segnalare durata 24 mesi come critical (max legale 18 mesi ex art. 5 L. 431/1998)",
+        "Deve segnalare assenza motivazione transitorietà come critical (obbligatoria per legge)",
+        "Deve segnalare deposito 4 mensilità come high (max legale 3 ex art. 11 L. 392/1978)",
+        "Deve segnalare manutenzione straordinaria a carico conduttore come contraria ad art. 1576 c.c.",
+        "Deve segnalare canone libero senza riferimento ad accordi territoriali come problematico per transitorio",
+      ],
+      investigator: [
+        "Deve citare art. 5 L. 431/1998 per obblighi locazione transitoria",
+        "Deve citare DM 30/12/2002 per requisiti motivazione e durata",
+        "Deve citare art. 11 L. 392/1978 per limite deposito cauzionale",
+        "Deve citare art. 1576 c.c. per ripartizione manutenzione ordinaria/straordinaria",
+      ],
+      advisor: [
+        "fairnessScore tra 2 e 4 (contratto con molteplici violazioni di legge)",
+        "risks max 3, actions max 3",
+        "needsLawyer = true (ci sono clausole potenzialmente nulle)",
+        "Deve evidenziare che il contratto transitorio senza motivazione può essere convertito in 4+4",
+      ],
+    },
+  },
 ];
 
 // ─── Quality Rubrics per Agent ────────────────────────────────────────────────
@@ -558,6 +717,7 @@ function runClaude(prompt: string): CliResult {
       timeout: 120_000, // 2 minutes
       maxBuffer: 10 * 1024 * 1024, // 10MB
       env: { ...process.env },
+      windowsHide: true,
     });
 
     const timeMs = Date.now() - startTime;
@@ -892,6 +1052,416 @@ function runStressTest(
   };
 }
 
+// ─── Pipeline Mode (Full Chain: Classifier → Analyzer → Advisor) ─────────────
+
+interface PipelinePhaseResult {
+  output: unknown | null;
+  raw: string;
+  timeMs: number;
+  error?: string;
+}
+
+interface PipelineTestResult {
+  sample: string;
+  sampleType: string;
+  startedAt: string;
+  completedAt: string;
+  threshold: number;
+  phases: {
+    classifier: PipelinePhaseResult;
+    analyzer: PipelinePhaseResult;
+    advisor: PipelinePhaseResult;
+  };
+  critic: CriticResult | null;
+  criticRaw: string;
+  totalTimeMs: number;
+  score: number;
+  verdict: "PASS" | "FAIL" | "ERROR";
+  verdictReason: string;
+}
+
+function buildAnalyzerPipelinePrompt(documentText: string, classifierOutput: unknown): string {
+  return `Sei un avvocato italiano senior. Analizza il documento dal punto di vista della parte debole (consumatore/conduttore/lavoratore).
+
+CONTESTO DAL CLASSIFICATORE (usa queste informazioni per guidare la tua analisi):
+${JSON.stringify(classifierOutput, null, 2)}
+
+Identifica: clausole rischiose, potenzialmente nulle, ambigue, elementi mancanti, deviazioni dallo standard di mercato.
+
+Rispondi SOLO con JSON valido (no markdown):
+{
+  "clauses": [{
+    "id": "clause_1",
+    "title": "Titolo breve",
+    "originalText": "Testo originale dal documento",
+    "riskLevel": "critical|high|medium|low|info",
+    "issue": "Problema in 1-2 frasi",
+    "potentialViolation": "Art. specifico violato",
+    "marketStandard": "Cosa prevede il mercato",
+    "recommendation": "Cosa fare"
+  }],
+  "missingElements": [{ "element": "Nome", "importance": "high|medium|low", "explanation": "Perché serve" }],
+  "overallRisk": "critical|high|medium|low",
+  "positiveAspects": ["Aspetto positivo 1"]
+}
+
+Livelli: critical=probabilmente nullo/illegale, high=ai limiti legalità, medium=sfavorevole ma legale, low=sotto standard.
+NON classificare come rischio qualcosa conforme alla legge. Cita articoli specifici.
+
+DOCUMENTO DA ANALIZZARE:
+${documentText}`;
+}
+
+function buildAdvisorPipelinePrompt(
+  documentText: string,
+  classifierOutput: unknown,
+  analyzerOutput: unknown
+): string {
+  return `Traduci l'analisi legale in linguaggio chiaro. Scrivi come parleresti a un amico che non ha studiato legge. Italiano corrente, zero legalese, frasi brevi.
+
+RISULTATO DEL CLASSIFICATORE:
+${JSON.stringify(classifierOutput, null, 2)}
+
+RISULTATO DELL'ANALISTA (clausole rischiose trovate):
+${JSON.stringify(analyzerOutput, null, 2)}
+
+Rispondi SOLO con JSON valido (no markdown):
+{
+  "fairnessScore": 6.2,
+  "scores": {
+    "contractEquity": 6.2,
+    "legalCoherence": 7.0,
+    "practicalCompliance": 5.5,
+    "completeness": 4.8
+  },
+  "summary": "Riassunto in 2-3 frasi.",
+  "risks": [{ "severity": "alta|media|bassa", "title": "Titolo semplice", "detail": "Spiegazione chiara 1-2 frasi", "legalBasis": "Art. ...", "courtCase": "Cass. ..." }],
+  "deadlines": [{ "date": "data", "action": "cosa fare" }],
+  "actions": [{ "priority": 1, "action": "Cosa fare", "rationale": "Perché" }],
+  "needsLawyer": true,
+  "lawyerSpecialization": "Diritto ...",
+  "lawyerReason": "Perché serve un avvocato"
+}
+
+LIMITI TASSATIVI: risks MASSIMO 3, actions MASSIMO 3, deadlines MASSIMO 3.
+Basati sui risultati del classificatore e dell'analista. Il fairnessScore deve riflettere la gravità delle clausole trovate.
+Linguaggio da bar — zero legalese, frasi brevi, come spiegare a un amico.
+
+DOCUMENTO ORIGINALE:
+${documentText.slice(0, 1500)}`;
+}
+
+function buildPipelineCriticPrompt(
+  sample: SampleText,
+  classifier: unknown,
+  analyzer: unknown,
+  advisor: unknown
+): string {
+  const allExpectations = [
+    ...sample.expectations.classifier.map((e) => `[CLASSIFICATORE] ${e}`),
+    ...sample.expectations.analyzer.map((e) => `[ANALISTA] ${e}`),
+    ...sample.expectations.advisor.map((e) => `[CONSIGLIERE] ${e}`),
+  ];
+
+  return `Sei un supervisore senior della qualità per un sistema di analisi legale AI.
+Valuta l'output COMPLETO della pipeline a 3 fasi: classificatore → analista → consigliere.
+
+DOCUMENTO ORIGINALE:
+${sample.text.slice(0, 2000)}
+
+ASPETTATIVE (ground truth):
+${allExpectations.map((e, i) => `${i + 1}. ${e}`).join("\n")}
+
+OUTPUT CLASSIFICATORE:
+${JSON.stringify(classifier, null, 2)}
+
+OUTPUT ANALISTA:
+${JSON.stringify(analyzer, null, 2)}
+
+OUTPUT CONSIGLIERE:
+${JSON.stringify(advisor, null, 2)}
+
+VALUTA la pipeline su questi criteri (peso 1-10 per ciascuno):
+1. COERENZA TRA FASI (peso 3): Il classificatore alimenta correttamente l'analista? L'analista alimenta correttamente il consigliere? Gli istituti identificati dal classificatore sono usati dall'analista?
+2. COMPLETEZZA (peso 2): Tutti i problemi importanti (vedi aspettative) sono stati identificati dalla pipeline? Rischi mancati?
+3. ACCURATEZZA LEGALE (peso 2): Riferimenti normativi corretti? Articoli giusti per il tipo di documento e istituto?
+4. QUALITÀ CONSIGLIO FINALE (peso 2): Il consiglio è chiaro, actionable, non allarmista? Linguaggio da bar?
+5. FORMATO (peso 1): Tutti gli output sono JSON validi con campi completi? Max 3 risks e 3 actions rispettati?
+
+Rispondi ESCLUSIVAMENTE con JSON puro (no markdown, no backtick). Inizia con { e finisci con }.
+{
+  "score": 7.5,
+  "passed": true,
+  "strengths": ["punto forte 1", "punto forte 2"],
+  "weaknesses": ["debolezza 1", "debolezza 2"],
+  "criticalErrors": ["errore grave"],
+  "feedback": "Feedback dettagliato su cosa migliorare.",
+  "rubricScores": {
+    "coerenzaFasi": 8,
+    "completezza": 7,
+    "accuratezzaLegale": 8,
+    "qualitaConsiglio": 7,
+    "formato": 9
+  }
+}
+
+Sii severo ma giusto. Non regalare punti. "passed" = true se score >= 7.`;
+}
+
+function runPipelineTest(
+  sample: SampleText,
+  threshold: number
+): PipelineTestResult {
+  const startedAt = new Date().toISOString();
+  const startTime = Date.now();
+
+  const phases: PipelineTestResult["phases"] = {
+    classifier: { output: null, raw: "", timeMs: 0 },
+    analyzer: { output: null, raw: "", timeMs: 0 },
+    advisor: { output: null, raw: "", timeMs: 0 },
+  };
+
+  console.log(`\n${"─".repeat(60)}`);
+  console.log(`  PIPELINE: ${sample.name} (${sample.type})`);
+  console.log(`${"─".repeat(60)}`);
+
+  // ── Phase 1: Classifier ──
+  process.stdout.write(`  [1/3] Classificatore...`);
+  const classifierPrompt = getAgentPrompt("classifier", sample.text);
+  const classifierResult = runClaude(classifierPrompt);
+
+  if (!classifierResult.success) {
+    console.log(` ERRORE: ${classifierResult.error}`);
+    phases.classifier = { output: null, raw: "", timeMs: classifierResult.timeMs, error: classifierResult.error };
+    return buildPipelineResult(sample, startedAt, phases, null, "", startTime, threshold);
+  }
+
+  const classifierJson = extractJson(classifierResult.output);
+  phases.classifier = { output: classifierJson, raw: classifierResult.output, timeMs: classifierResult.timeMs };
+  console.log(` OK (${(classifierResult.timeMs / 1000).toFixed(1)}s)`);
+
+  if (!classifierJson) {
+    console.log(`    WARN: Output classificatore non è JSON valido`);
+  }
+
+  // ── Phase 2: Analyzer (con output classificatore) ──
+  process.stdout.write(`  [2/3] Analista...`);
+  const analyzerPrompt = buildAnalyzerPipelinePrompt(sample.text, classifierJson);
+  const analyzerResult = runClaude(analyzerPrompt);
+
+  if (!analyzerResult.success) {
+    console.log(` ERRORE: ${analyzerResult.error}`);
+    phases.analyzer = { output: null, raw: "", timeMs: analyzerResult.timeMs, error: analyzerResult.error };
+    return buildPipelineResult(sample, startedAt, phases, null, "", startTime, threshold);
+  }
+
+  const analyzerJson = extractJson(analyzerResult.output);
+  phases.analyzer = { output: analyzerJson, raw: analyzerResult.output, timeMs: analyzerResult.timeMs };
+  const clauseCount = (analyzerJson as any)?.clauses?.length ?? "?";
+  const overallRisk = (analyzerJson as any)?.overallRisk ?? "?";
+  console.log(` OK (${(analyzerResult.timeMs / 1000).toFixed(1)}s) — ${clauseCount} clausole, rischio: ${overallRisk}`);
+
+  // ── Phase 3: Advisor (con output classificatore + analista) ──
+  process.stdout.write(`  [3/3] Consigliere...`);
+  const advisorPrompt = buildAdvisorPipelinePrompt(sample.text, classifierJson, analyzerJson);
+  const advisorResult = runClaude(advisorPrompt);
+
+  if (!advisorResult.success) {
+    console.log(` ERRORE: ${advisorResult.error}`);
+    phases.advisor = { output: null, raw: "", timeMs: advisorResult.timeMs, error: advisorResult.error };
+    return buildPipelineResult(sample, startedAt, phases, null, "", startTime, threshold);
+  }
+
+  const advisorJson = extractJson(advisorResult.output);
+  phases.advisor = { output: advisorJson, raw: advisorResult.output, timeMs: advisorResult.timeMs };
+  const fairness = (advisorJson as any)?.fairnessScore ?? "?";
+  const needsLawyer = (advisorJson as any)?.needsLawyer ?? "?";
+  console.log(` OK (${(advisorResult.timeMs / 1000).toFixed(1)}s) — score: ${fairness}, lawyer: ${needsLawyer}`);
+
+  // ── Evaluate full pipeline ──
+  process.stdout.write(`  [eval] Valutazione pipeline...`);
+  const criticPrompt = buildPipelineCriticPrompt(sample, classifierJson, analyzerJson, advisorJson);
+  const criticResult = runClaude(criticPrompt);
+
+  let criticJson: CriticResult | null = null;
+  let criticRaw = "";
+
+  if (criticResult.success) {
+    criticJson = extractJson(criticResult.output) as CriticResult | null;
+    criticRaw = criticResult.output;
+    const score = criticJson?.score ?? 0;
+    const passed = score >= threshold;
+    const icon = passed ? "PASS" : "FAIL";
+    console.log(` ${score}/10 [${icon}] (${(criticResult.timeMs / 1000).toFixed(1)}s)`);
+
+    if (criticJson?.strengths?.length) {
+      console.log(`    Forza: ${criticJson.strengths.slice(0, 2).join("; ")}`);
+    }
+    if (criticJson?.weaknesses?.length) {
+      console.log(`    Debolezze: ${criticJson.weaknesses.slice(0, 2).join("; ")}`);
+    }
+    if (criticJson?.criticalErrors?.length) {
+      console.log(`    ERRORI: ${criticJson.criticalErrors.join("; ")}`);
+    }
+  } else {
+    console.log(` ERRORE: ${criticResult.error}`);
+  }
+
+  return buildPipelineResult(sample, startedAt, phases, criticJson, criticRaw, startTime, threshold);
+}
+
+function buildPipelineResult(
+  sample: SampleText,
+  startedAt: string,
+  phases: PipelineTestResult["phases"],
+  criticJson: CriticResult | null,
+  criticRaw: string,
+  startTime: number,
+  threshold: number
+): PipelineTestResult {
+  const totalTimeMs = Date.now() - startTime;
+  const score = criticJson?.score ?? 0;
+  const allErrors = [phases.classifier, phases.analyzer, phases.advisor].filter((p) => p.error);
+
+  let verdict: "PASS" | "FAIL" | "ERROR";
+  let verdictReason: string;
+
+  if (allErrors.length === 3 || (phases.classifier.error && !phases.classifier.output)) {
+    verdict = "ERROR";
+    verdictReason = `Pipeline fallita: ${phases.classifier.error ?? "errore sconosciuto"}`;
+  } else if (score >= threshold) {
+    verdict = "PASS";
+    verdictReason = `Score ${score}/10 >= threshold ${threshold}/10`;
+  } else {
+    verdict = "FAIL";
+    verdictReason = `Score ${score}/10 < threshold ${threshold}/10`;
+  }
+
+  return {
+    sample: sample.name,
+    sampleType: sample.type,
+    startedAt,
+    completedAt: new Date().toISOString(),
+    threshold,
+    phases,
+    critic: criticJson,
+    criticRaw,
+    totalTimeMs,
+    score,
+    verdict,
+    verdictReason,
+  };
+}
+
+function runPipelineMode(samples: SampleText[], threshold: number) {
+  console.log("╔══════════════════════════════════════════════════════════════╗");
+  console.log("║   PIPELINE STRESS TEST — Classifier → Analyzer → Advisor   ║");
+  console.log("║   Full chain via claude -p (Opus, Max subscription)         ║");
+  console.log("╚══════════════════════════════════════════════════════════════╝");
+  console.log(`\nSample: ${samples.map((s) => s.name).join(", ")}`);
+  console.log(`Threshold: ${threshold}/10 | Totale: ${samples.length}`);
+  console.log(`Timestamp: ${new Date().toISOString()}`);
+
+  const results: PipelineTestResult[] = [];
+
+  for (const sample of samples) {
+    const result = runPipelineTest(sample, threshold);
+    results.push(result);
+  }
+
+  // ── Summary ──
+  console.log("\n\n" + "═".repeat(70));
+  console.log("  RIEPILOGO PIPELINE STRESS TEST");
+  console.log("═".repeat(70));
+
+  console.log(
+    "\n  " +
+      "Sample".padEnd(40) +
+      "Score".padEnd(8) +
+      "Tempo".padEnd(10) +
+      "Verdict"
+  );
+  console.log("  " + "─".repeat(58));
+
+  for (const r of results) {
+    const verdictIcon = r.verdict === "PASS" ? "PASS" : r.verdict === "FAIL" ? "FAIL" : "ERR ";
+    console.log(
+      "  " +
+        r.sample.slice(0, 38).padEnd(40) +
+        `${r.score}/10`.padEnd(8) +
+        `${(r.totalTimeMs / 1000).toFixed(1)}s`.padEnd(10) +
+        verdictIcon
+    );
+  }
+
+  // ── Phase timing ──
+  console.log("\n  Tempi per fase:");
+  for (const r of results) {
+    const c = (r.phases.classifier.timeMs / 1000).toFixed(1);
+    const a = (r.phases.analyzer.timeMs / 1000).toFixed(1);
+    const v = (r.phases.advisor.timeMs / 1000).toFixed(1);
+    console.log(`    ${r.sample.slice(0, 35)}: C=${c}s A=${a}s V=${v}s`);
+  }
+
+  // ── Save results ──
+  if (!fs.existsSync(LOGS_DIR)) {
+    fs.mkdirSync(LOGS_DIR, { recursive: true });
+  }
+
+  const timestamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+  const reportPath = path.resolve(LOGS_DIR, `stress-test-pipeline-${timestamp}.json`);
+
+  // Clean results for saving (remove raw strings)
+  const cleanedResults = results.map((r) => ({
+    ...r,
+    phases: {
+      classifier: { output: r.phases.classifier.output, timeMs: r.phases.classifier.timeMs, error: r.phases.classifier.error },
+      analyzer: { output: r.phases.analyzer.output, timeMs: r.phases.analyzer.timeMs, error: r.phases.analyzer.error },
+      advisor: { output: r.phases.advisor.output, timeMs: r.phases.advisor.timeMs, error: r.phases.advisor.error },
+    },
+    criticRaw: undefined,
+  }));
+
+  fs.writeFileSync(reportPath, JSON.stringify(cleanedResults, null, 2));
+  console.log(`\n  Report salvato: ${reportPath}`);
+
+  // ── Also save individual scenario results as JSON in stress-test-results/ ──
+  const resultsDir = path.resolve(__dirname, "stress-test-results");
+  if (!fs.existsSync(resultsDir)) fs.mkdirSync(resultsDir, { recursive: true });
+
+  for (const r of results) {
+    const scenarioPath = path.resolve(resultsDir, `${r.sample}-pipeline.json`);
+    fs.writeFileSync(scenarioPath, JSON.stringify({
+      sample: r.sample,
+      type: r.sampleType,
+      score: r.score,
+      verdict: r.verdict,
+      timestamp: r.completedAt,
+      classification: r.phases.classifier.output,
+      analysis: r.phases.analyzer.output,
+      advice: r.phases.advisor.output,
+      evaluation: r.critic,
+    }, null, 2));
+  }
+  console.log(`  Risultati individuali: ${resultsDir}/`);
+
+  // ── Final stats ──
+  const passed = results.filter((r) => r.verdict === "PASS").length;
+  const failed = results.filter((r) => r.verdict === "FAIL").length;
+  const errors = results.filter((r) => r.verdict === "ERROR").length;
+  const avgScore = results.length > 0
+    ? (results.reduce((sum, r) => sum + r.score, 0) / results.length).toFixed(1)
+    : "0";
+  const totalTime = results.reduce((sum, r) => sum + r.totalTimeMs, 0);
+
+  console.log(`\n  Risultati: ${passed} PASS | ${failed} FAIL | ${errors} ERROR`);
+  console.log(`  Score medio: ${avgScore}/10`);
+  console.log(`  Tempo totale: ${(totalTime / 1000).toFixed(1)}s`);
+  console.log("");
+
+  process.exit(errors === results.length ? 1 : 0);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main() {
@@ -914,6 +1484,45 @@ function main() {
   const inputText = getFlag("input");
   const inputFile = getFlag("file");
 
+  // ── Pipeline mode ──
+  if (hasFlag("pipeline")) {
+    const pipelineSampleIdx = getFlag("sample") !== undefined ? parseInt(getFlag("sample")!, 10) : undefined;
+    let pipelineSamples: SampleText[];
+
+    if (pipelineSampleIdx !== undefined) {
+      if (pipelineSampleIdx < 0 || pipelineSampleIdx >= SAMPLE_TEXTS.length) {
+        console.error(`Sample index ${pipelineSampleIdx} fuori range. Validi: 0-${SAMPLE_TEXTS.length - 1}`);
+        process.exit(1);
+      }
+      pipelineSamples = [SAMPLE_TEXTS[pipelineSampleIdx]];
+    } else {
+      pipelineSamples = SAMPLE_TEXTS;
+    }
+
+    runPipelineMode(pipelineSamples, threshold);
+    return;
+  }
+
+  // ── Export scenarios as JSON ──
+  if (hasFlag("export-scenarios")) {
+    const scenariosDir = path.resolve(__dirname, "stress-test-scenarios");
+    if (!fs.existsSync(scenariosDir)) fs.mkdirSync(scenariosDir, { recursive: true });
+
+    for (const sample of SAMPLE_TEXTS) {
+      const filepath = path.resolve(scenariosDir, `${sample.name}.json`);
+      fs.writeFileSync(filepath, JSON.stringify({
+        id: sample.name,
+        name: sample.name.replace(/_/g, " "),
+        category: sample.type,
+        documentText: sample.text,
+        expectations: sample.expectations,
+      }, null, 2));
+      console.log(`  Esportato: ${filepath}`);
+    }
+    console.log(`\nTotale: ${SAMPLE_TEXTS.length} scenari esportati in ${scenariosDir}/`);
+    return;
+  }
+
   if (!agentArg) {
     console.log(`
 Recursive Quality Stress Test — Agenti Legali AI
@@ -921,23 +1530,30 @@ Recursive Quality Stress Test — Agenti Legali AI
 
 Usage:
   npx tsx scripts/stress-test.ts --agent <agent> [options]
+  npx tsx scripts/stress-test.ts --pipeline [options]
 
 Agenti: classifier, analyzer, investigator, advisor, all
 
+Modalità:
+  --agent <name>          Testa un singolo agente (loop ricorsivo agent→critic→feedback)
+  --pipeline              Testa la catena completa Classifier→Analyzer→Advisor
+
 Options:
-  --agent <name>          Agente da testare (obbligatorio)
-  --max-iterations <n>    Max iterazioni per convergenza (default: 5)
+  --max-iterations <n>    Max iterazioni per convergenza (default: 5, solo --agent)
   --threshold <n>         Score minimo per PASS (default: 8, scala 1-10)
   --sample <n>            Indice sample da usare (0-${SAMPLE_TEXTS.length - 1})
   --input "testo"         Testo contratto inline (al posto dei sample)
   --file path/to/file     File di testo da usare come input
   --list-samples          Mostra i sample disponibili
+  --export-scenarios      Esporta tutti gli scenari come JSON in stress-test-scenarios/
 
 Esempi:
+  npx tsx scripts/stress-test.ts --pipeline                    # Pipeline completa su tutti i sample
+  npx tsx scripts/stress-test.ts --pipeline --sample 0         # Pipeline su un solo sample
   npx tsx scripts/stress-test.ts --agent classifier --max-iterations 3
   npx tsx scripts/stress-test.ts --agent all --threshold 7
-  npx tsx scripts/stress-test.ts --agent advisor --sample 2 --max-iterations 5
-  npx tsx scripts/stress-test.ts --agent analyzer --file contratto.txt
+  npx tsx scripts/stress-test.ts --agent advisor --sample 2
+  npx tsx scripts/stress-test.ts --export-scenarios            # Esporta JSON
 `);
     process.exit(1);
   }

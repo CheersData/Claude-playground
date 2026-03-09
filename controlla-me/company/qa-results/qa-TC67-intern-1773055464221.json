@@ -1,0 +1,29 @@
+{
+  "testId": "TC67",
+  "question": "Ho pagato un acconto a un artigiano che è sparito senza fare il lavoro. È truffa?",
+  "agentAnswer": "Il fatto descritto potrebbe configurarsi come truffa, ma dipende dalle specifiche circostanze. La truffa (Art. 640 c.p.) richiede che l'agente, con artifizi o raggiri, induca taluno in errore per procurarsi un ingiusto profitto con altrui danno. Se l'artigiano ha accettato l'acconto con l'intenzione di non eseguire il lavoro, potrebbe essere configurata la truffa.\n\nRiferimenti normativi:\n- Art. 640 c.p. (Truffa)\n- Art. 640-bis c.p. (Truffa aggravata per il conseguimento di erogazioni pubbliche, ma solo se l'acconto era per lavori pubblici o finanziati pubblicamente)\n\nIn pratica: per determinare se è stato commesso il reato di truffa, bisogna verificare se l'artigiano aveva fin dall'inizio l'intenzione di non eseguire il lavoro o di non restituire l'acconto. Se si configura il reato, la vittima può denunciare il fatto alle autorità.",
+  "expectedAnswer": "TRAPPOLA: dipende dal dolo. Truffa (art. 640 c.p.) richiede dolo ORIGINARIO: l'artigiano doveva avere intenzione di non adempiere PRIMA di prendere il denaro. Se l'inadempimento è sopravvenuto (difficoltà economiche, incidenti) = solo illecito civile. La distinzione è fondamentale per la strada da percorrere (penale vs civile).",
+  "scoringHints": {
+    "prep": "Ha formulato query su dolo originario e distinzione truffa/inadempimento?",
+    "search": "Ha trovato art. 640 c.p. con l'elemento del dolo?",
+    "quality": "Distingue dolo originario da inadempimento sopravvenuto? Non afferma automaticamente 'è truffa'?"
+  },
+  "trapType": "confine_penale_civile",
+  "institutes": [
+    "truffa",
+    "inadempimento_contrattuale",
+    "dolo_originario"
+  ],
+  "scope": "CONFINE CIVILE-PENALE: truffa richiede dolo originario. Inadempimento = solo civile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 27,
+    "quality": 38,
+    "total": 90,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema del dolo originario e la distinzione tra truffa penale e inadempimento civile, citando l'art. 640 c.p. senza invenzioni. Ha recuperato norme pertinenti e ha fornito una risposta accurata e completa, guadagnando il bonus per non cadere nella trappola."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:21:27.504Z"
+}

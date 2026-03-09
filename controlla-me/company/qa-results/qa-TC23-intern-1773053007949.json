@@ -1,0 +1,29 @@
+{
+  "testId": "TC23",
+  "question": "Voglio depositare un documento nuovo in udienza. Quando è il termine?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl termine per il deposito di un documento nuovo in udienza è entro quindici giorni prima della data fissata per l'udienza o per l'adunanza in camera di consiglio.\n\nRIFERIMENTI NORMATIVI:\nArt. 372 c.p.c. (ID: 1c4c1445-76a2-42d6-9044-3dac4dc6e8eb) – \"Il deposito dei documenti relativi all'ammissibilità può avvenire ... fino a quindici giorni prima dell'udienza o dell'adunanza in camera di consiglio.\"\n\nMANCANO GLI ARTI CHE REGOLANO IL DEPÓSITO DI DOCUMENTI IN UDIZIA NEL CASO DI PRODUZIONE DI PROVE O ALTRE CIRCOSTANZE (es. art. 183‑184 c.p.c.).\n\nIN PRATICA:\nInserisca la richiesta di deposito nel proprio fascicolo almeno 15 giorni prima dell'udienza, rispettando il termine fissato dal giudice; se il giudice ha stabilito un termine più breve, dovrà osservare quello più restrittivo.",
+  "expectedAnswer": "Con la riforma Cartabia (2022): memorie e documenti vanno depositati prima dell'udienza secondo art. 171-ter c.p.c. Se l'agente cita art. 183 vecchio rito è FAIL.",
+  "scoringHints": {
+    "prep": "Ha formulato query che include 'Cartabia' o 'riforma 2022' o art. 171-ter?",
+    "search": "Ha trovato art. 171-ter e NON solo art. 183 (vecchio rito)?",
+    "quality": "Distingue chiaramente il vecchio dal nuovo rito? Segnala la riforma Cartabia?"
+  },
+  "trapType": "norma_superata",
+  "institutes": [
+    "preclusioni_istruttorie",
+    "deposito_documenti",
+    "riforma_Cartabia"
+  ],
+  "scope": "art. 171-ter c.p.c. (riforma Cartabia, D.Lgs. 149/2022)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 12,
+    "search": 10,
+    "quality": 5,
+    "total": 27,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha identificato il tema generale ma non ha menzionato la riforma Cartabia né l'art. 171-ter, indicando un termine errato di 15 giorni e citando l'art. 372, non pertinente. La ricerca ha prodotto riferimenti normativi sbagliati e la risposta è inaccurata, quindi il punteggio di qualità è molto basso."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:42:43.222Z"
+}

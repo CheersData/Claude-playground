@@ -65,48 +65,48 @@ function TierSection({ data }: { data: TierData | null }) {
   if (!data) return null;
 
   const tierColor: Record<string, string> = {
-    intern: "text-[var(--ops-teal)]",
-    associate: "text-[var(--ops-id-cost)]",
-    partner: "text-[var(--ops-cyan)]",
+    intern: "text-[var(--success)]",
+    associate: "text-[var(--identity-gold)]",
+    partner: "text-[var(--info)]",
   };
 
   return (
     <div className="p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-[var(--fg-invisible)] uppercase tracking-wider">
           Tier & Agenti
         </h3>
-        <span className={`text-sm font-bold uppercase ${tierColor[data.current] ?? "text-[var(--ops-fg)]"}`}>
+        <span className={`text-sm font-bold uppercase ${tierColor[data.current] ?? "text-[var(--fg-primary)]"}`}>
           {data.current}
-          <span className="ml-2 text-xs font-normal text-[var(--ops-muted)] normal-case">
+          <span className="ml-2 text-xs font-normal text-[var(--fg-invisible)] normal-case">
             {data.estimatedCost.label}/q
           </span>
         </span>
       </div>
 
       {/* Agents table */}
-      <div className="rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden">
+      <div className="rounded-xl border border-[var(--border-dark-subtle)] overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
-              <th className="text-left px-3 py-3 text-[var(--ops-muted)] font-medium text-xs uppercase tracking-wider">Agente</th>
-              <th className="text-center px-3 py-3 text-[var(--ops-muted)] font-medium text-xs uppercase tracking-wider">On</th>
-              <th className="text-left px-3 py-3 text-[var(--ops-muted)] font-medium text-xs uppercase tracking-wider">Modello attivo</th>
+            <tr className="border-b border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]">
+              <th className="text-left px-3 py-3 text-[var(--fg-invisible)] font-medium text-xs uppercase tracking-wider">Agente</th>
+              <th className="text-center px-3 py-3 text-[var(--fg-invisible)] font-medium text-xs uppercase tracking-wider">On</th>
+              <th className="text-left px-3 py-3 text-[var(--fg-invisible)] font-medium text-xs uppercase tracking-wider">Modello attivo</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(data.agents).map(([name, info]) => (
-              <tr key={name} className="border-b border-[var(--ops-border-subtle)] last:border-0 hover:bg-[rgba(255,255,255,0.03)]">
-                <td className="px-3 py-3 font-mono text-[var(--ops-fg)] truncate max-w-[90px]">{name}</td>
+              <tr key={name} className="border-b border-[var(--border-dark-subtle)] last:border-0 hover:bg-[rgba(255,255,255,0.03)]">
+                <td className="px-3 py-3 font-mono text-[var(--fg-primary)] truncate max-w-[90px]">{name}</td>
                 <td className="px-3 py-3 text-center">
                   {info.enabled ? (
-                    <CheckCircle className="w-4 h-4 text-[var(--ops-teal)] mx-auto" />
+                    <CheckCircle className="w-4 h-4 text-[var(--success)] mx-auto" />
                   ) : (
-                    <XCircle className="w-4 h-4 text-[var(--ops-error)] mx-auto" />
+                    <XCircle className="w-4 h-4 text-[var(--error)] mx-auto" />
                   )}
                 </td>
-                <td className="px-3 py-3 font-mono text-[var(--ops-accent)] truncate max-w-[120px]">
+                <td className="px-3 py-3 font-mono text-[var(--accent)] truncate max-w-[120px]">
                   {info.chain[info.activeIndex]?.displayName ?? info.activeModel}
                 </td>
               </tr>
@@ -117,24 +117,24 @@ function TierSection({ data }: { data: TierData | null }) {
 
       {/* Fallback chains — collapsible via HTML details */}
       <details className="group">
-        <summary className="flex items-center gap-1 text-xs text-[var(--ops-muted)] cursor-pointer select-none hover:text-[var(--ops-fg-muted)] transition-colors list-none">
+        <summary className="flex items-center gap-1 text-xs text-[var(--fg-invisible)] cursor-pointer select-none hover:text-[var(--fg-secondary)] transition-colors list-none">
           <ChevronRight className="w-3 h-3 group-open:rotate-90 transition-transform shrink-0" />
           Catene fallback
         </summary>
         <div className="mt-2 space-y-2 pl-1">
           {Object.entries(data.agents).map(([name, info]) => (
             <div key={name}>
-              <div className="text-xs text-[var(--ops-muted)] font-mono mb-1">{name}</div>
+              <div className="text-xs text-[var(--fg-invisible)] font-mono mb-1">{name}</div>
               <div className="flex flex-wrap gap-1">
                 {info.chain.map((m, i) => (
                   <span
                     key={m.key}
                     className={`px-2 py-0.5 rounded text-xs font-mono ${
                       i === info.activeIndex
-                        ? "bg-[rgba(255,107,53,0.12)] text-[var(--ops-accent)] ring-1 ring-[rgba(255,107,53,0.3)]"
+                        ? "bg-[rgba(255,107,53,0.12)] text-[var(--accent)] ring-1 ring-[rgba(255,107,53,0.3)]"
                         : m.available
-                        ? "bg-[var(--ops-surface)] text-[var(--ops-fg-muted)]"
-                        : "bg-[var(--ops-bg)] text-[var(--ops-muted)] line-through"
+                        ? "bg-[var(--bg-raised)] text-[var(--fg-secondary)]"
+                        : "bg-[var(--bg-base)] text-[var(--fg-invisible)] line-through"
                     }`}
                   >
                     {m.displayName}
@@ -179,32 +179,32 @@ function EnvSection({ data }: { data: EnvVars | null }) {
   const total = Object.keys(data.vars).length;
 
   return (
-    <div className="p-5 space-y-4 border-t border-[var(--ops-border-subtle)]">
+    <div className="p-5 space-y-4 border-t border-[var(--border-dark-subtle)]">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-[var(--fg-invisible)] uppercase tracking-wider">
           Environment
         </h3>
-        <span className="text-xs text-[var(--ops-muted)]">
+        <span className="text-xs text-[var(--fg-invisible)]">
           {presentCount}/{total} configurate
         </span>
       </div>
 
       <div className="space-y-3">
         {groups.map((group) => (
-          <div key={group.label} className="rounded-xl border border-[var(--ops-border-subtle)] overflow-hidden">
-            <div className="px-3 py-2 bg-[var(--ops-surface)] text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wider">
+          <div key={group.label} className="rounded-xl border border-[var(--border-dark-subtle)] overflow-hidden">
+            <div className="px-3 py-2 bg-[var(--bg-raised)] text-xs text-[var(--fg-invisible)] font-semibold uppercase tracking-wider">
               {group.label}
             </div>
-            <div className="divide-y divide-[var(--ops-border-subtle)]">
+            <div className="divide-y divide-[var(--border-dark-subtle)]">
               {group.keys.map((k) => {
                 const present = data.vars[k] ?? false;
                 return (
                   <div key={k} className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(255,255,255,0.03)]">
-                    <span className="text-xs font-mono text-[var(--ops-fg-muted)] truncate">{k}</span>
+                    <span className="text-xs font-mono text-[var(--fg-secondary)] truncate">{k}</span>
                     {present ? (
-                      <CheckCircle className="w-4 h-4 text-[var(--ops-teal)] shrink-0 ml-2" />
+                      <CheckCircle className="w-4 h-4 text-[var(--success)] shrink-0 ml-2" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-[var(--ops-error)] shrink-0 ml-2" />
+                      <XCircle className="w-4 h-4 text-[var(--error)] shrink-0 ml-2" />
                     )}
                   </div>
                 );
@@ -228,16 +228,16 @@ function CostsSection({ data }: { data: CostsData | null }) {
     .slice(0, 6);
 
   return (
-    <div className="flex-none px-4 py-3 border-b border-[var(--ops-border-subtle)] space-y-2">
+    <div className="flex-none px-4 py-3 border-b border-[var(--border-dark-subtle)] space-y-2">
       {/* Header + summary inline */}
       <div className="flex items-center gap-3 flex-wrap">
-        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-[var(--fg-invisible)] uppercase tracking-wider">
           Costi API 7d
         </h3>
         <div className="flex items-center gap-3 ml-auto text-xs font-mono">
-          <span className="text-[var(--ops-fg)]">{data.total > 0 ? `$${data.total.toFixed(5)}` : "$0.00"}</span>
-          <span className="text-[var(--ops-muted)]">{data.calls} chiamate</span>
-          <span className={`${data.fallbackRate > 0.3 ? "text-[var(--ops-error)]" : "text-[var(--ops-muted)]"}`}>{(data.fallbackRate * 100).toFixed(0)}% fallback</span>
+          <span className="text-[var(--fg-primary)]">{data.total > 0 ? `$${data.total.toFixed(5)}` : "$0.00"}</span>
+          <span className="text-[var(--fg-invisible)]">{data.calls} chiamate</span>
+          <span className={`${data.fallbackRate > 0.3 ? "text-[var(--error)]" : "text-[var(--fg-invisible)]"}`}>{(data.fallbackRate * 100).toFixed(0)}% fallback</span>
         </div>
       </div>
 
@@ -247,18 +247,18 @@ function CostsSection({ data }: { data: CostsData | null }) {
           {topAgents.map((e) => (
             <span
               key={e.agent}
-              className="inline-flex items-center gap-2 px-2 py-1 bg-[var(--ops-surface)] rounded-md text-xs font-mono border border-[var(--ops-border-subtle)]"
+              className="inline-flex items-center gap-2 px-2 py-1 bg-[var(--bg-raised)] rounded-md text-xs font-mono border border-[var(--border-dark-subtle)]"
             >
-              <span className="text-[var(--ops-fg-muted)]">{e.agent}</span>
-              <span className="text-[var(--ops-accent)]">
+              <span className="text-[var(--fg-secondary)]">{e.agent}</span>
+              <span className="text-[var(--accent)]">
                 {e.cost > 0 ? `$${e.cost.toFixed(4)}` : "~gratis"}
               </span>
-              <span className="text-[var(--ops-muted)]">{"\u00d7"}{e.calls}</span>
+              <span className="text-[var(--fg-invisible)]">{"\u00d7"}{e.calls}</span>
             </span>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-[var(--ops-muted)]">Nessuna chiamata negli ultimi 7 giorni.</p>
+        <p className="text-xs text-[var(--fg-invisible)]">Nessuna chiamata negli ultimi 7 giorni.</p>
       )}
     </div>
   );
@@ -272,11 +272,11 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
   const statusIcon = (status: "ok" | "degraded" | "error") => {
     switch (status) {
       case "ok":
-        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-teal)" }} />;
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--success)" }} />;
       case "degraded":
-        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-id-cost)" }} />;
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--identity-gold)" }} />;
       case "error":
-        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--ops-error)" }} />;
+        return <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "var(--error)" }} />;
     }
   };
 
@@ -305,16 +305,16 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
   const totalErrors = Object.values(data).reduce((s, p) => s + p.recentErrors, 0);
 
   return (
-    <div className="flex-none px-4 py-3 border-b border-[var(--ops-border-subtle)] space-y-2">
+    <div className="flex-none px-4 py-3 border-b border-[var(--border-dark-subtle)] space-y-2">
       <div className="flex items-center gap-3 flex-wrap">
-        <h3 className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider flex items-center gap-2">
+        <h3 className="text-xs font-semibold text-[var(--fg-invisible)] uppercase tracking-wider flex items-center gap-2">
           <Zap className="w-3 h-3" />
           Provider Health 1h
         </h3>
         <div className="flex items-center gap-3 ml-auto text-xs font-mono">
-          <span className="text-[var(--ops-muted)]">{sortedProviders.length} providers</span>
+          <span className="text-[var(--fg-invisible)]">{sortedProviders.length} providers</span>
           {totalErrors > 0 && (
-            <span className="text-[var(--ops-error)]">{totalErrors} errori</span>
+            <span className="text-[var(--error)]">{totalErrors} errori</span>
           )}
         </div>
       </div>
@@ -327,31 +327,31 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
             style={{
               backgroundColor: info.status === "error" ? "rgba(229, 141, 120, 0.06)" :
                                info.status === "degraded" ? "rgba(255, 200, 50, 0.04)" :
-                               "var(--ops-surface)",
+                               "var(--bg-raised)",
               borderColor: info.status === "error" ? "rgba(229, 141, 120, 0.3)" :
                            info.status === "degraded" ? "rgba(255, 200, 50, 0.2)" :
-                           "var(--ops-border-subtle)",
+                           "var(--border-dark-subtle)",
             }}
           >
             {statusIcon(info.status)}
-            <span className="text-[var(--ops-fg-muted)] font-semibold truncate">{name}</span>
-            <span className="ml-auto text-[var(--ops-muted)] shrink-0">
+            <span className="text-[var(--fg-secondary)] font-semibold truncate">{name}</span>
+            <span className="ml-auto text-[var(--fg-invisible)] shrink-0">
               {info.recentCalls} calls
             </span>
             {info.recentErrors > 0 && (
-              <span className="shrink-0" style={{ color: info.status === "error" ? "var(--ops-error)" : "var(--ops-id-cost)" }}>
+              <span className="shrink-0" style={{ color: info.status === "error" ? "var(--error)" : "var(--identity-gold)" }}>
                 {info.recentErrors} err
               </span>
             )}
-            <span className="text-[var(--ops-muted)] shrink-0" title={info.lastCallAt ?? undefined}>
+            <span className="text-[var(--fg-invisible)] shrink-0" title={info.lastCallAt ?? undefined}>
               {formatLastCall(info.lastCallAt)}
             </span>
             <span
               className="shrink-0 text-xs"
               style={{
-                color: info.status === "ok" ? "var(--ops-teal)" :
-                       info.status === "degraded" ? "var(--ops-id-cost)" :
-                       "var(--ops-error)",
+                color: info.status === "ok" ? "var(--success)" :
+                       info.status === "degraded" ? "var(--identity-gold)" :
+                       "var(--error)",
               }}
             >
               {statusLabel(info.status)}
@@ -415,17 +415,17 @@ export function DebugPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[var(--ops-bg)]">
+    <div className="h-full flex flex-col bg-[var(--bg-base)]">
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
-      <div className="flex-none h-12 px-5 border-b border-[var(--ops-border-subtle)] flex items-center gap-4 bg-[var(--ops-surface)]">
-        <span className="text-sm font-semibold text-[var(--ops-fg)]">Stato Sistema</span>
+      <div className="flex-none h-12 px-5 border-b border-[var(--border-dark-subtle)] flex items-center gap-4 bg-[var(--bg-raised)]">
+        <span className="text-sm font-semibold text-[var(--fg-primary)]">Stato Sistema</span>
         {lastFetch && (
-          <span className="text-xs text-[var(--ops-muted)]">aggiornato {timeSince()}</span>
+          <span className="text-xs text-[var(--fg-invisible)]">aggiornato {timeSince()}</span>
         )}
         <button
           onClick={fetchAll}
           disabled={loading}
-          className="ml-auto flex items-center gap-2 px-3 h-7 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] rounded-lg text-xs text-[var(--ops-fg-muted)] transition-all duration-150 disabled:opacity-40"
+          className="ml-auto flex items-center gap-2 px-3 h-7 bg-[var(--bg-overlay)] hover:bg-[var(--border-dark)] rounded-lg text-xs text-[var(--fg-secondary)] transition-all duration-150 disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Aggiorna
@@ -434,21 +434,21 @@ export function DebugPanel() {
 
       {/* ── Error banner ─────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex-none px-4 py-2 bg-[rgba(229,141,120,0.08)] border-b border-[var(--ops-error)]/20 text-xs text-[var(--ops-error)]">
+        <div className="flex-none px-4 py-2 bg-[rgba(229,141,120,0.08)] border-b border-[var(--error)]/20 text-xs text-[var(--error)]">
           {error}
         </div>
       )}
 
       {/* ── Body ─────────────────────────────────────────────────────────────── */}
       {loading && !tierData ? (
-        <div className="flex-1 flex items-center justify-center text-[var(--ops-muted)] text-sm gap-2">
+        <div className="flex-1 flex items-center justify-center text-[var(--fg-invisible)] text-sm gap-2">
           <RefreshCw className="w-4 h-4 animate-spin" />
           Caricamento stato sistema…
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex">
           {/* ── Left column: Tier + Env (scrollable) ─────────────────────── */}
-          <div className="w-72 flex-none border-r border-[var(--ops-border-subtle)] overflow-y-auto">
+          <div className="w-72 flex-none border-r border-[var(--border-dark-subtle)] overflow-y-auto">
             <TierSection data={tierData} />
             <EnvSection data={envData} />
           </div>

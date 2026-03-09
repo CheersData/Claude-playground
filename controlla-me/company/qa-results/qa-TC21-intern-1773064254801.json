@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "La situazione descritta potrebbe rientrare nel caso di omesso esame di un fatto decisivo, ma la norma specifica che disciplina questo aspetto è l'Art. 360, primo comma, n. 5, del Codice di Procedura Civile, che consente il ricorso per cassazione per omesso esame di un fatto decisivo. Tuttavia, il fatto che il giudice abbia deciso su una questione non sollevata dalle parti potrebbe anche essere visto come un errore di procedura o un vizio di motivazione.\n\nRiferimenti normativi: L'Art. 360 c.p.c. disciplina i motivi di ricorso per cassazione, compreso l'omesso esame di un fatto decisivo. L'Art. 101 c.p.c. sottolinea l'importanza del contraddittorio e del rispetto del diritto di difesa, che potrebbe essere stato leso se il giudice ha deciso su una questione non discussa dalle parti.\n\nIn pratica: La parte che si sente danneggiata dalla decisione del giudice dovrebbe valutare la possibilità di impugnare la sentenza per omesso esame di un fatto decisivo o per violazione del contraddittorio, a seconda delle specifiche circostanze del caso. È fondamentale consultare un avvocato per valutare le migliori opzioni di impugnazione.",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 12,
+    "quality": 12,
+    "total": 39,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha accennato alla distinzione tra ultrapetizione ed extrapetizione ma non l'ha spiegata chiaramente e ha citato l'art. 360 n.5 invece del n.4 corretto. Ha individuato l'art. 112 ma la ricerca normativa è imprecisa e contiene errori, riducendo l'accuratezza complessiva."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:47:45.939Z"
+}

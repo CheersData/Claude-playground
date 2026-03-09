@@ -1,0 +1,30 @@
+{
+  "testId": "TC21",
+  "question": "Ho vinto in primo grado ma il giudice ha deciso su una questione che nessuna delle due parti aveva sollevato. L'altra parte può impugnare per questo?",
+  "agentAnswer": "La situazione descritta potrebbe rientrare nel caso di omesso esame di un fatto decisivo, ma la norma specifica che disciplina questo aspetto è l'Art. 360, n. 5, c.p.c. Tuttavia, il contesto fornito non contiene informazioni sufficienti per determinare se il giudice abbia effettivamente omesso l'esame di un fatto decisivo. Inoltre, la possibilità di impugnare la sentenza dipende dalle specifiche circostanze del caso e dalle norme processuali applicabili.\n\nRiferimenti normativi: L'Art. 360 c.p.c. disciplina i motivi di ricorso per cassazione, compreso l'omesso esame di un fatto decisivo. L'Art. 101 c.p.c. sancisce il principio del contraddittorio, che potrebbe essere rilevante nella valutazione dell'omesso esame di un fatto.\n\nIn pratica: La parte interessata dovrebbe valutare attentamente le norme processuali applicabili e le specifiche circostanze del caso per determinare se sia possibile impugnare la sentenza. Potrebbe essere utile consultare un avvocato per una valutazione più precisa delle possibilità di impugnazione.",
+  "expectedAnswer": "L'agente deve distinguere ultrapetizione (decide più di quanto chiesto) da extrapetizione (decide su domanda diversa) e citare art. 112 e 360 n.4 c.p.c.",
+  "scoringHints": {
+    "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
+    "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
+    "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetizione",
+    "nullità_sentenza",
+    "appello",
+    "motivi_impugnazione"
+  ],
+  "scope": "Cass. SU 2001/841 su extrapetizione; art. 112 c.p.c.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 5,
+    "quality": 15,
+    "total": 30,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha correttamente identificato la questione giuridica specifica relativa all'ultrapetizione e all'extrapetizione. Non ha citato correttamente gli articoli di legge pertinenti come l'art. 112 e l'art. 360 n. 4 c.p.c. Inoltre, la risposta è generica e non fornisce un chiaro riferimento alla sentenza della Cassazione SU 2001/841."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:58:52.183Z"
+}

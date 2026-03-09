@@ -41,20 +41,20 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
   }[status];
 
   const statusColor = {
-    idle: "text-[#9B9B9B]",
-    processing: "text-[#1A1A1A]",
-    done: "text-[#1A1A1A]",
+    idle: "text-[var(--foreground-tertiary)]",
+    processing: "text-[var(--foreground)]",
+    done: "text-[var(--foreground)]",
     error: "text-red-500",
     clarification: "text-amber-600",
   }[status];
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 md:px-8 md:py-5 border-b border-[#E5E5E5]">
+    <header className="flex items-center justify-between px-4 py-3 md:px-8 md:py-5 border-b border-[var(--border)]">
       <div className="flex items-center gap-3 md:gap-4">
-        <h1 className="text-lg md:text-xl font-serif tracking-tight text-[#1A1A1A]">
+        <h1 className="text-lg md:text-xl font-serif tracking-tight text-[var(--foreground)]">
           lexmea
         </h1>
-        <span className="text-[11px] text-[#9B9B9B] tracking-wide hidden md:inline">
+        <span className="text-[11px] text-[var(--foreground-tertiary)] tracking-wide hidden md:inline">
           Assistenza a professionisti giuridici
         </span>
       </div>
@@ -63,7 +63,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         {onPrint && status === "done" && (
           <button
             onClick={onPrint}
-            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden hidden sm:inline"
+            className="text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors print:hidden hidden sm:inline"
           >
             Stampa PDF
           </button>
@@ -71,7 +71,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         {onCompanyToggle && (
           <button
             onClick={onCompanyToggle}
-            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+            className="text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors print:hidden"
           >
             Company
           </button>
@@ -79,7 +79,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         {onShellToggle && (
           <button
             onClick={onShellToggle}
-            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden font-mono"
+            className="text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors print:hidden font-mono"
             title="Shell Commands"
           >
             Shell
@@ -88,7 +88,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         {onPowerToggle && (
           <button
             onClick={onPowerToggle}
-            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
+            className="text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors print:hidden"
           >
             Power
           </button>
@@ -98,8 +98,8 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
             onClick={onCorpusToggle}
             className={`transition-colors print:hidden ${
               corpusActive
-                ? "text-[#A78BFA] font-medium"
-                : "text-[#9B9B9B] hover:text-[#1A1A1A]"
+                ? "text-[var(--agent-investigator)] font-medium"
+                : "text-[var(--foreground-tertiary)] hover:text-[var(--foreground)]"
             }`}
           >
             Corpus
@@ -107,15 +107,15 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         )}
         <a
           href="/ops"
-          className="text-[#9B9B9B] hover:text-[#FF6B35] transition-colors print:hidden"
+          className="text-[var(--foreground-tertiary)] hover:text-[var(--accent)] transition-colors print:hidden"
         >
           Ops
         </a>
         {userName && (
-          <span className="text-[#6B6B6B] hidden sm:inline">{userName}</span>
+          <span className="text-[var(--foreground-secondary)] hidden sm:inline">{userName}</span>
         )}
-        <span className={statusColor}>{statusLabel}</span>
-        <span className="text-[#9B9B9B] tabular-nums opacity-50 hidden sm:inline">
+        <span className={statusColor} role="status" aria-live="polite">{statusLabel}</span>
+        <span className="text-[var(--foreground-tertiary)] tabular-nums opacity-50 hidden sm:inline" aria-label={`Ora corrente: ${time}`}>
           {time}
         </span>
       </div>

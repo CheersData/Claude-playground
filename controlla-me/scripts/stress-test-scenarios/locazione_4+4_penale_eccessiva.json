@@ -1,0 +1,33 @@
+{
+  "id": "locazione_4+4_penale_eccessiva",
+  "name": "locazione 4+4 penale eccessiva",
+  "category": "locazione",
+  "documentText": "CONTRATTO DI LOCAZIONE AD USO ABITATIVO\n(ai sensi della Legge 9 dicembre 1998, n. 431)\n\nTRA\nIl Sig. Mario Rossi, nato a Roma il 01/01/1970, codice fiscale RSSMRA70A01H501Z,\nresidente in Roma, Via Tiburtina 100 (di seguito \"Locatore\"),\n\nE\nIl Sig. Luigi Bianchi, nato a Milano il 15/06/1985, codice fiscale BNCLGU85H15F205X,\nresidente in Milano, Via Montenapoleone 10 (di seguito \"Conduttore\"),\n\nSI CONVIENE E SI STIPULA QUANTO SEGUE:\n\nArt. 1 - OGGETTO\nIl Locatore concede in locazione al Conduttore l'immobile sito in Roma, Via Appia Nuova 42,\npiano 3, interno 7, composto da 4 vani, categoria A/2.\n\nArt. 2 - DURATA\nIl contratto ha durata di 4 (quattro) anni con decorrenza dal 01/04/2025 e scadenza il 31/03/2029,\nrinnovabile per ulteriori 4 anni salvo disdetta.\n\nArt. 3 - CANONE\nIl canone annuo è stabilito in EUR 9.600,00 pari a EUR 800,00 mensili,\nda corrispondersi entro il giorno 5 di ogni mese mediante bonifico bancario.\n\nArt. 4 - DEPOSITO CAUZIONALE\nIl Conduttore versa a titolo di deposito cauzionale la somma di EUR 2.400,00 pari a 3 mensilità.\nIl deposito sarà restituito al termine della locazione, dedotte eventuali somme dovute.\n\nArt. 5 - PENALE PER RISOLUZIONE ANTICIPATA\nIn caso di risoluzione anticipata da parte del Conduttore prima della scadenza naturale,\nquesti dovrà corrispondere al Locatore una penale pari a 12 (dodici) mensilità del canone.\nIl deposito cauzionale verrà trattenuto integralmente a titolo di risarcimento.\n\nArt. 6 - SPESE\nLe spese condominiali ordinarie sono a carico del Conduttore.\n\nRoma, 15 marzo 2025",
+  "expectations": {
+    "classifier": [
+      "documentType deve contenere 'locazione'",
+      "documentSubType = locazione_4+4 o simile",
+      "relevantInstitutes deve includere clausola_penale o penale_risoluzione_anticipata",
+      "applicableLaws deve citare L. 431/1998"
+    ],
+    "analyzer": [
+      "Deve identificare la penale di 12 mensilità come rischio critical o high",
+      "Deve segnalare deposito cauzionale pari a 3 mensilità come superiore allo standard (2 mensilità max)",
+      "overallRisk deve essere almeno medium",
+      "Deve citare art. 1384 c.c. sulla riducibilità della clausola penale"
+    ],
+    "investigator": [
+      "Deve produrre finding per la clausola penale",
+      "NON deve inventare sentenze — se non trova, scrive 'orientamento non verificato'",
+      "Deve citare art. 1384 c.c. e/o L. 431/1998",
+      "laws[].isInForce deve essere true per norme vigenti"
+    ],
+    "advisor": [
+      "fairnessScore tra 3 e 6 (contratto sbilanciato ma non totalmente vessatorio)",
+      "risks deve avere max 3 elementi",
+      "actions deve avere max 3 elementi",
+      "Linguaggio chiaro, zero legalese — comprensibile a un non-giurista",
+      "needsLawyer = true (la penale è problematica)"
+    ]
+  }
+}

@@ -50,7 +50,7 @@ export interface CorpusSource {
   id: string;
   name: string;
   shortName: string;
-  type: "normattiva" | "eurlex";
+  type: "normattiva" | "eurlex" | "openstax" | "ncbi-bookshelf" | "europe-pmc" | "icd-api" | "cochrane" | "html-scraper";
   description: string;
   urn?: string;                    // URN Normattiva (es. "urn:nir:stato:regio.decreto:1942-03-16;262")
   celexId?: string;                // CELEX ID per EUR-Lex (es. "32016R0679")
@@ -356,6 +356,97 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     },
     vertical: "hr",
     lifecycle: "loaded",   // caricato 2026-03-03 | 12 art. (verificato in DB)
+  },
+
+  // ── Fonti pianificate — censimento 2026-03-09 (QA stress test + ampliamento copertura) ──
+
+  {
+    id: "dlgs_82_2005",
+    name: "Codice dell'Amministrazione Digitale (CAD)",
+    shortName: "CAD",
+    type: "normattiva",
+    description: "D.Lgs. 7 marzo 2005, n. 82 — Codice dell'amministrazione digitale: documento informatico, firma digitale, PEC, SPID, identità digitale, conservazione digitale",
+    urn: "urn:nir:stato:decreto.legislativo:2005-03-07;82",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-03-07;82",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 92,
+    connector: {
+      normattivaSearchTerms: ["codice amministrazione digitale", "cad 82 2005", "firma digitale"],
+      normattivaActType: "decreto.legislativo",
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 112 del 16 maggio 2005, S.O. n. 93
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+  },
+  {
+    id: "legge_392_1978",
+    name: "Equo canone — Disciplina delle locazioni",
+    shortName: "L. 392/1978",
+    type: "normattiva",
+    description: "Legge 27 luglio 1978, n. 392 — Disciplina delle locazioni di immobili urbani (equo canone): durata, rinnovo, disdetta, sublocazione, successione nel contratto, locazioni ad uso diverso dall'abitazione",
+    urn: "urn:nir:stato:legge:1978-07-27;392",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 84,
+    connector: {
+      normattivaSearchTerms: ["equo canone", "legge 392 1978", "locazioni immobili urbani"],
+      normattivaActType: "legge",
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 211 del 29 luglio 1978
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+  },
+  {
+    id: "legge_590_1965",
+    name: "Prelazione agraria — L. 590/1965",
+    shortName: "L. 590/1965",
+    type: "normattiva",
+    description: "Legge 26 maggio 1965, n. 590 — Disposizioni per lo sviluppo della proprietà coltivatrice: diritto di prelazione dell'affittuario coltivatore diretto, riscatto agrario",
+    urn: "urn:nir:stato:legge:1965-05-26;590",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1965-05-26;590",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+    ],
+    estimatedArticles: 50,
+    connector: {
+      normattivaSearchTerms: ["prelazione agraria", "legge 590 1965", "proprieta coltivatrice"],
+      normattivaActType: "legge",
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 142 del 9 giugno 1965
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
+  },
+  {
+    id: "legge_817_1971",
+    name: "Prelazione agraria — L. 817/1971",
+    shortName: "L. 817/1971",
+    type: "normattiva",
+    description: "Legge 14 agosto 1971, n. 817 — Disposizioni per il rifinanziamento delle provvidenze per lo sviluppo della proprietà coltivatrice: estensione prelazione a confinante coltivatore diretto",
+    urn: "urn:nir:stato:legge:1971-08-14;817",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1971-08-14;817",
+    hierarchyLevels: [],
+    estimatedArticles: 20,
+    connector: {
+      normattivaSearchTerms: ["legge 817 1971", "prelazione confinante", "proprieta coltivatrice rifinanziamento"],
+      normattivaActType: "legge",
+      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
+      // normattivaDataGU: TODO — G.U. n. 224 del 4 settembre 1971
+      directAkn: true,
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",
   },
 ];
 

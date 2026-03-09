@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "security",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "security-auditor"
+    "last_updated": "2026-03-08T22:11:42.201Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Stato VERDE. Tutti i finding medi (M1-M9) risolti. Finding bassi residui non bloccanti. Headers HTTP, middleware centralizzato, RLS attivo.",
+  "summary": "26 completati (ultimi 7gg). 50 completati (totale).",
   "findings": {
     "critical": 0,
     "high": 0,

@@ -1,0 +1,29 @@
+{
+  "testId": "TC39",
+  "question": "Il contratto dice: 'Se non paghi entro 30 giorni, il contratto si intende risolto'. È una clausola risolutiva espressa o una condizione?",
+  "agentAnswer": "La clausola 'Se non paghi entro 30 giorni, il contratto si intende risolto' è una clausola risolutiva espressa. \n\nRiferimenti normativi: \n- Art. 1456 c.c. disciplina la clausola risolutiva espressa, stabilendo che i contraenti possono convenire espressamente che il contratto si risolva nel caso che una determinata obbligazione non sia adempiuta secondo le modalità stabilite. In questo caso, la risoluzione si verifica di diritto quando la parte interessata dichiara all'altra che intende valersi della clausola risolutiva.\n\nIn pratica: \nLa clausola risolutiva espressa prevista dall'art. 1456 c.c. è una pattuizione che prevede la risoluzione automatica del contratto in caso di inadempimento di una specifica obbligazione (ad esempio, il pagamento entro un certo termine). Perché sia efficace, la parte interessata a valersi della clausola deve comunicare all'altra parte la propria intenzione di risolvere il contratto. Questa comunicazione deve essere chiara e inequivocabile.\n\nLa differenza con una condizione è che la condizione è un evento futuro e incerto dal quale dipende l'efficacia o la risoluzione del contratto (art. 1353 c.c.), mentre la clausola risolutiva espressa è una pattuizione che prevede la risoluzione del contratto in caso di inadempimento di una specifica obbligazione.",
+  "expectedAnswer": "Dipende dalla formulazione esatta: clausola risolutiva espressa (art. 1456) richiede dichiarazione della parte; condizione risolutiva (art. 1353) opera automaticamente. L'agente deve segnalare l'ambiguità e chiedere il testo completo prima di rispondere.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambe le fattispecie (art. 1456 e 1353)?",
+    "search": "Ha trovato art. 1456 e art. 1353 c.c.?",
+    "quality": "Segnala l'ambiguità? Distingue i due istituti? Chiede il testo completo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_risolutiva_espressa",
+    "condizione_risolutiva",
+    "interpretazione_contratto"
+  ],
+  "scope": "Dipende dalla formulazione. L'agente DEVE segnalare ambiguità e richiedere il testo completo.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 20,
+    "quality": 20,
+    "total": 50,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non segnala l'ambiguità della clausola e non chiede il testo completo. Inoltre, classifica la clausola come risolutiva espressa senza considerare la possibilità che possa essere una condizione risolutiva."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:58:31.999Z"
+}

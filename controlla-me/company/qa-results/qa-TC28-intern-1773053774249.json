@@ -1,0 +1,29 @@
+{
+  "testId": "TC28",
+  "question": "La controparte non si è presentata alla mediazione obbligatoria. Cosa succede?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLa controparte che non si presenta al primo incontro di mediazione obbligatoria comporta l'improcedibilità della domanda giudiziale. Il giudice, constatata l'assenza ingiustificata, dichiara l'improcedibilità e può condannare la parte assente al versamento di una somma pari al doppio del contributo unificato dovuto per il giudizio, nonché, su richiesta, a un'ulteriore somma equitativa fino al massimo delle spese di giudizio maturate.\n\nRIFERIMENTI NORMATIVI\n- Art. 5‑quater c. 1‑3 D.Lgs. 28/2010 (ID a53473de-0cc9-4080-95ff-7c1bcfcf4e6d): il giudice, se la mediazione non risulta esperita, dichiara l'improcedibilità della domanda giudiziale.\n- Art. 5 c. 2‑6 D.Lgs. 28/2010 (ID 6a603d18-3523-49d2-b0e3-766043312124): la mediazione è condizione di procedibilità; l'improcedibilità è rilevata d'ufficio dal giudice non oltre la prima udienza e, in mancanza, la domanda è dichiarata improcedibile.\n- Art. 12‑bis c. 2‑3 D.Lgs. 28/2010 (ID ee98a8a3-cc4e-4872-9c86-4196ee4a06c6): la parte che non partecipa al primo incontro senza giustificato motivo è condannata al pagamento del doppio del contributo unificato e, su richiesta, a una somma equitativa non superiore alle spese di giudizio.\n\nIN PRATICA\nIl giudice deve verificare l'assenza della controparte al primo incontro; se l'assenza è ingiustificata, dichiara l'improcedibilità della domanda e, ai sensi dell'art. 12‑bis, ordina il pagamento della sanzione pecuniaria (doppio contributo unificato) e, eventualmente, di una somma aggiuntiva fino al limite delle spese di giudizio. Il richiedente può chiedere al giudice di applicare queste disposizioni nella stessa ordinanza.",
+  "expectedAnswer": "L'assenza ingiustificata comporta: sanzione pecuniaria fino a €250 verso lo Stato, e il giudice può trarre argomenti di prova dall'assenza (art. 8 co. 4-bis D.Lgs. 28/2010).",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 8 D.Lgs. 28/2010 e conseguenze assenza?",
+    "search": "Ha trovato art. 8 co. 4-bis D.Lgs. 28/2010?",
+    "quality": "Menziona entrambe le conseguenze (sanzione + argomento prova)?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mediazione_obbligatoria",
+    "sanzione_assenza",
+    "argomento_prova"
+  ],
+  "scope": "art. 8 co. 4-bis D.Lgs. 28/2010: sanzione pecuniaria + argomento di prova",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 12,
+    "search": 8,
+    "quality": 5,
+    "total": 25,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha individuato il tema della mediazione obbligatoria ma ha citato articoli errati e ha descritto sanzioni diverse da quelle previste dall'art. 8 co. 4-bis (€250). Le norme riportate sembrano inventate o non pertinenti, riducendo drasticamente la qualità della risposta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:55:22.764Z"
+}

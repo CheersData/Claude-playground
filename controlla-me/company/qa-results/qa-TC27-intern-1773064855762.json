@@ -1,0 +1,29 @@
+{
+  "testId": "TC27",
+  "question": "Ho un debito con un privato. Possono pignorare la mia prima casa?",
+  "agentAnswer": "La legge italiana prevede che la prima casa sia generalmente esente da pignoramento, ma ci sono eccezioni. Secondo l'art. 545 c.c., non possono essere pignorati i crediti alimentari, tranne che per cause di alimenti, e sempre con l'autorizzazione del presidente del tribunale o di un giudice da lui delegato e per la parte dal medesimo determinata mediante decreto. Tuttavia, l'art. 492 c.p.c. non esclude esplicitamente la possibilità di pignorare la prima casa. La risposta dipende dalle specifiche circostanze del caso, come ad esempio la natura del debito e le condizioni economiche del debitore.\n\nRiferimenti normativi: l'art. 545 c.c. disciplina i crediti impignorabili, mentre l'art. 492 c.p.c. regola la forma del pignoramento. L'art. 513 c.p.c. disciplina la ricerca delle cose da pignorare.\n\nIn pratica, è consigliabile consultare un avvocato per valutare la possibilità di pignoramento della prima casa nel caso specifico, in quanto la legge prevede eccezioni e condizioni particolari.",
+  "expectedAnswer": "TRAPPOLA: l'impignorabilità della prima casa vale SOLO per Agenzia Entrate Riscossione (art. 76 DPR 602/73). I creditori privati POSSONO pignorare la prima casa senza limiti.",
+  "scoringHints": {
+    "prep": "Ha distinto tra creditore privato e Agenzia Entrate nella query?",
+    "search": "Ha trovato art. 76 DPR 602/73 con il limite del soggetto?",
+    "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Senza ambiguità?"
+  },
+  "trapType": "falsa_tutela",
+  "institutes": [
+    "pignoramento_prima_casa",
+    "impignorabilità",
+    "creditori_privati"
+  ],
+  "scope": "art. 76 DPR 602/1973: impignorabilità SOLO per Agenzia Entrate Riscossione, non per privati",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 22,
+    "quality": 12,
+    "total": 54,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha riconosciuto il tema del pignoramento della prima casa e ha citato l'art. 76 DPR 602/73, ma la risposta è ambigua e contiene affermazioni errate (es. 'prima casa è generalmente esente da pignoramento'). Non chiarisce in modo netto che la tutela vale solo per l'Agenzia Entrate e non per creditori privati, riducendo l'accuratezza e la completezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:57:09.027Z"
+}

@@ -1,0 +1,29 @@
+{
+  "testId": "TC58",
+  "question": "Ho concluso un contratto via email senza firma. È valido?",
+  "agentAnswer": "La validità del contratto concluso via email senza firma dipende dalle specifiche circostanze e dal tipo di contratto. In generale, secondo l'art. 1326 c.c., il contratto è concluso nel momento in cui chi ha fatto la proposta ha conoscenza dell'accettazione dell'altra parte. La forma scritta non è sempre necessaria per la validità del contratto, ma può essere richiesta per determinati tipi di contratti.\n\nRiferimenti normativi:\n- Art. 1326 c.c. (conclusione del contratto)\n- Art. 1342 c.c. (contratto concluso mediante moduli o formulari)\n- Art. 1352 c.c. (forme convenzionali)\n\nIn pratica: Per determinare la validità del tuo contratto, è necessario esaminare il suo contenuto e le circostanze in cui è stato concluso. Se il contratto rientra in quelli per cui la legge richiede una forma specifica (ad esempio, atto pubblico o scrittura privata autenticata), la mancanza di firma potrebbe invalidarlo. Altrimenti, la validità potrebbe essere riconosciuta se le parti hanno manifestato chiaramente la loro volontà di concludere il contratto.",
+  "expectedAnswer": "DIPENDE dal tipo di contratto. Per contratti a forma libera: l'email è valida come accordo scritto. Per contratti che richiedono forma scritta ad substantiam (art. 1350: compravendita immobili, mutuo, ecc.) serve firma digitale qualificata o atto pubblico. L'agente deve chiedere che tipo di contratto.",
+  "scoringHints": {
+    "prep": "Ha formulato query che distingue i tipi di contratto?",
+    "search": "Ha trovato art. 1350 c.c. con l'elenco dei contratti a forma scritta?",
+    "quality": "Non risponde genericamente? Distingue forma libera da forma vincolata? Chiede il tipo?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "forma_del_contratto",
+    "contratto_informatico",
+    "forma_scritta_obbligatoria"
+  ],
+  "scope": "DIPENDE: forma libera = sì valido. Se forma scritta obbligatoria (art. 1350) = serve firma qualificata.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 22,
+    "search": 20,
+    "quality": 35,
+    "total": 77,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente il tema e ha citato articoli pertinenti, ma non ha fornito l'elenco completo dei contratti soggetti a forma scritta obbligatoria. La risposta è accurata e non contiene invenzioni, ma manca di una richiesta esplicita del tipo di contratto, guadagnando comunque un piccolo bonus per aver evitato una risposta assoluta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:14:03.017Z"
+}

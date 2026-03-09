@@ -36,18 +36,19 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
   };
 
   return (
-    <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
       {/* File indicator */}
       {file && (
-        <div className="flex items-center gap-2 mb-3 text-xs text-[#6B6B6B]">
+        <div className="flex items-center gap-2 mb-3 text-xs text-[var(--foreground-secondary)]">
           <span className="font-medium">Documento:</span>
-          <span className="truncate max-w-[160px] sm:max-w-[300px] text-[#1A1A1A]">{file.name}</span>
+          <span className="truncate max-w-[160px] sm:max-w-[300px] text-[var(--foreground)]">{file.name}</span>
           <button
             onClick={() => {
               setFile(null);
               if (fileRef.current) fileRef.current.value = "";
             }}
             className="text-red-400 hover:text-red-500 ml-1 text-[10px]"
+            aria-label={`Rimuovi documento ${file?.name ?? ""}`}
           >
             Rimuovi
           </button>
@@ -61,17 +62,18 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
+        aria-label="Messaggio per la console legale"
         placeholder={
           disabled
             ? "Elaborazione in corso..."
             : placeholder ?? "Scrivi una domanda o incolla un testo..."
         }
         rows={3}
-        className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#9B9B9B] resize-none outline-none text-sm leading-relaxed"
+        className="w-full bg-transparent text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] resize-none outline-none text-sm leading-relaxed"
       />
 
       {/* Action bar */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#F0F0F0]">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
           <input
             ref={fileRef}
@@ -84,11 +86,11 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
           <button
             onClick={() => fileRef.current?.click()}
             disabled={disabled}
-            className="text-xs text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors disabled:opacity-40"
+            className="text-xs text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors disabled:opacity-40"
           >
             Allega documento
           </button>
-          <span className="text-[10px] text-[#9B9B9B] opacity-40">
+          <span className="text-[10px] text-[var(--foreground-tertiary)] opacity-40">
             PDF, DOCX, TXT
           </span>
         </div>
@@ -96,13 +98,13 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
         <button
           onClick={handleSubmit}
           disabled={disabled || (!message.trim() && !file)}
-          className="text-xs font-medium px-5 py-2 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#333] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="text-xs font-medium px-5 py-2 rounded-lg bg-[var(--foreground)] text-white hover:bg-[#333] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         >
           Invia
         </button>
       </div>
 
-      <div className="text-[10px] text-[#9B9B9B] opacity-30 mt-1 text-right">
+      <div className="text-[10px] text-[var(--foreground-tertiary)] opacity-30 mt-1 text-right" aria-hidden="true">
         Ctrl+Enter per inviare
       </div>
     </div>

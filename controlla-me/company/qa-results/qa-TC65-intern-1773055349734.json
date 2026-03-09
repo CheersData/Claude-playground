@@ -1,0 +1,29 @@
+{
+  "testId": "TC65",
+  "question": "La palestra mi ha fatto firmare un contratto di 12 mesi senza clausola di recesso. Devo pagare tutto anche se smetto di andare?",
+  "agentAnswer": "La nullità delle clausole che escludono o limitano il diritto di recesso è prevista dal Codice del Consumo, artt. 33 e 36. Tuttavia, il contratto di 12 mesi senza clausola di recesso potrebbe essere valido se il servizio è stato interamente prestato o se sono state fornite informazioni adeguate sul diritto di recesso. In ogni caso, è consigliabile verificare le specifiche condizioni contrattuali e le leggi applicabili.",
+  "expectedAnswer": "La clausola che esclude completamente il recesso è NULLA per essere clausola vessatoria (art. 33 lett.g D.Lgs. 206/2005 Codice Consumo). Il consumatore ha sempre diritto di recedere per giusta causa. Le palestre non possono contrattualmente eliminare il diritto di recesso.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 33 lett.g Codice Consumo?",
+    "search": "Ha trovato art. 33 lett.g Codice del Consumo?",
+    "quality": "Qualifica la clausola come nulla/vessatoria? Menziona il recesso per giusta causa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_vessatoria",
+    "recesso_consumatore",
+    "Codice_Consumo"
+  ],
+  "scope": "Mancanza assoluta recesso = clausola vessatoria art. 33 lett.g. Per giusta causa: sempre possibile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 20,
+    "quality": 25,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha individuato correttamente il tema della clausola vessatoria e ha citato gli articoli 33 e 36 del Codice del Consumo, ma non ha specificato la lettera g né ha sottolineato il diritto di recesso per giusta causa. La risposta è parzialmente corretta ma incompleta e non enfatizza la nullità assoluta della clausola. Pertanto il punteggio complessivo è nella zona borderline."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:20:25.800Z"
+}

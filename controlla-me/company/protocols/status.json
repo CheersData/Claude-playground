@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "protocols",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "cme"
+    "last_updated": "2026-03-08T22:11:42.212Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Routing CLI operativo (lib/company/routing.ts). Validazione YAML enforced su task create. Comando 'route' per classificazione richieste. PROT-1 e PROT-3 risolti. Rimane PROT-2: audit settimanale mai eseguito.",
+  "summary": "1 completati (ultimi 7gg). 1 completati (totale).",
   "decision_trees": {
     "total": 6,
     "trees": [

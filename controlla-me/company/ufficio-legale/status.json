@@ -2,22 +2,42 @@
   "_meta": {
     "dept": "ufficio-legale",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "leader"
+    "last_updated": "2026-03-08T22:11:42.185Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Pipeline 4 agenti operativa. Tier system con catene N-fallback attivo. 7 agenti runtime configurati. Corpus ~5600 articoli. Test coverage ~72%.",
+  "summary": "1 task aperti. 16 completati (ultimi 7gg). 22 completati (totale).",
   "pipeline": {
-    "agents": ["classifier", "analyzer", "investigator", "advisor"],
-    "support_agents": ["corpus-agent", "question-prep", "leader"],
+    "agents": [
+      "classifier",
+      "analyzer",
+      "investigator",
+      "advisor"
+    ],
+    "support_agents": [
+      "corpus-agent",
+      "question-prep",
+      "leader"
+    ],
     "total_agents": 7,
     "pipeline_target_seconds": 90,
     "tier_system": "active",
-    "tiers": ["intern", "associate", "partner"]
+    "tiers": [
+      "intern",
+      "associate",
+      "partner"
+    ]
   },
   "prompts": {
     "location": "lib/prompts/",
-    "files": ["classifier.ts", "analyzer.ts", "investigator.ts", "advisor.ts", "corpus-agent.ts", "question-prep.ts"],
+    "files": [
+      "classifier.ts",
+      "analyzer.ts",
+      "investigator.ts",
+      "advisor.ts",
+      "corpus-agent.ts",
+      "question-prep.ts"
+    ],
     "output_format": "JSON puro",
     "language": "italiano"
   },
@@ -44,7 +64,14 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "ff57f7d2",
+      "title": "Eseguire stress test ricorsivo sulla pipeline con contratti reali",
+      "priority": "medium",
+      "status": "open"
+    }
+  ],
   "blockers": [],
   "notes": "Pipeline core funzionante. Investigator usa web_search (solo Anthropic). Fairness score calibrato: scoring multidimensionale nel backend (legalCompliance, contractBalance, industryPractice)."
 }

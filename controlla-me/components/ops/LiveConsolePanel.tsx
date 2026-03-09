@@ -95,25 +95,25 @@ function useRelativeTime(connectedAt: number | null) {
 
 function ExpandDetail({ line }: { line: LogLine }) {
   return (
-    <div className="px-3 pb-3 pt-1 bg-[var(--ops-surface)] border-b border-[var(--ops-border-subtle)]">
+    <div className="px-3 pb-3 pt-1 bg-[var(--bg-raised)] border-b border-[var(--border-dark-subtle)]">
       <div className="text-xs font-mono space-y-1">
         {Object.entries(line.meta ?? {}).map(([k, v]) => (
           <div key={k} className="flex gap-2">
-            <span className="shrink-0 w-24" style={{ color: 'var(--ops-muted)' }}>{k}</span>
-            <span style={{ color: 'var(--ops-fg-muted)' }}>{String(v)}</span>
+            <span className="shrink-0 w-24" style={{ color: 'var(--fg-invisible)' }}>{k}</span>
+            <span style={{ color: 'var(--fg-secondary)' }}>{String(v)}</span>
           </div>
         ))}
         <div className="flex gap-2 mt-1">
-          <span className="shrink-0 w-24" style={{ color: 'var(--ops-muted)' }}>level</span>
-          <span style={{ color: 'var(--ops-fg-muted)' }}>{line.level}</span>
+          <span className="shrink-0 w-24" style={{ color: 'var(--fg-invisible)' }}>level</span>
+          <span style={{ color: 'var(--fg-secondary)' }}>{line.level}</span>
         </div>
         <div className="flex gap-2">
-          <span className="shrink-0 w-24" style={{ color: 'var(--ops-muted)' }}>timestamp</span>
-          <span style={{ color: 'var(--ops-fg-muted)' }}>{line.timestamp}</span>
+          <span className="shrink-0 w-24" style={{ color: 'var(--fg-invisible)' }}>timestamp</span>
+          <span style={{ color: 'var(--fg-secondary)' }}>{line.timestamp}</span>
         </div>
-        <div className="flex gap-2 mt-2 pt-2 border-t" style={{ borderTopColor: 'var(--ops-border)' }}>
-          <span className="shrink-0 w-24" style={{ color: 'var(--ops-muted)' }}>message</span>
-          <span className="break-all" style={{ color: 'var(--ops-fg)' }}>{line.message}</span>
+        <div className="flex gap-2 mt-2 pt-2 border-t" style={{ borderTopColor: 'var(--border-dark)' }}>
+          <span className="shrink-0 w-24" style={{ color: 'var(--fg-invisible)' }}>message</span>
+          <span className="break-all" style={{ color: 'var(--fg-primary)' }}>{line.message}</span>
         </div>
       </div>
     </div>
@@ -139,7 +139,7 @@ function AiRow({
   return (
     <>
       <div
-        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface)]/30 cursor-pointer"
+        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-raised)]/30 cursor-pointer"
         style={{
           backgroundColor: line.level === "ERROR" ? 'rgba(229, 141, 120, 0.08)' :
                            m.fallback ? 'rgba(255, 107, 53, 0.04)' : undefined
@@ -147,7 +147,7 @@ function AiRow({
         onClick={onToggle}
       >
         {/* Expand chevron */}
-        <span className="shrink-0 mt-0.5" style={{ color: 'var(--ops-border)' }}>
+        <span className="shrink-0 mt-0.5" style={{ color: 'var(--border-dark)' }}>
           {expanded
             ? <ChevronDown className="w-3 h-3" />
             : <ChevronRight className="w-3 h-3" />
@@ -155,33 +155,33 @@ function AiRow({
         </span>
 
         {/* Relative timestamp */}
-        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: 'var(--ops-rose)' }}>
+        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: 'var(--rose)' }}>
           {relTime}
         </span>
 
         {/* Icon */}
-        <Bot className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ops-rose)' }} />
+        <Bot className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--rose)' }} />
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* First line: agent + model */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs font-semibold" style={{ color: 'var(--ops-rose)' }}>
+            <span className="font-mono text-xs font-semibold" style={{ color: 'var(--rose)' }}>
               {m.agent ?? "agent"}
             </span>
-            <span className="font-mono text-xs" style={{ color: 'var(--ops-muted)' }}>
+            <span className="font-mono text-xs" style={{ color: 'var(--fg-invisible)' }}>
               {modelShort || m.model}
             </span>
             {m.provider && (
-              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: 'var(--ops-surface)', color: 'var(--ops-muted)', borderColor: 'var(--ops-border)' }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: 'var(--bg-raised)', color: 'var(--fg-invisible)', borderColor: 'var(--border-dark)' }}>
                 {m.provider}
               </span>
             )}
             {m.sessionType && (
-              <span className="text-xs" style={{ color: 'var(--ops-muted)' }}>{`{${m.sessionType}}`}</span>
+              <span className="text-xs" style={{ color: 'var(--fg-invisible)' }}>{`{${m.sessionType}}`}</span>
             )}
             {m.fallback && (
-              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: 'rgba(255, 107, 53, 0.15)', color: 'var(--ops-accent)', borderColor: 'rgba(255, 107, 53, 0.3)' }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: 'rgba(255, 107, 53, 0.15)', color: 'var(--accent)', borderColor: 'rgba(255, 107, 53, 0.3)' }}>
                 fallback
               </span>
             )}
@@ -189,20 +189,20 @@ function AiRow({
           {/* Second line: metrics */}
           <div className="flex items-center gap-3 mt-0.5 font-mono text-xs">
             {m.inputTokens != null && (
-              <span style={{ color: 'var(--ops-muted)' }}>
-                <span style={{ color: 'var(--ops-cyan)' }}>{"↑in "}{m.inputTokens.toLocaleString()}</span>
-                <span style={{ color: 'var(--ops-muted)' }}> </span>
-                <span style={{ color: 'var(--ops-rose)' }}>{"↓out "}{m.outputTokens?.toLocaleString()}</span>
-                <span style={{ color: 'var(--ops-muted)' }}> ({totalTokens.toLocaleString()} tok)</span>
+              <span style={{ color: 'var(--fg-invisible)' }}>
+                <span style={{ color: 'var(--info)' }}>{"↑in "}{m.inputTokens.toLocaleString()}</span>
+                <span style={{ color: 'var(--fg-invisible)' }}> </span>
+                <span style={{ color: 'var(--rose)' }}>{"↓out "}{m.outputTokens?.toLocaleString()}</span>
+                <span style={{ color: 'var(--fg-invisible)' }}> ({totalTokens.toLocaleString()} tok)</span>
               </span>
             )}
-            {cost && <span className="font-semibold" style={{ color: 'var(--ops-accent)' }}>{cost}</span>}
-            {durationSec && <span style={{ color: 'var(--ops-muted)' }}>{durationSec}</span>}
+            {cost && <span className="font-semibold" style={{ color: 'var(--accent)' }}>{cost}</span>}
+            {durationSec && <span style={{ color: 'var(--fg-invisible)' }}>{durationSec}</span>}
           </div>
         </div>
 
         {/* Absolute timestamp — always visible */}
-        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: 'var(--ops-muted)' }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: 'var(--fg-invisible)' }}>
           {line.timestamp}
         </span>
       </div>
@@ -226,16 +226,16 @@ function TradeRow({
   return (
     <>
       <div
-        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface)]/30 cursor-pointer"
+        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-raised)]/30 cursor-pointer"
         style={{
           backgroundColor: isKillSwitch ? 'rgba(229, 141, 120, 0.12)' :
                            isWarn ? 'rgba(255, 107, 53, 0.04)' : undefined,
-          borderBottomColor: isKillSwitch ? 'var(--ops-error)' : undefined
+          borderBottomColor: isKillSwitch ? 'var(--error)' : undefined
         }}
         onClick={onToggle}
       >
         {/* Expand chevron */}
-        <span className="shrink-0 mt-0.5" style={{ color: 'var(--ops-border)' }}>
+        <span className="shrink-0 mt-0.5" style={{ color: 'var(--border-dark)' }}>
           {expanded
             ? <ChevronDown className="w-3 h-3" />
             : <ChevronRight className="w-3 h-3" />
@@ -243,30 +243,30 @@ function TradeRow({
         </span>
 
         {/* Relative timestamp */}
-        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: 'var(--ops-teal)' }}>
+        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: 'var(--success)' }}>
           {relTime}
         </span>
 
         {/* Icon */}
         {isKillSwitch
-          ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ops-error)' }} />
-          : <TrendingUp className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ops-teal)' }} />
+          ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--error)' }} />
+          : <TrendingUp className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--success)' }} />
         }
 
         {/* Message */}
         <span
           className={`font-mono text-xs flex-1 leading-snug pt-0.5 ${isKillSwitch ? "font-semibold" : ""}`}
           style={{
-            color: isKillSwitch ? 'var(--ops-error)' :
-                   isWarn ? 'var(--ops-accent)' :
-                   line.level === "INFO" ? 'var(--ops-teal)' : 'var(--ops-muted)'
+            color: isKillSwitch ? 'var(--error)' :
+                   isWarn ? 'var(--accent)' :
+                   line.level === "INFO" ? 'var(--success)' : 'var(--fg-invisible)'
           }}
         >
           {line.message}
         </span>
 
         {/* Absolute timestamp — always visible */}
-        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: 'var(--ops-muted)' }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: 'var(--fg-invisible)' }}>
           {line.timestamp}
         </span>
       </div>
@@ -287,19 +287,19 @@ function SystemRow({
   return (
     <>
       <div
-        className="flex items-center gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] cursor-pointer hover:bg-[var(--ops-surface)]/30"
+        className="flex items-center gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] cursor-pointer hover:bg-[var(--bg-raised)]/30"
         onClick={onToggle}
       >
-        <span className="shrink-0" style={{ color: 'var(--ops-border)' }}>
+        <span className="shrink-0" style={{ color: 'var(--border-dark)' }}>
           {expanded
             ? <ChevronDown className="w-3 h-3" />
             : <ChevronRight className="w-3 h-3" />
           }
         </span>
-        <span className="font-mono text-xs shrink-0 w-14 tabular-nums" style={{ color: 'var(--ops-border)' }}>{relTime}</span>
-        <Activity className="w-3 h-3 shrink-0" style={{ color: 'var(--ops-muted)' }} />
-        <span className="font-mono text-xs flex-1" style={{ color: 'var(--ops-muted)' }}>{line.message}</span>
-        <span className="font-mono text-xs shrink-0" style={{ color: 'var(--ops-border)' }}>{line.timestamp}</span>
+        <span className="font-mono text-xs shrink-0 w-14 tabular-nums" style={{ color: 'var(--border-dark)' }}>{relTime}</span>
+        <Activity className="w-3 h-3 shrink-0" style={{ color: 'var(--fg-invisible)' }} />
+        <span className="font-mono text-xs flex-1" style={{ color: 'var(--fg-invisible)' }}>{line.message}</span>
+        <span className="font-mono text-xs shrink-0" style={{ color: 'var(--border-dark)' }}>{line.timestamp}</span>
       </div>
 
       {expanded && <ExpandDetail line={line} />}
@@ -317,25 +317,25 @@ function TaskRow({
 }) {
   const m = line.meta ?? {};
   const statusColors: Record<string, string> = {
-    open: "var(--ops-cyan)",
-    in_progress: "var(--ops-accent)",
-    done: "var(--ops-teal)",
-    blocked: "var(--ops-error)",
-    review: "var(--ops-id-cost)",
+    open: "var(--info)",
+    in_progress: "var(--accent)",
+    done: "var(--success)",
+    blocked: "var(--error)",
+    review: "var(--identity-gold)",
   };
-  const color = statusColors[m.taskStatus ?? ""] ?? "var(--ops-muted)";
+  const color = statusColors[m.taskStatus ?? ""] ?? "var(--fg-invisible)";
   const priorityBadge = m.priority === "high" || m.priority === "critical";
 
   return (
     <>
       <div
-        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface)]/30 cursor-pointer"
+        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-raised)]/30 cursor-pointer"
         style={{
           backgroundColor: m.taskStatus === "blocked" ? "rgba(229, 141, 120, 0.06)" : undefined,
         }}
         onClick={onToggle}
       >
-        <span className="shrink-0 mt-0.5" style={{ color: "var(--ops-border)" }}>
+        <span className="shrink-0 mt-0.5" style={{ color: "var(--border-dark)" }}>
           {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </span>
         <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color }}>
@@ -348,21 +348,21 @@ function TaskRow({
               {m.taskStatus?.toUpperCase() ?? "TASK"}
             </span>
             {m.department && (
-              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "var(--ops-surface)", color: "var(--ops-muted)", borderColor: "var(--ops-border)" }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "var(--bg-raised)", color: "var(--fg-invisible)", borderColor: "var(--border-dark)" }}>
                 {m.department}
               </span>
             )}
             {priorityBadge && (
-              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "rgba(229, 141, 120, 0.15)", color: "var(--ops-error)", borderColor: "rgba(229, 141, 120, 0.3)" }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "rgba(229, 141, 120, 0.15)", color: "var(--error)", borderColor: "rgba(229, 141, 120, 0.3)" }}>
                 {m.priority}
               </span>
             )}
           </div>
-          <div className="font-mono text-xs mt-0.5" style={{ color: "var(--ops-fg-muted)" }}>
+          <div className="font-mono text-xs mt-0.5" style={{ color: "var(--fg-secondary)" }}>
             {line.message.replace(/^\[.*?\]\s*/, "")}
           </div>
         </div>
-        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--fg-invisible)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -381,25 +381,25 @@ function PipelineRow({
 }) {
   const m = line.meta ?? {};
   const phaseColors: Record<string, string> = {
-    classifier: "#4ECDC4",
-    analyzer: "#FF6B6B",
-    investigator: "#A78BFA",
-    advisor: "var(--ops-id-cost)",
+    classifier: "var(--identity-teal)",
+    analyzer: "var(--identity-coral)",
+    investigator: "var(--identity-violet)",
+    advisor: "var(--identity-gold)",
   };
-  const color = phaseColors[m.phase ?? ""] ?? "var(--ops-cyan)";
+  const color = phaseColors[m.phase ?? ""] ?? "var(--info)";
   const durationSec = m.durationMs ? `${(m.durationMs / 1000).toFixed(1)}s` : null;
   const cost = m.costUsd != null ? `$${m.costUsd.toFixed(4)}` : null;
 
   return (
     <>
       <div
-        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface)]/30 cursor-pointer"
+        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-raised)]/30 cursor-pointer"
         style={{
           backgroundColor: m.fallback ? "rgba(255, 107, 53, 0.04)" : undefined,
         }}
         onClick={onToggle}
       >
-        <span className="shrink-0 mt-0.5" style={{ color: "var(--ops-border)" }}>
+        <span className="shrink-0 mt-0.5" style={{ color: "var(--border-dark)" }}>
           {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </span>
         <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color }}>
@@ -412,23 +412,23 @@ function PipelineRow({
               {m.phase ?? "phase"}
             </span>
             {m.model && (
-              <span className="font-mono text-xs" style={{ color: "var(--ops-muted)" }}>
+              <span className="font-mono text-xs" style={{ color: "var(--fg-invisible)" }}>
                 {m.model}
               </span>
             )}
             {m.fallback && (
-              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "rgba(255, 107, 53, 0.15)", color: "var(--ops-accent)", borderColor: "rgba(255, 107, 53, 0.3)" }}>
+              <span className="text-xs px-2 py-0 rounded border" style={{ backgroundColor: "rgba(255, 107, 53, 0.15)", color: "var(--accent)", borderColor: "rgba(255, 107, 53, 0.3)" }}>
                 fallback
               </span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5 font-mono text-xs">
-            {cost && <span className="font-semibold" style={{ color: "var(--ops-accent)" }}>{cost}</span>}
-            {durationSec && <span style={{ color: "var(--ops-muted)" }}>{durationSec}</span>}
-            {m.provider && <span style={{ color: "var(--ops-muted)" }}>{m.provider}</span>}
+            {cost && <span className="font-semibold" style={{ color: "var(--accent)" }}>{cost}</span>}
+            {durationSec && <span style={{ color: "var(--fg-invisible)" }}>{durationSec}</span>}
+            {m.provider && <span style={{ color: "var(--fg-invisible)" }}>{m.provider}</span>}
           </div>
         </div>
-        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--fg-invisible)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -448,21 +448,21 @@ function RateLimitRow({
   return (
     <>
       <div
-        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface)]/30 cursor-pointer"
+        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-raised)]/30 cursor-pointer"
         style={{ backgroundColor: "rgba(255, 107, 53, 0.06)" }}
         onClick={onToggle}
       >
-        <span className="shrink-0 mt-0.5" style={{ color: "var(--ops-border)" }}>
+        <span className="shrink-0 mt-0.5" style={{ color: "var(--border-dark)" }}>
           {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </span>
-        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "var(--ops-id-cost)" }}>
+        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "var(--identity-gold)" }}>
           {relTime}
         </span>
-        <Shield className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--ops-id-cost)" }} />
-        <span className="font-mono text-xs flex-1 leading-snug pt-0.5" style={{ color: "var(--ops-accent)" }}>
+        <Shield className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--identity-gold)" }} />
+        <span className="font-mono text-xs flex-1 leading-snug pt-0.5" style={{ color: "var(--accent)" }}>
           {line.message}
         </span>
-        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--fg-invisible)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -482,21 +482,21 @@ function ErrorRow({
   return (
     <>
       <div
-        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface)]/30 cursor-pointer"
-        style={{ backgroundColor: "rgba(229, 141, 120, 0.08)", borderBottomColor: "var(--ops-error)" }}
+        className="flex items-start gap-3 px-3 py-2 border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-raised)]/30 cursor-pointer"
+        style={{ backgroundColor: "rgba(229, 141, 120, 0.08)", borderBottomColor: "var(--error)" }}
         onClick={onToggle}
       >
-        <span className="shrink-0 mt-0.5" style={{ color: "var(--ops-border)" }}>
+        <span className="shrink-0 mt-0.5" style={{ color: "var(--border-dark)" }}>
           {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </span>
-        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "var(--ops-error)" }}>
+        <span className="font-mono text-xs shrink-0 w-14 pt-0.5 tabular-nums" style={{ color: "var(--error)" }}>
           {relTime}
         </span>
-        <XOctagon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--ops-error)" }} />
-        <span className="font-mono text-xs flex-1 leading-snug pt-0.5 font-semibold" style={{ color: "var(--ops-error)" }}>
+        <XOctagon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--error)" }} />
+        <span className="font-mono text-xs flex-1 leading-snug pt-0.5 font-semibold" style={{ color: "var(--error)" }}>
           {line.message}
         </span>
-        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--ops-muted)" }}>
+        <span className="font-mono text-xs shrink-0 mt-0.5" style={{ color: "var(--fg-invisible)" }}>
           {line.timestamp}
         </span>
       </div>
@@ -520,12 +520,12 @@ function FilterPill({
       onClick={onClick}
       className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono border transition-all duration-150 ${
         active
-          ? "bg-[var(--ops-surface-2)] border-[var(--ops-border)] text-[var(--ops-fg)]"
-          : "bg-transparent border-[var(--ops-border-subtle)] text-[var(--ops-muted)] hover:border-[var(--ops-border)] hover:text-[var(--ops-fg-muted)]"
+          ? "bg-[var(--bg-overlay)] border-[var(--border-dark)] text-[var(--fg-primary)]"
+          : "bg-transparent border-[var(--border-dark-subtle)] text-[var(--fg-invisible)] hover:border-[var(--border-dark)] hover:text-[var(--fg-secondary)]"
       }`}
     >
       {label}
-      <span className={`${active ? "text-[var(--ops-fg-muted)]" : "text-[var(--ops-muted)]"}`}>{count}</span>
+      <span className={`${active ? "text-[var(--fg-secondary)]" : "text-[var(--fg-invisible)]"}`}>{count}</span>
     </button>
   );
 }
@@ -633,20 +633,20 @@ export function LiveConsolePanel() {
     : lines.filter((l) => l.source === sourceFilter);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--ops-bg)] border border-[var(--ops-border-subtle)] rounded-xl overflow-hidden">
+    <div className="flex flex-col h-full bg-[var(--bg-base)] border border-[var(--border-dark-subtle)] rounded-xl overflow-hidden">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] shrink-0">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] shrink-0">
         <div className="flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-[var(--ops-fg-muted)]" />
-          <span className="text-xs font-semibold text-[var(--ops-fg)]">Console Live</span>
+          <Terminal className="w-4 h-4 text-[var(--fg-secondary)]" />
+          <span className="text-xs font-semibold text-[var(--fg-primary)]">Console Live</span>
           {/* Status */}
           <span className="flex items-center gap-1">
-            {status === "connected" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-teal)] animate-pulse" />}
-            {status === "connecting" && <Loader2 className="w-3 h-3 text-[var(--ops-id-cost)] animate-spin" />}
-            {status === "disconnected" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-muted)]" />}
+            {status === "connected" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />}
+            {status === "connecting" && <Loader2 className="w-3 h-3 text-[var(--identity-gold)] animate-spin" />}
+            {status === "disconnected" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--fg-invisible)]" />}
             <span className={`text-xs ${
-              status === "connected" ? "text-[var(--ops-teal)]" :
-              status === "connecting" ? "text-[var(--ops-id-cost)]" : "text-[var(--ops-muted)]"
+              status === "connected" ? "text-[var(--success)]" :
+              status === "connecting" ? "text-[var(--identity-gold)]" : "text-[var(--fg-invisible)]"
             }`}>{status}</span>
           </span>
         </div>
@@ -654,41 +654,41 @@ export function LiveConsolePanel() {
         {/* Stats */}
         <div className="flex items-center gap-3 font-mono text-xs">
           {aiLines.length > 0 && (
-            <span style={{ color: 'var(--ops-rose)' }}>
+            <span style={{ color: 'var(--rose)' }}>
               <Bot className="w-3 h-3 inline mr-1" />
               {aiLines.length}
-              {totalCost > 0 && <span className="ml-1" style={{ color: 'var(--ops-accent)' }}>${totalCost.toFixed(4)}</span>}
+              {totalCost > 0 && <span className="ml-1" style={{ color: 'var(--accent)' }}>${totalCost.toFixed(4)}</span>}
             </span>
           )}
           {pipelineLines.length > 0 && (
-            <span style={{ color: 'var(--ops-cyan)' }}>
+            <span style={{ color: 'var(--info)' }}>
               <Layers className="w-3 h-3 inline mr-1" />
               {pipelineLines.length}
             </span>
           )}
           {(rateLimitLines.length > 0 || errorLines.length > 0) && (
-            <span style={{ color: 'var(--ops-error)' }}>
+            <span style={{ color: 'var(--error)' }}>
               <AlertTriangle className="w-3 h-3 inline mr-1" />
               {rateLimitLines.length + errorLines.length}
             </span>
           )}
-          <span className="text-[var(--ops-muted)]">{lines.length}</span>
+          <span className="text-[var(--fg-invisible)]">{lines.length}</span>
         </div>
 
         {/* Controls */}
         <div className="flex items-center gap-1">
-          <button onClick={() => setLines([])} className="p-1 rounded-md hover:bg-[var(--ops-surface-2)] text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors" title="Clear">
+          <button onClick={() => setLines([])} className="p-1 rounded-md hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors" title="Clear">
             <Trash2 className="w-3 h-3" />
           </button>
           {status === "connected"
-            ? <button onClick={disconnect} className="p-1 rounded-md hover:bg-[var(--ops-surface-2)] text-[var(--ops-teal)] hover:text-[var(--ops-error)] transition-colors" title="Disconnect"><Wifi className="w-3 h-3" /></button>
-            : <button onClick={connect} className="p-1 rounded-md hover:bg-[var(--ops-surface-2)] text-[var(--ops-muted)] hover:text-[var(--ops-teal)] transition-colors" title="Connect"><WifiOff className="w-3 h-3" /></button>
+            ? <button onClick={disconnect} className="p-1 rounded-md hover:bg-[var(--bg-overlay)] text-[var(--success)] hover:text-[var(--error)] transition-colors" title="Disconnect"><Wifi className="w-3 h-3" /></button>
+            : <button onClick={connect} className="p-1 rounded-md hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--success)] transition-colors" title="Connect"><WifiOff className="w-3 h-3" /></button>
           }
         </div>
       </div>
 
       {/* ── Filter bar ── */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/40 shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]/40 shrink-0 flex-wrap">
         <FilterPill
           active={sourceFilter === "all"}
           label="Tutti"
@@ -741,7 +741,7 @@ export function LiveConsolePanel() {
         style={{ fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace" }}
       >
         {filteredLines.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-[var(--ops-muted)]">
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-[var(--fg-invisible)]">
             <Terminal className="w-6 h-6" />
             <span className="text-xs">
               {sourceFilter !== "all"
@@ -777,13 +777,13 @@ export function LiveConsolePanel() {
 
       {/* ── Scroll indicator ── */}
       {!autoScroll && filteredLines.length > 0 && (
-        <div className="shrink-0 px-3 py-2 border-t border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]">
+        <div className="shrink-0 px-3 py-2 border-t border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]">
           <button
             onClick={() => {
               setAutoScroll(true);
               if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight;
             }}
-            className="text-xs text-[var(--ops-id-cost)] hover:text-[var(--ops-fg)] transition-colors"
+            className="text-xs text-[var(--identity-gold)] hover:text-[var(--fg-primary)] transition-colors"
           >
             {"\u2193"} Scroll disabilitato — clicca per tornare in fondo
           </button>

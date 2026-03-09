@@ -6,8 +6,8 @@ export default function StudioShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="studio-root relative min-h-screen bg-white flex flex-col">
+    <main className="studio-root relative min-h-screen bg-white flex flex-col" role="main">
       {children}
-    </div>
+    </main>
   );
 }

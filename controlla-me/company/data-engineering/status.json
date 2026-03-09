@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "data-engineering",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "cme"
+    "last_updated": "2026-03-08T22:11:42.190Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Corpus legislativo operativo. 18 fonti caricate su 18. ~5600 articoli IT+EU. Embeddings Voyage AI attivi. Delta update automatico configurato: vercel.json cron domenica 06:00 UTC → /api/platform/cron/data-connector.",
+  "summary": "1 task aperti. 30 completati (ultimi 7gg). 59 completati (totale).",
   "corpus": {
     "articles_total": 5600,
     "articles_estimated": true,
@@ -75,7 +75,14 @@
       "workaround": "Testo attuale sufficiente per MVP"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "1ba921f4",
+      "title": "Verticale Commerciale B2B: contratti fornitura e distribuzione",
+      "priority": "medium",
+      "status": "open"
+    }
+  ],
   "blockers": [],
   "notes": "Pipeline CONNECT→MODEL→LOAD funzionante per Normattiva (AKN) e EUR-Lex (HTML). Codice Civile caricato via HuggingFace (4271 art.) + ricaricato via Normattiva con gerarchie complete. GDPR caricato via EUR-Lex. Embedding Voyage AI (voyage-law-2, 1024d) su HNSW pgvector."
 }

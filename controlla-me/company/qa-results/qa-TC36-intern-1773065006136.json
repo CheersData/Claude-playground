@@ -1,0 +1,29 @@
+{
+  "testId": "TC36",
+  "question": "La banca ha modificato il tasso del mio mutuo senza avvisarmi. È legale?",
+  "agentAnswer": "La modifica unilaterale del tasso del mutuo da parte della banca senza avvisare il cliente può essere illegale se non rispetta le prescrizioni dell'Art. 118 del TUB D.Lgs. 385/1993. Secondo questo articolo, le banche possono modificare unilateralmente i tassi di interesse solo se c'è un giustificato motivo e se la modifica è comunicata espressamente al cliente con almeno due mesi di preavviso. Inoltre, la modifica si considera approvata se il cliente non recede dal contratto entro la data prevista per la sua applicazione.\n\nRiferimenti normativi: L'Art. 118 del TUB D.Lgs. 385/1993 disciplina la modifica unilaterale delle condizioni contrattuali, mentre l'Art. 118-bis dello stesso testo unico disciplina la variazione sostanziale o la cessazione di un indice di riferimento. L'Art. 117 del TUB D.Lgs. 385/1993 stabilisce le regole per la redazione dei contratti e la comunicazione delle condizioni economiche.\n\nIn pratica: Se la banca ha modificato il tasso del mutuo senza avvisare il cliente, il cliente può contestare la modifica e chiedere l'applicazione delle condizioni precedentemente praticate. È importante verificare se la banca ha rispettato le prescrizioni dell'Art. 118 del TUB D.Lgs. 385/1993 e se la modifica è stata comunicata correttamente.",
+  "expectedAnswer": "La modifica unilaterale del tasso è ammessa (art. 118 TUB) SOLO con: giustificato motivo obiettivo, preavviso di 2 mesi, e diritto di recesso senza penali per il cliente. Senza questi requisiti, la modifica è nulla.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 118 TUB e jus variandi?",
+    "search": "Ha trovato art. 118 TUB con i requisiti?",
+    "quality": "Elenca tutti e tre i requisiti? Indica che senza requisiti la modifica è nulla?"
+  },
+  "trapType": null,
+  "institutes": [
+    "jus_variandi",
+    "art_118_TUB",
+    "modifica_tasso"
+  ],
+  "scope": "art. 118 TUB: modifica unilaterale solo con giustificato motivo + 2 mesi di preavviso + diritto di recesso",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 27,
+    "quality": 35,
+    "total": 87,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha individuato correttamente il tema giuridico e l'articolo pertinente, ha recuperato le norme rilevanti e ha fornito una risposta accurata e completa senza invenzioni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T14:00:15.247Z"
+}

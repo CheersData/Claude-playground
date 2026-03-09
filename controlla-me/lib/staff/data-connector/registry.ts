@@ -18,6 +18,7 @@ import type { DataSource, DataType, SourceLifecycle } from "./types";
 /** Mappa verticale → dataType. Estensibile senza modificare questo file. */
 const VERTICAL_DATA_TYPE: Record<string, DataType> = {
   legal: "legal-articles",
+  medical: "medical-articles",
   hr: "hr-articles",
   "real-estate": "legal-articles", // stesso stack, filtrato per vertical
   consumer: "legal-articles",       // stesso stack, filtrato per vertical

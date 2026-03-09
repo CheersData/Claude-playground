@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export const maxDuration = 120;
@@ -35,11 +36,19 @@ export async function POST(req: NextRequest) {
 
     const sanitizedQuestion = sanitizeUserQuestion(userQuestion);
 
+    broadcastConsoleAgent("investigator", "running", {
+      task: `Deep search: ${sanitizedQuestion.slice(0, 60)}`,
+    });
+
     const result = await runDeepSearch(
       clauseContext || "",
       existingAnalysis || "",
       sanitizedQuestion
     );
+
+    broadcastConsoleAgent("investigator", "done", {
+      task: `${result.sources?.length ?? 0} fonti trovate`,
+    });
 
     // Persist to deep_searches table
     if (analysisId) {
@@ -76,6 +85,7 @@ export async function POST(req: NextRequest) {
       ...result,
     });
   } catch (error) {
+    broadcastConsoleAgent("investigator", "error", { task: "Deep search fallita" });
     const message =
       error instanceof Error ? error.message : "Errore durante la ricerca";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -1,0 +1,29 @@
+{
+  "testId": "TC56",
+  "question": "Il padre dei miei figli non paga il mantenimento. Cosa posso fare?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti alle norme processuali per il recupero del mantenimento dei figli. Tuttavia, posso fornirti alcune indicazioni generali basate sulle norme sostanziali presenti.\n\n1. RISPOSTA DIRETTA — Se il padre dei tuoi figli non paga il mantenimento, puoi agire in diversi modi. Innanzitutto, è fondamentale avere una sentenza o un accordo che stabilisca l'obbligo di mantenimento. Se tale documento esiste, puoi procedere con azioni esecutive.\n\nRiferimenti normativi:\n- L'art. 316-bis c.c. disciplina il concorso nel mantenimento dei figli, stabilendo che i genitori devono adempiere ai loro obblighi nei confronti dei figli in proporzione alle rispettive sostanze e secondo la loro capacità di lavoro.\n- L'art. 337-ter c.c. stabilisce che il giudice, nei procedimenti relativi all'affidamento dei figli, determina la misura e il modo con cui ciascun genitore deve contribuire al mantenimento dei figli.\n\n2. RIFERIMENTI NORMATIVI —\n  - Art. 316-bis c.c. (concorso nel mantenimento)\n  - Art. 337-ter c.c. (provvedimenti riguardo ai figli)\n  - Art. 156 c.c. (effetti della separazione sui rapporti patrimoniali tra i coniugi, che può includere il mantenimento dei figli)\n\n3. GIURISPRUDENZA — Non presente nel contesto.\n\n4. IN PRATICA —\n   - Se esiste un titolo esecutivo (ad esempio, una sentenza che stabilisce l'obbligo di mantenimento), puoi procedere con:\n     * Pignoramento presso terzi (ad esempio, il datore di lavoro del padre dei tuoi figli).\n     * Sequestro di beni.\n   - Se non esiste un titolo esecutivo, puoi:\n     * Richiedere un decreto ingiuntivo per il mantenimento.\n     * Presentare una domanda di modifica delle condizioni di mantenimento davanti al giudice competente.\n\nTuttavia, queste azioni richiedono norme processuali (c.p.c.) che non sono presenti nel contesto fornito. Ti consiglio di consultare un avvocato specializzato in diritto di famiglia per procedere.",
+  "expectedAnswer": "Due strade parallele: penale (art. 570-bis c.p., D.Lgs. 21/2018 — fino a 1 anno di reclusione) e civile (esecuzione forzata: pignoramento stipendio, conto corrente). Il giudice può anche autorizzare sequestro conservativo. Entrambe percorribili contemporaneamente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambe le strade (penale e civile)?",
+    "search": "Ha trovato art. 570-bis c.p.?",
+    "quality": "Illustra entrambe le strade (penale e civile)? Menziona il D.Lgs. 21/2018?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mantenimento_figli",
+    "art_570-bis_cp",
+    "esecuzione_forzata"
+  ],
+  "scope": "art. 570-bis c.p. (D.Lgs. 21/2018) + esecuzione forzata civile (sequestro stipendio/conto)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 15,
+    "quality": 25,
+    "total": 60,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente fornisce alcune indicazioni generali sul recupero del mantenimento dei figli, menzionando gli articoli pertinenti del codice civile (art. 316-bis e 337-ter c.c.). Tuttavia, non cita correttamente l'art. 570-bis c.p. né il D.Lgs. 21/2018, e non illustra in modo completo ed accurato entrambe le strade parallele (penale e civile) come nella risposta attesa. La risposta è quindi borderline, essendo accettabile ma migliorabile."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:12:17.591Z"
+}

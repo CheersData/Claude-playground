@@ -1,0 +1,33 @@
+{
+  "id": "locazione_transitoria_irregolare",
+  "name": "locazione transitoria irregolare",
+  "category": "locazione_transitoria",
+  "documentText": "CONTRATTO DI LOCAZIONE AD USO ABITATIVO TRANSITORIO\n(ai sensi dell'art. 5 della Legge 431/1998)\n\nTRA\nLa Sig.ra Francesca Moretti, nata a Bologna il 18/07/1972, C.F. MRTFNC72L58A944X,\nresidente in Bologna, Via Indipendenza 35 (di seguito \"Locatore\"),\n\nE\nIl Sig. Ahmed El Fassi, nato a Casablanca (Marocco) il 03/02/1995, titolare di permesso\ndi soggiorno n. PS-2024-123456, residente in Bologna, Via Rizzoli 8 (di seguito \"Conduttore\"),\n\nSI CONVIENE E SI STIPULA QUANTO SEGUE:\n\nArt. 1 - OGGETTO\nIl Locatore concede in locazione transitoria al Conduttore l'immobile sito in Bologna,\nVia Santo Stefano 18, piano 2, composto da 3 vani, categoria A/3.\n\nArt. 2 - DURATA\nIl contratto ha durata di 24 (ventiquattro) mesi con decorrenza dal 01/03/2025.\nNon è previsto rinnovo automatico.\n\nArt. 3 - MOTIVAZIONE DELLA TRANSITORIETÀ\n[Non specificata]\n\nArt. 4 - CANONE\nIl canone mensile è stabilito in EUR 1.200,00 da corrispondersi entro il giorno 1\ndi ogni mese. Il canone è libero e non soggetto ad accordi territoriali.\n\nArt. 5 - DEPOSITO CAUZIONALE\nIl Conduttore versa a titolo di deposito cauzionale la somma di EUR 4.800,00\npari a 4 mensilità del canone, infruttifero.\n\nArt. 6 - DIVIETO ANIMALI\nÈ fatto assoluto divieto al Conduttore di detenere animali di qualsiasi tipo\nnell'immobile locato. La violazione comporta risoluzione immediata del contratto.\n\nArt. 7 - MANUTENZIONE\nTutte le riparazioni, sia ordinarie che straordinarie, sono a totale carico\ndel Conduttore, inclusi gli interventi strutturali e impiantistici.\n\nArt. 8 - SUBLOCAZIONE\nLa sublocazione, anche parziale, è vietata in ogni forma.\nLa cessione del contratto è parimenti vietata.\n\nArt. 9 - RECESSO DEL CONDUTTORE\nIl Conduttore può recedere con preavviso di 6 (sei) mesi.\nIl mancato rispetto del preavviso comporta la perdita integrale del deposito cauzionale.\n\nBologna, 15 febbraio 2025",
+  "expectations": {
+    "classifier": [
+      "documentType deve contenere 'locazione' e 'transitoria'",
+      "documentSubType = locazione_transitoria o simile",
+      "relevantInstitutes deve includere locazione_transitoria",
+      "applicableLaws deve citare art. 5 L. 431/1998 e DM 30/12/2002"
+    ],
+    "analyzer": [
+      "Deve segnalare durata 24 mesi come critical (max legale 18 mesi ex art. 5 L. 431/1998)",
+      "Deve segnalare assenza motivazione transitorietà come critical (obbligatoria per legge)",
+      "Deve segnalare deposito 4 mensilità come high (max legale 3 ex art. 11 L. 392/1978)",
+      "Deve segnalare manutenzione straordinaria a carico conduttore come contraria ad art. 1576 c.c.",
+      "Deve segnalare canone libero senza riferimento ad accordi territoriali come problematico per transitorio"
+    ],
+    "investigator": [
+      "Deve citare art. 5 L. 431/1998 per obblighi locazione transitoria",
+      "Deve citare DM 30/12/2002 per requisiti motivazione e durata",
+      "Deve citare art. 11 L. 392/1978 per limite deposito cauzionale",
+      "Deve citare art. 1576 c.c. per ripartizione manutenzione ordinaria/straordinaria"
+    ],
+    "advisor": [
+      "fairnessScore tra 2 e 4 (contratto con molteplici violazioni di legge)",
+      "risks max 3, actions max 3",
+      "needsLawyer = true (ci sono clausole potenzialmente nulle)",
+      "Deve evidenziare che il contratto transitorio senza motivazione può essere convertito in 4+4"
+    ]
+  }
+}

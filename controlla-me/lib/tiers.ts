@@ -64,6 +64,7 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "gemini-2.5-flash",       // associate
     "cerebras-gpt-oss-120b",  // intern
     "groq-llama4-scout",
+    "sambanova-llama4-maverick",
     "mistral-small-3",
   ],
   "question-prep": [
@@ -71,6 +72,7 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "gemini-2.5-flash",       // associate
     "cerebras-gpt-oss-120b",  // intern
     "groq-llama4-scout",
+    "sambanova-llama4-maverick",
     "mistral-small-3",
   ],
   classifier: [
@@ -78,6 +80,7 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "gemini-2.5-flash",       // associate
     "cerebras-gpt-oss-120b",  // intern
     "groq-llama4-scout",
+    "sambanova-llama3-70b",
     "mistral-small-3",
   ],
   "corpus-agent": [
@@ -86,6 +89,8 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "gemini-2.5-flash",       // intern
     "cerebras-gpt-oss-120b",
     "groq-llama4-scout",
+    "sambanova-llama3-70b",   // 70B, buona qualità legale
+    "mistral-small-3",        // fallback ultimo (2 RPM free)
   ],
   analyzer: [
     "claude-sonnet-4.5",      // partner
@@ -93,6 +98,7 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "mistral-large-3",        // intern (MoE 675B, 2 RPM)
     "groq-llama3-70b",
     "cerebras-gpt-oss-120b",
+    "sambanova-llama3-70b",
   ],
   investigator: [
     "claude-sonnet-4.5",      // partner
@@ -104,6 +110,7 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "mistral-large-3",        // intern
     "groq-llama3-70b",
     "cerebras-gpt-oss-120b",
+    "sambanova-llama3-70b",
   ],
   // ── Company Tasks (dipartimenti + CME) — Opus con fallback ──
   "task-executor": [
@@ -112,6 +119,7 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "claude-haiku-4.5",       // intern
     "gemini-2.5-flash",
     "cerebras-gpt-oss-120b",
+    "sambanova-llama3-70b",
   ],
 };
 
@@ -203,6 +211,65 @@ export function getActiveModel(agent: AgentName): ModelKey {
     }
   }
   return chain[0];
+}
+
+// ─── CLI+SDK Hybrid Execution ───
+
+/**
+ * Modalità di esecuzione per agente: CLI (subscription) o SDK (API credits).
+ *
+ * CLI: usa `claude -p` → subscription Claude Max, zero costi API.
+ *   Ideale per agenti pesanti (analyzer, advisor, investigator, corpus-agent, task-executor).
+ * SDK: usa SDK standard con catena di fallback.
+ *   Ideale per agenti leggeri (classifier, question-prep, leader).
+ *
+ * Logica: CLI-first → su errore cade alla catena SDK.
+ * Disabilitabile via env: DISABLE_CLI_RUNNER=true → tutti usano SDK.
+ */
+export type ExecutionMode = "cli" | "sdk";
+
+export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
+  // ── Light agents → SDK (Haiku/Flash, veloce, economico) ──
+  leader:          "sdk",
+  "question-prep": "sdk",
+  classifier:      "sdk",
+  // ── Heavy agents → CLI (subscription, zero costi) ──
+  "corpus-agent":  "cli",
+  analyzer:        "cli",
+  investigator:    "cli",
+  advisor:         "cli",
+  "task-executor": "cli",
+};
+
+/**
+ * Mappa agente → modello alias per il CLI (`claude -p --model <alias>`).
+ * Alias supportati dal CLI: "opus", "sonnet", "haiku".
+ */
+export const CLI_MODEL_MAP: Record<AgentName, string> = {
+  leader:          "haiku",
+  "question-prep": "haiku",
+  classifier:      "haiku",
+  "corpus-agent":  "sonnet",
+  analyzer:        "sonnet",
+  investigator:    "sonnet",
+  advisor:         "sonnet",
+  "task-executor": "opus",
+};
+
+/**
+ * Ritorna la modalità di esecuzione effettiva per un agente.
+ * Rispetta DISABLE_CLI_RUNNER env var e il contesto sessione.
+ */
+export function getExecutionMode(agent: AgentName): ExecutionMode {
+  if (process.env.DISABLE_CLI_RUNNER === "true") return "sdk";
+  return AGENT_EXECUTION_MODE[agent];
+}
+
+/**
+ * Ritorna il modello CLI per un agente.
+ */
+export function getCliModel(agent: AgentName): string {
+  return CLI_MODEL_MAP[agent];
 }
 
 // ─── Info ───

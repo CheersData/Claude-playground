@@ -1,0 +1,29 @@
+{
+  "testId": "TC24",
+  "question": "Quali sono i motivi per ricorrere in Cassazione?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLe motivi per proporre ricorso per Cassazione sono elencati nell'art. 360 c.p.c. e comprendono: (1) questioni di giurisdizione; (2) violazione delle norme sulla competenza; (3) violazione o falsa applicazione di norme di diritto, contratti o accordi collettivi nazionali di lavoro; (4) nullità della sentenza o del procedimento; (5) omesso esame di un fatto decisivo per il giudizio. Quando la sentenza di appello conferma la decisione di primo grado per le stesse ragioni, il ricorso può essere fondato solo sui motivi 1‑4.\n\nRIFERIMENTI NORMATIVI\n1) Art. 360 c.p.c. – Motivi di ricorso per Cassazione (elenco sopra). \n2) Art. 362 c.p.c. – Altri casi di ricorso per Cassazione (ricorso per motivi di giurisdizione contro giudici amministrativi o speciali). \n\nIN PRATICA\nPer avviare il ricorso, individua quale dei motivi di cui all'art. 360 sussiste nel tuo caso, redigi il ricorso secondo i requisiti dell'art. 366 e presenta la domanda entro i termini di legge (art. 325 c.p.c.). Se la sentenza è stata confermata per le stesse ragioni, limita la domanda ai motivi 1‑4.",
+  "expectedAnswer": "L'agente deve elencare tutti e 5 i motivi ex art. 360 c.p.c. e segnalare che il n.5 (motivazione) è stato riformato nel 2012: oggi si può ricorrere solo per motivazione 'omessa, insufficiente o contraddittoria' su fatto decisivo.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 360 con tutti i motivi?",
+    "search": "Ha trovato art. 360 c.p.c. con tutti i 5 numeri?",
+    "quality": "Elenca tutti i motivi? Segnala la riforma 2012 del n.5?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ricorso_cassazione",
+    "motivi_impugnazione",
+    "art_360_cpc"
+  ],
+  "scope": "art. 360 c.p.c. tutti e 5 i motivi; n.5 riformato nel 2012",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 22,
+    "search": 25,
+    "quality": 12,
+    "total": 59,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha individuato correttamente l'art. 360 e ha elencato i cinque motivi, ma non ha segnalato la riforma del 2012 del n.5 né ha fornito la formulazione esatta. Inoltre, alcuni motivi sono descritti in modo impreciso e includono riferimenti non pertinenti, riducendo l'accuratezza e la completezza della risposta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:42:56.104Z"
+}

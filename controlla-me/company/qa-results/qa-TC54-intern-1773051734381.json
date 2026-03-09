@@ -1,0 +1,28 @@
+{
+  "testId": "TC54",
+  "question": "Ho comprato un prodotto online difettoso e voglio restituirlo. Devo pagare le spese di spedizione?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl consumatore non è tenuto a pagare le spese di spedizione per la restituzione di un prodotto difettoso acquistato online, salvo che il professionista abbia espressamente concordato diversamente o non abbia informato il consumatore che tali costi sono a suo carico.\n\nRIFERIMENTI NORMATIVI\nArt. 57 c.c. (Codice del Consumo) – Obblighi del consumatore nel caso di recesso: \"Il consumatore sostiene solo il costo diretto della restituzione dei beni, purché il professionista non abbia concordato di sostenerlo o abbia omesso di informare il consumatore che tale costo è a carico del consumatore.\" Questo comma stabilisce che le spese di spedizione sono a carico del consumatore solo se è stato pattuito o se il venditore non ha fornito l’informazione obbligatoria.\nArt. 14 c.c. (Codice del Consumo) – Obblighi del consumatore nel caso di recesso: ribadisce che il consumatore può rifiutarsi di eseguire il pagamento di qualsiasi parte di prezzo fino a quando il venditore non abbia adempiuto agli obblighi previsti, includendo implicitamente le spese di restituzione.\n\nIN PRATICA\nInvii al venditore una comunicazione scritta di recesso entro 14 giorni, indicando chiaramente che il prodotto è difettoso. Richiedi che il venditore provveda al ritiro del bene (se non è possibile restituirlo per posta) o che ti rimborserà le spese di spedizione, facendo valere il diritto previsto dall’art. 57 c.c. Se il venditore insiste a farti pagare la spedizione, chiedi la prova dell’accordo o dell’informazione che ti avrebbe dovuto essere fornita; in mancanza di tale prova, il costo resta a carico del venditore.",
+  "expectedAnswer": "TRAPPOLA: per vizi di conformità (prodotto difettoso) le spese di restituzione sono a CARICO DEL VENDITORE (art. 135-ter D.Lgs. 206/2005). Questo è diverso dal recesso entro 14 giorni (dove le spese possono essere a carico del consumatore se informato).",
+  "scoringHints": {
+    "prep": "Ha distinto vizi di conformità da recesso nella query?",
+    "search": "Ha trovato art. 135-ter Codice del Consumo?",
+    "quality": "Chiarisce che per difetti le spese sono del venditore? Distingue da recesso 14gg?"
+  },
+  "trapType": "confusione_istituti",
+  "institutes": [
+    "vizi_di_conformità",
+    "spese_restituzione",
+    "recesso_14_giorni"
+  ],
+  "scope": "TRAPPOLA: per vizi conformità le spese sono a carico del VENDITORE (art. 135-ter). Diverso dal recesso 14gg.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 10,
+    "quality": 20,
+    "total": 45,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha menzionato il difetto ma ha confuso i regimi di recesso e vizi di conformità, citando articoli errati (57 e 14 c.c.) anziché l'art. 135-ter. Ha quindi mostrato una preparazione e ricerca limitate e una qualità incompleta, pur non inventando norme."
+  },
+  "runAt": "2026-03-09T10:20:27.413Z"
+}

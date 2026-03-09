@@ -119,9 +119,19 @@ export async function generateWithGemini(
       };
     } catch (err: unknown) {
       const status = (err as { status?: number }).status;
+      const errorMsg = err instanceof Error ? err.message : String(err);
       const isRateLimit =
         status === 429 ||
-        (err instanceof Error && err.message.includes("RESOURCE_EXHAUSTED"));
+        errorMsg.includes("RESOURCE_EXHAUSTED");
+
+      // Daily quota exhausted → throw immediately (retry is useless, wastes 30s)
+      const isDailyQuota = errorMsg.includes("PerDay") || errorMsg.includes("per_day");
+      if (isRateLimit && isDailyQuota) {
+        console.log(
+          `[API] 🚫 ${label} daily quota esaurita — skip retry, throw per fallback immediato`
+        );
+        throw err;
+      }
 
       if (isRateLimit && attempt < MAX_RETRIES) {
         console.log(

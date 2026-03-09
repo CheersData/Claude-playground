@@ -628,7 +628,7 @@ function StatCard({
 }) {
   return (
     <div className="text-center p-5 rounded-2xl bg-white border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors">
-      <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#FF6B3510] text-[#FF6B35] mb-3">
+      <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--accent)]/[0.06] text-[var(--accent)] mb-3">
         {icon}
       </div>
       <div className="text-2xl font-bold text-[var(--foreground)]">{value}</div>
@@ -642,7 +642,7 @@ function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title:
   return (
     <div className="mb-8">
       <div className="flex items-center gap-3 mb-2">
-        <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#FF6B3510] text-[#FF6B35]">
+        <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent)]/[0.06] text-[var(--accent)]">
           {icon}
         </div>
         <h2 className="font-serif text-2xl md:text-3xl text-[var(--foreground)]">{title}</h2>
@@ -664,7 +664,7 @@ function UniCard({ uni, index }: { uni: University; index: number }) {
       transition={{ delay: 0.05 * index, duration: 0.4 }}
       className={`rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] ${
         uni.recommended
-          ? "border-[#FF6B35]/40 bg-[#FF6B35]/[0.03]"
+          ? "border-[var(--accent)]/40 bg-[var(--accent)]/[0.03]"
           : "border-[var(--border)] bg-white"
       }`}
     >
@@ -672,7 +672,7 @@ function UniCard({ uni, index }: { uni: University; index: number }) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-[var(--foreground)]">{uni.name}</h3>
-            {uni.recommended && <Star className="w-4 h-4 text-[#FF6B35] fill-[#FF6B35]" />}
+            {uni.recommended && <Star className="w-4 h-4 text-[var(--accent)] fill-[var(--accent)]" />}
           </div>
           <div className="flex items-center gap-2 text-sm text-[var(--foreground-secondary)]">
             <MapPin className="w-3.5 h-3.5" />
@@ -684,7 +684,7 @@ function UniCard({ uni, index }: { uni: University; index: number }) {
           </div>
         </div>
         {uni.badge && (
-          <span className="text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] whitespace-nowrap">
+          <span className="text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] whitespace-nowrap">
             {uni.badge}
           </span>
         )}
@@ -709,7 +709,7 @@ function UniCard({ uni, index }: { uni: University; index: number }) {
         </div>
         <div>
           <div className="text-xs text-[var(--foreground-tertiary)] mb-1">Marketing Depth</div>
-          <SkillBar value={uni.marketingDepth} color="bg-[#FF6B35]" />
+          <SkillBar value={uni.marketingDepth} color="bg-[var(--accent)]" />
         </div>
         <div>
           <div className="text-xs text-[var(--foreground-tertiary)] mb-1">Job Placement</div>
@@ -720,7 +720,7 @@ function UniCard({ uni, index }: { uni: University; index: number }) {
       {/* Toggle details */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-xs text-[var(--foreground-tertiary)] hover:text-[#FF6B35] transition-colors"
+        className="flex items-center gap-1.5 text-xs text-[var(--foreground-tertiary)] hover:text-[var(--accent)] transition-colors"
       >
         {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         {open ? "Nascondi dettagli" : "Vedi punti di forza"}
@@ -789,7 +789,7 @@ export default function PietroClient() {
         {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[var(--foreground-tertiary)] hover:text-[#FF6B35] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-[var(--foreground-tertiary)] hover:text-[var(--accent)] transition-colors mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
           Torna a Controlla.me
@@ -802,7 +802,7 @@ export default function PietroClient() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm font-medium mb-6">
             <Sparkles className="w-4 h-4" />
             Guida personalizzata per Pietro
           </div>
@@ -810,7 +810,7 @@ export default function PietroClient() {
           <h1 className="font-serif text-4xl md:text-6xl text-[var(--foreground)] mb-4 leading-tight">
             Marketing + Moda
             <br />
-            <span className="bg-gradient-to-r from-[#FF6B35] to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[var(--accent)] to-amber-400 bg-clip-text text-transparent">
               + Real Estate nell&apos;era dell&apos;AI
             </span>
           </h1>
@@ -867,7 +867,7 @@ export default function PietroClient() {
             subtitle="Perche questo incrocio e il piu potente che puoi scegliere oggi"
           />
 
-          <div className="rounded-2xl border border-[#FF6B35]/20 bg-gradient-to-br from-[#FF6B35]/[0.03] to-amber-50/30 p-8 md:p-10">
+          <div className="rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[var(--accent)]/[0.03] to-amber-50/30 p-8 md:p-10">
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center">
                 <div className="w-14 h-14 rounded-2xl bg-pink-50 flex items-center justify-center mx-auto mb-4">
@@ -880,8 +880,8 @@ export default function PietroClient() {
                 </p>
               </div>
               <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-[#FF6B35]/10 flex items-center justify-center mx-auto mb-4">
-                  <Target className="w-7 h-7 text-[#FF6B35]" />
+                <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4">
+                  <Target className="w-7 h-7 text-[var(--accent)]" />
                 </div>
                 <h3 className="font-semibold mb-2">Marketing</h3>
                 <p className="text-sm text-[var(--foreground-secondary)]">
@@ -933,7 +933,7 @@ export default function PietroClient() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
                   activeTab === tab
-                    ? "bg-[#FF6B35] text-white"
+                    ? "bg-[var(--accent)] text-white"
                     : "bg-[var(--surface-hover)] text-[var(--foreground-secondary)] hover:text-[var(--foreground)]"
                 }`}
               >
@@ -960,7 +960,7 @@ export default function PietroClient() {
           {/* Budget guide */}
           <div className="mt-8 rounded-2xl bg-[var(--background-secondary)] border border-[var(--border-subtle)] p-6">
             <h3 className="font-semibold text-sm text-[var(--foreground)] mb-4 flex items-center gap-2">
-              <Euro className="w-4 h-4 text-[#FF6B35]" />
+              <Euro className="w-4 h-4 text-[var(--accent)]" />
               Guida per budget
             </h3>
             <div className="grid md:grid-cols-3 gap-4">
@@ -987,7 +987,7 @@ export default function PietroClient() {
                 </p>
               </div>
               <div>
-                <div className="text-xs font-medium uppercase tracking-wider text-[#FF6B35] mb-1.5">
+                <div className="text-xs font-medium uppercase tracking-wider text-[var(--accent)] mb-1.5">
                   Budget alto
                 </div>
                 <p className="text-sm text-[var(--foreground-secondary)]">
@@ -1025,7 +1025,7 @@ export default function PietroClient() {
               >
                 <div className="flex flex-col md:flex-row md:items-start gap-4">
                   <div className="flex items-center gap-3 md:w-1/3">
-                    <div className="w-10 h-10 rounded-xl bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center shrink-0">
                       {career.icon}
                     </div>
                     <div>
@@ -1056,7 +1056,7 @@ export default function PietroClient() {
           {!showAllCareers && (
             <button
               onClick={() => setShowAllCareers(true)}
-              className="mt-4 w-full py-3 rounded-xl bg-[var(--surface-hover)] text-sm text-[var(--foreground-secondary)] hover:text-[#FF6B35] transition-colors flex items-center justify-center gap-2"
+              className="mt-4 w-full py-3 rounded-xl bg-[var(--surface-hover)] text-sm text-[var(--foreground-secondary)] hover:text-[var(--accent)] transition-colors flex items-center justify-center gap-2"
             >
               Vedi tutti i {CAREER_PATHS.length} ruoli
               <ChevronDown className="w-4 h-4" />
@@ -1586,12 +1586,12 @@ export default function PietroClient() {
             subtitle="La strategia concreta, dal primo anno alla carriera"
           />
 
-          <div className="rounded-2xl border-2 border-[#FF6B35]/30 bg-gradient-to-br from-[#FF6B35]/[0.04] to-amber-50/40 p-8 md:p-10">
+          <div className="rounded-2xl border-2 border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/[0.04] to-amber-50/40 p-8 md:p-10">
             <div className="space-y-8">
               {/* Percorso A */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-sm font-bold">
                     A
                   </div>
                   <h3 className="font-serif text-xl text-[var(--foreground)]">
@@ -1600,7 +1600,7 @@ export default function PietroClient() {
                 </div>
                 <div className="ml-10 space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] flex items-center justify-center text-xs font-bold mt-0.5 shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5 shrink-0">
                       1
                     </div>
                     <div>
@@ -1614,7 +1614,7 @@ export default function PietroClient() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] flex items-center justify-center text-xs font-bold mt-0.5 shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5 shrink-0">
                       2
                     </div>
                     <div>
@@ -1629,7 +1629,7 @@ export default function PietroClient() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] flex items-center justify-center text-xs font-bold mt-0.5 shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5 shrink-0">
                       3
                     </div>
                     <div>
@@ -1710,7 +1710,7 @@ export default function PietroClient() {
               {/* Bottom line */}
               <div className="bg-white/80 rounded-xl p-6 border border-[var(--border-subtle)]">
                 <h4 className="font-serif text-lg text-[var(--foreground)] mb-3 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-[#FF6B35]" />
+                  <Zap className="w-5 h-5 text-[var(--accent)]" />
                   Il punto chiave
                 </h4>
                 <p className="text-[var(--foreground-secondary)] leading-relaxed">

@@ -1,0 +1,29 @@
+{
+  "testId": "TC61",
+  "question": "Ho comprato un immobile all'asta giudiziaria ma scopro che ha abusi edilizi. Il tribunale mi garantisce la conformità?",
+  "agentAnswer": "Il tribunale non garantisce automaticamente la conformità dell'immobile agli abusi edilizi in fase di asta giudiziaria. La responsabilità per gli abusi edilizi ricade sul precedente proprietario o sull'acquirente che ha subito l'aggiudicazione. Tuttavia, l'art. 29 del Testo Unico Edilizia (D.P.R. 380/2001) e successive modifiche, disciplina la regolarizzazione degli abusi edilizi.",
+  "expectedAnswer": "TRAPPOLA INTERDISCIPLINARE: la vendita forzata (asta) non è garantita per conformità urbanistica. Il tribunale NON garantisce che l'immobile sia regolare. Art. 46 DPR 380/2001 si applica diversamente: nelle vendite forzate l'acquirente non può eccepire la nullità per mancata menzione della conformità. Gli abusi restano però a carico dell'acquirente.",
+  "scoringHints": {
+    "prep": "Ha distinto vendita forzata da volontaria nella query?",
+    "search": "Ha trovato art. 46 DPR 380/2001 con la disciplina delle vendite forzate?",
+    "quality": "Chiarisce che il tribunale non garantisce? Spiega le conseguenze per l'acquirente?"
+  },
+  "trapType": "interdisciplinare",
+  "institutes": [
+    "asta_giudiziaria",
+    "abusi_edilizi",
+    "responsabilità_acquirente"
+  ],
+  "scope": "INTERDISCIPLINARE: vendita forzata ≠ volontaria. Il tribunale NON garantisce conformità urbanistica.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 10,
+    "quality": 15,
+    "total": 45,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha riconosciuto che il tribunale non garantisce la conformità, ma ha citato l'art. 29 anziché l'art. 46 del DPR 380/2001 e non ha menzionato l'impossibilità di eccepire la nullità. La risposta è parzialmente corretta ma contiene errori normativi e manca di approfondimento."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:16:20.298Z"
+}

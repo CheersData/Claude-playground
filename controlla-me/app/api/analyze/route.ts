@@ -10,6 +10,7 @@ import { sanitizeDocumentText } from "@/lib/middleware/sanitize";
 import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
@@ -140,9 +141,15 @@ export async function POST(req: NextRequest) {
               data?: unknown
             ) => {
               send("progress", { phase, status, data });
+              // Broadcast to AgentDots in /ops dashboard
+              const mappedStatus = status === "skipped" ? "done" : status as "running" | "done" | "error";
+              broadcastConsoleAgent(phase, mappedStatus, {
+                task: `Analisi: ${phase}`,
+              });
             },
             onError: (phase: AgentPhase, error: string) => {
               send("error", { phase, error });
+              broadcastConsoleAgent(phase, "error", { task: error });
             },
             onComplete: () => {
               // noop — complete event is sent below after result is available

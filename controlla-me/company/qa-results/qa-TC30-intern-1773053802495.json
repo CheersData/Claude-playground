@@ -1,0 +1,29 @@
+{
+  "testId": "TC30",
+  "question": "Ho firmato una fideiussione. Se il debitore non paga, mi possono chiamare subito?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl garante è obbligato in solido con il debitore principale, ma la legge prevede che il creditore possa escutere il garante subito solo se le parti non hanno convenuto il beneficio dell’escussione preventiva; in mancanza di tale patto il garante può chiedere che prima sia escussa la garanzia del debitore. Inoltre, il garante resta obbligato anche dopo la scadenza del debito principale, purché il creditore presenti le proprie istanze entro sei mesi dalla scadenza (o due mesi se la garanzia è limitata al termine dell’obbligazione).\n\nRIFERIMENTI NORMATIVI\nArt. 1944 c.c. – \"il fideiussore è obbligato in solido col debitore principale al pagamento del debito. le parti però possono convenire che il fideiussore non sia tenuto a pagare prima dell'escussione del debitore principale…\"\nArt. 1957 c.c. – \"il fideiussore rimane obbligato anche dopo la scadenza dell'obbligazione principale, purché il creditore entro sei mesi abbia proposto le sue istanze contro il debitore…\"\nArt. 1945 c.c. – \"il fideiussore può opporre contro il creditore tutte le eccezioni che spettano al debitore principale, salva quella derivante dall'incapacità.\"\n\nIN PRATICA\nSe il contratto di fideiussione non contiene una clausola di beneficio di escussione preventiva, il creditore può chiedere il pagamento al garante subito. Qualora la clausola sia presente, il garante può intimare al creditore di escutere prima il debitore; se il creditore non lo fa entro i termini di legge (sei mesi dalla scadenza), la garanzia si estingue. Pertanto, verifichi il contenuto della fideiussione: in assenza di patto contrario, prepari la risposta al creditore; se esiste il patto, invii al creditore una formale richiesta di escussione del debitore principale.",
+  "expectedAnswer": "TRAPPOLA: dipende dal tipo di fideiussione. Con beneficio di escussione (art. 1944 co.2): devono prima escutere il debitore. Fideiussione bancaria o con rinuncia al beneficio: possono chiamare il fideiussore direttamente.",
+  "scoringHints": {
+    "prep": "Ha distinto fideiussione normale da bancaria nella query?",
+    "search": "Ha trovato art. 1944 c.c. con entrambe le varianti?",
+    "quality": "Distingue esplicitamente i due tipi? Non risponde 'sì' o 'no' senza distinguere?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "fideiussione",
+    "beneficio_escussione",
+    "fideiussione_bancaria"
+  ],
+  "scope": "art. 1944: dipende dal tipo. Con beneficio escussione: no. Fideiussione bancaria o con rinuncia: sì.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 38,
+    "total": 93,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema della fideiussione e la dipendenza dal beneficio di escussione, ha citato gli articoli pertinenti del codice civile e ha fornito una risposta accurata e completa senza invenzioni. Il punteggio è elevato e supera la soglia di superamento."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:55:58.114Z"
+}

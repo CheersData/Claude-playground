@@ -1,0 +1,29 @@
+{
+  "testId": "TC22",
+  "question": "Il giudice mi ha condannato a pagare €8.000 ma io avevo chiesto solo €5.000. È legale?",
+  "agentAnswer": "Il giudice non può pronunciare una condanna oltre i limiti della domanda. L'art. 112 del Codice di Procedura Civile stabilisce che 'Il giudice deve pronunciare su tutta la domanda e non oltre i limiti di essa; e non può pronunciare d'ufficio su eccezioni, che possono essere proposte soltanto dalle parti.'",
+  "expectedAnswer": "No, è nulla per violazione del principio di corrispondenza tra chiesto e pronunciato (art. 112 c.p.c.). Va impugnata entro i termini ordinari.",
+  "scoringHints": {
+    "prep": "Ha formulato query su ultra petita e art. 112?",
+    "search": "Ha trovato art. 112 c.p.c.?",
+    "quality": "Chiarisce che la sentenza è nulla e impugnabile? Cita correttamente l'articolo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetita",
+    "principio_domanda",
+    "nullità_sentenza"
+  ],
+  "scope": "art. 112 c.p.c.; nullità sentenza ultra petita",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 10,
+    "quality": 18,
+    "total": 38,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente dimostra una comprensione parziale del principio di corrispondenza tra chiesto e pronunciato. Tuttavia, non cita correttamente la nullità della sentenza ultra petita e non menziona espressamente che la sentenza va impugnata."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:40:11.850Z"
+}

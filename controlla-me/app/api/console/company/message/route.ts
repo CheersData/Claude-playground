@@ -9,6 +9,7 @@ import { getSession, deleteSession } from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
+import { broadcastDeptActivity } from "@/lib/agent-broadcast";
 import type { NextRequest } from "next/server";
 
 export async function POST(req: Request) {
@@ -46,6 +47,8 @@ export async function POST(req: Request) {
       });
     }
 
+    broadcastDeptActivity("cme", "running", `Messaggio follow-up: ${message.slice(0, 50)}`);
+
     // Write follow-up message in stream-json format
     const userMsg = JSON.stringify({
       type: "user",
@@ -60,12 +63,14 @@ export async function POST(req: Request) {
     } catch {
       // stdin closed — session expired
       deleteSession(sessionId);
+      broadcastDeptActivity("cme", "error", "Sessione scaduta");
       return new Response(JSON.stringify({ error: "Sessione scaduta" }), {
         status: 410,
         headers: { "Content-Type": "application/json" },
       });
     }
 
+    broadcastDeptActivity("cme", "done", "Messaggio inviato");
     return new Response(JSON.stringify({ ok: true, sessionId }), {
       headers: { "Content-Type": "application/json" },
     });

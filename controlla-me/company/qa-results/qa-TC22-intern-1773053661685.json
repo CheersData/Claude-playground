@@ -1,0 +1,29 @@
+{
+  "testId": "TC22",
+  "question": "Il giudice mi ha condannato a pagare €8.000 ma io avevo chiesto solo €5.000. È legale?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl giudice non può, in linea di principio, condannare al pagamento di una somma superiore a quella richiesta nella domanda, salvo che la parte abbia richiesto espressamente il risarcimento dell’intero danno e il giudice ritenga provata una quantificazione più alta. La normativa che disciplina il limite della sentenza rispetto alla domanda non è presente nel contesto fornito, perciò non è possibile affermare con certezza la legittimità della decisione senza conoscere se vi fosse stata una domanda più ampia o una valutazione giudiziale del danno.\n\nRIFERIMENTI NORMATIVI:\n- Art. 91 c.p.c. (Condanna alle spese) – disciplina la condanna alle spese processuali, ma non stabilisce limiti sull’ammontare del risarcimento richiesto.\n\nMANCANO GLI ARTICOLI PERTINENTI CHE DISCUTONO IL LIMITE DELLA SENTENZA RISPETTO ALLA DOMANDA, IN PARTICOLARE:\n- Art. 633 c.p.c. – Domanda di risarcimento e principio di non eccedenza della sentenza.\n- Art. 633 c.c. – Principio generale di non superamento della domanda dal giudice.\n\nIN PRATICA:\nVerifica se nella tua domanda iniziale hai richiesto l’intero danno (ad es. €8.000) o solo €5.000. Se hai richiesto solo €5.000, chiedi al giudice, con ricorso in appello, la motivazione della quantificazione superiore e, se non giustificata, presenta ricorso per riduzione dell’importo. Se invece la tua domanda prevedeva il risarcimento dell’intero danno, la sentenza è legittima.",
+  "expectedAnswer": "No, è nulla per violazione del principio di corrispondenza tra chiesto e pronunciato (art. 112 c.p.c.). Va impugnata entro i termini ordinari.",
+  "scoringHints": {
+    "prep": "Ha formulato query su ultra petita e art. 112?",
+    "search": "Ha trovato art. 112 c.p.c.?",
+    "quality": "Chiarisce che la sentenza è nulla e impugnabile? Cita correttamente l'articolo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetita",
+    "principio_domanda",
+    "nullità_sentenza"
+  ],
+  "scope": "art. 112 c.p.c.; nullità sentenza ultra petita",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 22,
+    "search": 18,
+    "quality": 22,
+    "total": 62,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha individuato correttamente il tema dell'ultrapetita e ha citato l'art. 112 c.p.c., ma ha inserito riferimenti normativi errati (art. 91, art. 633) e una spiegazione imprecisa. La risposta è parzialmente corretta ma non completamente accurata."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T10:53:17.573Z"
+}

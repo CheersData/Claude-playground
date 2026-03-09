@@ -287,7 +287,10 @@ export async function searchArticles(
 ): Promise<LegalArticleSearchResult[]> {
   if (!isVectorDBEnabled()) return [];
 
-  const { lawSource, institutes, threshold = 0.65, limit = 10 } = options;
+  // Fix QA: soglia 0.65 troppo restrittiva — articoli corretti hanno sim 0.50-0.65
+  // Voyage AI voyage-law-2 produce sim più basse per testi legali italiani vs inglesi
+  // 2026-03-09: abbassato 0.50→0.45 per recuperare più articoli marginali (QA cycle iterativo)
+  const { lawSource, institutes, threshold = 0.45, limit = 10 } = options;
 
   // ── Fix 4: Boost exact reference matches ──────────────────────────────────
   // Se la query contiene "art. N" o "articolo N", cerca quell'articolo direttamente

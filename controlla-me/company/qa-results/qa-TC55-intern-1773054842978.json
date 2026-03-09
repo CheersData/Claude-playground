@@ -1,0 +1,29 @@
+{
+  "testId": "TC55",
+  "question": "Il mio ex ha mandato le mie foto private ad alcuni amici. È reato?",
+  "agentAnswer": "Sì, può essere considerato reato. La diffusione di immagini o video sessualmente espliciti senza il consenso delle persone rappresentate è punita dall'Art. 612-ter del Codice Penale. La pena può variare a seconda delle circostanze, come ad esempio se il fatto è commesso dal coniuge o da persona legata da relazione affettiva alla persona offesa.\n\nRiferimenti normativi:\n- Art. 612-ter Codice Penale: Diffusione illecita di immagini o video sessualmente espliciti\n- Art. 10 Codice Civile: Abuso dell'immagine altrui\n\nOrientamenti giurisprudenziali: Non disponibili nel contesto normativo fornito.\n\nIn pratica: Per una risposta completa e una strategia legale specifica, è necessario consultare un avvocato specializzato in diritto penale e privacy.",
+  "expectedAnswer": "Sì, è reato: art. 612-ter c.p. introdotto dalla L.69/2019 (Codice Rosso). Punisce chiunque, senza consenso, diffonda immagini o video sessualmente espliciti. La norma si applica ANCHE se l'invio è limitato ad alcuni amici (non richiede diffusione pubblica). Pena: da 1 a 6 anni.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 612-ter c.p. e Codice Rosso?",
+    "search": "Ha trovato art. 612-ter c.p.?",
+    "quality": "Chiarisce che l'invio a pochi vale come diffusione? Cita la L. 69/2019?"
+  },
+  "trapType": null,
+  "institutes": [
+    "revenge_porn",
+    "art_612-ter_cp",
+    "Codice_Rosso"
+  ],
+  "scope": "Reato art. 612-ter c.p. (L.69/2019 Codice Rosso). Anche invio a terzi senza diffusione pubblica.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 27,
+    "quality": 35,
+    "total": 87,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema (diffusione non consensuale di immagini private) e ha citato l'art. 612-ter c.p. introdotto dalla L.69/2019, includendo l'applicazione anche a invii limitati. La risposta è accurata, non contiene invenzioni e fornisce indicazioni pertinenti, sebbene non specifichi l'intervallo di pena previsto."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:11:53.455Z"
+}

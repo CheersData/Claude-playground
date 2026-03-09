@@ -1,0 +1,29 @@
+{
+  "testId": "TC46",
+  "question": "Sono proprietario di un terreno agricolo confinante. Quando vendono quello accanto, ho diritto di prelazione?",
+  "agentAnswer": "Il diritto di prelazione è un istituto giuridico che consente a determinate persone di acquistare un bene con priorità rispetto ad altri acquirenti. Tuttavia, nel caso di un terreno agricolo confinante, il diritto di prelazione non è automatico.\n\nRiferimenti normativi:\n- Art. 732 c.c. (diritto di prelazione tra coeredi)\n- Art. 2778 c.c. (ordine degli altri privilegi sui mobili)\n- Art. 2780 c.c. (ordine dei privilegi sugli immobili)\n\nIn generale, il diritto di prelazione è previsto per specifiche situazioni, come ad esempio:\n1) Tra coeredi (Art. 732 c.c.)\n2) Per i crediti privilegiati sugli immobili (Art. 2780 c.c.)\n\nTuttavia, per un terreno agricolo confinante, non è previsto un diritto di prelazione generale.\n\nIn pratica: Se il proprietario del terreno accanto vuole vendere, non hai diritto di prelazione automatico. Potresti però avere diritto di prelazione se sei un coerede o se hai un credito privilegiato sull'immobile.",
+  "expectedAnswer": "TRAPPOLA: non basta essere proprietari del fondo confinante. La prelazione agraria spetta SOLO al coltivatore diretto che coltiva personalmente il fondo (L.590/1965, L.817/1971). La mera proprietà del terreno confinante non attribuisce il diritto.",
+  "scoringHints": {
+    "prep": "Ha distinto proprietà da coltivazione diretta nella query?",
+    "search": "Ha trovato L.590/65 e L.817/71 con il requisito della coltivazione?",
+    "quality": "Chiarisce ESPLICITAMENTE che la proprietà da sola non basta?"
+  },
+  "trapType": "requisito_non_ovvio",
+  "institutes": [
+    "prelazione_agraria",
+    "coltivatore_diretto",
+    "fondo_confinante"
+  ],
+  "scope": "TRAPPOLA: NON basta essere proprietari. Bisogna coltivare direttamente (L.590/65, L.817/71).",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 5,
+    "search": 0,
+    "quality": 10,
+    "total": 15,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente il tema giuridico specifico del diritto di prelazione agraria per i terreni confinanti. Non ha recuperato le norme pertinenti (L.590/1965 e L.817/1971) e non ha chiarito che la proprietà da sola non basta per avere il diritto di prelazione, ma è necessario essere coltivatore diretto."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T11:04:27.453Z"
+}

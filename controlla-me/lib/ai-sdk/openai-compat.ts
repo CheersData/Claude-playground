@@ -12,7 +12,7 @@ import type { GenerateConfig, GenerateResult } from "./types";
 
 // ─── Provider Configuration ───
 
-type OpenAICompatProvider = "openai" | "groq" | "mistral" | "cerebras";
+type OpenAICompatProvider = "openai" | "groq" | "mistral" | "cerebras" | "sambanova";
 
 interface ProviderConfig {
   baseURL?: string;
@@ -42,6 +42,12 @@ const PROVIDER_CONFIGS: Record<OpenAICompatProvider, ProviderConfig> = {
   cerebras: {
     baseURL: "https://api.cerebras.ai/v1",
     envKey: "CEREBRAS_API_KEY",
+    retryWaitMs: 10_000,
+    maxRetries: 3,
+  },
+  sambanova: {
+    baseURL: "https://api.sambanova.ai/v1",
+    envKey: "SAMBANOVA_API_KEY",
     retryWaitMs: 10_000,
     maxRetries: 3,
   },

@@ -1,0 +1,29 @@
+{
+  "testId": "TC29",
+  "question": "Sono socio di una SNC. Se la società non paga i debiti, i creditori possono venire direttamente da me?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nSecondo l'Art. 2267 del Codice Civile, i creditori della società possono far valere i loro diritti sul patrimonio sociale. Inoltre, per le obbligazioni sociali, rispondono personalmente e solidalmente i soci che hanno agito in nome e per conto della società e, salvo patto contrario, gli altri soci. Ciò significa che, in quanto socio di una SNC, potresti essere considerato personalmente responsabile per le obbligazioni sociali della società, a meno che non sia stato stipulato un patto contrario.\n\nRiferimenti normativi:\nL'Art. 2291 del Codice Civile specifica che nella società in nome collettivo tutti i soci rispondono solidalmente e illimitatamente per le obbligazioni sociali. Il patto contrario non ha effetto nei confronti dei terzi.\n\nIn pratica:\nSe la società non paga i debiti, i creditori possono rivolgersi direttamente a te come socio della SNC, in quanto rispondi solidalmente e illimitatamente per le obbligazioni sociali, salvo diverso accordo.",
+  "expectedAnswer": "I soci SNC rispondono solidalmente e illimitatamente (art. 2291). MA: i creditori devono prima escutere il patrimonio sociale (beneficio di escussione, art. 2304) prima di aggredire i soci.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambi gli articoli (2291 + 2304)?",
+    "search": "Ha trovato sia l'art. 2291 che il 2304?",
+    "quality": "Spiega sia la responsabilità illimitata che il beneficio di escussione?"
+  },
+  "trapType": null,
+  "institutes": [
+    "SNC",
+    "responsabilità_illimitata",
+    "beneficio_escussione"
+  ],
+  "scope": "art. 2291 (responsabilità solidale e illimitata) + art. 2304 (beneficio escussione preventiva)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 30,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una buona conoscenza della responsabilità solidale e illimitata dei soci di una SNC (art. 2291). Tuttavia, non menziona espressamente il beneficio di escussione (art. 2304) come requisito preliminare per i creditori, anche se cita l'art. 2267 e accenna alla necessità di far valere i diritti sul patrimonio sociale. Commette un piccolo errore nel citare l'art. 2267 che non è pertinente, ma nel complesso la risposta copre i punti chiave."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T13:58:53.427Z"
+}

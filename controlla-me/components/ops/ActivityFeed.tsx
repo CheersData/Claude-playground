@@ -39,12 +39,12 @@ const STATUS_MAP: Record<
   ActivityEventType,
   { icon: typeof Circle; color: string; animate?: boolean }
 > = {
-  done:           { icon: CheckCircle2,  color: "text-[var(--ops-teal)]" },
-  completed:      { icon: CheckCircle2,  color: "text-[var(--ops-teal)]" },
-  in_progress:    { icon: Loader2,       color: "text-[#FFC832]", animate: true },
-  blocked:        { icon: XCircle,       color: "text-[var(--ops-error)]" },
-  review_pending: { icon: AlertTriangle, color: "text-[#A78BFA]" },
-  open:           { icon: Circle,        color: "text-[var(--ops-cyan)]" },
+  done:           { icon: CheckCircle2,  color: "text-[var(--success)]" },
+  completed:      { icon: CheckCircle2,  color: "text-[var(--success)]" },
+  in_progress:    { icon: Loader2,       color: "text-[var(--identity-gold)]", animate: true },
+  blocked:        { icon: XCircle,       color: "text-[var(--error)]" },
+  review_pending: { icon: AlertTriangle, color: "text-[var(--identity-violet)]" },
+  open:           { icon: Circle,        color: "text-[var(--info)]" },
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ export function ActivityFeed({
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-[var(--ops-fg-muted)] text-center py-6">
+      <p className="text-sm text-[var(--fg-secondary)] text-center py-6">
         Nessuna attivit&agrave; recente
       </p>
     );
@@ -82,7 +82,7 @@ export function ActivityFeed({
             transition={{ delay: i * 0.02, duration: 0.2 }}
             onClick={() => onEventClick?.(ev)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg
-              hover:bg-[var(--ops-surface-2)] transition-colors duration-150
+              hover:bg-[var(--bg-overlay)] transition-colors duration-150
               text-left group"
           >
             <Icon
@@ -90,12 +90,12 @@ export function ActivityFeed({
                 cfg.animate ? "animate-spin" : ""
               }`}
             />
-            <span className="text-sm text-[var(--ops-fg)] group-hover:text-white truncate flex-1">
+            <span className="text-sm text-[var(--fg-primary)] group-hover:text-white truncate flex-1">
               {ev.title}
             </span>
             {ev.department && (
-              <span className="text-xs text-[var(--ops-muted)] font-mono
-                px-2 py-0.5 rounded bg-[var(--ops-bg)] shrink-0">
+              <span className="text-xs text-[var(--fg-invisible)] font-mono
+                px-2 py-0.5 rounded bg-[var(--bg-base)] shrink-0">
                 {ev.department}
               </span>
             )}
@@ -103,8 +103,8 @@ export function ActivityFeed({
               <span
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                   ev.priority === "critical"
-                    ? "bg-[var(--ops-error)]"
-                    : "bg-[#FFC832]"
+                    ? "bg-[var(--error)]"
+                    : "bg-[var(--identity-gold)]"
                 }`}
               />
             )}

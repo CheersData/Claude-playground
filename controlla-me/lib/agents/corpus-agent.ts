@@ -116,8 +116,8 @@ export async function askCorpusAgent(
   const {
     provider = "auto",
     maxTokens = 4096,
-    threshold = 0.40,
-    maxArticles = 8,
+    threshold = 0.38,
+    maxArticles = 10,
     skipQuestionPrep = false,
     onProgress,
   } = config;
@@ -207,7 +207,7 @@ export async function askCorpusAgent(
     prep.mechanismQuery
       ? searchArticles(prep.mechanismQuery, { threshold, limit: 6 })
       : Promise.resolve([] as LegalArticleSearchResult[]),
-    searchLegalKnowledge(prep.legalQuery, { threshold: 0.6, limit: 4 }),
+    searchLegalKnowledge(prep.legalQuery, { threshold: 0.55, limit: 6 }),
     ...institutePromises,
   ]);
 

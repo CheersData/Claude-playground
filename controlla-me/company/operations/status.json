@@ -2,26 +2,39 @@
   "_meta": {
     "dept": "operations",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "sistemista"
+    "last_updated": "2026-03-08T22:11:42.198Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Dashboard /ops operativa. Cost tracking attivo ($1.03 ultimi 7gg). 7 agenti runtime configurati. Pipeline corpus funzionante.",
+  "summary": "3 task aperti. 62 completati (ultimi 7gg). 71 completati (totale).",
   "dashboard": {
     "url": "/ops",
     "status": "operational",
-    "components": ["agent_health", "task_board_kpi", "cost_trends", "pipeline_state"]
+    "components": [
+      "agent_health",
+      "task_board_kpi",
+      "cost_trends",
+      "pipeline_state"
+    ]
   },
   "agents_runtime": {
     "total": 7,
     "active": 7,
-    "agents": ["classifier", "analyzer", "investigator", "advisor", "corpus-agent", "question-prep", "leader"]
+    "agents": [
+      "classifier",
+      "analyzer",
+      "investigator",
+      "advisor",
+      "corpus-agent",
+      "question-prep",
+      "leader"
+    ]
   },
   "cost_tracking": {
     "last_7d_total": 1.03,
     "last_7d_calls": 494,
-    "alert_threshold_daily": 1.00,
-    "alert_threshold_per_query": 0.10
+    "alert_threshold_daily": 1,
+    "alert_threshold_per_query": 0.1
   },
   "pipeline": {
     "corpus_sync": "scheduled",
@@ -40,7 +53,26 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "a79ba98e",
+      "title": "Fase 2: applicare brand book tokens al CSS, ristrutturare componenti interni ops (CostSummary, TaskBoard) con stessa spa",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "a247f6e0",
+      "title": "Boss esegue SETUP_CME_SCHEDULER.ps1 come amministratore per attivare lo scheduler",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "cdeb6255",
+      "title": "Deploy app per acquisire primi utenti reali",
+      "priority": "high",
+      "status": "open"
+    }
+  ],
   "blockers": [],
   "notes": "Provider attivi: Groq, Gemini, Cerebras, Mistral. Anthropic e OpenAI non usati (crediti esauriti/insufficienti)."
 }
