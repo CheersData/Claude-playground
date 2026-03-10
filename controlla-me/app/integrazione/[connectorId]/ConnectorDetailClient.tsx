@@ -452,6 +452,9 @@ export default function ConnectorDetailClient() {
   // Step 4: frequency
   const [frequency, setFrequency] = useState<SyncFrequency>("hourly");
 
+  // Page-level OAuth error banner (visible regardless of tab/step)
+  const [oauthBanner, setOauthBanner] = useState<string | null>(null);
+
   // Step 5: activate
   const [activateStatus, setActivateStatus] = useState<"idle" | "activating" | "success" | "error">("idle");
 
@@ -486,8 +489,24 @@ export default function ConnectorDetailClient() {
       }
     }
     if (params.get("oauth_error")) {
+      const errorCode = params.get("oauth_error");
+      const errorDesc = params.get("oauth_error_desc");
+
+      // Map known error codes to user-friendly Italian messages
+      const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+        not_authenticated: "Devi effettuare il login prima di collegare questo servizio",
+        invalid_state: "La sessione di autorizzazione è scaduta o non valida. Riprova.",
+        token_exchange_failed: "Scambio token fallito. Riprova o contatta il supporto.",
+      };
+
+      const message = OAUTH_ERROR_MESSAGES[errorCode ?? ""] || errorDesc || `Errore OAuth: ${errorCode}`;
+
+      // Show page-level banner (visible in all tabs)
+      setOauthBanner(message);
+
+      // Also update wizard auth step status for context
       setVerifyStatus("error");
-      setVerifyMessage(`Errore OAuth: ${params.get("oauth_error_desc") || params.get("oauth_error")}`);
+      setVerifyMessage(message);
     }
     // Clean URL params
     if (params.has("setup") || params.has("oauth_error")) {
@@ -744,6 +763,46 @@ export default function ConnectorDetailClient() {
           </div>
         </div>
       </header>
+
+      {/* OAuth error banner */}
+      <AnimatePresence>
+        {oauthBanner && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 sm:px-6"
+            style={{ background: "var(--bg-base)" }}
+          >
+            <div
+              className="max-w-5xl mx-auto mt-4 flex items-center gap-3 px-4 py-3 rounded-lg border"
+              style={{
+                background: "rgba(255, 107, 107, 0.08)",
+                borderColor: "rgba(255, 107, 107, 0.25)",
+              }}
+            >
+              <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: "#FF6B6B" }} />
+              <p className="text-sm flex-1" style={{ color: "var(--fg-secondary)" }}>
+                {oauthBanner}
+              </p>
+              <button
+                onClick={() => setOauthBanner(null)}
+                className="p-1 rounded transition-colors shrink-0"
+                style={{ color: "var(--fg-muted)" }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = "var(--fg-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = "var(--fg-muted)";
+                }}
+                aria-label="Chiudi"
+              >
+                &times;
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tab Bar */}
       <div className="border-b px-4 sm:px-6" style={{ borderColor: "var(--border-dark-subtle)" }}>

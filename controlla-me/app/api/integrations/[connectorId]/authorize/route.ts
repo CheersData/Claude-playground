@@ -36,11 +36,15 @@ export async function GET(
   const rateLimited = await checkRateLimit(req);
   if (rateLimited) return rateLimited;
 
-  // Auth
-  const authResult = await requireAuth();
-  if (isAuthError(authResult)) return authResult;
-
+  // Resolve params before auth so we can redirect back on failure
   const { connectorId } = await params;
+
+  // Auth — redirect to integration page on failure (this is a browser GET, not an API call)
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    const returnUrl = new URL(`/integrazione/${connectorId}?oauth_error=not_authenticated`, req.url);
+    return NextResponse.redirect(returnUrl);
+  }
 
   const config = OAUTH_AUTHORIZE_CONFIGS[connectorId];
   if (!config) {
