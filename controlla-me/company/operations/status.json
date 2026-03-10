@@ -43,11 +43,6 @@
   },
   "gaps": [
     {
-      "id": "OPS-1",
-      "description": "analysis/[id]/page.tsx usa mock data — serve GET /api/analyses/[id] con RLS",
-      "severity": "medium"
-    },
-    {
       "id": "OPS-2",
       "description": "getAverageTimings() fire-and-forget — cleanup TTL ad ogni analisi, meglio cron dedicato",
       "severity": "low"

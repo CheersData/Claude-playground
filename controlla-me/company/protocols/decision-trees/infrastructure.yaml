@@ -35,6 +35,28 @@ routing:
     example: "Migrazione su Hetzner VM, cambio provider DB"
     requirement: "Security audit P0, cost analysis, rollback plan"
 
+  # Deploy produzione (primo deploy o nuovo ambiente)
+  deploy_production:
+    condition: "Primo deploy in produzione o setup nuovo ambiente hosting"
+    type: strategico
+    approval: L3
+    consult: [architecture, security, finance]
+    execute: [operations]
+    review: [security, quality-assurance]
+    example: "Deploy Vercel produzione, setup env vars produzione, attivare dominio"
+    requirement: "Security green, CI green, env vars complete, rollback plan"
+
+  # Compliance legale (DPA, EU AI Act, GDPR)
+  legal_compliance:
+    condition: "Obblighi legali, DPA provider, regolamenti EU, privacy"
+    type: critico
+    approval: L3
+    consult: [security, strategy]
+    execute: [security]
+    review: [strategy]
+    example: "Firmare DPA Anthropic, compliance EU AI Act, audit GDPR"
+    requirement: "Approvazione boss per impegni legali/finanziari"
+
   # Modifica sicurezza
   security_change:
     condition: "Tocca auth, RLS, secrets, headers, CORS"

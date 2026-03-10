@@ -311,6 +311,23 @@ class SlopeVolumeSettings(BaseSettings):
     model_config = {"env_prefix": "TRADING_SLOPE_", "extra": "ignore"}
 
 
+class TelegramSettings(BaseSettings):
+    """Telegram notification toggles.
+
+    Per-trade notifications are disabled by default (boss directive: no spam).
+    Kill switch alerts and daily reports remain always-on.
+    Set TELEGRAM_NOTIFY_TRADES=true to re-enable per-trade messages.
+    """
+
+    notify_trades: bool = Field(
+        default=False,
+        alias="TELEGRAM_NOTIFY_TRADES",
+        description="Send Telegram message for each executed trade. Default False (boss: no spam).",
+    )
+
+    model_config = {"env_prefix": "", "extra": "ignore"}
+
+
 class SupabaseSettings(BaseSettings):
     """Supabase connection (shared with the main app)."""
 
@@ -395,6 +412,7 @@ class Settings(BaseSettings):
     supabase: SupabaseSettings = Field(default_factory=SupabaseSettings)
     tiingo: TiingoSettings = Field(default_factory=TiingoSettings)
     tiingo_news: TiingoNewsSettings = Field(default_factory=TiingoNewsSettings)
+    telegram: TelegramSettings = Field(default_factory=TelegramSettings)
 
     # Optional (kept for backward compat — canonical location is tiingo.tiingo_api_key)
     fred_api_key: str | None = Field(default=None, alias="FRED_API_KEY")

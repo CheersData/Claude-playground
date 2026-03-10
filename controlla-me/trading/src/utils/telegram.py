@@ -67,9 +67,23 @@ def send(text: str) -> bool:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def notify_trades(orders: list[dict], mode: str = "paper") -> None:
-    """Send a notification for executed trades."""
+    """Send a notification for executed trades.
+
+    Gated by TELEGRAM_NOTIFY_TRADES (default: False).
+    The boss does not want a message for every single trade.
+    Kill switch and daily report notifications remain always-on.
+    """
     if not orders or not _is_configured():
         return
+
+    # Second layer of defense: check config flag even if caller forgot
+    try:
+        from ..config import get_settings
+        if not get_settings().telegram.notify_trades:
+            logger.debug("telegram_trades_disabled", orders=len(orders))
+            return
+    except Exception:
+        pass  # If settings unavailable, let the caller's gate decide
 
     mode_label = "📄 PAPER" if mode == "paper" else "💸 LIVE"
     lines = [f"🔔 <b>Trade Eseguito</b> — {mode_label}\n"]

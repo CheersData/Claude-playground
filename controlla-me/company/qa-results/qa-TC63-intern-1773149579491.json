@@ -1,0 +1,29 @@
+{
+  "testId": "TC63",
+  "question": "Il vicino usa il mio terreno da anni come se fosse suo. Posso ancora recuperarlo?",
+  "agentAnswer": "Il contesto disponibile contiene articoli pertinenti all'usucapione, che è il modo in cui si può acquisire la proprietà di un bene immobile tramite il possesso continuato per un determinato periodo di tempo. Secondo l'art. 1158 c.c., la proprietà di beni immobili si acquista con il possesso continuato per venti anni. Tuttavia, se il tuo vicino ha posseduto il terreno in buona fede, il termine si riduce a dieci anni (Art. 1161 c.c.). Se il terreno è situato in un comune classificato montano, il termine si riduce ulteriormente a quindici anni (Art. 1159 c.c.).\n\nRiferimenti normativi:\nL'art. 1158 c.c. stabilisce che la proprietà dei beni immobili si acquista con il possesso continuato per venti anni. L'art. 1161 c.c. riduce questo termine a dieci anni se il possesso è in buona fede. L'art. 1159 c.c. riduce ulteriormente il termine a quindici anni per i fondi rustici situati in comuni classificati montani.\n\nIn pratica:\nSe il tuo vicino ha posseduto il terreno per più di venti anni, potrebbe aver acquisito la proprietà tramite usucapione. Se il possesso è stato in buona fede, il termine si riduce a dieci anni. Se il terreno è situato in un comune montano, il termine si riduce a quindici anni. Per verificare se il tuo vicino ha acquisito la proprietà tramite usucapione, è necessario esaminare le circostanze specifiche del possesso e consultare un avvocato per una valutazione approfondita.",
+  "expectedAnswer": "TRAPPOLA: dipende da quanto tempo il vicino usa il terreno. Se sono passati 20 anni (art. 1158 c.c.) l'usucapione potrebbe essere già completata — serve azione di accertamento. Se non sono ancora 20 anni: si può interrompere con atto formale (azione di reintegrazione, diffida formale). L'agente deve chiedere da quanto tempo.",
+  "scoringHints": {
+    "prep": "Ha distinto usucapione completata da in corso nella query?",
+    "search": "Ha trovato art. 1158 c.c.?",
+    "quality": "Distingue i due scenari? Chiede da quanto tempo dura la situazione?"
+  },
+  "trapType": "dipende_dal_tempo",
+  "institutes": [
+    "usucapione",
+    "atto_interruttivo",
+    "termine_ventennale"
+  ],
+  "scope": "DIPENDE: se completata (20 anni, art. 1158) = molto difficile. Se in corso = atto interruttivo.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 35,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema dell'usucapione e ha recuperato gli articoli pertinenti. Tuttavia, non ha distinto chiaramente i due scenari (usucapione completata o in corso) e non ha chiesto da quanto tempo dura la situazione, elementi cruciali per una risposta completa. La risposta è accurata ma manca di completezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:32:29.628Z"
+}

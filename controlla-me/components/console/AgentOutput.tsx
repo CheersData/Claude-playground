@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
 import type { ConsoleAgentPhase, ConsolePhaseStatus } from "@/lib/types";
 
 // ─── Types ───
@@ -40,16 +41,53 @@ const RUNNING_MESSAGES: Record<ConsoleAgentPhase, string> = {
 };
 
 // ─── Status dot ───
+// Framer Motion version: running state shows a pulsing ring + breathing dot,
+// other states show a solid dot with smooth transition from running.
 
 function StatusDot({ status }: { status: string }) {
-  const color = {
-    running: "bg-emerald-500 animate-pulse",
+  const isRunning = status === "running";
+  const colorClass = {
+    running: "bg-emerald-500",
     done: "bg-[var(--foreground)]",
     error: "bg-red-400",
     skipped: "bg-[var(--border)]",
   }[status] || "bg-[var(--border)]";
 
-  return <span className={`inline-block w-[7px] h-[7px] rounded-full ${color}`} aria-hidden="true" />;
+  return (
+    <span className="relative inline-flex w-[7px] h-[7px]" aria-hidden="true">
+      {/* Pulse ring — only when running */}
+      <AnimatePresence>
+        {isRunning && (
+          <motion.span
+            className="absolute inset-0 rounded-full bg-emerald-500"
+            initial={{ scale: 1, opacity: 0.5 }}
+            animate={{ scale: [1, 2.4], opacity: [0.5, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: 1.4,
+              repeat: Infinity,
+              ease: "easeOut",
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Solid dot — breathes when running, settles smoothly otherwise */}
+      <motion.span
+        className={`relative block w-[7px] h-[7px] rounded-full ${colorClass}`}
+        animate={
+          isRunning
+            ? { scale: [1, 1.2, 1], opacity: [1, 0.85, 1] }
+            : { scale: 1, opacity: 1 }
+        }
+        transition={
+          isRunning
+            ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" }
+            : { duration: 0.3 }
+        }
+      />
+    </span>
+  );
 }
 
 // ─── Context Map ───
@@ -152,9 +190,9 @@ function FormattedAnswer({ text }: { text: string }) {
 
           return (
             <div key={i}>
-              <p className="text-[10px] font-medium tracking-[2px] uppercase text-[var(--foreground-tertiary)] mb-1.5">
+              <h4 className="text-[10px] font-medium tracking-[2px] uppercase text-[var(--foreground-secondary)] mb-1.5">
                 {heading}
-              </p>
+              </h4>
               <p className="text-sm whitespace-pre-wrap leading-relaxed text-[var(--foreground)]/80 pl-4 border-l-2 border-[var(--border)]">
                 {body}
               </p>
@@ -322,7 +360,7 @@ function TerminalOutput({
           <div className="mt-1 space-y-1">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {output.risks.map((r: any, i: number) => (
-              <p key={i} className="text-xs text-red-500">&bull; {r.title}: {r.detail}</p>
+              <p key={i} className="text-xs text-red-700">&bull; {r.title}: {r.detail}</p>
             ))}
           </div>
         )}
@@ -367,7 +405,7 @@ export default function AgentOutput({
         <div className="flex items-center gap-2">
           <StatusDot status="running" />
           <span className="font-medium text-[var(--foreground)]">{phaseName}</span>
-          <span className="text-[var(--foreground-tertiary)]">{RUNNING_MESSAGES[phase]}...</span>
+          <span className="text-[var(--foreground-secondary)]">{RUNNING_MESSAGES[phase]}...</span>
         </div>
         {showContextMap && <ContextMap context={context} />}
       </div>
@@ -377,11 +415,11 @@ export default function AgentOutput({
   // Error
   if (status === "error") {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50/50 px-4 py-3 text-xs">
+      <div className="rounded-xl border border-red-100 bg-red-50/50 px-4 py-3 text-xs" role="alert">
         <div className="flex items-center gap-2">
           <StatusDot status="error" />
           <span className="font-medium text-[var(--foreground)]">{phaseName}</span>
-          <span className="text-red-500">{summary ?? "Errore"}</span>
+          <span className="text-red-700">{summary ?? "Errore"}</span>
         </div>
       </div>
     );
@@ -390,11 +428,11 @@ export default function AgentOutput({
   // Skipped
   if (status === "skipped") {
     return (
-      <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-xs">
+      <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-xs" role="status">
         <div className="flex items-center gap-2">
           <StatusDot status="skipped" />
-          <span className="font-medium text-[var(--foreground-tertiary)]">{phaseName}</span>
-          <span className="text-[var(--foreground-tertiary)]">{summary ?? "Saltato"}</span>
+          <span className="font-medium text-[var(--foreground-secondary)]">{phaseName}</span>
+          <span className="text-[var(--foreground-secondary)]">{summary ?? "Saltato"}</span>
         </div>
       </div>
     );
@@ -404,13 +442,13 @@ export default function AgentOutput({
   const doneMessage = getDoneMessage(phase, output);
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3">
+    <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3" role="status">
       <div className="flex items-center gap-2 text-xs">
         <StatusDot status="done" />
         <span className="font-medium text-[var(--foreground)]">{phaseName}</span>
-        {doneMessage && <span className="text-[var(--foreground-tertiary)]">{doneMessage}</span>}
+        {doneMessage && <span className="text-[var(--foreground-secondary)]">{doneMessage}</span>}
         {timing != null && (
-          <span className="text-[var(--foreground-tertiary)] opacity-40 ml-auto text-[10px]">
+          <span className="text-[var(--foreground-tertiary)] ml-auto text-[10px]">
             {(timing / 1000).toFixed(1)}s
           </span>
         )}

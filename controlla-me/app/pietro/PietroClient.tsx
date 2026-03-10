@@ -28,7 +28,6 @@ import {
   Rocket,
   Shield,
   CheckCircle2,
-  ArrowRight,
   Home,
   Landmark,
   LineChart,

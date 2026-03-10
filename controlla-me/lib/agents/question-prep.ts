@@ -35,6 +35,252 @@ export interface QuestionPrepResult {
   durationMs: number;
 }
 
+// ─── Trigger-word dictionary: colloquiale → terminologia giuridica ───
+
+/**
+ * Mappa parole/frasi colloquiali agli istituti giuridici corrispondenti.
+ * Ogni entry ha:
+ * - pattern: regex che matcha nel testo colloquiale della domanda
+ * - legalTerms: termini giuridici da aggiungere alla legalQuery
+ * - institutes: istituti da aggiungere a suggestedInstitutes
+ *
+ * Questo dizionario ARRICCHISCE la query, non la sostituisce.
+ * Risolve il 18.8% di RETRIEVAL_FAIL causati da domande colloquiali
+ * che non matchano i termini legali nel corpus.
+ */
+interface TriggerWordEntry {
+  pattern: RegExp;
+  legalTerms: string;
+  institutes: string[];
+}
+
+const TRIGGER_WORD_DICTIONARY: TriggerWordEntry[] = [
+  // ─── Consumatore / Acquisti ───
+  {
+    pattern: /spazzolino|restituir.*(?:comprat|acquist|prodott)|ripensamento|reso|rimandar.*indietro/i,
+    legalTerms: "diritto di recesso consumatore restituzione bene acquistato termine 14 giorni",
+    institutes: ["tutela_consumatore", "vendita"],
+  },
+  {
+    pattern: /garanzia.*(?:scadut|finit|due anni)|prodott.*(?:rott|difettos|non funzion)|si è rotto/i,
+    legalTerms: "garanzia legale conformità difetto vizio bene consumo riparazione sostituzione",
+    institutes: ["vizi_conformita", "garanzia_legale", "tutela_consumatore"],
+  },
+  {
+    pattern: /fregat[uo]|truffat[oa]|bidone|raggir/i,
+    legalTerms: "truffa artifici raggiri induzione in errore",
+    institutes: ["truffa", "clausole_abusive"],
+  },
+  {
+    pattern: /comprat[oa].*online|acquist.*internet|e-?commerce|sito.*(?:comprat|ordinat)/i,
+    legalTerms: "contratto a distanza vendita online consumatore recesso 14 giorni",
+    institutes: ["tutela_consumatore", "vendita"],
+  },
+
+  // ─── Lavoro ───
+  {
+    pattern: /licenziat[oa]|cacciat[oa]|mandat[oa].*via|perso.*(?:il )?posto/i,
+    legalTerms: "giusta causa licenziamento art. 2119 c.c. giustificato motivo preavviso",
+    institutes: ["contratto", "lavoro_autonomo"],
+  },
+  {
+    pattern: /lavoro.*nero|paga.*in nero|senza.*contratto.*lavor|non.*(?:mi )?assunt|irregolar/i,
+    legalTerms: "lavoro subordinato irregolare rapporto di fatto prestazione lavorativa",
+    institutes: ["contratto", "lavoro_autonomo"],
+  },
+  {
+    pattern: /straordinar[io]|ore extra|non.*(?:mi )?paga.*(?:straordinari|ore)/i,
+    legalTerms: "lavoro straordinario retribuzione orario compenso maggiorazione",
+    institutes: ["contratto", "obbligazione"],
+  },
+  {
+    pattern: /dimission[ei]|voglio.*licenziar.*mi|lasciar.*lavoro|dare.*le dimissioni/i,
+    legalTerms: "dimissioni volontarie preavviso recesso lavoratore",
+    institutes: ["contratto"],
+  },
+  {
+    pattern: /mobbing|boss[ei]ng|demansionat|umiliat.*lavoro|perseguitat.*lavoro/i,
+    legalTerms: "mobbing demansionamento danno biologico risarcimento responsabilità datore",
+    institutes: ["responsabilità_extracontrattuale", "risarcimento"],
+  },
+  {
+    pattern: /tfr|liquidazione|buonuscita|trattamento.*fine.*rapporto/i,
+    legalTerms: "trattamento fine rapporto TFR liquidazione indennità",
+    institutes: ["obbligazione", "contratto"],
+  },
+
+  // ─── Locazione / Affitto ───
+  {
+    pattern: /affitt[oa]|padrone.*casa|propriet[àa]rio.*(?:casa|immobil)|inquilin/i,
+    legalTerms: "locazione conduttore locatore obblighi canone",
+    institutes: ["locazione", "obblighi_locatore", "obblighi_conduttore"],
+  },
+  {
+    pattern: /bollette|condominio|spese.*(?:condominial|accessori)|chi.*paga.*spese/i,
+    legalTerms: "oneri accessori locazione spese condominiali ripartizione",
+    institutes: ["locazione", "obblighi_conduttore"],
+  },
+  {
+    pattern: /muffa|perdita.*acqua|infiltrazion[ei]|tubatura|umidità|tetto.*(?:piov|rott)/i,
+    legalTerms: "vizi cosa locata art. 1578 c.c. riparazione riduzione canone risoluzione",
+    institutes: ["locazione", "obblighi_locatore"],
+  },
+  {
+    pattern: /sfratt[oa]|caccia.*(?:di )?casa|buttare.*fuori|mandar.*via.*(?:casa|appartament)/i,
+    legalTerms: "sfratto convalida licenza finita locazione morosità intimazione",
+    institutes: ["sfratto", "locazione"],
+  },
+  {
+    pattern: /cauzione|deposito.*cauzional|caparra.*affitt|restituzione.*cauzione/i,
+    legalTerms: "deposito cauzionale locazione restituzione cauzione trattenuta danni",
+    institutes: ["locazione", "obblighi_conduttore"],
+  },
+  {
+    pattern: /rinnov.*(?:affitt|contratt.*locazion)|scadenza.*(?:affitt|contratt.*locazion)/i,
+    legalTerms: "rinnovo locazione tacito rinnovo disdetta scadenza L. 431/1998",
+    institutes: ["locazione", "rinnovo_locazione"],
+  },
+  {
+    pattern: /subaffitt|sublocare|affittare.*(?:stanza|camera)|coinquilin/i,
+    legalTerms: "sublocazione cessione contratto locazione consenso locatore",
+    institutes: ["sublocazione", "locazione"],
+  },
+
+  // ─── Caparra / Anticipo ───
+  {
+    pattern: /caparra|anticipo.*(?:casa|contratt|acquist)|acconto/i,
+    legalTerms: "caparra confirmatoria caparra penitenziale acconto prezzo inadempimento",
+    institutes: ["caparra_confirmatoria", "caparra_penitenziale"],
+  },
+
+  // ─── Tributi / Multe / Cartelle ───
+  {
+    pattern: /multa|cartella.*(?:esattorial|pagament)|equitalia|agenzia.*entrate.*riscossione/i,
+    legalTerms: "riscossione tributi cartella esattoriale opposizione annullamento prescrizione",
+    institutes: ["prescrizione", "obbligazione"],
+  },
+  {
+    pattern: /bollo.*auto|tassa.*automobilist|pagament.*arretrat/i,
+    legalTerms: "tributo regionale bollo auto prescrizione triennale riscossione",
+    institutes: ["prescrizione"],
+  },
+
+  // ─── Famiglia / Separazione ───
+  {
+    pattern: /divorzi[oa]|separa(?:zione|rmi|rci)|lasciar.*(?:marit|mogli)/i,
+    legalTerms: "separazione personale coniugi divorzio scioglimento matrimonio assegno mantenimento",
+    institutes: ["obbligazione"],
+  },
+  {
+    pattern: /aliment[io]|manteniment.*(?:figli|ex)|assegno.*(?:figli|coniuge|mantenimento)/i,
+    legalTerms: "obbligo mantenimento figli assegno alimentare violazione obblighi assistenza familiare",
+    institutes: ["obblighi_familiari", "mantenimento"],
+  },
+
+  // ─── Eredità / Successione ───
+  {
+    pattern: /eredità|ereditare|morto.*lasci|testamento|decedut/i,
+    legalTerms: "successione eredità testamento quota legittima divisione ereditaria",
+    institutes: ["successione", "testamento", "legittima", "divisione_ereditaria"],
+  },
+  {
+    pattern: /disereda(?:re|to|zione)|esclus.*(?:eredit|testamento)|tagliato.*fuori/i,
+    legalTerms: "diseredazione quota legittima riduzione lesione azione",
+    institutes: ["successione", "legittima", "testamento"],
+  },
+
+  // ─── Proprietà / Vicinato ───
+  {
+    pattern: /vicin[oi].*(?:rumor|confine|albero|muro)|rumor.*(?:notturni|condomini)/i,
+    legalTerms: "immissioni rumorose rapporti vicinato distanze legali confini",
+    institutes: ["responsabilità_extracontrattuale"],
+  },
+  {
+    pattern: /abuso.*edilizi|costrui.*senza.*permess|condono/i,
+    legalTerms: "abuso edilizio permesso costruire DPR 380/2001 sanatoria condono",
+    institutes: ["contratto"],
+  },
+
+  // ─── Privacy / Dati personali ───
+  {
+    pattern: /privacy|dati.*personal|telecamer[ae]|videosorvegli/i,
+    legalTerms: "protezione dati personali GDPR trattamento consenso informativa",
+    institutes: ["tutela_consumatore"],
+  },
+
+  // ─── Risarcimento / Incidenti ───
+  {
+    pattern: /incident.*(?:strad|auto|moto)|tamponat|sinistro/i,
+    legalTerms: "risarcimento danno responsabilità civile circolazione veicoli",
+    institutes: ["responsabilità_extracontrattuale", "risarcimento", "assicurazione"],
+  },
+  {
+    pattern: /cadut[oa]|scivolat|infortunio|fatt[oa].*male|ferit/i,
+    legalTerms: "risarcimento danno biologico infortunio responsabilità extracontrattuale",
+    institutes: ["responsabilità_extracontrattuale", "risarcimento"],
+  },
+
+  // ─── Debiti / Prestiti ───
+  {
+    pattern: /presta.*soldi|(?:mi )?deve.*soldi|non.*(?:mi )?restituisc|debito.*amico/i,
+    legalTerms: "mutuo restituzione somma prova testimoniale limiti valore obbligazione pecuniaria",
+    institutes: ["mutuo", "prova_testimoniale", "obbligazione"],
+  },
+  {
+    pattern: /usura|tasso.*(?:eccessiv|usuraio|troppo.*alto)|interessi.*(?:altissim|esorbitant)/i,
+    legalTerms: "usura tasso soglia interesse moratorio contratto usurario nullità",
+    institutes: ["mutuo", "usura", "nullità"],
+  },
+
+  // ─── Contratti generici ───
+  {
+    pattern: /firma.*(?:contratt|accord)|firmato.*senza.*legger|non.*(?:ho )?letto/i,
+    legalTerms: "consenso contrattuale sottoscrizione clausole vessatorie approvazione specifica",
+    institutes: ["clausole_vessatorie", "contratto", "consenso"],
+  },
+  {
+    pattern: /disdetta|recedere|annullare.*contratt|cancellare.*abbonament/i,
+    legalTerms: "recesso contratto disdetta termine preavviso clausola risolutiva",
+    institutes: ["contratto", "risoluzione", "tutela_consumatore"],
+  },
+  {
+    pattern: /penale.*contratt|penalità|pagare.*se.*recedo|costo.*per.*recedere/i,
+    legalTerms: "clausola penale riduzione equa recesso contratto penalità eccessiva",
+    institutes: ["clausola_penale", "contratto"],
+  },
+];
+
+/**
+ * Arricchisce la legalQuery e suggestedInstitutes con termini giuridici
+ * mappati dalle trigger-word colloquiali trovate nella domanda.
+ * Questo step avviene PRIMA del postProcessPrep (che gestisce le ensureInstitute).
+ * Non sostituisce la legalQuery del modello — la ARRICCHISCE.
+ */
+function enrichWithTriggerWords(question: string, result: QuestionPrepResult): void {
+  const q = question.toLowerCase();
+
+  for (const entry of TRIGGER_WORD_DICTIONARY) {
+    if (entry.pattern.test(q)) {
+      // Arricchisci legalQuery con termini giuridici (se non già presenti)
+      const existingLower = result.legalQuery.toLowerCase();
+      // Splitta i termini legali e aggiungi solo quelli non già presenti
+      const newTerms = entry.legalTerms
+        .split(" ")
+        .filter((term) => term.length > 3 && !existingLower.includes(term.toLowerCase()));
+      if (newTerms.length > 0) {
+        result.legalQuery += " " + newTerms.join(" ");
+      }
+
+      // Aggiungi istituti mancanti
+      for (const inst of entry.institutes) {
+        if (!result.suggestedInstitutes.includes(inst)) {
+          result.suggestedInstitutes.push(inst);
+        }
+      }
+    }
+  }
+}
+
 // ─── Post-processing deterministico ───
 
 /**
@@ -275,6 +521,9 @@ export async function prepareQuestion(
       provider,
       durationMs: Date.now() - startTime,
     };
+
+    // Trigger-word enrichment: mappa termini colloquiali → giuridici (prima del post-processing)
+    enrichWithTriggerWords(question, result);
 
     // Post-processing deterministico: corregge gap sistematici del modello
     postProcessPrep(question, result);

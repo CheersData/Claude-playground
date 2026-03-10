@@ -1,0 +1,29 @@
+{
+  "testId": "TC61",
+  "question": "Ho comprato un immobile all'asta giudiziaria ma scopro che ha abusi edilizi. Il tribunale mi garantisce la conformità?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl tribunale che ha disposto la vendita all'asta non garantisce la conformità edilizia dell'immobile. L'acquirente subentra nel proprietario e, se l'immobile presenta opere abusive, è soggetto alle disposizioni di cui all'art. 31 e all'art. 46 del Testo unico dell'edilizia, che prevedono la possibilità di demolizione da parte del Comune e la nullità degli atti di trasferimento relativi a edifici abusivi.\n\nRIFERIMENTI NORMATIVI\nArt. 31 c.u. Edilizia (ID: 039b4cb7-4a61-40bc-868a-5d5be2a40dd0): \"Il dirigente ... ingiunge al proprietario e al responsabile dell'abuso la rimozione o la demolizione... Se il responsabile dell'abuso non provvede entro novanta giorni, il bene e l'area di sedime sono acquisiti di diritto gratuitamente al patrimonio del comune... L'accertamento dell'inottemperanza costituisce titolo per l'immissione nel possesso e per la trascrizione nei registri immobiliari.\"\nArt. 46 c.u. Edilizia (ID: d4098ecc-4470-46b8-a23c-61ef02d0d811): \"Gli atti tra vivi ... relativi ad edifici la cui costruzione è iniziata dopo il 17 marzo 1985 sono nulli e non possono essere stipulati ove da essi non risultino, per dichiarazione dell'alienante, gli estremi del permesso di costruire o del permesso in sanatoria.\"\n\nIN PRATICA\nPresenti l'ingiunzione di demolizione entro i 90 giorni dall'ordinanza (art. 31, comma 3). Puoi opporsi presentando, entro lo stesso termine, un'istanza motivata al Comune chiedendo la sanatoria dell'opera o, in difetto, la sospensione dell'esecuzione per far valere eventuali diritti di difesa. Se l'opera è nulla ai sensi dell'art. 46, il trasferimento è inefficace e potresti agire contro il venditore per dolo o omissione di informazioni.\n\n",
+  "expectedAnswer": "TRAPPOLA INTERDISCIPLINARE: la vendita forzata (asta) non è garantita per conformità urbanistica. Il tribunale NON garantisce che l'immobile sia regolare. Art. 46 DPR 380/2001 si applica diversamente: nelle vendite forzate l'acquirente non può eccepire la nullità per mancata menzione della conformità. Gli abusi restano però a carico dell'acquirente.",
+  "scoringHints": {
+    "prep": "Ha distinto vendita forzata da volontaria nella query?",
+    "search": "Ha trovato art. 46 DPR 380/2001 con la disciplina delle vendite forzate?",
+    "quality": "Chiarisce che il tribunale non garantisce? Spiega le conseguenze per l'acquirente?"
+  },
+  "trapType": "interdisciplinare",
+  "institutes": [
+    "asta_giudiziaria",
+    "abusi_edilizi",
+    "responsabilità_acquirente"
+  ],
+  "scope": "INTERDISCIPLINARE: vendita forzata ≠ volontaria. Il tribunale NON garantisce conformità urbanistica.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una buona comprensione del problema e cita correttamente gli articoli pertinenti. Tuttavia, non coglie appieno la specificità della domanda trappola relativa alla distinzione tra vendita forzata e volontaria, né chiarisce adeguatamente che il tribunale non garantisce la conformità urbanistica nell'asta giudiziaria. La risposta è borderline poiché tocca i punti chiave ma con alcune imprecisioni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T10:26:41.052Z"
+}

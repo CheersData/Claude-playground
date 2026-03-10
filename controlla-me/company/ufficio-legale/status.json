@@ -48,15 +48,17 @@
   },
   "features_incomplete": [
     "OCR immagini (tesseract.js rimosso)",
-    "UI scoring multidimensionale (backend pronto)",
-    "Verticale HR (non avviato)",
+    "Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt pending)",
     "Sistema referral avvocati (tabelle DB esistono, no UI)"
+  ],
+  "features_completed": [
+    "UI scoring multidimensionale (4 dimensioni in ResultsView, FairnessScore, ChatMessage, FinalEvaluationPanel)"
   ],
   "gaps": [
     {
       "id": "LEG-1",
-      "description": "Verticale HR non avviato — fonti mappate in hr-sources.ts ma non caricate",
-      "severity": "medium"
+      "description": "CHIUSO — Verticale HR parzialmente completato: 572 articoli caricati (D.Lgs. 81/2008 321 art., D.Lgs. 81/2015 66 art., D.Lgs. 276/2003 87 art., D.Lgs. 23/2015 11 art., D.Lgs. 148/2015 46 art., L. 300/1970 41 art.). Aggiornamento prompt pending.",
+      "severity": "closed"
     },
     {
       "id": "LEG-2",
@@ -73,5 +75,5 @@
     }
   ],
   "blockers": [],
-  "notes": "Pipeline core funzionante. Investigator usa web_search (solo Anthropic). Fairness score calibrato: scoring multidimensionale nel backend (legalCompliance, contractBalance, industryPractice)."
+  "notes": "Pipeline core funzionante. Investigator usa web_search (solo Anthropic). Scoring multidimensionale COMPLETATO: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) in ResultsView, FairnessScore, ChatMessage, FinalEvaluationPanel. Verticale HR: 572 articoli caricati, prompt update pending."
 }

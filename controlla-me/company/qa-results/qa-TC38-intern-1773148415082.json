@@ -1,0 +1,29 @@
+{
+  "testId": "TC38",
+  "question": "Ho sentito parlare di risoluzione, recesso e rescissione del contratto. Sono la stessa cosa?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLe figure della risoluzione, del recesso e della rescissione del contratto non sono la stessa cosa: ciascuna è disciplinata da norme diverse e si attiva in presenza di requisiti specifici.\n\nRIFERIMENTI NORMATIVI\n1) Risoluzione per inadempimento (Art. 1453 c.c.) – \"nei contratti con prestazioni corrispettive, quando uno dei contraenti non adempie le proprie obbligazioni, l'altro può a sua scelta chiedere l'adempimento o la risoluzione del contratto\".\n2) Risoluzione di diritto (Art. 1517 c.c.) – prevede la risoluzione automatica a favore del creditore che, entro otto giorni dalla scadenza del termine, comunica la volontà di risolvere.\n3) Clausola risolutiva espressa (Art. 1456 c.c.) – le parti possono convenire che il contratto si risolva di diritto al verificarsi di una determinata inadempienza.\n4) Effetti della risoluzione (Art. 1458 c.c.) – la risoluzione ha effetto retroattivo, salvo le prestazioni già eseguite in contratti a esecuzione continuata.\n5) Recesso unilaterale (Art. 1373 c.c.) – la parte titolare del diritto di recesso può esercitarlo finché il contratto non ha avuto principio di esecuzione; nei contratti a esecuzione continuata il recesso è possibile anche successivamente.\n6) Recesso per giusta causa (Art. 2119 c.c.) – consente a ciascuna parte di recedere senza preavviso se si verifica una causa che impedisce la prosecuzione del rapporto.\n7) Recesso dal contratto a tempo indeterminato (Art. 1833 c.c.) – prevede un preavviso di almeno dieci giorni per recedere.\n8) Recesso del consumatore (Art. 74 c.c.) – il consumatore esercita il diritto di recesso mediante comunicazione scritta, ponendo fine agli obblighi di entrambe le parti.\n9) Effetti del recesso (Art. 55 c.c.) – il recesso pone termine agli obblighi di esecuzione del contratto.\n10) Rescissione per stato di pericolo (Art. 1447 c.c.) – il contratto può essere resciso quando una parte ha assunto obbligazioni inique per salvare sé o altri da un danno grave.\n11) Rescissione per lesione (Art. 1448 c.c.) – la parte lesa può domandare la rescissione se la sproporzione tra le prestazioni supera la metà del valore.\n12) Inammissibilità della convalida (Art. 1451 c.c.) – il contratto rescindibile non può essere convalidato.\n13) Offerta di modificazione (Art. 1450 c.c.) – la parte contro la quale è domandata la rescissione può evitarla offrendo una modifica equa.\n\nIN PRATICA\nPer capire quale istituto si applica, verifica prima l'esistenza di una clausola risolutiva espressa (Art. 1456) o di un inadempimento grave (Art. 1453). Se il contratto prevede un diritto di recesso (Art. 1373 o Art. 74 per i consumatori), esercitalo entro i termini previsti (es. comunicazione scritta). Se la parte ha subito un danno grave o una lesione sproporzionata, valuta la rescissione ai sensi degli Art. 1447‑1448, eventualmente offrendo una modifica (Art. 1450) per evitare la rescissione.",
+  "expectedAnswer": "KILLER: sono tre istituti distinti. Risoluzione: causa sopravvenuta (inadempimento, impossibilità, eccessiva onerosità) art. 1453. Recesso: volontà unilaterale di uscire dal contratto art. 1373. Rescissione: squilibrio esistente AL MOMENTO della conclusione (pericolo/lesione) art. 1447-1448.",
+  "scoringHints": {
+    "prep": "Ha formulato query su tutti e 3 gli istituti separatamente?",
+    "search": "Ha trovato artt. 1453, 1373, 1447-1448?",
+    "quality": "Distingue chiaramente i presupposti di ciascun istituto? Non li confonde tra loro?"
+  },
+  "trapType": "confusione_istituti",
+  "institutes": [
+    "risoluzione",
+    "recesso",
+    "rescissione"
+  ],
+  "scope": "Tre istituti distinti: risoluzione (inadempimento, art.1453), recesso (volontà unilaterale, art.1373), rescissione (squilibrio originario, art.1447-1448)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 38,
+    "total": 93,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente i tre istituti e ha fornito una risposta strutturata. Ha citato gli articoli pertinenti (1453, 1373, 1447‑1448) e ha aggiunto norme correlate senza inventare contenuti. La distinzione tra risoluzione, recesso e rescissione è chiara, meritando un punteggio alto e il bonus per aver evitato la trappola."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:12:07.749Z"
+}

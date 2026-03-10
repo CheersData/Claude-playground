@@ -4,7 +4,7 @@
  * Usage:
  *   npx tsx scripts/company-tasks.ts board
  *   npx tsx scripts/company-tasks.ts list [--dept <dept>] [--status <status>] [--by <creator>]
- *   npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> [--priority <p>] --by <creator> [--desc "..."]
+ *   npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> [--priority <p>] --by <creator> [--desc "..."] [--parent <task-id>]
  *   npx tsx scripts/company-tasks.ts get <id>
  *   npx tsx scripts/company-tasks.ts claim <id> --agent <agent>
  *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "path1 path2"]
@@ -177,6 +177,7 @@ async function main() {
           console.log(`    routing: ${task.routing}${approvalStr}${consultStr}`);
         }
         if (task.routingExempt) console.log(`    routing: EXEMPT — ${task.routingReason ?? "(no reason)"}`);
+        if (task.parentTaskId) console.log(`    parent: ${task.parentTaskId.slice(0, 8)}`);
         if (task.tags && task.tags.length > 0) console.log(`    tags: ${task.tags.join(', ')}`);
         if (task.resultSummary) console.log(`    result: ${task.resultSummary}`);
         console.log("");
@@ -192,14 +193,12 @@ async function main() {
       const desc = getFlag("desc");
       const assign = getFlag("assign");
       const routing = getFlag("routing");
-      const routingExempt = hasFlag("routing-exempt");
-      const routingReason = getFlag("routing-reason");
       const tagsRaw = getFlag("tags");
       const benefit = getFlag("benefit");
+      const parentRaw = getFlag("parent");
 
       if (!title || !dept || !by) {
-        console.error("Usage: create --title '...' --dept <dept> --by <creator> --desc '...' --routing 'tree:class' [--priority <p>] [--assign <agent>] [--tags 'tag1,tag2'] [--benefit 'testo']");
-        console.error("       create --title '...' --dept <dept> --by <creator> --desc '...' --routing-exempt --routing-reason 'motivo'");
+        console.error("Usage: create --title '...' --dept <dept> --by <creator> --desc '...' --routing 'tree:class' [--priority <p>] [--assign <agent>] [--tags 'tag1,tag2'] [--benefit 'testo'] [--parent <task-id>]");
         process.exit(1);
       }
       if (!desc) {
@@ -215,50 +214,67 @@ async function main() {
         console.warn("ATTENZIONE: --benefit non specificato. Raccomandato: descrivere il beneficio concreto atteso.");
       }
 
-      // ─── Routing enforcement (validato contro decision tree YAML) ───
-      if (routingExempt) {
-        if (!routingReason) {
-          console.error("ERRORE: --routing-exempt richiede --routing-reason 'motivo del bypass'.");
-          console.error("Esempio: --routing-exempt --routing-reason 'task operativo routine pre-approvato'");
-          process.exit(1);
-        }
-      } else {
-        if (!routing) {
-          console.error("ERRORE: --routing è obbligatorio. Specifica la classificazione dal decision tree.");
-          console.error("\nCombinazioni valide (da YAML):");
-          for (const r of getAllValidRoutings()) {
-            console.error(`  --routing '${r}'`);
-          }
-          console.error("\nPer bypassare (solo se autorizzato): --routing-exempt --routing-reason 'motivo'");
-          console.error("Per aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
-          process.exit(1);
-        }
-        // Validazione contro i decision tree YAML reali
-        const routingResult = validateRouting(routing);
-        if (!routingResult.valid) {
-          console.error(`ERRORE ROUTING: ${routingResult.error}`);
-          if (routingResult.validOptions) {
-            console.error("\nOpzioni valide:");
-            for (const opt of routingResult.validOptions) {
-              console.error(`  --routing '${opt}'`);
-            }
-          }
-          console.error("\nPer aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
-          process.exit(1);
-        }
-        // Mostra i vincoli del nodo scelto dal decision tree
-        const node = routingResult.node!;
-        console.log(`\n  Routing validato: ${routing}`);
-        console.log(`  Tipo: ${node.type} | Approvazione: ${node.approval}`);
-        if (node.consult.length > 0) console.log(`  Consultare: ${node.consult.join(", ")}`);
-        if (node.review && node.review.length > 0) console.log(`  Review: ${node.review.join(", ")}`);
-        if (node.requirement) console.log(`  Requisito: ${node.requirement}`);
+      // ─── Reject "EXEMPT" as routing value ───
+      if (routing !== undefined && (routing.toUpperCase() === "EXEMPT" || routing.trim() === "")) {
+        console.error("❌ Routing EXEMPT eliminato (audit V-006/V-007). Ogni task DEVE avere routing tree:sub-type.");
+        console.error("   Esempio: --routing 'feature-request:small'");
+        console.error("   Per aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
+        process.exit(1);
       }
 
-      // Auto-extract approval metadata dal decision tree (se routing validato)
+      // ─── Resolve parent task ID ───
+      let parentTaskId: string | undefined;
+      if (parentRaw) {
+        try {
+          parentTaskId = await resolveId(parentRaw);
+          const parentTask = await getTask(parentTaskId);
+          if (!parentTask) {
+            console.error(`ERRORE: task parent "${parentRaw}" non trovato.`);
+            process.exit(1);
+          }
+          console.log(`  Parent: #${parentTask.seqNum ?? "?"} ${parentTask.title} (${parentTask.id.slice(0, 8)})`);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`ERRORE: impossibile risolvere parent "${parentRaw}" — ${msg}`);
+          process.exit(1);
+        }
+      }
+
+      // ─── Routing enforcement (validato contro decision tree YAML — EXEMPT eliminato, audit V-006/V-007) ───
+      if (!routing) {
+        console.error("ERRORE: --routing è obbligatorio. Ogni task DEVE avere routing tree:sub-type.");
+        console.error("\nCombinazioni valide (da YAML):");
+        for (const r of getAllValidRoutings()) {
+          console.error(`  --routing '${r}'`);
+        }
+        console.error("\nPer aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
+        process.exit(1);
+      }
+      // Validazione contro i decision tree YAML reali
+      const routingResult = validateRouting(routing);
+      if (!routingResult.valid) {
+        console.error(`ERRORE ROUTING: ${routingResult.error}`);
+        if (routingResult.validOptions) {
+          console.error("\nOpzioni valide:");
+          for (const opt of routingResult.validOptions) {
+            console.error(`  --routing '${opt}'`);
+          }
+        }
+        console.error("\nPer aiuto: npx tsx scripts/company-tasks.ts route 'descrizione richiesta'");
+        process.exit(1);
+      }
+      // Mostra i vincoli del nodo scelto dal decision tree
+      const node = routingResult.node!;
+      console.log(`\n  Routing validato: ${routing}`);
+      console.log(`  Tipo: ${node.type} | Approvazione: ${node.approval}`);
+      if (node.consult.length > 0) console.log(`  Consultare: ${node.consult.join(", ")}`);
+      if (node.review && node.review.length > 0) console.log(`  Review: ${node.review.join(", ")}`);
+      if (node.requirement) console.log(`  Requisito: ${node.requirement}`);
+
+      // Auto-extract approval metadata dal decision tree
       let autoApprovalLevel: string | undefined;
       let autoConsultDepts: string[] | undefined;
-      if (routing && !routingExempt) {
+      {
         const rr = validateRouting(routing);
         if (rr.valid && rr.node) {
           autoApprovalLevel = rr.node.approval;
@@ -277,9 +293,8 @@ async function main() {
         createdBy: by,
         description: desc,
         assignedTo: assign ?? undefined,
-        routing: routing ?? undefined,
-        routingExempt,
-        routingReason: routingReason ?? undefined,
+        parentTaskId,
+        routing: routing,
         tags: parsedTags,
         expectedBenefit: benefit ?? undefined,
         approvalLevel: autoApprovalLevel as CreateTaskInput['approvalLevel'],
@@ -289,8 +304,8 @@ async function main() {
       const seqLabel = task.seqNum != null ? ` #${task.seqNum}` : '';
       console.log(`\n✓ Task creato:${seqLabel} ${task.id.slice(0, 8)} [${statusLabel}]`);
       console.log(`  "${task.title}" → ${task.department} [${task.priority}]`);
+      if (task.parentTaskId) console.log(`  parent: ${task.parentTaskId.slice(0, 8)}`);
       if (task.routing) console.log(`  routing: ${task.routing}`);
-      if (task.routingExempt) console.log(`  routing: EXEMPT — ${task.routingReason}`);
       if (task.approvalLevel) console.log(`  approval: ${task.approvalLevel}`);
       if (task.consultDepts && task.consultDepts.length > 0) console.log(`  consult: ${task.consultDepts.join(', ')}`);
       if (task.tags && task.tags.length > 0) console.log(`  tags: ${task.tags.join(', ')}`);
@@ -319,6 +334,7 @@ async function main() {
       console.log(`  Priority: ${task.priority}`);
       console.log(`  Created by: ${task.createdBy}`);
       console.log(`  Assigned to: ${task.assignedTo ?? "-"}`);
+      if (task.parentTaskId) console.log(`  Parent: ${task.parentTaskId}`);
       console.log(`  Created: ${task.createdAt}`);
       if (task.startedAt) console.log(`  Started: ${task.startedAt}`);
       if (task.completedAt) console.log(`  Completed: ${task.completedAt}`);
@@ -645,7 +661,7 @@ Company Tasks CLI — Gestione task per la virtual company
 Commands:
   board                          Stato azienda (riepilogo + outcome counter)
   list [--dept X] [--status Y]   Lista task con filtri
-  create --title "..." --dept X --by Y --desc "..." --routing "tree:class" [--priority Z] [--assign <agent>] [--tags "t1,t2"] [--benefit "..."]
+  create --title "..." --dept X --by Y --desc "..." --routing "tree:class" [--priority Z] [--assign <agent>] [--tags "t1,t2"] [--benefit "..."] [--parent <id|#N>]
   create ... --routing-exempt --routing-reason "motivo"   Bypass routing (escape hatch)
   get <id|#N>                    Dettaglio task (mostra routing, tags, benefit, outcome, next)
   claim <id|#N> --agent <name>   Prendi in carico un task

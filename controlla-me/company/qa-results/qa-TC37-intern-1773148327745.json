@@ -1,0 +1,29 @@
+{
+  "testId": "TC37",
+  "question": "Qual è la differenza tra nullità e annullabilità di un contratto?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLa nullità di un contratto è una sanzione di carattere imperativo: il contratto è considerato inesistente fin dall'origine e non produce effetti giuridici. L'annullabilità, invece, è una sanzione di carattere dispositivo: il contratto è valido fino a quando l'azione di annullamento non viene esercitata dalla parte legittimata; in tal caso gli effetti si estinguono retroattivamente.\n\nRIFERIMENTI NORMATIVI\n1) Nullità (imperativa) – Art. 1418 c.c.\n   Il contratto è nullo quando è contrario a norme imperative, quando manca uno dei requisiti di cui all’art. 1325, quando la causa è illecita, ecc.\n2) Nullità parziale – Art. 1419 c.c.\n   La nullità di singole clausole può comportare la nullità dell’intero contratto se le parti non lo avrebbero concluso senza quella clausola.\n3) Nullità per condizioni illecite – Art. 1354 c.c.\n   È nullo il contratto con una condizione sospensiva o risolutiva contraria a norme imperative, all’ordine pubblico o al buon costume.\n4) Legittimazione all’azione di nullità – Art. 1421 c.c.\n   Salvo diversa disposizione, chiunque abbia interesse può far valere la nullità.\n5) Imprescrittibilità dell’azione di nullità – Art. 1422 c.c.\n   L’azione di nullità non è soggetta a prescrizione.\n6) Inammissibilità della convalida del nullo – Art. 1423 c.c.\n   Il contratto nullo non può essere convalidato, salvo diversa disposizione di legge.\n7) Conversione del contratto nullo – Art. 1424 c.c.\n   Il contratto nullo può produrre gli effetti di un contratto diverso se le parti lo avrebbero voluto in presenza della nullità.\n8) Annullabilità (dispositiva) – Art. 1425 c.c.\n   Il contratto è annullabile se una delle parti era legalmente incapace di contrattare.\n9) Cause di annullabilità (errore, violenza, dolo) – Art. 1427 c.c.\n   L’errore, la violenza e il dolo sono cause di annullamento del contratto.\n10) Rilevanza dell’errore – Art. 1428 c.c.\n    L’errore è causa di annullamento solo se è essenziale e riconoscibile dall’altro contraente.\n11) Prescrizione dell’azione di annullamento – Art. 1442 c.c.\n    L’azione di annullamento si prescrive in cinque anni, con regole particolari per incapacità, errore, violenza, ecc.\n12) Convalida del contratto annullabile – Art. 1444 c.c.\n    Il contratto annullabile può essere convalidato dal contraente che ha l’azione di annullamento mediante atto esplicito.\n13) Annullabilità nel contratto plurilaterale – Art. 1446 c.c.\n    Nei contratti con più parti, l’annullabilità di una sola parte non comporta la nullità dell’intero contratto, salvo che la partecipazione sia essenziale.\n14) Ripetizione contro il contraente incapace – Art. 1443 c.c.\n    Se il contratto è annullato per incapacità, il contraente incapace non è tenuto a restituire la prestazione ricevuta se non nei limiti a suo vantaggio.\n\nIN PRATICA\n- Se il contratto presenta una violazione di una norma imperativa (es. mancanza di uno dei requisiti dell’art. 1325, causa illecita, clausola contraria all’ordine pubblico), la nullità è automatica: il contratto è nullo fin dal principio, non è necessario alcun giudizio, ma la parte interessata può chiedere al giudice la dichiarazione di nullità (art. 1421) e, se necessario, la conversione in un contratto valido (art. 1424).\n- Se il difetto è di natura annullabile (incapacità, errore essenziale, violenza, dolo), la parte legittimata (art. 1425, 1427) deve promuovere l’azione di annullamento entro cinque anni (art. 1442). Fino a quel momento il contratto resta valido; la parte può anche convalidarlo mediante atto esplicito (art. 1444) se lo desidera.\n- Nei contratti con più parti, valutare se la partecipazione della parte annullabile è essenziale (art. 1446) per decidere se l’intero contratto debba essere annullato o solo la parte di quella parte.\n- Per evitare controversie, inserire clausole che prevedano esplicitamente la possibilità di convalida (art. 1444) o, laddove la legge imponga nullità, assicurarsi che il contratto rispetti tutti i requisiti di forma e contenuto (art. 1418, 1325, 1354).",
+  "expectedAnswer": "L'agente deve descrivere la tassonomia completa: nullità = vizio insanabile, imprescrittibile, rilevabile d'ufficio, da chiunque. Annullabilità = vizio sanabile, 5 anni, solo dalla parte protetta, non rilevabile d'ufficio.",
+  "scoringHints": {
+    "prep": "Ha formulato query che copre tutti i profili differenziali?",
+    "search": "Ha trovato le norme su nullità (artt. 1418-1424) e annullabilità (artt. 1425-1442)?",
+    "quality": "Copre tutti e 4 i profili (legittimazione, prescrizione, convalida, rilevabilità)?"
+  },
+  "trapType": null,
+  "institutes": [
+    "nullità",
+    "annullabilità",
+    "contratto"
+  ],
+  "scope": "Tassonomia completa: legittimazione (chiunque vs solo parti), prescrizione (imprescrittibile vs 5 anni), convalida (impossibile vs possibile), rilevabilità d'ufficio (sì vs no)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 27,
+    "search": 28,
+    "quality": 35,
+    "total": 90,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema e ha fornito una risposta completa con i riferimenti normativi pertinenti. Ha citato gli articoli corretti sulla nullità e annullabilità, includendo legittimazione, imprescrittibilità e prescrizione. L'unica piccola carenza è la mancata esplicita menzione della non rilevabilità d'ufficio dell'annullabilità, ma la risposta resta accurata e priva di invenzioni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:11:34.900Z"
+}

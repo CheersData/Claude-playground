@@ -1,0 +1,29 @@
+{
+  "testId": "TC39",
+  "question": "Il contratto dice: 'Se non paghi entro 30 giorni, il contratto si intende risolto'. È una clausola risolutiva espressa o una condizione?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLa clausola \"Se non paghi entro 30 giorni, il contratto si intende risolto\" è una **condizione risolutiva**, non una clausola risolutiva espressa, perché la risoluzione avviene automaticamente al verificarsi dell'evento futuro (mancato pagamento entro il termine), senza necessità di una dichiarazione di volontà da parte del contraente.\n\nRIFERIMENTI NORMATIVI\n- Art. 1353 c.c. (contratto condizionale): le parti possono subordinare l'efficacia o la risoluzione del contratto a un avvenimento futuro e incerto. La clausola in esame subordina la risoluzione al mancato pagamento entro 30 giorni, quindi rientra in questa disciplina.\n- Art. 633 c.c. (condizione sospensiva o risolutiva): prevede la possibilità di apporre al contratto una condizione risolutiva, che comporta la risoluzione automatica al verificarsi dell'evento.\n- Art. 1456 c.c. (clausola risolutiva espressa): richiede che la parte interessata dichiari di volersi avvalere della clausola per farla operare. Poiché nella clausola citata non è prevista alcuna dichiarazione, non si tratta di una clausola risolutiva espressa.\n\nIN PRATICA\nInserite la clausola come condizione risolutiva, specificando chiaramente il termine di pagamento (30 giorni) e la conseguenza automatica di risoluzione. Se desiderate che la risoluzione richieda una comunicazione formale, dovrete modificare la formulazione in una clausola risolutiva espressa, ad esempio: \"In caso di mancato pagamento entro 30 giorni, la parte creditrice potrà dichiarare la risoluzione del contratto mediante comunicazione scritta\".",
+  "expectedAnswer": "Dipende dalla formulazione esatta: clausola risolutiva espressa (art. 1456) richiede dichiarazione della parte; condizione risolutiva (art. 1353) opera automaticamente. L'agente deve segnalare l'ambiguità e chiedere il testo completo prima di rispondere.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambe le fattispecie (art. 1456 e 1353)?",
+    "search": "Ha trovato art. 1456 e art. 1353 c.c.?",
+    "quality": "Segnala l'ambiguità? Distingue i due istituti? Chiede il testo completo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_risolutiva_espressa",
+    "condizione_risolutiva",
+    "interpretazione_contratto"
+  ],
+  "scope": "Dipende dalla formulazione. L'agente DEVE segnalare ambiguità e richiedere il testo completo.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente le norme giuridiche pertinenti, ma non ha segnalato l'ambiguità della clausola e non ha chiesto il testo completo del contratto. La risposta è quindi parzialmente corretta, ma non completa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:13:35.084Z"
+}

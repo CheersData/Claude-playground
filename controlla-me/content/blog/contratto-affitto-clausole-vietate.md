@@ -2,129 +2,282 @@
 title: "Contratto di affitto: tutto quello che il proprietario non può farti firmare"
 slug: contratto-affitto-clausole-vietate
 keyword: contratto affitto clausole vietate
+secondary_keywords:
+  - clausole nulle contratto locazione
+  - diritti inquilino affitto
+  - clausole vietate affitto 2026
+  - contratto locazione illegale
 type: pillar
 status: draft
 author: content-writer
-date: 2026-03-08
+date: 2026-03-09
 legal_review: pending
-word_count: 1800+
+word_count: "2000+"
 ---
 
 # Contratto di affitto: tutto quello che il proprietario non può farti firmare
 
-Hai appena trovato l'appartamento perfetto. Il proprietario ti passa il contratto, tu lo scorri velocemente e firmi. Succede a tutti. Ma dentro quel contratto potrebbero esserci clausole che **non hanno alcun valore legale** — anche se le hai firmate.
+Il contratto di affitto è probabilmente il documento più firmato senza leggere in Italia. Ci si presenta all'appuntamento con il proprietario, si scorrono le pagine, si firma in fondo e si prendono le chiavi. Il problema è che dentro quelle pagine possono nascondersi **clausole che la legge italiana dichiara nulle**, inserite -- a volte in buona fede, più spesso no -- per spostare l'equilibrio tutto dalla parte del locatore.
 
-La legge italiana protegge gli inquilini da una serie di abusi contrattuali. Eppure, ogni giorno migliaia di persone firmano contratti con clausole vietate senza saperlo. In questa guida vediamo quali sono, perché sono nulle e cosa puoi fare se le trovi nel tuo contratto.
+La buona notizia? Anche se hai già firmato, una **clausola nulla non produce effetti**. Non devi rispettarla. Non ti possono sfrattare perché la violi. È come se non esistesse. Il contratto resta valido, ma quella clausola specifica viene cancellata di diritto.
 
-## Il quadro normativo: cosa dice la legge
+In questa guida analizziamo le **8 clausole vietate più comuni** nei contratti di locazione italiani, spiegando per ciascuna cosa dice la legge, perché è nulla e cosa puoi fare concretamente. Che tu stia per firmare un nuovo contratto o che tu ne abbia uno in corso, queste informazioni ti servono.
 
-I contratti di locazione abitativa sono regolati principalmente da due fonti:
+---
 
-- La **Legge 431/1998** (disciplina delle locazioni di immobili ad uso abitativo)
-- Il **Codice Civile**, articoli 1571-1614
+## 1. Divieto di ospitare persone nell'immobile
 
-A queste si aggiungono le norme sulle **clausole vessatorie** del Codice del Consumo (D.Lgs. 206/2005, artt. 33-38) quando il proprietario agisce come professionista.
+**Cosa dice la clausola**
 
-Il principio fondamentale è semplice: **qualsiasi patto che deroga in peggio rispetto alla legge a danno dell'inquilino è nullo**. Puoi averlo firmato, puoi averlo accettato verbalmente, ma non ha effetto. Punto.
+Una delle clausole più frequenti nei contratti standard è qualcosa tipo: "Il conduttore si impegna a non ospitare stabilmente terze persone nell'immobile senza il consenso scritto del locatore." Alcune versioni sono ancora più aggressive e vietano anche ospiti temporanei oltre un certo numero di notti.
 
-## Le clausole che il proprietario non può inserirti nel contratto
+**Perché è nulla**
 
-### 1. Rinuncia al termine minimo di durata
+Il principio è semplice: quando affitti un immobile, ne acquisisci il **godimento pieno**. L'`Art. 1571 del Codice Civile` definisce la locazione come il contratto con cui il locatore si obbliga a far godere al conduttore una cosa mobile o immobile per un dato tempo. Il godimento pieno include la libertà di ospitare chi vuoi, quando vuoi, per quanto vuoi -- purché non si trasformi in una sublocazione mascherata o non si superi il limite di capienza dell'immobile.
 
-La legge stabilisce una durata minima per i contratti di locazione: **4 anni** (con rinnovo automatico di 4 anni) per i contratti liberi, oppure **3 anni** (con rinnovo di 2) per i contratti a canone concordato.
+La `L. 392/1978` (cosiddetta Legge sull'Equo Canone) rafforza questo principio: il conduttore ha diritto all'uso dell'immobile secondo la destinazione contrattuale. Ospitare il partner, un familiare o un amico rientra pienamente nell'uso abitativo normale.
 
-Una clausola che dice "il contratto ha durata di 1 anno" o "il proprietario può recedere in qualsiasi momento" è **nulla** (art. 13, comma 4, L. 431/1998). Anche se l'hai firmata, la durata resta quella di legge.
+**Cosa puoi fare**
 
-**Attenzione:** il proprietario può recedere alla prima scadenza (dopo 4 anni) solo per motivi tassativi previsti dall'art. 3 della L. 431/1998 — ad esempio se vuole abitare l'immobile, ristrutturarlo integralmente o venderlo.
+Se il proprietario ti contesta la presenza di ospiti, puoi semplicemente ricordargli che la clausola è nulla. Se insiste o minaccia lo sfratto, rivolgiti a un'associazione inquilini o a un avvocato: lo sfratto per questo motivo non regge in tribunale.
 
-### 2. Canone superiore a quello registrato
+**Esempio pratico**
 
-Se il contratto registrato indica un canone di 500 euro al mese, il proprietario non può chiederti 700 euro "in nero". Ma la cosa che molti non sanno è che anche il contrario è vietato: **qualsiasi patto che preveda un canone superiore a quello risultante dal contratto scritto e registrato è nullo** (art. 13, comma 1, L. 431/1998).
+Marco affitta un bilocale a Milano. Dopo tre mesi, la sua compagna inizia a fermarsi regolarmente. Il proprietario manda una raccomandata intimando il rispetto della clausola di "divieto ospiti stabili". Marco non deve preoccuparsi: la clausola è nulla e la convivenza di fatto è pienamente tutelata dalla legge.
 
-Se hai pagato di più di quanto scritto nel contratto, puoi chiedere la restituzione delle somme versate in eccesso. Il termine di prescrizione è di 6 mesi dalla riconsegna dell'immobile.
+---
 
-### 3. Rinuncia alla restituzione del deposito cauzionale
+## 2. Rinuncia preventiva al diritto di prelazione
 
-Il deposito cauzionale (la "cauzione") è disciplinato dall'art. 11 della L. 392/1978: non può superare le **tre mensilità** e produce interessi legali a favore dell'inquilino.
+**Cosa dice la clausola**
 
-Una clausola che dice "il deposito non sarà restituito in caso di recesso anticipato" o "il deposito sarà trattenuto a titolo di penale" è **vessatoria e nulla**. Il deposito ti spetta sempre, salvo danni documentati all'immobile — e il proprietario deve dimostrare questi danni, non basta dirlo.
+Nei contratti di locazione commerciale si trova spesso: "Il conduttore rinuncia sin d'ora al diritto di prelazione previsto dalla legge in caso di vendita dell'immobile." A volte la formulazione è più sfumata, ma il concetto è lo stesso: il proprietario vuole mani libere per vendere a chi gli pare.
 
-### 4. Divieto assoluto di sublocazione o cessione
+**Perché è nulla**
 
-L'art. 2 della L. 392/1978 consente all'inquilino di **sublocare parzialmente** l'immobile, purché ne dia comunicazione al proprietario. Una clausola che vieta qualsiasi forma di sublocazione, anche parziale, può essere considerata vessatoria.
+Gli `Art. 38, 39 e 40 della L. 392/1978` stabiliscono che il conduttore di un immobile adibito ad uso diverso dall'abitazione (negozio, ufficio, laboratorio) ha il **diritto di prelazione** in caso di vendita. Questo significa che il proprietario, prima di vendere a terzi, deve offrire l'immobile al conduttore alle stesse condizioni.
 
-Diversa è la cessione totale del contratto: quella richiede il consenso del proprietario ed è legittimo che il contratto lo escluda.
+La rinuncia preventiva -- cioè inserita nel contratto prima che si verifichi l'evento della vendita -- è nulla per espressa previsione di legge. Il conduttore può rinunciare alla prelazione solo quando il diritto diventa attuale, cioè quando il proprietario comunica formalmente l'intenzione di vendere con le condizioni specifiche.
 
-### 5. Addebito di tutte le spese straordinarie all'inquilino
+**Cosa puoi fare**
 
-Il Codice Civile è chiaro: le **riparazioni straordinarie** sono a carico del proprietario (art. 1576 c.c.), mentre la **manutenzione ordinaria** spetta all'inquilino (art. 1609 c.c.).
+Se scopri che l'immobile commerciale che affitti è stato venduto senza che ti sia stata offerta la prelazione, puoi esercitare il **diritto di riscatto** entro 6 mesi dalla trascrizione della vendita (`Art. 39 L. 392/1978`). Puoi acquistare l'immobile allo stesso prezzo pagato dal terzo acquirente.
 
-Una clausola che dice "tutte le spese di manutenzione, ordinaria e straordinaria, sono a carico del conduttore" è **nulla per la parte straordinaria**. Il rifacimento della caldaia, la sostituzione dell'impianto elettrico o le riparazioni strutturali restano responsabilità del proprietario, a prescindere da cosa dice il contratto.
+**Esempio pratico**
 
-### 6. Clausola risolutiva per morosità di un solo mese
+Sara gestisce una pasticceria in un locale affittato da 8 anni. Nel contratto c'è una clausola di "rinuncia alla prelazione". Il proprietario vende il locale a un investitore senza avvisarla. Sara ha 6 mesi per esercitare il riscatto: può subentrare nell'acquisto alle stesse condizioni, nonostante la clausola firmata.
 
-L'art. 5 della L. 392/1978 prevede che la morosità dell'inquilino giustifichi lo sfratto quando il ritardo supera **20 giorni** dalla scadenza e l'importo non pagato supera **due mensilità** di canone.
+---
 
-Una clausola che prevede la risoluzione immediata per il mancato pagamento di una sola mensilità è **più restrittiva di quanto previsto dalla legge** e può essere dichiarata nulla dal giudice.
+## 3. Risoluzione automatica del contratto per morosità
 
-### 7. Obbligo di lasciare migliorie senza compenso
+**Cosa dice la clausola**
 
-Se durante la locazione hai apportato migliorie all'immobile (con il consenso del proprietario), l'art. 1592 c.c. ti riconosce il diritto a un'**indennità**. Una clausola che dice "qualsiasi miglioria resterà acquisita al proprietario senza compenso" non può derogare a questo diritto quando le migliorie sono state autorizzate.
+"In caso di mancato pagamento anche di una sola mensilità di canone, il contratto si intenderà risolto di diritto ai sensi dell'art. 1456 c.c." Questa è la classica **clausola risolutiva espressa** applicata alla morosità.
 
-### 8. Rinuncia alla cedolare secca a danno dell'inquilino
+**Perché è nulla**
 
-Se il proprietario ha optato per la **cedolare secca** (art. 3, D.Lgs. 23/2011), non può aggiornare il canone per tutta la durata dell'opzione — nemmeno con l'adeguamento ISTAT. Una clausola che prevede aggiornamenti ISTAT in un contratto con cedolare secca è **inefficace**.
+L'`Art. 5 della L. 392/1978` prevede una tutela fondamentale per il conduttore: la possibilità di **sanare la morosità** (cosiddetta "sanatoria della morosità"). In concreto, anche se non hai pagato l'affitto e il proprietario ti porta in tribunale per lo sfratto, il giudice ti concede un termine (di norma 90 giorni) per pagare tutto il dovuto -- canoni arretrati, interessi e spese legali.
 
-## Come riconoscere una clausola vietata
+Se paghi entro quel termine, lo sfratto viene bloccato. Puoi usare questa sanatoria fino a 3 volte in 4 anni. Una clausola che preveda la risoluzione automatica senza passare dal giudice aggira questa protezione ed è quindi **nulla per contrarietà a norma imperativa**.
 
-Non serve essere avvocati. Quando leggi il contratto, chiediti:
+La giurisprudenza della Cassazione è consolidata su questo punto: la clausola risolutiva espressa per inadempimento nel pagamento del canone non può operare automaticamente nelle locazioni abitative, perché priverebbe il conduttore della tutela prevista dall'`Art. 5 L. 392/1978`.
 
-1. **Questa clausola mi toglie un diritto previsto dalla legge?** Se sì, probabilmente è nulla.
-2. **Questa clausola addossa a me una responsabilità che la legge attribuisce al proprietario?** Sospetta.
-3. **Questa clausola accorcia tempi o limiti che la legge fissa come minimi?** Nulla.
+**Cosa puoi fare**
 
-Il principio generale è che le norme sulla locazione abitativa sono **imperative**: proteggono la parte debole (l'inquilino) e non possono essere derogate nemmeno con il consenso di entrambe le parti.
+Se ricevi una comunicazione del proprietario che dichiara il contratto risolto per una mensilità non pagata, non farti prendere dal panico. La risoluzione automatica non opera. Il proprietario deve seguire la procedura giudiziale di sfratto per morosità, e tu avrai diritto al termine di grazia per sanare.
 
-## Cosa fare se hai già firmato un contratto con clausole vietate
+**Esempio pratico**
 
-La buona notizia: **una clausola nulla non produce effetti, anche se l'hai firmata**. L'art. 1419, comma 2, del Codice Civile prevede la "nullità parziale": la clausola invalida viene semplicemente eliminata e sostituita dalla norma di legge corrispondente. Il resto del contratto resta valido.
+Andrea perde il lavoro e salta il pagamento di febbraio. Il proprietario gli manda una PEC: "Contratto risolto come da clausola 8." Andrea non deve lasciare l'immobile. La clausola è nulla. Se il proprietario avvia lo sfratto in tribunale, Andrea avrà 90 giorni per pagare il dovuto e restare nell'appartamento.
 
-In pratica:
-- **Non devi fare causa** per far valere la nullità. La clausola è nulla di diritto.
-- **Puoi far valere i tuoi diritti** in qualsiasi momento, anche dopo anni.
-- **Se il proprietario insiste**, puoi rivolgerti all'associazione inquilini della tua città o a un avvocato.
-- **Se hai pagato somme non dovute** (canone in nero, spese straordinarie, deposito non restituito), puoi chiederne la restituzione.
+---
 
-## Le sanzioni per il proprietario
+## 4. Deposito cauzionale superiore a tre mensilità
 
-La L. 431/1998 prevede sanzioni specifiche:
-- Il contratto non registrato è **nullo** e l'inquilino può chiedere la restituzione di tutte le somme pagate oltre il canone legale.
-- Il proprietario che percepisce canoni in nero rischia sanzioni fiscali dal **120% al 240%** dell'imposta evasa.
-- In caso di contenzioso, il giudice può determinare il canone dovuto facendo riferimento ai parametri dei contratti concordati.
+**Cosa dice la clausola**
 
-## Come proteggerti prima di firmare
+"All'atto della sottoscrizione, il conduttore versa a titolo di deposito cauzionale una somma pari a 6 mensilità del canone." Alcune varianti chiedono 4 o 5 mensilità, altre mascherano il deposito extra come "caparra" o "anticipo spese straordinarie".
 
-1. **Leggi tutto il contratto** — sembra banale, ma la maggior parte delle persone non lo fa.
-2. **Confronta con un modello standard** — i contratti tipo sono disponibili presso le associazioni di categoria (SUNIA, SICET, UNIAT) e sul sito del Ministero delle Infrastrutture.
-3. **Chiedi tempo** — hai tutto il diritto di portarti a casa il contratto e leggerlo con calma. Se il proprietario ti mette fretta, è un segnale d'allarme.
-4. **Fai analizzare il contratto** — strumenti come Controlla.me possono identificare clausole problematiche in pochi secondi, mostrandoti esattamente cosa dice la legge su ogni punto critico.
+**Perché è nulla**
+
+L'`Art. 11 della L. 392/1978` è cristallino: il deposito cauzionale **non può superare le tre mensilità** del canone. Inoltre, il deposito deve essere **produttivo di interessi legali** che vanno corrisposti al conduttore alla fine di ogni anno o alla riconsegna dell'immobile.
+
+La norma è inderogabile. Qualsiasi pattuizione che preveda un deposito superiore a tre mensilità è nulla nella parte eccedente. Se hai versato 6 mensilità, puoi chiedere la restituzione immediata di 3.
+
+| Aspetto | Regola |
+|---------|--------|
+| Importo massimo | 3 mensilità del canone |
+| Interessi | Al tasso legale, corrisposti annualmente |
+| Restituzione | Alla riconsegna, salvo danni documentati |
+| Deposito extra mascherato | Nullo nella parte eccedente |
+
+**Cosa puoi fare**
+
+Se ti chiedono più di 3 mensilità, hai due opzioni: rifiutare prima di firmare (meglio), oppure versare e poi chiedere la restituzione dell'eccedenza con una raccomandata o PEC. Se il proprietario rifiuta, puoi agire in giudizio: il giudice di pace è competente per importi fino a 5.000 euro.
+
+**Esempio pratico**
+
+Lucia affitta un appartamento a Roma con canone di 800 euro al mese. Il proprietario chiede 4.800 euro di deposito (6 mensilità). Lucia firma e paga. Dopo aver scoperto la norma, invia una PEC chiedendo la restituzione di 2.400 euro (3 mensilità in eccesso). Il proprietario è obbligato a restituire l'importo eccedente con gli interessi legali maturati.
+
+---
+
+## 5. Rinuncia all'indennità di avviamento
+
+**Cosa dice la clausola**
+
+"Il conduttore rinuncia espressamente all'indennità per la perdita dell'avviamento commerciale alla cessazione del rapporto di locazione." Compare quasi sempre nei contratti di locazione commerciale, soprattutto per negozi, ristoranti e attività a contatto con il pubblico.
+
+**Perché è nulla**
+
+L'`Art. 34 della L. 392/1978` prevede che, alla cessazione del rapporto di locazione che non sia dovuta a risoluzione per inadempimento o recesso del conduttore, il conduttore che svolge attività a diretto contatto con il pubblico ha diritto a un'**indennità pari a 18 mensilità** dell'ultimo canone (21 mensilità per le attività alberghiere).
+
+La ratio è chiara: chi ha costruito una clientela legata a quella posizione geografica non può essere mandato via senza compenso. L'`Art. 79 della L. 392/1978` stabilisce che qualsiasi patto diretto a limitare la durata legale del contratto o ad attribuire al locatore un canone maggiore o vantaggi in contrasto con la legge è **nullo**.
+
+La rinuncia preventiva all'indennità di avviamento rientra in questa nullità.
+
+**Cosa puoi fare**
+
+Alla cessazione del contratto per iniziativa del locatore, chiedi per iscritto il pagamento dell'indennità di avviamento. Se il locatore rifiuta, il conduttore ha diritto a **rimanere nell'immobile** fino a quando l'indennità non viene corrisposta (`Art. 34, comma 3, L. 392/1978`).
+
+**Esempio pratico**
+
+Giovanni ha un bar in centro a Torino da 12 anni. Il proprietario non rinnova il contratto. Nel contratto c'è scritto che Giovanni "rinuncia all'indennità di avviamento". Giovanni ha comunque diritto a 18 mensilità di indennità. Con un canone di 1.500 euro al mese, parliamo di 27.000 euro. Fino al pagamento, Giovanni non è obbligato a lasciare il locale.
+
+---
+
+## 6. Recesso libero del locatore
+
+**Cosa dice la clausola**
+
+"Il locatore potrà recedere dal contratto in qualsiasi momento con un preavviso di 6 mesi." Oppure: "Il locatore si riserva la facoltà di recesso per qualsiasi motivo, anche non previsto dalla legge." Queste clausole cercano di dare al proprietario la possibilità di mandare via l'inquilino quando vuole.
+
+**Perché è nulla**
+
+L'`Art. 3 della L. 431/1998` (la legge che regola le locazioni abitative dal 1998) elenca **tassativamente** i motivi per cui il locatore può negare il rinnovo alla prima scadenza contrattuale. Questi motivi sono:
+
+- Destinazione dell'immobile a uso proprio o di familiari entro il secondo grado
+- Ristrutturazione integrale dell'immobile
+- Il conduttore dispone di un altro alloggio idoneo nello stesso comune
+- Il conduttore non occupa continuativamente l'immobile senza giustificato motivo
+- Vendita a terzi (con prelazione al conduttore)
+
+Al di fuori di questi casi tassativi, il contratto **si rinnova automaticamente**. Una clausola che consenta al locatore il recesso libero è nulla perché contraria a norma imperativa. Il locatore, fuori dai motivi tassativi, non può mandare via l'inquilino nemmeno alla scadenza, figuriamoci durante il contratto.
+
+**Cosa puoi fare**
+
+Se il proprietario ti comunica il recesso citando la clausola contrattuale e non uno dei motivi tassativi della legge, rispondi per iscritto (raccomandata o PEC) contestando la legittimità del recesso. Se il motivo dichiarato rientra tra quelli tassativi, verifica che sia reale: il proprietario che dichiara di voler usare l'immobile per sé e poi lo riaffitta a un canone maggiore è tenuto al risarcimento del danno (`Art. 3, comma 3, L. 431/1998`).
+
+**Esempio pratico**
+
+Francesca ha un contratto 4+4 a Bologna. Dopo 2 anni, il proprietario le scrive che vuole "riprendere disponibilità dell'immobile" invocando una clausola di recesso libero. Francesca non deve fare nulla: la clausola è nulla, e il proprietario non può mandarla via prima della scadenza dei 4 anni, e anche alla scadenza può farlo solo per i motivi previsti dalla legge.
+
+---
+
+## 7. Aumento del canone oltre l'indice ISTAT
+
+**Cosa dice la clausola**
+
+"Il canone sarà aggiornato annualmente nella misura del 100% della variazione ISTAT." Oppure, nei casi peggiori: "Il locatore si riserva di adeguare il canone alle condizioni di mercato con cadenza annuale." Queste clausole puntano ad aumentare l'affitto oltre quanto consentito dalla legge.
+
+**Perché è nulla**
+
+L'`Art. 32 della L. 392/1978`, ancora vigente per la parte relativa all'aggiornamento del canone, stabilisce che l'adeguamento ISTAT per i contratti a canone libero non può superare il **75% della variazione dell'indice dei prezzi al consumo** accertata dall'ISTAT per l'anno precedente. Per i contratti a canone concordato, l'aggiornamento è disciplinato dagli accordi territoriali e non può mai superare il 100%.
+
+La clausola che prevede l'aggiornamento al 100% dell'ISTAT per i contratti a canone libero è nulla nella parte eccedente il 75%. Quanto alla clausola di "adeguamento a condizioni di mercato", è radicalmente nulla: il canone non può essere aumentato discrezionalmente durante il contratto.
+
+> **Attenzione**: l'aggiornamento ISTAT non è automatico. Il locatore deve chiederlo espressamente per iscritto. Se non lo chiede, l'aggiornamento per quell'anno non è dovuto.
+
+**Cosa puoi fare**
+
+Verifica che l'aumento richiesto rispetti il limite del 75% della variazione ISTAT. Se il proprietario chiede di più, paga solo la quota corretta e comunica per iscritto il motivo del pagamento ridotto, citando l'`Art. 32 L. 392/1978`. Non rischi lo sfratto pagando la quota ISTAT legittima.
+
+**Esempio pratico**
+
+Roberto paga 700 euro al mese di affitto. L'ISTAT annuo è del 2%. Il proprietario chiede un aumento del 2% pieno (14 euro in più). L'aumento corretto è il 75% del 2%, cioè l'1,5%, pari a 10,50 euro. Roberto deve pagare 710,50 euro, non 714 euro. Sembra poco, ma su 8 anni di contratto le differenze si accumulano.
+
+| Variazione ISTAT | Aumento richiesto al 100% | Aumento dovuto al 75% | Differenza annua (canone 700 EUR) |
+|-----------------|--------------------------|----------------------|----------------------------------|
+| 1% | 7,00 EUR/mese | 5,25 EUR/mese | 21,00 EUR |
+| 2% | 14,00 EUR/mese | 10,50 EUR/mese | 42,00 EUR |
+| 5% | 35,00 EUR/mese | 26,25 EUR/mese | 105,00 EUR |
+| 8% | 56,00 EUR/mese | 42,00 EUR/mese | 168,00 EUR |
+
+---
+
+## 8. Divieto assoluto di sublocazione parziale
+
+**Cosa dice la clausola**
+
+"E' fatto assoluto divieto al conduttore di sublocare, anche parzialmente, l'immobile." Questa clausola compare nella quasi totalità dei contratti di locazione abitativa ed è spesso data per scontata come legittima.
+
+**Perché è nulla (nella parte relativa alla sublocazione parziale)**
+
+Bisogna distinguere tra sublocazione totale e parziale. La sublocazione totale (subaffittare l'intero appartamento a un terzo) può essere legittimamente vietata dal contratto. Ma la **sublocazione parziale** -- cioè affittare una stanza dell'immobile mantenendo la propria residenza -- è un diritto del conduttore nelle locazioni ad uso abitativo, come previsto dall'`Art. 2 della L. 392/1978`.
+
+Il conduttore che subloca parzialmente deve darne comunicazione al locatore con raccomandata, indicando le generalità del subconduttore, la durata e il canone della sublocazione. Il locatore può opporsi solo per **gravi motivi**, come il sovraffollamento dell'immobile.
+
+Una clausola che vieti in modo assoluto e incondizionato la sublocazione parziale nelle locazioni abitative è nulla perché in contrasto con una norma imperativa.
+
+**Cosa puoi fare**
+
+Se vuoi sublocare una stanza, invia al proprietario una raccomandata con le informazioni richieste dalla legge (generalità del subconduttore, durata, porzione dell'immobile, canone). Se il proprietario si oppone senza gravi motivi, la sublocazione è comunque legittima. Conserva la ricevuta della raccomandata.
+
+**Esempio pratico**
+
+Chiara affitta un trilocale a Napoli e vuole subaffittare la camera libera a una collega universitaria. Il contratto vieta "qualsiasi forma di sublocazione". Chiara invia la raccomandata al proprietario. Il proprietario si oppone citando la clausola. Chiara può procedere ugualmente: la clausola è nulla relativamente alla sublocazione parziale, e il proprietario non ha addotto gravi motivi.
+
+---
+
+## Checklist: come verificare il tuo contratto
+
+Prima di firmare un contratto di locazione, o per verificare quello che hai già firmato, controlla questi punti:
+
+1. **Deposito cauzionale**: l'importo richiesto supera le 3 mensilità? Se si, la parte eccedente è nulla.
+2. **Durata**: il contratto rispetta la durata minima legale (4+4 per canone libero, 3+2 per canone concordato)? Durate inferiori sono nulle, il contratto si considera stipulato per la durata legale.
+3. **Aggiornamento canone**: è previsto un adeguamento superiore al 75% dell'ISTAT? La parte eccedente è nulla.
+4. **Recesso del locatore**: il contratto prevede un recesso libero o per motivi non tassativi? La clausola è nulla.
+5. **Risoluzione per morosità**: c'è una clausola risolutiva espressa per mancato pagamento? È nulla: il conduttore ha sempre diritto alla sanatoria in giudizio.
+6. **Divieto ospiti**: il contratto vieta o limita la possibilità di ospitare persone? La clausola è nulla.
+7. **Sublocazione parziale**: è vietata in modo assoluto? Nelle locazioni abitative, il divieto assoluto di sublocazione parziale è nullo.
+8. **Prelazione e avviamento** (locazioni commerciali): il contratto contiene rinunce preventive alla prelazione o all'indennità di avviamento? Entrambe sono nulle.
+9. **Registrazione**: il contratto è stato registrato presso l'Agenzia delle Entrate? Un contratto non registrato è nullo, e il conduttore può chiedere al giudice la fissazione del canone in misura non superiore al triplo della rendita catastale.
+10. **Spese straordinarie**: il contratto pone a carico del conduttore le spese di manutenzione straordinaria? Queste competono al locatore per legge (`Art. 1576 c.c.`).
+
+---
 
 ## Domande frequenti
 
-**Il contratto verbale è valido?**
-No. Dal 1998, i contratti di locazione abitativa devono essere **scritti e registrati** per essere validi (art. 1, comma 4, L. 431/1998). Un contratto verbale è nullo e l'inquilino può chiedere la restituzione di quanto pagato.
+**Se ho già firmato un contratto con clausole nulle, devo chiederne la modifica?**
 
-**Posso recedere prima della scadenza?**
-Sì, con un preavviso di almeno **6 mesi** se ricorrono "gravi motivi" (art. 4, comma 2, L. 392/1978). Il contratto può prevedere un preavviso diverso, ma mai superiore a 6 mesi.
+No. Le clausole nulle sono come se non esistessero: non producono effetti giuridici indipendentemente dal fatto che tu le abbia firmate. Non serve chiederne la modifica. Il contratto resta valido nella parte legittima, e la clausola nulla viene semplicemente disapplicata. Se il proprietario pretende di farla valere, è sufficiente contestare per iscritto citando la norma violata.
 
-**Il proprietario può vietarmi di avere animali domestici?**
-La giurisprudenza prevalente considera la clausola di divieto assoluto di detenzione di animali domestici come **vessatoria**, sebbene non esista una norma specifica. L'orientamento è che il possesso di animali rientra nei diritti fondamentali della persona.
+**Il proprietario può sfrattarmi se non rispetto una clausola che è nulla?**
 
-**Quanto tempo ho per contestare una clausola nulla?**
-La nullità è **imprescrittibile**: puoi farla valere in qualsiasi momento. Tuttavia, la restituzione di somme pagate indebitamente è soggetta a prescrizione (6 mesi dalla riconsegna per il deposito, 10 anni per altre somme).
+No. Lo sfratto si basa su inadempimenti reali e previsti dalla legge. La violazione di una clausola nulla non è un inadempimento, perché la clausola non ha mai prodotto effetti. Se il proprietario avvia una procedura di sfratto su questa base, il giudice la rigetta. Ovviamente conviene farsi assistere da un legale per rispondere correttamente.
 
-## In sintesi
+**Come faccio a sapere se una clausola del mio contratto è nulla?**
 
-Il proprietario non è il tuo nemico, ma il contratto deve rispettare la legge. Se trovi clausole che ti tolgono diritti che la normativa ti garantisce, sappi che quelle clausole **non valgono** — indipendentemente dalla tua firma.
+La verifica richiede il confronto puntuale tra il testo contrattuale e le norme imperative della `L. 392/1978`, della `L. 431/1998` e del Codice Civile. Se non hai competenze giuridiche, puoi rivolgerti a un'associazione di inquilini (SUNIA, SICET, UNIAT), a un avvocato specializzato in diritto immobiliare, oppure utilizzare strumenti di analisi automatica come controlla.me che confrontano ogni clausola con il quadro normativo vigente.
 
-Prima di firmare, prenditi il tempo di leggere. E se hai dubbi, fai controllare il contratto: bastano pochi secondi per evitare problemi che possono durare anni.
+**Le clausole nulle si applicano anche ai contratti tra privati non registrati?**
+
+La questione è doppia. Un contratto di locazione non registrato è esso stesso nullo per violazione dell'obbligo di registrazione (`Art. 1, comma 346, L. 311/2004`). Il conduttore che si trova in un contratto non registrato può chiedere al giudice la determinazione del canone in misura equa. Le clausole nulle di cui abbiamo parlato si applicano ai contratti regolarmente registrati.
+
+**Posso chiedere un risarcimento se il proprietario ha inserito clausole nulle?**
+
+La sola presenza di clausole nulle nel contratto non dà diritto a risarcimento. Il danno risarcibile sorge quando il proprietario **fa valere concretamente** la clausola nulla -- ad esempio, trattenendo un deposito cauzionale eccedente le 3 mensilità o negando il rinnovo senza motivi tassativi. In quel caso il conduttore ha diritto al risarcimento dei danni subiti, compresi quelli morali in caso di comportamenti particolarmente vessatori.
+
+---
+
+## Conclusione
+
+Il contratto di locazione non è un documento in cui "vale tutto". La legge italiana protegge il conduttore in modo significativo, e molte delle clausole che i proprietari inseriscono abitualmente sono **nulle di diritto**. Conoscere i propri diritti è il primo passo per non farsi calpestare.
+
+Ricorda tre principi fondamentali:
+
+- **La nullità opera automaticamente**: non devi fare causa per far dichiarare nulla una clausola. È nulla e basta.
+- **Il contratto resta valido**: la nullità della clausola non invalida tutto il contratto. Si elimina la clausola illegale, il resto sopravvive.
+- **La legge prevale sul contratto**: non puoi rinunciare preventivamente a diritti che la legge ti riconosce come irrinunciabili. Anche se firmi, la rinuncia non vale.
+
+Hai un contratto di affitto e vuoi verificare che sia tutto in regola? Carica il documento su [controlla.me](https://controlla.me): il nostro sistema AI analizza ogni clausola e ti segnala quelle potenzialmente illegali. Le prime 3 analisi sono gratuite.

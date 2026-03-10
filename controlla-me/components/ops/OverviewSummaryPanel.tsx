@@ -95,7 +95,7 @@ function healthStyle(health: string) {
   return HEALTH_STYLES[health] ?? HEALTH_STYLES.unknown;
 }
 
-function healthEmoji(health: string) {
+function _healthEmoji(health: string) {
   if (health === "ok") return "🟢";
   if (health === "warning") return "🟡";
   if (health === "critical") return "🔴";

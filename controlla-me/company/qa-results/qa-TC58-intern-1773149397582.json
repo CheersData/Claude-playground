@@ -1,0 +1,29 @@
+{
+  "testId": "TC58",
+  "question": "Ho concluso un contratto via email senza firma. È valido?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nIl contratto concluso via email senza firma può essere valido, a meno che non riguardi uno degli atti specificamente indicati nell'art. 1350 c.c. che richiedono la forma scritta ad substantiam (atto pubblico o scrittura privata) per la loro validità. Se il contratto non rientra in queste categorie, la mancanza di firma non ne compromette la validità.\n\nRiferimenti normativi:\n\nL'art. 1350 c.c. elenca gli atti che devono essere redatti per iscritto per essere validi, tra cui i contratti che trasferiscono la proprietà di beni immobili, i contratti di locazione di beni immobili per una durata superiore a nove anni, e altri atti specifici. Se il tuo contratto non rientra in queste categorie, la mancanza di firma non ne compromette la validità. L'art. 1352 c.c. stabilisce che se le parti hanno convenuto per iscritto di adottare una determinata forma per la futura conclusione di un contratto, si presume che la forma sia stata voluta per la validità di questo. L'art. 1325 c.c. indica che la forma è un requisito del contratto solo quando è prescritta dalla legge sotto pena di nullità.\n\nIn pratica:\n\nVerifica se il tuo contratto rientra tra quelli elencati nell'art. 1350 c.c. che richiedono la forma scritta. Se non è così, il contratto è valido anche senza firma. Se hai dubbi sulla natura del contratto, consulta un avvocato per una valutazione specifica.",
+  "expectedAnswer": "DIPENDE dal tipo di contratto. Per contratti a forma libera: l'email è valida come accordo scritto. Per contratti che richiedono forma scritta ad substantiam (art. 1350: compravendita immobili, mutuo, ecc.) serve firma digitale qualificata o atto pubblico. L'agente deve chiedere che tipo di contratto.",
+  "scoringHints": {
+    "prep": "Ha formulato query che distingue i tipi di contratto?",
+    "search": "Ha trovato art. 1350 c.c. con l'elenco dei contratti a forma scritta?",
+    "quality": "Non risponde genericamente? Distingue forma libera da forma vincolata? Chiede il tipo?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "forma_del_contratto",
+    "contratto_informatico",
+    "forma_scritta_obbligatoria"
+  ],
+  "scope": "DIPENDE: forma libera = sì valido. Se forma scritta obbligatoria (art. 1350) = serve firma qualificata.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente è accurata e completa, citando correttamente gli articoli pertinenti (1350, 1352, 1325 c.c.). Distingue tra forma libera e forma scritta obbligatoria, ma non chiede esplicitamente il tipo di contratto, perdendo qualche punto su quality. La risposta è ben strutturata e non contiene invenzioni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:29:27.257Z"
+}

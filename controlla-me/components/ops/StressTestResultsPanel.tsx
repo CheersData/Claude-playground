@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ComponentType } from "react";
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, CheckCircle, Clock, RefreshCw, Scale } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, Scale } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────

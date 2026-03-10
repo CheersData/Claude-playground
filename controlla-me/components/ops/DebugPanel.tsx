@@ -288,6 +288,7 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
     }
   };
 
+  /* eslint-disable react-hooks/purity */
   const formatLastCall = (iso: string | null): string => {
     if (!iso) return "—";
     const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -295,6 +296,7 @@ function ProviderHealthSection({ data }: { data: ProviderHealthData | null }) {
     if (diff < 3600) return `${Math.floor(diff / 60)}m fa`;
     return `${Math.floor(diff / 3600)}h fa`;
   };
+  /* eslint-enable react-hooks/purity */
 
   // Sort: errors first, then degraded, then ok
   const sortedProviders = Object.entries(data).sort(([, a], [, b]) => {

@@ -1,0 +1,29 @@
+{
+  "testId": "TC35",
+  "question": "Ho comprato un'auto con la clausola 'vista e piaciuta'. Il motore è rotto. Non posso fare niente?",
+  "agentAnswer": "La possibilità di agire legalmente nonostante la clausola 'vista e piaciuta' dipende in modo cruciale dalla natura del venditore (professionista o privato) e dalla sua eventuale mala fede.\n\nRiferimenti normativi:\n1) **Vendita tra privati o tra professionisti (B2B) - Codice Civile:**\n   La clausola 'vista e piaciuta' è generalmente valida e può escludere o limitare la garanzia per i vizi della cosa venduta, come previsto dall'Art. 1487 c.c. Tuttavia, questa esclusione non ha effetto se il venditore ha in mala fede taciuto al compratore i vizi della cosa (Art. 1490 c.c.). Inoltre, la garanzia non è dovuta se il compratore conosceva i vizi o se questi erano facilmente riconoscibili al momento del contratto, a meno che il venditore non abbia dichiarato che la cosa era esente da vizi (Art. 1491 c.c.). Un motore rotto difficilmente rientra tra i vizi facilmente riconoscibili senza una specifica verifica.\n\n2) **Vendita da professionista a consumatore (B2C) - Codice del Consumo:**\n   In questo caso, la situazione è differente e più favorevole al consumatore. Le disposizioni del Codice del Consumo, in particolare quelle relative alla conformità dei beni, sono imperative e non possono essere derogate a danno del consumatore. L'Art. 135-sexies del Codice del Consumo stabilisce che è nullo ogni patto volto ad escludere o limitare, anche indirettamente, i diritti riconosciuti al consumatore in caso di difetto di conformità. Analogamente, l'Art. 36 del Codice del Consumo dichiara nulle le clausole vessatorie che escludono o limitano le azioni del consumatore in caso di inadempimento del professionista (Art. 36, comma 2, lettera b). Pertanto, una clausola 'vista e piaciuta' in un contratto tra un professionista e un consumatore per la vendita di un'auto con motore rotto sarebbe probabilmente nulla. Il consumatore avrebbe diritto al ripristino della conformità (riparazione o sostituzione), o a una riduzione del prezzo, o alla risoluzione del contratto (Art. 135-bis Codice del Consumo). Queste tutele si applicano anche alla vendita di beni usati, per difetti non derivanti dall'uso normale della cosa (Art. 128, comma 5, Codice del Consumo).\n\nIn pratica:\nPer prima cosa, verifichi la natura del venditore: se si tratta di un professionista (es. concessionaria, rivenditore d'auto), la clausola 'vista e piaciuta' è nulla e lei ha diritto ai rimedi previsti dal Codice del Consumo. Se il venditore è un privato, dovrà dimostrare che il venditore era in mala fede e conosceva il vizio del motore senza averglielo comunicato, o che il vizio non era facilmente riconoscibile. In entrambi i casi, raccolga tutta la documentazione relativa all'acquisto e al difetto (perizie, fatture di riparazione, comunicazioni) e valuti di agire legalmente per far valere i suoi diritti.",
+  "expectedAnswer": "TRAPPOLA: 'vista e piaciuta' esclude solo i vizi APPARENTI (visibili all'ispezione). NON esclude i vizi occulti (come un motore difettoso non visibile). Se il venditore conosceva il difetto (dolo), la clausola è nulla per art. 1491 c.c. e si può agire per risoluzione o riduzione del prezzo.",
+  "scoringHints": {
+    "prep": "Ha distinto tra vizi apparenti e occulti nella query?",
+    "search": "Ha trovato art. 1491 c.c.?",
+    "quality": "Distingue chiaramente apparenti/occulti? Menziona il dolo come causa di nullità?"
+  },
+  "trapType": "falsa_esclusione",
+  "institutes": [
+    "vista_e_piaciuta",
+    "vizi_occulti",
+    "esclusione_garanzia"
+  ],
+  "scope": "art. 1491: esclude vizi apparenti ma NON occulti. Con dolo del venditore = clausola nulla.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente è dettagliata e menziona diversi aspetti rilevanti, come la distinzione tra vendita tra privati e vendita da professionista a consumatore, ma non affronta direttamente la questione dei vizi occulti e apparenti nella clausola 'vista e piaciuta' in modo chiaro e conciso come richiesto."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:09:14.911Z"
+}

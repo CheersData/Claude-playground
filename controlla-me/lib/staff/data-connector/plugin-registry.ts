@@ -2,18 +2,29 @@
  * Plugin Registry — Consente di registrare connector/model/store senza modificare
  * le factory function in index.ts.
  *
- * Pattern: ogni verticalità registra i propri handler una volta.
+ * Pattern: ogni verticalita registra i propri handler una volta.
  * La pipeline risolve per ID invece di switch hardcoded.
  *
- * Uso:
+ * ADR-1: Generalizzato con tipi generici per supportare connettori business
+ * che producono tipi diversi da ParsedArticle/LegalArticle.
+ *
+ * Uso (legal/medical — backward compatible):
  *   import { registerConnector } from "./plugin-registry";
  *   registerConnector("my-source", (source, log) => new MyConnector(source, log));
+ *
+ * Uso (business — generic):
+ *   import { registerGenericConnector } from "./plugin-registry";
+ *   registerGenericConnector<SalesforceRecord>("salesforce", (source, log) => new SalesforceConnector(source, log));
  */
 
 import type { DataSource, ConnectorInterface, ModelInterface, StoreInterface, ParsedArticle } from "./types";
 import type { LegalArticle } from "@/lib/legal-corpus";
+import type { HubSpotRecord } from "./parsers/hubspot-parser";
+import type { SalesforceRecord } from "./parsers/salesforce-parser";
+import type { StripeRecord } from "./parsers/stripe-parser";
+import type { FattureRecord } from "./parsers/fatture-parser";
 
-// ─── Tipi factory ───
+// ─── Tipi factory (backward compatible — ParsedArticle/LegalArticle) ───
 
 export type ConnectorFactory = (
   source: DataSource,
@@ -27,13 +38,34 @@ export type StoreFactory = (
   log: (msg: string) => void
 ) => StoreInterface<LegalArticle>;
 
+// ─── Tipi factory generici (ADR-1 — per connettori business) ───
+
+export type GenericConnectorFactory<T = unknown> = (
+  source: DataSource,
+  log: (msg: string) => void
+) => ConnectorInterface<T>;
+
+export type GenericStoreFactory<T = unknown> = (
+  source: DataSource,
+  log: (msg: string) => void
+) => StoreInterface<T>;
+
 // ─── Registry maps ───
 
+// Registry tipizzato per legal/medical (backward compatible)
 const connectorRegistry = new Map<string, ConnectorFactory>();
 const modelRegistry = new Map<string, ModelFactory>();
 const storeRegistry = new Map<string, StoreFactory>();
 
-// ─── Registrazione ───
+// Registry generico per connettori business (ADR-1)
+// Usa `unknown` come tipo di runtime — il type safety e' garantito
+// a compile-time dal chiamante tramite i generici.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const genericConnectorRegistry = new Map<string, GenericConnectorFactory<any>>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const genericStoreRegistry = new Map<string, GenericStoreFactory<any>>();
+
+// ─── Registrazione (backward compatible) ───
 
 export function registerConnector(connectorId: string, factory: ConnectorFactory): void {
   connectorRegistry.set(connectorId, factory);
@@ -47,7 +79,31 @@ export function registerStore(dataType: string, factory: StoreFactory): void {
   storeRegistry.set(dataType, factory);
 }
 
-// ─── Lookup ───
+// ─── Registrazione generica (ADR-1) ───
+
+/**
+ * Registra un connettore con output di tipo generico T.
+ * Per connettori business che non producono ParsedArticle.
+ */
+export function registerGenericConnector<T>(
+  connectorId: string,
+  factory: GenericConnectorFactory<T>
+): void {
+  genericConnectorRegistry.set(connectorId, factory);
+}
+
+/**
+ * Registra uno store con input di tipo generico T.
+ * Per store business che non consumano LegalArticle.
+ */
+export function registerGenericStore<T>(
+  dataType: string,
+  factory: GenericStoreFactory<T>
+): void {
+  genericStoreRegistry.set(dataType, factory);
+}
+
+// ─── Lookup (backward compatible) ───
 
 export function resolveConnector(
   source: DataSource,
@@ -57,17 +113,26 @@ export function resolveConnector(
   if (!factory) {
     throw new Error(
       `Connettore non registrato: "${source.connector}" per fonte "${source.id}". ` +
-      `Connettori disponibili: ${[...connectorRegistry.keys()].join(", ") || "(nessuno)"}`
+      `Connettori disponibili: ${[...connectorRegistry.keys()].join(", ") || "(nessuno)"}. ` +
+      `Connettori generici: ${[...genericConnectorRegistry.keys()].join(", ") || "(nessuno)"}`
     );
   }
   return factory(source, log);
 }
 
 export function resolveModel(source: DataSource): ModelInterface {
+  // 1. Chiave composita "dataType:connector" (es. "crm-records:hubspot")
+  const compositeKey = `${source.dataType}:${source.connector}`;
+  const compositeFactory = modelRegistry.get(compositeKey);
+  if (compositeFactory) {
+    return compositeFactory(source);
+  }
+
+  // 2. Solo dataType (es. "legal-articles")
   const factory = modelRegistry.get(source.dataType);
   if (!factory) {
     throw new Error(
-      `Model non registrato per dataType: "${source.dataType}". ` +
+      `Model non registrato per dataType: "${source.dataType}" (cercato anche "${compositeKey}"). ` +
       `DataType disponibili: ${[...modelRegistry.keys()].join(", ") || "(nessuno)"}`
     );
   }
@@ -82,21 +147,91 @@ export function resolveStore(
   if (!factory) {
     throw new Error(
       `Store non registrato per dataType: "${source.dataType}". ` +
-      `DataType disponibili: ${[...storeRegistry.keys()].join(", ") || "(nessuno)"}`
+      `DataType disponibili: ${[...storeRegistry.keys()].join(", ") || "(nessuno)"}. ` +
+      `Store generici: ${[...genericStoreRegistry.keys()].join(", ") || "(nessuno)"}`
     );
   }
   return factory(source, log);
 }
 
+// ─── Lookup generico (ADR-1) ───
+
+/**
+ * Risolve un connettore generico per connectorId.
+ * Cerca prima nel registry generico, poi nel registry legacy (ParsedArticle).
+ */
+export function resolveGenericConnector<T>(
+  source: DataSource,
+  log: (msg: string) => void
+): ConnectorInterface<T> {
+  // Prima cerca nel registry generico
+  const genericFactory = genericConnectorRegistry.get(source.connector);
+  if (genericFactory) {
+    return genericFactory(source, log) as ConnectorInterface<T>;
+  }
+
+  // Fallback al registry legacy (per backward compat)
+  const legacyFactory = connectorRegistry.get(source.connector);
+  if (legacyFactory) {
+    return legacyFactory(source, log) as unknown as ConnectorInterface<T>;
+  }
+
+  throw new Error(
+    `Connettore non registrato: "${source.connector}" per fonte "${source.id}". ` +
+    `Connettori disponibili: ${[...connectorRegistry.keys(), ...genericConnectorRegistry.keys()].join(", ") || "(nessuno)"}`
+  );
+}
+
+/**
+ * Risolve uno store generico per dataType.
+ * Cerca prima con chiave composita "dataType:connector" (per differenziare
+ * store diversi sullo stesso dataType, es. crm-records:hubspot vs crm-records:stripe),
+ * poi per solo dataType, poi nel registry legacy (LegalArticle).
+ */
+export function resolveGenericStore<T>(
+  source: DataSource,
+  log: (msg: string) => void
+): StoreInterface<T> {
+  // 1. Chiave composita "dataType:connector" (es. "crm-records:hubspot")
+  const compositeKey = `${source.dataType}:${source.connector}`;
+  const compositeFactory = genericStoreRegistry.get(compositeKey);
+  if (compositeFactory) {
+    return compositeFactory(source, log) as StoreInterface<T>;
+  }
+
+  // 2. Solo dataType (es. "crm-records")
+  const genericFactory = genericStoreRegistry.get(source.dataType);
+  if (genericFactory) {
+    return genericFactory(source, log) as StoreInterface<T>;
+  }
+
+  // 3. Fallback al registry legacy
+  const legacyFactory = storeRegistry.get(source.dataType);
+  if (legacyFactory) {
+    return legacyFactory(source, log) as unknown as StoreInterface<T>;
+  }
+
+  throw new Error(
+    `Store non registrato per dataType: "${source.dataType}" (cercato anche "${compositeKey}"). ` +
+    `DataType disponibili: ${[...storeRegistry.keys(), ...genericStoreRegistry.keys()].join(", ") || "(nessuno)"}`
+  );
+}
+
+// ─── Listing ───
+
 export function listRegistered(): {
   connectors: string[];
   models: string[];
   stores: string[];
+  genericConnectors: string[];
+  genericStores: string[];
 } {
   return {
     connectors: [...connectorRegistry.keys()],
     models: [...modelRegistry.keys()],
     stores: [...storeRegistry.keys()],
+    genericConnectors: [...genericConnectorRegistry.keys()],
+    genericStores: [...genericStoreRegistry.keys()],
   };
 }
 
@@ -166,6 +301,114 @@ function registerDefaults(): void {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { OpenStaxConnector } = require("./connectors/openstax");
     return new OpenStaxConnector(source, log);
+  });
+
+  // ── Business connectors (ADR-1 — generic pipeline) ──
+
+  // HubSpot CRM — contacts, companies, deals, tickets
+  registerGenericConnector<HubSpotRecord>("hubspot", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { HubSpotConnector } = require("./connectors/hubspot");
+    return new HubSpotConnector(source, log);
+  });
+
+  registerGenericStore<HubSpotRecord>("crm-records:hubspot", (_source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { HubSpotStore } = require("./stores/hubspot-store");
+    return new HubSpotStore(log);
+  });
+
+  // HubSpot record model (uses same crm_records table as Stripe)
+  registerModel("crm-records:hubspot", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { HubSpotRecordModel } = require("./models/hubspot-record-model");
+    return new HubSpotRecordModel();
+  });
+
+  // Salesforce CRM — accounts, contacts, opportunities, leads, cases
+  registerGenericConnector<SalesforceRecord>("salesforce", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { SalesforceConnector } = require("./connectors/salesforce");
+    return new SalesforceConnector(source, log);
+  });
+
+  registerGenericStore<SalesforceRecord>("crm-records:salesforce", (_source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { SalesforceStore } = require("./stores/salesforce-store");
+    return new SalesforceStore(log);
+  });
+
+  // Salesforce record model (uses same crm_records table as HubSpot)
+  registerModel("crm-records:salesforce", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { SalesforceRecordModel } = require("./models/salesforce-record-model");
+    return new SalesforceRecordModel();
+  });
+
+  // Google Drive — file metadata, folder structure, document content (demo)
+  registerGenericConnector<import("./parsers/google-drive-parser").DriveRecord>(
+    "google-drive",
+    (source, log) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { GoogleDriveConnector } = require("./connectors/google-drive");
+      return new GoogleDriveConnector(source, log);
+    }
+  );
+
+  // Google Drive record model (uses same crm_records table)
+  registerModel("crm-records:google-drive", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GoogleDriveRecordModel } = require("./models/google-drive-record-model");
+    return new GoogleDriveRecordModel();
+  });
+
+  registerGenericStore<import("./parsers/google-drive-parser").DriveRecord>(
+    "crm-records:google-drive",
+    (_source, log) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { GoogleDriveStore } = require("./stores/google-drive-store");
+      return new GoogleDriveStore(log);
+    }
+  );
+
+  // Stripe — customers, subscriptions, invoices, payment intents
+  registerGenericConnector<StripeRecord>("stripe", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StripeConnector } = require("./connectors/stripe");
+    return new StripeConnector(source, log);
+  });
+
+  registerGenericStore<StripeRecord>("crm-records:stripe", (_source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StripeStore } = require("./stores/stripe-store");
+    return new StripeStore(log);
+  });
+
+  // Stripe record model (uses same crm_records table as HubSpot/Salesforce)
+  registerModel("crm-records:stripe", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StripeRecordModel } = require("./models/stripe-record-model");
+    return new StripeRecordModel();
+  });
+
+  // Fatture in Cloud — fatture emesse/ricevute, clienti (ERP italiano #1)
+  registerGenericConnector<FattureRecord>("fatture-in-cloud", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { FattureInCloudConnector } = require("./connectors/fatture-in-cloud");
+    return new FattureInCloudConnector(source, log);
+  });
+
+  registerGenericStore<FattureRecord>("crm-records:fatture-in-cloud", (_source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { FattureStore } = require("./stores/fatture-store");
+    return new FattureStore(log);
+  });
+
+  // Fatture in Cloud record model (uses same crm_records table as Stripe/HubSpot/Salesforce)
+  registerModel("crm-records:fatture-in-cloud", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { FattureRecordModel } = require("./models/fatture-record-model");
+    return new FattureRecordModel();
   });
 
   // Alias: medical-articles usa lo stesso model/store di legal-articles

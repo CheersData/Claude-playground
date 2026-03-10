@@ -28,7 +28,6 @@ import {
   FileText,
   Archive,
   Zap,
-  Activity,
   Microscope,
   Users,
 } from "lucide-react";
@@ -46,7 +45,7 @@ import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { DepartmentDetailPanel } from "@/components/ops/DepartmentDetailPanel";
 import { ReportsPanel } from "@/components/ops/ReportsPanel";
 import { LegalQATestPanel } from "@/components/ops/LegalQATestPanel";
-import { StressTestResultsPanel } from "@/components/ops/StressTestResultsPanel";
+import { StressTestResultsPanel as _StressTestResultsPanel } from "@/components/ops/StressTestResultsPanel";
 import { ArchivePanel } from "@/components/ops/ArchivePanel";
 import { VisionMissionPanel } from "@/components/ops/VisionMissionPanel";
 import { DebugPanel } from "@/components/ops/DebugPanel";
@@ -55,6 +54,7 @@ import { OverviewSummaryPanel } from "@/components/ops/OverviewSummaryPanel";
 import { TradingDashboard } from "@/components/ops/TradingDashboard";
 import { TradingSlopePanel } from "@/components/ops/TradingSlopePanel";
 import { DaemonControlPanel } from "@/components/ops/DaemonControlPanel";
+import { IntegrationHealthPanel } from "@/components/ops/IntegrationHealthPanel";
 import { ActivityFeed } from "@/components/ops/ActivityFeed";
 import { AgentDots } from "@/components/ops/AgentDots";
 import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
@@ -382,7 +382,10 @@ export default function OpsPageClient() {
 
   const activeAgentCount = useMemo(() => {
     let count = 0;
-    activeAgentsMap.forEach((v) => { if (v.status === "running") count++; });
+    activeAgentsMap.forEach((v) => {
+      // Count all running entries: both real-time SSE agents and board tasks (in_progress)
+      if (v.status === "running") count++;
+    });
     return count;
   }, [activeAgentsMap]);
 
@@ -687,6 +690,11 @@ export default function OpsPageClient() {
                 <QAStatus board={data?.board ?? null} />
               </SectionCard>
             </div>
+
+            {/* Salute Integrazioni */}
+            <SectionCard title="Salute Integrazioni">
+              <IntegrationHealthPanel />
+            </SectionCard>
           </div>
         )}
 

@@ -21,7 +21,7 @@ import type {
   ParsedArticle,
 } from "../types";
 
-const OPENSTAX_ARCHIVE = "https://openstax.org/apps/archive";
+const _OPENSTAX_ARCHIVE = "https://openstax.org/apps/archive";
 const OPENSTAX_API = "https://openstax.org/apps/cms/api/v2";
 
 interface OpenStaxBookInfo {

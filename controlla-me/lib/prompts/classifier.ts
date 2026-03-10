@@ -46,7 +46,10 @@ REGOLE CRITICHE:
              "stage_tirocinio", "somministrazione", "appalto_servizi",
              "lavoro_intermittente", "lavoro_a_chiamata", "distacco",
              "lavoro_agile_smart_working", "cessione_contratto_lavoro",
-             "contratto_dirigente", "contratto_domestico"
+             "contratto_dirigente", "contratto_domestico",
+             "lettera_licenziamento", "dimissioni_volontarie",
+             "patto_non_concorrenza", "contestazione_disciplinare",
+             "accordo_smart_working"
   * Se non riesci a determinarlo: null
 
 - relevantInstitutes: identifica TUTTI gli istituti giuridici presenti o richiamati.
@@ -71,6 +74,9 @@ REGOLE CRITICHE:
   * "periodo di prova" → periodo_di_prova
   * "patto di stabilità" / "clausola di stabilità" → patto_stabilita
   * "trasferimento" (lavoratore) → trasferimento_lavoratore
+  * "demansionamento" / "dequalificazione" / "art. 2103 c.c." → demansionamento
+  * "straordinario non pagato" / "ore non retribuite" / "lavoro supplementare non compensato" → straordinario_non_retribuito
+  * "tutela del lavoratore" / "diritti del lavoratore" / "parte debole" → tutela_lavoratore
   -- ISTITUTI HR (D.Lgs. 81/2015 — Jobs Act Contratti) --
   * "tempo determinato" / "causale" / "proroga" / "rinnovo" → contratto_tempo_determinato
   * "somministrazione" / "agenzia interinale" / "lavoro in somministrazione" → somministrazione_lavoro

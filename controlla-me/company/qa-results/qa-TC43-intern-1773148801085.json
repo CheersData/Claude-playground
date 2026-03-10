@@ -1,0 +1,29 @@
+{
+  "testId": "TC43",
+  "question": "Il costruttore vuole inserire una clausola che gli permette di cambiare i materiali e il progetto senza il mio consenso. È legale?",
+  "agentAnswer": "Una clausola che permette al costruttore di modificare unilateralmente i materiali e il progetto senza il consenso dell'acquirente non è generalmente legale e può essere considerata nulla, specialmente se l'acquirente è un consumatore.\n\nRiferimenti normativi:\nL'Art. 1659 del Codice Civile stabilisce che l'appaltatore non può apportare variazioni alle modalità convenute dell'opera se il committente non le ha autorizzate, e tale autorizzazione deve essere provata per iscritto. Questo principio generale si applica ai contratti di appalto, di cui il contratto con un costruttore per la realizzazione di un immobile è una specie.\n\nSe l'acquirente è una persona fisica (consumatore) e il costruttore è un professionista, la situazione è ulteriormente tutelata dal Codice del Consumo. L'Art. 33, comma 2, lettera m) del Codice del Consumo presume vessatoria la clausola che ha per oggetto o per effetto di \"consentire al professionista di modificare unilateralmente le clausole del contratto, ovvero le caratteristiche del prodotto o del servizio da fornire, senza un giustificato motivo indicato nel contratto stesso\". Le clausole vessatorie sono nulle, mentre il contratto rimane valido per il resto, come previsto dall'Art. 36, comma 1, del Codice del Consumo. La nullità opera solo a vantaggio del consumatore e può essere rilevata d'ufficio dal giudice (Art. 36, comma 3).\n\nInoltre, per i contratti aventi ad oggetto immobili da costruire, il D.Lgs. 122/2005 prevede specifiche tutele. L'Art. 6, comma 1, lettera d) di tale decreto richiede che il contratto preliminare contenga \"le caratteristiche tecniche della costruzione\", implicando che queste siano definite e non unilateralmente modificabili. L'Art. 5, comma 1-bis del medesimo decreto stabilisce che \"L'acquirente non può rinunciare alle tutele previste dal presente decreto; ogni clausola contraria è nulla e deve intendersi come non apposta\", rafforzando l'inderogabilità delle protezioni per l'acquirente.\n\nIn pratica: Non accetti una clausola che permetta al costruttore di modificare unilateralmente materiali e progetto. Insista affinché qualsiasi variazione sia soggetta alla sua preventiva autorizzazione scritta, come previsto dall'Art. 1659 c.c. Se il contratto è con un costruttore e lei è un acquirente persona fisica, tale clausola sarebbe considerata vessatoria e nulla ai sensi del Codice del Consumo e del D.Lgs. 122/2005, e quindi non avrebbe effetto.",
+  "expectedAnswer": "TRAPPOLA: la clausola che consente al costruttore di modificare unilateralmente il progetto è NULLA per essere clausola vessatoria (art. 33 co.2 lett.m D.Lgs. 206/2005 Codice del Consumo). L'acquirente ha diritto che le varianti siano concordate.",
+  "scoringHints": {
+    "prep": "Ha formulato query su clausole vessatorie nel B2C immobiliare?",
+    "search": "Ha trovato art. 33 co.2 lett.m Codice del Consumo?",
+    "quality": "Qualifica la clausola come nulla/vessatoria? Cita correttamente la norma?"
+  },
+  "trapType": "clausola_abusiva",
+  "institutes": [
+    "clausola_vessatoria",
+    "Codice_Consumo",
+    "varianti_costruttore"
+  ],
+  "scope": "TRAPPOLA: clausola unilaterale = VESSATORIA art. 33 co.2 lett.m Codice Consumo",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 28,
+    "search": 30,
+    "quality": 40,
+    "total": 98,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha fornito una risposta eccellente e completa. Ha correttamente identificato la 'trappola' concentrandosi sull'aspetto della tutela del consumatore e citando l'Art. 33, comma 2, lettera m) del Codice del Consumo. La risposta è accurata, completa, ben strutturata e supportata da tutti i riferimenti normativi pertinenti, inclusa la normativa specifica per gli immobili da costruire."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:18:14.989Z"
+}

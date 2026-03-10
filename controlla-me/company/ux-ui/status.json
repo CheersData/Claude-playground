@@ -42,8 +42,8 @@
   "gaps": [
     {
       "id": "UX-1",
-      "description": "UI scoring multidimensionale — backend pronto, frontend mostra solo fairnessScore",
-      "severity": "medium"
+      "description": "CHIUSO — UI scoring multidimensionale completato: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) implementate in ResultsView (ScoreBreakdown), FairnessScore (pills), ChatMessage (pills), FinalEvaluationPanel (bars). Pallino lampeggiante fixato con Framer Motion.",
+      "severity": "closed"
     },
     {
       "id": "UX-2",
@@ -84,5 +84,5 @@
     }
   ],
   "blockers": [],
-  "notes": "Beauty Report in docs/BEAUTY-REPORT.md. Animazioni standard: 150-300ms, natural easing."
+  "notes": "Beauty Report in docs/BEAUTY-REPORT.md. Animazioni standard: 150-300ms, natural easing. Scoring multidimensionale completato (4 dimensioni). Pallino lampeggiante fixato con Framer Motion."
 }

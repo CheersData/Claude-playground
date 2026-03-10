@@ -225,7 +225,7 @@ async function updateFromAnalysis(
   userId: string,
   rawEvent: AnalysisCompletedEventData
 ): Promise<void> {
-  const supabase = getAdminClient();
+  const _supabase = getAdminClient();
   const profile = await getProfile(userId);
   if (!profile) return;
 
@@ -313,7 +313,7 @@ async function updateFromDeepSearch(
   userId: string,
   _event: DeepSearchEventData
 ): Promise<void> {
-  const supabase = getAdminClient();
+  const _supabase = getAdminClient();
   const profile = await getProfile(userId);
   if (!profile) return;
 

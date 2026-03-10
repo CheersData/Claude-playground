@@ -410,7 +410,8 @@ export type AgentName =
   | "investigator"
   | "advisor"
   | "corpus-agent"
-  | "task-executor";
+  | "task-executor"
+  | "mapper";
 
 export interface AgentModelConfig {
   /** Primary model for this agent */
@@ -490,6 +491,14 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     temperature: 0.2,
     notes: "Esecuzione task dipartimenti/CME con Opus. Fallback Sonnet.",
   },
+  // ── Data Connector — Mapping campi sorgente→destinazione (ADR-2) ──
+  mapper: {
+    primary: "groq-llama4-scout",
+    fallback: "cerebras-gpt-oss-120b",
+    maxTokens: 2048,
+    temperature: 0,
+    notes: "Mapping campi: task di classificazione semplice. Tier Intern (Groq/Cerebras, ~gratis). ADR: adr-ai-mapping-hybrid.md",
+  },
 };
 
 // ─── Helper Functions ───
@@ -506,23 +515,23 @@ export function getAgentFallbackModel(agent: AgentName): ModelConfig {
   return MODELS[agentConfig.fallback];
 }
 
-/** Check if a specific provider is enabled (API key present). */
+/** Check if a specific provider is enabled (primary OR alternate API key present). */
 export function isProviderEnabled(provider: Provider): boolean {
   switch (provider) {
     case "anthropic":
       return !!process.env.ANTHROPIC_API_KEY;
     case "gemini":
-      return !!process.env.GEMINI_API_KEY;
+      return !!process.env.GEMINI_API_KEY || !!process.env.GEMINI_API_KEY_ALT;
     case "openai":
       return !!process.env.OPENAI_API_KEY;
     case "mistral":
-      return !!process.env.MISTRAL_API_KEY;
+      return !!process.env.MISTRAL_API_KEY || !!process.env.MISTRAL_API_KEY_ALT;
     case "groq":
-      return !!process.env.GROQ_API_KEY;
+      return !!process.env.GROQ_API_KEY || !!process.env.GROQ_API_KEY_ALT;
     case "cerebras":
-      return !!process.env.CEREBRAS_API_KEY;
+      return !!process.env.CEREBRAS_API_KEY || !!process.env.CEREBRAS_API_KEY_ALT;
     case "sambanova":
-      return !!process.env.SAMBANOVA_API_KEY;
+      return !!process.env.SAMBANOVA_API_KEY || !!process.env.SAMBANOVA_API_KEY_ALT;
   }
 }
 

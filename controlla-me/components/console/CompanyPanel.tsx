@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { X, Send, Square, RefreshCw, AlertCircle, Paperclip } from "lucide-react";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";
@@ -84,6 +86,28 @@ const DEPT_NAMES: Record<string, string> = {
   strategy: "Strategy",
   trading: "Trading",
 };
+
+// ── Pulse dot (Framer Motion) ──
+// Replaces Tailwind animate-pulse with a visible ring + breathing dot.
+
+function PulseDot({ color, size = 6 }: { color: string; size?: number }) {
+  return (
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      <motion.span
+        className="absolute inset-0 rounded-full"
+        style={{ backgroundColor: color }}
+        animate={{ scale: [1, 2.2], opacity: [0.5, 0] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
+      />
+      <motion.span
+        className="relative block rounded-full"
+        style={{ width: size, height: size, backgroundColor: color }}
+        animate={{ scale: [1, 1.15, 1], opacity: [1, 0.85, 1] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </span>
+  );
+}
 
 // ── Component ──
 
@@ -521,9 +545,13 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
               {TARGETS.find((t) => t.key === target)?.label}
             </span>
             {responding && (
-              <span className="text-[10px] text-[var(--identity-gold)] animate-pulse">
+              <motion.span
+                className="text-[10px] text-[var(--identity-gold)]"
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+              >
                 Claude Code in esecuzione...
-              </span>
+              </motion.span>
             )}
             {sessionId && !responding && (
               <span className="text-[10px] text-[var(--success)]">
@@ -579,7 +607,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                     onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                     className="cursor-pointer w-full flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg hover:bg-[var(--bg-overlay)] transition-colors text-left"
                   >
-                    <span className="w-[6px] h-[6px] rounded-full bg-[var(--info)] animate-pulse mt-1 shrink-0" />
+                    <span className="mt-1"><PulseDot color="var(--info)" size={6} /></span>
                     <div className="min-w-0">
                       <p className="text-[var(--fg-primary)] truncate font-medium">{task.title}</p>
                       <p className="text-[var(--fg-muted)] text-[10px]">
@@ -614,14 +642,14 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                 {Object.entries(dashboard.board.byDepartment).map(([dept, info]) => {
                   const isTarget = TARGETS.some((t) => t.key === dept);
                   const isActive = target === dept;
-                  const dot = (
+                  const dot = info.inProgress > 0 ? (
+                    <PulseDot color="var(--info)" size={6} />
+                  ) : (
                     <span
                       className={`w-[6px] h-[6px] rounded-full shrink-0 ${
-                        info.inProgress > 0
-                          ? "bg-[var(--info)] animate-pulse"
-                          : info.open > 0
-                            ? "bg-[var(--identity-gold)]"
-                            : "bg-[var(--success)]"
+                        info.open > 0
+                          ? "bg-[var(--identity-gold)]"
+                          : "bg-[var(--success)]"
                       }`}
                     />
                   );
@@ -780,7 +808,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
             {file && (
               <div className="flex items-center gap-2 px-4 md:px-6 pt-3 pb-1">
                 {filePreview ? (
-                  <img src={filePreview} alt={file.name} className="w-10 h-10 rounded object-cover border border-[var(--border-dark-subtle)]" />
+                  <Image src={filePreview} alt={file.name} width={40} height={40} unoptimized className="rounded object-cover border border-[var(--border-dark-subtle)]" />
                 ) : (
                   <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
                     <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" />
@@ -854,7 +882,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                 <div className="flex justify-start">
                   <div className="bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)] rounded-xl px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-[5px] h-[5px] rounded-full bg-[var(--identity-gold)] animate-pulse" />
+                      <PulseDot color="var(--identity-gold)" size={5} />
                       <span className="text-[10px] text-[var(--fg-muted)]">Claude Code in esecuzione...</span>
                     </div>
                   </div>
@@ -866,7 +894,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                 <div className="flex justify-start">
                   <div className="max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed bg-[var(--bg-overlay)] text-[var(--fg-primary)] border border-[var(--border-dark-subtle)]">
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="w-[5px] h-[5px] rounded-full bg-[var(--identity-gold)] animate-pulse" />
+                      <PulseDot color="var(--identity-gold)" size={5} />
                       <span className="text-[10px] font-medium text-[var(--fg-secondary)]">
                         {TARGETS.find((t) => t.key === target)?.label}
                       </span>
@@ -902,7 +930,11 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
             <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[10px] space-y-0.5">
                 {/* Waiting indicator — newest, always on top */}
                 {responding && (
-                  <div className="flex gap-1.5 text-[var(--identity-gold)] animate-pulse">
+                  <motion.div
+                    className="flex gap-1.5 text-[var(--identity-gold)]"
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  >
                     <span className="text-[var(--fg-invisible)] w-10 text-right shrink-0">
                       {debugLog.length > 0
                         ? `+${((Date.now() - debugLog[0].ts) / 1000).toFixed(0)}s`
@@ -910,7 +942,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                     </span>
                     <span className="w-4 shrink-0 text-center">&#8987;</span>
                     <span>In attesa...</span>
-                  </div>
+                  </motion.div>
                 )}
                 {/* Debug entries — reversed: newest first */}
                 {[...debugLog].reverse().map((entry, i) => {

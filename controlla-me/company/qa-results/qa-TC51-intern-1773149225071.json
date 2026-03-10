@@ -1,0 +1,29 @@
+{
+  "testId": "TC51",
+  "question": "Ho affittato casa senza registrare il contratto. L'affitto è nullo?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl contratto di locazione non registrato è nullo ai sensi dell'art. 1350 c.c. (atti che devono farsi per iscritto) e dell'art. 1 della L. 431/1998 (forma scritta per la stipula di validi contratti di locazione). La nullità può essere fatta valere dal conduttore per chiedere la restituzione delle somme versate.\n\nRiferimenti normativi:\nL'art. 1350 c.c. stabilisce che i contratti di locazione di beni immobili per una durata superiore a nove anni devono essere redatti per iscritto, pena la nullità. La L. 431/1998, art. 1, comma 4, richiede la forma scritta per la stipula di validi contratti di locazione. L'art. 1418 c.c. elenca le cause di nullità del contratto, tra cui la mancanza dei requisiti indicati nell'art. 1325 c.c., che include la forma quando prescritta dalla legge sotto pena di nullità.\n\nIn pratica:\nSe il contratto non è stato registrato, è nullo e il conduttore può chiedere la restituzione delle somme versate entro sei mesi dalla riconsegna dell'immobile, ai sensi dell'art. 13 della L. 431/1998.",
+  "expectedAnswer": "TRAPPOLA EVOLUTIVA: le Sezioni Unite (18213/2015) hanno cambiato orientamento. Il contratto non registrato NON è più nullo ma è valido tra le parti. Tuttavia, non è opponibile ai terzi. Le sanzioni sono solo fiscali (tributi, sanzioni). L'orientamento precedente (nullità) è superato.",
+  "scoringHints": {
+    "prep": "Ha formulato query che include la giurisprudenza recente (SU 2015)?",
+    "search": "Ha trovato SU 18213/2015?",
+    "quality": "Spiega la svolta? NON afferma che è nullo senza segnalare il cambio di orientamento?"
+  },
+  "trapType": "evoluzione_giurisprudenza",
+  "institutes": [
+    "locazione",
+    "registrazione_contratto",
+    "nullità_sanzione"
+  ],
+  "scope": "TRAPPOLA EVOLUTIVA: SU 18213/2015: non più nullo, valido inter partes ma non opponibile a terzi.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 0,
+    "quality": 5,
+    "total": 15,
+    "verdict": "FAIL",
+    "reasoning": "L'agente non ha identificato correttamente il tema giuridico, non ha trovato la giurisprudenza rilevante (SU 18213/2015) e ha fornito una risposta errata, affermando la nullità del contratto senza menzionare il cambio di orientamento giurisprudenziale. La qualità è molto bassa a causa dell'inaccuratezza e della mancanza di informazioni aggiornate."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:26:36.326Z"
+}

@@ -945,7 +945,7 @@ ${report.llmAnalysis?.slice(0, 800) || "(non disponibile — provider gratuiti e
  * Lancia claude -p come CME autonomo.
  * Usa la subscription Max del boss (nessun costo aggiuntivo).
  */
-function executeCMESession(report: DaemonReport): { success: boolean; output: string; durationMs: number } {
+function _executeCMESession(report: DaemonReport): { success: boolean; output: string; durationMs: number } {
   const prompt = buildCMEPrompt(report);
 
   log("[CME] Lancio sessione autonoma via claude -p (Max subscription)...");

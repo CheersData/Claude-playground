@@ -64,9 +64,9 @@
     },
     {
       "id": "DE-2",
-      "description": "Verticale HR non avviato — D.Lgs. 81/2008 (Sicurezza Lavoro, 306 art.) non caricato",
-      "severity": "low",
-      "workaround": "Prerequisito: D.Lgs. 276/2003 caricato ✓"
+      "description": "CHIUSO — Verticale HR completato: 572 articoli caricati. D.Lgs. 81/2008 (321 art.), D.Lgs. 81/2015 (66 art.), D.Lgs. 276/2003 (87 art.), D.Lgs. 23/2015 (11 art.), D.Lgs. 148/2015 (46 art.), L. 300/1970 (41 art.).",
+      "severity": "closed",
+      "workaround": null
     },
     {
       "id": "DE-3",

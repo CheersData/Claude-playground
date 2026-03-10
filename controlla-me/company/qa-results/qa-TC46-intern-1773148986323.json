@@ -1,0 +1,29 @@
+{
+  "testId": "TC46",
+  "question": "Sono proprietario di un terreno agricolo confinante. Quando vendono quello accanto, ho diritto di prelazione?",
+  "agentAnswer": "Sì, in qualità di proprietario di un terreno agricolo confinante, lei può avere il diritto di prelazione (prelazione agraria) sull'acquisto del fondo adiacente, a condizione che siano soddisfatti specifici requisiti.\n\nRiferimenti normativi:\nIl diritto di prelazione per il proprietario confinante è riconosciuto dall'Art. 8 della Legge 590/1965, come modificato e integrato dagli aggiornamenti successivi, in particolare l'AGGIORNAMENTO (1) e (7). Questi aggiornamenti estendono esplicitamente il diritto di prelazione al \"coltivatore diretto proprietario di terreni confinanti con fondi offerti in vendita, purché sugli stessi non siano insediati mezzadri, coloni, affittuari, compartecipanti od enfiteuti coltivatori diretti\".\n\nLe condizioni principali per esercitare tale diritto, basate sull'Art. 8 L. 590/1965 e i suoi aggiornamenti, sono:\n1)  **Qualifica di coltivatore diretto:** Lei deve essere un coltivatore diretto. L'AGGIORNAMENTO (5) e (6) estendono questo diritto anche a società agricole di persone o cooperative agricole con specifiche qualifiche dei soci/amministratori.\n2)  **Proprietà confinante:** Deve essere proprietario di un terreno confinante con quello posto in vendita.\n3)  **Assenza di altri aventi diritto:** Sul fondo offerto in vendita non devono essere insediati altri soggetti con un diritto di prelazione prioritario (es. affittuari, mezzadri, coloni, compartecipanti o enfiteuti coltivatori diretti).\n4)  **Limiti dimensionali:** Il fondo per il quale intende esercitare la prelazione, in aggiunta ad altri eventualmente già posseduti, non deve superare il triplo della superficie corrispondente alla capacità lavorativa della sua famiglia.\n5)  **Assenza di vendite recenti:** Non deve aver venduto, nel biennio precedente, altri fondi rustici di imponibile fondiario superiore a lire mille, salvo il caso di cessione a scopo di ricomposizione fondiaria.\n6)  **Esclusioni:** La prelazione non è consentita in casi specifici come permuta, vendita forzata, liquidazione coatta, fallimento, espropriazione per pubblica utilità, o quando i terreni sono destinati ad utilizzazione edilizia, industriale o turistica (Art. 8, secondo comma, L. 590/1965). L'Art. 14 L. 590/1965 aggiunge ulteriori esclusioni, ad esempio quando i terreni sono acquistati da Enti per scopi specifici o dall'ISMEA.\n\nIl proprietario venditore ha l'obbligo di notificarle la proposta di alienazione tramite lettera raccomandata, trasmettendo il preliminare di compravendita con l'indicazione del nome dell'acquirente, del prezzo e delle altre condizioni. Lei dovrà esercitare il suo diritto entro 30 giorni dalla ricezione di tale notifica. Se il proprietario non provvede alla notificazione o indica un prezzo superiore a quello effettivo, lei potrà esercitare il diritto di riscatto entro un anno dalla trascrizione del contratto di compravendita.\n\nIn pratica:\nPer esercitare il diritto di prelazione, deve innanzitutto verificare di possedere la qualifica di \"coltivatore diretto\" e che il fondo in vendita non sia già coltivato da altri soggetti con diritto di prelazione prioritario. Se il venditore le notifica la proposta di vendita, valuti attentamente le condizioni e, se intende esercitare la prelazione, comunichi la sua volontà entro 30 giorni. Se la notifica non avviene o è irregolare, dovrà agire per il riscatto entro un anno dalla trascrizione della vendita.",
+  "expectedAnswer": "TRAPPOLA: non basta essere proprietari del fondo confinante. La prelazione agraria spetta SOLO al coltivatore diretto che coltiva personalmente il fondo (L.590/1965, L.817/1971). La mera proprietà del terreno confinante non attribuisce il diritto.",
+  "scoringHints": {
+    "prep": "Ha distinto proprietà da coltivazione diretta nella query?",
+    "search": "Ha trovato L.590/65 e L.817/71 con il requisito della coltivazione?",
+    "quality": "Chiarisce ESPLICITAMENTE che la proprietà da sola non basta?"
+  },
+  "trapType": "requisito_non_ovvio",
+  "institutes": [
+    "prelazione_agraria",
+    "coltivatore_diretto",
+    "fondo_confinante"
+  ],
+  "scope": "TRAPPOLA: NON basta essere proprietari. Bisogna coltivare direttamente (L.590/65, L.817/71).",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 28,
+    "search": 15,
+    "quality": 10,
+    "total": 53,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha correttamente identificato il requisito fondamentale del 'coltivatore diretto', evitando la trappola della domanda. Tuttavia, ha inventato riferimenti normativi inesistenti ('AGGIORNAMENTO (1), (7), (5), (6)'), compromettendo gravemente l'affidabilità della risposta. Nonostante l'accuratezza delle condizioni elencate, l'invenzione di fonti è un difetto critico."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:22:13.436Z"
+}

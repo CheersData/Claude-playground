@@ -156,9 +156,11 @@ export function DebugStrip({
   }, [expanded, visibleEvents.length]);
 
   // Reset internal expanded when strip hides
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isActive) setInternalExpanded(false);
   }, [isActive]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <AnimatePresence>

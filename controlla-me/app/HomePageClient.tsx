@@ -34,10 +34,10 @@ export default function HomePageClient() {
   const [currentPhase, setCurrentPhase] = useState<AgentPhase | null>(null);
   const [completedPhases, setCompletedPhases] = useState<AgentPhase[]>([]);
   const [result, setResult] = useState<AdvisorResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
+  const [_phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [contextPrompt, setContextPrompt] = useState("");
   const [phaseResults, setPhaseResults] = useState<Record<string, unknown>>({});
@@ -165,7 +165,7 @@ export default function HomePageClient() {
     },
     [startAnalysis, contextPrompt]
   );
-  const handleRetry = useCallback(() => {
+  const _handleRetry = useCallback(() => {
     const f = lastFileRef.current;
     if (f) startAnalysis(f, sessionId || undefined);
     else reset();

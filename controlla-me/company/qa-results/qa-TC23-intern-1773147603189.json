@@ -1,0 +1,29 @@
+{
+  "testId": "TC23",
+  "question": "Voglio depositare un documento nuovo in udienza. Quando è il termine?",
+  "agentAnswer": "Il termine per depositare un documento nuovo in udienza dipende dalle disposizioni specifiche del giudice e dalle norme applicabili al procedimento. Tuttavia, in generale, il Codice di Procedura Civile italiano prevede che le parti possano depositare documenti fino a un certo termine prima dell'udienza.\n\nRiferimenti normativi:\n- Art. 163 Codice di Procedura Civile: non disciplina direttamente il deposito di documenti nuovi in udienza.\n- Art. 183 Codice di Procedura Civile: prevede che il giudice fissi un termine perentorio per il deposito di documenti.\n- Art. 420 Codice di Procedura Civile: disciplina l'udienza di discussione e la possibilità di depositare documenti.\n\nIn pratica: controlla il provvedimento del giudice che fissa l'udienza e verifica se sono stati stabiliti termini specifici per il deposito di documenti. In assenza di indicazioni specifiche, puoi considerare di depositare i documenti il prima possibile prima dell'udienza.",
+  "expectedAnswer": "Con la riforma Cartabia (2022): memorie e documenti vanno depositati prima dell'udienza secondo art. 171-ter c.p.c. Se l'agente cita art. 183 vecchio rito è FAIL.",
+  "scoringHints": {
+    "prep": "Ha formulato query che include 'Cartabia' o 'riforma 2022' o art. 171-ter?",
+    "search": "Ha trovato art. 171-ter e NON solo art. 183 (vecchio rito)?",
+    "quality": "Distingue chiaramente il vecchio dal nuovo rito? Segnala la riforma Cartabia?"
+  },
+  "trapType": "norma_superata",
+  "institutes": [
+    "preclusioni_istruttorie",
+    "deposito_documenti",
+    "riforma_Cartabia"
+  ],
+  "scope": "art. 171-ter c.p.c. (riforma Cartabia, D.Lgs. 149/2022)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 15,
+    "quality": 20,
+    "total": 45,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non cita la riforma Cartabia né l'art. 171-ter c.p.c., che sono fondamentali per determinare il termine per il deposito di documenti nuovi in udienza secondo il nuovo rito. L'agente menziona genericamente il Codice di Procedura Civile e articoli non direttamente pertinenti come il 163 e il 420, e solo marginalmente l'art. 183, che è una norma del vecchio rito. Pertanto, la preparazione e la ricerca appaiono insufficienti e la qualità della risposta è mediocre."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T12:59:19.654Z"
+}

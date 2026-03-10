@@ -1,0 +1,29 @@
+{
+  "testId": "TC28",
+  "question": "La controparte non si è presentata alla mediazione obbligatoria. Cosa succede?",
+  "agentAnswer": "Se la controparte non si è presentata alla mediazione obbligatoria, il giudice può desumere argomenti di prova nel successivo giudizio. Inoltre, se la mediazione costituisce condizione di procedibilità, il giudice condanna la parte costituita che non ha partecipato al primo incontro senza giustificato motivo al versamento all'entrata del bilancio dello Stato di una somma di importo corrispondente al doppio del contributo unificato dovuto per il giudizio.\n\nRiferimenti normativi: L'art. 12-bis del D.Lgs. 28/2010 disciplina le conseguenze processuali della mancata partecipazione al procedimento di mediazione. In particolare, il comma 1 stabilisce che il giudice può desumere argomenti di prova nel successivo giudizio, mentre il comma 2 prevede la condanna al versamento di una somma di denaro in caso di mancata partecipazione senza giustificato motivo.\n\nIn pratica: Se la controparte non si presenta alla mediazione obbligatoria, è opportuno che la parte istante faccia valere le conseguenze di tale comportamento nel successivo giudizio, ai sensi dell'art. 12-bis del D.Lgs. 28/2010.",
+  "expectedAnswer": "L'assenza ingiustificata comporta: sanzione pecuniaria fino a €250 verso lo Stato, e il giudice può trarre argomenti di prova dall'assenza (art. 8 co. 4-bis D.Lgs. 28/2010).",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 8 D.Lgs. 28/2010 e conseguenze assenza?",
+    "search": "Ha trovato art. 8 co. 4-bis D.Lgs. 28/2010?",
+    "quality": "Menziona entrambe le conseguenze (sanzione + argomento prova)?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mediazione_obbligatoria",
+    "sanzione_assenza",
+    "argomento_prova"
+  ],
+  "scope": "art. 8 co. 4-bis D.Lgs. 28/2010: sanzione pecuniaria + argomento di prova",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 30,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha menzionato le conseguenze dell'assenza ingiustificata alla mediazione obbligatoria, ma non ha citato esattamente l'articolo e il comma corretti e non ha menzionato l'importo esatto della sanzione pecuniaria."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:03:43.455Z"
+}

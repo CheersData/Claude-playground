@@ -140,28 +140,37 @@ function loadSavedResults(): Record<string, SavedResult> {
   return out;
 }
 
-/** Load ALL results (no dedup) — for dashboard view */
-function loadAllResults(): SavedResult[] {
+/** Load results deduped by testId — solo l'ultimo risultato per ogni test case */
+function loadLatestResults(): SavedResult[] {
   const qaDir = path.join(process.cwd(), "company", "qa-results");
   if (!fs.existsSync(qaDir)) return [];
 
   const files = fs.readdirSync(qaDir).filter((f) => f.startsWith("qa-") && f.endsWith(".json"));
-  const all: SavedResult[] = [];
+  const latest: Record<string, { result: SavedResult; ts: number }> = {};
 
   for (const file of files) {
     try {
       const raw = fs.readFileSync(path.join(qaDir, file), "utf-8");
       const parsed = JSON.parse(raw) as SavedResult;
       if (!parsed.testId) continue;
-      all.push(parsed);
+
+      // Extract timestamp from filename: qa-TC21-intern-1773052182330.json
+      const tsMatch = file.match(/(\d{13})\.json$/);
+      const ts = tsMatch ? parseInt(tsMatch[1], 10) : 0;
+
+      const existing = latest[parsed.testId];
+      if (!existing || ts > existing.ts) {
+        latest[parsed.testId] = { result: parsed, ts };
+      }
     } catch {
       // Skip corrupt files
     }
   }
 
-  // Sort by runAt descending (newest first)
-  all.sort((a, b) => new Date(b.runAt).getTime() - new Date(a.runAt).getTime());
-  return all;
+  // Sort by testId numerico (TC21, TC22, ..., TC70)
+  return Object.values(latest)
+    .map((entry) => entry.result)
+    .sort((a, b) => a.testId.localeCompare(b.testId, undefined, { numeric: true }));
 }
 
 function buildResultsSummary(savedResults: Record<string, SavedResult>) {
@@ -200,7 +209,7 @@ export async function GET(req: NextRequest) {
 
   // Dashboard mode: return ALL historical results (no dedup)
   if (mode === "dashboard") {
-    const allResults = loadAllResults();
+    const allResults = loadLatestResults();
 
     // Build comprehensive stats
     let pass = 0, borderline = 0, fail = 0, totalScore = 0, evaluated = 0;
@@ -542,6 +551,15 @@ Valuta la risposta dell'agente rispetto alla risposta attesa.`;
     try {
       const qaDir = path.join(process.cwd(), "company", "qa-results");
       if (!fs.existsSync(qaDir)) fs.mkdirSync(qaDir, { recursive: true });
+
+      // Cleanup: elimina risultati vecchi per lo stesso testId (mantieni solo il nuovo)
+      const oldFiles = fs.readdirSync(qaDir).filter(
+        (f) => f.startsWith(`qa-${testId}-`) && f.endsWith(".json")
+      );
+      for (const old of oldFiles) {
+        try { fs.unlinkSync(path.join(qaDir, old)); } catch { /* ignore */ }
+      }
+
       const filename = `qa-${testId}-${resolvedTier}-${Date.now()}.json`;
       fs.writeFileSync(path.join(qaDir, filename), JSON.stringify(result, null, 2));
     } catch (err) {

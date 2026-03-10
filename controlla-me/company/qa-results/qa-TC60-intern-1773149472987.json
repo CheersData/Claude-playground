@@ -1,0 +1,29 @@
+{
+  "testId": "TC60",
+  "question": "Voglio revocare una donazione che ho fatto anni fa. Posso?",
+  "agentAnswer": "Per revocare una donazione, è necessario verificare le condizioni previste dal Codice Civile. La revocazione è possibile in casi specifici, come l'ingratitudine del donatario o la sopravvenienza di figli. Tuttavia, la donazione può essere revocata solo se rientra nelle ipotesi previste dalla legge e se sono rispettati i termini e le condizioni stabilite.\n\nRiferimenti normativi:\nL'Art. 800 c.c. stabilisce che la donazione può essere revocata per ingratitudine o per sopravvenienza di figli. L'Art. 801 c.c. specifica che la revocazione per ingratitudine può essere richiesta quando il donatario ha commesso uno dei fatti previsti dall'articolo. L'Art. 803 c.c. riguarda la revocazione per sopravvenienza di figli, mentre l'Art. 802 c.c. stabilisce i termini e le condizioni per la revocazione.\n\nIn pratica:\nPer revocare la donazione, è necessario verificare se ricorrono le condizioni previste dagli articoli citati. Se ritieni che il donatario abbia commesso atti di ingratitudine o se sono sopravvenuti figli dopo la donazione, puoi procedere con la revocazione entro i termini stabiliti dalla legge.",
+  "expectedAnswer": "La revoca della donazione è possibile SOLO per due motivi tassativi: ingratitudine del donatario (art. 801: omicidio, ingiurie gravi, rifiuto alimenti, etc.) e sopravvenienza o esistenza di figli (art. 803). Il termine è 1 anno dalla notizia del fatto. Non esistono altri motivi di revoca.",
+  "scoringHints": {
+    "prep": "Ha formulato query su artt. 801 e 803?",
+    "search": "Ha trovato artt. 801 e 803 c.c.?",
+    "quality": "Indica che i motivi sono TASSATIVI? Menziona il termine di 1 anno?"
+  },
+  "trapType": null,
+  "institutes": [
+    "donazione",
+    "revoca_donazione",
+    "motivi_tassativi"
+  ],
+  "scope": "Solo due motivi tassativi: ingratitudine (art. 801) e sopravvenienza figli (art. 803). Termine 1 anno.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una buona comprensione generale della tematica relativa alla revoca delle donazioni, citando gli articoli pertinenti del Codice Civile (800, 801, 803 c.c.). Tuttavia, non specifica chiaramente che i motivi di revoca sono tassativi e non menziona espressamente il termine di 1 anno per la revoca come richiesto."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:30:19.721Z"
+}

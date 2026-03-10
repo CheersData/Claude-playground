@@ -1,0 +1,29 @@
+{
+  "testId": "TC30",
+  "question": "Ho firmato una fideiussione. Se il debitore non paga, mi possono chiamare subito?",
+  "agentAnswer": "La fideiussione è un contratto con cui il fideiussore si obbliga personalmente verso il creditore a garantire l'adempimento di un'obbligazione altrui. Secondo l'Art. 1944 c.c., il fideiussore è obbligato in solido col debitore principale al pagamento del debito. Tuttavia, le parti possono convenire che il fideiussore non sia tenuto a pagare prima dell'escussione del debitore principale. In tal caso, il fideiussore, che sia convenuto dal creditore e intenda valersi del beneficio dell'escussione, deve indicare i beni del debitore principale da sottoporre ad esecuzione.\n\nRiferimenti normativi: l'Art. 1936 c.c. definisce la fideiussione, mentre l'Art. 1944 c.c. disciplina l'obbligazione del fideiussore. L'Art. 1945 c.c. specifica che il fideiussore può opporre contro il creditore tutte le eccezioni che spettano al debitore principale, salva quella derivante dall'incapacità.\n\nIn pratica, se il debitore non paga, il creditore può chiamare il fideiussore a pagare il debito, ma il fideiussore può chiedere di escutere prima il debitore principale, a meno che non sia stato pattuito diversamente.",
+  "expectedAnswer": "TRAPPOLA: dipende dal tipo di fideiussione. Con beneficio di escussione (art. 1944 co.2): devono prima escutere il debitore. Fideiussione bancaria o con rinuncia al beneficio: possono chiamare il fideiussore direttamente.",
+  "scoringHints": {
+    "prep": "Ha distinto fideiussione normale da bancaria nella query?",
+    "search": "Ha trovato art. 1944 c.c. con entrambe le varianti?",
+    "quality": "Distingue esplicitamente i due tipi? Non risponde 'sì' o 'no' senza distinguere?"
+  },
+  "trapType": "dipende_dal_tipo",
+  "institutes": [
+    "fideiussione",
+    "beneficio_escussione",
+    "fideiussione_bancaria"
+  ],
+  "scope": "art. 1944: dipende dal tipo. Con beneficio escussione: no. Fideiussione bancaria o con rinuncia: sì.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 35,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente è completa e precisa, individua correttamente il tema giuridico della fideiussione e menziona l'art. 1944 c.c. come riferimento normativo. Inoltre, distingue tra i due tipi di fideiussione e spiega le conseguenze per il fideiussore. Tuttavia, non è immediatamente chiaro che il fideiussore possa essere chiamato subito nel caso di fideiussione bancaria o con rinuncia al beneficio di escussione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:05:31.799Z"
+}

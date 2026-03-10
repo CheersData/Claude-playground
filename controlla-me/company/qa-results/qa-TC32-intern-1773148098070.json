@@ -1,0 +1,29 @@
+{
+  "testId": "TC32",
+  "question": "Ho dato in pegno un bene. Il creditore può venderlo senza che io lo sappia?",
+  "agentAnswer": "Il creditore pignoratizio non può vendere il bene dato in pegno senza che tu lo sappia. Secondo l'Art. 2804 c.c., il creditore pignoratizio non soddisfatto può chiedere che gli sia assegnato in pagamento il credito ricevuto in pegno, ma deve seguire le procedure previste dalla legge. Inoltre, l'Art. 492 c.p.c. prevede che il pignoramento debba contenere l'avvertimento che il debitore può chiedere di sostituire alle cose o ai crediti pignorati una somma di denaro. Pertanto, il creditore deve informarti delle sue intenzioni e seguire le procedure previste dalla legge prima di poter vendere il bene.\n\nRiferimenti normativi: l'Art. 2804 c.c. disciplina l'assegnazione o la vendita del credito dato in pegno, mentre l'Art. 492 c.p.c. regola la forma del pignoramento.\n\nIn pratica: se il creditore intende vendere il bene dato in pegno, deve seguire le procedure previste dalla legge e informarti delle sue intenzioni. Se non sei d'accordo con la vendita, puoi chiedere di sostituire il bene con una somma di denaro.",
+  "expectedAnswer": "TRAPPOLA: il pegno non trasferisce la proprietà — il bene resta del debitore. Il creditore ha il possesso e diritto di seguito, ma la vendita deve avvenire nelle forme di legge (art. 2797 c.c.): asta pubblica o vendita autorizzata dal giudice.",
+  "scoringHints": {
+    "prep": "Ha distinto tra possesso e proprietà nella query?",
+    "search": "Ha trovato art. 2797 c.c. o le norme sulla vendita del bene in pegno?",
+    "quality": "Chiarisce che la proprietà resta al debitore? Descrive il procedimento corretto di vendita?"
+  },
+  "trapType": "misconcezione_proprietà",
+  "institutes": [
+    "pegno",
+    "diritto_di_seguito",
+    "proprietà_bene_gravato"
+  ],
+  "scope": "Il pegno non trasferisce la proprietà (resta al debitore). Il creditore pignoratizio ha diritto di seguito ma non può vendere liberamente.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 15,
+    "quality": 25,
+    "total": 60,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente non identifica correttamente il tema giuridico e non cita l'art. 2797 c.c. Tuttavia, sostiene che il creditore non può vendere il bene senza informare il debitore e menziona procedure previste dalla legge."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:06:51.906Z"
+}

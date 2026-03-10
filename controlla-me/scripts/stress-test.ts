@@ -1257,8 +1257,8 @@ function runPipelineTest(
 
   const analyzerJson = extractJson(analyzerResult.output);
   phases.analyzer = { output: analyzerJson, raw: analyzerResult.output, timeMs: analyzerResult.timeMs };
-  const clauseCount = (analyzerJson as any)?.clauses?.length ?? "?";
-  const overallRisk = (analyzerJson as any)?.overallRisk ?? "?";
+  const clauseCount = (analyzerJson as Record<string, unknown>)?.clauses ? (((analyzerJson as Record<string, unknown>).clauses) as unknown[]).length : "?";
+  const overallRisk = (analyzerJson as Record<string, unknown>)?.overallRisk ?? "?";
   console.log(` OK (${(analyzerResult.timeMs / 1000).toFixed(1)}s) — ${clauseCount} clausole, rischio: ${overallRisk}`);
 
   // ── Phase 3: Advisor (con output classificatore + analista) ──
@@ -1274,8 +1274,8 @@ function runPipelineTest(
 
   const advisorJson = extractJson(advisorResult.output);
   phases.advisor = { output: advisorJson, raw: advisorResult.output, timeMs: advisorResult.timeMs };
-  const fairness = (advisorJson as any)?.fairnessScore ?? "?";
-  const needsLawyer = (advisorJson as any)?.needsLawyer ?? "?";
+  const fairness = (advisorJson as Record<string, unknown>)?.fairnessScore ?? "?";
+  const needsLawyer = (advisorJson as Record<string, unknown>)?.needsLawyer ?? "?";
   console.log(` OK (${(advisorResult.timeMs / 1000).toFixed(1)}s) — score: ${fairness}, lawyer: ${needsLawyer}`);
 
   // ── Evaluate full pipeline ──

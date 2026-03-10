@@ -16,7 +16,6 @@ import {
   Power,
   Clock,
   Play,
-  Pause,
   RefreshCw,
   FileText,
   CheckCircle,

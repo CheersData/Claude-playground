@@ -433,7 +433,7 @@ async function run(dryRun: boolean) {
         } else {
           updateBatch.push({ id: article.id, institutes: rule.institutes });
         }
-        matchCount++;
+        matchCount++; // eslint-disable-line @typescript-eslint/no-unused-vars
       }
     }
   }

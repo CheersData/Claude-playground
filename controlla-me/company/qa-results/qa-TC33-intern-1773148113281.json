@@ -1,0 +1,29 @@
+{
+  "testId": "TC33",
+  "question": "Il mio datore mi ha licenziato per giusta causa mentre ero in malattia. È valido il licenziamento?",
+  "agentAnswer": "Il licenziamento per giusta causa durante la malattia può essere valido se il datore di lavoro ha rispettato le procedure e i requisiti previsti dalla legge. Tuttavia, la valutazione della validità del licenziamento dipende dalle specifiche circostanze del caso e dalle norme applicabili. Secondo l'Art. 2110 c.c., in caso di malattia, il datore di lavoro ha diritto di recedere dal contratto a norma dell'art. 2118, decorso il periodo stabilito dalla legge, dalle norme corporative, dagli usi o secondo equità. \n\nRiferimenti normativi: L'Art. 2119 c.c. disciplina il recesso per giusta causa, mentre l'Art. 2110 c.c. si occupa degli infortuni, malattie, gravidanze e puerperi. L'Art. 18 della L. 300/1970 tutela il lavoratore in caso di licenziamento illegittimo. \n\nIn pratica: Il lavoratore licenziato per giusta causa durante la malattia può esperire le procedure di ricorso previste dalla legge, come ad esempio il ricorso al giudice del lavoro, per valutare la legittimità del licenziamento e chiedere eventuali risarcimenti o la reintegrazione nel posto di lavoro.",
+  "expectedAnswer": "TRAPPOLA DOPPIA: il periodo di comporto (art. 2110) protegge il lavoratore SOLO dal licenziamento per ragioni oggettive/soggettive ordinarie. NON protegge dal licenziamento per giusta causa (art. 2119). Se c'è giusta causa vera, il licenziamento è valido anche durante la malattia.",
+  "scoringHints": {
+    "prep": "Ha distinto tra art. 2110 e art. 2119 nella query?",
+    "search": "Ha trovato entrambi gli articoli con il rapporto tra loro?",
+    "quality": "Spiega ESPLICITAMENTE che art. 2110 non si applica alla giusta causa? Non crea confusione tra i due istituti?"
+  },
+  "trapType": "doppia_trappola",
+  "institutes": [
+    "licenziamento_giusta_causa",
+    "malattia",
+    "periodo_di_comporto"
+  ],
+  "scope": "TRAPPOLA DOPPIA: art. 2110 (periodo di comporto) NON si applica alla giusta causa (art. 2119)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 25,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente gli articoli di legge pertinenti, ma non ha spiegato chiaramente che l'art. 2110 non si applica alla giusta causa. La risposta è parzialmente completa, ma manca di precisione nella distinzione tra i due istituti giuridici."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:08:18.072Z"
+}

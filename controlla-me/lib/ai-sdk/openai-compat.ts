@@ -17,6 +17,7 @@ type OpenAICompatProvider = "openai" | "groq" | "mistral" | "cerebras" | "samban
 interface ProviderConfig {
   baseURL?: string;
   envKey: string;
+  envKeyAlt?: string;
   retryWaitMs: number;
   maxRetries: number;
 }
@@ -30,24 +31,28 @@ const PROVIDER_CONFIGS: Record<OpenAICompatProvider, ProviderConfig> = {
   groq: {
     baseURL: "https://api.groq.com/openai/v1",
     envKey: "GROQ_API_KEY",
+    envKeyAlt: "GROQ_API_KEY_ALT",
     retryWaitMs: 10_000,
     maxRetries: 3,
   },
   mistral: {
     baseURL: "https://api.mistral.ai/v1",
     envKey: "MISTRAL_API_KEY",
+    envKeyAlt: "MISTRAL_API_KEY_ALT",
     retryWaitMs: 35_000, // Free tier 2 RPM, serve wait piu' lungo
     maxRetries: 3,
   },
   cerebras: {
     baseURL: "https://api.cerebras.ai/v1",
     envKey: "CEREBRAS_API_KEY",
+    envKeyAlt: "CEREBRAS_API_KEY_ALT",
     retryWaitMs: 10_000,
     maxRetries: 3,
   },
   sambanova: {
     baseURL: "https://api.sambanova.ai/v1",
     envKey: "SAMBANOVA_API_KEY",
+    envKeyAlt: "SAMBANOVA_API_KEY_ALT",
     retryWaitMs: 10_000,
     maxRetries: 3,
   },
@@ -57,13 +62,19 @@ const PROVIDER_CONFIGS: Record<OpenAICompatProvider, ProviderConfig> = {
 
 const _clients = new Map<string, OpenAI>();
 
+/** Tracks providers that have been permanently rotated to their ALT key. */
+const _rotatedProviders = new Set<string>();
+
 function getClient(provider: OpenAICompatProvider): OpenAI {
   let client = _clients.get(provider);
   if (!client) {
     const config = PROVIDER_CONFIGS[provider];
-    const apiKey = process.env[config.envKey];
+    // Use ALT key if already rotated, otherwise primary
+    const useAlt = _rotatedProviders.has(provider);
+    const envKeyToUse = useAlt && config.envKeyAlt ? config.envKeyAlt : config.envKey;
+    const apiKey = process.env[envKeyToUse];
     if (!apiKey) {
-      throw new Error(`Missing ${config.envKey} environment variable`);
+      throw new Error(`Missing ${envKeyToUse} environment variable`);
     }
     client = new OpenAI({
       apiKey,
@@ -72,6 +83,24 @@ function getClient(provider: OpenAICompatProvider): OpenAI {
     _clients.set(provider, client);
   }
   return client;
+}
+
+/**
+ * Attempt to rotate to ALT key for a provider.
+ * Returns true if rotation succeeded (ALT key exists and wasn't already active).
+ */
+function rotateToAltKey(provider: OpenAICompatProvider): boolean {
+  if (_rotatedProviders.has(provider)) return false; // Already on ALT
+  const config = PROVIDER_CONFIGS[provider];
+  if (!config.envKeyAlt) return false;
+  const altKey = process.env[config.envKeyAlt];
+  if (!altKey) return false;
+
+  // Permanently rotate: recreate client with ALT key
+  _rotatedProviders.add(provider);
+  _clients.delete(provider); // Force recreation on next getClient()
+  console.log(`[KEY-ROTATION] ${provider} switched to ALT key (${config.envKeyAlt})`);
+  return true;
 }
 
 // ─── Public API ───
@@ -95,7 +124,7 @@ export async function generateWithOpenAICompat(
   } = config;
 
   const providerConfig = PROVIDER_CONFIGS[provider];
-  const client = getClient(provider);
+  let client = getClient(provider);
   const inputChars = prompt.length + (systemPrompt?.length ?? 0);
   const label = agentName.toUpperCase();
 
@@ -146,12 +175,22 @@ export async function generateWithOpenAICompat(
       const isRateLimit =
         status === 429 ||
         (err instanceof Error && err.message.includes("rate_limit"));
+      const isAuthError = status === 401 || status === 403;
+
+      // On 429 or 401/403: try rotating to ALT key before throwing
+      // rotateToAltKey is idempotent — returns false if already rotated or no ALT key
+      if ((isRateLimit || isAuthError) && rotateToAltKey(provider)) {
+        console.log(
+          `[KEY-ROTATION] ${label} error ${status} → retrying with ALT key`
+        );
+        client = getClient(provider);
+        continue; // Retry this attempt with the new client
+      }
 
       if (isRateLimit) {
-        // Rate limit: propaga errore subito → agent-runner passerà al prossimo provider
-        // Il retry sullo stesso provider 429 è inutile quando abbiamo altri provider nella catena
+        // Already on ALT key (or no ALT available) → let agent-runner try next provider
         console.log(
-          `[API] ⚡ ${label} rate limit → skip al prossimo provider nella catena`
+          `[API] ${label} rate limit (both keys exhausted) → skip al prossimo provider nella catena`
         );
         throw err;
       }

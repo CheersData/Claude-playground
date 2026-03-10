@@ -1,0 +1,23 @@
+════════════════════════════════════════════════════════════════════════════════
+QA INTERN RUNNER — 1 domande, tier: intern, concurrency: 1
+════════════════════════════════════════════════════════════════════════════════
+Token generato per tier intern
+
+[1/1] TC21 (A) "Ho vinto in primo grado ma il giudice ha deciso su una quest..."
+  ❌ ERRORE: fetch failed (302666ms)
+
+════════════════════════════════════════════════════════════════════════════════
+RIEPILOGO QA INTERN TIER
+════════════════════════════════════════════════════════════════════════════════
+
+Totale test: 1
+Risposte ricevute: 0
+Errori: 1
+Con valutazione Opus: 0
+
+Tempo totale: 302.7s (media: 302.7s/domanda)
+
+Errori:
+  TC21: fetch failed
+
+📁 Risultati salvati in: C:\Users\crist\Claude-playground\controlla-me\company\autorun-logs\qa-intern-2026-03-09T14-28-11.json

@@ -1,0 +1,29 @@
+{
+  "testId": "TC59",
+  "question": "Il mio debitore vuole pagarmi in dollari ma il contratto dice euro. Devo accettare?",
+  "agentAnswer": "No, non è obbligato ad accettare il pagamento in dollari se il contratto stabilisce espressamente che il pagamento debba avvenire in euro. I pagamenti devono essere effettuati nella valuta concordata dalle parti e, se la valuta è quella avente corso legale nello Stato (come l'euro in Italia), il debitore è tenuto a pagare in tale moneta.\n\nRiferimenti normativi:\nL'Art. 126-octies del D.Lgs. 385/1993 (TUB) stabilisce chiaramente che \"I pagamenti sono effettuati nella valuta concordata dalle parti\". Poiché il suo contratto indica l'euro, questa è la valuta in cui il suo debitore è tenuto a pagare. L'Art. 1277 del Codice Civile, inoltre, prevede che i debiti pecuniari si estinguano con moneta avente corso legale nello Stato al tempo del pagamento e per il suo valore nominale. L'euro è la moneta avente corso legale in Italia. L'Art. 1278 del Codice Civile, che concede al debitore la facoltà di pagare in moneta legale se la somma dovuta è determinata in una moneta non avente corso legale, non è applicabile al suo caso, in quanto il suo debito è già denominato in euro (moneta avente corso legale).\n\nIn pratica:\nLei ha il diritto di rifiutare il pagamento in dollari e di esigere che il suo debitore adempia all'obbligazione pagando in euro, come pattuito nel contratto. Se il debitore insiste nel voler pagare in dollari, tale offerta non costituisce un adempimento esatto dell'obbligazione.",
+  "expectedAnswer": "Di default (art. 1277 c.c.): le obbligazioni in moneta estera si estinguono con pagamento in euro al cambio del giorno del pagamento. Il creditore deve accettare. Eccezione (art. 1278-1279): se c'è clausola 'effettivo' (cioè solo in quella valuta), il debitore deve pagare in dollari.",
+  "scoringHints": {
+    "prep": "Ha formulato query su artt. 1277-1279?",
+    "search": "Ha trovato artt. 1277-1279 c.c.?",
+    "quality": "Spiega la regola generale e la clausola effettivo? Indica che normalmente si deve accettare l'euro?"
+  },
+  "trapType": null,
+  "institutes": [
+    "obbligazione_valutaria",
+    "corso_legale",
+    "clausola_effettivo"
+  ],
+  "scope": "art. 1277-1279: il debitore può pagare in euro al cambio. Clausola 'effettivo' = solo valuta.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 40,
+    "total": 100,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha interpretato correttamente la domanda, riconoscendo che il debito era denominato in Euro. Ha applicato con precisione l'Art. 1277 c.c. e ha spiegato correttamente l'inapplicabilità dell'Art. 1278 c.c., fornendo un consiglio legale accurato e pertinente. La risposta è superiore alla 'risposta attesa' in quanto quest'ultima sembra aver frainteso la valuta di denominazione del debito."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:20:11.422Z"
+}

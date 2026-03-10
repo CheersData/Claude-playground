@@ -14,10 +14,8 @@ import {
   Camera,
   RotateCcw,
   Eye,
-  Check,
   DollarSign,
   HandCoins,
-  TrendingUp,
   ShoppingBag,
   Tag,
   Clock,
@@ -418,6 +416,8 @@ function AddItemModal() {
   const [minPrice, setMinPrice] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Reset form state when modal closes — valid pattern for form cleanup.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!showAddModal) {
       setImages([]);
@@ -429,6 +429,7 @@ function AddItemModal() {
       setErrors({});
     }
   }, [showAddModal]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -997,12 +998,14 @@ function PriceModal() {
   const [price, setPrice] = useState("");
   const [error, setError] = useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!showPriceModal) {
       setPrice("");
       setError("");
     }
   }, [showPriceModal]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = () => {
     const p = parseFloat(price);
@@ -1120,6 +1123,7 @@ function SoldModal() {
   const [price, setPrice] = useState("");
   const [error, setError] = useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!showSoldModal) {
       setPrice("");
@@ -1128,6 +1132,7 @@ function SoldModal() {
       setPrice(String(item.askingPrice));
     }
   }, [showSoldModal, item?.askingPrice]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = () => {
     const p = parseFloat(price);
@@ -1260,9 +1265,11 @@ function DetailModal() {
   const commissionRate = useStore((s) => s.commissionRate);
   const [imgIdx, setImgIdx] = useState(0);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setImgIdx(0);
   }, [showDetailModal]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <AnimatePresence>

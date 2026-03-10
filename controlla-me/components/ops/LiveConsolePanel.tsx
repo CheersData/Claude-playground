@@ -594,12 +594,12 @@ export function LiveConsolePanel() {
     setStatus("disconnected");
   }, []);
 
-  // connect() calls setStatus internally — this is valid for SSE lifecycle management.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     connect();
     return () => { esRef.current?.close(); };
   }, [connect]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-scroll
   useEffect(() => {

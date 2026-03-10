@@ -68,7 +68,7 @@ interface ChatMessage {
 // ─── Constants ───
 
 const ACCENT = "#0EA5E9";
-const ACCENT_SECONDARY = "#38BDF8";
+const _ACCENT_SECONDARY = "#38BDF8";
 
 // ─── Component ───
 
@@ -76,14 +76,14 @@ export default function StudiaPageClient() {
   // ── State ──
   const [activeTab, setActiveTab] = useState<"fonti" | "specialita">("fonti");
   const [sources, setSources] = useState<MedicalSource[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topics, _setTopics] = useState<Topic[]>([]);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [selectedSourceName, setSelectedSourceName] = useState<string>("");
   const [sourceArticles, setSourceArticles] = useState<MedicalArticle[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<MedicalArticle | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<MedicalArticle[]>([]);
+  const [_searchResults, _setSearchResults] = useState<MedicalArticle[]>([]);
   const [searching, setSearching] = useState(false);
 
   // Chat state

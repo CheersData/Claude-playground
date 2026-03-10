@@ -438,31 +438,105 @@ export async function searchArticles(
 
   // ── Merge reference boost + semantic results ───────────────────────────────
   // I reference boost vanno in testa (similarity=1.0), poi semantici (dedup per chiave)
+  let mergedResults: LegalArticleSearchResult[];
   if (referenceBoostResults.length > 0) {
     const boostedKeys = new Set(referenceBoostResults.map((r) => `${r.lawSource}::${r.articleReference}`));
     const semanticOnly = semanticResults.filter((r) => !boostedKeys.has(`${r.lawSource}::${r.articleReference}`));
-    return [...referenceBoostResults, ...semanticOnly].slice(0, limit);
+    mergedResults = [...referenceBoostResults, ...semanticOnly];
+  } else {
+    mergedResults = semanticResults;
   }
 
-  return semanticResults;
+  // ── Cluster expansion: fetch adjacent articles ─────────────────────────────
+  // When we find art. 1490, also fetch 1488-1492 from the same source.
+  // Legal articles often form coherent clusters (e.g., 1490-1492 c.c. for warranty).
+  // Only expand if we have results with valid IDs.
+  const idsForExpansion = mergedResults
+    .filter((r) => r.id)
+    .map((r) => r.id as string);
+
+  if (idsForExpansion.length > 0) {
+    try {
+      const adjacentArticles = await fetchAdjacentArticles(idsForExpansion, 2);
+      if (adjacentArticles.length > 0) {
+        // Dedup: don't add articles already in mergedResults
+        const existingKeys = new Set(mergedResults.map((r) => `${r.lawSource}::${r.articleReference}`));
+        const newAdjacent = adjacentArticles.filter(
+          (r) => !existingKeys.has(`${r.lawSource}::${r.articleReference}`)
+        );
+        // Adjacent articles go after the main results (lower priority)
+        mergedResults = [...mergedResults, ...newAdjacent];
+      }
+    } catch (err) {
+      // Non-fatal: if cluster expansion fails, continue with original results
+      console.warn(`[RETRIEVAL] Cluster expansion error: ${err instanceof Error ? err.message : "unknown"}`);
+    }
+  }
+
+  return mergedResults.slice(0, limit);
 }
 
-// ─── Query: Ricerca testuale (fallback per query corte) ───
+// ─── Query: Ricerca Full-Text PostgreSQL (Italian stemming) ───
 
 /**
- * Cerca articoli con ILIKE su article_title e article_reference.
- * Usata come fallback quando la ricerca semantica non trova risultati
- * (es. query molto corte come "vizi" che hanno embedding troppo generico).
+ * Cerca articoli usando PostgreSQL FTS con stemmer italiano.
+ * Richiede migration 029_legal_articles_fts.sql eseguita su Supabase.
+ * Fallback: se la RPC non esiste (migration non eseguita), ritorna null.
+ */
+export async function searchArticlesFTS(
+  query: string,
+  options: { limit?: number } = {}
+): Promise<LegalArticleSearchResult[] | null> {
+  const { limit = 20 } = options;
+  const admin = createAdminClient();
+
+  try {
+    const { data, error } = await admin.rpc("search_legal_articles_fts", {
+      p_query: query,
+      p_limit: limit,
+    });
+
+    if (error) {
+      if (error.message.includes("function") || error.code === "42883") {
+        console.log("[RETRIEVAL] FTS non disponibile (migration 029 non eseguita) — fallback ILIKE");
+        return null;
+      }
+      console.error(`[RETRIEVAL] Errore FTS: ${error.message}`);
+      return null;
+    }
+
+    const results = ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+      ...mapRowToArticle(row),
+      similarity: Math.min((row.rank as number) + 0.5, 1.0),
+    }));
+
+    console.log(`[RETRIEVAL] FTS "${query.slice(0, 50)}" → ${results.length} risultati`);
+    return results;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Query: Ricerca testuale (FTS preferito, ILIKE fallback) ───
+
+/**
+ * Cerca articoli con FTS (preferito) o ILIKE (fallback).
+ * Strategia: prova FTS con stemming italiano → se non disponibile, ILIKE su article_title.
  */
 export async function searchArticlesText(
   query: string,
   options: { lawSource?: string; limit?: number } = {}
 ): Promise<LegalArticleSearchResult[]> {
   const { lawSource, limit = 20 } = options;
-  const admin = createAdminClient();
 
-  // Use word-boundary pattern to avoid matching substrings (e.g. "vizi" in "servizio")
-  // PostgreSQL ILIKE doesn't support \b, so we search with spaces/start/end anchors
+  // ── Prova FTS first (migration 029) ──
+  const ftsResults = await searchArticlesFTS(query, { limit });
+  if (ftsResults !== null && ftsResults.length > 0) {
+    return ftsResults;
+  }
+
+  // ── Fallback ILIKE (pre-migration 029) ──
+  const admin = createAdminClient();
   const words = query.trim().toLowerCase().split(/\s+/);
   const fields = "id, law_source, article_reference, article_title, article_text, hierarchy, keywords, related_institutes, source_url, is_in_force";
 
@@ -1081,6 +1155,163 @@ export async function getSourceHierarchy(
     article_count: data.length,
     tree: Array.from(rootMap.values()),
   };
+}
+
+// ─── Cluster retrieval: adjacent articles ───
+
+/**
+ * Extracts the numeric core from an article_number string.
+ * Examples: "1490" → 1490, "1490-bis" → 1490, "6" → 6, "33 bis" → 33
+ * Returns null if no number found.
+ */
+function extractNumericCore(articleNumber: string): number | null {
+  const match = articleNumber.match(/^(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
+ * Fetches adjacent articles from the same source for a set of found articles.
+ *
+ * When we find art. 1490 c.c., we also want 1488, 1489, 1491, 1492 because
+ * legal articles often form coherent clusters (e.g., 1490-1492 c.c. all deal
+ * with warranty for defects in sales).
+ *
+ * Uses a simple Supabase query filtering by law_source and article_number range,
+ * NOT vector search. This is fast and deterministic.
+ *
+ * @param articleIds - UUIDs of found articles to expand from
+ * @param range - How many articles before/after to fetch (default: 2)
+ * @returns Adjacent articles not already in the input set, as LegalArticleSearchResult[]
+ */
+export async function fetchAdjacentArticles(
+  articleIds: string[],
+  range: number = 2
+): Promise<LegalArticleSearchResult[]> {
+  if (articleIds.length === 0) return [];
+
+  const admin = createAdminClient();
+  const MAX_ADJACENT_PER_ARTICLE = 5;
+
+  // Step 1: Fetch the source articles to know their law_source and article_number
+  const fields = "id, law_source, article_reference, article_title, article_text, hierarchy, keywords, related_institutes, source_url, is_in_force, article_number";
+  const { data: sourceArticles, error: fetchError } = await admin
+    .from("legal_articles")
+    .select(fields)
+    .in("id", articleIds);
+
+  if (fetchError || !sourceArticles || sourceArticles.length === 0) {
+    if (fetchError) {
+      console.error(`[RETRIEVAL] fetchAdjacentArticles error: ${fetchError.message}`);
+    }
+    return [];
+  }
+
+  // Step 2: Group by law_source, collect numeric ranges to fetch
+  const rangesBySource = new Map<string, { min: number; max: number }[]>();
+  const inputIds = new Set(articleIds);
+
+  for (const row of sourceArticles as Array<Record<string, unknown>>) {
+    const lawSource = row.law_source as string;
+    const articleNum = row.article_number as string;
+    const numCore = extractNumericCore(articleNum);
+    if (numCore === null) continue;
+
+    if (!rangesBySource.has(lawSource)) {
+      rangesBySource.set(lawSource, []);
+    }
+    rangesBySource.get(lawSource)!.push({
+      min: Math.max(1, numCore - range),
+      max: numCore + range,
+    });
+  }
+
+  if (rangesBySource.size === 0) return [];
+
+  // Step 3: For each source, fetch articles in the numeric range
+  const adjacentResults: LegalArticleSearchResult[] = [];
+  const seenIds = new Set(inputIds);
+
+  for (const [lawSource, ranges] of Array.from(rangesBySource.entries())) {
+    // Merge overlapping ranges to minimize queries
+    const merged = mergeRanges(ranges);
+
+    for (const r of merged) {
+      // Build array of target article numbers (as strings) for the range
+      const targetNumbers: string[] = [];
+      for (let n = r.min; n <= r.max; n++) {
+        targetNumbers.push(String(n));
+      }
+
+      // Query: fetch articles where law_source matches and article_number starts with
+      // one of our target numbers. We use a regex-like approach via multiple conditions.
+      // Since article_number can be "1490", "1490-bis", etc., we match the numeric prefix.
+      //
+      // Most efficient approach: use a single query with array of article_numbers.
+      // For adjacent articles, the exact number match is the most common case.
+      // We also want to catch "bis"/"ter" variants, so we use ilike patterns.
+      const orFilters = targetNumbers.map(n => `article_number.eq.${n},article_number.like.${n} %,article_number.like.${n}-%`).join(",");
+
+      const { data: adjacentData, error: adjError } = await admin
+        .from("legal_articles")
+        .select(fields)
+        .eq("law_source", lawSource)
+        .or(orFilters)
+        .limit(MAX_ADJACENT_PER_ARTICLE * targetNumbers.length);
+
+      if (adjError) {
+        console.warn(`[RETRIEVAL] Adjacent fetch error for ${lawSource}: ${adjError.message}`);
+        continue;
+      }
+
+      if (adjacentData) {
+        for (const row of adjacentData as Array<Record<string, unknown>>) {
+          const id = row.id as string;
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+
+          adjacentResults.push({
+            ...mapRowToArticle(row),
+            similarity: 0.85, // Adjacent articles get high but not max relevance
+          });
+        }
+      }
+    }
+  }
+
+  // Enforce global limit: max MAX_ADJACENT_PER_ARTICLE per source article
+  const maxTotal = articleIds.length * MAX_ADJACENT_PER_ARTICLE;
+  const limited = adjacentResults.slice(0, maxTotal);
+
+  if (limited.length > 0) {
+    console.log(
+      `[RETRIEVAL] Cluster expansion: ${articleIds.length} source articles → +${limited.length} adjacent (${Array.from(rangesBySource.keys()).join(", ")})`
+    );
+  }
+
+  return limited;
+}
+
+/**
+ * Merges overlapping numeric ranges into non-overlapping ones.
+ * [{min:1488,max:1492}, {min:1490,max:1494}] → [{min:1488,max:1494}]
+ */
+function mergeRanges(ranges: { min: number; max: number }[]): { min: number; max: number }[] {
+  if (ranges.length <= 1) return ranges;
+
+  const sorted = [...ranges].sort((a, b) => a.min - b.min);
+  const merged: { min: number; max: number }[] = [sorted[0]];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const last = merged[merged.length - 1];
+    if (sorted[i].min <= last.max + 1) {
+      // Overlapping or adjacent ranges — merge
+      last.max = Math.max(last.max, sorted[i].max);
+    } else {
+      merged.push(sorted[i]);
+    }
+  }
+
+  return merged;
 }
 
 // ─── Utility ───

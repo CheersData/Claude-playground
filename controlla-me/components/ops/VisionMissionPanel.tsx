@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Telescope,
   Building2,
-  TrendingUp,
   ChevronDown,
   ChevronUp,
   Sparkles,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import nextDynamic from "next/dynamic";
 
 // All console components imported with ssr:false to prevent Next.js 16 Turbopack
@@ -599,7 +600,18 @@ export default function ConsolePageClient() {
             {status === "clarification" && clarificationQ && (
               <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-block w-[7px] h-[7px] rounded-full bg-amber-500 animate-pulse" />
+                  <span className="relative inline-flex w-[7px] h-[7px]">
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-amber-500"
+                      animate={{ scale: [1, 2.4], opacity: [0.5, 0] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
+                    />
+                    <motion.span
+                      className="relative block w-[7px] h-[7px] rounded-full bg-amber-500"
+                      animate={{ scale: [1, 1.2, 1], opacity: [1, 0.85, 1] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </span>
                   <span className="text-xs font-medium text-[var(--foreground)]">Leader</span>
                 </div>
                 <p className="text-sm text-amber-700">{clarificationQ}</p>

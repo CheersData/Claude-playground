@@ -1,0 +1,29 @@
+{
+  "testId": "TC45",
+  "question": "Il notaio non ha verificato che sull'immobile c'era un'ipoteca. Posso chiedergli i danni?",
+  "agentAnswer": "Sì, è possibile chiedere i danni al notaio che non ha verificato la presenza di un'ipoteca sull'immobile. Il notaio, nell'esercizio della sua attività professionale, è tenuto ad adempiere i suoi doveri con la diligenza qualificata richiesta dalla natura dell'incarico. L'omessa verifica della presenza di gravami ipotecari costituisce una violazione di tale dovere di diligenza, potendo configurare un inadempimento contrattuale che dà diritto al risarcimento del danno.\n\nRiferimenti normativi:\nL'Art. 1176 c.c. stabilisce che nell'adempimento delle obbligazioni inerenti all'esercizio di un'attività professionale, la diligenza deve valutarsi con riguardo alla natura dell'attività esercitata. La verifica della libertà dell'immobile da gravami è un'attività fondamentale e standard per il notaio. L'Art. 1218 c.c. prevede che il debitore che non esegue esattamente la prestazione dovuta è tenuto al risarcimento del danno, se non prova che l'inadempimento è stato determinato da impossibilità della prestazione derivante da causa a lui non imputabile. Nel caso specifico degli immobili da costruire, l'Art. 8 del D.Lgs. 122/2005 impone al notaio di non procedere alla stipula dell'atto di compravendita se non si è provveduto alla cancellazione o frazionamento dell'ipoteca o del pignoramento. L'Art. 2236 c.c. limita la responsabilità del prestatore d'opera a dolo o colpa grave solo per problemi tecnici di speciale difficoltà, ma la verifica ipotecaria non rientra in tale categoria, implicando una responsabilità anche per colpa lieve.\n\nOrientamenti giurisprudenziali:\nPer una risposta completa a questa domanda servono riferimenti giurisprudenziali che non sono nel corpus normativo disponibile. Tuttavia, la giurisprudenza di legittimità ha costantemente affermato la responsabilità del notaio per l'omessa verifica della libertà dell'immobile da ipoteche o altri gravami, considerandola una violazione del suo dovere professionale di diligenza e perizia, essenziale per la validità e la sicurezza della transazione immobiliare.\n\nIn pratica:\nPer procedere con la richiesta di risarcimento danni, è consigliabile raccogliere tutta la documentazione relativa all'acquisto dell'immobile e all'atto notarile, inclusa la visura ipotecaria che attesta la presenza dell'ipoteca non rilevata. Successivamente, si potrà inviare una formale contestazione al notaio, chiedendo il risarcimento dei danni subiti a causa della sua negligenza. Se non si raggiunge un accordo, sarà necessario intraprendere un'azione legale per ottenere il risarcimento.",
+  "expectedAnswer": "Sì, il notaio è responsabile: ha l'obbligo professionale di effettuare le visure ipotecarie. La mancata verifica viola la diligenza qualificata (art. 1176 co.2 c.c.). Cassazione 2020/24048 conferma la responsabilità. Prescrizione 10 anni.",
+  "scoringHints": {
+    "prep": "Ha formulato query su responsabilità notaio e obbligo visure?",
+    "search": "Ha trovato art. 1176 e giurisprudenza sulla responsabilità notarile?",
+    "quality": "Afferma la responsabilità? Cita art. 1176 co.2 e/o Cassazione?"
+  },
+  "trapType": null,
+  "institutes": [
+    "responsabilità_notaio",
+    "obbligo_visure",
+    "diligenza_professionale"
+  ],
+  "scope": "Sì: responsabilità notaio per mancata visura. Art. 1176 co.2 + Cass. 2020/24048.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 20,
+    "quality": 30,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha fornito una spiegazione accurata della responsabilità del notaio, citando articoli pertinenti come il 1176 e 1218 c.c. Tuttavia, ha fallito nel recuperare la specifica sentenza di Cassazione richiesta e non ha menzionato il termine di prescrizione, riducendo il punteggio di ricerca e completezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:21:06.494Z"
+}

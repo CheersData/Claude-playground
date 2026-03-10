@@ -1,0 +1,29 @@
+{
+  "testId": "TC67",
+  "question": "Ho pagato un acconto a un artigiano che è sparito senza fare il lavoro. È truffa?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl comportamento dell'artigiano potrebbe configurare il reato di truffa aggravata (Art. 640-bis c.p.), se ha ottenuto il pagamento con artifizi o raggiri, inducendoti in errore e procurandosi un ingiusto profitto. La pena prevista è la reclusione da 2 a 7 anni.\n\nRiferimenti normativi:\nL'Art. 640-bis c.p. punisce chi ottiene contributi, finanziamenti o erogazioni pubbliche con artifizi o raggiri. Anche se non si tratta di un'agevolazione pubblica, il comportamento descritto rientra nella condotta tipica della truffa. L'Art. 640 c.p. (truffa semplice) prevede la reclusione da 6 mesi a 3 anni e la multa, con aggravanti se il fatto è commesso a danno di enti pubblici o con strumenti informatici.\n\nIn pratica:\nDenuncia il fatto alla polizia o ai carabinieri, presentando prove del pagamento e della mancata esecuzione del lavoro. Se l'artigiano ha agito con dolo, potresti configurare il reato di truffa.",
+  "expectedAnswer": "TRAPPOLA: dipende dal dolo. Truffa (art. 640 c.p.) richiede dolo ORIGINARIO: l'artigiano doveva avere intenzione di non adempiere PRIMA di prendere il denaro. Se l'inadempimento è sopravvenuto (difficoltà economiche, incidenti) = solo illecito civile. La distinzione è fondamentale per la strada da percorrere (penale vs civile).",
+  "scoringHints": {
+    "prep": "Ha formulato query su dolo originario e distinzione truffa/inadempimento?",
+    "search": "Ha trovato art. 640 c.p. con l'elemento del dolo?",
+    "quality": "Distingue dolo originario da inadempimento sopravvenuto? Non afferma automaticamente 'è truffa'?"
+  },
+  "trapType": "confine_penale_civile",
+  "institutes": [
+    "truffa",
+    "inadempimento_contrattuale",
+    "dolo_originario"
+  ],
+  "scope": "CONFINE CIVILE-PENALE: truffa richiede dolo originario. Inadempimento = solo civile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 30,
+    "total": 75,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente affronta la questione della possibile truffa e cita correttamente gli articoli di legge pertinenti (art. 640 e 640-bis c.p.). Tuttavia, non coglie pienamente la distinzione fondamentale tra dolo originario e inadempimento sopravvenuto, né esplora a sufficienza la trappola del confine tra illecito penale e civile. La risposta è informativa ma non approfondisce la complessità giuridica della questione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:34:51.616Z"
+}

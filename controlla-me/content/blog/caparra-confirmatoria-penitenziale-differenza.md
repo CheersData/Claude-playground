@@ -2,145 +2,134 @@
 title: "Caparra confirmatoria o penitenziale: qual è la differenza e quando puoi perderla"
 slug: caparra-confirmatoria-penitenziale-differenza
 keyword: caparra confirmatoria cosa significa
-type: pillar
+secondary_keywords:
+  - differenza caparra confirmatoria penitenziale
+  - caparra persa cosa fare
+  - caparra doppio restituzione
+  - acconto vs caparra
+type: faq
 status: draft
 author: content-writer
 date: 2026-03-09
 legal_review: pending
-word_count: 1800+
+word_count: "1200+"
 ---
 
 # Caparra confirmatoria o penitenziale: qual è la differenza e quando puoi perderla
 
-Stai per firmare un compromesso per una casa. Il venditore ti chiede 10.000 euro di caparra. Tu paghi, firmi e vai via tranquillo. Ma sai cosa succede a quei soldi se qualcosa va storto? Dipende tutto da **una parola** nel contratto — e quasi nessuno la controlla.
+**Caparra** è una parola che tutti usano, ma pochi capiscono davvero. La si incontra nei preliminari di compravendita immobiliare, nei contratti di locazione, negli accordi commerciali. Eppure, la differenza tra **caparra confirmatoria** e **caparra penitenziale** può valere migliaia di euro e cambiare radicalmente i tuoi diritti in caso di problemi.
 
-La differenza tra caparra confirmatoria e caparra penitenziale è una delle trappole più comuni nei contratti italiani. Due istituti giuridici che sembrano uguali ma funzionano in modo completamente diverso. In questa guida vediamo come distinguerle, cosa rischi e come proteggerti.
+In questa guida spieghiamo tutto in modo chiaro: cosa dice il Codice civile, cosa succede se qualcuno non rispetta il contratto, e soprattutto cosa rischi tu quando firmi una clausola sulla caparra.
 
-## Cos'è la caparra e a cosa serve
+---
 
-La caparra è una somma di denaro che una parte consegna all'altra al momento della conclusione del contratto. Non è un acconto — l'acconto è un anticipo sul prezzo, la caparra è una **garanzia**.
+## Cos'è la caparra confirmatoria
 
-Serve a due scopi:
-- **Confermare l'impegno** delle parti (caparra confirmatoria)
-- **Pagare il prezzo del recesso** (caparra penitenziale)
+La **caparra confirmatoria** è disciplinata dall'`Art. 1385 c.c.` ed è la forma di caparra più diffusa nei contratti italiani. La sua funzione principale è confermare la **serietà dell'impegno** assunto dalle parti: chi versa la caparra dimostra concretamente di voler portare a termine il contratto.
 
-La differenza è enorme, e il Codice Civile li disciplina in due articoli separati.
+### Come funziona nella pratica
 
-## Caparra confirmatoria (Art. 1385 Codice Civile)
+**Se tutto va bene** e il contratto viene eseguito regolarmente, la caparra confirmatoria si trasforma in un semplice **acconto sul prezzo**. Viene quindi sottratta dall'importo totale dovuto. Nessuna complicazione.
 
-La caparra confirmatoria è la più comune. Funziona così:
+**Se inadempie chi ha dato la caparra** (ad esempio, il compratore che si tira indietro), l'altra parte ha il diritto di **trattenere la caparra** come risarcimento forfettario. Non deve dimostrare di aver subito un danno: la caparra copre tutto.
 
-**Se tutto va bene**: la caparra viene restituita oppure imputata al prezzo finale. Hai dato 10.000 euro di caparra su una casa da 200.000? Alla fine dovrai pagare solo 190.000.
+**Se inadempie chi ha ricevuto la caparra** (ad esempio, il venditore che decide di non vendere più), deve **restituire il doppio** della somma ricevuta. Questo meccanismo del "doppio" è la vera forza della caparra confirmatoria: funziona come deterrente contro l'inadempimento di entrambe le parti.
 
-**Se è inadempiente chi ha dato la caparra** (il compratore): l'altra parte può trattenere la caparra. Perdi i 10.000 euro.
+### L'alternativa che molti non conoscono
 
-**Se è inadempiente chi ha ricevuto la caparra** (il venditore): chi l'ha versata può chiedere il **doppio**. Il venditore deve restituirti 20.000 euro.
+Ecco il punto cruciale della caparra confirmatoria: la parte non inadempiente **non è obbligata** a trattenere la caparra (o a chiedere il doppio). Può invece scegliere di **agire per l'esecuzione del contratto**, cioè chiedere al giudice che l'altra parte sia costretta a rispettare quanto pattuito. In questo caso, può anche ottenere un **risarcimento del danno effettivo**, che potrebbe essere superiore alla caparra stessa.
 
-Ma attenzione — la parte non inadempiente ha una **scelta**:
-1. **Recedere** e tenersi la caparra (o chiedere il doppio)
-2. **Agire per l'adempimento** del contratto (chiedere che il contratto venga eseguito) **più il risarcimento del danno**
+Questa scelta tra le due strade (trattenere la caparra oppure chiedere l'esecuzione forzata + risarcimento) è una prerogativa esclusiva della caparra confirmatoria, e la distingue nettamente dalla penitenziale.
 
-Questa scelta è fondamentale: se il danno reale supera l'importo della caparra, potrebbe convenirti chiedere l'adempimento e il risarcimento completo anziché il doppio della caparra.
+---
 
-### Esempio pratico
+## Cos'è la caparra penitenziale
 
-Marco versa 15.000 euro di caparra confirmatoria per un appartamento da 250.000 euro. Il venditore poi decide di vendere a un altro. Marco può:
-- **Opzione A**: recedere e chiedere 30.000 euro (doppio della caparra)
-- **Opzione B**: agire in giudizio per ottenere l'appartamento + risarcimento per i danni subiti (spese notarili già sostenute, affitto pagato nel frattempo, ecc.)
+La **caparra penitenziale** è regolata dall'`Art. 1386 c.c.` e ha una natura completamente diversa. Non è una garanzia di serietà, ma il **prezzo del pentimento**: chi la versa si riserva il diritto di recedere dal contratto, pagando un costo predeterminato.
 
-## Caparra penitenziale (Art. 1386 Codice Civile)
+### Come funziona nella pratica
 
-La caparra penitenziale funziona in modo completamente diverso. È il **prezzo del diritto di recesso**. In pratica, pagando la caparra, ti compri il diritto di tirarti indietro.
+**Se recede chi ha dato la caparra**, la perde. Punto. La caparra resta nelle mani dell'altra parte come corrispettivo del recesso.
 
-**Se recede chi ha dato la caparra**: perde la somma versata. Fine. Nessuna causa, nessun risarcimento aggiuntivo.
+**Se recede chi ha ricevuto la caparra**, deve **restituire il doppio**. Anche qui il meccanismo del doppio è presente, ma la logica è diversa: non si tratta di un risarcimento per inadempimento, ma del costo simmetrico per esercitare il diritto di recedere.
 
-**Se recede chi ha ricevuto la caparra**: deve restituire il doppio. Ma anche qui: nessun altro risarcimento.
+### La differenza chiave
 
-La differenza chiave è che con la caparra penitenziale **non puoi chiedere l'adempimento del contratto** e **non puoi chiedere risarcimenti aggiuntivi**. La caparra (o il suo doppio) è tutto ciò che ottieni.
+Con la caparra penitenziale, la parte che subisce il recesso **non può chiedere l'esecuzione del contratto**. Il recesso è legittimo, e la caparra (o il suo doppio) rappresenta il **massimo risarcimento ottenibile**. Non si può andare oltre, nemmeno se il danno reale è molto più alto.
 
-### Esempio pratico
+Questo rende la caparra penitenziale uno strumento molto più "morbido" per chi vuole riservarsi una via di uscita, ma molto più rischioso per chi vuole la certezza che il contratto venga rispettato.
 
-Laura versa 10.000 euro di caparra penitenziale per un immobile. Dopo due mesi cambia idea e non vuole più comprare. Laura perde i 10.000 euro, ma il venditore non può chiederle altro — nemmeno se ha subito danni maggiori. La caparra è il corrispettivo del recesso: pagata quella, la questione è chiusa.
+---
 
-## Le 5 differenze fondamentali — tabella comparativa
+## Tabella comparativa
 
-| Aspetto | Confirmatoria (Art. 1385) | Penitenziale (Art. 1386) |
-|---------|--------------------------|-------------------------|
-| **Scopo** | Garantire l'adempimento | Pagare il diritto di recedere |
-| **Inadempimento: chi ha dato** | Perde la caparra | Perde la caparra |
-| **Inadempimento: chi ha ricevuto** | Restituisce il doppio | Restituisce il doppio |
-| **Si può chiedere l'adempimento?** | **Sì** (in alternativa al recesso) | **No** — il recesso chiude tutto |
-| **Si può chiedere risarcimento aggiuntivo?** | **Sì** (se si sceglie l'adempimento) | **No** — la caparra è il massimo |
+| Aspetto | Confirmatoria | Penitenziale |
+|---------|--------------|-------------|
+| **Base legale** | `Art. 1385 c.c.` | `Art. 1386 c.c.` |
+| **Funzione** | Garanzia di serietà | Prezzo del recesso |
+| **Inadempimento di chi dà** | Trattenuta dall'altra parte | Persa per recesso |
+| **Inadempimento di chi riceve** | Restituire il doppio | Restituire il doppio |
+| **Esecuzione forzata** | Si (in alternativa al recesso) | No |
+| **Risarcimento ulteriore** | Si (se si chiede l'esecuzione) | No (la caparra è il massimo) |
 
-La differenza pratica è enorme: con la confirmatoria hai **due strade** (recesso o adempimento + risarcimento), con la penitenziale ne hai **una sola** (recesso).
+---
 
-## Gli errori più comuni nei contratti
+## Caparra vs acconto: la differenza cruciale
 
-### 1. Il contratto non specifica il tipo di caparra
+Una confusione molto comune è quella tra **caparra** e **acconto**. Sono cose profondamente diverse, e scambiare l'una per l'altro può costare caro.
 
-Questo è l'errore più frequente. Il contratto dice solo "caparra di 10.000 euro" senza specificare se è confirmatoria o penitenziale. In questo caso, la giurisprudenza prevalente la considera **confirmatoria**, perché è il tipo "naturale" previsto dal Codice Civile (Cass. civ., sez. II, n. 24204/2019).
+L'**acconto** è un semplice anticipo sul prezzo. Non ha **nessuna funzione di garanzia**: è solo una parte del corrispettivo pagata in anticipo. Non è disciplinato dalle norme sulla caparra e non attiva il meccanismo del doppio.
 
-Ma non affidarti a questa presunzione: **pretendi sempre che il tipo sia specificato nel contratto**.
+La conseguenza pratica è netta: **se il contratto salta, l'acconto va sempre restituito** a chi lo ha versato, indipendentemente da chi ha causato la rottura dell'accordo. Non può essere trattenuto come risarcimento, a meno che le parti non abbiano previsto una clausola penale separata nel contratto.
 
-### 2. Confondere la caparra con l'acconto
+La **caparra**, al contrario, ha una funzione di garanzia specifica. Chi è inadempiente la perde. Chi subisce l'inadempimento può trattenerla o chiederne il doppio. L'acconto non offre nessuna di queste tutele.
 
-L'acconto è un **anticipo sul prezzo**. Non ha funzione di garanzia. Se il contratto salta, l'acconto va sempre restituito — non importa chi sia inadempiente. Una clausola che dice "l'acconto non sarà restituito" è nulla.
+**Regola pratica**: se nel contratto leggete solo "acconto" o "anticipo", non avete le protezioni della caparra. Se leggete "caparra confirmatoria" o "caparra penitenziale", si applicano rispettivamente l'`Art. 1385 c.c.` o l'`Art. 1386 c.c.`. Le parole nel contratto contano enormemente.
 
-La caparra, invece, ha funzione di garanzia: chi recede o è inadempiente la perde (o ne deve il doppio).
+---
 
-### 3. Caparra sproporzionata
+## Quando puoi perdere la caparra: scenari concreti
 
-Non c'è un limite legale all'importo della caparra, ma una caparra eccessiva rispetto al valore del contratto può essere considerata **clausola vessatoria** nei contratti tra professionista e consumatore (art. 33, comma 2, lett. f, D.Lgs. 206/2005).
+### Scenario 1 -- Compri casa e cambi idea (caparra confirmatoria)
 
-Nelle compravendite immobiliari, la prassi è tra il **5% e il 15%** del prezzo. Una caparra del 50% dovrebbe far scattare un campanello d'allarme.
+Hai firmato un preliminare di compravendita versando 20.000 euro di **caparra confirmatoria**. Dopo due mesi, per motivi personali, decidi di non comprare più. Il venditore ha il diritto di trattenere i 20.000 euro senza dover dimostrare alcun danno. Ma non finisce qui: il venditore potrebbe anche scegliere di non accontentarsi della caparra e citarti in giudizio per ottenere l'**esecuzione forzata** del contratto, obbligandoti a comprare, più un risarcimento per i danni subiti nel frattempo. Con la caparra confirmatoria, chi è inadempiente rischia più della semplice perdita della somma versata.
 
-### 4. Mescolare caparra e clausola penale
+### Scenario 2 -- Il venditore si tira indietro (caparra confirmatoria)
 
-Alcuni contratti prevedono sia una caparra sia una clausola penale per lo stesso inadempimento. Questo può creare problemi interpretativi. La Cassazione ha chiarito che caparra e penale hanno funzioni diverse e possono coesistere, ma il loro importo complessivo non deve essere eccessivo (Cass. civ., sez. II, n. 11356/2006).
+Stesso preliminare, stessa caparra confirmatoria di 20.000 euro. Questa volta è il venditore a ricevere un'offerta migliore e a decidere di non vendere più a te. Hai diritto a chiedere **40.000 euro** (il doppio della caparra versata). In alternativa, puoi agire in giudizio per ottenere una sentenza che trasferisca la proprietà dell'immobile a tuo favore ai sensi dell'`Art. 2932 c.c.`, più il risarcimento di tutti i danni documentabili: spese notarili già sostenute, affitto pagato nel frattempo, differenza di prezzo se l'immobile si è rivalutato.
 
-## Caparra nelle compravendite immobiliari: il compromesso
+### Scenario 3 -- Recesso con caparra penitenziale
 
-Il caso più comune è la **proposta d'acquisto** o il **preliminare di vendita** (compromesso) per un immobile. Ecco cosa devi sapere:
+Hai firmato un contratto con una clausola di **caparra penitenziale** di 5.000 euro. Dopo qualche settimana cambi idea e decidi di recedere. Perdi i 5.000 euro, ma il tuo recesso è **perfettamente legittimo**: l'altra parte non può chiederti nulla in più. Nessun risarcimento ulteriore, nessuna causa per esecuzione forzata. I 5.000 euro sono il prezzo della tua libertà contrattuale, stabilito fin dall'inizio.
 
-**Alla proposta d'acquisto**: l'assegno che consegni all'agenzia viene spesso definito "a titolo di caparra confirmatoria". Questo è corretto, ma verifica che:
-- Il tipo sia esplicitamente indicato
-- L'importo sia ragionevole (5-15% del prezzo)
-- Sia specificato cosa succede se il mutuo viene rifiutato (clausola sospensiva)
+Questo scenario mostra perché è fondamentale sapere quale tipo di caparra è prevista nel contratto: con la confirmatoria, il tuo rischio potenziale è molto più alto perché l'altra parte può scegliere la strada dell'esecuzione forzata e del risarcimento pieno.
 
-**Al preliminare (compromesso)**: qui la caparra assume pieno effetto. Se il venditore si tira indietro dopo il compromesso, hai diritto al doppio della caparra confirmatoria.
-
-**Attenzione alla trascrizione**: il preliminare trascritto nei registri immobiliari (art. 2645-bis c.c.) offre una protezione aggiuntiva. Se il venditore vende a un terzo dopo il compromesso trascritto, il tuo diritto prevale.
-
-## Cosa fare se hai già firmato
-
-### Se hai versato una caparra e l'altra parte è inadempiente:
-
-1. **Verifica il tipo di caparra** nel contratto. Se non è specificato, vale come confirmatoria
-2. **Valuta l'entità del danno**: se supera il doppio della caparra, conviene agire per l'adempimento + risarcimento (solo con la confirmatoria)
-3. **Comunica per iscritto**: invia una raccomandata A/R o PEC dichiarando che intendi avvalerti del diritto di recesso e chiedendo il doppio della caparra
-4. **Conserva le prove**: ricevute di pagamento, contratto firmato, corrispondenza
-
-### Se vuoi recedere tu:
-
-1. Con la **confirmatoria**: perdi la caparra, ma l'altra parte potrebbe anche chiedere l'adempimento + danni ulteriori
-2. Con la **penitenziale**: perdi la caparra e la questione si chiude
+---
 
 ## Domande frequenti
 
-**La caparra produce interessi?**
-Sì. Chi riceve la caparra è tenuto a restituirla con gli interessi legali maturati, a meno che il contratto non preveda diversamente (analogia con il deposito cauzionale, art. 11 L. 392/1978).
+### Se la caparra non è specificata nel contratto, è confirmatoria o penitenziale?
 
-**Posso dare la caparra in assegno?**
-Sì, ma l'assegno deve essere immediatamente incassabile. Un assegno postdatato non costituisce validamente caparra fino all'incasso.
+Nel dubbio, la giurisprudenza italiana la considera **confirmatoria**. La caparra penitenziale deve essere espressamente qualificata come tale nel contratto, perché attribuisce un diritto di recesso che deroga al principio generale di vincolatività degli accordi. Quindi, se nel contratto leggete solo "caparra" senza ulteriori specificazioni, si applica l'`Art. 1385 c.c.` e non avrete il diritto di recedere "pagando" semplicemente la caparra.
 
-**La caparra va dichiarata al fisco?**
-Nella compravendita immobiliare, la caparra confirmatoria è soggetta a imposta di registro del 0,50%, che verrà poi scomputata dall'imposta dovuta al rogito.
+### Posso chiedere sia il doppio della caparra che il risarcimento danni?
 
-**Se il mutuo viene rifiutato, perdo la caparra?**
-Dipende dal contratto. Se c'è una **clausola sospensiva** legata all'approvazione del mutuo, il contratto non si perfeziona e la caparra va restituita. Se non c'è, rischi di perderla. Motivo in più per farsi controllare il contratto prima di firmare.
+**No**, non contemporaneamente. Con la caparra confirmatoria avete due strade, ma sono **alternative tra loro**: o trattenete la caparra (o chiedete il doppio), oppure chiedete l'esecuzione del contratto più il risarcimento del danno effettivo. Non è possibile cumulare entrambi i rimedi. Se scegliete la via del risarcimento e dimostrate un danno superiore, otterrete di più. Se il danno è inferiore alla caparra, conviene limitarsi a trattenere la caparra o a chiedere il doppio.
 
-## Non sei sicuro del tipo di caparra nel tuo contratto?
+### Il preliminare dal notaio cambia qualcosa sulla caparra?
 
-Che si tratti di un compromesso per una casa, un contratto di fornitura o un accordo commerciale, il tipo di caparra cambia tutto. Una parola sbagliata può costarti migliaia di euro.
+Il **preliminare trascritto** (stipulato davanti al notaio e registrato nei registri immobiliari ai sensi dell'`Art. 2645-bis c.c.`) non modifica la natura della caparra, ma offre una tutela aggiuntiva fondamentale. La **trascrizione** protegge il promissario acquirente da eventuali vendite a terzi, iscrizioni di ipoteche o pignoramenti successivi alla trascrizione del preliminare. La caparra mantiene la sua funzione (confirmatoria o penitenziale), ma la trascrizione aggiunge uno scudo contro i rischi di insolvenza o malafede del venditore che la sola caparra non può garantire.
 
-Carica il tuo contratto su **Controlla.me**: l'analisi AI identifica il tipo di caparra, verifica che sia conforme alla normativa e ti spiega in parole semplici cosa succede se qualcosa va storto. Gratis per le prime 3 analisi.
+### Quanto può essere la caparra? C'è un limite?
+
+Il Codice civile **non fissa un importo massimo** per la caparra. Le parti sono libere di concordare la cifra che ritengono opportuna. Nella prassi immobiliare, la caparra confirmatoria si attesta tipicamente tra il **5% e il 20%** del prezzo di vendita. Tuttavia, una caparra eccessivamente elevata potrebbe essere considerata dal giudice come una **clausola penale** mascherata e, in quanto tale, essere ridotta se manifestamente eccessiva ai sensi dell'`Art. 1384 c.c.`. Nei contratti tra professionista e consumatore, una caparra sproporzionata potrebbe anche configurare una clausola vessatoria ai sensi del Codice del consumo.
+
+### La caparra va dichiarata ai fini fiscali?
+
+La caparra confirmatoria, in quanto somma versata a titolo di garanzia, è soggetta a **imposta di registro proporzionale** nella misura dello 0,50% dell'importo versato. Questa imposta viene poi scomputata dall'imposta di registro dovuta al momento del rogito definitivo. L'acconto, diversamente, sconta l'IVA o l'imposta di registro nella misura ordinaria prevista per il tipo di compravendita. La distinzione fiscale tra caparra e acconto è quindi rilevante anche sul piano tributario.
+
+---
+
+## Stai per firmare un contratto con una clausola sulla caparra?
+
+Carica il documento su [controlla.me](https://controlla.me): il nostro sistema AI analizza le clausole e ti spiega esattamente cosa rischi. Le prime 3 analisi sono gratuite.

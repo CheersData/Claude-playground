@@ -16,15 +16,36 @@ export { parseAgentJSON } from "./anthropic";
 // ─── Singleton ───
 
 let _client: GoogleGenAI | null = null;
+let _geminiRotatedToAlt = false;
 
 function getGeminiClient(): GoogleGenAI {
   if (!_client) {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("Missing GEMINI_API_KEY environment variable");
+    // Use ALT key if already rotated, otherwise primary
+    const envKey = _geminiRotatedToAlt && process.env.GEMINI_API_KEY_ALT
+      ? "GEMINI_API_KEY_ALT"
+      : "GEMINI_API_KEY";
+    const apiKey = process.env[envKey];
+    if (!apiKey) {
+      throw new Error(`Missing ${envKey} environment variable`);
     }
-    _client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    _client = new GoogleGenAI({ apiKey });
   }
   return _client;
+}
+
+/**
+ * Attempt to rotate Gemini to ALT key.
+ * Returns true if rotation succeeded (ALT key exists and wasn't already active).
+ */
+function rotateGeminiToAltKey(): boolean {
+  if (_geminiRotatedToAlt) return false;
+  const altKey = process.env.GEMINI_API_KEY_ALT;
+  if (!altKey) return false;
+
+  _geminiRotatedToAlt = true;
+  _client = null; // Force recreation on next getGeminiClient()
+  console.log("[KEY-ROTATION] gemini switched to ALT key (GEMINI_API_KEY_ALT)");
+  return true;
 }
 
 // ─── Config ───
@@ -32,13 +53,13 @@ function getGeminiClient(): GoogleGenAI {
 export const GEMINI_MODEL = "gemini-2.5-flash";
 
 const MAX_RETRIES = 3;
-const RETRY_WAIT_MS = 10_000;
+const _RETRY_WAIT_MS = 10_000;
 
 // ─── Public API ───
 
-/** Check if Gemini is available (API key present). */
+/** Check if Gemini is available (API key present — primary or ALT). */
 export function isGeminiEnabled(): boolean {
-  return !!process.env.GEMINI_API_KEY;
+  return !!process.env.GEMINI_API_KEY || !!process.env.GEMINI_API_KEY_ALT;
 }
 
 export interface GeminiGenerateConfig {
@@ -76,7 +97,7 @@ export async function generateWithGemini(
     agentName = "GEMINI",
   } = config;
 
-  const client = getGeminiClient();
+  let client = getGeminiClient();
   const inputChars = prompt.length + (systemPrompt?.length ?? 0);
   const label = agentName.toUpperCase();
 
@@ -123,20 +144,31 @@ export async function generateWithGemini(
       const isRateLimit =
         status === 429 ||
         errorMsg.includes("RESOURCE_EXHAUSTED");
+      const isAuthError = status === 401 || status === 403;
 
-      // Daily quota exhausted → throw immediately (retry is useless, wastes 30s)
+      // On 429, daily quota, or 401/403: try rotating to ALT key before throwing
+      // rotateGeminiToAltKey is idempotent — returns false if already rotated or no ALT key
+      if ((isRateLimit || isAuthError) && rotateGeminiToAltKey()) {
+        console.log(
+          `[KEY-ROTATION] ${label} error ${status} → retrying with ALT key`
+        );
+        client = getGeminiClient();
+        continue; // Retry this attempt with the new client
+      }
+
+      // Daily quota exhausted on both keys → throw immediately
       const isDailyQuota = errorMsg.includes("PerDay") || errorMsg.includes("per_day");
       if (isRateLimit && isDailyQuota) {
         console.log(
-          `[API] 🚫 ${label} daily quota esaurita — skip retry, throw per fallback immediato`
+          `[API] ${label} daily quota esaurita (both keys) — throw per fallback immediato`
         );
         throw err;
       }
 
       if (isRateLimit) {
-        // Rate limit: propaga errore subito → agent-runner passerà al prossimo provider
+        // Already on ALT key (or no ALT available) → let agent-runner try next provider
         console.log(
-          `[API] ⚡ ${label} rate limit → skip al prossimo provider nella catena`
+          `[API] ${label} rate limit (both keys exhausted) → skip al prossimo provider nella catena`
         );
         throw err;
       }

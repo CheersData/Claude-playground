@@ -38,10 +38,13 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 027 | `027_medical_vertical.sql` | Schema verticale medico (studia.me) | — |
 | 028 | `028_populate_institutes_all_sources.sql` | Popola `related_institutes` per TUTTE le fonti: CC gap fill (Libri I-VI), CPC, CP, Codice Consumo esteso, fonti specialistiche IT, fonti HR, fonti EU. Fix per ~80% corpus con institutes vuoti. | — |
 | 029 | `029_legal_articles_fts.sql` | Full-Text Search su `legal_articles`: colonna `article_text_ts` tsvector (Italian stemming), GIN index, trigger auto-update, RPC `search_legal_articles_fts` con `ts_rank` | — |
+| 030 | `030_integration_tables.sql` | Integration framework DB: `credential_vault` (pgcrypto encrypted credentials + RPC vault_store/vault_retrieve/vault_refresh), `connector_field_mappings` (AI mapping cache rule+LLM, TTL 30gg), `crm_records` (raw + mapped business data). RLS per-user su vault e CRM, service_role su mappings. ADR-integration-framework. | — |
+| 031 | `031_integration_office_tables.sql` | Integration Office DB: `integration_credentials` (AES-256-GCM encrypted OAuth2/API key storage), `integration_connections` (connector config + sync status), `integration_sync_log` (sync history, TTL 90gg), `integration_field_mappings` (cached mappings rule/similarity/llm/user, TTL 30gg), `integration_credential_audit` (GDPR audit trail, TTL 2 anni). RLS per-user + service_role. 3 RPC cleanup functions. | — |
+| 032 | `032_integration_unique_index.sql` | Unique partial index su `integration_connections(user_id, connector_type)` per connessioni attive (WHERE status != 'disconnected'). Previene duplicati su upsert. | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 029) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 032) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -76,6 +79,9 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 027 → indipendente
 028 → dipende da 012 (usa extract_article_number, update su legal_articles)
 029 → dipende da 004+005 (aggiunge colonna e trigger su legal_articles)
+030 → indipendente (pgcrypto extension, 3 nuove tabelle, nessuna FK a tabelle app esistenti)
+031 → indipendente (5 nuove tabelle Integration Office, FK solo a auth.users)
+032 → dipende da 031 (indice su integration_connections)
 ```
 
 ## Storico rinumerazione

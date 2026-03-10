@@ -2,7 +2,7 @@
   "_meta": {
     "dept": "protocols",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.212Z",
+    "last_updated": "2026-03-09",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
@@ -27,10 +27,10 @@
     "L4_boss_security": "Boss + Security audit (48h max)"
   },
   "audit": {
-    "last_audit_date": null,
+    "last_audit_date": "2026-03-09",
     "audit_frequency": "weekly (target)",
-    "audits_completed": 0,
-    "violations_found": 0
+    "audits_completed": 1,
+    "violations_found": 7
   },
   "contracts": {
     "authorized_flows": 20,
@@ -39,15 +39,10 @@
   },
   "resolved_gaps": [
     "PROT-1: CLI routing automatico — implementato lib/company/routing.ts + comando 'route' in company-tasks.ts",
-    "PROT-3: Routing field validato su create — --routing obbligatorio, validato contro YAML reali"
+    "PROT-3: Routing field validato su create — --routing obbligatorio, validato contro YAML reali",
+    "PROT-2: Primo audit completato 2026-03-09, 7 violazioni, report in audits/2026-03-09-decision-audit.md"
   ],
-  "gaps": [
-    {
-      "id": "PROT-2",
-      "description": "Nessun audit settimanale delle decisioni — decision-auditor mai eseguito",
-      "severity": "medium"
-    }
-  ],
+  "gaps": [],
   "open_tasks": [],
   "blockers": [],
   "notes": "Protocolli ora cablati nel CLI. Self-feeding loop operativo (--next obbligatorio, harvest in daily-standup). Prossimo passo: audit settimanale automatico (PROT-2)."

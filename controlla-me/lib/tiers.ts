@@ -121,6 +121,15 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "cerebras-gpt-oss-120b",
     "sambanova-llama3-70b",
   ],
+  // ── Data Connector Mapper (ADR-2) — cheap, classificazione semplice ──
+  mapper: [
+    "claude-haiku-4.5",       // partner
+    "gemini-2.5-flash",       // associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
 };
 
 /**
@@ -136,6 +145,7 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   investigator:   { partner: 0, associate: 1, intern: 1 },  // intern = associate per investigator (solo Anthropic)
   advisor:        { partner: 0, associate: 1, intern: 2 },
   "task-executor": { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
+  mapper:           { partner: 0, associate: 1, intern: 2 },  // Haiku → Flash → Groq (ADR-2)
 };
 
 // ─── State ───
@@ -148,10 +158,57 @@ export function getCurrentTier(): TierName {
   return sessionTierStore.getStore()?.tier ?? currentTier;
 }
 
-// TODO TD-2: setCurrentTier non è chiamato da /api/analyze — rischio di shared state
-// tra worker serverless è teorico ma non attuale. Prima di implementare tier dinamico
-// per-utente in /api/analyze, wrappare con withRequestTier() usando sessionTierStore
-// (già presente e usato dalle route console). Effort stimato: 1h.
+/**
+ * TODO TD-2: Per-user tier isolation for /api/analyze
+ *
+ * CURRENT RISK:
+ *   `currentTier` (line 143) is global mutable state shared across all requests
+ *   in the same Node.js process. `setCurrentTier()` below mutates it, but is
+ *   never called from `/api/analyze` — so the risk is theoretical today.
+ *   However, if two concurrent requests in the same serverless worker called
+ *   `setCurrentTier()` with different tiers, they would stomp on each other.
+ *
+ * SOLUTION — AsyncLocalStorage-based `withRequestTier()`:
+ *   The `sessionTierStore` (AsyncLocalStorage) already exists above and is
+ *   used by the console routes. The fix is a thin wrapper function:
+ *
+ *     export async function withRequestTier<T>(
+ *       tier: TierName,
+ *       callback: () => Promise<T>
+ *     ): Promise<T> {
+ *       const ctx: SessionTierContext = {
+ *         tier,
+ *         disabledAgents: new Set(),  // or per-user disabled set
+ *         sid: crypto.randomUUID(),
+ *       };
+ *       return sessionTierStore.run(ctx, callback);
+ *     }
+ *
+ *   `getCurrentTier()` already reads from `sessionTierStore` first, falling
+ *   back to the global `currentTier`. So wrapping a request handler with
+ *   `withRequestTier(tier, () => runPipeline(...))` is enough — all
+ *   downstream calls to `getCurrentTier()`, `getAgentChain()`, and
+ *   `isAgentEnabled()` automatically pick up the per-request context.
+ *
+ * API INTEGRATION (in /api/analyze/route.ts):
+ *   const tier = mapUserPlanToTier(user.plan);  // e.g. "free" → "intern"
+ *   return withRequestTier(tier, async () => {
+ *     // entire SSE pipeline runs with this tier
+ *     return streamAnalysis(request);
+ *   });
+ *
+ * WHEN TO IMPLEMENT:
+ *   When per-user tier is introduced (user.plan → tier mapping). Until then,
+ *   the global `currentTier` = "partner" is correct for all requests and
+ *   `setCurrentTier()` is only called from the console UI tier switcher
+ *   (which already uses `sessionTierStore` for isolation).
+ *
+ * EXISTING CODE: No changes needed below — `setCurrentTier()` remains for
+ *   backward compatibility (tests, scripts, manual overrides). The global
+ *   acts as the default when no AsyncLocalStorage context is active.
+ *
+ * Effort estimate: ~1h (implement withRequestTier + add to /api/analyze).
+ */
 export function setCurrentTier(tier: TierName): void {
   currentTier = tier;
   console.log(`[TIER] Switched to: ${tier}`);
@@ -233,6 +290,7 @@ export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
   leader:          "sdk",
   "question-prep": "sdk",
   classifier:      "sdk",
+  mapper:          "sdk",   // Mapping = classificazione semplice, Groq/Cerebras via SDK (ADR-2)
   // ── Heavy agents → CLI (subscription, zero costi) ──
   "corpus-agent":  "sdk",
   analyzer:        "cli",
@@ -249,6 +307,7 @@ export const CLI_MODEL_MAP: Record<AgentName, string> = {
   leader:          "haiku",
   "question-prep": "haiku",
   classifier:      "haiku",
+  mapper:          "haiku",    // Mapping = task semplice, haiku sufficiente (ADR-2)
   "corpus-agent":  "sonnet",
   analyzer:        "sonnet",
   investigator:    "sonnet",
@@ -282,7 +341,7 @@ export function getTierInfo(): TierInfo {
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor",
+    "analyzer", "investigator", "advisor", "task-executor", "mapper",
   ];
 
   for (const agent of allAgents) {
@@ -324,7 +383,7 @@ export function getTierInfoForSession(
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor",
+    "analyzer", "investigator", "advisor", "task-executor", "mapper",
   ];
 
   for (const agent of allAgents) {
@@ -372,6 +431,7 @@ export function estimateTierCost(): { perQuery: number; label: string } {
     investigator:   { input: 6000, output: 3000 },
     advisor:          { input: 8000, output: 2000 },
     "task-executor":  { input: 2000, output: 1500 },
+    mapper:           { input: 1500, output: 800 },
   };
 
   let total = 0;
@@ -405,6 +465,7 @@ export function estimateTierCostForSession(
     investigator:    { input: 6000,  output: 3000 },
     advisor:          { input: 8000,  output: 2000 },
     "task-executor":  { input: 2000,  output: 1500 },
+    mapper:           { input: 1500,  output: 800 },
   };
 
   let total = 0;

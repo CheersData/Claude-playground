@@ -19,7 +19,7 @@ import * as fs from "fs";
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 import { getOpenTasks } from "../lib/company/tasks";
-import type { Task, Department } from "../lib/company/types";
+import type { Task } from "../lib/company/types";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 

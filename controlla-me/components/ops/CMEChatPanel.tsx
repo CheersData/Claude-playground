@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, Square, Loader2, Paperclip, X } from "lucide-react";
 import { getConsoleJsonHeaders } from "@/lib/utils/console-client";
@@ -365,7 +366,7 @@ export function CMEChatPanel({ onBack, onDebugEvent, embedded }: CMEChatPanelPro
         {file && (
           <div className="flex items-center gap-2 px-4 pt-3 pb-1">
             {filePreview ? (
-              <img src={filePreview} alt={file.name} className="w-10 h-10 rounded object-cover border border-[var(--border-dark-subtle)]" />
+              <Image src={filePreview} alt={file.name} width={40} height={40} unoptimized className="rounded object-cover border border-[var(--border-dark-subtle)]" />
             ) : (
               <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
                 <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" />

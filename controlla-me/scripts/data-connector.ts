@@ -29,7 +29,6 @@ import {
   modelSource,
   loadSource,
   updateSource,
-  getAllSources,
   getAllSourcesAllVerticals,
   getLastSuccessfulSync,
   getSyncHistory,

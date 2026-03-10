@@ -1,0 +1,29 @@
+{
+  "testId": "TC22",
+  "question": "Il giudice mi ha condannato a pagare €8.000 ma io avevo chiesto solo €5.000. È legale?",
+  "agentAnswer": "No, non è legale. Il giudice deve pronunciare su tutta la domanda e non oltre i limiti di essa (Art. 112 c.p.c.). Se hai chiesto solo €5.000, il giudice non può condannarti a pagare €8.000.",
+  "expectedAnswer": "No, è nulla per violazione del principio di corrispondenza tra chiesto e pronunciato (art. 112 c.p.c.). Va impugnata entro i termini ordinari.",
+  "scoringHints": {
+    "prep": "Ha formulato query su ultra petita e art. 112?",
+    "search": "Ha trovato art. 112 c.p.c.?",
+    "quality": "Chiarisce che la sentenza è nulla e impugnabile? Cita correttamente l'articolo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ultrapetita",
+    "principio_domanda",
+    "nullità_sentenza"
+  ],
+  "scope": "art. 112 c.p.c.; nullità sentenza ultra petita",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 30,
+    "total": 70,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente identifica correttamente il problema giuridico e richiama l'art. 112 c.p.c., ma non specifica che la sentenza è nulla e va impugnata. La risposta è sostanzialmente corretta ma manca di precisione nella formulazione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T12:58:42.463Z"
+}

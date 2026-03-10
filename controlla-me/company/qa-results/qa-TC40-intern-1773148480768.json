@@ -1,0 +1,29 @@
+{
+  "testId": "TC40",
+  "question": "Il contratto prevede una 'penale a titolo di caparra'. È valido?",
+  "agentAnswer": "Il contratto prevede una 'penale a titolo di caparra'. Questa formulazione è valida e riconosciuta dal Codice Civile italiano. La caparra confirmatoria, disciplinata dall'art. 1385 c.c., ha la funzione di garantire l'adempimento del contratto. In caso di inadempimento della parte che ha dato la caparra, l'altra può recedere dal contratto e trattenere la caparra. Se invece è inadempiente la parte che ha ricevuto la caparra, l'altra può recedere e chiedere il doppio della caparra. La caparra confirmatoria è quindi uno strumento valido per garantire l'esecuzione del contratto e limitare il risarcimento del danno alla somma pattuita, salvo che non sia convenuta la risarcibilità del danno ulteriore (art. 1382 c.c.).\n\nRiferimenti normativi:\nL'art. 1385 c.c. disciplina la caparra confirmatoria, stabilendo che in caso di inadempimento della parte che ha dato la caparra, l'altra può recedere dal contratto e trattenere la caparra. Se inadempiente è la parte che ha ricevuto la caparra, l'altra può recedere ed esigere il doppio della caparra. L'art. 1382 c.c. stabilisce che la clausola penale ha l'effetto di limitare il risarcimento alla prestazione promessa, se non è stata convenuta la risarcibilità del danno ulteriore.\n\nIn pratica:\nLa 'penale a titolo di caparra' è valida e riconosciuta dal Codice Civile. Se il contratto prevede una tale clausola, è importante verificare che sia stata stipulata correttamente e che sia conforme alle disposizioni degli articoli 1382 e 1385 del Codice Civile. In caso di inadempimento, le parti possono avvalersi delle disposizioni previste per la caparra confirmatoria.",
+  "expectedAnswer": "TRAPPOLA: penale (art. 1382) e caparra confirmatoria (art. 1385) sono istituti diversi con regole diverse (cumulabilità con risarcimento, facoltà di riduzione, etc.). La formulazione 'penale a titolo di caparra' è una contraddizione in termini. L'agente deve segnalare l'anomalia e non accettarla come valida senza riserve.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambi gli istituti separatamente?",
+    "search": "Ha trovato artt. 1382 e 1385 c.c.?",
+    "quality": "Segnala la contraddizione? Non risponde 'sì, è valido' senza segnalare il problema?"
+  },
+  "trapType": "contraddizione_contrattuale",
+  "institutes": [
+    "clausola_penale",
+    "caparra_confirmatoria",
+    "contraddizione_contrattuale"
+  ],
+  "scope": "TRAPPOLA: penale e caparra sono istituti DIVERSI. La clausola è contraddittoria e va segnalata.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 10,
+    "search": 25,
+    "quality": 8,
+    "total": 43,
+    "verdict": "FAIL",
+    "reasoning": "L'agente ha citato gli articoli pertinenti ma non ha riconosciuto la contraddizione tra penale e caparra, accettando la clausola come valida. Questo errore compromette l'accuratezza della risposta, riducendo significativamente il punteggio di qualità."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:13:57.775Z"
+}

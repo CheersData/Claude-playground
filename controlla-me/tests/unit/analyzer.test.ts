@@ -1,27 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { makeClassification } from "../fixtures/classification";
 import { makeAnalysis } from "../fixtures/analysis";
-import { makeAnthropicResponse } from "../fixtures/anthropic-response";
 import { SAMPLE_RENTAL_CONTRACT } from "../fixtures/documents";
 
-// vi.hoisted ensures the mock fn is available when vi.mock factory runs (hoisted to top)
-const mockCreate = vi.hoisted(() => vi.fn());
+const mockRunAgent = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/anthropic", async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import("@/lib/anthropic")>();
-  return {
-    ...original,
-    anthropic: {
-      get messages() {
-        return { create: mockCreate };
-      },
-    },
-  };
-});
+vi.mock("@/lib/ai-sdk/agent-runner", () => ({
+  runAgent: mockRunAgent,
+}));
 
 import { runAnalyzer } from "@/lib/agents/analyzer";
-import { MODEL } from "@/lib/anthropic";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -31,39 +19,58 @@ describe("runAnalyzer", () => {
   const classification = makeClassification();
   const analysisFixture = makeAnalysis();
 
-  it("calls anthropic with MODEL, 8192 max_tokens, and system prompt", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(analysisFixture))
-    );
+  it("calls runAgent with 'analyzer' agent name and system prompt", async () => {
+    mockRunAgent.mockResolvedValue({
+      parsed: analysisFixture,
+      text: JSON.stringify(analysisFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-sonnet-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-sonnet-4.5",
+    });
 
     await runAnalyzer(SAMPLE_RENTAL_CONTRACT, classification);
 
-    expect(mockCreate).toHaveBeenCalledOnce();
-    const params = mockCreate.mock.calls[0][0];
-    expect(params.model).toBe(MODEL);
-    expect(params.max_tokens).toBe(8192);
-    expect(params.system).toBeDefined();
+    expect(mockRunAgent).toHaveBeenCalledOnce();
+    const [agentName, _prompt, config] = mockRunAgent.mock.calls[0];
+    expect(agentName).toBe("analyzer");
+    expect(config.systemPrompt).toBeDefined();
   });
 
   it("passes classification info and document text in user message", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(analysisFixture))
-    );
+    mockRunAgent.mockResolvedValue({
+      parsed: analysisFixture,
+      text: JSON.stringify(analysisFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-sonnet-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-sonnet-4.5",
+    });
 
     await runAnalyzer(SAMPLE_RENTAL_CONTRACT, classification);
 
-    const params = mockCreate.mock.calls[0][0];
-    const userMessage = params.messages[0].content as string;
+    const prompt = mockRunAgent.mock.calls[0][1] as string;
     // Analyzer formats classification as human-readable text (not raw JSON)
-    expect(userMessage).toContain(classification.documentTypeLabel);
-    expect(userMessage).toContain(classification.jurisdiction);
-    expect(userMessage).toContain(SAMPLE_RENTAL_CONTRACT);
+    expect(prompt).toContain(classification.documentTypeLabel);
+    expect(prompt).toContain(classification.jurisdiction);
+    expect(prompt).toContain(SAMPLE_RENTAL_CONTRACT);
   });
 
-  it("returns parsed AnalysisResult from Claude response", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(analysisFixture))
-    );
+  it("returns parsed AnalysisResult from runAgent response", async () => {
+    mockRunAgent.mockResolvedValue({
+      parsed: analysisFixture,
+      text: JSON.stringify(analysisFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-sonnet-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-sonnet-4.5",
+    });
 
     const result = await runAnalyzer(SAMPLE_RENTAL_CONTRACT, classification);
     expect(result.clauses).toHaveLength(1);
@@ -71,18 +78,16 @@ describe("runAnalyzer", () => {
     expect(result.clauses[0].riskLevel).toBe("high");
   });
 
-  it("propagates API errors", async () => {
-    mockCreate.mockRejectedValue(new Error("API connection failed"));
+  it("propagates API errors from agent-runner", async () => {
+    mockRunAgent.mockRejectedValue(new Error("API connection failed"));
 
     await expect(
       runAnalyzer(SAMPLE_RENTAL_CONTRACT, classification)
     ).rejects.toThrow("API connection failed");
   });
 
-  it("propagates JSON parse errors from malformed responses", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse("This is not valid JSON at all")
-    );
+  it("propagates JSON parse errors from agent-runner", async () => {
+    mockRunAgent.mockRejectedValue(new Error("Risposta non JSON da Claude"));
 
     await expect(
       runAnalyzer(SAMPLE_RENTAL_CONTRACT, classification)

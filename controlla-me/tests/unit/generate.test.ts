@@ -266,7 +266,7 @@ describe("generate — routing per provider", () => {
       await generate("mistral-small-3", "analizza");
 
       const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
-      expect(model).toBe("mistral-small-3.2-24b-instruct");
+      expect(model).toBe("mistral-small-latest");
     });
 
     it("passa il model ID corretto a generateWithOpenAICompat per mistral-large-3", async () => {
@@ -375,7 +375,7 @@ describe("generate — routing per provider", () => {
 
       const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
       expect(provider).toBe("cerebras");
-      expect(model).toBe("qwen-3-235b-a22b-instruct-2507");
+      expect(model).toBe("gpt-oss-120b");
     });
   });
 
@@ -984,10 +984,10 @@ describe("generate — model ID dal registry MODELS", () => {
     expect(model).toBe("qwen/qwen3-32b");
   });
 
-  it("cerebras-qwen3-235b → qwen-3-235b-a22b-instruct-2507", async () => {
+  it("cerebras-qwen3-235b → gpt-oss-120b (ex-Qwen slot)", async () => {
     await generate("cerebras-qwen3-235b", "test");
     const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
-    expect(model).toBe("qwen-3-235b-a22b-instruct-2507");
+    expect(model).toBe("gpt-oss-120b");
   });
 
   it("groq-gpt-oss-120b → gpt-oss-120b", async () => {

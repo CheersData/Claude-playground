@@ -242,8 +242,9 @@ export default function LegalWorkspaceShell({
 
         {/* Phase progress dots */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {AGENT_ORDER.map(agent => {
+          {AGENT_ORDER.map((agent, i) => {
             const status = getAgentStatus(agent, currentPhase, completedPhases);
+            const { color } = AGENT_LABELS[agent];
             return (
               <motion.div
                 key={agent}
@@ -251,11 +252,15 @@ export default function LegalWorkspaceShell({
                 animate={{
                   backgroundColor:
                     status === "done"    ? "#22c55e" :
-                    status === "running" ? "#FF6B35" :
+                    status === "running" ? color :
                     "#e5e7eb",
-                  scale: status === "running" ? [1, 1.4, 1] : 1,
+                  scale: status === "running" ? [1, 1.5, 1] : 1,
                 }}
-                transition={status === "running" ? { duration: 1, repeat: Infinity } : {}}
+                transition={
+                  status === "running"
+                    ? { duration: 1.2, repeat: Infinity, delay: i * 0.15 }
+                    : { duration: 0.3 }
+                }
               />
             );
           })}

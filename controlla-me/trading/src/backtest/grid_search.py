@@ -35,22 +35,23 @@ PARAM_GRID = {
     "max_positions": [5, 10],
 }
 
-# Extended grid for TP/SL optimization (task 95fd33c2)
-# Tests: wider TP, 4-tier trailing stop tuning, MACD signal exit
-# ~96 combinations (manageable runtime)
+# Focused grid for TP/SL optimization (task 2249c3f4)
+# Problem: 92.6% exits on SL with TP=6x (too far). Solution: tighter TP (3-6x).
+# Previous grid tested TP=6-10x → all NO-GO. This grid tests TP=3-6x.
+# 96 combinations: SL[1.5,2.0,2.5] x TP[3,4,5,6] x trailing[2x2x2] x sigExit=ON
 TPSL_OPTIMIZATION_GRID = {
-    "stop_loss_atr": [2.0, 2.5],
-    "take_profit_atr": [6.0, 8.0, 10.0],
-    # 4-tier trailing stop
-    "trailing_breakeven_atr": [1.0, 1.5],           # Tier 0: breakeven trigger
-    "trailing_lock_atr": [1.5],                       # Tier 1: fixed (default)
-    "trailing_lock_cushion_atr": [0.5],               # Tier 1: fixed (default)
-    "trailing_trail_threshold_atr": [2.5, 3.5],       # Tier 2: trail trigger
-    "trailing_trail_distance_atr": [1.5, 2.0],        # Tier 2: trail distance
+    "stop_loss_atr": [1.5, 2.0, 2.5],
+    "take_profit_atr": [3.0, 4.0, 5.0, 6.0],
+    # 4-tier trailing stop — test aggressive vs conservative
+    "trailing_breakeven_atr": [0.5, 1.5],             # Tier 0: early vs late breakeven
+    "trailing_lock_atr": [1.5],                        # Tier 1: fixed (default)
+    "trailing_lock_cushion_atr": [0.5],                # Tier 1: fixed (default)
+    "trailing_trail_threshold_atr": [2.0, 3.5],       # Tier 2: early vs late trail start
+    "trailing_trail_distance_atr": [1.5, 2.0],        # Tier 2: tight vs wide trail
     "trailing_tight_threshold_atr": [4.0],             # Tier 3: fixed (default)
     "trailing_tight_distance_atr": [1.0],              # Tier 3: fixed (default)
-    # Signal exit
-    "signal_exit_enabled": [False, True],
+    # Signal exit always on (previous grid showed benefit)
+    "signal_exit_enabled": [True],
     "trend_filter": [True],
     "max_positions": [10],
 }

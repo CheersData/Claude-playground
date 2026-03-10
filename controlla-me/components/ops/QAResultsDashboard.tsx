@@ -10,7 +10,6 @@ import {
   ChevronUp,
   BarChart3,
   Target,
-  TrendingUp,
   AlertTriangle,
   CheckCircle2,
   MinusCircle,
@@ -460,7 +459,6 @@ export function QAResultsDashboard() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filter results
@@ -471,7 +469,7 @@ export function QAResultsDashboard() {
     return r;
   }, [allResults, filterTier, filterVerdict]);
 
-  const filteredEvaluated = useMemo(
+  const _filteredEvaluated = useMemo(
     () => filtered.filter((r) => r.evaluation),
     [filtered]
   );

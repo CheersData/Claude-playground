@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, GraduationCap, Briefcase, Crown, Coins } from "lucide-react";
 
@@ -81,6 +81,8 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
   const [data, setData] = useState<TierData | null>(null);
   const [loading, setLoading] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   // SEC-004: legge il token HMAC da sessionStorage per autenticare le chiamate
   const getAuthHeaders = (): HeadersInit => {
@@ -117,11 +119,37 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
     if (open && !data) fetchTierData();
   }, [open, data, fetchTierData]);
 
-  // Escape key to close panel (WCAG 2.1.1)
+  // Focus management: move focus into panel on open (WCAG 2.4.3)
+  useEffect(() => {
+    if (open && closeButtonRef.current) {
+      closeButtonRef.current.focus();
+    }
+  }, [open]);
+
+  // Escape key + focus trap (WCAG 2.1.1, 2.4.3)
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      // Focus trap: keep Tab within the panel (WCAG 2.4.3)
+      if (e.key === "Tab" && panelRef.current) {
+        const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -173,7 +201,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
   const current = data?.current ?? "partner";
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end" ref={panelRef}>
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -181,6 +209,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Panel */}
@@ -191,6 +220,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
         className="relative w-[480px] max-w-full sm:max-w-[90vw] h-full bg-[var(--surface)] flex flex-col shadow-2xl"
         role="dialog"
+        aria-modal="true"
         aria-label="Pannello Power — modelli e catene di fallback"
       >
         {/* Header */}
@@ -205,8 +235,9 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
               </p>
             </div>
             <button
+              ref={closeButtonRef}
               onClick={onClose}
-              className="text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors mt-1"
+              className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors mt-1 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
               aria-label="Chiudi pannello Power"
             >
               <X className="w-5 h-5" />
@@ -217,7 +248,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {loading && !data ? (
-            <div className="px-4 md:px-8 py-4 md:py-8">
+            <div className="px-4 md:px-8 py-4 md:py-8" role="status" aria-label="Caricamento dati">
               <div className="space-y-4 animate-pulse">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-16 bg-[var(--border-subtle)] rounded-xl" />
@@ -228,10 +259,10 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
             <>
               {/* Tier selector */}
               <div className="px-4 md:px-8 pt-4 md:pt-6 pb-4">
-                <p className="text-[10px] tracking-[2px] uppercase text-[var(--foreground-tertiary)] font-medium mb-3">
+                <h3 className="text-[10px] tracking-[2px] uppercase text-[var(--foreground-secondary)] font-medium mb-3">
                   Tier
-                </p>
-                <div className="grid grid-cols-3 gap-2">
+                </h3>
+                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Seleziona tier">
                   {(["intern", "associate", "partner"] as const).map((tier) => {
                     const cfg = TIER_CONFIG[tier];
                     const isActive = current === tier;
@@ -240,7 +271,10 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                         key={tier}
                         onClick={() => switchTier(tier)}
                         disabled={switching}
-                        className={`relative flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border transition-all ${
+                        role="radio"
+                        aria-checked={isActive}
+                        aria-label={`Tier ${cfg.label}: ${cfg.description}`}
+                        className={`relative flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border transition-all focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
                           isActive
                             ? `${cfg.bg} border-current`
                             : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--foreground-tertiary)]"
@@ -250,7 +284,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                         <span className={`text-xs font-medium ${isActive ? cfg.color : "text-[var(--foreground-secondary)]"}`}>
                           {cfg.label}
                         </span>
-                        <span className="text-[10px] text-[var(--foreground-tertiary)] leading-tight text-center">
+                        <span className="text-[10px] text-[var(--foreground-secondary)] leading-tight text-center">
                           {cfg.description}
                         </span>
                         {isActive && (
@@ -260,7 +294,20 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                               tier === "intern" ? "bg-emerald-500" :
                               tier === "associate" ? "bg-blue-500" : "bg-amber-500"
                             }`}
-                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            aria-hidden="true"
+                            animate={{
+                              boxShadow: [
+                                `0 0 0px 0px ${tier === "intern" ? "rgba(16,185,129,0.5)" : tier === "associate" ? "rgba(59,130,246,0.5)" : "rgba(245,158,11,0.5)"}`,
+                                `0 0 6px 3px ${tier === "intern" ? "rgba(16,185,129,0.35)" : tier === "associate" ? "rgba(59,130,246,0.35)" : "rgba(245,158,11,0.35)"}`,
+                                `0 0 0px 0px ${tier === "intern" ? "rgba(16,185,129,0.5)" : tier === "associate" ? "rgba(59,130,246,0.5)" : "rgba(245,158,11,0.5)"}`,
+                              ],
+                              scale: [1, 1.15, 1],
+                            }}
+                            transition={{
+                              boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                              scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                              layout: { type: "spring", stiffness: 300, damping: 25 },
+                            }}
                           />
                         )}
                       </button>
@@ -271,7 +318,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                 {/* Cost estimate */}
                 {data?.estimatedCost && (
                   <div className="flex items-center gap-2 mt-3 py-2 px-3 rounded-lg bg-[var(--background-secondary)]">
-                    <Coins className="w-3.5 h-3.5 text-[var(--foreground-tertiary)]" />
+                    <Coins className="w-3.5 h-3.5 text-[var(--foreground-secondary)]" aria-hidden="true" />
                     <span className="text-xs text-[var(--foreground-secondary)]">
                       Costo stimato per query: <span className="font-medium text-[var(--foreground)]">{data.estimatedCost.label}</span>
                     </span>
@@ -281,9 +328,9 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
 
               {/* Agent chains */}
               <div className="px-4 md:px-8 pb-4 md:pb-6">
-                <p className="text-[10px] tracking-[2px] uppercase text-[var(--foreground-tertiary)] font-medium mb-3">
+                <h3 className="text-[10px] tracking-[2px] uppercase text-[var(--foreground-secondary)] font-medium mb-3">
                   Agenti
-                </p>
+                </h3>
                 <div className="space-y-2">
                   <AnimatePresence mode="wait">
                     {data?.agents && Object.entries(data.agents).map(([agent, info], i) => (
@@ -304,7 +351,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
 
         {/* Footer */}
         <div className="px-4 md:px-8 py-3 md:py-4 border-t border-[var(--border)] text-center">
-          <p className="text-[10px] text-[var(--foreground-tertiary)]">
+          <p className="text-[11px] text-[var(--foreground-secondary)]">
             Su errore 429, il sistema scende automaticamente al modello successivo nella catena
           </p>
         </div>
@@ -321,9 +368,9 @@ function TierIcon({ tier, active }: { tier: TierName; active: boolean }) {
     ? tier === "intern" ? "text-emerald-500" : tier === "associate" ? "text-blue-500" : "text-amber-500"
     : "text-[var(--foreground-tertiary)]";
 
-  if (tier === "intern") return <GraduationCap className={`${size} ${color}`} />;
-  if (tier === "associate") return <Briefcase className={`${size} ${color}`} />;
-  return <Crown className={`${size} ${color}`} />;
+  if (tier === "intern") return <GraduationCap className={`${size} ${color}`} aria-hidden="true" />;
+  if (tier === "associate") return <Briefcase className={`${size} ${color}`} aria-hidden="true" />;
+  return <Crown className={`${size} ${color}`} aria-hidden="true" />;
 }
 
 function AgentRow({ agent, info, index, onToggle }: {
@@ -343,20 +390,20 @@ function AgentRow({ agent, info, index, onToggle }: {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       className={`rounded-xl border border-[var(--border-subtle)] overflow-hidden transition-opacity ${
-        enabled ? "" : "opacity-40"
+        enabled ? "" : "opacity-50"
       }`}
     >
       <div className="flex items-center">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-[var(--background-secondary)] transition-colors text-left"
+          className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-[var(--background-secondary)] transition-colors text-left focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
           aria-expanded={expanded}
           aria-label={`${label.name} — ${label.description}. ${expanded ? "Comprimi" : "Espandi"} catena di fallback`}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2">
               <span className="text-sm font-medium text-[var(--foreground)]">{label.name}</span>
-              <span className="text-[10px] text-[var(--foreground-tertiary)]">{label.description}</span>
+              <span className="text-[10px] text-[var(--foreground-secondary)]">{label.description}</span>
             </div>
           </div>
 
@@ -370,7 +417,7 @@ function AgentRow({ agent, info, index, onToggle }: {
           )}
 
           {!enabled && (
-            <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--border-subtle)] text-[var(--foreground-tertiary)]">
+            <span className="shrink-0 px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--border-subtle)] text-[var(--foreground-secondary)]">
               off
             </span>
           )}
@@ -378,21 +425,24 @@ function AgentRow({ agent, info, index, onToggle }: {
           <motion.svg
             animate={{ rotate: expanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
-            className="w-3.5 h-3.5 text-[var(--foreground-tertiary)] shrink-0"
+            className="w-3.5 h-3.5 text-[var(--foreground-secondary)] shrink-0"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
+            aria-hidden="true"
           >
             <polyline points="6 9 12 15 18 9" />
           </motion.svg>
         </button>
 
-        {/* Toggle switch */}
+        {/* Toggle switch — WCAG: role="switch" + aria-checked (4.1.2) */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(agent, !enabled); }}
-          className={`shrink-0 mr-4 w-8 h-[18px] rounded-full transition-colors relative ${
-            enabled ? "bg-[var(--foreground)]" : "bg-[#D5D5D5]"
+          role="switch"
+          aria-checked={enabled}
+          className={`shrink-0 mr-4 w-8 h-[18px] rounded-full transition-colors relative focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
+            enabled ? "bg-[var(--foreground)]" : "bg-[#A3A3A3]"
           }`}
           aria-label={`${enabled ? "Disattiva" : "Attiva"} ${label.name}`}
         >
@@ -413,8 +463,8 @@ function AgentRow({ agent, info, index, onToggle }: {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3 pt-1 space-y-1 border-t border-[var(--border-subtle)]">
-              <p className="text-[10px] text-[var(--foreground-tertiary)] mb-1.5">Catena di fallback:</p>
+            <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-[var(--border-subtle)]">
+              <p className="text-[10px] text-[var(--foreground-secondary)] mb-3">Catena di fallback:</p>
               {info.chain.map((entry, i) => {
                 const isActive = i === info.activeIndex;
                 const isPast = i < info.activeIndex;
@@ -423,14 +473,14 @@ function AgentRow({ agent, info, index, onToggle }: {
                     key={entry.key}
                     className={`flex items-center gap-2 py-1 px-2 rounded-lg text-xs ${
                       isActive ? "bg-[var(--border-subtle)]" : ""
-                    } ${isPast ? "opacity-40" : ""}`}
+                    } ${isPast ? "opacity-50" : ""}`}
                   >
                     {/* Position indicator */}
                     <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
                       isActive
                         ? "bg-[var(--foreground)] text-white"
-                        : "bg-[var(--border-subtle)] text-[var(--foreground-tertiary)]"
-                    }`}>
+                        : "bg-[var(--border-subtle)] text-[var(--foreground-secondary)]"
+                    }`} aria-hidden="true">
                       {i + 1}
                     </span>
 
@@ -448,7 +498,7 @@ function AgentRow({ agent, info, index, onToggle }: {
 
                     {/* Availability */}
                     {!entry.available && (
-                      <span className="text-[9px] text-red-400">off</span>
+                      <span className="text-[9px] text-red-600 font-medium">off</span>
                     )}
                   </div>
                 );

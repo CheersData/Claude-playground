@@ -47,7 +47,7 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
               setFile(null);
               if (fileRef.current) fileRef.current.value = "";
             }}
-            className="text-red-400 hover:text-red-500 ml-1 text-[10px]"
+            className="text-red-600 hover:text-red-700 ml-1 text-[10px] underline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
             aria-label={`Rimuovi documento ${file?.name ?? ""}`}
           >
             Rimuovi
@@ -69,7 +69,7 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
             : placeholder ?? "Scrivi una domanda o incolla un testo..."
         }
         rows={3}
-        className="w-full bg-transparent text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] resize-none outline-none text-sm leading-relaxed"
+        className="w-full bg-transparent text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] resize-none text-sm leading-relaxed focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] rounded"
       />
 
       {/* Action bar */}
@@ -82,15 +82,17 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
             accept=".pdf,.docx,.doc,.txt"
             className="hidden"
             id="console-file"
+            aria-label="Carica documento (PDF, DOCX, TXT)"
           />
           <button
             onClick={() => fileRef.current?.click()}
             disabled={disabled}
-            className="text-xs text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors disabled:opacity-40"
+            className="text-xs text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-label="Allega documento (PDF, DOCX, TXT)"
           >
             Allega documento
           </button>
-          <span className="text-[10px] text-[var(--foreground-tertiary)] opacity-40">
+          <span className="text-[10px] text-[var(--foreground-tertiary)]" aria-hidden="true">
             PDF, DOCX, TXT
           </span>
         </div>
@@ -98,13 +100,13 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
         <button
           onClick={handleSubmit}
           disabled={disabled || (!message.trim() && !file)}
-          className="text-xs font-medium px-5 py-2 rounded-lg bg-[var(--foreground)] text-white hover:bg-[#333] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="text-xs font-medium px-5 py-2 rounded-lg bg-[var(--foreground)] text-white hover:bg-[#333] transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
         >
           Invia
         </button>
       </div>
 
-      <div className="text-[10px] text-[var(--foreground-tertiary)] opacity-30 mt-1 text-right" aria-hidden="true">
+      <div className="text-[10px] text-[var(--foreground-tertiary)] opacity-60 mt-1 text-right" aria-hidden="true">
         Ctrl+Enter per inviare
       </div>
     </div>
