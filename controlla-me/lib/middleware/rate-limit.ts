@@ -133,6 +133,10 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Company internal API — console-auth-protected, rate limit come defense-in-depth
   "api/company/costs": { windowSec: 60, max: 30 },
   "api/company/cron": { windowSec: 60, max: 5 },
+  // Polling endpoints — /ops e CompanyPanel li chiamano ogni 30s, servono limiti alti
+  "api/company/status": { windowSec: 60, max: 120 },
+  "api/company/summary": { windowSec: 60, max: 120 },
+  "api/company/agents/live": { windowSec: 60, max: 120 },
   "api/company": { windowSec: 60, max: 30 },
   // Platform cron — CRON_SECRET-protected
   "api/platform/cron": { windowSec: 60, max: 10 },
@@ -147,6 +151,12 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/webhook": { windowSec: 60, max: 30 },
   // OAuth callback — anti-abuse on auth flow
   "api/auth/callback": { windowSec: 60, max: 10 },
+  // Integration credentials — auth-protected, vault operations (ADR-3)
+  "api/integrations/credentials": { windowSec: 60, max: 15 },
+  // SEC-M12: Integration marketplace browsing — public, IP-based
+  "api/integrations/status": { windowSec: 60, max: 30 },
+  // SEC-M12: Integration connector detail/config — GET public, POST auth-protected
+  "api/integrations": { windowSec: 60, max: 30 },
   // Default per endpoint non specificati
   default: { windowSec: 60, max: 30 },
 };

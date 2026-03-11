@@ -13,11 +13,13 @@ import {
   getVerticals as getCorpusVerticals,
   type CorpusSource,
 } from "@/scripts/corpus-sources";
+import { ALL_INTEGRATION_SOURCES } from "@/scripts/integration-sources";
 import type { DataSource, DataType, SourceLifecycle } from "./types";
 
 /** Mappa verticale → dataType. Estensibile senza modificare questo file. */
 const VERTICAL_DATA_TYPE: Record<string, DataType> = {
   legal: "legal-articles",
+  medical: "medical-articles",
   hr: "hr-articles",
   "real-estate": "legal-articles", // stesso stack, filtrato per vertical
   consumer: "legal-articles",       // stesso stack, filtrato per vertical
@@ -51,9 +53,12 @@ export function getAllSources(): DataSource[] {
   return ALL_SOURCES.map(toDataSource);
 }
 
-/** Tutte le fonti di tutti i verticali registrati. */
+/** Tutte le fonti di tutti i verticali registrati (corpus + integration). */
 export function getAllSourcesAllVerticals(): DataSource[] {
-  return getAllSourcesAcrossVerticals().map(toDataSource);
+  return [
+    ...getAllSourcesAcrossVerticals().map(toDataSource),
+    ...ALL_INTEGRATION_SOURCES,
+  ];
 }
 
 /** Fonti di un verticale specifico. */
@@ -67,9 +72,15 @@ export function getVerticals(): string[] {
 }
 
 export function getSourceById(id: string): DataSource | undefined {
-  // Cerca in tutti i verticali registrati
-  const source = getAllSourcesAcrossVerticals().find((s) => s.id === id);
-  return source ? toDataSource(source) : undefined;
+  // 1. Cerca nelle fonti corpus (legal, medical, hr)
+  const corpusSource = getAllSourcesAcrossVerticals().find((s) => s.id === id);
+  if (corpusSource) return toDataSource(corpusSource);
+
+  // 2. Cerca nelle fonti integration (CRM, ERP, etc.)
+  const integrationSource = ALL_INTEGRATION_SOURCES.find((s) => s.id === id);
+  if (integrationSource) return integrationSource;
+
+  return undefined;
 }
 
 export function getSourcesByLifecycle(lifecycle: SourceLifecycle): DataSource[] {

@@ -16,6 +16,7 @@ import { MODELS, isProviderEnabled } from "@/lib/models";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 export async function POST(req: NextRequest) {
   // Auth — console-only route (calls LLM)
@@ -50,6 +51,8 @@ export async function POST(req: NextRequest) {
 
     const prompt = buildLeaderPrompt(message, agentContext ?? null, phaseResults);
 
+    broadcastConsoleAgent("legal-leader", "running", { task: "Leader Ufficio Legale" });
+
     // Usa la catena del leader, scendi finché trova un provider disponibile
     const chain = getAgentChain("leader");
     let answer = "";
@@ -78,15 +81,18 @@ export async function POST(req: NextRequest) {
 
     if (!answer) {
       console.error("[LEGALOFFICE-LEADER] Tutti i modelli falliti:", lastError?.message);
+      broadcastConsoleAgent("legal-leader", "error", { task: "Tutti i modelli falliti" });
       return NextResponse.json(
         { answer: "Non riesco a rispondere al momento. Riprova tra qualche secondo." },
         { status: 200 }
       );
     }
 
+    broadcastConsoleAgent("legal-leader", "done", { task: "Risposta generata" });
     return NextResponse.json({ answer });
   } catch (err) {
     console.error("[LEGALOFFICE-LEADER] Errore:", err);
+    broadcastConsoleAgent("legal-leader", "error", { task: "Errore interno" });
     return NextResponse.json(
       { answer: "Errore interno. Riprova." },
       { status: 200 } // 200 per non crashare il frontend

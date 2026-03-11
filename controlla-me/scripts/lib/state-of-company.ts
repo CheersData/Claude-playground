@@ -14,7 +14,7 @@ import { getTaskBoard, getOpenTasks } from "@/lib/company/tasks";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function today(): string {
+function _today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 

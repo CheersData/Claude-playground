@@ -1,0 +1,29 @@
+{
+  "testId": "TC36",
+  "question": "La banca ha modificato il tasso del mio mutuo senza avvisarmi. È legale?",
+  "agentAnswer": "RISPOSTA DIRETTA\nLa banca non può modificare unilateralmente il tasso di interesse del mutuo senza aver rispettato le prescrizioni di comunicazione previste dalla normativa. La modifica è inefficace e il cliente ha diritto di recedere dal contratto entro due mesi dalla ricezione della comunicazione, mantenendo le condizioni precedenti.\n\nRIFERIMENTI NORMATIVI:\n- Art. 118-bis TUB (ID f5355935-b834-4c90-aeee-f566fc1744ae): prevede che, in caso di variazione sostanziale o cessazione dell’indice di riferimento, la banca debba comunicare al cliente entro 30 giorni e il cliente può recedere entro due mesi, altrimenti la modifica è inefficace.\n- Art. 118 TUB (ID d23673ec-ee3b-4440-bbdd-f2783ca530ba): stabilisce che ogni modifica unilaterale delle condizioni contrattuali deve essere comunicata per iscritto con preavviso minimo di due mesi; le modifiche non osservate sono inefficaci.\n- Art. 33 Codice del Consumo (ID e5445b37-869e-4f78-856e-cad873db8321): le clausole che consentono al professionista di modificare unilateralmente le condizioni senza valido motivo sono vessatorie e, quindi, nulle; il consumatore può recedere.\n\nGIURISPRUDENZA\nNessuna giurisprudenza specifica è presente nel contesto.\n\nIN PRATICA\nIl cliente deve inviare una comunicazione scritta alla banca, entro due mesi dalla data in cui ha avuto conoscenza della modifica, chiedendo il recesso dal contratto e il mantenimento del tasso di interesse originario. Se la banca persiste nella modifica, il cliente può agire per la risoluzione del contratto e per il risarcimento di eventuali danni subiti.",
+  "expectedAnswer": "La modifica unilaterale del tasso è ammessa (art. 118 TUB) SOLO con: giustificato motivo obiettivo, preavviso di 2 mesi, e diritto di recesso senza penali per il cliente. Senza questi requisiti, la modifica è nulla.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 118 TUB e jus variandi?",
+    "search": "Ha trovato art. 118 TUB con i requisiti?",
+    "quality": "Elenca tutti e tre i requisiti? Indica che senza requisiti la modifica è nulla?"
+  },
+  "trapType": null,
+  "institutes": [
+    "jus_variandi",
+    "art_118_TUB",
+    "modifica_tasso"
+  ],
+  "scope": "art. 118 TUB: modifica unilaterale solo con giustificato motivo + 2 mesi di preavviso + diritto di recesso",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha recuperato l'articolo 118 TUB, che è la norma pertinente. La risposta è accurata e completa, ma non elenca esplicitamente tutti e tre i requisiti per la modifica unilaterale del tasso, anche se li menziona nel contesto. La qualità della risposta è buona, ma potrebbe essere migliorata con una formulazione più chiara e diretta."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:09:55.680Z"
+}

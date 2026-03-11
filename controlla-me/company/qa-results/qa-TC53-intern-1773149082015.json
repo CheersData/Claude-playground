@@ -1,0 +1,29 @@
+{
+  "testId": "TC53",
+  "question": "Voglio rientrare nel mio appartamento affittato perché ne ha bisogno mio figlio. Come funziona?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nPer rientrare nel tuo appartamento affittato perché ne ha bisogno tuo figlio, devi seguire le procedure previste dalla legge per il diniego di rinnovo del contratto di locazione. Secondo l'Art. 3 della L. 431/1998, il locatore può negare il rinnovo del contratto alla prima scadenza per motivi specifici, tra cui l'uso dell'immobile da parte di familiari stretti. In particolare, la lettera a) dell'articolo 3 prevede che il locatore possa disdire il contratto se intende destinare l'immobile ad uso abitativo proprio, del coniuge, dei genitori, dei figli o dei parenti entro il secondo grado. Per fare ciò, devi comunicare al conduttore con preavviso di almeno sei mesi, specificando il motivo della disdetta.\n\nRiferimenti normativi:\n\nL'Art. 3 della L. 431/1998 stabilisce che il locatore può negare il rinnovo del contratto di locazione alla prima scadenza per motivi specifici, tra cui l'uso dell'immobile da parte di familiari stretti. In particolare, la lettera a) dell'articolo 3 prevede che il locatore possa disdire il contratto se intende destinare l'immobile ad uso abitativo proprio, del coniuge, dei genitori, dei figli o dei parenti entro il secondo grado. Per fare ciò, devi comunicare al conduttore con preavviso di almeno sei mesi, specificando il motivo della disdetta.\n\nIn pratica:\n\nInvia una raccomandata con ricevuta di ritorno al conduttore, con almeno sei mesi di anticipo rispetto alla scadenza del contratto, specificando che intendi destinare l'immobile a tuo figlio e che quindi non rinnovi il contratto. Assicurati di rispettare tutti i termini e le condizioni previste dalla legge per evitare contestazioni.\n\n",
+  "expectedAnswer": "La necessità di destinare l'immobile al figlio è motivo legittimo (L.431/1998). Requisiti: preavviso scritto 6 mesi prima della scadenza, motivo specifico indicato. Se il proprietario non lo usa effettivamente entro un anno = risarcimento all'inquilino.",
+  "scoringHints": {
+    "prep": "Ha formulato query su L. 431/1998 e necessità familiare?",
+    "search": "Ha trovato L. 431/1998?",
+    "quality": "Indica forma, termini e conseguenza del mancato utilizzo?"
+  },
+  "trapType": null,
+  "institutes": [
+    "disdetta_locazione",
+    "necessità_proprietario",
+    "L_431_1998"
+  ],
+  "scope": "L.431/1998: motivi tassativi, forma e termini obbligatori. Se non usa l'immobile: risarcimento.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 32,
+    "total": 92,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e la normativa pertinente (L. 431/1998, art. 3 lett. a), fornendo informazioni accurate sui requisiti di preavviso e forma. Tuttavia, ha omesso di menzionare la conseguenza fondamentale del mancato utilizzo dell'immobile da parte del locatore entro un anno, ovvero l'obbligo di risarcimento all'inquilino."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:22:55.322Z"
+}

@@ -14,6 +14,10 @@ import {
   registerConnector,
   registerModel,
   registerStore,
+  registerGenericConnector,
+  registerGenericStore,
+  resolveGenericConnector,
+  resolveGenericStore,
   listRegistered,
 } from "./plugin-registry";
 import type { LegalArticle } from "@/lib/legal-corpus";
@@ -34,12 +38,27 @@ import type {
 // modificare questo file (open/closed principle).
 export { registerConnector, registerModel, registerStore, listRegistered };
 
+// ADR-1: Re-export generici per connettori business
+export { registerGenericConnector, registerGenericStore };
+export { resolveGenericConnector, resolveGenericStore };
+
+// ─── Data types that use the generic (non-article) pipeline ───
+const GENERIC_DATA_TYPES = new Set([
+  "crm-records", "erp-records", "accounting-records",
+  // Entity-oriented types (ADR-1)
+  "contacts", "invoices", "tickets", "documents",
+]);
+
 // ─── Factory (ora via plugin registry — nessuno switch hardcoded) ───
 
 function createConnector(
   source: DataSource,
   log: (msg: string) => void
 ): ConnectorInterface<ParsedArticle> {
+  // For generic data types, use the generic registry (cast to ParsedArticle for backward compat)
+  if (GENERIC_DATA_TYPES.has(source.dataType)) {
+    return resolveGenericConnector<ParsedArticle>(source, log);
+  }
   return resolveConnector(source, log);
 }
 
@@ -52,6 +71,49 @@ function createStore(
   log: (msg: string) => void
 ): StoreInterface<LegalArticle> {
   return resolveStore(source, log);
+}
+
+/**
+ * Generic LOAD pipeline for non-article data types (CRM, ERP, etc.).
+ * Uses resolveGenericConnector/Store instead of the article-specific ones.
+ * Skips article-specific validation (validateBatch) since records have different shapes.
+ */
+async function loadGenericPipeline(
+  source: DataSource,
+  options: PipelineOptions,
+  log: (msg: string) => void
+): Promise<StoreResult> {
+  const connector = resolveGenericConnector(source, log);
+  const store = resolveGenericStore(source, log);
+
+  // Fetch dati (full o delta)
+  let fetchResult;
+  if (options.mode === "delta") {
+    const lastSync = await getLastSuccessfulSync(source.id);
+    const since = options.deltaSince ?? lastSync?.completedAt ?? "2020-01-01";
+    log(`[LOAD] Delta dal ${since}`);
+    fetchResult = await connector.fetchDelta(since, { limit: options.limit });
+  } else {
+    log(`[LOAD] Full fetch${options.limit ? ` (limit: ${options.limit})` : ""}`);
+    fetchResult = await connector.fetchAll({ limit: options.limit });
+  }
+
+  log(`[LOAD] ${fetchResult.items.length} records fetchati`);
+
+  if (fetchResult.items.length === 0) {
+    return {
+      inserted: 0,
+      updated: 0,
+      skipped: 0,
+      errors: 0,
+      errorDetails: [],
+    };
+  }
+
+  // Save directly — validation is handled by the store/model specific to each data type
+  return store.save(fetchResult.items, {
+    dryRun: options.dryRun,
+  });
 }
 
 // ─── Pipeline orchestrata ───
@@ -173,85 +235,106 @@ export async function runPipeline(
   );
 
   try {
-    const connector = createConnector(source, log);
-    const store = createStore(source, log);
+    // Route to generic pipeline for non-article data types
+    if (GENERIC_DATA_TYPES.has(source.dataType)) {
+      const loadResult = await loadGenericPipeline(source, options, log);
+      result.loadResult = loadResult;
+      result.stoppedAt = "load";
 
-    // Fetch dati (full o delta)
-    let fetchResult;
-    if (options.mode === "delta") {
-      const lastSync = await getLastSuccessfulSync(sourceId);
-      const since =
-        options.deltaSince ?? lastSync?.completedAt ?? "2020-01-01";
-      log(`[LOAD] Delta dal ${since}`);
-      fetchResult = await connector.fetchDelta(since, {
-        limit: options.limit,
+      log(
+        `[LOAD] ${options.dryRun ? "DRY RUN | " : ""}Inseriti: ${loadResult.inserted} | Aggiornati: ${loadResult.updated} | Saltati: ${loadResult.skipped} | Errori: ${loadResult.errors}`
+      );
+
+      await completeSync(loadSyncId, loadResult.errors > 0 ? "failed" : "completed", {
+        itemsFetched: loadResult.inserted + loadResult.updated + loadResult.skipped + loadResult.errors,
+        itemsInserted: loadResult.inserted,
+        itemsUpdated: loadResult.updated,
+        itemsSkipped: loadResult.skipped,
+        errors: loadResult.errors,
+        errorDetails: loadResult.errorDetails,
       });
     } else {
-      log(`[LOAD] Full fetch${options.limit ? ` (limit: ${options.limit})` : ""}`);
-      fetchResult = await connector.fetchAll({ limit: options.limit });
-    }
+      // Legacy pipeline for article-based data types
+      const connector = createConnector(source, log);
+      const store = createStore(source, log);
 
-    log(`[LOAD] ${fetchResult.items.length} articoli fetchati`);
+      // Fetch dati (full o delta)
+      let fetchResult;
+      if (options.mode === "delta") {
+        const lastSync = await getLastSuccessfulSync(sourceId);
+        const since =
+          options.deltaSince ?? lastSync?.completedAt ?? "2020-01-01";
+        log(`[LOAD] Delta dal ${since}`);
+        fetchResult = await connector.fetchDelta(since, {
+          limit: options.limit,
+        });
+      } else {
+        log(`[LOAD] Full fetch${options.limit ? ` (limit: ${options.limit})` : ""}`);
+        fetchResult = await connector.fetchAll({ limit: options.limit });
+      }
 
-    // Validazione
-    const articles = fetchResult.items as ParsedArticle[];
-    const validation = validateBatch(articles);
-    log(
-      `[LOAD] Validazione: ${validation.validCount} validi | ${validation.warningCount} con warning | ${validation.errorCount} con errori`
-    );
+      log(`[LOAD] ${fetchResult.items.length} articoli fetchati`);
 
-    // Filtra solo i validi
-    const validArticles = articles.filter((_, i) => {
-      const detail = validation.details[i];
-      return detail?.result.valid ?? false;
-    });
+      // Validazione
+      const articles = fetchResult.items as ParsedArticle[];
+      const validation = validateBatch(articles);
+      log(
+        `[LOAD] Validazione: ${validation.validCount} validi | ${validation.warningCount} con warning | ${validation.errorCount} con errori`
+      );
 
-    if (validArticles.length === 0) {
-      result.stoppedAt = "load";
-      result.stoppedReason = "Nessun articolo valido dopo validazione";
-      await completeSync(loadSyncId, "failed", {
-        itemsFetched: fetchResult.items.length,
-        errors: validation.errorCount,
+      // Filtra solo i validi
+      const validArticles = articles.filter((_, i) => {
+        const detail = validation.details[i];
+        return detail?.result.valid ?? false;
       });
-      result.durationMs = Date.now() - startTime;
-      return result;
+
+      if (validArticles.length === 0) {
+        result.stoppedAt = "load";
+        result.stoppedReason = "Nessun articolo valido dopo validazione";
+        await completeSync(loadSyncId, "failed", {
+          itemsFetched: fetchResult.items.length,
+          errors: validation.errorCount,
+        });
+        result.durationMs = Date.now() - startTime;
+        return result;
+      }
+
+      // Trasforma in formato per lo store (usa la source come law_source)
+      const lawSource = source.shortName;
+      const itemsForStore: LegalArticle[] = validArticles.map((a) => ({
+        lawSource,
+        articleReference: `Art. ${a.articleNumber}`,
+        articleTitle: a.articleTitle ?? "",
+        articleText: a.articleText,
+        hierarchy: a.hierarchy ?? {},
+        keywords: [] as string[],
+        relatedInstitutes: [] as string[],
+        sourceUrl: a.sourceUrl ?? (source.config.baseUrl as string) ?? "",
+        isInForce: a.isInForce ?? true,
+      }));
+
+      // Salva
+      const storeResult: StoreResult = await store.save(itemsForStore, {
+        dryRun: options.dryRun,
+        skipEmbeddings: options.skipEmbeddings,
+      });
+
+      result.loadResult = storeResult;
+      result.stoppedAt = "load";
+
+      log(
+        `[LOAD] ${options.dryRun ? "DRY RUN | " : ""}Inseriti: ${storeResult.inserted} | Aggiornati: ${storeResult.updated} | Saltati: ${storeResult.skipped} | Errori: ${storeResult.errors}`
+      );
+
+      await completeSync(loadSyncId, storeResult.errors > 0 ? "failed" : "completed", {
+        itemsFetched: fetchResult.items.length,
+        itemsInserted: storeResult.inserted,
+        itemsUpdated: storeResult.updated,
+        itemsSkipped: storeResult.skipped,
+        errors: storeResult.errors,
+        errorDetails: storeResult.errorDetails,
+      });
     }
-
-    // Trasforma in formato per lo store (usa la source come law_source)
-    const lawSource = source.shortName;
-    const itemsForStore: LegalArticle[] = validArticles.map((a) => ({
-      lawSource,
-      articleReference: `Art. ${a.articleNumber}`,
-      articleTitle: a.articleTitle ?? "",
-      articleText: a.articleText,
-      hierarchy: a.hierarchy ?? {},
-      keywords: [] as string[],
-      relatedInstitutes: [] as string[],
-      sourceUrl: a.sourceUrl ?? (source.config.baseUrl as string) ?? "",
-      isInForce: a.isInForce ?? true,
-    }));
-
-    // Salva
-    const storeResult: StoreResult = await store.save(itemsForStore, {
-      dryRun: options.dryRun,
-      skipEmbeddings: options.skipEmbeddings,
-    });
-
-    result.loadResult = storeResult;
-    result.stoppedAt = "load";
-
-    log(
-      `[LOAD] ${options.dryRun ? "DRY RUN | " : ""}Inseriti: ${storeResult.inserted} | Aggiornati: ${storeResult.updated} | Saltati: ${storeResult.skipped} | Errori: ${storeResult.errors}`
-    );
-
-    await completeSync(loadSyncId, storeResult.errors > 0 ? "failed" : "completed", {
-      itemsFetched: fetchResult.items.length,
-      itemsInserted: storeResult.inserted,
-      itemsUpdated: storeResult.updated,
-      itemsSkipped: storeResult.skipped,
-      errors: storeResult.errors,
-      errorDetails: storeResult.errorDetails,
-    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     result.stoppedAt = "load";

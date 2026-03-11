@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { AgentName, ModelKey } from "@/lib/models";
+import type { AgentName } from "@/lib/models";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ import { MODELS } from "@/lib/models";
 
 const ALL_AGENTS: AgentName[] = [
   "leader", "question-prep", "classifier", "corpus-agent",
-  "analyzer", "investigator", "advisor", "task-executor",
+  "analyzer", "investigator", "advisor", "task-executor", "mapper",
 ];
 
 const ALL_TIERS: TierName[] = ["intern", "associate", "partner"];
@@ -863,10 +863,15 @@ describe("AGENT_CHAINS data integrity", () => {
     expect(AGENT_CHAINS["task-executor"][0]).toBe("claude-opus-4.5");
   });
 
-  it("classifier, leader, and question-prep share the same chain structure", () => {
-    // They all start with haiku -> flash -> cerebras -> groq -> mistral
-    expect(AGENT_CHAINS.classifier).toEqual(AGENT_CHAINS.leader);
-    expect(AGENT_CHAINS.classifier).toEqual(AGENT_CHAINS["question-prep"]);
+  it("leader and question-prep share the same chain structure", () => {
+    // Both start with haiku -> flash -> groq -> cerebras -> sambanova-maverick -> mistral
+    expect(AGENT_CHAINS.leader).toEqual(AGENT_CHAINS["question-prep"]);
+  });
+
+  it("classifier uses sambanova-llama3-70b (stability) vs leader's maverick", () => {
+    // Classifier diverges from leader only on sambanova model choice
+    expect(AGENT_CHAINS.classifier[4]).toBe("sambanova-llama3-70b");
+    expect(AGENT_CHAINS.leader[4]).toBe("sambanova-llama4-maverick");
   });
 });
 

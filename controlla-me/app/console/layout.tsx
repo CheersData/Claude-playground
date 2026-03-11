@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "LexMea — Console Legale AI",
+  title: "controlla.me — Console Legale AI",
   description:
     "Analisi legale AI con agenti specializzati. Carica documenti o fai domande sulla legislazione italiana.",
 };

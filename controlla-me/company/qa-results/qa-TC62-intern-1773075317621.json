@@ -1,0 +1,29 @@
+{
+  "testId": "TC62",
+  "question": "Il mio datore di lavoro mi ha fatto firmare un patto di non concorrenza senza darmi nulla in cambio. Vale?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl patto di non concorrenza firmato dal datore di lavoro è nullo se non è stato pattuito un corrispettivo a favore del lavoratore. Secondo l'art. 2125 c.c., il patto di non concorrenza deve essere provato per iscritto, deve prevedere un corrispettivo e deve rispettare limiti di oggetto, tempo e luogo.\n\nRiferimenti normativi:\nL'art. 2125 c.c. stabilisce che il patto di non concorrenza è nullo se non risulta da atto scritto, se non è pattuito un corrispettivo a favore del prestatore di lavoro e se il vincolo non è contenuto entro determinati limiti di oggetto, di tempo e di luogo. La durata del vincolo non può essere superiore a cinque anni per i dirigenti e a tre anni per gli altri lavoratori.\n\nIn pratica:\nPuoi contestare la validità del patto di non concorrenza firmato, in quanto manca il corrispettivo previsto dalla legge. Consulta un avvocato per valutare le azioni legali appropriate.",
+  "expectedAnswer": "Il patto di non concorrenza senza corrispettivo è NULLO (art. 2125 c.c.) — non semplicemente inefficace o annullabile. Il corrispettivo è requisito di validità. Attenzione: corrispettivo inadeguato non automaticamente nullo, ma può essere ridotto. Anche forma scritta e limiti di durata e territorio sono requisiti.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 2125 e requisiti patto non concorrenza?",
+    "search": "Ha trovato art. 2125 c.c.?",
+    "quality": "Qualifica come NULLO (non annullabile)? Menziona gli altri requisiti?"
+  },
+  "trapType": null,
+  "institutes": [
+    "patto_non_concorrenza",
+    "corrispettivo",
+    "nullità_patto"
+  ],
+  "scope": "art. 2125 c.c.: NULLO se no corrispettivo. Diverso da corrispettivo inadeguato (annullabile).",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha recuperato l'articolo pertinente (art. 2125 c.c.). La risposta è accurata e completa, menzionando la nullità del patto senza corrispettivo e altri requisiti. Ha ottenuto un bonus per aver evitato una trappola."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-09T16:54:16.010Z"
+}

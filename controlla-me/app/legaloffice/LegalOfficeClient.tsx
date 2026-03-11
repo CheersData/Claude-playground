@@ -22,13 +22,11 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Scale,
   FileText,
   Upload,
-  Globe,
-  BookOpen,
   Plus,
   MessageSquare,
   Terminal,
@@ -78,7 +76,7 @@ const DOC_AGENTS: BlockAgentId[] = ["classifier", "analyzer", "investigator", "a
 // Legacy 4-agent order for document pipeline content area
 const AGENT_ORDER: AgentId[] = ["classifier", "analyzer", "investigator", "advisor"];
 
-const AGENT_LABELS: Record<AgentId, string> = {
+const _AGENT_LABELS: Record<AgentId, string> = {
   classifier:   "Classificatore",
   analyzer:     "Analista",
   investigator: "Investigatore",
@@ -161,7 +159,7 @@ export default function LegalOfficeClient() {
   const [contextPrompt, setContextPrompt]     = useState("");
   const [phaseResults, setPhaseResults]       = useState<Record<string, unknown>>({});
   const [tier, setTier]                       = useState<TierName>("intern");
-  const [documentType, setDocumentType]       = useState<string | undefined>(undefined);
+  const [_documentType, setDocumentType]       = useState<string | undefined>(undefined);
 
   // ── Layout state ─────────────────────────────────────────────────────────────
   const [leftPanelTab, setLeftPanelTab]       = useState<"agents" | "corpus">("agents");
@@ -319,20 +317,19 @@ export default function LegalOfficeClient() {
       setIsQaMode(false);
       setLeaderLoading(false);
     }
-  }, [sessionId, pendingAgentContext, phaseResults, tier]);
-
-  const BLOCK_LABELS: Record<BlockAgentId, string> = {
-    leader: "Leader",
-    comprensione: "Comprensione",
-    classifier: "Classificatore",
-    analyzer: "Analista",
-    "corpus-search": "Ricerca Corpus",
-    investigator: "Investigatore",
-    advisor: "Consulente",
-  };
+  }, [sessionId, pendingAgentContext, phaseResults, tier, leaderMessages]);
 
   const handleAskAgent = useCallback((agentId: BlockAgentId) => {
-    const agentName = BLOCK_LABELS[agentId] || agentId;
+    const LABELS: Record<BlockAgentId, string> = {
+      leader: "Leader",
+      comprensione: "Comprensione",
+      classifier: "Classificatore",
+      analyzer: "Analista",
+      "corpus-search": "Ricerca Corpus",
+      investigator: "Investigatore",
+      advisor: "Consulente",
+    };
+    const agentName = LABELS[agentId] || agentId;
     const agentData = qaResults[agentId] ?? phaseResults[agentId];
     const context = agentData
       ? `Agente evocato: ${agentName}\nOutput: ${JSON.stringify(agentData).slice(0, 500)}`

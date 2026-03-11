@@ -2,12 +2,11 @@
   "_meta": {
     "dept": "strategy",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "strategist"
+    "last_updated": "2026-03-08T22:11:42.204Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Inizio Q2 2026. Fondamenta solide: 309 task completati, corpus 6731 articoli su 4 verticali, trading paper LIVE con 6 posizioni aperte. Il prodotto è tecnicamente pronto ma non ancora in produzione reale. Tre priorità strategiche dominano il trimestre: (1) convertire l'infrastruttura in utenti paganti reali, (2) lanciare il verticale HR in 3-4 settimane sfruttando l'infrastruttura già al 70%, (3) sbloccare le decisioni boss bloccate (DPA provider AI, EU AI Act, Poimandres GO/NO-GO). Il vantaggio competitivo stimato di 9-15 mesi sul segmento consumer legale italiano si erode se non usiamo Q2 per generare traction reale.",
-
+  "summary": "1 task aperti. 11 completati (ultimi 7gg). 20 completati (totale).",
   "okr_q2": {
     "o1": {
       "title": "Rendere il prodotto production-ready",
@@ -112,7 +111,6 @@
       "status": "at_risk"
     }
   },
-
   "opportunities": [
     {
       "id": "OPP-1",
@@ -173,7 +171,6 @@
       "next_action": "Backlog — affrontare dopo HR e Tax. Segnalare a Marketing per keyword research ('contratto fornitura analisi' etc.)."
     }
   ],
-
   "competitor_snapshot": [
     {
       "name": "Lexroom",
@@ -247,7 +244,6 @@
       "trend": "stable"
     }
   ],
-
   "market_signals": [
     "Lawhive $60M Series B (febbraio 2026) — conferma che il consumer legal AI attrae investitori primari. Il gap UK-IT è vantaggioso: finestra italiana stimata 9-15 mesi.",
     "EU AI Act deadline agosto 2026 — crea urgenza compliance per PMI e professionisti. Controlla.me EU-native by design è già posizionato. Opportunità: articoli SEO 'EU AI Act per PMI'.",
@@ -258,7 +254,6 @@
     "Corpus delta update automatizzato attivo (cron Vercel domenica 06:00 UTC) — vantaggio operativo: il corpus rimane fresco senza intervento manuale, mentre i competitor devono aggiornare manualmente.",
     "Ufficio Trading LIVE (2026-03-02): 9 posizioni aperte su paper portfolio $99.900. Slope+volume strategy attiva 24/7. Se Sharpe > 1.0 dopo 30gg (review 2026-04-02), possibile go-live che genera revenue reale per sostenere sviluppo."
   ],
-
   "risks": [
     {
       "id": "R-1",
@@ -317,7 +312,6 @@
       "deadline": "2026-04-02 — review 30gg paper trading"
     }
   ],
-
   "decisions_pending_boss": [
     {
       "id": "D-01",
@@ -355,7 +349,13 @@
       "urgency": "medium"
     }
   ],
-
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "83240ed3",
+      "title": "Implementare tre modalita output per persona nel frontend",
+      "priority": "medium",
+      "status": "open"
+    }
+  ],
   "blockers": []
 }

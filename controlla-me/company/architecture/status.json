@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "architecture",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "architect"
+    "last_updated": "2026-03-08T22:11:42.194Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "96 task completati. ADR in decisions.md aggiornato. Nessun tech debt critico aperto (TD-1, TD-2, TD-3 tutti risolti).",
+  "summary": "3 task aperti. 80 completati (ultimi 7gg). 145 completati (totale).",
   "decisions": {
     "adr_file": "company/architecture/decisions.md",
     "total_adrs": null,
@@ -17,7 +17,11 @@
     "high": 0,
     "medium": 2,
     "low": 3,
-    "resolved_recent": ["TD-1 savePhaseTiming", "TD-2 tesseract.js", "TD-3 migrations"]
+    "resolved_recent": [
+      "TD-1 savePhaseTiming",
+      "TD-2 tesseract.js",
+      "TD-3 migrations"
+    ]
   },
   "scalability": {
     "multi_vertical_ready": false,
@@ -35,7 +39,26 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "66db2f07",
+      "title": "Testare daemon su prossimo ciclo per verificare che claude -p crei e completi task",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "58962ac3",
+      "title": "Testare AVVIA_CME.bat da terminale esterno e configurare Windows Task Scheduler per esecuzione automatica",
+      "priority": "medium",
+      "status": "open"
+    },
+    {
+      "id": "27b14ab6",
+      "title": "Testare autorun da terminale esterno per verificare che claude -p riceva il prompt via stdin",
+      "priority": "medium",
+      "status": "open"
+    }
+  ],
   "blockers": [],
   "notes": "Dipartimento stabile. Focus su cost-awareness e backward compatibility nelle proposte."
 }

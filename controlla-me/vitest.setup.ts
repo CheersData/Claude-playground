@@ -23,6 +23,10 @@ delete process.env.CEREBRAS_API_KEY;
 delete process.env.DEEPSEEK_API_KEY;
 delete process.env.VOYAGE_API_KEY;
 
+// Disable CLI runner in tests — prevents spawning real `claude -p` subprocesses
+// which cause 39+ test timeouts in analyzer/advisor/agent-runner suites.
+process.env.DISABLE_CLI_RUNNER = "true";
+
 // Suppress console.log/warn during tests (agents log extensively)
 vi.spyOn(console, "log").mockImplementation(() => {});
 vi.spyOn(console, "warn").mockImplementation(() => {});

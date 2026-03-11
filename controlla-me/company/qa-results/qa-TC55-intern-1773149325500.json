@@ -1,0 +1,29 @@
+{
+  "testId": "TC55",
+  "question": "Il mio ex ha mandato le mie foto private ad alcuni amici. È reato?",
+  "agentAnswer": "Il comportamento del tuo ex costituisce un reato ai sensi dell'Art. 612-ter del Codice Penale, che punisce la diffusione illecita di immagini o video sessualmente espliciti senza il consenso delle persone rappresentate. La pena prevista è la reclusione da uno a sei anni e una multa da 5.000 a 15.000 euro. La pena è aumentata se le immagini sono diffuse attraverso strumenti informatici o telematici.\n\nRiferimenti normativi:\nL'Art. 612-ter del Codice Penale è direttamente pertinente, poiché disciplina specificamente la diffusione illecita di immagini private. L'Art. 734-bis del Codice Penale è rilevante per la divulgazione delle generalità o dell'immagine di persona offesa da atti di violenza sessuale, ma non è direttamente applicabile in questo caso.\n\nIn pratica:\nPuoi sporgere querela entro sei mesi dalla scoperta del fatto. Se le immagini sono state diffuse attraverso mezzi informatici, la pena è aumentata. Consulta un avvocato per valutare la possibilità di un'azione civile per risarcimento danni.",
+  "expectedAnswer": "Sì, è reato: art. 612-ter c.p. introdotto dalla L.69/2019 (Codice Rosso). Punisce chiunque, senza consenso, diffonda immagini o video sessualmente espliciti. La norma si applica ANCHE se l'invio è limitato ad alcuni amici (non richiede diffusione pubblica). Pena: da 1 a 6 anni.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 612-ter c.p. e Codice Rosso?",
+    "search": "Ha trovato art. 612-ter c.p.?",
+    "quality": "Chiarisce che l'invio a pochi vale come diffusione? Cita la L. 69/2019?"
+  },
+  "trapType": null,
+  "institutes": [
+    "revenge_porn",
+    "art_612-ter_cp",
+    "Codice_Rosso"
+  ],
+  "scope": "Reato art. 612-ter c.p. (L.69/2019 Codice Rosso). Anche invio a terzi senza diffusione pubblica.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 35,
+    "total": 95,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente identifica correttamente il tema giuridico e richiama l'art. 612-ter c.p. Inoltre, fornisce informazioni accurate sulla pena e sulla possibilità di sporgere querela. Tuttavia, non cita esplicitamente la L. 69/2019 e non chiarisce con enfasi che l'invio a pochi amici vale come diffusione, ma nel complesso la risposta è completa e precisa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:28:06.138Z"
+}

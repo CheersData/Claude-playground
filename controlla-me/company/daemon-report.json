@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-03-08T18:06:41.156Z",
-  "durationMs": 8551,
+  "timestamp": "2026-03-09T21:42:45.828Z",
+  "durationMs": 11204,
   "board": {
     "total": 0,
-    "open": 6,
-    "inProgress": 0,
-    "done": 569
+    "open": 2,
+    "inProgress": 5,
+    "done": 739
   },
   "signals": [
     {
@@ -37,47 +37,11 @@
     },
     {
       "deptId": "data-engineering",
-      "sourceId": "DE-2",
-      "title": "Verticale HR non avviato — D.Lgs. 81/2008 (Sicurezza Lavoro, 306 art.) non caric",
-      "description": "Verticale HR non avviato — D.Lgs. 81/2008 (Sicurezza Lavoro, 306 art.) non caricato",
-      "priority": "low",
-      "routing": "data-operations:routine_sync",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "data-engineering",
       "sourceId": "DE-3",
       "title": "Statuto dei Lavoratori (L. 300/1970) caricato via fallback (41 art. pubblico dom",
       "description": "Statuto dei Lavoratori (L. 300/1970) caricato via fallback (41 art. pubblico dominio) — versione ufficiale Normattiva produce ZIP vuoti",
       "priority": "low",
       "routing": "data-operations:routine_sync",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "marketing",
-      "sourceId": "B-1",
-      "title": "Statuto dei Lavoratori (L. 300/1970) non nel corpus — blocca il verticale HR e i",
-      "description": "Statuto dei Lavoratori (L. 300/1970) non nel corpus — blocca il verticale HR e i contenuti SEO su contratti di lavoro. Keyword cluster stimato >10.000/mese aggregati. Data Engineering ha segnalato che l'API async Normattiva produce ZIP vuoti per questa fonte. Serve approvazione boss su approccio alternativo: HTML scraping Normattiva web o testo consolidato via EUR-Lex.. Suggested: Approvare Data Engineering per tentare HTML scraping Normattiva web per L. 300/1970. Effort stimato: 1-2 giorni. Sblocca verticale HR da 10K+ keyword/mese.",
-      "priority": "high",
-      "routing": "feature-request:medium",
-      "requiresHuman": true
-    },
-    {
-      "deptId": "marketing",
-      "sourceId": "B-2",
-      "title": "Google Search Console e Analytics 4 non configurati — impossibile misurare traff",
-      "description": "Google Search Console e Analytics 4 non configurati — impossibile misurare traffico organico, indicizzazione articoli, performance keyword. Senza questi strumenti l'OKR 'organic_sessions' è non misurabile.. Suggested: Configurare GSC e GA4 su controlla.me prima della pubblicazione del primo articolo SEO. Effort: 2-4 ore. Prerequisito: accesso DNS e Google account del dominio.",
-      "priority": "high",
-      "routing": "feature-request:medium",
-      "requiresHuman": true
-    },
-    {
-      "deptId": "marketing",
-      "sourceId": "B-3",
-      "title": "Nessun utente reale — impossibile raccogliere segnali di domanda interna (quali ",
-      "description": "Nessun utente reale — impossibile raccogliere segnali di domanda interna (quali clausole vengono cercate via deep search, quali tipi di contratti vengono caricati). Il feedback loop prodotto→marketing è attualmente assente.. Suggested: Prioritizzare acquisizione primi utenti (beta tester) via canali diretti: LinkedIn personal network del fondatore, community legali, avvocati referral. Obiettivo: 5-10 beta tester entro fine marzo.",
-      "priority": "high",
-      "routing": "feature-request:medium",
       "requiresHuman": false
     },
     {
@@ -190,28 +154,10 @@
     },
     {
       "deptId": "operations",
-      "sourceId": "OPS-1",
-      "title": "analysis/[id]/page.tsx usa mock data — serve GET /api/analyses/[id] con RLS",
-      "description": "analysis/[id]/page.tsx usa mock data — serve GET /api/analyses/[id] con RLS",
-      "priority": "medium",
-      "routing": "feature-request:small",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "operations",
       "sourceId": "OPS-2",
       "title": "getAverageTimings() fire-and-forget — cleanup TTL ad ogni analisi, meglio cron d",
       "description": "getAverageTimings() fire-and-forget — cleanup TTL ad ogni analisi, meglio cron dedicato",
       "priority": "low",
-      "routing": "feature-request:small",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "protocols",
-      "sourceId": "PROT-2",
-      "title": "Nessun audit settimanale delle decisioni — decision-auditor mai eseguito",
-      "description": "Nessun audit settimanale delle decisioni — decision-auditor mai eseguito",
-      "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
     },
@@ -451,15 +397,6 @@
     },
     {
       "deptId": "ufficio-legale",
-      "sourceId": "LEG-1",
-      "title": "Verticale HR non avviato — fonti mappate in hr-sources.ts ma non caricate",
-      "description": "Verticale HR non avviato — fonti mappate in hr-sources.ts ma non caricate",
-      "priority": "medium",
-      "routing": "feature-request:small",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "ufficio-legale",
       "sourceId": "LEG-2",
       "title": "OCR non disponibile — tesseract.js rimosso, reinstallare quando necessario",
       "description": "OCR non disponibile — tesseract.js rimosso, reinstallare quando necessario",
@@ -479,8 +416,8 @@
     {
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-1",
-      "title": "Implement: UI scoring multidimensionale (backend pronto)",
-      "description": "UI scoring multidimensionale (backend pronto)",
+      "title": "Implement: Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt p",
+      "description": "Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt pending)",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -488,28 +425,10 @@
     {
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-2",
-      "title": "Implement: Verticale HR (non avviato)",
-      "description": "Verticale HR (non avviato)",
-      "priority": "medium",
-      "routing": "feature-request:small",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "ufficio-legale",
-      "sourceId": "feature-ufficio-legale-3",
       "title": "Implement: Sistema referral avvocati (tabelle DB esistono, no UI)",
       "description": "Sistema referral avvocati (tabelle DB esistono, no UI)",
       "priority": "medium",
       "routing": "feature-request:small",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "ux-ui",
-      "sourceId": "UX-1",
-      "title": "UI scoring multidimensionale — backend pronto, frontend mostra solo fairnessScor",
-      "description": "UI scoring multidimensionale — backend pronto, frontend mostra solo fairnessScore",
-      "priority": "medium",
-      "routing": "ui-ux-request:polish",
       "requiresHuman": false
     },
     {

@@ -348,9 +348,54 @@ function getCdcTags(num: number, suffix: string): string[] | null {
   // Sub-articles: reduced tags from parent
   if (suffix && CDC_TAGS[base]) return CDC_TAGS[base].slice(0, 2);
 
-  // Range-based for articles outside 33-38
-  if (num >= 45 && num <= 67) return ["tutela_consumatore", "recesso"];
-  if (num >= 128 && num <= 135) return ["tutela_consumatore", "garanzia_legale", "vizi_cosa_venduta"];
+  // ═══ Range-based mappings ═══
+
+  // Parte I: Disposizioni generali (Art. 1-3)
+  if (num >= 1 && num <= 3) return ["tutela_consumatore", "definizioni_consumatore"];
+
+  // Parte II: Educazione, informazione (Art. 4-17)
+  if (num >= 4 && num <= 17) return ["tutela_consumatore", "informazione_consumatore"];
+
+  // Parte III, Tit. I: Pratiche commerciali scorrette (Art. 18-27quater)
+  if (num >= 18 && num <= 27) return ["pratiche_commerciali_scorrette", "tutela_consumatore", "pubblicità_ingannevole"];
+
+  // Parte III, Tit. II: Clausole vessatorie (Art. 33-38) — già coperto sopra via CDC_TAGS
+
+  // Parte IV, Capo I: Contratti a distanza — obblighi informazione (Art. 45-49)
+  if (num >= 45 && num <= 49) return ["contratti_distanza", "tutela_consumatore", "obblighi_informazione"];
+
+  // Parte IV, Capo I: Diritto di recesso (Art. 50-59)
+  if (num >= 50 && num <= 59) return ["recesso", "diritto_recesso", "contratti_distanza", "tutela_consumatore"];
+
+  // Parte IV, Capo I: Esecuzione del contratto (Art. 60-65)
+  if (num >= 60 && num <= 65) return ["contratti_distanza", "consegna", "tutela_consumatore"];
+
+  // Parte IV, Capo I: Altre disposizioni (Art. 66-67)
+  if (num >= 66 && num <= 67) return ["contratti_distanza", "tutela_consumatore"];
+
+  // Parte IV, Capo II: Commercio elettronico (Art. 68-71)
+  if (num >= 68 && num <= 71) return ["commercio_elettronico", "contratti_distanza", "tutela_consumatore"];
+
+  // Parte IV, Capo III: Multiproprietà (Art. 69-81)
+  if (num >= 72 && num <= 81) return ["multiproprietà", "tutela_consumatore"];
+
+  // Parte IV, Capo IV: Servizi turistici (Art. 82-100)
+  if (num >= 82 && num <= 100) return ["pacchetti_turistici", "tutela_consumatore", "risarcimento"];
+
+  // Parte V, Tit. I: Sicurezza prodotti (Art. 102-113)
+  if (num >= 102 && num <= 113) return ["sicurezza_prodotti", "tutela_consumatore"];
+
+  // Parte V, Tit. II: Responsabilità per prodotto difettoso (Art. 114-127)
+  if (num >= 114 && num <= 127) return ["prodotto_difettoso", "responsabilità_produttore", "tutela_consumatore", "risarcimento"];
+
+  // Parte V, Tit. III: Garanzia legale di conformità (Art. 128-135)
+  if (num >= 128 && num <= 135) return ["garanzia_legale", "vizi_conformità", "tutela_consumatore", "recesso"];
+
+  // Parte VI: Associazioni consumatori e accesso alla giustizia (Art. 136-141)
+  if (num >= 136 && num <= 141) return ["azione_collettiva", "tutela_consumatore"];
+
+  // Parte VI-bis: Azioni inibitorie e risarcitorie (Art. 140-bis+)
+  if (num >= 140) return ["azione_collettiva", "tutela_consumatore", "risarcimento"];
 
   return null; // Don't override existing tags
 }
@@ -449,13 +494,13 @@ const CPC: TagRule[] = [
   { min: 258, max: 276, tags: ["consulenza_tecnica", "prove"] },
   // Decisione — cosa giudicata
   { min: 277, max: 322, tags: ["decisione", "sentenza"] },
-  // ★ Cosa giudicata
-  { min: 324, max: 340, tags: ["cosa_giudicata", "efficacia_sentenza"] },
-  // Impugnazioni
-  { min: 323, max: 403, tags: ["impugnazioni", "appello", "cassazione"] },
-  { min: 341, max: 359, tags: ["appello"] },
-  { min: 360, max: 394, tags: ["ricorso_cassazione"] },
-  { min: 395, max: 403, tags: ["revocazione"] },
+  // Impugnazioni (range generale — poi sovrascritto da sotto-range specifici)
+  { min: 323, max: 403, tags: ["impugnazioni"] },
+  // ★ Cosa giudicata (Art. 324-340) — deve venire DOPO impugnazioni per "last match wins"
+  { min: 324, max: 340, tags: ["cosa_giudicata", "efficacia_sentenza", "impugnazioni"] },
+  { min: 341, max: 359, tags: ["appello", "impugnazioni"] },
+  { min: 360, max: 394, tags: ["ricorso_cassazione", "impugnazioni"] },
+  { min: 395, max: 403, tags: ["revocazione", "impugnazioni"] },
   // Libro III: Processo di esecuzione
   { min: 474, max: 632, tags: ["esecuzione_forzata"] },
   // ★ Titolo esecutivo — fondamentale
@@ -577,7 +622,7 @@ async function run() {
     }
 
     // ─── CODICE DEL CONSUMO ───
-    if (art.law_source?.includes("206/2005")) {
+    if (art.law_source === "Codice del Consumo") {
       const tags = getCdcTags(num, suffix);
       if (tags) {
         const current = JSON.stringify((art.related_institutes ?? []).sort());
@@ -613,8 +658,7 @@ async function run() {
     }
 
     // ─── D.LGS. 81/2008 (Sicurezza sul lavoro) ───
-    // Nota: verificare che law_source in DB sia "D.Lgs. 81/2008" prima di eseguire
-    if (art.law_source?.includes("81/2008") || art.law_source?.includes("81-2008")) {
+    if (art.law_source === "T.U. Sicurezza") {
       const dlgs81Tags = getDlgs81Tags(num);
       if (dlgs81Tags) {
         const current = JSON.stringify((art.related_institutes ?? []).sort());
@@ -623,6 +667,186 @@ async function run() {
           updates.set(art.id, dlgs81Tags);
         }
       }
+    }
+
+    // ─── L. 431/1998 (Locazioni abitative) ───
+    if (art.law_source === "L. 431/1998") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 2) tags = ["locazione", "locazione_abitativa", "canone_libero"];
+      if (num === 2) tags = ["locazione", "locazione_abitativa", "canone_concordato"];
+      if (num >= 3 && num <= 5) tags = ["locazione", "locazione_abitativa", "durata_locazione", "rinnovo"];
+      if (num === 6) tags = ["locazione", "successione_contratto", "locazione_abitativa"];
+      if (num === 7) tags = ["locazione", "locazione_abitativa", "rinnovo"];
+      if (num === 13) tags = ["locazione", "locazione_abitativa", "nullità", "patti_contrari"];
+      if (num >= 8 && num <= 16 && !tags) tags = ["locazione", "locazione_abitativa"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── D.Lgs. 28/2010 (Mediazione civile e commerciale) ───
+    if (art.law_source === "D.Lgs. 28/2010") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 4) tags = ["mediazione", "mediazione_obbligatoria", "adr"];
+      if (num === 5) tags = ["mediazione", "mediazione_obbligatoria", "condizione_procedibilità"];
+      if (num >= 6 && num <= 7) tags = ["mediazione", "organismo_mediazione"];
+      if (num >= 8 && num <= 13) tags = ["mediazione", "procedimento_mediazione"];
+      if (num === 11) tags = ["mediazione", "accordo_mediazione", "titolo_esecutivo"];
+      if (num === 12) tags = ["mediazione", "riservatezza"];
+      if (num >= 14 && num <= 20) tags = ["mediazione", "mediazione_obbligatoria"];
+      if (num >= 21 && num <= 44 && !tags) tags = ["mediazione", "adr"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── Reg. CE 261/2004 (Diritti passeggeri aerei) ───
+    if (art.law_source === "Reg. CE 261/2004") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 2) tags = ["trasporto_aereo", "diritti_passeggeri"];
+      if (num === 3) tags = ["trasporto_aereo", "diritti_passeggeri", "negato_imbarco"];
+      if (num === 4) tags = ["trasporto_aereo", "diritti_passeggeri", "negato_imbarco", "compensazione"];
+      if (num === 5) tags = ["trasporto_aereo", "diritti_passeggeri", "cancellazione_volo", "compensazione"];
+      if (num === 6) tags = ["trasporto_aereo", "diritti_passeggeri", "ritardo_volo"];
+      if (num === 7) tags = ["trasporto_aereo", "compensazione_pecuniaria", "risarcimento"];
+      if (num === 8) tags = ["trasporto_aereo", "diritti_passeggeri", "rimborso", "riprotezione"];
+      if (num === 9) tags = ["trasporto_aereo", "diritti_passeggeri", "assistenza"];
+      if (num >= 10 && num <= 19 && !tags) tags = ["trasporto_aereo", "diritti_passeggeri"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── D.Lgs. 122/2005 (Tutela acquirenti immobili da costruire) ───
+    if (art.law_source === "Tutela acquirenti immobili da costruire") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 3) tags = ["acquisto_da_costruttore", "tutela_acquirente", "fideiussione_122_2005"];
+      if (num === 2) tags = ["acquisto_da_costruttore", "fideiussione_122_2005", "garanzia_personale"];
+      if (num === 3) tags = ["acquisto_da_costruttore", "contenuto_contratto_preliminare"];
+      if (num === 4) tags = ["acquisto_da_costruttore", "polizza_assicurativa"];
+      if (num >= 5 && num <= 8) tags = ["acquisto_da_costruttore", "tutela_acquirente"];
+      if (num >= 9 && num <= 19 && !tags) tags = ["acquisto_da_costruttore", "tutela_acquirente"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── TUB D.Lgs. 385/1993 (Testo Unico Bancario) ───
+    if (art.law_source === "TUB D.Lgs. 385/1993") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 10) tags = ["diritto_bancario", "vigilanza_bancaria"];
+      if (num >= 11 && num <= 20) tags = ["diritto_bancario", "attività_bancaria"];
+      if (num >= 115 && num <= 120) tags = ["diritto_bancario", "trasparenza_bancaria", "obblighi_informazione"];
+      if (num >= 121 && num <= 126) tags = ["diritto_bancario", "credito_consumo"];
+      if (num >= 127 && num <= 128) tags = ["diritto_bancario", "mutuo_fondiario"];
+      if (num >= 129 && num <= 141) tags = ["diritto_bancario", "credito_immobiliare"];
+      if (num >= 38 && num <= 58) tags = ["diritto_bancario", "attività_bancaria"];
+      if (num >= 106 && num <= 114 && !tags) tags = ["diritto_bancario", "intermediari_finanziari"];
+      if (!tags && num >= 1) tags = ["diritto_bancario"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── Statuto dei Lavoratori (entrambe le varianti law_source) ───
+    if (art.law_source === "L. 300/1970" || art.law_source === "Statuto dei Lavoratori (L. 300/1970)") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 13) tags = ["lavoro_subordinato", "libertà_lavoratore", "diritti_lavoratore"];
+      if (num === 4) tags = ["lavoro_subordinato", "diritti_lavoratore", "controlli_distanza"];
+      if (num === 7) tags = ["lavoro_subordinato", "sanzioni_disciplinari"];
+      if (num === 13) tags = ["lavoro_subordinato", "diritti_lavoratore", "attività_sindacale"];
+      if (num >= 14 && num <= 18) tags = ["lavoro_subordinato", "attività_sindacale", "diritti_sindacali"];
+      if (num === 18) tags = ["lavoro_subordinato", "licenziamento", "reintegrazione"];
+      if (num >= 19 && num <= 27) tags = ["lavoro_subordinato", "attività_sindacale"];
+      if (num >= 28 && num <= 34) tags = ["lavoro_subordinato", "repressione_antisindacale"];
+      if (num >= 35 && num <= 41 && !tags) tags = ["lavoro_subordinato"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── GDPR (Reg. 2016/679) ───
+    if (art.law_source === "GDPR (Reg. 2016/679)") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 4) tags = ["privacy", "protezione_dati", "gdpr"];
+      if (num >= 5 && num <= 11) tags = ["privacy", "principi_trattamento", "gdpr"];
+      if (num >= 6 && num <= 6) tags = ["privacy", "liceità_trattamento", "consenso", "gdpr"];
+      if (num === 7) tags = ["privacy", "consenso", "gdpr"];
+      if (num >= 12 && num <= 23) tags = ["privacy", "diritti_interessato", "gdpr"];
+      if (num >= 24 && num <= 43) tags = ["privacy", "titolare_trattamento", "gdpr"];
+      if (num >= 44 && num <= 50) tags = ["privacy", "trasferimento_dati", "gdpr"];
+      if (num >= 51 && num <= 76) tags = ["privacy", "autorità_controllo", "gdpr"];
+      if (num >= 77 && num <= 84) tags = ["privacy", "risarcimento", "sanzioni", "gdpr"];
+      if (num >= 85 && num <= 99 && !tags) tags = ["privacy", "gdpr"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── D.Lgs. 231/2002 (Ritardi di pagamento) ───
+    if (art.law_source === "D.Lgs. 231/2002") {
+      const tags = ["ritardo_pagamento", "interessi_mora", "transazioni_commerciali"];
+      const current = JSON.stringify((art.related_institutes ?? []).sort());
+      const target = JSON.stringify([...tags].sort());
+      if (current !== target) updates.set(art.id, tags);
+    }
+
+    // ─── Jobs Act / D.Lgs. 23/2015 (Contratto a tutele crescenti) ───
+    if (art.law_source === "Jobs Act" || art.law_source === "D.Lgs. 23/2015" || art.law_source === "Jobs Act Contratti") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 3) tags = ["lavoro_subordinato", "licenziamento", "tutele_crescenti"];
+      if (num === 2) tags = ["lavoro_subordinato", "licenziamento", "reintegrazione", "licenziamento_discriminatorio"];
+      if (num === 3) tags = ["lavoro_subordinato", "licenziamento", "indennità_licenziamento"];
+      if (num >= 4 && num <= 12 && !tags) tags = ["lavoro_subordinato", "licenziamento", "tutele_crescenti"];
+      if (!tags) tags = ["lavoro_subordinato", "contratto_lavoro"];
+      const current = JSON.stringify((art.related_institutes ?? []).sort());
+      const target = JSON.stringify([...tags].sort());
+      if (current !== target) updates.set(art.id, tags);
+    }
+
+    // ─── Biagi / D.Lgs. 276/2003 ───
+    if (art.law_source === "Biagi" || art.law_source === "D.Lgs. 276/2003") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 19) tags = ["lavoro_subordinato", "mercato_lavoro", "somministrazione"];
+      if (num >= 20 && num <= 28) tags = ["lavoro_subordinato", "somministrazione_lavoro"];
+      if (num >= 29 && num <= 32) tags = ["lavoro_subordinato", "appalto_servizi"];
+      if (num >= 33 && num <= 40) tags = ["lavoro_subordinato", "distacco"];
+      if (num >= 41 && num <= 45) tags = ["lavoro_subordinato", "lavoro_intermittente"];
+      if (num >= 46 && num <= 60) tags = ["lavoro_subordinato", "lavoro_ripartito"];
+      if (num >= 61 && num <= 69) tags = ["lavoro_autonomo", "collaborazione_coordinata"];
+      if (num >= 70 && num <= 73) tags = ["lavoro_occasionale"];
+      if (!tags) tags = ["lavoro_subordinato", "mercato_lavoro"];
+      const current = JSON.stringify((art.related_institutes ?? []).sort());
+      const target = JSON.stringify([...tags].sort());
+      if (current !== target) updates.set(art.id, tags);
+    }
+
+    // ─── CIG D.Lgs. 148/2015 ───
+    if (art.law_source === "CIG") {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 8) tags = ["cassa_integrazione", "ammortizzatori_sociali"];
+      if (num >= 9 && num <= 18) tags = ["cassa_integrazione", "cigo"];
+      if (num >= 19 && num <= 25) tags = ["cassa_integrazione", "cigs"];
+      if (num >= 26 && num <= 35) tags = ["contratto_solidarietà"];
+      if (num >= 36 && num <= 54 && !tags) tags = ["ammortizzatori_sociali"];
+      if (!tags) tags = ["ammortizzatori_sociali", "cassa_integrazione"];
+      const current = JSON.stringify((art.related_institutes ?? []).sort());
+      const target = JSON.stringify([...tags].sort());
+      if (current !== target) updates.set(art.id, tags);
     }
   }
 
@@ -652,7 +876,25 @@ async function run() {
 
   console.log("=== Verifica ===\n");
 
-  // Coverage per libro
+  // Coverage per fonte
+  const allSources = await fetchAll();
+  const sourceCoverage: Record<string, { total: number; tagged: number }> = {};
+  for (const art of allSources) {
+    if (!sourceCoverage[art.law_source]) sourceCoverage[art.law_source] = { total: 0, tagged: 0 };
+    sourceCoverage[art.law_source].total++;
+    if (art.related_institutes?.length > 0) sourceCoverage[art.law_source].tagged++;
+  }
+  console.log("Coverage per fonte:");
+  for (const [source, info] of Object.entries(sourceCoverage).sort((a, b) => b[1].total - a[1].total)) {
+    const pct = info.total > 0 ? Math.round((info.tagged / info.total) * 100) : 0;
+    const icon = pct >= 80 ? "✓" : pct >= 30 ? "~" : "✗";
+    console.log(`  ${icon} ${info.tagged.toString().padStart(4)}/${info.total.toString().padStart(4)} (${pct.toString().padStart(3)}%) | ${source}`);
+  }
+  const totalTagged = Object.values(sourceCoverage).reduce((s, v) => s + v.tagged, 0);
+  const totalAll = Object.values(sourceCoverage).reduce((s, v) => s + v.total, 0);
+  console.log(`\n  TOTALE: ${totalTagged}/${totalAll} (${Math.round(totalTagged/totalAll*100)}%)\n`);
+
+  // Coverage per libro CC
   const allAfter = await fetchAll("Codice Civile");
   const books: Record<string, { tagged: number; total: number }> = {
     "I": { tagged: 0, total: 0 },

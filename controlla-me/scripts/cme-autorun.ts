@@ -1,17 +1,17 @@
 /**
- * cme-autorun.ts — Daemon AUTOALIMENTANTE per CME
+ * cme-autorun.ts — Daemon SENSOR + PING per CME
  *
- * Il sistema è autoalimentante: il daemon scansiona, analizza, e quando serve
- * lancia `claude -p` come CME per creare ed eseguire task autonomamente.
+ * Il daemon scansiona i dipartimenti e produce un ping per la sessione Claude Code attiva.
+ * NIENTE LLM (spreco di quote). NIENTE claude -p (non funziona in nested session).
  *
  * Flusso:
- *   FASE 1: Sensor (free, $0) → scansiona dipartimenti + analisi LLM gratuita
+ *   FASE 1: Sensor ($0) → scansiona dipartimenti, produce signal
  *   FASE 2: Report → scrive daemon-report.json strutturato
- *   FASE 3: Executor → SE ci sono signal azionabili, lancia `claude -p` come CME
- *           Claude -p legge il report, crea task mirati, li esegue. (Max subscription, $0 extra)
+ *   FASE 3: Ping → scrive riassunto in clipboard + company/daemon-ping.txt
+ *           Il boss incolla il ping nella chat Claude Code → CME agisce.
  *
- * Il daemon è gli occhi. `claude -p` è il cervello e le mani.
- * Il boss non deve fare niente — il sistema gira da solo.
+ * Il daemon è gli occhi. La sessione Claude Code attiva è il cervello e le mani.
+ * Il boss incolla il ping → CME legge i segnali → agisce.
  *
  * Usage:
  *   npx tsx scripts/cme-autorun.ts              # Sessione singola (sensor + executor)
@@ -95,6 +95,8 @@ interface DaemonState {
   rateLimitUntil?: string | null;
   /** Contatore sessioni consecutive senza azioni utili → cooldown progressivo */
   consecutiveNoOp?: number;
+  /** Timestamp ISO dell'ultima plenaria automatica (max 1 al giorno) */
+  lastPlenaryAt?: string | null;
 }
 
 function readDaemonState(): DaemonState {
@@ -169,6 +171,7 @@ function readBoard(): string {
     encoding: "utf-8",
     timeout: 30_000,
     shell: true,
+    windowsHide: true,
   });
   return result.stdout || result.stderr || "Board non disponibile.";
 }
@@ -179,6 +182,7 @@ function readOpenTasks(): string {
     encoding: "utf-8",
     timeout: 30_000,
     shell: true,
+    windowsHide: true,
   });
   return result.stdout || "Nessun task open.";
 }
@@ -189,6 +193,7 @@ function readInProgressTasks(): string {
     encoding: "utf-8",
     timeout: 30_000,
     shell: true,
+    windowsHide: true,
   });
   return result.stdout || "Nessun task in progress.";
 }
@@ -276,6 +281,7 @@ function ensureDailyPlanExists(): boolean {
     encoding: "utf-8",
     timeout: 90_000, // 90s max
     shell: true,
+    windowsHide: true,
   });
 
   if (result.status === 0 || fs.existsSync(planPath)) {
@@ -418,7 +424,7 @@ interface AnalysisResult {
   deptHealth: Record<string, string>;
 }
 
-async function executeFreeSession(prompt: string): Promise<{ output: string; analysis: AnalysisResult | null; exitCode: number }> {
+async function _executeFreeSession(prompt: string): Promise<{ output: string; analysis: AnalysisResult | null; exitCode: number }> {
   log("Lancio analisi via LLM gratuiti (ZERO COSTI)...");
 
   try {
@@ -535,7 +541,7 @@ function deptRouting(dept: string, severity?: string): string {
   }
 }
 
-function mapDeptName(dirName: string): string {
+function _mapDeptName(dirName: string): string {
   const valid = new Set([
     "ufficio-legale", "trading", "data-engineering", "quality-assurance",
     "architecture", "finance", "operations", "security",
@@ -939,7 +945,7 @@ ${report.llmAnalysis?.slice(0, 800) || "(non disponibile — provider gratuiti e
  * Lancia claude -p come CME autonomo.
  * Usa la subscription Max del boss (nessun costo aggiuntivo).
  */
-function executeCMESession(report: DaemonReport): { success: boolean; output: string; durationMs: number } {
+function _executeCMESession(report: DaemonReport): { success: boolean; output: string; durationMs: number } {
   const prompt = buildCMEPrompt(report);
 
   log("[CME] Lancio sessione autonoma via claude -p (Max subscription)...");
@@ -962,6 +968,7 @@ function executeCMESession(report: DaemonReport): { success: boolean; output: st
         timeout: MAX_CME_SESSION_TIMEOUT,
         input: prompt,
         env: { ...process.env },
+        windowsHide: true,
       });
 
       // Verifica: se exit code null e output vuoto, il metodo input non ha funzionato → fallback
@@ -981,6 +988,7 @@ function executeCMESession(report: DaemonReport): { success: boolean; output: st
         timeout: MAX_CME_SESSION_TIMEOUT,
         shell: true,
         env: { ...process.env },
+        windowsHide: true,
       });
     }
 
@@ -1110,20 +1118,14 @@ async function main() {
       const uniqueDepts = new Set(signals.map((i) => i.deptId)).size;
       log(`[VISION] ${signals.length} signal da ${uniqueDepts} dipartimenti.`);
 
-      // FASE 3: Analisi LLM gratuita — $0.00
-      const prompt = buildAnalysisPrompt();
-      log(`Prompt analisi costruito: ${prompt.length} chars`);
-
-      const { output, analysis, exitCode } = await executeFreeSession(prompt);
+      // FASE 3: SKIP LLM — il daemon non spreca chiamate API.
+      // I segnali vanno direttamente nel ping per la sessione Claude Code attiva.
       const durationMs = Date.now() - startTime;
-
-      // Log analisi
-      if (analysis?.analysis) {
-        log(`[LLM] ${analysis.analysis.slice(0, 200)}`);
-      }
-      if (analysis?.alerts) {
-        for (const alert of analysis.alerts) log(`[ALERT] ${alert}`);
-      }
+      const analysis: { analysis: string | null; suggestions: string[]; alerts: string[] } = {
+        analysis: null, suggestions: [], alerts: [],
+      };
+      const exitCode = 0;
+      log(`[SENSOR-ONLY] Skip LLM — ${signals.length} signal pronti per ping.`);
 
       // Parse board stats dal board output
       const boardOutput = readBoard();
@@ -1157,71 +1159,137 @@ async function main() {
         durationMs
       );
 
-      // FASE 4: Executor — lancia claude -p come CME se ci sono signal azionabili
+      // FASE 3.5: Idle detection → auto-plenary (zero LLM cost)
+      // Se il board ha pochi task eseguibili, genera nuovi task da plenaria automatica
+      const IDLE_THRESHOLD = 3;
+      const feasibleOpen = countAutomatableTasks();
+      if (feasibleOpen < IDLE_THRESHOLD) {
+        const daemonState = readDaemonState();
+        const lastPlenary = daemonState.lastPlenaryAt ? new Date(daemonState.lastPlenaryAt).getTime() : 0;
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        const plenaryDue = Date.now() - lastPlenary > oneDayMs;
+
+        if (plenaryDue) {
+          log(`[PLENARY] Board quasi vuoto (${feasibleOpen} task eseguibili < ${IDLE_THRESHOLD}). Avvio plenaria automatica...`);
+
+          // Step 1: Aggiorna tutti i status.json dai dati reali del board
+          try {
+            const updateResult = spawnSync("npx", ["tsx", "scripts/auto-update-dept-status.ts"], {
+              cwd: ROOT, encoding: "utf-8", timeout: 30000, shell: true, windowsHide: true,
+            });
+            if (updateResult.status === 0) {
+              log(`[PLENARY] Status dipartimenti aggiornati.`);
+            } else {
+              log(`[PLENARY] Warning: auto-update-dept-status fallito: ${updateResult.stderr?.slice(0, 200)}`);
+            }
+          } catch (e) {
+            log(`[PLENARY] Warning: auto-update-dept-status errore: ${e}`);
+          }
+
+          // Step 2: Genera task dalla plenaria
+          try {
+            const plenaryResult = spawnSync("npx", ["tsx", "scripts/auto-plenary.ts"], {
+              cwd: ROOT, encoding: "utf-8", timeout: 60000, shell: true, windowsHide: true,
+            });
+            if (plenaryResult.status === 0 && plenaryResult.stdout) {
+              // auto-plenary.ts emette JSON con i task proposti su stdout
+              try {
+                const proposed = JSON.parse(plenaryResult.stdout.trim());
+                const tasks = Array.isArray(proposed) ? proposed : proposed.tasks || [];
+                let created = 0;
+                for (const task of tasks.slice(0, 15)) {
+                  const createResult = spawnSync("npx", [
+                    "tsx", "scripts/company-tasks.ts", "create",
+                    "--title", task.title || "Auto-plenary task",
+                    "--dept", task.dept || "architecture",
+                    "--priority", task.priority || "medium",
+                    "--by", "cme-plenary",
+                    "--desc", task.desc || task.title || "Generated by auto-plenary",
+                    "--routing-exempt", "--routing-reason", "auto-generated from plenary",
+                  ], {
+                    cwd: ROOT, encoding: "utf-8", timeout: 15000, shell: true, windowsHide: true,
+                  });
+                  if (createResult.status === 0) created++;
+                }
+                log(`[PLENARY] ${created}/${tasks.length} task creati dalla plenaria.`);
+              } catch (_parseErr) {
+                log(`[PLENARY] Warning: output plenaria non parsabile: ${plenaryResult.stdout.slice(0, 200)}`);
+              }
+            } else {
+              log(`[PLENARY] Warning: auto-plenary fallito: ${plenaryResult.stderr?.slice(0, 200)}`);
+            }
+          } catch (e) {
+            log(`[PLENARY] Warning: auto-plenary errore: ${e}`);
+          }
+
+          writeDaemonState({ lastPlenaryAt: new Date().toISOString() });
+        } else {
+          log(`[PLENARY] Skip: ultima plenaria meno di 24h fa.`);
+        }
+      }
+
+      // FASE 4: PING — scrive riassunto in clipboard + file per sessione Claude Code attiva.
+      // NIENTE claude -p. NIENTE LLM. Il boss incolla il ping nella chat.
       const sensorOnly = process.argv.includes("--sensor-only");
       const { trigger, reason, actionableCount } = shouldTriggerCME(report);
 
       if (trigger && !sensorOnly) {
         log(`[EXECUTOR] Trigger CME: ${reason}`);
-        const cmeResult = executeCMESession(report);
-        const cmeOutput = cmeResult.output || "";
 
-        if (cmeResult.success) {
-          log(`[EXECUTOR] CME ha lavorato ${(cmeResult.durationMs / 1000).toFixed(0)}s`);
+        // Costruisci ping message compatto
+        const criticalHigh = signals.filter(s => !s.requiresHuman && (s.priority === "critical" || s.priority === "high"));
+        const medium = signals.filter(s => !s.requiresHuman && s.priority === "medium");
+        const pingLines: string[] = [
+          `DAEMON PING — ${new Date().toLocaleString("it-IT")}`,
+          `Board: ${boardStats.open} open | ${boardStats.inProgress} in-progress | ${boardStats.done} done`,
+          `Signal: ${criticalHigh.length} critical/high + ${medium.length} medium`,
+          "",
+        ];
 
-          // Verifica se ha EFFETTIVAMENTE fatto qualcosa (creato/completato task)
-          const didWork = /task\s+(creato|completato|done)|scripts\/company-tasks\.ts\s+done/i.test(cmeOutput);
-          if (didWork) {
-            writeDaemonState({ consecutiveNoOp: 0 });
-            log("[EXECUTOR] CME ha completato lavoro reale — reset no-op counter");
-          } else {
-            // Sessione "riuscita" ma non ha fatto niente — conta come no-op
-            const currentState = readDaemonState();
-            const noOp = (currentState.consecutiveNoOp ?? 0) + 1;
-            writeDaemonState({ consecutiveNoOp: noOp });
-            log(`[EXECUTOR] CME exit 0 ma nessun task completato — no-op #${noOp}`);
+        if (criticalHigh.length > 0) {
+          pingLines.push("PRIORITÀ:");
+          for (const s of criticalHigh.slice(0, 5)) {
+            pingLines.push(`  [${s.deptId}] ${s.title}`);
           }
-        } else {
-          log(`[EXECUTOR] CME fallito dopo ${(cmeResult.durationMs / 1000).toFixed(0)}s`);
-
-          // F2: Detect rate limit — "You've hit your limit" o "resets Xpm"
-          const rateLimitMatch = cmeOutput.match(/You've hit your limit/i) || cmeOutput.match(/Credit balance is too low/i);
-          if (rateLimitMatch) {
-            // Cerca orario di reset nel messaggio (es. "resets 2pm (Europe/Rome)")
-            const resetMatch = cmeOutput.match(/resets?\s+(\d{1,2})(am|pm)/i);
-            let backoffUntil: Date;
-            if (resetMatch) {
-              const hour = parseInt(resetMatch[1]);
-              const isPM = resetMatch[2].toLowerCase() === "pm";
-              backoffUntil = new Date();
-              backoffUntil.setHours(isPM ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour), 5, 0, 0);
-              // Se l'ora è già passata, aggiungi 24h
-              if (backoffUntil.getTime() < Date.now()) {
-                backoffUntil.setDate(backoffUntil.getDate() + 1);
-              }
-            } else {
-              // Fallback: backoff 2 ore
-              backoffUntil = new Date(Date.now() + 2 * 3600 * 1000);
-            }
-            log(`[EXECUTOR] Rate limit rilevato! Backoff fino a ${backoffUntil.toISOString()}`);
-            writeDaemonState({ rateLimitUntil: backoffUntil.toISOString() });
-          }
-
-          // Track no-op
-          const currentState = readDaemonState();
-          const noOp = (currentState.consecutiveNoOp ?? 0) + 1;
-          writeDaemonState({ consecutiveNoOp: noOp });
-          if (noOp >= 6) {
-            log(`[EXECUTOR] ${noOp} sessioni consecutive no-op — cooldown progressivo attivato`);
-          }
+          pingLines.push("");
         }
+
+        if (medium.length > 0) {
+          pingLines.push(`MEDIUM (top ${Math.min(medium.length, 8)}):`);
+          for (const s of medium.slice(0, 8)) {
+            pingLines.push(`  [${s.deptId}] ${s.title}`);
+          }
+          pingLines.push("");
+        }
+
+        pingLines.push("Incolla in Claude Code → CME agisce.");
+        const pingText = pingLines.join("\n");
+
+        // Scrivi ping su file
+        const pingFile = resolve(ROOT, "company", "daemon-ping.txt");
+        fs.writeFileSync(pingFile, pingText, "utf-8");
+
+        // Copia in clipboard (Windows: clip, macOS: pbcopy, Linux: xclip)
+        try {
+          const clipCmd = process.platform === "win32" ? "clip" : process.platform === "darwin" ? "pbcopy" : "xclip";
+          spawnSync(clipCmd, [], {
+            input: pingText, encoding: "utf-8", timeout: 5000, windowsHide: true,
+          });
+          log(`[PING] ✅ Copiato in clipboard — Ctrl+V nella chat Claude Code.`);
+        } catch {
+          log(`[PING] Clipboard non disponibile — leggi company/daemon-ping.txt`);
+        }
+
+        // Stampa nel terminale daemon
+        console.log("\n" + "=".repeat(60));
+        console.log(pingText);
+        console.log("=".repeat(60) + "\n");
+
+        writeDaemonState({ consecutiveNoOp: 0 });
       } else if (sensorOnly) {
         log(`[EXECUTOR] Skip (--sensor-only). Signal azionabili: ${actionableCount}`);
       } else {
         log(`[EXECUTOR] Skip: ${reason}`);
-        // Track no-op anche quando non triggeriamo (niente da fare)
-        const currentState = readDaemonState();
-        // Reset no-op solo se la ragione è "nessun signal" non "cooldown/backoff"
         if (!reason.includes("backoff") && !reason.includes("Cooldown")) {
           writeDaemonState({ consecutiveNoOp: 0 });
         }
@@ -1234,7 +1302,7 @@ async function main() {
       // Alerting
       try {
         const alertResult = spawnSync('npx', ['tsx', 'scripts/ops-alerting.ts', 'check'], {
-          cwd: ROOT, encoding: 'utf-8', timeout: 30000, shell: true,
+          cwd: ROOT, encoding: 'utf-8', timeout: 30000, shell: true, windowsHide: true,
         });
         if (alertResult.stdout) log(`[ALERTING] ${alertResult.stdout.trim()}`);
       } catch (e) {

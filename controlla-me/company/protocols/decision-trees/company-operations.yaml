@@ -46,6 +46,24 @@ routing:
     review: [quality-assurance]
     example: "Migliorare prompt analyzer, calibrare corpus-agent"
 
+  # Aggiornamento metadati e status
+  status_update:
+    condition: "Aggiornamento metadati, status.json, flag di stato"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [department_owner]
+    example: "Aggiornare status.json post-audit, flag stale, chiudere gap risolti"
+
+  # Manutenzione task board
+  board_maintenance:
+    condition: "Pulizia task board, chiusura task stale, reset board"
+    type: operativo
+    approval: L2
+    consult: []
+    execute: [cme]
+    example: "Chiudere 25 task stale, rigenerare board, archiviare task completati"
+
   # Cambio vision/mission
   vision_mission:
     condition: "Modifica alla vision o mission aziendale"

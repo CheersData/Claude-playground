@@ -1,0 +1,29 @@
+{
+  "testId": "TC31",
+  "question": "Ho ceduto un credito a terzi ma il debitore non lo sa e ha già pagato me. Il pagamento è valido?",
+  "agentAnswer": "Il pagamento effettuato dal debitore al cedente prima della notificazione della cessione del credito è valido e libera il debitore, a meno che il cessionario non provi che il debitore era a conoscenza dell'avvenuta cessione. Secondo l'Art. 1264 del Codice Civile, la cessione del credito ha effetto nei confronti del debitore ceduto quando questi l'ha accettata o quando gli è stata notificata. Tuttavia, anche prima della notificazione, il debitore che paga al cedente non è liberato se il cessionario prova che il debitore medesimo era a conoscenza dell'avvenuta cessione.\n\nRiferimenti normativi: L'Art. 1264 del Codice Civile disciplina l'efficacia della cessione del credito nei confronti del debitore ceduto, mentre l'Art. 1260 regola la cedibilità dei crediti in generale. L'Art. 1265 si occupa dell'efficacia della cessione riguardo ai terzi.\n\nIn pratica: Il debitore che ha pagato il cedente prima della notificazione della cessione del credito non è tenuto a pagare nuovamente al cessionario, a meno che non sia provato che era a conoscenza della cessione. Il cessionario deve provare che il debitore sapeva della cessione per poter richiedere il pagamento.",
+  "expectedAnswer": "Sì, il pagamento al cedente è liberatorio se il debitore lo ha fatto in buona fede prima di ricevere notifica della cessione (art. 1264 c.c.). Il nuovo creditore (cessionario) dovrà rivalersi sul cedente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 1264 e pagamento liberatorio?",
+    "search": "Ha trovato art. 1264 c.c.?",
+    "quality": "Chiarisce la condizione (prima della notifica) e la buona fede?"
+  },
+  "trapType": null,
+  "institutes": [
+    "cessione_credito",
+    "pagamento_liberatorio",
+    "notifica_cessione"
+  ],
+  "scope": "art. 1264 c.c.: pagamento al cedente è liberatorio se avvenuto prima della notifica della cessione",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 27,
+    "quality": 38,
+    "total": 90,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema della cessione del credito e ha citato l'art. 1264 c.c. con riferimento alla buona fede del debitore. Ha fornito una risposta accurata e completa, senza invenzioni, e ha aggiunto correttamente il principio della prova della conoscenza da parte del cessionario."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:06:36.002Z"
+}

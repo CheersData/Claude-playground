@@ -1,0 +1,356 @@
+# Decision Tree: Integration Request
+# Decisioni su connettori, integrazioni esterne, sync dati, provider OAuth, webhook, rate limit
+#
+# Copertura completa: nuovo connettore (standard/complesso/nuovo provider),
+# modifica mapping (semplice/breaking), credential update, deprecazione,
+# webhook, rate limit, emergenza sicurezza.
+
+name: integration-request
+description: Routing per richieste di integrazione, connettori e sync con sistemi esterni
+trigger: "Nuovo connettore, modifica mapping, credential rotation, OAuth provider, sync failure, schema change, bulk import, webhook, rate limit, deprecazione connettore, security breach"
+
+classification:
+  questions:
+    - "È un nuovo connettore o modifica a uno esistente?"
+    - "Coinvolge credenziali o dati sensibili?"
+    - "Ci sono utenti attivi che dipendono dal connettore?"
+    - "Richiede modifiche allo schema dei dati?"
+    - "Introduce un nuovo tipo di provider (non normattiva/eurlex)?"
+    - "È un'emergenza di sicurezza?"
+
+# --- GOVERNANCE CONNETTORI ---
+#
+# Policy approvazione nuovi connettori:
+#   1. RICE evaluation obbligatoria (Reach x Impact x Confidence / Effort)
+#   2. RICE > 50 + tipo provider esistente → L1 (standard connector)
+#   3. RICE > 50 + connettore complesso (parser custom, auth multi-step) → L2
+#   4. Qualsiasi nuovo tipo provider (non normattiva/eurlex/openstax) → L3
+#   5. RICE ≤ 50 → L2 (CME valuta priorità rispetto a roadmap)
+#   6. Ordine sorgenti: API ufficiali → repo/dataset open → alternative → scraping (L3, boss approval)
+#
+# SLA sync:
+#   - Uptime target: 99% (max 7h downtime/mese)
+#   - Latency sync: < 5min per fonte con < 1000 articoli, < 30min per fonti grandi
+#   - Error rate: < 2% articoli falliti per sync run
+#   - Retry automatico: 3 tentativi con backoff esponenziale
+#   - Alerting: notifica CME dopo 3 sync fallite consecutive
+#
+# Escalation path failures:
+#   1. Retry automatico (3x, backoff esponenziale)
+#   2. Notifica data-engineering leader
+#   3. Se dati persi o corrotti → escalation L2 a CME
+#   4. Se downtime > 24h → escalation L3 a boss
+#
+# Data retention log sync:
+#   - connector_sync_log: 90 giorni (TTL automatico)
+#   - Error log dettagliati: 30 giorni
+#   - Statistiche aggregate (success rate, latency): permanenti
+#   - Credenziali ruotate: log rotation event permanente (senza valore credenziale)
+
+routing:
+
+  # ─────────────────────────────────────
+  #  NUOVI CONNETTORI (3 livelli)
+  # ─────────────────────────────────────
+
+  # Nuovo connettore standard — provider esistente (normattiva/eurlex/openstax), RICE > 50
+  new_connector_standard:
+    condition: "Nuovo connettore per provider tipo già supportato (normattiva, eurlex, openstax, ncbi-bookshelf, europe-pmc), RICE > 50"
+    type: operativo
+    approval: L1
+    consult: [architecture]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Nuovo D.Lgs. su Normattiva, nuovo regolamento EUR-Lex, nuova fonte OpenStax"
+    artifacts:
+      - "RICE evaluation documentata (score > 50)"
+      - "CorpusSource entry in corpus-sources.ts"
+      - "Test CONNECT su sample data"
+    requirement: "Seguire ordine sorgenti (API > repo > alt > scraping). ConnectorConfig completa."
+
+  # Nuovo connettore complesso — parser custom, auth multi-step, pipeline non standard
+  new_connector_complex:
+    condition: "Nuovo connettore che richiede parser custom, autenticazione multi-step, o pipeline non standard"
+    type: strategico
+    approval: L2
+    consult: [architecture, data-engineering]
+    execute: [data-engineering]
+    review: [quality-assurance, security]
+    example: "Fonte con XML non-AKN che richiede parser dedicato, API con OAuth2 multi-step, fonte con rate limit aggressivo"
+    artifacts:
+      - "RICE evaluation documentata"
+      - "Architettura parser/connector (diagramma o descrizione)"
+      - "Security review se auth coinvolta"
+      - "Test CONNECT + MODEL su sample data"
+    requirement: "Architect review obbligatorio. Stima effort in ore. Test su sample prima di full load."
+
+  # Nuovo tipo provider — tipo connettore mai implementato
+  new_connector_provider_type:
+    condition: "Tipo provider completamente nuovo (non normattiva/eurlex/openstax/ncbi-bookshelf/europe-pmc/html-scraper)"
+    type: strategico
+    approval: L3
+    consult: [architecture, strategy, security]
+    execute: [data-engineering]
+    review: [quality-assurance, security]
+    example: "Connettore GraphQL per nuova fonte, connettore SPARQL per linked data, nuovo provider REST con pattern inedito"
+    artifacts:
+      - "RICE evaluation documentata"
+      - "RFC architetturale: interfaccia connettore + come si integra nel registry"
+      - "Security review: autenticazione, dati transitati, data residency"
+      - "Piano di test: unit + integration + sample load"
+      - "Stima impatto su DataType e registry.ts"
+    requirement: "Boss approval. Il nuovo tipo deve rispettare ConnectorInterface<T> da types.ts."
+
+  # Nuovo connettore con RICE basso
+  new_connector_low_rice:
+    condition: "Nuovo connettore, RICE score <= 50"
+    type: strategico
+    approval: L2
+    consult: [architecture, strategy]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Connettore per fonte di nicchia con pochi utenti potenziali"
+    artifacts:
+      - "RICE evaluation documentata (score <= 50)"
+      - "Giustificazione strategica: perché vale la pena nonostante RICE basso"
+    requirement: "CME valuta priorità rispetto a roadmap. Può essere rifiutato o posticipato."
+
+  # ─────────────────────────────────────
+  #  MODIFICA MAPPING (2 livelli)
+  # ─────────────────────────────────────
+
+  # Mapping semplice — nessun impatto schema, backward compatible
+  mapping_change_simple:
+    condition: "Modifica a mapping dati di connettore esistente, nessun impatto schema DB, backward compatible"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [data-engineering]
+    example: "Rinominare campo interno, aggiungere trasformazione, fixare normalizzazione testo, aggiungere campo opzionale"
+    artifacts:
+      - "Diff della modifica al transformRule"
+      - "Test su sample data pre/post"
+
+  # Mapping breaking change — modifica schema o impatto su dati esistenti
+  mapping_change_breaking:
+    condition: "Modifica mapping che cambia schema DB, rinomina colonne, o invalida dati esistenti"
+    type: strategico
+    approval: L2
+    consult: [architecture, data-engineering]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Rinominare colonna legal_articles, cambiare tipo dato, eliminare campo usato da query"
+    artifacts:
+      - "Migration SQL con rollback"
+      - "Analisi impatto: query, API route, componenti UI che usano il campo"
+      - "Piano migrazione dati esistenti"
+      - "Re-sync plan post-migration"
+    requirement: "Migration reversibile. Test su staging prima di produzione. Notifica a dept dipendenti."
+
+  # ─────────────────────────────────────
+  #  CREDENTIAL UPDATE
+  # ─────────────────────────────────────
+
+  # Credential rotation standard
+  credential_update:
+    condition: "Rotazione o aggiornamento credenziali connettore (API key, token)"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [operations]
+    example: "Rotazione API key Normattiva, refresh token EUR-Lex, aggiornamento Tiingo key"
+    artifacts:
+      - "Verifica post-rotation: test CONNECT su connettore aggiornato"
+    note: "Log rotation event in audit trail (senza valore credenziale). Verificare che env vars siano aggiornate su tutti gli ambienti (local, Vercel, CI)."
+
+  # Credential rotation con dati sensibili o accesso privilegiato
+  credential_update_sensitive:
+    condition: "Rotazione credenziali che coinvolge dati sensibili o accesso privilegiato (service role, live trading)"
+    type: strategico
+    approval: L2
+    consult: [security]
+    execute: [operations]
+    review: [security]
+    example: "Rotazione service_role_key Supabase, credenziali Alpaca live, CONSOLE_JWT_SECRET"
+    artifacts:
+      - "Checklist: tutti gli ambienti aggiornati"
+      - "Verifica post-rotation: test funzionale end-to-end"
+      - "Security review: vecchia credenziale invalidata"
+
+  # ─────────────────────────────────────
+  #  DEPRECAZIONE CONNETTORE
+  # ─────────────────────────────────────
+
+  # Deprecazione connettore — richiede piano migrazione
+  connector_deprecation:
+    condition: "Rimozione o disattivazione permanente di un connettore"
+    type: strategico
+    approval: L2
+    consult: [strategy, data-engineering, architecture]
+    execute: [data-engineering]
+    notify: [cme]
+    example: "Deprecare connettore legacy, rimuovere fonte non più mantenuta, sostituire provider"
+    artifacts:
+      - "Piano migrazione: come e dove spostare i dati/utenti dipendenti"
+      - "Analisi dipendenze: chi usa i dati di questo connettore (API route, agenti, UI)"
+      - "Timeline: data annuncio, data sunset, data rimozione (minimo 30 giorni notice per connettori interni)"
+      - "Comunicazione ai dipartimenti impattati"
+      - "Aggiornamento corpus-sources.ts (lifecycle → blocked/rimosso)"
+    requirement: "Piano migrazione approvato da CME prima di procedere. Nessun dato perso senza backup."
+
+  # ─────────────────────────────────────
+  #  EMERGENZA SICUREZZA
+  # ─────────────────────────────────────
+
+  # Security breach su connettore — azione immediata
+  connector_security_breach:
+    condition: "Breach sicurezza su connettore: credenziali compromesse, data leak, accesso non autorizzato, vulnerabilità critica in dipendenza"
+    type: critico
+    approval: L4
+    consult: [security, architecture]
+    execute: [operations, security]
+    notify: [cme]
+    example: "API key esposta su repo pubblico, data leak da provider, CVE critica in libreria connettore, accesso non autorizzato ai dati sync"
+    artifacts:
+      - "Incident report: cosa, quando, impatto stimato"
+      - "Azione immediata: disabilitare connettore, revocare credenziali"
+      - "Root cause analysis (entro 24h)"
+      - "Remediation plan con timeline"
+      - "Post-mortem con lesson learned"
+    requirement: "AZIONE IMMEDIATA: disabilitare connettore compromesso PRIMA di qualsiasi review. Boss + Security audit obbligatorio. Notifica entro 1h dalla scoperta."
+    immediate_actions:
+      - "Revocare credenziali compromesse"
+      - "Disabilitare connettore (lifecycle → blocked)"
+      - "Verificare integrità dati nel DB"
+      - "Audit log: chi ha avuto accesso, quando, a cosa"
+
+  # ─────────────────────────────────────
+  #  WEBHOOK CONFIGURATION
+  # ─────────────────────────────────────
+
+  # Webhook — aggiunta o modifica
+  webhook_configuration:
+    condition: "Aggiungere o modificare webhook per notifiche sync, eventi connettore, o callback esterni"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [data-engineering]
+    example: "Webhook per notifica sync completata, callback post-load, notifica errore a Telegram"
+    artifacts:
+      - "Endpoint URL e payload atteso"
+      - "Retry policy (max tentativi, backoff)"
+      - "Test con payload di esempio"
+    note: "Webhook su endpoint esterni richiedono HTTPS. Payload non deve contenere credenziali o dati sensibili."
+
+  # Webhook con endpoint esterno o dati sensibili
+  webhook_configuration_external:
+    condition: "Webhook verso servizi esterni terzi (non infrastruttura interna) o che transitano dati utente"
+    type: strategico
+    approval: L2
+    consult: [security]
+    execute: [data-engineering]
+    review: [security]
+    example: "Webhook verso servizio terzo per monitoraggio, callback che include dati utente"
+    artifacts:
+      - "Security review: dati transitati, HTTPS obbligatorio, autenticazione webhook"
+      - "DPA con provider esterno se dati personali coinvolti"
+
+  # ─────────────────────────────────────
+  #  RATE LIMIT ADJUSTMENT
+  # ─────────────────────────────────────
+
+  # Rate limit standard — modifica frequenza sync entro parametri normali
+  rate_limit_standard:
+    condition: "Modifica frequenza sync entro parametri supportati dal provider (daily/weekly/monthly in schedule)"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [data-engineering]
+    example: "Cambiare sync da weekly a daily, aggiungere cron expression, ridurre frequenza"
+    artifacts:
+      - "Verifica limiti provider: la nuova frequenza rientra nei rate limit?"
+      - "Aggiornamento schedule in CorpusSource"
+
+  # Rate limit custom — frequenza non standard o ad alto impatto
+  rate_limit_custom:
+    condition: "Frequenza sync non standard (sub-oraria, burst), o modifica che rischia di superare rate limit provider, o impatto significativo su costi"
+    type: strategico
+    approval: L2
+    consult: [architecture, data-engineering]
+    execute: [data-engineering]
+    review: [operations]
+    example: "Sync ogni 5 minuti per dati real-time, burst sync per backfill massivo, frequenza che avvicina al rate limit del provider"
+    artifacts:
+      - "Analisi rate limit provider: margine residuo"
+      - "Stima costi aggiuntivi (API call, embedding, DB storage)"
+      - "Monitoring plan: alert se si avvicina al rate limit"
+    requirement: "Non superare l'80% del rate limit del provider per lasciare margine a retry e delta sync."
+
+  # ─────────────────────────────────────
+  #  SCENARI ESISTENTI (sync failure, schema change, bulk import, OAuth)
+  # ─────────────────────────────────────
+
+  # Nuovo provider OAuth
+  new_oauth_provider:
+    condition: "Integrazione con nuovo provider OAuth"
+    type: strategico
+    approval: L2
+    consult: [security, architecture]
+    execute: [department_owner]
+    review: [security, quality-assurance]
+    example: "Aggiungere login Google OAuth, integrazione con provider esterno"
+    artifacts:
+      - "Security review: scopes minimi, token storage, redirect URI validation"
+      - "Test su ambiente staging"
+
+  # Incident sync failure recuperabile
+  sync_failure_recoverable:
+    condition: "Sync failure recuperabile, nessuna perdita dati"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [data-engineering]
+    example: "Timeout API, rate limit temporaneo, errore di rete transitorio"
+    note: "Retry automatico 3x con backoff esponenziale. Se persiste dopo 3 tentativi, escalare a sync_failure_data_loss."
+
+  # Incident sync failure con dati persi
+  sync_failure_data_loss:
+    condition: "Sync failure con dati persi o corrotti"
+    type: strategico
+    approval: L2
+    consult: [data-engineering, architecture]
+    execute: [data-engineering]
+    notify: [cme]
+    example: "Articoli mancanti post-sync, dati corrotti nel DB, embedding inconsistenti"
+    artifacts:
+      - "Root cause analysis"
+      - "Recovery plan prima di re-sync"
+      - "Verifica integrità dati post-recovery"
+
+  # Schema change nella sorgente esterna
+  source_schema_change:
+    condition: "La sorgente esterna ha cambiato schema o formato dati"
+    type: strategico
+    approval: L2
+    consult: [architecture, data-engineering]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Normattiva cambia formato XML, EUR-Lex modifica struttura API response"
+    artifacts:
+      - "Analisi impatto su mapping esistenti"
+      - "Test su sample prima di full sync"
+      - "Aggiornamento parser se necessario"
+
+  # Bulk import
+  bulk_import:
+    condition: "Import massivo di dati (>1000 record o >10MB)"
+    type: strategico
+    approval: L2
+    consult: [architecture, data-engineering]
+    execute: [data-engineering]
+    review: [quality-assurance]
+    example: "Import iniziale corpus 5000+ articoli, migrazione dati da sistema esterno"
+    artifacts:
+      - "Risk assessment: impatto su DB size, embedding costs, rollback plan"
+      - "Stima tempo e costi"
+      - "Test su subset prima di full import"

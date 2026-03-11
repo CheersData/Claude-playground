@@ -10,15 +10,14 @@ export type RightPanelTab = "article" | "search" | "chat";
 
 // ── Article Viewer ─────────────────────────────────────────────────────────────
 
-function ArticleViewer({ articleRef, onClose }: { articleRef: string; onClose: () => void }) {
+function ArticleViewer({ articleRef, onClose: _onClose }: { articleRef: string; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [articles, setArticles] = useState<Array<{ id: string; articleReference: string; articleText: string; lawSource: string; sourceUrl?: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!articleRef) return;
-    // Multiple setState calls batched by React 18+ automatic batching (valid pattern).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     setLoading(true);
     setError(null);
     setArticles([]);
@@ -39,6 +38,7 @@ function ArticleViewer({ articleRef, onClose }: { articleRef: string; onClose: (
         setLoading(false);
       });
   }, [articleRef]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className="h-full flex flex-col">

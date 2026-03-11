@@ -9,6 +9,7 @@ import { getSession, deleteSession } from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
+import { broadcastAgentEvent } from "@/lib/agent-broadcast";
 import type { NextRequest } from "next/server";
 
 export async function POST(req: Request) {
@@ -46,6 +47,19 @@ export async function POST(req: Request) {
       });
     }
 
+    // Use a unique id per message so each message has its own lifecycle
+    // (running → done → 8s cleanup) that doesn't collide with other messages.
+    // Previously used a stable sessionId-based key, which caused the old
+    // cleanup timeout to silently fail when a new message overwrote the entry
+    // — the counter grew by 1 per message and never shrank.
+    const broadcastId = `company-follow-up-${sessionId}-${Date.now()}`;
+    broadcastAgentEvent({
+      id: broadcastId,
+      department: "cme",
+      task: `Messaggio follow-up: ${message.slice(0, 50)}`,
+      status: "running",
+    });
+
     // Write follow-up message in stream-json format
     const userMsg = JSON.stringify({
       type: "user",
@@ -60,12 +74,24 @@ export async function POST(req: Request) {
     } catch {
       // stdin closed — session expired
       deleteSession(sessionId);
+      broadcastAgentEvent({
+        id: broadcastId,
+        department: "cme",
+        task: "Sessione scaduta",
+        status: "error",
+      });
       return new Response(JSON.stringify({ error: "Sessione scaduta" }), {
         status: 410,
         headers: { "Content-Type": "application/json" },
       });
     }
 
+    broadcastAgentEvent({
+      id: broadcastId,
+      department: "cme",
+      task: "Messaggio inviato",
+      status: "done",
+    });
     return new Response(JSON.stringify({ ok: true, sessionId }), {
       headers: { "Content-Type": "application/json" },
     });

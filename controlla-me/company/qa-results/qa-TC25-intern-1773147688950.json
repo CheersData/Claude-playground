@@ -1,0 +1,29 @@
+{
+  "testId": "TC25",
+  "question": "Ho ricevuto un decreto ingiuntivo ma non me ne sono accorto in tempo per fare opposizione. Cosa posso fare?",
+  "agentAnswer": "Se hai ricevuto un decreto ingiuntivo ma non te ne sei accorto in tempo per fare opposizione, puoi ancora agire in due modi.\n\n1. **Opposizione tardiva**: L'art. 650 c.p.c. prevede che l'intimato possa fare opposizione anche dopo scaduto il termine fissato nel decreto, se prova di non averne avuta tempestiva conoscenza per irregolarità della notificazione o per caso fortuito o forza maggiore. In questo caso, l'esecutorià può essere sospesa.\n\n2. **Richiesta di sospensione dell'esecuzione**: Se l'opposizione non è più ammessa, puoi chiedere la sospensione dell'esecuzione provvisoria del decreto ingiuntivo se ricorrono gravi motivi (Art. 649 c.p.c.).\n\nIn pratica, è consigliabile consultare un avvocato per valutare la migliore strategia da seguire e redigere gli atti necessari.",
+  "expectedAnswer": "Si può fare opposizione tardiva ex art. 650 c.p.c. se si prova di non aver avuto conoscenza per caso fortuito, forza maggiore o irregolarità della notifica. Termine: 10 giorni dalla conoscenza.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 650 e opposizione tardiva?",
+    "search": "Ha trovato art. 650 c.p.c.?",
+    "quality": "Chiarisce le condizioni (caso fortuito/forza maggiore/irregolarità)? Indica il termine?"
+  },
+  "trapType": null,
+  "institutes": [
+    "decreto_ingiuntivo",
+    "opposizione_tardiva",
+    "rimessione_termini"
+  ],
+  "scope": "art. 650 c.p.c. (opposizione tardiva); art. 294 c.p.c. (rimessione in termini)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 25,
+    "quality": 35,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente è precisa e completa. Identifica correttamente l'istituto dell'opposizione tardiva ex art. 650 c.p.c. e menziona pure l'ipotesi di sospensione dell'esecuzione. L'agente chiarisce le condizioni per l'opposizione tardiva (caso fortuito, forza maggiore, irregolarità della notifica) e accenna al termine di 10 giorni, anche se non esplicitamente."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:00:51.639Z"
+}

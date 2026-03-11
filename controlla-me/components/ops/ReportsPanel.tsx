@@ -45,14 +45,14 @@ function renderInline(text: string): React.ReactNode {
       {parts.map((part, i) => {
         if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
           return (
-            <strong key={i} className="text-[var(--ops-fg)] font-semibold">
+            <strong key={i} className="text-[var(--fg-primary)] font-semibold">
               {part.slice(2, -2)}
             </strong>
           );
         }
         if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
           return (
-            <code key={i} className="bg-[var(--ops-surface-2)] px-1 rounded text-[#FF6B35] font-mono text-xs">
+            <code key={i} className="bg-[var(--bg-overlay)] px-1 rounded text-[#FF6B35] font-mono text-xs">
               {part.slice(1, -1)}
             </code>
           );
@@ -86,7 +86,7 @@ function MarkdownContent({ content }: { content: string }) {
     // H2
     if (line.startsWith("## ")) {
       elements.push(
-        <h2 key={key++} className="text-base font-semibold text-[var(--ops-fg)] mt-5 mb-2 border-b border-[var(--ops-border-subtle)] pb-1">
+        <h2 key={key++} className="text-base font-semibold text-[var(--fg-primary)] mt-5 mb-2 border-b border-[var(--border-dark-subtle)] pb-1">
           {line.slice(3)}
         </h2>
       );
@@ -97,7 +97,7 @@ function MarkdownContent({ content }: { content: string }) {
     // H3
     if (line.startsWith("### ")) {
       elements.push(
-        <h3 key={key++} className="text-sm font-medium text-[var(--ops-fg-muted)] mt-4 mb-1">
+        <h3 key={key++} className="text-sm font-medium text-[var(--fg-secondary)] mt-4 mb-1">
           {line.slice(4)}
         </h3>
       );
@@ -107,7 +107,7 @@ function MarkdownContent({ content }: { content: string }) {
 
     // HR
     if (line.trim() === "---") {
-      elements.push(<hr key={key++} className="border-[var(--ops-border)] my-4" />);
+      elements.push(<hr key={key++} className="border-[var(--border-dark)] my-4" />);
       i++;
       continue;
     }
@@ -122,7 +122,7 @@ function MarkdownContent({ content }: { content: string }) {
       }
       i++; // skip closing ```
       elements.push(
-        <pre key={key++} className="bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded p-3 my-3 text-xs text-[var(--ops-fg-muted)] overflow-x-auto font-mono leading-relaxed">
+        <pre key={key++} className="bg-[var(--bg-raised)] border border-[var(--border-dark)] rounded p-3 my-3 text-xs text-[var(--fg-secondary)] overflow-x-auto font-mono leading-relaxed">
           {codeLines.join("\n")}
         </pre>
       );
@@ -150,12 +150,12 @@ function MarkdownContent({ content }: { content: string }) {
         const rows = tableRows.slice(1).map(parseRow);
 
         elements.push(
-          <div key={key++} className="overflow-x-auto my-3 rounded border border-[var(--ops-border-subtle)]">
+          <div key={key++} className="overflow-x-auto my-3 rounded border border-[var(--border-dark-subtle)]">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[var(--ops-border)] bg-[var(--ops-surface-2)]/60">
+                <tr className="border-b border-[var(--border-dark)] bg-[var(--bg-overlay)]/60">
                   {header.map((h, j) => (
-                    <th key={j} className="text-left py-2 px-3 text-[var(--ops-fg-muted)] font-medium whitespace-nowrap">
+                    <th key={j} className="text-left py-2 px-3 text-[var(--fg-secondary)] font-medium whitespace-nowrap">
                       {renderInline(h)}
                     </th>
                   ))}
@@ -163,9 +163,9 @@ function MarkdownContent({ content }: { content: string }) {
               </thead>
               <tbody>
                 {rows.map((row, j) => (
-                  <tr key={j} className="border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-2)]/30 transition-colors">
+                  <tr key={j} className="border-b border-[var(--border-dark-subtle)] hover:bg-[var(--bg-overlay)]/30 transition-colors">
                     {row.map((cell, k) => (
-                      <td key={k} className="py-2 px-3 text-[var(--ops-fg-muted)] align-top">
+                      <td key={k} className="py-2 px-3 text-[var(--fg-secondary)] align-top">
                         {renderInline(cell)}
                       </td>
                     ))}
@@ -182,7 +182,7 @@ function MarkdownContent({ content }: { content: string }) {
     // Blockquote
     if (line.startsWith("> ")) {
       elements.push(
-        <blockquote key={key++} className="border-l-2 border-[#FF6B35]/50 pl-3 my-2 text-[var(--ops-fg-muted)] italic text-sm">
+        <blockquote key={key++} className="border-l-2 border-[#FF6B35]/50 pl-3 my-2 text-[var(--fg-secondary)] italic text-sm">
           {renderInline(line.slice(2))}
         </blockquote>
       );
@@ -198,10 +198,10 @@ function MarkdownContent({ content }: { content: string }) {
         i++;
       }
       elements.push(
-        <ul key={key++} className="space-y-1 my-2 text-[var(--ops-fg-muted)] text-sm">
+        <ul key={key++} className="space-y-1 my-2 text-[var(--fg-secondary)] text-sm">
           {listItems.map((item, j) => (
             <li key={j} className="flex gap-2">
-              <span className="text-[var(--ops-muted)] mt-0.5 shrink-0">•</span>
+              <span className="text-[var(--fg-invisible)] mt-0.5 shrink-0">•</span>
               <span>{renderInline(item)}</span>
             </li>
           ))}
@@ -218,10 +218,10 @@ function MarkdownContent({ content }: { content: string }) {
         i++;
       }
       elements.push(
-        <ol key={key++} className="space-y-1 my-2 text-[var(--ops-fg-muted)] text-sm">
+        <ol key={key++} className="space-y-1 my-2 text-[var(--fg-secondary)] text-sm">
           {listItems.map((item, j) => (
             <li key={j} className="flex gap-2">
-              <span className="text-[var(--ops-muted)] shrink-0 font-mono text-xs mt-0.5">{j + 1}.</span>
+              <span className="text-[var(--fg-invisible)] shrink-0 font-mono text-xs mt-0.5">{j + 1}.</span>
               <span>{renderInline(item)}</span>
             </li>
           ))}
@@ -255,7 +255,7 @@ function MarkdownContent({ content }: { content: string }) {
     }
     if (paraLines.length > 0) {
       elements.push(
-        <p key={key++} className="text-[var(--ops-fg-muted)] text-sm my-2 leading-relaxed">
+        <p key={key++} className="text-[var(--fg-secondary)] text-sm my-2 leading-relaxed">
           {renderInline(paraLines.join(" "))}
         </p>
       );
@@ -351,20 +351,20 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2 }}
-      className="bg-[var(--ops-surface)] border border-[var(--ops-border-subtle)] rounded-xl overflow-hidden"
+      className="bg-[var(--bg-raised)] border border-[var(--border-dark-subtle)] rounded-xl overflow-y-auto"
       style={{ minHeight: "600px" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--ops-border-subtle)] bg-[var(--ops-surface-2)]/40">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-dark-subtle)] bg-[var(--bg-overlay)]/40">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-[var(--ops-fg-muted)] hover:text-white transition-colors text-sm"
+          className="flex items-center gap-2 text-[var(--fg-secondary)] hover:text-white transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Ops</span>
         </button>
-        <span className="text-[var(--ops-muted)]">/</span>
-        <span className="text-[var(--ops-fg)] text-sm font-medium flex items-center gap-2">
+        <span className="text-[var(--fg-invisible)]">/</span>
+        <span className="text-[var(--fg-primary)] text-sm font-medium flex items-center gap-2">
           <FileText className="w-4 h-4 text-[#FF6B35]" />
           Reports
         </span>
@@ -372,7 +372,7 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
           <button
             onClick={fetchGroups}
             disabled={loadingList}
-            className="p-2 rounded text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] hover:bg-[var(--ops-hover)] transition-colors disabled:opacity-50"
+            className="p-2 rounded text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loadingList ? "animate-spin" : ""}`} />
           </button>
@@ -381,10 +381,10 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
 
       <div className="flex" style={{ height: "calc(600px - 49px)" }}>
         {/* Sidebar */}
-        <div className="w-56 shrink-0 border-r border-[var(--ops-border-subtle)] overflow-y-auto">
+        <div className="w-56 shrink-0 border-r border-[var(--border-dark-subtle)] overflow-y-auto">
           {loadingList ? (
             <div className="flex items-center justify-center h-32">
-              <Loader2 className="w-5 h-5 text-[var(--ops-muted)] animate-spin" />
+              <Loader2 className="w-5 h-5 text-[var(--fg-invisible)] animate-spin" />
             </div>
           ) : (
             <nav className="py-2">
@@ -393,9 +393,9 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
                   {/* Group header */}
                   <button
                     onClick={() => toggleGroup(group.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors"
                   >
-                    <span className="text-[var(--ops-muted)]">
+                    <span className="text-[var(--fg-invisible)]">
                       {GROUP_ICONS[group.id] ?? <FileText className="w-4 h-4" />}
                     </span>
                     <span className="uppercase tracking-wide">{group.label}</span>
@@ -421,7 +421,7 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
                             className={`w-full text-left px-4 py-2 text-xs transition-colors truncate ${
                               selectedItem?.id === item.id
                                 ? "text-[#FF6B35] bg-[#FF6B35]/10"
-                                : "text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] hover:bg-[var(--ops-surface-2)]/50"
+                                : "text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] hover:bg-[var(--bg-overlay)]/50"
                             }`}
                           >
                             {item.label}
@@ -440,14 +440,14 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {!selectedItem && !loadingList && (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <FileText className="w-10 h-10 text-[var(--ops-muted)] mb-3" />
-              <p className="text-[var(--ops-muted)] text-sm">Seleziona un report dalla sidebar</p>
+              <FileText className="w-10 h-10 text-[var(--fg-invisible)] mb-3" />
+              <p className="text-[var(--fg-invisible)] text-sm">Seleziona un report dalla sidebar</p>
             </div>
           )}
 
           {loadingContent && (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 text-[var(--ops-muted)] animate-spin" />
+              <Loader2 className="w-6 h-6 text-[var(--fg-invisible)] animate-spin" />
             </div>
           )}
 

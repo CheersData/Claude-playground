@@ -42,6 +42,15 @@ routing:
     review: [security]
     example: "Nuova verticale, cambio architettura, nuova integrazione"
 
+  # Contenuti marketing (blog, SEO, social)
+  content_marketing:
+    condition: "Articoli blog, pillar SEO, social media content, newsletter"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [marketing]
+    example: "Scrivere articolo blog EU AI Act, pillar SEO clausole pericolose, post social"
+
   # Feature critica, impatto sicurezza/dati/finanze
   critical:
     condition: "Tocca sicurezza, dati sensibili, o finanze"

@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   GHERARDI PRO — Design System
+   Luxury B2B Manufacturing | Camiceria di Alta Gamma
+   ═══════════════════════════════════════════════════════════ */
+
+@theme inline {
+  --color-background: #0A0A0A;
+  --color-foreground: #F5F0EB;
+  --color-gold: #C69F73;
+  --color-gold-light: #D4B896;
+  --color-gold-dark: #A67C52;
+  --color-champagne: #E8DDD0;
+  --color-charcoal: #1A1A1A;
+  --color-charcoal-light: #2A2A2A;
+  --color-slate: #6B7280;
+  --color-cream: #FAF7F2;
+  --font-display: var(--font-playfair);
+  --font-body: var(--font-dm-sans);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-background);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-background); }
+::-webkit-scrollbar-thumb { background: var(--color-gold-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-gold); }
+
+/* ─── Typography ─────────────────────────────────────────── */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Utilities ──────────────────────────────────────────── */
+
+.gold-gradient {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold), var(--color-gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.luxury-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-dark) 20%, var(--color-gold) 50%, var(--color-gold-dark) 80%, transparent);
+  opacity: 0.4;
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.card-luxury {
+  background: var(--color-charcoal);
+  border: 1px solid rgba(198, 159, 115, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-luxury:hover {
+  border-color: rgba(198, 159, 115, 0.3);
+  box-shadow: 0 8px 32px rgba(198, 159, 115, 0.08);
+}

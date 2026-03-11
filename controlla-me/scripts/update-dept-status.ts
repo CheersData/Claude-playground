@@ -227,7 +227,7 @@ if (!SUPPORTED_DEPTS.includes(dept)) {
   process.exit(1);
 }
 
-const statusPath = getStatusPath(dept);
+const _statusPath = getStatusPath(dept);
 let current: Record<string, unknown> = readStatus(dept) || {
   _meta: { dept, schema_version: SCHEMA_VERSION },
   health: "unknown",

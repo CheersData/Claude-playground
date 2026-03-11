@@ -1,0 +1,29 @@
+{
+  "testId": "TC69",
+  "question": "L'inquilino del mio appartamento è morto. Il contratto di affitto si estingue?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl contratto di locazione non si estingue automaticamente per la morte dell'inquilino. Gli eredi possono recedere dal contratto entro tre mesi dalla morte, comunicando la disdetta con un preavviso di tre mesi (Art. 1614 c.c.).\n\nRiferimenti normativi:\nL'Art. 1614 c.c. stabilisce che nel caso di morte dell'inquilino, se la locazione deve ancora durare per più di un anno e la sublocazione è vietata, gli eredi possono recedere dal contratto entro tre mesi dalla morte, comunicando la disdetta con un preavviso di tre mesi. L'Art. 1627 c.c. prevede che, in caso di morte dell'affittuario, il locatore e gli eredi dell'affittuario possono recedere dal contratto entro tre mesi dalla morte, comunicando la disdetta con un preavviso di sei mesi.\n\nIn pratica:\nSe il contratto di locazione ha una durata residua superiore a un anno e la sublocazione è vietata, gli eredi possono recedere dal contratto entro tre mesi dalla morte dell'inquilino, comunicando la disdetta con un preavviso di tre mesi. Se il contratto riguarda un fondo rustico, la disdetta ha effetto per la fine dell'anno agrario in corso alla scadenza del termine di preavviso.",
+  "expectedAnswer": "TRAPPOLA: il contratto NON si estingue automaticamente. Art. 6 L.392/1978: hanno diritto di succedere nel contratto il coniuge, gli eredi e i parenti conviventi con il conduttore deceduto. Il proprietario non può rientrare nell'immobile automaticamente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 6 L. 392/1978 e successione locazione?",
+    "search": "Ha trovato art. 6 L. 392/1978?",
+    "quality": "Chiarisce che il contratto NON si estingue? Elenca i successori legittimi?"
+  },
+  "trapType": "falsa_estinzione",
+  "institutes": [
+    "morte_inquilino",
+    "successione_locazione",
+    "L_392_1978"
+  ],
+  "scope": "TRAPPOLA: NO. Art. 6 L.392/1978: succedono conviventi (coniuge, eredi, parenti). Il contratto non si estingue.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 10,
+    "quality": 15,
+    "total": 50,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente l'articolo 6 della L. 392/1978, che è fondamentale per rispondere alla domanda. Inoltre, ha citato articoli del codice civile non pertinenti e ha fornito informazioni incomplete sui successori legittimi. La risposta è quindi insufficiente e non risponde alla trappola posta dalla domanda."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:36:46.639Z"
+}

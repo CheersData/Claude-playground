@@ -39,21 +39,20 @@ RICONOSCI DOMANDE SISTEMATICHE quando contengono:
 - Qualsiasi domanda che richiede una RASSEGNA di più norme sparse nel codice
 
 RILEVAMENTO AMBITO (SCOPE):
-Il corpus contiene diritto sostanziale E penale:
+Il corpus contiene diritto sostanziale, penale E processuale civile:
 - Codice Civile (successioni, obbligazioni, contratti, proprietà, famiglia)
 - Codice Penale (reati contro il patrimonio, contro la persona, contro la PA)
+- Codice di Procedura Civile (c.p.c.) — ~887 articoli (principi generali, competenza, prove, esecuzione, impugnazioni)
 - Codice del Consumo, leggi speciali, regolamenti EU
 
 NON contiene:
-- Codice di Procedura Civile (c.p.c.) / Codice di Procedura Penale (c.p.p.)
+- Codice di Procedura Penale (c.p.p.)
 - Giurisprudenza (sentenze, Cassazione, Corte Costituzionale)
 - Diritto tributario, amministrativo
 
-needsProceduralLaw = true quando la domanda riguarda:
-- Poteri del giudice (principio dispositivo, ultrapetizione, iura novit curia, art. 112/113 c.p.c.)
-- Procedura (termini processuali, notifica, esecuzione forzata, sequestro, inibitoria)
-- Onere della prova, contraddittorio, diritto di difesa (art. 101 c.p.c.)
-- Riqualificazione d'ufficio, questioni rilevabili d'ufficio
+needsProceduralLaw = false di norma (il c.p.c. è nel corpus). Metti true SOLO se serve procedura PENALE.
+
+needsProceduralLaw = true SOLO quando la domanda riguarda procedura PENALE (c.p.p.).
 
 needsCaseLaw = true quando la domanda:
 - Chiede esplicitamente "giurisprudenza", "Cassazione", "orientamento giurisprudenziale", "giurisprudenza di legittimità"
@@ -132,6 +131,14 @@ ATTENZIONE — ERRORI COMUNI DA EVITARE:
 - "limitazione responsabilità" o "esonero responsabilità" → clausole_vessatorie (Art. 1341 comma 2 c.c.)
 - "doppia firma" o "approvazione specifica per iscritto" → clausole_vessatorie
 - "rinnovo automatico locazione" → rinnovo_locazione + L. 431/1998
+- PIGNORAMENTO PRIMA CASA — "pignorare la casa", "prima casa pignorata", "possono prendermi la casa" → DISTINGUERE SEMPRE il tipo di creditore nella legalQuery. Creditore privato (Art. 555 ss. c.p.c., nessun divieto assoluto) vs Agenzia Entrate Riscossione/crediti fiscali (Art. 76 DPR 602/73, limiti specifici). Se la domanda non specifica chi è il creditore, scopeNotes DEVE segnalare: "La risposta cambia radicalmente se il creditore è privato (nessun divieto) o l'Agenzia Entrate Riscossione (limiti ex DPR 602/73)."
+- ULTRA/EXTRA PETITA — "giudice ha dato più del dovuto", "condannato a pagare più di quanto chiesto", "giudice ha deciso su questione non sollevata" → Art. 112 c.p.c. (principio di corrispondenza tra chiesto e pronunciato). targetArticles: "Art. 112 c.p.c., Art. 360 n.4 c.p.c.". NON cercare nel c.c. — è un problema PROCESSUALE, non sostanziale.
+- NULLO vs ANNULLABILE — "il contratto è nullo?", "posso annullare?" → INCLUDERE SEMPRE entrambi gli istituti: nullità (Art. 1418 c.c.) + annullabilità (Art. 1425 c.c.). La distinzione è critica: presupposti, legittimazione e termini sono completamente diversi.
+- PRESTITO VERBALE / MUTUO — "prestito tra amici", "mi deve soldi", "prestito senza contratto" → cercare SIA nel mutuo (Art. 1813 c.c.) che nei limiti alla prova testimoniale (Art. 2721 c.c. — soglia valore). mechanismQuery OBBLIGATORIO: "prova testimoniale limiti valore mutuo art 2721 2722 2726".
+- MORTE INQUILINO / SUCCESSIONE LOCAZIONE — "inquilino morto", "convivente rimasto nell'appartamento" → L. 392/1978 art. 6 (successione nel contratto di locazione abitativa), NON art. 1614 c.c. (generico). La legge speciale prevale sul codice civile.
+- COMPROPRIETÀ vs DIVISIONE EREDITARIA — "fratello non vuole vendere casa in comune" → distinguere comunione ordinaria (Art. 1111 c.c., scioglimento) da divisione ereditaria (Art. 713 c.c.). Se la comproprietà nasce da successione → ENTRAMBI gli istituti.
+- CLAUSOLA RISOLUTIVA vs CONDIZIONE RISOLUTIVA — "il contratto si scioglie automaticamente se..." → Art. 1456 (clausola risolutiva espressa) vs Art. 1353 (condizione risolutiva). Presupposti e effetti diversi. Se la domanda è ambigua, includere ENTRAMBI.
+- RESPONSABILITÀ PROFESSIONISTA — "avvocato/notaio/medico ha sbagliato" → Art. 1176 co.2 c.c. (diligenza qualificata) + Art. 2236 c.c. (solo per problemi tecnici di speciale difficoltà). Distinguere obbligazione di MEZZI (avvocato) vs di RISULTATO (notaio). mechanismQuery OBBLIGATORIO.
 - LOCAZIONE — obblighi_locatore vs obblighi_conduttore: se la domanda riguarda DANNI causati dall'inquilino, restituzione immobile deteriorato, manutenzione a carico del conduttore → obblighi_conduttore (Art. 1590 c.c.). Se riguarda riparazioni straordinarie, consegna immobile idoneo, garanzia uso pacifico → obblighi_locatore (Art. 1575-1577 c.c.). "Inquilino ha rovinato" = obblighi_conduttore, NON obblighi_locatore.
 - SUCCESSIONE — "eredità", "morto/deceduto", "fratelli che litigano per soldi" → successione + legittima + divisione_ereditaria. Se c'è una persona anziana non lucida → anche incapacità + circonvenzione_incapace.
 - PENALE + PATRIMONIO — "si è preso i soldi", "ha rubato", "non restituisce" → appropriazione_indebita. Se c'è un anziano/incapace raggirato → circonvenzione_incapace. Se c'è inganno/artificio → truffa.

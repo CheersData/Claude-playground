@@ -1,0 +1,29 @@
+{
+  "testId": "TC52",
+  "question": "Ho prestato €5.000 a un amico verbalmente. Posso recuperarli?",
+  "agentAnswer": "Sì, un prestito di denaro (mutuo) può essere validamente stipulato anche verbalmente, poiché il Codice Civile non richiede una forma scritta specifica per la sua validità (Art. 1813 c.c.). Tuttavia, la principale difficoltà nel recuperare la somma prestata verbalmente, specialmente per un importo di 5.000 euro, risiede nella prova dell'esistenza del contratto in sede giudiziale.\n\nRiferimenti normativi: L'Art. 2721 c.c. stabilisce che la prova per testimoni dei contratti non è ammessa quando il valore dell'oggetto eccede le lire cinquemila (un importo molto basso, ampiamente superato da 5.000 euro). Nonostante questo limite, la stessa norma prevede che l'autorità giudiziaria possa consentire la prova testimoniale, tenendo conto della qualità delle parti, della natura del contratto e di ogni altra circostanza. Inoltre, l'Art. 2724 c.c. elenca specifiche eccezioni in cui la prova per testimoni è sempre ammessa, come quando vi è un principio di prova per iscritto (qualsiasi scritto che renda verosimile il fatto allegato), quando il contraente è stato nell'impossibilità morale o materiale di procurarsi una prova scritta, o quando ha perduto senza sua colpa il documento che gli forniva la prova. L'Art. 2725 c.c. chiarisce che, per i contratti per i quali la legge o la volontà delle parti richiedono la prova per iscritto o la forma scritta a pena di nullità, la prova per testimoni è ammessa solo in caso di perdita incolpevole del documento, ma il mutuo tra privati non rientra generalmente in queste categorie.\n\nIn pratica: Per recuperare la somma, dovrà agire in giudizio. Se non dispone di una prova scritta formale, dovrà cercare di dimostrare l'esistenza del mutuo attraverso la prova testimoniale. Per fare ciò, sarà fondamentale invocare le eccezioni previste dalla legge: ad esempio, se possiede un \"principio di prova per iscritto\" (come messaggi, email, movimenti bancari che facciano riferimento al prestito), o se può dimostrare l'impossibilità morale di procurarsi una prova scritta data la natura del rapporto di amicizia. Sarà cruciale presentare al giudice tutti gli elementi che possano far apparire verosimile il prestito, affinché il giudice possa esercitare la sua discrezionalità e ammettere la prova per testimoni.",
+  "expectedAnswer": "Il prestito verbale è valido (nessuna forma scritta richiesta per il mutuo). MA: la prova testimoniale è limitata per importi superiori a €2.58 (art. 2721 c.c. — limite storico non aggiornato). Gli SMS/WhatsApp possono valere come prova documentale scritta.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 2721 e limiti prova testimoniale?",
+    "search": "Ha trovato art. 2721 c.c.?",
+    "quality": "Menziona il limite (€2.58)? Suggerisce SMS come prova alternativa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mutuo",
+    "forma_libera",
+    "prova_testimoniale"
+  ],
+  "scope": "Valido senza forma scritta. MA prova testimoniale limitata sopra €2.58 (art. 2721). SMS può bastare.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 40,
+    "total": 100,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha fornito una risposta estremamente accurata e completa. Ha identificato correttamente la validità del prestito verbale e la cruciale problematica della prova, citando con precisione gli articoli 1813, 2721, 2724 e 2725 c.c. Ha menzionato il limite storico della prova testimoniale e suggerito efficacemente l'uso di messaggi/email come principio di prova per iscritto, superando le aspettative."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:21:36.526Z"
+}

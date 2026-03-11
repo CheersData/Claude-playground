@@ -266,7 +266,7 @@ describe("generate — routing per provider", () => {
       await generate("mistral-small-3", "analizza");
 
       const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
-      expect(model).toBe("mistral-small-3.2-24b-instruct");
+      expect(model).toBe("mistral-small-latest");
     });
 
     it("passa il model ID corretto a generateWithOpenAICompat per mistral-large-3", async () => {
@@ -375,7 +375,7 @@ describe("generate — routing per provider", () => {
 
       const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
       expect(provider).toBe("cerebras");
-      expect(model).toBe("qwen3-235b");
+      expect(model).toBe("gpt-oss-120b");
     });
   });
 
@@ -972,10 +972,10 @@ describe("generate — model ID dal registry MODELS", () => {
     expect(model).toBe("gpt-5.2");
   });
 
-  it("mistral-medium-3 → mistral-medium-3.1", async () => {
+  it("mistral-medium-3 → mistral-medium-2508", async () => {
     await generate("mistral-medium-3", "test");
     const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
-    expect(model).toBe("mistral-medium-3.1");
+    expect(model).toBe("mistral-medium-2508");
   });
 
   it("groq-qwen3-32b → qwen/qwen3-32b", async () => {
@@ -984,10 +984,10 @@ describe("generate — model ID dal registry MODELS", () => {
     expect(model).toBe("qwen/qwen3-32b");
   });
 
-  it("cerebras-qwen3-235b → qwen3-235b", async () => {
+  it("cerebras-qwen3-235b → gpt-oss-120b (ex-Qwen slot)", async () => {
     await generate("cerebras-qwen3-235b", "test");
     const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
-    expect(model).toBe("qwen3-235b");
+    expect(model).toBe("gpt-oss-120b");
   });
 
   it("groq-gpt-oss-120b → gpt-oss-120b", async () => {
@@ -996,11 +996,11 @@ describe("generate — model ID dal registry MODELS", () => {
     expect(model).toBe("gpt-oss-120b");
   });
 
-  it("magistral-small → magistral-small-2506", async () => {
+  it("magistral-small → magistral-small-2509", async () => {
     await generate("magistral-small", "test");
     const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
     expect(provider).toBe("mistral");
-    expect(model).toBe("magistral-small-2506");
+    expect(model).toBe("magistral-small-2509");
   });
 
   it("codestral → codestral-2508", async () => {

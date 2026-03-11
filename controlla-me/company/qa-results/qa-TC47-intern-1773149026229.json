@@ -1,0 +1,29 @@
+{
+  "testId": "TC47",
+  "question": "La penale nel mio contratto è esagerata. Il giudice può ridurla anche se non lo chiedo io?",
+  "agentAnswer": "Sì, il giudice può ridurre la penale anche senza una tua esplicita richiesta, ma la possibilità e le condizioni variano a seconda della natura del contratto e delle parti coinvolte. In particolare, nei contratti tra professionista e consumatore, una penale manifestamente eccessiva è considerata vessatoria e la sua nullità può essere rilevata d'ufficio dal giudice. Per i contratti tra soggetti non qualificabili come professionista e consumatore, l'Art. 1384 c.c. attribuisce al giudice il potere di ridurre la penale, ma il contesto normativo disponibile non specifica se tale potere possa essere esercitato d'ufficio o solo su istanza di",
+  "expectedAnswer": "Sì. Le Sezioni Unite (Cass. SU 18128/2005) hanno stabilito che il giudice PUÒ ridurre la penale manifestamente eccessiva d'ufficio, anche senza domanda di parte, in applicazione dell'art. 1384 c.c. È una svolta rispetto all'orientamento precedente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su SU 18128/2005 o riduzione d'ufficio?",
+    "search": "Ha trovato art. 1384 e/o Cass. SU 18128/2005?",
+    "quality": "Cita la sentenza SU? Spiega che è una svolta rispetto al precedente orientamento?"
+  },
+  "trapType": null,
+  "institutes": [
+    "clausola_penale",
+    "riduzione_d_ufficio",
+    "poteri_giudice"
+  ],
+  "scope": "SU 18128/2005: il giudice PUÒ ridurre d'ufficio anche senza domanda di parte. Svolta giurisprudenziale.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 20,
+    "quality": 25,
+    "total": 65,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente dimostra una comprensione parziale della questione. Riconosce che il giudice può ridurre la penale senza una richiesta esplicita, ma non cita espressamente la sentenza delle Sezioni Unite n. 18128/2005, che costituisce il riferimento chiave. Inoltre, introduce considerazioni aggiuntive sulla natura del contratto e sulle parti coinvolte, che, sebbene pertinenti, non sono direttamente focalizzate sulla questione specifica della riduzione d'ufficio della penale."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:23:06.324Z"
+}

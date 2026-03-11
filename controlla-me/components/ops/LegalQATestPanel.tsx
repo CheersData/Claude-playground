@@ -63,9 +63,19 @@ interface RunResult {
   trapType: string | null;
   institutes: string[];
   scope: string;
-  tier: TierName;
+  tier: TierName | string;
   evaluation: OpusEvaluation | null;
+  evaluator?: string;
   runAt: string;
+}
+
+interface ResultsSummary {
+  totalResults: number;
+  evaluated: number;
+  pass: number;
+  borderline: number;
+  fail: number;
+  avgScore: number;
 }
 
 interface RunAllState {
@@ -125,20 +135,25 @@ function TestCard({
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showExpected, setShowExpected] = useState(false);
+  const hasReceivedLiveResult = useRef(false);
 
-  // Sync external result from run-all into local state
+  // Sync external result into local state
+  // Saved results (from server) populate display without auto-expanding
+  // Live results (from run-all) auto-expand
   useEffect(() => {
-    if (externalResult !== undefined) {
-      if (externalResult !== null) {
-        setResult(externalResult);
+    if (externalResult !== undefined && externalResult !== null) {
+      setResult(externalResult);
+      setError(null);
+      // Auto-expand only for live results (not the initial saved load)
+      if (hasReceivedLiveResult.current) {
         setExpanded(true);
-        setError(null);
       }
+      hasReceivedLiveResult.current = true;
     }
   }, [externalResult]);
 
   const diffBadge = DIFFICULTY_BADGE[tc.difficulty] ?? DIFFICULTY_BADGE.medium;
-  const blockColor = BLOCK_COLORS[tc.block] ?? "border-[var(--ops-border)]";
+  const blockColor = BLOCK_COLORS[tc.block] ?? "border-[var(--border-dark)]";
 
   const isRunning = running || (externalRunning ?? false);
 
@@ -192,12 +207,12 @@ function TestCard({
   const displayResult = result;
 
   return (
-    <div className={`border-l-2 ${blockColor} bg-[var(--ops-surface-2)]/40 rounded-lg overflow-hidden`}>
+    <div className={`border-l-2 ${blockColor} bg-[var(--bg-overlay)]/40 rounded-lg overflow-hidden`}>
       {/* Card header */}
       <div className="flex items-start gap-3 px-4 py-3">
         {/* ID + badges */}
         <div className="flex-shrink-0 flex flex-col items-start gap-2 pt-0.5">
-          <span className="text-xs font-mono font-bold text-[var(--ops-fg-muted)]">{tc.id}</span>
+          <span className="text-xs font-mono font-bold text-[var(--fg-secondary)]">{tc.id}</span>
           <span
             className={`text-xs font-medium px-2 py-0.5 rounded-full ${diffBadge.bg} ${diffBadge.text}`}
           >
@@ -223,13 +238,13 @@ function TestCard({
 
         {/* Question text */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-[var(--ops-fg)] leading-relaxed">{tc.question}</p>
+          <p className="text-sm text-[var(--fg-primary)] leading-relaxed">{tc.question}</p>
           {tc.institutes.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {tc.institutes.map((inst) => (
                 <span
                   key={inst}
-                  className="text-xs bg-[var(--ops-hover)]/60 text-[var(--ops-fg-muted)] px-2 py-0.5 rounded"
+                  className="text-xs bg-[var(--bg-hover)]/60 text-[var(--fg-secondary)] px-2 py-0.5 rounded"
                 >
                   {inst.replace(/_/g, " ")}
                 </span>
@@ -238,8 +253,23 @@ function TestCard({
           )}
         </div>
 
-        {/* Actions */}
+        {/* Verdict badge + Actions */}
         <div className="flex-shrink-0 flex items-center gap-2">
+          {/* Show verdict badge when result exists */}
+          {displayResult?.evaluation && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-[var(--fg-primary)]">
+                {displayResult.evaluation.total}
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  verdictColors[displayResult.evaluation.verdict].bg
+                } ${verdictColors[displayResult.evaluation.verdict].text}`}
+              >
+                {displayResult.evaluation.verdict}
+              </span>
+            </div>
+          )}
           <button
             onClick={handleRun}
             disabled={isRunning}
@@ -254,7 +284,7 @@ function TestCard({
           </button>
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="p-2 rounded-lg hover:bg-[var(--ops-hover)] transition-colors text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)]"
+            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)]"
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -271,14 +301,14 @@ function TestCard({
             transition={{ duration: 0.18, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-4 border-t border-[var(--ops-border-subtle)] pt-3">
+            <div className="px-4 pb-4 space-y-4 border-t border-[var(--border-dark-subtle)] pt-3">
 
               {/* Scope */}
               <div>
-                <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-1 font-medium">
+                <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-1 font-medium">
                   Scope / Riferimenti
                 </p>
-                <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{tc.scope}</p>
+                <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">{tc.scope}</p>
               </div>
 
               {/* Error */}
@@ -293,11 +323,11 @@ function TestCard({
                 <div className="space-y-3">
                   {/* Agent answer */}
                   <div>
-                    <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
+                    <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-2 font-medium">
                       Risposta agente
                     </p>
-                    <div className="bg-[var(--ops-surface)]/70 rounded-lg p-3 border border-[var(--ops-border-subtle)]">
-                      <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed whitespace-pre-wrap">
+                    <div className="bg-[var(--bg-raised)]/70 rounded-lg p-3 border border-[var(--border-dark-subtle)]">
+                      <p className="text-xs text-[var(--fg-secondary)] leading-relaxed whitespace-pre-wrap">
                         {displayResult.agentAnswer}
                       </p>
                     </div>
@@ -307,7 +337,7 @@ function TestCard({
                   <div>
                     <button
                       onClick={() => setShowExpected((v) => !v)}
-                      className="flex items-center gap-2 text-xs text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors mb-2 font-medium uppercase tracking-widest"
+                      className="flex items-center gap-2 text-xs text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors mb-2 font-medium uppercase tracking-widest"
                     >
                       {showExpected ? (
                         <EyeOff className="w-3 h-3" />
@@ -326,8 +356,8 @@ function TestCard({
                           transition={{ duration: 0.15 }}
                           className="overflow-hidden"
                         >
-                          <div className="bg-[var(--ops-surface)]/70 rounded-lg p-3 border border-[var(--ops-border-subtle)]">
-                            <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed whitespace-pre-wrap">
+                          <div className="bg-[var(--bg-raised)]/70 rounded-lg p-3 border border-[var(--border-dark-subtle)]">
+                            <p className="text-xs text-[var(--fg-secondary)] leading-relaxed whitespace-pre-wrap">
                               {displayResult.expectedAnswer}
                             </p>
                           </div>
@@ -357,12 +387,12 @@ function TestCard({
                         ).map(({ label, val, max }) => (
                           <div key={label}>
                             <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-xs text-[var(--ops-muted)]">{label}</span>
-                              <span className="text-xs font-bold text-[var(--ops-fg-muted)]">
+                              <span className="text-xs text-[var(--fg-invisible)]">{label}</span>
+                              <span className="text-xs font-bold text-[var(--fg-secondary)]">
                                 {val}/{max}
                               </span>
                             </div>
-                            <div className="h-1.5 bg-[var(--ops-hover)]/60 rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-[var(--bg-hover)]/60 rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all ${scoreBarColor(val, max)}`}
                                 style={{ width: `${(val / max) * 100}%` }}
@@ -372,12 +402,12 @@ function TestCard({
                         ))}
 
                         {/* Total + verdict */}
-                        <div className="flex items-center justify-between pt-1.5 border-t border-[var(--ops-border-subtle)]">
-                          <span className="text-xs text-[var(--ops-fg-muted)] font-medium">
+                        <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border-dark-subtle)]">
+                          <span className="text-xs text-[var(--fg-secondary)] font-medium">
                             Totale
                           </span>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-[var(--ops-fg)]">
+                            <span className="text-sm font-bold text-[var(--fg-primary)]">
                               {displayResult.evaluation.total}/100
                             </span>
                             <span
@@ -392,14 +422,14 @@ function TestCard({
 
                         {/* Reasoning */}
                         <div className="bg-purple-500/5 border border-purple-500/15 rounded-lg p-3">
-                          <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">
+                          <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">
                             {displayResult.evaluation.reasoning}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-[var(--ops-surface-2)]/60 rounded-lg p-3">
-                        <p className="text-xs text-[var(--ops-muted)]">
+                      <div className="bg-[var(--bg-overlay)]/60 rounded-lg p-3">
+                        <p className="text-xs text-[var(--fg-invisible)]">
                           Valutazione non disponibile — CLI Opus non raggiunto o crediti insufficienti.
                         </p>
                       </div>
@@ -407,7 +437,7 @@ function TestCard({
                   </div>
 
                   {/* Run timestamp */}
-                  <p className="text-xs text-[var(--ops-muted)]">
+                  <p className="text-xs text-[var(--fg-invisible)]">
                     Eseguito: {new Date(displayResult.runAt).toLocaleString("it-IT")}
                   </p>
                 </div>
@@ -416,18 +446,18 @@ function TestCard({
               {/* Scoring hints (before run) */}
               {!displayResult && !isRunning && (
                 <div>
-                  <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
+                  <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-2 font-medium">
                     Criteri di valutazione
                   </p>
                   <div className="space-y-1">
-                    <p className="text-xs text-[var(--ops-muted)]">
-                      <span className="text-[var(--ops-fg-muted)] font-medium">PREP:</span> {tc.scoringHints.prep}
+                    <p className="text-xs text-[var(--fg-invisible)]">
+                      <span className="text-[var(--fg-secondary)] font-medium">PREP:</span> {tc.scoringHints.prep}
                     </p>
-                    <p className="text-xs text-[var(--ops-muted)]">
-                      <span className="text-[var(--ops-fg-muted)] font-medium">SEARCH:</span> {tc.scoringHints.search}
+                    <p className="text-xs text-[var(--fg-invisible)]">
+                      <span className="text-[var(--fg-secondary)] font-medium">SEARCH:</span> {tc.scoringHints.search}
                     </p>
-                    <p className="text-xs text-[var(--ops-muted)]">
-                      <span className="text-[var(--ops-fg-muted)] font-medium">QUALITY:</span> {tc.scoringHints.quality}
+                    <p className="text-xs text-[var(--fg-invisible)]">
+                      <span className="text-[var(--fg-secondary)] font-medium">QUALITY:</span> {tc.scoringHints.quality}
                     </p>
                   </div>
                 </div>
@@ -459,25 +489,25 @@ function BlockSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const block = tests[0]?.block ?? "";
-  const blockColor = BLOCK_COLORS[block] ?? "border-[var(--ops-border)]";
+  const blockColor = BLOCK_COLORS[block] ?? "border-[var(--border-dark)]";
 
   return (
     <div className="space-y-2">
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border-l-2 ${blockColor} bg-[var(--ops-surface-2)]/30 hover:bg-[var(--ops-surface-2)]/50 transition-colors`}
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border-l-2 ${blockColor} bg-[var(--bg-overlay)]/30 hover:bg-[var(--bg-overlay)]/50 transition-colors`}
       >
-        <span className="text-xs font-semibold text-[var(--ops-fg-muted)] uppercase tracking-widest">
+        <span className="text-xs font-semibold text-[var(--fg-secondary)] uppercase tracking-widest">
           BLOCCO {block} — {blockName}
         </span>
         <div className="flex items-center gap-2">
-          <span className="text-xs bg-[var(--ops-hover)] text-[var(--ops-fg-muted)] px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-[var(--bg-hover)] text-[var(--fg-secondary)] px-2 py-0.5 rounded-full">
             {tests.length}
           </span>
           {open ? (
-            <ChevronUp className="w-4 h-4 text-[var(--ops-muted)]" />
+            <ChevronUp className="w-4 h-4 text-[var(--fg-invisible)]" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-[var(--ops-muted)]" />
+            <ChevronDown className="w-4 h-4 text-[var(--fg-invisible)]" />
           )}
         </div>
       </button>
@@ -530,7 +560,7 @@ function FilterBar({
       <select
         value={filters.block}
         onChange={(e) => onChange({ ...filters, block: e.target.value })}
-        className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-xs text-[var(--ops-fg-muted)] focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
+        className="bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-2 text-xs text-[var(--fg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] cursor-pointer"
       >
         <option value="">Tutti i blocchi</option>
         {["A", "B", "C", "D", "E", "F", "G", "H"].map((b) => (
@@ -544,7 +574,7 @@ function FilterBar({
       <select
         value={filters.difficulty}
         onChange={(e) => onChange({ ...filters, difficulty: e.target.value })}
-        className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-xs text-[var(--ops-fg-muted)] focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
+        className="bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-2 text-xs text-[var(--fg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] cursor-pointer"
       >
         <option value="">Tutte le difficoltà</option>
         <option value="easy">Easy</option>
@@ -556,7 +586,7 @@ function FilterBar({
       <select
         value={filters.type}
         onChange={(e) => onChange({ ...filters, type: e.target.value })}
-        className="bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-xs text-[var(--ops-fg-muted)] focus:outline-none focus:border-[#FF6B35]/50 cursor-pointer"
+        className="bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-2 text-xs text-[var(--fg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] cursor-pointer"
       >
         <option value="">Tutti i tipi</option>
         <option value="trap">Solo trappole</option>
@@ -569,7 +599,7 @@ function FilterBar({
 // ─── Tier Selector ────────────────────────────────────────────────────────────
 
 const TIER_CONFIG: Record<TierName, { label: string; desc: string; color: string }> = {
-  intern:    { label: "Intern",    desc: "Groq / Cerebras",        color: "border-[var(--ops-border)] text-[var(--ops-fg-muted)]" },
+  intern:    { label: "Intern",    desc: "Groq / Cerebras",        color: "border-[var(--border-dark)] text-[var(--fg-secondary)]" },
   associate: { label: "Associate", desc: "Gemini / Haiku",         color: "border-blue-500/50 text-blue-400" },
   partner:   { label: "Partner",   desc: "Sonnet / Gemini Pro",    color: "border-[#FF6B35]/50 text-[#FF6B35]" },
 };
@@ -577,7 +607,7 @@ const TIER_CONFIG: Record<TierName, { label: string; desc: string; color: string
 function TierSelector({ value, onChange }: { value: TierName; onChange: (t: TierName) => void }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mr-1">Tier</span>
+      <span className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mr-1">Tier</span>
       {(["intern", "associate", "partner"] as TierName[]).map((t) => {
         const cfg = TIER_CONFIG[t];
         const active = value === t;
@@ -587,8 +617,8 @@ function TierSelector({ value, onChange }: { value: TierName; onChange: (t: Tier
             onClick={() => onChange(t)}
             className={`px-3 py-1 rounded-lg border text-xs font-medium transition-all ${
               active
-                ? `${cfg.color} bg-[var(--ops-surface-2)]`
-                : "border-[var(--ops-border-subtle)] text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] hover:border-[var(--ops-border)]"
+                ? `${cfg.color} bg-[var(--bg-overlay)]`
+                : "border-[var(--border-dark-subtle)] text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] hover:border-[var(--border-dark)]"
             }`}
           >
             {cfg.label}
@@ -613,6 +643,10 @@ export function LegalQATestPanel() {
     difficulty: "",
     type: "",
   });
+
+  // Saved results from server (persisted in company/qa-results/)
+  const [savedResults, setSavedResults] = useState<Record<string, RunResult>>({});
+  const [resultsSummary, setResultsSummary] = useState<ResultsSummary | null>(null);
 
   // Run All state
   const [runAll, setRunAll] = useState<RunAllState>(RUN_ALL_INITIAL);
@@ -646,6 +680,14 @@ export function LegalQATestPanel() {
 
       const json = await res.json();
       setAllTests(json.tests as TestCase[]);
+
+      // Load persisted results from server
+      if (json.savedResults) {
+        setSavedResults(json.savedResults as Record<string, RunResult>);
+      }
+      if (json.resultsSummary) {
+        setResultsSummary(json.resultsSummary as ResultsSummary);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore di rete");
     } finally {
@@ -801,7 +843,7 @@ export function LegalQATestPanel() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-white">Stress Test Agente Legale</h3>
-            <p className="text-xs text-[var(--ops-muted)] mt-0.5">
+            <p className="text-xs text-[var(--fg-invisible)] mt-0.5">
               {allTests.length} domande-trappola — valutazione automatica Gemini 2.5 Flash
             </p>
           </div>
@@ -830,7 +872,7 @@ export function LegalQATestPanel() {
             <button
               onClick={handleGenerate}
               disabled={generating || loading || runAll.active}
-              className="flex items-center gap-2 px-3 py-2 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-surface-2)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--ops-fg-muted)] rounded-lg text-xs font-medium transition-colors border border-[var(--ops-border)]"
+              className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-overlay)] hover:bg-[var(--bg-overlay)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--fg-secondary)] rounded-lg text-xs font-medium transition-colors border border-[var(--border-dark)]"
             >
               {generating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -856,12 +898,12 @@ export function LegalQATestPanel() {
             className="space-y-2"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--ops-fg-muted)] font-medium">
+              <span className="text-xs text-[var(--fg-secondary)] font-medium">
                 Running {runAll.current}/{runAll.total}...
               </span>
-              <span className="text-xs text-[var(--ops-muted)]">{progressPct}%</span>
+              <span className="text-xs text-[var(--fg-invisible)]">{progressPct}%</span>
             </div>
-            <div className="h-1.5 bg-[var(--ops-surface-2)] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--bg-overlay)] rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-[#FF6B35] rounded-full"
                 initial={{ width: 0 }}
@@ -881,10 +923,10 @@ export function LegalQATestPanel() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
-            className="bg-[var(--ops-surface-2)]/60 border border-[var(--ops-border)]/60 rounded-xl p-4 space-y-3"
+            className="bg-[var(--bg-overlay)]/60 border border-[var(--border-dark)]/60 rounded-xl p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-[var(--ops-fg-muted)] uppercase tracking-widest">
+              <p className="text-xs font-semibold text-[var(--fg-secondary)] uppercase tracking-widest">
                 Risultati Run All
               </p>
               <button
@@ -892,7 +934,7 @@ export function LegalQATestPanel() {
                   setRunAll(RUN_ALL_INITIAL);
                   setExternalResults({});
                 }}
-                className="text-xs text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors"
+                className="text-xs text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors"
               >
                 Chiudi
               </button>
@@ -912,12 +954,12 @@ export function LegalQATestPanel() {
                 <p className="text-xs text-red-600 uppercase tracking-widest font-medium">FAIL</p>
               </div>
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 text-center">
-                <p className="text-lg font-bold text-[var(--ops-fg)]">{avgScore}</p>
+                <p className="text-lg font-bold text-[var(--fg-primary)]">{avgScore}</p>
                 <p className="text-xs text-purple-400 uppercase tracking-widest font-medium">AVG/100</p>
               </div>
             </div>
 
-            <p className="text-xs text-[var(--ops-muted)]">
+            <p className="text-xs text-[var(--fg-invisible)]">
               {runAll.results.count} test valutati da Opus su {runAll.total} eseguiti
               {stopRef.current ? " (run interrotto)" : ""}
             </p>
@@ -925,12 +967,73 @@ export function LegalQATestPanel() {
         )}
       </AnimatePresence>
 
+      {/* Persistent results summary (from saved qa-results/) */}
+      {resultsSummary && resultsSummary.evaluated > 0 && !runAll.active && (
+        <div className="bg-[var(--bg-overlay)]/60 border border-[var(--border-dark)]/60 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[var(--fg-secondary)] uppercase tracking-widest">
+              Risultati Salvati
+            </p>
+            <p className="text-xs text-[var(--fg-invisible)]">
+              {resultsSummary.evaluated} test valutati su {resultsSummary.totalResults} eseguiti
+            </p>
+          </div>
+
+          <div className="grid grid-cols-5 gap-3">
+            <div className="bg-[var(--bg-raised)]/60 border border-[var(--border-dark-subtle)] rounded-lg px-3 py-2 text-center">
+              <p className="text-lg font-bold text-[var(--fg-primary)]">{resultsSummary.totalResults}</p>
+              <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest font-medium">ESEGUITI</p>
+            </div>
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-center">
+              <p className="text-lg font-bold text-green-400">{resultsSummary.pass}</p>
+              <p className="text-xs text-green-600 uppercase tracking-widest font-medium">PASS</p>
+            </div>
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 text-center">
+              <p className="text-lg font-bold text-yellow-400">{resultsSummary.borderline}</p>
+              <p className="text-xs text-yellow-600 uppercase tracking-widest font-medium">BORDERLINE</p>
+            </div>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-center">
+              <p className="text-lg font-bold text-red-400">{resultsSummary.fail}</p>
+              <p className="text-xs text-red-600 uppercase tracking-widest font-medium">FAIL</p>
+            </div>
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 text-center">
+              <p className="text-lg font-bold text-[var(--fg-primary)]">{resultsSummary.avgScore}</p>
+              <p className="text-xs text-purple-400 uppercase tracking-widest font-medium">MEDIA</p>
+            </div>
+          </div>
+
+          {/* Score distribution bar */}
+          {resultsSummary.evaluated > 0 && (
+            <div className="flex h-2 rounded-full overflow-hidden bg-[var(--bg-hover)]/40">
+              {resultsSummary.pass > 0 && (
+                <div
+                  className="bg-green-500 transition-all"
+                  style={{ width: `${(resultsSummary.pass / resultsSummary.evaluated) * 100}%` }}
+                />
+              )}
+              {resultsSummary.borderline > 0 && (
+                <div
+                  className="bg-yellow-500 transition-all"
+                  style={{ width: `${(resultsSummary.borderline / resultsSummary.evaluated) * 100}%` }}
+                />
+              )}
+              {resultsSummary.fail > 0 && (
+                <div
+                  className="bg-red-500 transition-all"
+                  style={{ width: `${(resultsSummary.fail / resultsSummary.evaluated) * 100}%` }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Filters */}
       <FilterBar filters={filters} onChange={handleFilterChange} />
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-[var(--ops-muted)]">
+        <div className="flex items-center justify-center py-16 text-[var(--fg-invisible)]">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />
           <span className="text-sm">Caricamento test cases...</span>
         </div>
@@ -945,7 +1048,7 @@ export function LegalQATestPanel() {
           </button>
         </div>
       ) : allTests.length === 0 ? (
-        <div className="text-center py-16 text-[var(--ops-muted)]">
+        <div className="text-center py-16 text-[var(--fg-invisible)]">
           <p className="text-sm">Nessun test case trovato con i filtri selezionati.</p>
         </div>
       ) : (
@@ -957,7 +1060,7 @@ export function LegalQATestPanel() {
               tests={byBlock[block].tests}
               defaultOpen={i === 0}
               tier={tier}
-              externalResults={externalResults}
+              externalResults={{ ...savedResults, ...externalResults }}
               runningTestId={runningTestId}
             />
           ))}

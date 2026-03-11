@@ -255,7 +255,7 @@ async def run_intraday_pipeline() -> dict:
                 executor = Executor(account_type="slope")
                 exec_result = await executor.run(decisions=approved)
                 executed_orders = exec_result.get("orders", [])
-                if executed_orders:
+                if executed_orders and settings.telegram.notify_trades:
                     tg.notify_trades(executed_orders, mode=settings.mode)
                 results["execution"] = {
                     "executed": exec_result.get("total_executed", 0),
@@ -359,7 +359,7 @@ async def run_crypto_pipeline() -> dict:
                 executor = Executor(account_type="crypto")
                 exec_result = await executor.run(decisions=approved)
                 executed_orders = exec_result.get("orders", [])
-                if executed_orders:
+                if executed_orders and settings.telegram.notify_trades:
                     tg.notify_trades(executed_orders, mode=settings.mode)
                 results["execution"] = {
                     "executed": exec_result.get("total_executed", 0),

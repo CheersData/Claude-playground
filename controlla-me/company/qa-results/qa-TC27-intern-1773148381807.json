@@ -1,0 +1,29 @@
+{
+  "testId": "TC27",
+  "question": "Ho un debito con un privato. Possono pignorare la mia prima casa?",
+  "agentAnswer": "Sì, un creditore privato può pignorare la sua prima casa. La protezione dal pignoramento della \"prima casa\" è una limitazione che si applica esclusivamente all'Agenzia delle Entrate-Riscossione e non ai creditori privati.\n\nRiferimenti normativi:\nL'Art. 555 del Codice di Procedura Civile stabilisce che il pignoramento immobiliare si esegue mediante notificazione al debitore e successiva trascrizione di un atto che indica esattamente i beni e i diritti immobiliari da sottoporre a esecuzione. L'Art. 492 c.p.c. definisce l'ingiunzione generale al debitore di astenersi dal sottrarre i beni all'espropriazione e rinvia all'Art.",
+  "expectedAnswer": "TRAPPOLA: l'impignorabilità della prima casa vale SOLO per Agenzia Entrate Riscossione (art. 76 DPR 602/73). I creditori privati POSSONO pignorare la prima casa senza limiti.",
+  "scoringHints": {
+    "prep": "Ha distinto tra creditore privato e Agenzia Entrate nella query?",
+    "search": "Ha trovato art. 76 DPR 602/73 con il limite del soggetto?",
+    "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Senza ambiguità?"
+  },
+  "trapType": "falsa_tutela",
+  "institutes": [
+    "pignoramento_prima_casa",
+    "impignorabilità",
+    "creditori_privati"
+  ],
+  "scope": "art. 76 DPR 602/1973: impignorabilità SOLO per Agenzia Entrate Riscossione, non per privati",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 15,
+    "quality": 30,
+    "total": 65,
+    "verdict": "BORDERLINE",
+    "reasoning": "La risposta dell'agente è sostanzialmente corretta nel concludere che un creditore privato può pignorare la prima casa, ma non chiarisce esplicitamente che la tutela della prima casa contro il pignoramento è limitata all'Agenzia Entrate-Riscossione. L'agente non cita l'art. 76 DPR 602/73, che è fondamentale per comprendere il limite soggettivo della norma."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:11:37.580Z"
+}

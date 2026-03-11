@@ -1155,7 +1155,8 @@ company/trading/
 8. ~~UI scoring multidimensionale~~ — **COMPLETATO**: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) implementate in ResultsView (ScoreBreakdown), FairnessScore (pills), ChatMessage (pills), FinalEvaluationPanel (bars).
 9. ~~Corpus Agent UI~~ — **COMPLETATO**: CorpusChat component in HeroDubbi + /corpus, question-prep agent per riformulazione colloquiale→legale, pagina `/corpus/article/[id]` per dettaglio articoli citati.
 10. ~~Statuto dei Lavoratori~~ — **COMPLETATO**: 41 articoli caricati via seed-statuto-lavoratori.ts. fetchViaWebCaricaAKN confermato funzionante (99KB AKN XML). Normattiva OpenData API non supporta leggi ordinarie singole.
-11. Verticale HR — Non avviato. Fonti mappate in `hr-sources.ts`: D.Lgs. 81/2008 (306 art., pipeline standard, nessun blocco), D.Lgs. 276/2003, D.Lgs. 23/2015. Prerequisito corpus: punto 10.
+11. ~~Verticale HR~~ — **COMPLETATO**: Fonti HR caricate via data-connector pipeline (2026-03-03). D.Lgs. 81/2008 (321 art.), D.Lgs. 81/2015 (66 art.), D.Lgs. 276/2003 (87 art.), D.Lgs. 23/2015 (11 art.), D.Lgs. 148/2015 (46 art.), L. 300/1970 (41 art.). Totale: 572 articoli HR.
+12. Verticale Studia.me (medico) — **MVP COMPLETATO**: 3 connettori creati (StatPearls, EuropePMC, OpenStax). StatPearls 47 art. caricati, EuropePMC in caricamento. OpenStax connector da fixare (API cambiata). Migration 027, UI `/studia`, prompts medici, API routes tutti operativi.
 
 ---
 

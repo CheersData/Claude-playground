@@ -1,25 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { makeClassification } from "../fixtures/classification";
-import { makeAnthropicResponse } from "../fixtures/anthropic-response";
 import { SAMPLE_RENTAL_CONTRACT } from "../fixtures/documents";
 
-const mockCreate = vi.hoisted(() => vi.fn());
+const mockRunAgent = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/anthropic", async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import("@/lib/anthropic")>();
-  return {
-    ...original,
-    anthropic: {
-      get messages() {
-        return { create: mockCreate };
-      },
-    },
-  };
-});
+vi.mock("@/lib/ai-sdk/agent-runner", () => ({
+  runAgent: mockRunAgent,
+}));
 
 import { runClassifier } from "@/lib/agents/classifier";
-import { MODEL_FAST } from "@/lib/anthropic";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,38 +17,57 @@ beforeEach(() => {
 describe("runClassifier", () => {
   const classificationFixture = makeClassification();
 
-  it("calls anthropic with MODEL_FAST, 4096 max_tokens, and system prompt", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(classificationFixture))
-    );
+  it("calls runAgent with 'classifier' agent name and system prompt", async () => {
+    mockRunAgent.mockResolvedValue({
+      parsed: classificationFixture,
+      text: JSON.stringify(classificationFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-haiku-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-haiku-4.5",
+    });
 
     await runClassifier(SAMPLE_RENTAL_CONTRACT);
 
-    expect(mockCreate).toHaveBeenCalledOnce();
-    const params = mockCreate.mock.calls[0][0];
-    expect(params.model).toBe(MODEL_FAST);
-    expect(params.max_tokens).toBe(4096);
-    expect(params.system).toBeDefined();
-    expect(typeof params.system).toBe("string");
+    expect(mockRunAgent).toHaveBeenCalledOnce();
+    const [agentName, _prompt, config] = mockRunAgent.mock.calls[0];
+    expect(agentName).toBe("classifier");
+    expect(config.systemPrompt).toBeDefined();
+    expect(typeof config.systemPrompt).toBe("string");
   });
 
   it("passes document text in user message", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(classificationFixture))
-    );
+    mockRunAgent.mockResolvedValue({
+      parsed: classificationFixture,
+      text: JSON.stringify(classificationFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-haiku-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-haiku-4.5",
+    });
 
     await runClassifier(SAMPLE_RENTAL_CONTRACT);
 
-    const params = mockCreate.mock.calls[0][0];
-    const userMessage = params.messages[0].content as string;
-    expect(userMessage).toContain(SAMPLE_RENTAL_CONTRACT);
-    expect(userMessage).toContain("Analizza e classifica");
+    const prompt = mockRunAgent.mock.calls[0][1] as string;
+    expect(prompt).toContain(SAMPLE_RENTAL_CONTRACT);
+    expect(prompt).toContain("Analizza e classifica");
   });
 
-  it("returns parsed ClassificationResult from Claude response", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(JSON.stringify(classificationFixture))
-    );
+  it("returns parsed ClassificationResult from runAgent response", async () => {
+    mockRunAgent.mockResolvedValue({
+      parsed: classificationFixture,
+      text: JSON.stringify(classificationFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-haiku-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-haiku-4.5",
+    });
 
     const result = await runClassifier(SAMPLE_RENTAL_CONTRACT);
 
@@ -69,39 +77,41 @@ describe("runClassifier", () => {
     expect(result.confidence).toBe(0.95);
   });
 
-  it("warns when response is truncated (max_tokens)", async () => {
-    const warnSpy = vi.spyOn(console, "warn");
-    // Use actually truncated JSON (mid-key cut off) to trigger parseAgentJSON repair path
-    const truncatedJson =
-      '{"documentType":"contratto_locazione_abitativa","documentTypeLabel":"Contratto di';
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse(truncatedJson, { stop_reason: "max_tokens" })
-    );
+  it("adds default values for new classification fields", async () => {
+    const partialFixture = { ...classificationFixture };
+    // Simulate a model that doesn't return the new fields
+    delete (partialFixture as Record<string, unknown>).documentSubType;
+    delete (partialFixture as Record<string, unknown>).relevantInstitutes;
+    delete (partialFixture as Record<string, unknown>).legalFocusAreas;
 
-    // Truncated JSON after repair may fail or succeed; we only care that the warn fired
-    try {
-      await runClassifier(SAMPLE_RENTAL_CONTRACT);
-    } catch {
-      // JSON repair may still fail — that's OK for this test
-    }
+    mockRunAgent.mockResolvedValue({
+      parsed: partialFixture,
+      text: JSON.stringify(partialFixture),
+      usage: { inputTokens: 100, outputTokens: 50 },
+      durationMs: 1000,
+      provider: "anthropic",
+      model: "claude-haiku-4.5",
+      usedFallback: false,
+      usedModelKey: "claude-haiku-4.5",
+    });
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("troncata")
-    );
+    const result = await runClassifier(SAMPLE_RENTAL_CONTRACT);
+
+    expect(result.documentSubType).toBeNull();
+    expect(result.relevantInstitutes).toEqual([]);
+    expect(result.legalFocusAreas).toEqual([]);
   });
 
-  it("propagates API errors", async () => {
-    mockCreate.mockRejectedValue(new Error("API connection failed"));
+  it("propagates API errors from agent-runner", async () => {
+    mockRunAgent.mockRejectedValue(new Error("API connection failed"));
 
     await expect(
       runClassifier(SAMPLE_RENTAL_CONTRACT)
     ).rejects.toThrow("API connection failed");
   });
 
-  it("propagates JSON parse errors from malformed responses", async () => {
-    mockCreate.mockResolvedValue(
-      makeAnthropicResponse("This is not valid JSON at all")
-    );
+  it("propagates JSON parse errors from agent-runner", async () => {
+    mockRunAgent.mockRejectedValue(new Error("Risposta non JSON da Claude"));
 
     await expect(
       runClassifier(SAMPLE_RENTAL_CONTRACT)

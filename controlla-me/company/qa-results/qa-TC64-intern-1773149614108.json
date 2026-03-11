@@ -1,0 +1,29 @@
+{
+  "testId": "TC64",
+  "question": "Un sistema di intelligenza artificiale ha firmato un contratto per conto mio. È valido?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. La validità di un contratto firmato da un sistema di intelligenza artificiale dipende da diversi fattori, tra cui la capacità giuridica del sistema, la rappresentanza conferita e la conformità alle norme sulla validità dei contratti.\n\nRiferimenti normativi:\nGli articoli presenti nel contesto riguardano principalmente la rappresentanza e la validità dei contratti in generale, ma non affrontano specificamente il caso di un sistema di intelligenza artificiale. Gli articoli pertinenti includono l'Art. 1387 c.c. (fonti della rappresentanza), l'Art. 1389 c.c. (capacità del rappresentante e del rappresentato), e l'Art. 1392 c.c. (forma della procura). Tuttavia, questi articoli non trattano direttamente la questione della validità di un contratto firmato da un sistema di intelligenza artificiale.\n\nIn pratica:\nConsulta un avvocato specializzato in diritto delle nuove tecnologie per valutare la validità del contratto firmato dal sistema di intelligenza artificiale. Un professionista potrà esaminare le specifiche circostanze del caso e fornire una risposta adeguata.",
+  "expectedAnswer": "L'AI non ha capacità giuridica propria. Un sistema AI non può essere parte di un contratto. Se ha agito come strumento di un mandatario umano (con procura valida), il contratto è valido e imputabile al mandante umano. La responsabilità è sempre del soggetto umano che ha autorizzato e controllato l'AI.",
+  "scoringHints": {
+    "prep": "Ha distinto capacità giuridica AI da mandatario umano?",
+    "search": "Ha trovato norme sul mandato e sulla capacità giuridica?",
+    "quality": "Chiarisce che l'AI non ha soggettività? Spiega il meccanismo del mandato?"
+  },
+  "trapType": null,
+  "institutes": [
+    "capacità_giuridica",
+    "mandato",
+    "AI_giuridica"
+  ],
+  "scope": "AI = nessuna capacità giuridica. Opera come strumento del mandatario umano.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 10,
+    "quality": 20,
+    "total": 45,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non fornisce una chiara e precisa valutazione giuridica. Non specifica che l'AI non ha capacità giuridica propria e non chiarisce correttamente il meccanismo del mandato. Riferisce genericamente la necessità di consultare un avvocato specializzato senza fornire una risposta adeguata basata sui principi giuridici."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:32:59.494Z"
+}

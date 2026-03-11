@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ComponentType } from "react";
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, CheckCircle, Clock, RefreshCw, Scale } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, Scale } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ export function StressTestResultsPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-[var(--ops-text-muted)]">
+      <div className="flex items-center justify-center h-48 text-[var(--fg-secondary)]">
         <RefreshCw className="w-4 h-4 animate-spin mr-2" />
         Caricamento risultati stress test...
       </div>
@@ -124,7 +124,7 @@ export function StressTestResultsPanel() {
 
   if (!currentRun || currentRun.results.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-[var(--ops-text-muted)]">
+      <div className="flex items-center justify-center h-48 text-[var(--fg-secondary)]">
         Nessun risultato stress test trovato.
       </div>
     );
@@ -167,17 +167,17 @@ export function StressTestResultsPanel() {
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-[var(--ops-text)]">
+          <h3 className="text-base font-semibold text-[var(--fg-primary)]">
             Stress Test Pipeline Legale
           </h3>
-          <p className="text-xs text-[var(--ops-text-muted)] mt-0.5">
+          <p className="text-xs text-[var(--fg-secondary)] mt-0.5">
             {results.length} test &middot; {runDate}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {runs.length > 1 && (
             <select
-              className="text-xs bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded px-2 py-1 text-[var(--ops-text)]"
+              className="text-xs bg-[var(--bg-raised)] border border-[var(--border-dark)] rounded px-2 py-1 text-[var(--fg-primary)]"
               value={selectedRun}
               onChange={e => setSelectedRun(Number(e.target.value))}
             >
@@ -190,7 +190,7 @@ export function StressTestResultsPanel() {
           )}
           <button
             onClick={fetchResults}
-            className="p-1.5 rounded hover:bg-[var(--ops-hover)] text-[var(--ops-text-muted)]"
+            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--fg-secondary)]"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -209,7 +209,7 @@ export function StressTestResultsPanel() {
           icon={Clock}
           label="Tempo medio"
           value={formatTime(avgTime)}
-          color="text-[var(--ops-accent)]"
+          color="text-[var(--accent)]"
         />
         <StatCard
           icon={allSuccess ? CheckCircle : AlertTriangle}
@@ -230,16 +230,16 @@ export function StressTestResultsPanel() {
         {byTier.map(t => (
           <div
             key={t.tier}
-            className="p-3 rounded-lg bg-[var(--ops-surface)] border border-[var(--ops-border)]"
+            className="p-3 rounded-lg bg-[var(--bg-raised)] border border-[var(--border-dark)]"
           >
-            <div className="text-xs font-medium text-[var(--ops-text-muted)] mb-2">
+            <div className="text-xs font-medium text-[var(--fg-secondary)] mb-2">
               {TIER_LABELS[t.tier]}
             </div>
             <div className="flex items-baseline gap-3">
               <span className={`text-xl font-bold ${fairnessColor(t.avgFairness)}`}>
                 {t.avgFairness.toFixed(1)}
               </span>
-              <span className="text-xs text-[var(--ops-text-muted)]">
+              <span className="text-xs text-[var(--fg-secondary)]">
                 {formatTime(t.avgTime)}
               </span>
             </div>
@@ -249,7 +249,7 @@ export function StressTestResultsPanel() {
 
       {/* ── Results matrix ──────────────────────────────────────────── */}
       <div>
-        <h4 className="text-sm font-medium text-[var(--ops-text)] mb-3">
+        <h4 className="text-sm font-medium text-[var(--fg-primary)] mb-3">
           Matrice Contratti x Tier
         </h4>
 
@@ -257,7 +257,7 @@ export function StressTestResultsPanel() {
         <div className="grid grid-cols-[140px_1fr_1fr_1fr] gap-2 mb-2">
           <div />
           {TIERS.map(t => (
-            <div key={t} className="text-xs font-medium text-[var(--ops-text-muted)] text-center">
+            <div key={t} className="text-xs font-medium text-[var(--fg-secondary)] text-center">
               {TIER_LABELS[t]}
             </div>
           ))}
@@ -266,7 +266,7 @@ export function StressTestResultsPanel() {
         {/* Data rows */}
         {CONTRACTS.map(contract => (
           <div key={contract} className="grid grid-cols-[140px_1fr_1fr_1fr] gap-2 mb-2">
-            <div className="text-xs text-[var(--ops-text-muted)] flex items-center">
+            <div className="text-xs text-[var(--fg-secondary)] flex items-center">
               {CONTRACT_LABELS[contract]}
             </div>
             {TIERS.map(tier => {
@@ -286,7 +286,7 @@ export function StressTestResultsPanel() {
                     <span className={`text-lg font-bold ${fairnessColor(cell.fairnessScore)}`}>
                       {cell.fairnessScore.toFixed(1)}
                     </span>
-                    <span className="text-[10px] text-[var(--ops-text-muted)]">
+                    <span className="text-[10px] text-[var(--fg-secondary)]">
                       {formatTime(cell.totalTimeMs)}
                     </span>
                   </div>
@@ -301,7 +301,7 @@ export function StressTestResultsPanel() {
                       <div className="grid grid-cols-2 gap-1">
                         {Object.entries(cell.scores).map(([key, val]) => (
                           <div key={key} className="flex items-center justify-between text-[10px]">
-                            <span className="text-[var(--ops-text-muted)]">{SCORE_LABELS[key] || key}</span>
+                            <span className="text-[var(--fg-secondary)]">{SCORE_LABELS[key] || key}</span>
                             <span className={fairnessColor(val)}>{val}</span>
                           </div>
                         ))}
@@ -311,8 +311,8 @@ export function StressTestResultsPanel() {
                       <div className="space-y-0.5">
                         {Object.entries(cell.phases).map(([phase, data]) => (
                           <div key={phase} className="flex items-center justify-between text-[10px]">
-                            <span className="text-[var(--ops-text-muted)] capitalize">{phase}</span>
-                            <span className="text-[var(--ops-text)]">
+                            <span className="text-[var(--fg-secondary)] capitalize">{phase}</span>
+                            <span className="text-[var(--fg-primary)]">
                               {data.timeMs > 0 ? formatTime(data.timeMs) : "skip"}
                             </span>
                           </div>
@@ -330,7 +330,7 @@ export function StressTestResultsPanel() {
                       {/* Risks */}
                       <div className="space-y-0.5">
                         {cell.risksFound.map((risk, i) => (
-                          <div key={i} className="text-[10px] text-[var(--ops-text-muted)] flex items-start gap-1">
+                          <div key={i} className="text-[10px] text-[var(--fg-secondary)] flex items-start gap-1">
                             <AlertTriangle className="w-2.5 h-2.5 mt-0.5 text-amber-400 shrink-0" />
                             {risk}
                           </div>
@@ -347,7 +347,7 @@ export function StressTestResultsPanel() {
 
       {/* ── Unique risks ────────────────────────────────────────────── */}
       <div>
-        <h4 className="text-sm font-medium text-[var(--ops-text)] mb-2">
+        <h4 className="text-sm font-medium text-[var(--fg-primary)] mb-2">
           Rischi trovati ({new Set(results.flatMap(r => r.risksFound)).size} unici)
         </h4>
         <div className="flex flex-wrap gap-1.5">
@@ -379,10 +379,10 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="p-3 rounded-lg bg-[var(--ops-surface)] border border-[var(--ops-border)]">
+    <div className="p-3 rounded-lg bg-[var(--bg-raised)] border border-[var(--border-dark)]">
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className={`w-3.5 h-3.5 ${color}`} />
-        <span className="text-[10px] text-[var(--ops-text-muted)]">{label}</span>
+        <span className="text-[10px] text-[var(--fg-secondary)]">{label}</span>
       </div>
       <div className={`text-lg font-bold ${color}`}>{value}</div>
     </div>

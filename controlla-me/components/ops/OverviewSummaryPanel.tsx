@@ -85,17 +85,17 @@ const DEPT_LABELS: Record<string, string> = {
 };
 
 const HEALTH_STYLES: Record<string, { dot: string; badge: string }> = {
-  ok:      { dot: "bg-[var(--ops-teal)]",  badge: "text-[var(--ops-teal)]" },
-  warning: { dot: "bg-[var(--ops-id-cost)]", badge: "text-[var(--ops-id-cost)]" },
-  critical:{ dot: "bg-[var(--ops-error)]",    badge: "text-[var(--ops-error)]" },
-  unknown: { dot: "bg-[var(--ops-muted)]",   badge: "text-[var(--ops-muted)]" },
+  ok:      { dot: "bg-[var(--success)]",  badge: "text-[var(--success)]" },
+  warning: { dot: "bg-[var(--identity-gold)]", badge: "text-[var(--identity-gold)]" },
+  critical:{ dot: "bg-[var(--error)]",    badge: "text-[var(--error)]" },
+  unknown: { dot: "bg-[var(--fg-invisible)]",   badge: "text-[var(--fg-invisible)]" },
 };
 
 function healthStyle(health: string) {
   return HEALTH_STYLES[health] ?? HEALTH_STYLES.unknown;
 }
 
-function healthEmoji(health: string) {
+function _healthEmoji(health: string) {
   if (health === "ok") return "🟢";
   if (health === "warning") return "🟡";
   if (health === "critical") return "🔴";
@@ -137,7 +137,7 @@ function normalizeDept(display: string): string {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PriorityDot({ priority }: { priority: NextAction["priority"] }) {
-  const colors = { critical: "bg-[var(--ops-error)]", high: "bg-[var(--ops-accent)]", medium: "bg-[var(--ops-id-cost)]" };
+  const colors = { critical: "bg-[var(--error)]", high: "bg-[var(--accent)]", medium: "bg-[var(--identity-gold)]" };
   return <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-2 ${colors[priority]}`} />;
 }
 
@@ -166,10 +166,10 @@ function CreateTaskButton({ action }: { action: NextAction }) {
   }, [action]);
 
   const styles = {
-    idle:    "bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)]",
-    loading: "bg-[var(--ops-surface-2)] text-[var(--ops-muted)] cursor-wait",
-    done:    "bg-[rgba(93,228,199,0.12)] text-[var(--ops-teal)] border border-[rgba(93,228,199,0.2)]",
-    error:   "bg-[rgba(229,141,120,0.12)] text-[var(--ops-error)] border border-[rgba(229,141,120,0.2)]",
+    idle:    "bg-[var(--bg-overlay)] hover:bg-[var(--border-dark)] text-[var(--fg-secondary)] hover:text-[var(--fg-primary)]",
+    loading: "bg-[var(--bg-overlay)] text-[var(--fg-invisible)] cursor-wait",
+    done:    "bg-[rgba(93,228,199,0.12)] text-[var(--success)] border border-[rgba(93,228,199,0.2)]",
+    error:   "bg-[rgba(229,141,120,0.12)] text-[var(--error)] border border-[rgba(229,141,120,0.2)]",
   };
 
   const labels = {
@@ -197,36 +197,36 @@ function DeptReportCard({ report }: { report: DeptReport }) {
   const hasContent = report.gaps.length > 0 || report.blockers.length > 0 || report.nextActions.length > 0 || report.notes;
 
   return (
-    <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden bg-[var(--ops-bg)]/60">
+    <div className="border border-[var(--border-dark-subtle)] rounded-lg overflow-hidden bg-[var(--bg-base)]/60">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-[var(--ops-surface)]/30 transition-colors text-left"
+        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-[var(--bg-raised)]/30 transition-colors text-left"
       >
         <span className={`w-2 h-2 rounded-full shrink-0 ${hs.dot}`} />
-        <span className="text-xs font-medium text-[var(--ops-fg)] shrink-0">{label}</span>
-        <span className="text-xs text-[var(--ops-fg-muted)] flex-1 truncate min-w-0">{report.summary.slice(0, 90)}{report.summary.length > 90 ? "…" : ""}</span>
-        <span className="text-xs text-[var(--ops-muted)] shrink-0 hidden sm:block">{fmtTimestamp(report.lastUpdated)}</span>
+        <span className="text-xs font-medium text-[var(--fg-primary)] shrink-0">{label}</span>
+        <span className="text-xs text-[var(--fg-secondary)] flex-1 truncate min-w-0">{report.summary.slice(0, 90)}{report.summary.length > 90 ? "…" : ""}</span>
+        <span className="text-xs text-[var(--fg-invisible)] shrink-0 hidden sm:block">{fmtTimestamp(report.lastUpdated)}</span>
         {hasContent && (
-          <ChevronDown className={`w-4 h-4 text-[var(--ops-muted)] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-4 h-4 text-[var(--fg-invisible)] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
         )}
         {!hasContent && <span className="w-4 h-4 shrink-0" />}
       </button>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-2 border-t border-[var(--ops-border-subtle)] space-y-2.5">
+        <div className="px-3 pb-3 pt-2 border-t border-[var(--border-dark-subtle)] space-y-2.5">
           {/* Summary completo */}
-          <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{report.summary}</p>
+          <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">{report.summary}</p>
 
           {/* Gaps */}
           {report.gaps.length > 0 && (
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-[var(--ops-id-cost)] uppercase tracking-wider">Gap</span>
+              <span className="text-xs font-semibold text-[var(--identity-gold)] uppercase tracking-wider">Gap</span>
               {report.gaps.map((g) => (
-                <div key={g.id} className="flex items-start gap-2 text-xs text-[var(--ops-fg-muted)]">
-                  <span className="text-[var(--ops-muted)] shrink-0 font-mono">{g.id}</span>
+                <div key={g.id} className="flex items-start gap-2 text-xs text-[var(--fg-secondary)]">
+                  <span className="text-[var(--fg-invisible)] shrink-0 font-mono">{g.id}</span>
                   <span>{g.description}</span>
                   {g.severity && g.severity !== "low" && (
-                    <span className={`shrink-0 text-xs px-1 rounded ${g.severity === "high" ? "text-[var(--ops-error)] bg-[rgba(229,141,120,0.1)]" : "text-[var(--ops-id-cost)] bg-[rgba(255,199,50,0.1)]"}`}>
+                    <span className={`shrink-0 text-xs px-1 rounded ${g.severity === "high" ? "text-[var(--error)] bg-[rgba(229,141,120,0.1)]" : "text-[var(--identity-gold)] bg-[rgba(255,199,50,0.1)]"}`}>
                       {g.severity}
                     </span>
                   )}
@@ -238,10 +238,10 @@ function DeptReportCard({ report }: { report: DeptReport }) {
           {/* Blockers */}
           {report.blockers.length > 0 && (
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-[var(--ops-error)] uppercase tracking-wider">Blockers</span>
+              <span className="text-xs font-semibold text-[var(--error)] uppercase tracking-wider">Blockers</span>
               {report.blockers.map((b, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs text-[rgba(229,141,120,0.85)]">
-                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5 text-[var(--ops-error)]" />
+                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5 text-[var(--error)]" />
                   <span>{b}</span>
                 </div>
               ))}
@@ -251,10 +251,10 @@ function DeptReportCard({ report }: { report: DeptReport }) {
           {/* Next actions */}
           {report.nextActions.length > 0 && (
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-[var(--ops-muted)] uppercase tracking-wider">Next actions</span>
+              <span className="text-xs font-semibold text-[var(--fg-invisible)] uppercase tracking-wider">Next actions</span>
               {report.nextActions.map((a, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs text-[var(--ops-fg-muted)]">
-                  <ChevronRight className="w-3 h-3 shrink-0 mt-0.5 text-[var(--ops-muted)]" />
+                <div key={i} className="flex items-start gap-2 text-xs text-[var(--fg-secondary)]">
+                  <ChevronRight className="w-3 h-3 shrink-0 mt-0.5 text-[var(--fg-invisible)]" />
                   <span>{a}</span>
                 </div>
               ))}
@@ -263,14 +263,14 @@ function DeptReportCard({ report }: { report: DeptReport }) {
 
           {/* Notes */}
           {report.notes && (
-            <p className="text-xs text-[var(--ops-muted)] italic border-t border-[var(--ops-border-subtle)] pt-2">{report.notes}</p>
+            <p className="text-xs text-[var(--fg-invisible)] italic border-t border-[var(--border-dark-subtle)] pt-2">{report.notes}</p>
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-2 text-xs text-[var(--ops-muted)] border-t border-[var(--ops-border-subtle)] pt-2">
+          <div className="flex items-center gap-2 text-xs text-[var(--fg-invisible)] border-t border-[var(--border-dark-subtle)] pt-2">
             <Clock className="w-3 h-3" />
             <span>Aggiornato {fmtTimestamp(report.lastUpdated)}</span>
-            {report.updatedBy && <span>da <span className="text-[var(--ops-fg-muted)]">{report.updatedBy}</span></span>}
+            {report.updatedBy && <span>da <span className="text-[var(--fg-secondary)]">{report.updatedBy}</span></span>}
           </div>
         </div>
       )}
@@ -338,7 +338,7 @@ export function OverviewSummaryPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-[var(--ops-fg-muted)] py-3">
+      <div className="flex items-center gap-2 text-xs text-[var(--fg-secondary)] py-3">
         <RefreshCw className="w-4 h-4 animate-spin" />
         Carico sintesi del giorno...
       </div>
@@ -353,17 +353,17 @@ export function OverviewSummaryPanel() {
       <div className="lg:col-span-2 space-y-3">
 
         {/* Focus del giorno */}
-        <div className={`rounded-lg border bg-[var(--ops-surface)]/60 p-3 ${data.isStale ? "border-[rgba(229,141,120,0.3)]" : "border-[var(--ops-border-subtle)]"}`}>
+        <div className={`rounded-lg border bg-[var(--bg-raised)]/60 p-3 ${data.isStale ? "border-[rgba(229,141,120,0.3)]" : "border-[var(--border-dark-subtle)]"}`}>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <Zap className="w-4 h-4 text-[var(--ops-accent)] shrink-0" />
-            <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">Focus attivo</span>
+            <Zap className="w-4 h-4 text-[var(--accent)] shrink-0" />
+            <span className="text-xs font-semibold text-[var(--fg-primary)] uppercase tracking-wider">Focus attivo</span>
             {data.planDate && data.planDate !== data.date && (
-              <span className="text-xs px-2 py-0.5 rounded bg-[rgba(229,141,120,0.1)] text-[var(--ops-error)] border border-[rgba(229,141,120,0.2)]">
+              <span className="text-xs px-2 py-0.5 rounded bg-[rgba(229,141,120,0.1)] text-[var(--error)] border border-[rgba(229,141,120,0.2)]">
                 dal {new Date(data.planDate).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
               </span>
             )}
             {data.planUpdated && (
-              <span className="text-xs text-[var(--ops-muted)]">— {fmtTimestamp(data.planUpdated)}</span>
+              <span className="text-xs text-[var(--fg-invisible)]">— {fmtTimestamp(data.planUpdated)}</span>
             )}
             <div className="ml-auto flex items-center gap-2">
               {/* Genera piano */}
@@ -381,7 +381,7 @@ export function OverviewSummaryPanel() {
               {/* Refresh */}
               <button
                 onClick={fetchSummary}
-                className="p-1 rounded hover:bg-[var(--ops-surface-2)] text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)] transition-colors"
+                className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors"
                 title="Aggiorna"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -390,21 +390,21 @@ export function OverviewSummaryPanel() {
           </div>
 
           {data.focus && (
-            <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{data.focus}</p>
+            <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">{data.focus}</p>
           )}
           {!data.planExists && (
-            <p className="text-xs text-[var(--ops-muted)] mt-1">
+            <p className="text-xs text-[var(--fg-invisible)] mt-1">
               Nessun piano disponibile — usa &quot;Genera piano&quot; o esegui dal terminale:{" "}
-              <code className="text-[var(--ops-fg-muted)]">npx tsx scripts/daily-standup.ts</code>
+              <code className="text-[var(--fg-secondary)]">npx tsx scripts/daily-standup.ts</code>
             </p>
           )}
           {data.isStale && data.planExists && (
-            <p className="text-xs text-[var(--ops-error)] mt-2">
+            <p className="text-xs text-[var(--error)] mt-2">
               ⚠ Ultimo piano generato il {data.planDate} — premi &quot;Genera piano&quot; per aggiornare a oggi
             </p>
           )}
           {generateMsg && (
-            <p className="text-xs mt-2 text-[var(--ops-error)] bg-[rgba(229,141,120,0.08)] border border-[rgba(229,141,120,0.15)] rounded px-2 py-1">
+            <p className="text-xs mt-2 text-[var(--error)] bg-[rgba(229,141,120,0.08)] border border-[rgba(229,141,120,0.15)] rounded px-2 py-1">
               {generateMsg}
             </p>
           )}
@@ -412,10 +412,10 @@ export function OverviewSummaryPanel() {
 
         {/* Prossime azioni con "Crea task" */}
         {data.nextActions.length > 0 && (
-          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/60 p-3">
+          <div className="rounded-lg border border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]/60 p-3">
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="w-4 h-4 text-[var(--ops-teal)]" />
-              <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">
+              <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
+              <span className="text-xs font-semibold text-[var(--fg-primary)] uppercase tracking-wider">
                 Prossime azioni ({data.nextActions.length})
               </span>
             </div>
@@ -423,8 +423,8 @@ export function OverviewSummaryPanel() {
               {data.nextActions.map((action, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <PriorityDot priority={action.priority} />
-                  <span className="text-xs text-[var(--ops-fg-muted)] flex-1 leading-snug">{action.text}</span>
-                  <span className="text-xs text-[var(--ops-muted)] shrink-0">{action.dept}</span>
+                  <span className="text-xs text-[var(--fg-secondary)] flex-1 leading-snug">{action.text}</span>
+                  <span className="text-xs text-[var(--fg-invisible)] shrink-0">{action.dept}</span>
                   <CreateTaskButton action={action} />
                 </div>
               ))}
@@ -433,13 +433,13 @@ export function OverviewSummaryPanel() {
         )}
 
         {/* Report dipartimenti espandibili */}
-        <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/60 p-3 space-y-2">
+        <div className="rounded-lg border border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]/60 p-3 space-y-2">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[var(--fg-primary)] uppercase tracking-wider">
               Report Dipartimenti
             </span>
             {data.masterExists && data.masterUpdated && (
-              <span className={`ml-auto text-xs flex items-center gap-1 ${data.masterDate && data.masterDate !== data.date ? "text-[var(--ops-error)]" : "text-[var(--ops-muted)]"}`}>
+              <span className={`ml-auto text-xs flex items-center gap-1 ${data.masterDate && data.masterDate !== data.date ? "text-[var(--error)]" : "text-[var(--fg-invisible)]"}`}>
                 <FileText className="w-3 h-3" />
                 master {data.masterDate && data.masterDate !== data.date
                   ? `dal ${new Date(data.masterDate).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}`
@@ -456,8 +456,8 @@ export function OverviewSummaryPanel() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <Lightbulb className="w-5 h-5 text-[var(--ops-muted)] mx-auto mb-1" />
-              <p className="text-xs text-[var(--ops-fg-muted)]">
+              <Lightbulb className="w-5 h-5 text-[var(--fg-invisible)] mx-auto mb-1" />
+              <p className="text-xs text-[var(--fg-secondary)]">
                 Nessun status.json trovato nei dipartimenti.
               </p>
             </div>
@@ -466,20 +466,20 @@ export function OverviewSummaryPanel() {
 
         {/* Empty state globale */}
         {!data.masterExists && data.nextActions.length === 0 && data.deptReports.length === 0 && (
-          <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-bg)]/60 p-4 text-center">
-            <Lightbulb className="w-5 h-5 text-[var(--ops-muted)] mx-auto mb-2" />
-            <p className="text-xs text-[var(--ops-fg-muted)]">Nessun report disponibile per oggi.</p>
+          <div className="rounded-lg border border-[var(--border-dark-subtle)] bg-[var(--bg-base)]/60 p-4 text-center">
+            <Lightbulb className="w-5 h-5 text-[var(--fg-invisible)] mx-auto mb-2" />
+            <p className="text-xs text-[var(--fg-secondary)]">Nessun report disponibile per oggi.</p>
           </div>
         )}
       </div>
 
       {/* ── Col 2: Note manuali ────────────────────────────────────────── */}
-      <div className="rounded-lg border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/60 p-3 flex flex-col">
+      <div className="rounded-lg border border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]/60 p-3 flex flex-col">
         <div className="flex items-center gap-2 mb-2">
-          <NotebookPen className="w-4 h-4 text-[var(--ops-id-health)]" />
-          <span className="text-xs font-semibold text-[var(--ops-fg)] uppercase tracking-wider">Note & Priorità</span>
+          <NotebookPen className="w-4 h-4 text-[var(--identity-violet)]" />
+          <span className="text-xs font-semibold text-[var(--fg-primary)] uppercase tracking-wider">Note & Priorità</span>
           {notesSaved && (
-            <span className="ml-auto text-xs text-[var(--ops-teal)] flex items-center gap-1">
+            <span className="ml-auto text-xs text-[var(--success)] flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> Salvato
             </span>
           )}
@@ -489,16 +489,16 @@ export function OverviewSummaryPanel() {
           onChange={(e) => setNotes(e.target.value)}
           onBlur={saveNotes}
           placeholder={"Scrivi qui priorità, decisioni, note per la sessione...\n\nEs:\n• Chiamare avvocato per DPA\n• Review backtest results\n• Decidere verticale Q2"}
-          className="flex-1 min-h-[160px] bg-[var(--ops-bg)] border border-[var(--ops-border)] rounded-md p-3 text-xs text-[var(--ops-fg-muted)] placeholder:text-[var(--ops-muted)] resize-none focus:outline-none focus:border-[var(--ops-border)] transition-colors font-mono leading-relaxed"
+          className="flex-1 min-h-[160px] bg-[var(--bg-base)] border border-[var(--border-dark)] rounded-md p-3 text-xs text-[var(--fg-secondary)] placeholder:text-[var(--fg-muted)] resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] transition-colors font-mono leading-relaxed"
         />
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-[var(--ops-muted)]">
+          <span className="text-xs text-[var(--fg-invisible)]">
             <Clock className="w-3 h-3 inline mr-1" />
             Salvataggio automatico al click fuori
           </span>
           <button
             onClick={saveNotes}
-            className="text-xs px-2 py-1 rounded bg-[var(--ops-surface-2)] hover:bg-[var(--ops-border)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] transition-colors"
+            className="text-xs px-2 py-1 rounded bg-[var(--bg-overlay)] hover:bg-[var(--border-dark)] text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] transition-colors"
           >
             Salva
           </button>

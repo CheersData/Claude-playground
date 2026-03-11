@@ -1,0 +1,29 @@
+{
+  "testId": "TC48",
+  "question": "Ho registrato di nascosto una conversazione con il mio capo. Posso usarla in giudizio?",
+  "agentAnswer": "Sì, la registrazione di una conversazione a cui si partecipa attivamente, anche se effettuata di nascosto, è generalmente lecita e può essere utilizzata come prova in giudizio. Questo perché l'Art. 617 del Codice Penale punisce chi prende cognizione di comunicazioni \"a lui non dirette\". Essendo lei un partecipante alla conversazione con il suo capo, la comunicazione era diretta anche a lei, e pertanto la registrazione non costituisce intercettazione illecita.\n\nRiferimenti normativi:\nIl principio è consolidato nella giurisprudenza della Corte di Cassazione, come evidenziato dalla conoscenza giuridica fornita, che chiarisce l'interpretazione dell'Art. 617 c.p. L'Art. 617 c.p. sanziona la cognizione illecita di comunicazioni o conversazioni telefoniche o telegrafiche tra altre persone o comunque non dirette a chi le intercetta. L'Art. 2712 c.c. disciplina l'efficacia probatoria delle riproduzioni meccaniche, come le registrazioni, stabilendo che esse fanno piena prova dei fatti e delle cose rappresentate, se colui contro il quale sono prodotte non ne disconosce la conformità ai fatti o alle cose medesime.\n\nOrientamenti giurisprudenziali:\nLa giurisprudenza della Corte di Cassazione ha ripetutamente affermato che la registrazione fonografica di un colloquio da parte di chi vi partecipa non è intercettazione, poiché manca il requisito della terzietà. Il partecipante che registra esercita una facoltà legittima di fissare su supporto quanto gli viene comunicato direttamente. Tale registrazione è utilizzabile come prova documentale in sede penale (ai sensi dell'Art. 234 c.p.p., non presente nel contesto) e come riproduzione meccanica in sede civile (ai sensi dell'Art. 2712 c.c.). La normativa sulla privacy (GDPR) può limitare la diffusione della registrazione, ma non l'atto di registrare per fini di tutela di un diritto in giudizio.\n\nIn pratica:\nPer utilizzare la registrazione in giudizio, dovrà produrla come prova documentale. In sede civile, la registrazione farà piena prova a meno che la controparte (il suo capo) non ne disconosca espressamente la conformità. In tal caso, sarà necessario dimostrarne l'autenticità. Non è richiesto il consenso dell'altra parte per la validità della registrazione ai fini probatori, purché lei fosse un partecipante alla conversazione.",
+  "expectedAnswer": "TRAPPOLA: se eri presente alla conversazione (partecipante), registrarla è LECITA (non è intercettazione ai sensi dell'art. 617 c.p.) e utilizzabile come prova in giudizio civile. Se invece non eri presente (registrazione di terzi), è reato. La distinzione è fondamentale.",
+  "scoringHints": {
+    "prep": "Ha distinto partecipante da terzo nella query?",
+    "search": "Ha trovato la distinzione intercettazione/registrazione e art. 617 c.p.?",
+    "quality": "Distingue nettamente i due casi? Non risponde genericamente 'è illegale'?"
+  },
+  "trapType": "distinzione_partecipante_terzo",
+  "institutes": [
+    "registrazione_conversazione",
+    "intercettazione",
+    "prova_civile"
+  ],
+  "scope": "TRAPPOLA: se PARTECIPANTE è lecita. Se terzo non partecipante = reato art. 617 c.p.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 40,
+    "total": 100,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico, distinguendo in modo impeccabile la registrazione da parte di un partecipante da un'intercettazione illecita. Ha recuperato e citato con precisione gli articoli pertinenti (Art. 617 c.p., Art. 2712 c.c.) e la giurisprudenza consolidata, fornendo una risposta accurata, completa e priva di invenzioni, superando brillantemente la trappola."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:23:46.231Z"
+}

@@ -1,0 +1,29 @@
+{
+  "testId": "TC66",
+  "question": "Il mio volo è stato cancellato per uno sciopero dei dipendenti della compagnia. Ho diritto al risarcimento?",
+  "agentAnswer": "RISPOSTA DIRETTA\nIl diritto al risarcimento dipende dalle circostanze specifiche della cancellazione del volo. Secondo l'Art. 5 del Reg. CE 261/2004, il vettore aereo operativo non è tenuto a pagare una compensazione pecuniaria se può dimostrare che la cancellazione del volo è dovuta a circostanze eccezionali che non si sarebbero comunque potute evitare anche se fossero state adottate tutte le misure del caso. Gli scioperi dei dipendenti della compagnia aerea possono essere considerati circostanze eccezionali, ma la decisione finale spetta al giudice competente.\n\nRiferimenti normativi:\nL'Art. 5 del Reg. CE 261/2004 stabilisce che il vettore aereo operativo non è tenuto a pagare una compensazione pecuniaria se la cancellazione del volo è dovuta a circostanze eccezionali. L'onere della prova spetta al vettore aereo operativo.\n\nIn pratica:\nContesti per iscritto alla compagnia aerea il risarcimento, citando l'Art. 5 del Reg. CE 261/2004. Se la compagnia rifiuta, valuta la possibilità di avviare un'azione legale per ottenere il risarcimento.",
+  "expectedAnswer": "Sì, in linea di principio: il Reg. CE 261/2004 prevede risarcimento da €250 a €600 per cancellazione. Lo sciopero interno dei dipendenti NON è considerato 'circostanza eccezionale' (è rischio d'impresa). La compagnia deve provare l'eccezione. Diritto anche a rimborso integrale o riprotezione.",
+  "scoringHints": {
+    "prep": "Ha formulato query su Reg. CE 261/2004 e sciopero interno?",
+    "search": "Ha trovato Reg. CE 261/2004 con i massimali?",
+    "quality": "Indica gli importi (250-600€)? Chiarisce che sciopero interno ≠ eccezionale?"
+  },
+  "trapType": null,
+  "institutes": [
+    "Reg_CE_261_2004",
+    "circostanza_eccezionale",
+    "cancellazione_volo"
+  ],
+  "scope": "Reg. CE 261/2004: 250-600€. La compagnia DEVE provare l'eccezione. Sciopero interno ≠ eccezionale.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 28,
+    "quality": 25,
+    "total": 78,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha individuato correttamente il tema (Regolamento CE 261/2004) e ha recuperato gli articoli pertinenti con i relativi importi. Tuttavia la risposta contiene una contraddizione sullo sciopero interno e non menziona esplicitamente il diritto al rimborso o alla riprotezione, riducendo l'accuratezza e la completezza."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:33:57.359Z"
+}

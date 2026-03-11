@@ -1,0 +1,29 @@
+{
+  "testId": "TC24",
+  "question": "Quali sono i motivi per ricorrere in Cassazione?",
+  "agentAnswer": "1) Motivi attinenti alla giurisdizione;\n2) Motivi attinenti alla violazione delle norme sulla competenza, quando non è prescritto il regolamento di competenza;\n3) Motivi attinenti alla violazione o falsa applicazione di norme di diritto e dei contratti e accordi collettivi nazionali di lavoro;\n4) Motivi attinenti alla nullità della sentenza o del procedimento;\n5) Motivi attinenti all'omesso esame circa un fatto decisivo per il giudizio che è stato oggetto di discussione tra le parti.",
+  "expectedAnswer": "L'agente deve elencare tutti e 5 i motivi ex art. 360 c.p.c. e segnalare che il n.5 (motivazione) è stato riformato nel 2012: oggi si può ricorrere solo per motivazione 'omessa, insufficiente o contraddittoria' su fatto decisivo.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 360 con tutti i motivi?",
+    "search": "Ha trovato art. 360 c.p.c. con tutti i 5 numeri?",
+    "quality": "Elenca tutti i motivi? Segnala la riforma 2012 del n.5?"
+  },
+  "trapType": null,
+  "institutes": [
+    "ricorso_cassazione",
+    "motivi_impugnazione",
+    "art_360_cpc"
+  ],
+  "scope": "art. 360 c.p.c. tutti e 5 i motivi; n.5 riformato nel 2012",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 30,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha correttamente elencato tutti e 5 i motivi ex art. 360 c.p.c. per ricorrere in Cassazione. Tuttavia, non ha segnalato la riforma del 2012 che ha modificato il n.5, limitandolo a motivazione 'omessa, insufficiente o contraddittoria'. Nonostante ciò, la risposta è sostanzialmente corretta e completa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:00:03.191Z"
+}

@@ -43,7 +43,7 @@ const BENEFIT_STATUS_COLORS: Record<string, string> = {
   achieved: "bg-green-500/15 text-green-400 border-green-500/30",
   partial:  "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   missed:   "bg-red-500/15 text-red-400 border-red-500/30",
-  pending:  "bg-[var(--ops-hover)]/60 text-[var(--ops-fg-muted)] border-[var(--ops-border)]",
+  pending:  "bg-[var(--bg-hover)]/60 text-[var(--fg-secondary)] border-[var(--border-dark)]",
 };
 
 const BENEFIT_STATUS_LABELS: Record<string, string> = {
@@ -96,31 +96,31 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
   });
 
   return (
-    <div className="bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border-subtle)] flex flex-col" style={{ minHeight: "400px" }}>
+    <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] flex flex-col" style={{ minHeight: "400px" }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--ops-border-subtle)] flex-shrink-0">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-dark-subtle)] flex-shrink-0">
         <div className="flex items-center gap-2">
-          <Archive className="w-4 h-4 text-[var(--ops-fg-muted)]" />
+          <Archive className="w-4 h-4 text-[var(--fg-secondary)]" />
           <h2 className="text-base font-semibold text-white">Archivio Task</h2>
-          <span className="text-xs text-[var(--ops-muted)] font-normal">
+          <span className="text-xs text-[var(--fg-invisible)] font-normal">
             ({loading ? "…" : `${filtered.length}/${tasks.length}`} completati)
           </span>
         </div>
         <button
           onClick={onBack}
-          className="cursor-pointer p-2 rounded-lg text-[var(--ops-muted)] hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors"
+          className="cursor-pointer p-2 rounded-lg text-[var(--fg-invisible)] hover:text-white hover:bg-[var(--bg-overlay)] transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-[var(--ops-border-subtle)]/60 flex-shrink-0 flex-wrap">
-        <Filter className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-[var(--border-dark-subtle)]/60 flex-shrink-0 flex-wrap">
+        <Filter className="w-4 h-4 text-[var(--fg-invisible)] flex-shrink-0" />
         <select
           value={filterDept}
           onChange={(e) => setFilterDept(e.target.value)}
-          className="text-xs bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-[var(--ops-fg-muted)] focus:outline-none focus:border-[var(--ops-border)] cursor-pointer"
+          className="text-xs bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-2 text-[var(--fg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] cursor-pointer"
         >
           <option value="">Tutti i dipartimenti</option>
           {allDepts.map((d) => (
@@ -130,7 +130,7 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
         <select
           value={filterTag}
           onChange={(e) => setFilterTag(e.target.value)}
-          className="text-xs bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-[var(--ops-fg-muted)] focus:outline-none focus:border-[var(--ops-border)] cursor-pointer"
+          className="text-xs bg-[var(--bg-overlay)] border border-[var(--border-dark)] rounded-lg px-3 py-2 text-[var(--fg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] cursor-pointer"
         >
           <option value="">Tutti i tag</option>
           {allTags.map((tag) => (
@@ -140,7 +140,7 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
         {(filterDept || filterTag) && (
           <button
             onClick={() => { setFilterDept(""); setFilterTag(""); }}
-            className="cursor-pointer text-xs text-[var(--ops-muted)] hover:text-white transition-colors"
+            className="cursor-pointer text-xs text-[var(--fg-invisible)] hover:text-white transition-colors"
           >
             Reset filtri
           </button>
@@ -151,10 +151,10 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
       <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-5 h-5 animate-spin text-[var(--ops-muted)]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--fg-invisible)]" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-[var(--ops-muted)] text-sm text-center py-12">
+          <p className="text-[var(--fg-invisible)] text-sm text-center py-12">
             {tasks.length === 0
               ? "Nessun task completato."
               : "Nessun task corrisponde ai filtri."}
@@ -165,12 +165,12 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
               key={task.id}
               type="button"
               onClick={() => setSelectedTask(task)}
-              className="cursor-pointer w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-[var(--ops-surface-2)]/30 hover:bg-[var(--ops-surface-2)]/60 transition-colors group"
+              className="cursor-pointer w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left bg-[var(--bg-overlay)]/30 hover:bg-[var(--bg-overlay)]/60 transition-colors group"
             >
-              {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0 mt-0.5" />; })()}
+              {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-[var(--fg-invisible)] flex-shrink-0 mt-0.5" />; })()}
               <span className="flex-1 min-w-0">
-                <span className="text-sm text-[var(--ops-fg-muted)] group-hover:text-white transition-colors block truncate">
-                  {task.seqNum ? <span className="text-[var(--ops-muted)] mr-1">#{task.seqNum}</span> : null}
+                <span className="text-sm text-[var(--fg-secondary)] group-hover:text-white transition-colors block truncate">
+                  {task.seqNum ? <span className="text-[var(--fg-invisible)] mr-1">#{task.seqNum}</span> : null}
                   {task.title}
                 </span>
                 {(task.tags ?? []).length > 0 && (
@@ -187,7 +187,7 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
                     {BENEFIT_STATUS_LABELS[task.benefitStatus] ?? task.benefitStatus}
                   </span>
                 )}
-                <span className="text-xs text-[var(--ops-muted)]">{formatDate(task.createdAt)}</span>
+                <span className="text-xs text-[var(--fg-invisible)]">{formatDate(task.createdAt)}</span>
               </span>
             </button>
           ))

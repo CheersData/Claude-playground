@@ -286,50 +286,38 @@ describe("generateWithOpenAICompat — rate limit retry", () => {
     globalThis.setTimeout = originalSetTimeout;
   });
 
-  it("retries on 429 status and succeeds on second attempt", async () => {
+  it("throws on 429 status after exhausting key rotation (agent-runner handles fallback)", async () => {
     const rateLimitError = Object.assign(new Error("rate_limit"), { status: 429 });
-    mockCreate
-      .mockRejectedValueOnce(rateLimitError)
-      .mockResolvedValueOnce(makeOpenAIResponse("ok after retry"));
-
-    const result = await generateWithOpenAICompat("groq", "model", "test");
-
-    expect(result.text).toBe("ok after retry");
-    expect(mockCreate).toHaveBeenCalledTimes(2);
-  });
-
-  it("retries on rate_limit message in error", async () => {
-    const rateLimitError = new Error("rate_limit_error: too many requests");
-    mockCreate
-      .mockRejectedValueOnce(rateLimitError)
-      .mockResolvedValueOnce(makeOpenAIResponse("ok"));
-
-    const result = await generateWithOpenAICompat("groq", "model", "test");
-
-    expect(result.text).toBe("ok");
-  });
-
-  it("throws non-rate-limit errors immediately without retry", async () => {
-    mockCreate.mockRejectedValue(new Error("Internal server error"));
-
-    await expect(
-      generateWithOpenAICompat("groq", "model", "test")
-    ).rejects.toThrow("Internal server error");
-
-    expect(mockCreate).toHaveBeenCalledOnce();
-  });
-
-  it("throws after max retries exceeded", async () => {
-    const rateLimitError = Object.assign(new Error("rate_limit"), { status: 429 });
-    // groq has maxRetries=3: attempt 0,1,2 wait+retry, attempt 3 throws
+    // Use persistent mock so even key rotation retries fail with 429
     mockCreate.mockRejectedValue(rateLimitError);
 
     await expect(
       generateWithOpenAICompat("groq", "model", "test")
     ).rejects.toThrow("rate_limit");
 
-    // 1 initial + 3 retries = 4 calls
-    expect(mockCreate).toHaveBeenCalledTimes(4);
+    // May be called more than once if ALT key rotation was attempted
+    expect(mockCreate).toHaveBeenCalled();
+  });
+
+  it("throws on rate_limit message in error after exhausting retries", async () => {
+    const rateLimitError = new Error("rate_limit_error: too many requests");
+    mockCreate.mockRejectedValue(rateLimitError);
+
+    await expect(
+      generateWithOpenAICompat("groq", "model", "test")
+    ).rejects.toThrow("rate_limit_error");
+
+    expect(mockCreate).toHaveBeenCalled();
+  });
+
+  it("throws non-rate-limit errors immediately", async () => {
+    mockCreate.mockRejectedValueOnce(new Error("Internal server error"));
+
+    await expect(
+      generateWithOpenAICompat("groq", "model", "test")
+    ).rejects.toThrow("Internal server error");
+
+    expect(mockCreate).toHaveBeenCalledOnce();
   });
 });
 

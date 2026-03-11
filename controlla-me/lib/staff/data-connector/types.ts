@@ -4,18 +4,42 @@
  * Architettura pipeline a 3 fasi: CONNECT → MODEL → LOAD
  * Ogni DataType ha il suo trio: Connector + Model + Store.
  *
- * Oggi: legal-articles (Normattiva + EUR-Lex)
- * Domani: market-data, model-benchmark, feed-items, ecc.
+ * Oggi: legal-articles (Normattiva + EUR-Lex), medical-articles, hr-articles
+ * Domani: market-data, model-benchmark, feed-items, crm-records, erp-records, ecc.
  */
+
+import type { AuthStrategy } from "./auth/types";
 
 // ─── Data Source ───
 
 export type DataType =
   | "legal-articles"
+  | "medical-articles"     // Corpus medico — stesso schema legal_articles, vertical = 'medical'
   | "hr-articles"          // Diritto del lavoro + sicurezza — stesso stack di legal-articles
   | "market-data"
   | "model-benchmark"
-  | "feed-items";
+  | "feed-items"
+  | "crm-records"          // Salesforce, HubSpot — contatti, aziende, deal
+  | "erp-records"          // SAP, NetSuite — ordini, fatture, anagrafiche
+  | "accounting-records"   // QuickBooks — contabilita, pagamenti
+  // Entity-oriented types per Integration Office (ADR-1)
+  | "contacts"             // Rubrica contatti da CRM/ERP
+  | "invoices"             // Fatture da ERP/accounting
+  | "tickets"              // Ticket supporto da helpdesk
+  | "documents";           // Documenti da DMS/cloud storage
+
+/**
+ * Tipi di entita business per connettori CRM/ERP.
+ * Usato per specializzare il mapping nella fase MODEL.
+ */
+export type BusinessDataType =
+  | "contacts"
+  | "companies"
+  | "deals"
+  | "invoices"
+  | "payments"
+  | "documents"
+  | "custom";
 
 export type SourceLifecycle =
   | "planned"        // Fonte definita, nessun test
@@ -31,13 +55,35 @@ export interface DataSource {
   dataType: DataType;
   /** Dominio verticale: "legal" | "hr" | "real-estate" | ... (default: "legal") */
   vertical: string;
-  connector: string;                       // "normattiva" | "eurlex" | "rss" | "api"
+  connector: string;                       // "normattiva" | "eurlex" | "rss" | "api" | "salesforce" | ...
   config: Record<string, unknown>;         // config specifica del connettore
   lifecycle: SourceLifecycle;
   estimatedItems: number;
   schedule?: {
     deltaInterval: "daily" | "weekly" | "monthly";
     cronExpression?: string;
+  };
+
+  // ─── Campi aggiunti da ADR-1 (tutti opzionali — backward compatible) ───
+
+  /** Strategia di autenticazione. Default: { type: "none" } per fonti pubbliche. */
+  auth?: AuthStrategy;
+  /** Tipo di entita business per connettori CRM/ERP. */
+  businessDataType?: BusinessDataType;
+  /** Direzione del flusso dati. Default: "pull". */
+  direction?: "pull" | "push" | "bidirectional";
+  /** Override rate limit per-provider (sostituisce il default 1s di BaseConnector). */
+  rateLimit?: {
+    requestsPerSecond?: number;
+    requestsPerMinute?: number;
+    concurrency?: number;
+  };
+  /** Configurazione webhook per fonti event-driven (fase 2). */
+  webhookConfig?: {
+    /** Riferimento al vault per HMAC secret (ADR-3) */
+    secretRef: string;
+    /** Eventi sottoscritti (es. ["contact.created", "deal.updated"]) */
+    events: string[];
   };
 }
 
@@ -97,6 +143,10 @@ export interface DataModelSpec {
     sourceField: string;
     targetColumn: string;
     transform: string;
+    /** Origine del mapping (ADR-002): rule = deterministico, llm = AI, manual = operatore */
+    mappedBy?: "rule" | "llm" | "manual";
+    /** Confidenza del mapping (0.0-1.0). 1.0 = match esatto regola, < 0.8 = LLM needed */
+    confidence?: number;
   }>;
   migrationSQL?: string;
 }

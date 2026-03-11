@@ -44,13 +44,12 @@ export const anthropic = {
             const isRateLimit =
               err instanceof Error && err.message.includes("rate_limit");
             const status = (err as { status?: number }).status;
-            if ((status === 429 || isRateLimit) && attempt < MAX_RETRIES) {
-              const waitSec = 60; // sempre 60s - il rate limit e' per minuto
+            if (status === 429 || isRateLimit) {
+              // Rate limit: propaga errore subito → agent-runner passerà al prossimo provider
               console.log(
-                `[API] ⏳ Rate limit! Attendo ${waitSec}s prima di riprovare (tentativo ${attempt + 1}/${MAX_RETRIES})...`
+                `[API] ⚡ Anthropic rate limit → skip al prossimo provider nella catena`
               );
-              await new Promise((r) => setTimeout(r, waitSec * 1000));
-              continue;
+              throw err;
             }
             throw err;
           }

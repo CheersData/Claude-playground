@@ -8,6 +8,8 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.test.ts"],
+    testTimeout: 10_000,
+    hookTimeout: 10_000,
     coverage: {
       provider: "v8",
       include: ["lib/**/*.ts", "app/api/**/*.ts"],

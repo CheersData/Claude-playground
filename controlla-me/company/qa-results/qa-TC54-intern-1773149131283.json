@@ -1,0 +1,29 @@
+{
+  "testId": "TC54",
+  "question": "Ho comprato un prodotto online difettoso e voglio restituirlo. Devo pagare le spese di spedizione?",
+  "agentAnswer": "Se hai acquistato un prodotto online che si è rivelato difettoso, non devi sostenere le spese di spedizione per la restituzione. La normativa a tutela dei consumatori stabilisce chiaramente che i costi relativi al ripristino della conformità del bene (riparazione o sostituzione) o alla risoluzione del contratto, inclusi quelli di spedizione per la restituzione del prodotto difettoso, sono a carico del venditore.\n\nRiferimenti normativi:\nL'Art. 135-bis del Codice del Consumo (che recepisce la Direttiva 2019/771/UE) stabilisce i rimedi a disposizione del consumatore in caso di difetto di conformità del bene, tra cui il ripristino della conformità (riparazione o sostituzione), la riduzione proporzionale del prezzo o la risoluzione del contratto. L'Art. 135-ter, comma 1, lettera a), del Codice del Consumo specifica che la riparazione o la sostituzione devono essere effettuate \"senza spese\" per il consumatore, e il comma 2 aggiunge che il venditore riprende i beni sostituiti \"a proprie spese\". In caso di risoluzione del contratto, l'Art. 135-quater, comma 4, lettera a), del Codice del Consumo prevede che il consumatore restituisca il bene al venditore \"a spese di quest'ultimo\".\nÈ importante distinguere questa situazione dal diritto di recesso (Art. 52 Codice del Consumo), che permette di restituire un prodotto senza motivo entro 14 giorni dall'acquisto online, nel qual caso le spese di spedizione per la restituzione sono generalmente a carico del consumatore, salvo diverso accordo o mancata informazione da parte del professionista (Art. 57 Codice del Consumo).\nL'Art. 1490 c.c. disciplina la garanzia per i vizi della cosa venduta in generale, ma per i contratti tra professionista e consumatore prevalgono le norme più specifiche e protettive del Codice del Consumo.\n\nIn pratica:\nContatta immediatamente il venditore per segnalare il difetto di conformità del prodotto. Richiedi la riparazione, la sostituzione o la risoluzione del contratto, specificando che, in base alla legge, le spese di spedizione per la restituzione del prodotto difettoso sono a suo carico. Conserva tutte le comunicazioni e le prove del difetto.",
+  "expectedAnswer": "TRAPPOLA: per vizi di conformità (prodotto difettoso) le spese di restituzione sono a CARICO DEL VENDITORE (art. 135-ter D.Lgs. 206/2005). Questo è diverso dal recesso entro 14 giorni (dove le spese possono essere a carico del consumatore se informato).",
+  "scoringHints": {
+    "prep": "Ha distinto vizi di conformità da recesso nella query?",
+    "search": "Ha trovato art. 135-ter Codice del Consumo?",
+    "quality": "Chiarisce che per difetti le spese sono del venditore? Distingue da recesso 14gg?"
+  },
+  "trapType": "confusione_istituti",
+  "institutes": [
+    "vizi_di_conformità",
+    "spese_restituzione",
+    "recesso_14_giorni"
+  ],
+  "scope": "TRAPPOLA: per vizi conformità le spese sono a carico del VENDITORE (art. 135-ter). Diverso dal recesso 14gg.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 40,
+    "total": 100,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha distinto tra vizi di conformità e recesso. Ha recuperato i riferimenti normativi pertinenti, tra cui l'art. 135-ter del Codice del Consumo. La risposta è accurata, completa e non contiene invenzioni, chiarendo bene la differenza tra le due situazioni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:24:42.016Z"
+}

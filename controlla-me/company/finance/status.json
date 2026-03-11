@@ -2,24 +2,40 @@
   "_meta": {
     "dept": "finance",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "cost-controller"
+    "last_updated": "2026-03-08T22:11:42.196Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Costi sotto controllo. $1.03 ultimi 7 giorni su 494 chiamate. Provider gratuiti dominanti (Cerebras 84%, Groq 4%). Trading paper: account $99,676.",
+  "summary": "10 completati (ultimi 7gg). 15 completati (totale).",
   "costs": {
     "last_7d": {
       "total_usd": 1.03,
       "total_calls": 494,
       "by_provider": {
-        "cerebras": { "usd": 0.87, "calls": 354, "pct": 84 },
-        "gemini": { "usd": 0.13, "calls": 89, "pct": 13 },
-        "groq": { "usd": 0.03, "calls": 42, "pct": 3 },
-        "mistral": { "usd": 0.01, "calls": 9, "pct": 0 }
+        "cerebras": {
+          "usd": 0.87,
+          "calls": 354,
+          "pct": 84
+        },
+        "gemini": {
+          "usd": 0.13,
+          "calls": 89,
+          "pct": 13
+        },
+        "groq": {
+          "usd": 0.03,
+          "calls": 42,
+          "pct": 3
+        },
+        "mistral": {
+          "usd": 0.01,
+          "calls": 9,
+          "pct": 0
+        }
       }
     },
-    "alert_daily_usd": 1.00,
-    "alert_per_query_usd": 0.10,
+    "alert_daily_usd": 1,
+    "alert_per_query_usd": 0.1,
     "fallback_rate_alert_pct": 30
   },
   "trading_pnl": {

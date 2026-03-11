@@ -4,17 +4,18 @@
  * Un unico file per configurare quale modello usa ogni agente.
  * Per cambiare modello a un agente, modifica SOLO questo file.
  *
- * Provider disponibili (6):
+ * Provider disponibili (7):
  * - anthropic:  Claude Sonnet 4.5, Haiku 4.5
  * - gemini:     Gemini 2.5 Flash, Flash Lite, Pro
  * - openai:     GPT-5.2, 5.1, 5, 5 Mini/Nano, 4.1, 4.1 Mini/Nano, 4o, 4o Mini, OSS 120B/20B, Codex Mini
  * - mistral:    Large, Medium, Small, Nemo, Ministral 14B/8B/3B, Magistral Small/Medium, Codestral
  * - groq:       Llama 4 Scout, 3.3 70B, 3.1 8B, Qwen 3 32B, GPT-OSS 120B/20B, Kimi K2
  * - cerebras:   GPT-OSS 120B, Qwen 3 235B, Llama 3.1 8B
+ * - sambanova:  Llama 3.3 70B, Llama 4 Maverick, DeepSeek-R1 70B
  *
  * ⚠️  DeepSeek RIMOSSO (SEC-001): server in Cina, non coperto da accordo di adeguatezza EU.
  *
- * ~38 modelli registrati, 6 provider.
+ * ~41 modelli registrati, 7 provider.
  * Vedi docs/MODEL-CENSUS.md per pricing e confronto completo.
  */
 
@@ -26,7 +27,8 @@ export type Provider =
   | "openai"
   | "mistral"
   | "groq"
-  | "cerebras";
+  | "cerebras"
+  | "sambanova";
 
 export interface ModelConfig {
   provider: Provider;
@@ -213,7 +215,7 @@ export const MODELS = {
   },
   "mistral-medium-3": {
     provider: "mistral" as const,
-    model: "mistral-medium-3.1",
+    model: "mistral-medium-2508",
     displayName: "Mistral Medium 3.1",
     inputCostPer1M: 0.4,
     outputCostPer1M: 2.0,
@@ -221,7 +223,7 @@ export const MODELS = {
   },
   "mistral-small-3": {
     provider: "mistral" as const,
-    model: "mistral-small-3.2-24b-instruct",
+    model: "mistral-small-latest",
     displayName: "Mistral Small 3.2",
     inputCostPer1M: 0.06,
     outputCostPer1M: 0.18,
@@ -261,7 +263,7 @@ export const MODELS = {
   },
   "magistral-small": {
     provider: "mistral" as const,
-    model: "magistral-small-2506",
+    model: "magistral-small-2509",
     displayName: "Magistral Small",
     inputCostPer1M: 0.5,
     outputCostPer1M: 1.5,
@@ -269,7 +271,7 @@ export const MODELS = {
   },
   "magistral-medium": {
     provider: "mistral" as const,
-    model: "magistral-medium-2506",
+    model: "magistral-medium-2509",
     displayName: "Magistral Medium",
     inputCostPer1M: 2.0,
     outputCostPer1M: 5.0,
@@ -361,8 +363,34 @@ export const MODELS = {
   },
   "cerebras-qwen3-235b": {
     provider: "cerebras" as const,
-    model: "qwen3-235b",
-    displayName: "Qwen 3 235B (Cerebras)",
+    model: "gpt-oss-120b",
+    displayName: "GPT-OSS 120B (Cerebras, ex-Qwen slot)",
+    inputCostPer1M: 0.6,
+    outputCostPer1M: 1.2,
+    contextWindow: 128_000,
+  },
+
+  // ── SambaNova — hardware RDU (free tier: 200K tok/giorno, no CC) ──
+  "sambanova-llama3-70b": {
+    provider: "sambanova" as const,
+    model: "Meta-Llama-3.3-70B-Instruct",
+    displayName: "Llama 3.3 70B (SambaNova)",
+    inputCostPer1M: 0.6,
+    outputCostPer1M: 1.2,
+    contextWindow: 128_000,
+  },
+  "sambanova-llama4-maverick": {
+    provider: "sambanova" as const,
+    model: "Llama-4-Maverick-17B-128E-Instruct",
+    displayName: "Llama 4 Maverick (SambaNova)",
+    inputCostPer1M: 0.2,
+    outputCostPer1M: 0.6,
+    contextWindow: 128_000,
+  },
+  "sambanova-deepseek-r1-70b": {
+    provider: "sambanova" as const,
+    model: "DeepSeek-R1-Distill-Llama-70B",
+    displayName: "DeepSeek R1 70B (SambaNova)",
     inputCostPer1M: 0.6,
     outputCostPer1M: 1.2,
     contextWindow: 128_000,
@@ -382,7 +410,8 @@ export type AgentName =
   | "investigator"
   | "advisor"
   | "corpus-agent"
-  | "task-executor";
+  | "task-executor"
+  | "mapper";
 
 export interface AgentModelConfig {
   /** Primary model for this agent */
@@ -462,6 +491,14 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     temperature: 0.2,
     notes: "Esecuzione task dipartimenti/CME con Opus. Fallback Sonnet.",
   },
+  // ── Data Connector — Mapping campi sorgente→destinazione (ADR-2) ──
+  mapper: {
+    primary: "groq-llama4-scout",
+    fallback: "cerebras-gpt-oss-120b",
+    maxTokens: 2048,
+    temperature: 0,
+    notes: "Mapping campi: task di classificazione semplice. Tier Intern (Groq/Cerebras, ~gratis). ADR: adr-ai-mapping-hybrid.md",
+  },
 };
 
 // ─── Helper Functions ───
@@ -478,28 +515,30 @@ export function getAgentFallbackModel(agent: AgentName): ModelConfig {
   return MODELS[agentConfig.fallback];
 }
 
-/** Check if a specific provider is enabled (API key present). */
+/** Check if a specific provider is enabled (primary OR alternate API key present). */
 export function isProviderEnabled(provider: Provider): boolean {
   switch (provider) {
     case "anthropic":
       return !!process.env.ANTHROPIC_API_KEY;
     case "gemini":
-      return !!process.env.GEMINI_API_KEY;
+      return !!process.env.GEMINI_API_KEY || !!process.env.GEMINI_API_KEY_ALT;
     case "openai":
       return !!process.env.OPENAI_API_KEY;
     case "mistral":
-      return !!process.env.MISTRAL_API_KEY;
+      return !!process.env.MISTRAL_API_KEY || !!process.env.MISTRAL_API_KEY_ALT;
     case "groq":
-      return !!process.env.GROQ_API_KEY;
+      return !!process.env.GROQ_API_KEY || !!process.env.GROQ_API_KEY_ALT;
     case "cerebras":
-      return !!process.env.CEREBRAS_API_KEY;
+      return !!process.env.CEREBRAS_API_KEY || !!process.env.CEREBRAS_API_KEY_ALT;
+    case "sambanova":
+      return !!process.env.SAMBANOVA_API_KEY || !!process.env.SAMBANOVA_API_KEY_ALT;
   }
 }
 
 /** Get a summary of all enabled providers. */
 export function getEnabledProviders(): Provider[] {
   return (
-    ["anthropic", "gemini", "openai", "mistral", "groq", "cerebras"] as const
+    ["anthropic", "gemini", "openai", "mistral", "groq", "cerebras", "sambanova"] as const
   ).filter(isProviderEnabled);
 }
 

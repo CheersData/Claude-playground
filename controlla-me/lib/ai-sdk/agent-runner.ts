@@ -1,6 +1,10 @@
 /**
  * Agent Runner — esecuzione agenti con fallback a catena.
  *
+ * Architettura ibrida CLI+SDK:
+ *   1. Se l'agente è configurato come "cli" → prova prima `claude -p` (subscription, zero costi)
+ *   2. Se CLI fallisce o agente è "sdk" → catena di fallback SDK standard
+ *
  * runAgent(agentName, prompt) legge la catena di fallback dal tier system,
  * tenta ogni modello in ordine, cade al successivo su errore/429,
  * e parsa automaticamente il JSON output.
@@ -13,10 +17,11 @@ import {
   type ModelKey,
   isProviderEnabled,
 } from "../models";
-import { getAgentChain } from "../tiers";
+import { getAgentChain, getExecutionMode, getCliModel } from "../tiers";
 import { generate } from "./generate";
 import { parseAgentJSON } from "../anthropic";
 import { logAgentCost } from "../company/cost-logger";
+import { runViaCLI, isCliRunnerEnabled } from "./cli-runner";
 import type { GenerateConfig, GenerateResult } from "./types";
 
 export interface AgentRunResult<T> extends GenerateResult {
@@ -59,6 +64,56 @@ export async function runAgent<T>(
     ...config,
   };
 
+  // ─── CLI-first path (subscription, zero costi API) ───
+  const executionMode = getExecutionMode(agentName);
+  if (executionMode === "cli" && isCliRunnerEnabled()) {
+    try {
+      const cliModel = getCliModel(agentName);
+      const enableWebSearch = agentName === "investigator";
+
+      console.log(
+        `[AGENT-RUNNER] ${agentName} → CLI mode (model: ${cliModel}, webSearch: ${enableWebSearch})`
+      );
+
+      const cliResult = await runViaCLI(prompt, {
+        model: cliModel,
+        systemPrompt: mergedConfig.systemPrompt,
+        timeoutMs: 300_000,
+        enableWebSearch,
+        agentName: agentName.toUpperCase(),
+      });
+
+      const parsed = parseAgentJSON<T>(cliResult.text);
+
+      // Log cost (0 per subscription, ma tracciamo comunque)
+      logAgentCost({
+        agentName,
+        modelKey: `cli-${cliModel}` as ModelKey,
+        inputTokens: 0,
+        outputTokens: 0,
+        durationMs: cliResult.durationMs,
+        usedFallback: false,
+      }).catch((err) =>
+        console.error("[AGENT-RUNNER] cost logging failed:", err?.message || err)
+      );
+
+      return {
+        ...cliResult,
+        parsed,
+        usedFallback: false,
+        usedModelKey: `cli-${cliModel}` as ModelKey,
+      };
+    } catch (cliError) {
+      const errorMsg =
+        cliError instanceof Error ? cliError.message : String(cliError);
+      console.warn(
+        `[AGENT-RUNNER] ${agentName} CLI failed → falling back to SDK chain: ${errorMsg}`
+      );
+      // Fall through to SDK chain below
+    }
+  }
+
+  // ─── SDK fallback chain ───
   const errors: Array<{ model: ModelKey; error: string }> = [];
 
   for (let i = 0; i < chain.length; i++) {

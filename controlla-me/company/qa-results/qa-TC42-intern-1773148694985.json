@@ -1,0 +1,29 @@
+{
+  "testId": "TC42",
+  "question": "Ho versato un acconto al costruttore ma è fallito prima di consegnarmi l'appartamento. Recupero i soldi?",
+  "agentAnswer": "Sì, è possibile recuperare le somme versate al costruttore che sia fallito prima della consegna dell'appartamento, grazie alla garanzia fideiussoria obbligatoria prevista dalla legge per la tutela degli acquirenti di immobili da costruire.\n\nRiferimenti normativi:\nIl Decreto Legislativo n. 122/2005 stabilisce che il costruttore è obbligato, a pena di nullità del contratto (che può essere fatta valere solo dall'acquirente), a rilasciare e consegnare all'acquirente una fideiussione di importo corrispondente alle somme riscosse e da riscuotere prima del trasferimento della proprietà (Art. 2 D.Lgs. 122/2005). Questa fideiussione deve essere rilasciata da una banca o da un'impresa assicurativa e garantisce la restituzione delle somme versate in caso di \"situazione di crisi\" del costruttore (Art. 3, comma 1 D.Lgs. 122/2005). Il fallimento rientra tra le situazioni di crisi che consentono l'escussione della fideiussione (Art. 3, comma 2, lettera b) D.Lgs. 122/2005). L'escussione può avvenire a decorrere dalla data di pubblicazione della sentenza dichiarativa del fallimento, a condizione che l'organo della procedura concorsuale non abbia comunicato la volontà di subentrare nel contratto preliminare (Art. 3, comma 3, lettera b) D.Lgs. 122/2005). Se l'acquirente escute la fideiussione prima che il curatore comunichi la scelta tra esecuzione o scioglimento del contratto, il contratto si intende sciolto (Art. 11 D.Lgs. 122/2005). Le tutele previste da questa normativa non possono essere oggetto di rinuncia da parte dell'acquirente, e ogni clausola contraria è nulla (Art. 5, comma 1-bis D.Lgs. 122/2005).\n\nIn pratica:\nPer recuperare le somme, deve individuare la fideiussione che il costruttore era obbligato a consegnarle al momento della stipula del contratto preliminare (Art. 2 e Art. 6 D.Lgs. 122/2005). Successivamente, dovrà inviare una richiesta scritta al fideiussore (banca o compagnia assicurativa) a mezzo raccomandata con avviso di ricevimento, corredata dalla documentazione che comprova l'ammontare delle somme versate. Il fideiussore è tenuto a pagare l'importo dovuto entro trenta giorni dalla data di ricezione della richiesta (Art. 3, comma 4 e 6 D.Lgs. 122/2005). È consigliabile anche comunicare l'avvenuta escussione al curatore fallimentare.",
+  "expectedAnswer": "D.Lgs. 122/2005 tutela chi acquista da costruttore: fideiussione obbligatoria per gli acconti (se non rilasciata, contratto nullo di protezione). In caso di fallimento: l'acquirente ha prelazione nell'asta e può escutere la fideiussione per recuperare gli acconti.",
+  "scoringHints": {
+    "prep": "Ha formulato query su D.Lgs. 122/2005?",
+    "search": "Ha trovato D.Lgs. 122/2005 con fideiussione e prelazione?",
+    "quality": "Menziona fideiussione, prelazione e nullità relativa?"
+  },
+  "trapType": null,
+  "institutes": [
+    "acquisto_immobile_da_costruire",
+    "fideiussione_obbligatoria",
+    "prelazione_fallimento"
+  ],
+  "scope": "D.Lgs. 122/2005: fideiussione obbligatoria per acconti, prelazione nell'asta fallimentare",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 20,
+    "quality": 30,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il D.Lgs. 122/2005 e ha fornito una spiegazione molto accurata e dettagliata della fideiussione obbligatoria e delle modalità di escussione. Tuttavia, ha omesso di menzionare il diritto di prelazione dell'acquirente nell'asta fallimentare, che è un'altra importante tutela prevista dalla stessa normativa e specificata nella risposta attesa."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:17:08.286Z"
+}

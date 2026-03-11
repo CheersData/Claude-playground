@@ -1,0 +1,29 @@
+{
+  "testId": "TC56",
+  "question": "Il padre dei miei figli non paga il mantenimento. Cosa posso fare?",
+  "agentAnswer": "Il contesto disponibile non contiene gli articoli direttamente pertinenti a questa domanda. Gli articoli trovati riguardano principalmente obblighi genitoriali generali e responsabilità civile, ma non specificano le procedure per far valere il diritto al mantenimento dei figli.\n\nRiferimenti normativi: Gli articoli pertinenti per far valere il diritto al mantenimento dei figli sono l'Art. 316-bis c.c. (concorso nel mantenimento) e l'Art. 570 c.p. (violazione degli obblighi di assistenza familiare). Questi articoli stabiliscono gli obblighi di mantenimento e le conseguenze legali per chi non li adempie. Tuttavia, il contesto non include gli articoli specifici che dettagliano le procedure per far valere tali diritti.\n\nIn pratica: Per far valere il diritto al mantenimento dei figli, puoi rivolgerti al tribunale competente e presentare un'istanza per ottenere un decreto che ordini al genitore inadempiente di versare gli alimenti. Puoi anche considerare di sporgere denuncia per violazione degli obblighi di assistenza familiare ai sensi dell'Art. 570 c.p.",
+  "expectedAnswer": "Due strade parallele: penale (art. 570-bis c.p., D.Lgs. 21/2018 — fino a 1 anno di reclusione) e civile (esecuzione forzata: pignoramento stipendio, conto corrente). Il giudice può anche autorizzare sequestro conservativo. Entrambe percorribili contemporaneamente.",
+  "scoringHints": {
+    "prep": "Ha formulato query su entrambe le strade (penale e civile)?",
+    "search": "Ha trovato art. 570-bis c.p.?",
+    "quality": "Illustra entrambe le strade (penale e civile)? Menziona il D.Lgs. 21/2018?"
+  },
+  "trapType": null,
+  "institutes": [
+    "mantenimento_figli",
+    "art_570-bis_cp",
+    "esecuzione_forzata"
+  ],
+  "scope": "art. 570-bis c.p. (D.Lgs. 21/2018) + esecuzione forzata civile (sequestro stipendio/conto)",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 15,
+    "search": 10,
+    "quality": 20,
+    "total": 45,
+    "verdict": "FAIL",
+    "reasoning": "La risposta dell'agente non ha identificato correttamente gli articoli pertinenti e non ha illustrato entrambe le strade parallele (penale e civile) per affrontare il problema del mancato pagamento del mantenimento. L'agente menziona l'Art. 316-bis c.c. e l'Art. 570 c.p., ma non cita l'Art. 570-bis c.p. né il D.Lgs. 21/2018, che sono cruciali per la procedura penale. Inoltre, la risposta non fornisce informazioni complete sulle procedure per far valere il diritto al mantenimento dei figli."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:25:57.240Z"
+}

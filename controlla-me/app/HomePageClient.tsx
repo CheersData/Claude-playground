@@ -34,10 +34,10 @@ export default function HomePageClient() {
   const [currentPhase, setCurrentPhase] = useState<AgentPhase | null>(null);
   const [completedPhases, setCompletedPhases] = useState<AgentPhase[]>([]);
   const [result, setResult] = useState<AdvisorResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
+  const [_phaseEstimates, setPhaseEstimates] = useState<Record<string, number> | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [contextPrompt, setContextPrompt] = useState("");
   const [phaseResults, setPhaseResults] = useState<Record<string, unknown>>({});
@@ -165,7 +165,7 @@ export default function HomePageClient() {
     },
     [startAnalysis, contextPrompt]
   );
-  const handleRetry = useCallback(() => {
+  const _handleRetry = useCallback(() => {
     const f = lastFileRef.current;
     if (f) startAnalysis(f, sessionId || undefined);
     else reset();
@@ -294,7 +294,7 @@ export default function HomePageClient() {
                     value={contextPrompt}
                     onChange={(e) => setContextPrompt(e.target.value)}
                     placeholder="Cosa vuoi controllare? (opzionale) — es. &quot;Cerco clausole vessatorie&quot;, &quot;Voglio capire i termini di recesso&quot;..."
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:outline-none focus:border-[#4ECDC4]/40 focus:ring-2 focus:ring-[#4ECDC4]/10 transition-all mt-2"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background-secondary text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:outline-none focus:border-[var(--agent-classifier)]/40 focus:ring-2 focus:ring-[var(--agent-classifier)]/10 transition-all mt-2"
                     rows={2}
                     maxLength={500}
                     onClick={(e) => e.stopPropagation()}
@@ -310,8 +310,8 @@ export default function HomePageClient() {
                     className={`rounded-2xl border-2 border-dashed transition-all cursor-pointer mt-2
                       ${
                         dragOver
-                          ? "border-[#4ECDC4]/80 bg-[#4ECDC4]/5 scale-[1.01]"
-                          : "border-[#4ECDC4]/30 bg-white shadow-sm hover:border-[#4ECDC4]/60 hover:bg-[#4ECDC4]/[0.03]"
+                          ? "border-[var(--agent-classifier)]/80 bg-[var(--agent-classifier)]/5 scale-[1.01]"
+                          : "border-[var(--agent-classifier)]/30 bg-white shadow-sm hover:border-[var(--agent-classifier)]/60 hover:bg-[var(--agent-classifier)]/[0.03]"
                       }
                     `}
                     onDragOver={(e) => {

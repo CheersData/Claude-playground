@@ -116,8 +116,8 @@ export async function askCorpusAgent(
   const {
     provider = "auto",
     maxTokens = 4096,
-    threshold = 0.40,
-    maxArticles = 8,
+    threshold = 0.38,
+    maxArticles = 10,
     skipQuestionPrep = false,
     onProgress,
   } = config;
@@ -203,11 +203,12 @@ export async function askCorpusAgent(
     searchArticles(prep.legalQuery, {
       threshold,
       limit: maxArticles,
+      targetArticles: prep.targetArticles ?? undefined,
     }),
     prep.mechanismQuery
       ? searchArticles(prep.mechanismQuery, { threshold, limit: 6 })
       : Promise.resolve([] as LegalArticleSearchResult[]),
-    searchLegalKnowledge(prep.legalQuery, { threshold: 0.6, limit: 4 }),
+    searchLegalKnowledge(prep.legalQuery, { threshold: 0.55, limit: 6 }),
     ...institutePromises,
   ]);
 
@@ -263,7 +264,7 @@ export async function askCorpusAgent(
 
   const scopeHints: string[] = [];
   if (prep.needsProceduralLaw) {
-    scopeHints.push("ATTENZIONE: La domanda richiede norme processuali (c.p.c.) NON presenti nel corpus. Segnala esplicitamente questa limitazione.");
+    scopeHints.push("ATTENZIONE: La domanda richiede norme di procedura PENALE (c.p.p.) NON presenti nel corpus. Il Codice di Procedura Civile (c.p.c.) È invece disponibile. Segnala esplicitamente questa limitazione.");
   }
   if (prep.needsCaseLaw) {
     scopeHints.push("ATTENZIONE: La domanda richiede giurisprudenza NON disponibile. Segnala la limitazione e indica in missingArticles le fonti giurisprudenziali necessarie.");

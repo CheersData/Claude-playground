@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle, Lightbulb, Scale, Gavel, TrendingUp, CheckSquare, Phone } from "lucide-react";
+import { AlertTriangle, CheckCircle, Scale, Gavel, TrendingUp, CheckSquare, Phone } from "lucide-react";
 import Link from "next/link";
 import type { AdvisorResult, MultiDimensionalScore } from "@/lib/types";
 

@@ -21,6 +21,7 @@ import {
 } from "@/lib/staff/data-connector";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 export const maxDuration = 300;
 
@@ -98,11 +99,17 @@ export async function POST(request: NextRequest) {
     if (sourceId) {
       // Delta singola fonte
       log(`[CRON] Delta update: ${sourceId}`);
+      broadcastConsoleAgent("data-connector", "running", { task: `Sync: ${sourceId}` });
+
       const result = await runPipeline(
         sourceId,
         { stopAfter: "load", mode: "delta" },
         log
       );
+
+      broadcastConsoleAgent("data-connector", "done", {
+        task: `${sourceId}: ${result.loadResult?.inserted ?? 0} inseriti`,
+      });
 
       return NextResponse.json({
         sourceId,
@@ -130,10 +137,16 @@ export async function POST(request: NextRequest) {
     }
 
     log(`[CRON] Delta update per ${sources.length} fonti`);
+    broadcastConsoleAgent("data-connector", "running", {
+      task: `Batch sync: ${sources.length} fonti`,
+    });
 
     const results = [];
     for (const source of sources) {
       try {
+        broadcastConsoleAgent("data-connector", "running", {
+          task: `Sync: ${source.id}`,
+        });
         const result = await runPipeline(
           source.id,
           { stopAfter: "load", mode: "delta" },
@@ -149,6 +162,9 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         log(`[CRON] Errore ${source.id}: ${msg}`);
+        broadcastConsoleAgent("data-connector", "error", {
+          task: `Errore: ${source.id}`,
+        });
         results.push({
           sourceId: source.id,
           stoppedAt: "error",
@@ -157,8 +173,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    broadcastConsoleAgent("data-connector", "done", {
+      task: `Batch completato: ${results.length} fonti`,
+    });
+
     return NextResponse.json({ results, logs });
   } catch (err) {
+    broadcastConsoleAgent("data-connector", "error", { task: "Errore fatale sync" });
     const msg = err instanceof Error ? err.message : String(err);
     log(`[CRON] Errore fatale: ${msg}`);
     return NextResponse.json({ error: msg, logs }, { status: 500 });

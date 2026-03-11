@@ -3,6 +3,9 @@
  *
  * NOTA: User-Agent browser obbligatorio per Normattiva (WAF del Poligrafico).
  * Lo impostiamo su tutte le richieste per uniformita.
+ *
+ * Per connettori con autenticazione, usare AuthenticatedBaseConnector
+ * (re-esportato qui sotto per comodita di import).
  */
 
 import type {
@@ -111,3 +114,7 @@ export abstract class BaseConnector<T = unknown>
       .trim();
   }
 }
+
+// ─── Re-export AuthenticatedBaseConnector per comodita di import ───
+// I consumer possono importare da "connectors/base" oppure da "connectors/authenticated-base"
+export { AuthenticatedBaseConnector } from "./authenticated-base";

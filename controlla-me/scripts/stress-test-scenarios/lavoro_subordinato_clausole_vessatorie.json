@@ -1,0 +1,32 @@
+{
+  "id": "lavoro_subordinato_clausole_vessatorie",
+  "name": "lavoro subordinato clausole vessatorie",
+  "category": "lavoro",
+  "documentText": "CONTRATTO DI LAVORO SUBORDINATO A TEMPO INDETERMINATO\n\nTRA\nLa società Innovatech S.r.l., con sede in Milano, Via della Spiga 8, P.IVA 12345678901,\nin persona del legale rappresentante Dott. Francesco Neri (di seguito \"Datore di Lavoro\"),\n\nE\nIl Sig. Marco Russo, nato a Torino il 05/11/1992, C.F. RSSMRC92S05L219Z,\nresidente in Milano, Via Tortona 33 (di seguito \"Lavoratore\"),\n\nArt. 1 - ASSUNZIONE E MANSIONI\nIl Lavoratore è assunto con qualifica di Impiegato, livello 3° CCNL Commercio,\ncon mansioni di Sviluppatore Software Senior. Il Datore si riserva il diritto\ndi modificare le mansioni anche in riduzione di un livello senza consenso del Lavoratore.\n\nArt. 2 - RETRIBUZIONE\nLa retribuzione lorda annua è di EUR 35.000,00 suddivisa in 13 mensilità.\nNessun compenso aggiuntivo per straordinari oltre le 45 ore settimanali.\n\nArt. 3 - PATTO DI NON CONCORRENZA\nIl Lavoratore si impegna, per un periodo di 36 mesi dalla cessazione del rapporto,\na non svolgere attività concorrente in tutto il territorio dell'Unione Europea.\nIl corrispettivo per tale patto è fissato in EUR 500,00 una tantum.\n\nArt. 4 - CLAUSOLA DI ESCLUSIVA INTELLETTUALE\nOgni opera, invenzione, software o creazione intellettuale del Lavoratore,\nanche se realizzata fuori dall'orario di lavoro e senza utilizzo di mezzi aziendali,\nè di proprietà esclusiva del Datore di Lavoro.\n\nArt. 5 - PERIODO DI PROVA\nIl periodo di prova è di 12 mesi. Durante tale periodo ciascuna parte può recedere\nsenza preavviso e senza alcuna indennità.\n\nArt. 6 - FORO COMPETENTE\nPer ogni controversia è competente esclusivamente il Foro di Palermo,\ncon espressa rinuncia al foro del lavoratore.\n\nMilano, 1 marzo 2025",
+  "expectations": {
+    "classifier": [
+      "documentType deve contenere 'lavoro' o 'subordinato'",
+      "documentSubType = subordinato_tempo_indeterminato o simile",
+      "relevantInstitutes deve includere patto_non_concorrenza",
+      "relevantInstitutes deve includere periodo_di_prova"
+    ],
+    "analyzer": [
+      "Deve segnalare il periodo di prova di 12 mesi come critical (max 6 mesi per legge)",
+      "Deve segnalare il patto di non concorrenza con corrispettivo EUR 500 come sproporzionato",
+      "Deve segnalare la clausola IP fuori orario come problematica",
+      "Deve segnalare il foro di Palermo come rinuncia illegittima al foro del lavoratore"
+    ],
+    "investigator": [
+      "Deve citare art. 2096 c.c. per il periodo di prova",
+      "Deve citare art. 2125 c.c. per il patto di non concorrenza",
+      "Deve coprire tutte le clausole critical e high",
+      "NON deve inventare sentenze Cassazione"
+    ],
+    "advisor": [
+      "fairnessScore tra 2 e 4 (contratto gravemente squilibrato)",
+      "risks max 3, actions max 3",
+      "needsLawyer = true",
+      "lawyerSpecialization deve essere 'Diritto del lavoro' (non generico)"
+    ]
+  }
+}

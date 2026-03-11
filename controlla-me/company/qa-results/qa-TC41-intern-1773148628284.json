@@ -1,0 +1,29 @@
+{
+  "testId": "TC41",
+  "question": "Il mio avvocato ha perso la causa. Posso chiedergli i danni?",
+  "agentAnswer": "RISPOSTA DIRETTA\nPuoi chiedere al tuo avvocato il risarcimento dei danni subiti solo se la perdita della causa è dovuta a una sua colpa o negligenza nella prestazione professionale. La responsabilità dell’avvocato, in qualità di mandatario, è disciplinata dagli articoli del Codice Civile che impongono l’obbligo di diligenza e di risarcimento per inadempimento.\n\nRIFERIMENTI NORMATIVI\nArt. 1218 c.c. – Responsabilità del debitore: il debitore (qui l’avvocato) è tenuto al risarcimento del danno se non prova che l’inadempimento è stato determinato da impossibilità non a lui imputabile.\nArt. 1710 c.c. – Diligenza del mandatario: il mandatario deve eseguire il mandato con la diligenza del buon padre di famiglia; se il mandato è gratuito la responsabilità è valutata con minor rigore, ma comunque è tenuto al risarcimento per colpa.\nArt. 1176 c.c. – Diligenza nell’adempimento: il debitore deve usare la diligenza del buon padre di famiglia, anche per attività professionali, valutata rispetto alla natura dell’attività esercitata.\nArt. 1225 c.c. – Prevedibilità del danno: il risarcimento è limitato al danno prevedibile al momento della costituzione dell’obbligazione, quindi il danno riconoscibile per la perdita della causa.\n\nIN PRATICA\nInvia al tuo avvocato una diffida scritta in cui richiedi il risarcimento dei danni subiti, specificando i motivi della presunta negligenza (ad es. mancata osservanza delle scadenze, difformità nella strategia difensiva, omissione di atti indispensabili). Allegati la documentazione della causa persa e una stima dei danni (spese legali, eventuali perdite economiche). Se l’avvocato non risponde o rifiuta, potrai promuovere un’azione di responsabilità professionale dinanzi al giudice civile, facendo valere gli articoli sopra citati.\n\n",
+  "expectedAnswer": "L'avvocato ha un'obbligazione di MEZZI (non di risultato): non garantisce la vittoria. Perdere la causa non è inadempimento. Per ottenere risarcimento serve provare: violazione della diligenza professionale (art. 1176 co.2) E nesso causale tra la colpa e la perdita della causa.",
+  "scoringHints": {
+    "prep": "Ha formulato query su obbligazione di mezzi e nesso causale?",
+    "search": "Ha trovato la distinzione obbligazioni mezzi/risultato?",
+    "quality": "Spiega che perdere la causa non è inadempimento? Richiede il nesso causale?"
+  },
+  "trapType": null,
+  "institutes": [
+    "obbligazione_di_mezzi",
+    "responsabilità_professionale",
+    "nesso_causale"
+  ],
+  "scope": "L'avvocato ha un'obbligazione di mezzi (non risultato). Perdere la causa ≠ inadempimento. Serve nesso causale.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 30,
+    "total": 80,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema della responsabilità professionale dell'avvocato, sottolineando la necessità di provare la colpa o negligenza. Ha recuperato articoli pertinenti del Codice Civile. Tuttavia, non ha esplicitamente menzionato la distinzione tra obbligazione di mezzi e di risultato, né ha chiaramente articolato il nesso causale come elemento distinto e necessario per il risarcimento."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:14:40.773Z"
+}

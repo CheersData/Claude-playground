@@ -39,11 +39,36 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE_FILE = os.path.join(ROOT, "company", "gui-daemon-state.json")
 LOG_DIR = os.path.join(ROOT, "company", "gui-daemon-logs")
 
+# Processi browser validi — Claude Code gira nel browser, SOLO qui si incolla
+ALLOWED_PROCESSES = {
+    "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe",
+    "arc.exe", "vivaldi.exe",
+}
+# Processi da escludere SEMPRE — mai incollare qui
+BLOCKED_PROCESSES = {
+    "explorer.exe", "code.exe", "notepad.exe", "notepad++.exe",
+    "windowsterminal.exe", "powershell.exe", "pwsh.exe",
+    "cmd.exe", "mintty.exe", "conhost.exe", "wt.exe",
+}
+
 DEFAULT_INTERVAL_MIN = 10
-DEFAULT_MESSAGE = """daemon ping: controlla il board con `npx tsx scripts/company-tasks.ts board`. Se ci sono task open o in_progress, eseguili. Se non ce ne sono, leggi `company/daemon-report.json` e crea 1-3 task dai signal azionabili più importanti, poi eseguili. Reporta cosa hai fatto in 3-5 righe."""
+DEFAULT_MESSAGE = """daemon ping. Esegui questa sequenza:
+
+1. Leggi `company/daemon-report.json` (signal da tutti i dipartimenti)
+2. Leggi tutti i `company/*/status.json` dei dipartimenti
+3. Controlla il board: `npx tsx scripts/company-tasks.ts board`
+4. Genera un PIANO DI LAVORO unificato che includa:
+   - Stato di ogni dipartimento (1 riga ciascuno)
+   - Signal azionabili dal daemon report raggruppati per priorità
+   - Decisioni pendenti del boss (D-01, D-02, ecc.)
+   - 3-5 task concreti che puoi eseguire autonomamente ORA (non human_required)
+   - Blockers che richiedono azione del boss
+5. Se ci sono task open NON human_required sul board → eseguili
+6. Se non ce ne sono → crea 1-3 task dai signal più importanti e eseguili
+7. Reporta al boss il piano + cosa hai fatto in formato conciso"""
 
 # Tempo di attesa dopo aver trovato la finestra, prima di scrivere (secondi)
-SETTLE_TIME = 1.0
+SETTLE_TIME = 5.0
 # Timeout attesa dopo invio messaggio (secondi) — non serve aspettare, Claude lavora
 TYPE_DELAY = 0.02  # delay tra caratteri per typewrite
 
@@ -119,7 +144,7 @@ def save_log(message: str, success: bool):
 
 # ─── Window Management ──────────────────────────────────────────────────────
 
-def list_candidate_windows():
+def list_candidate_windows(show_all: bool = False):
     """Elenca tutte le finestre candidate (per debug)"""
     try:
         import pygetwindow as gw
@@ -128,62 +153,122 @@ def list_candidate_windows():
             title = w.title.strip()
             if not title:
                 continue
-            lower = title.lower()
-            if any(k in lower for k in ["claude", "terminal", "powershell", "cmd", "controlla"]):
+            if show_all:
                 candidates.append(title)
+            else:
+                lower = title.lower()
+                if any(k in lower for k in ["claude", "terminal", "powershell", "cmd", "controlla", "code", "mintty", "bash", "git", "chrome", "firefox", "edge", "brave", "opera", "lexmea", "localhost"]):
+                    candidates.append(title)
         return candidates
     except Exception:
         return []
+
+
+def get_window_process_name(window) -> str:
+    """
+    Ritorna il nome del processo (es. 'windowsterminal.exe') di una finestra.
+    Solo Windows. Su errore ritorna stringa vuota.
+    """
+    if sys.platform != "win32":
+        return ""
+    try:
+        import ctypes
+        import ctypes.wintypes
+
+        hwnd = window._hWnd
+        pid = ctypes.wintypes.DWORD()
+        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        handle = ctypes.windll.kernel32.OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION, False, pid.value
+        )
+        if not handle:
+            return ""
+
+        buf = ctypes.create_unicode_buffer(260)
+        size = ctypes.wintypes.DWORD(260)
+        ctypes.windll.kernel32.QueryFullProcessImageNameW(
+            handle, 0, buf, ctypes.byref(size)
+        )
+        ctypes.windll.kernel32.CloseHandle(handle)
+        return os.path.basename(buf.value).lower()
+    except Exception:
+        return ""
+
+
+def is_valid_target_window(window) -> bool:
+    """
+    Verifica che la finestra sia un browser (Claude Code gira nel browser).
+    Rifiuta explorer.exe, terminali, editor — mai incollare lì.
+    """
+    proc = get_window_process_name(window)
+    if not proc:
+        log(f"[WINDOW] Processo non determinabile per \"{window.title}\" — SKIP (safety)")
+        return False
+    if proc in BLOCKED_PROCESSES:
+        log(f"[WINDOW] BLOCCATA: \"{window.title}\" (processo: {proc})")
+        return False
+    if proc in ALLOWED_PROCESSES:
+        return True
+    # Processo sconosciuto — accetta solo se il titolo ha indicatore browser/claude
+    title_lower = window.title.lower()
+    browser_hints = ["claude", "chrome", "edge", "firefox", "brave", "opera"]
+    if any(hint in title_lower for hint in browser_hints):
+        log(f"[WINDOW] Processo '{proc}' sconosciuto ma titolo ha indicatore browser — ACCETTO")
+        return True
+    log(f"[WINDOW] Processo '{proc}' non riconosciuto come browser — SKIP")
+    return False
 
 
 def find_claude_window():
     """
     Trova la finestra Claude Code corretta.
 
-    Se TARGET_WINDOW è impostato (via --target), cerca SOLO finestre
-    il cui titolo contiene quel substring. Questo evita di incollare
-    nella sessione sbagliata quando ci sono più finestre Claude aperte.
+    SAFETY: Verifica SEMPRE che la finestra sia un browser (Claude Code gira nel browser).
+    Non incolla MAI in Explorer, terminali, editor — per evitare che
+    Enter lanci file/BAT nella cartella del progetto.
     """
     try:
         import pygetwindow as gw
 
         all_windows = gw.getAllWindows()
 
-        # Se c'è un target specifico, filtra SOLO su quello
+        # Se c'è un target specifico, filtra su titolo + processo terminale
         if TARGET_WINDOW:
             target_lower = TARGET_WINDOW.lower()
-            matches = [w for w in all_windows if target_lower in w.title.lower() and w.title.strip()]
-            if matches:
-                chosen = matches[0]
-                log(f"[WINDOW] Target '{TARGET_WINDOW}' → trovata: \"{chosen.title}\"")
-                return chosen
-            else:
-                # Log tutte le finestre candidate per aiutare il debug
+            title_matches = [w for w in all_windows if target_lower in w.title.lower() and w.title.strip()]
+
+            if not title_matches:
                 candidates = list_candidate_windows()
                 log(f"[ERROR] Nessuna finestra con '{TARGET_WINDOW}' nel titolo.")
                 if candidates:
                     log(f"[DEBUG] Finestre candidate: {candidates[:8]}")
                 return None
 
-        # Fallback senza target: comportamento originale ma con logging
-        # Cerca finestre con "Claude" nel titolo
-        windows = gw.getWindowsWithTitle("Claude")
-        if windows:
-            log(f"[WINDOW] Trovata (no target): \"{windows[0].title}\"")
-            return windows[0]
+            # Filtra: accetta SOLO processi browser
+            browser_matches = [w for w in title_matches if is_valid_target_window(w)]
 
-        # Cerca terminale Windows con Claude
-        for title_part in ["claude", "Claude Code", "CLAUDE"]:
+            if browser_matches:
+                chosen = browser_matches[0]
+                proc = get_window_process_name(chosen)
+                log(f"[WINDOW] Target '{TARGET_WINDOW}' → \"{chosen.title}\" (processo: {proc})")
+                return chosen
+            else:
+                log(f"[ERROR] {len(title_matches)} finestre con '{TARGET_WINDOW}' nel titolo, ma NESSUNA è un browser.")
+                for w in title_matches:
+                    proc = get_window_process_name(w)
+                    log(f"  SCARTATA: \"{w.title}\" (processo: {proc})")
+                return None
+
+        # Fallback senza target: cerca finestre con "Claude" nel titolo + check browser
+        for title_part in ["Claude Code", "claude", "CLAUDE"]:
             wins = [w for w in all_windows if title_part.lower() in w.title.lower()]
-            if wins:
-                log(f"[WINDOW] Trovata via '{title_part}': \"{wins[0].title}\"")
-                return wins[0]
-
-        # Cerca Windows Terminal (potrebbe avere Claude Code come tab)
-        for w in all_windows:
-            if "windows terminal" in w.title.lower() or "terminal" in w.title.lower():
-                log(f"[WINDOW] Fallback terminal: \"{w.title}\"")
-                return w
+            browser_wins = [w for w in wins if is_valid_target_window(w)]
+            if browser_wins:
+                chosen = browser_wins[0]
+                log(f"[WINDOW] Trovata via '{title_part}': \"{chosen.title}\"")
+                return chosen
 
     except Exception as e:
         log(f"[WARN] Errore ricerca finestra: {e}")
@@ -379,22 +464,26 @@ def main():
     parser.add_argument("--once", action="store_true",
                         help="Esegui una volta e esci")
     parser.add_argument("--target", type=str, default=None,
-                        help="Substring del titolo finestra da cercare (es. 'controlla-me', 'Claude')")
+                        help="Substring del TITOLO finestra (non URL). Es. 'LexMea', 'Claude', 'controlla-me'. Usa --list-all-windows per vedere i titoli.")
     parser.add_argument("--list-windows", action="store_true",
                         help="Mostra finestre candidate ed esci (per debug)")
+    parser.add_argument("--list-all-windows", action="store_true",
+                        help="Mostra TUTTE le finestre aperte (debug completo)")
 
     args = parser.parse_args()
 
     # --list-windows: mostra finestre e esci
-    if args.list_windows:
-        log("Finestre candidate:")
-        candidates = list_candidate_windows()
+    if args.list_windows or args.list_all_windows:
+        show_all = args.list_all_windows
+        label = "TUTTE le finestre" if show_all else "Finestre candidate"
+        log(f"{label}:")
+        candidates = list_candidate_windows(show_all=show_all)
         if candidates:
             for i, title in enumerate(candidates):
                 log(f"  [{i}] {title}")
             log(f"\nUsa --target \"<substring>\" per matchare la finestra giusta.")
         else:
-            log("  Nessuna finestra candidata trovata.")
+            log("  Nessuna finestra trovata.")
         return
 
     # Imposta target finestra

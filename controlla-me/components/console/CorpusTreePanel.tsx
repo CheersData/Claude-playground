@@ -392,17 +392,19 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
     <div className="flex-1 flex flex-col min-h-0">
 
       {/* ─── Toolbar (top) ─── */}
-      <div className="flex flex-wrap items-center gap-2 md:gap-4 px-3 md:px-6 py-2 md:py-3 border-b border-[#E5E5E5] bg-[#FAFAFA] shrink-0">
+      <div className="flex flex-wrap items-center gap-2 md:gap-4 px-3 md:px-6 py-2 md:py-3 border-b border-[var(--border)] bg-[var(--background-secondary)] shrink-0">
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1" role="tablist" aria-label="Modalità navigazione corpus">
           {(["fonti", "istituti"] as const).map((tab) => (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => switchTab(tab)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 activeTab === tab
-                  ? "bg-[#1A1A1A] text-white"
-                  : "text-[#6B6B6B] hover:bg-[#F0F0F0]"
+                  ? "bg-[var(--foreground)] text-white"
+                  : "text-[var(--foreground-secondary)] hover:bg-[var(--border-subtle)]"
               }`}
             >
               {tab === "fonti" ? "Per fonte" : "Per istituto"}
@@ -412,7 +414,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
         {/* Search */}
         <div className="flex-1 min-w-[140px] relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9B9B9B]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--foreground-tertiary)]" />
           <input
             type="text"
             value={searchQuery}
@@ -424,12 +426,13 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
               }
             }}
             placeholder="Ricerca semantica..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-[#E5E5E5] rounded-lg text-xs text-[#1A1A1A] placeholder:text-[#9B9B9B] focus:outline-none focus:ring-1 focus:ring-[#A78BFA]/40 transition-all"
+            aria-label="Ricerca semantica nel corpus legislativo"
+            className="w-full pl-9 pr-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] focus:outline-none focus:ring-1 focus:ring-[#A78BFA]/40 transition-all"
           />
         </div>
 
         {/* Stats */}
-        <span className="text-[11px] text-[#9B9B9B] shrink-0 hidden sm:inline">
+        <span className="text-[11px] text-[var(--foreground-tertiary)] shrink-0 hidden sm:inline">
           <PanelCount value={totalArticles} /> articoli &middot; {sources.length} fonti
         </span>
       </div>
@@ -467,10 +470,10 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
             {/* Loading indicator */}
             {treeLoading && (
-              <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex items-center justify-center">
+              <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex items-center justify-center">
                 <div className="space-y-3 animate-pulse w-full px-4">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="h-4 bg-[#F0F0F0] rounded" style={{ width: `${60 + i * 8}%` }} />
+                    <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${60 + i * 8}%` }} />
                   ))}
                 </div>
               </div>
@@ -504,7 +507,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
             {/* Empty state: no source selected */}
             {!selectedSource && !treeLoading && sources.length > 0 && (
-              <div className="flex-1 flex items-center justify-center text-sm text-[#9B9B9B]">
+              <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-tertiary)]">
                 Seleziona una fonte per iniziare
               </div>
             )}
@@ -536,7 +539,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
             )}
 
             {!selectedInstitute && !loadingInstitutes && institutes.length > 0 && (
-              <div className="flex-1 flex items-center justify-center text-sm text-[#9B9B9B]">
+              <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-tertiary)]">
                 Seleziona un istituto per iniziare
               </div>
             )}
@@ -559,9 +562,9 @@ function SourceColumn({
   onSelect: (source: SourceInfo) => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
-      <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
+    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           Fonti
         </span>
       </div>
@@ -569,14 +572,14 @@ function SourceColumn({
         {loading ? (
           <div className="p-4 space-y-3 animate-pulse">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-4 bg-[#F0F0F0] rounded" style={{ width: `${50 + i * 12}%` }} />
+              <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 12}%` }} />
             ))}
           </div>
         ) : (
           <>
             {itSources.length > 0 && (
               <div>
-                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[#9B9B9B]">
+                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)]">
                   Italia
                 </p>
                 {itSources.map((s) => (
@@ -586,7 +589,7 @@ function SourceColumn({
             )}
             {euSources.length > 0 && (
               <div>
-                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[#9B9B9B]">
+                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)]">
                   Unione Europea
                 </p>
                 {euSources.map((s) => (
@@ -610,12 +613,12 @@ function SourceItem({ source, selected, onSelect }: {
       className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors ${
         selected
           ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
-          : "text-[#1A1A1A] hover:bg-[#F5F5F7]"
+          : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
       }`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selected ? "bg-[#A78BFA]" : "bg-[#D5D5D5]"}`} />
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selected ? "bg-[#A78BFA]" : "bg-[var(--border)]"}`} />
       <span className="truncate flex-1">{source.source_name}</span>
-      <span className="text-[10px] text-[#9B9B9B] tabular-nums shrink-0">
+      <span className="text-[10px] text-[var(--foreground-tertiary)] tabular-nums shrink-0">
         {source.article_count}
       </span>
     </button>
@@ -633,9 +636,9 @@ function HierarchyColumn({
   onArticleSelect: (id: string, colIndex: number) => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
-      <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium truncate block">
+    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium truncate block">
           {column.label}
         </span>
       </div>
@@ -653,20 +656,20 @@ function HierarchyColumn({
               className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors group ${
                 isSelected
                   ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
-                  : "text-[#1A1A1A] hover:bg-[#F5F5F7]"
+                  : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
               }`}
             >
               <span className="truncate flex-1">{node.label}</span>
               {total > 0 && (
                 <span className={`text-[10px] tabular-nums shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[#9B9B9B]"
+                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--foreground-tertiary)]"
                 }`}>
                   {total}
                 </span>
               )}
               {hasContent && (
                 <ChevronRight className={`w-3 h-3 shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[#D5D5D5]"
+                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--border)]"
                 }`} />
               )}
             </button>
@@ -677,7 +680,7 @@ function HierarchyColumn({
         {column.articles.length > 0 && (
           <>
             {column.nodes.length > 0 && (
-              <div className="border-t border-[#F0F0F0] mx-4 my-1" />
+              <div className="border-t border-[var(--border-subtle)] mx-4 my-1" />
             )}
             {column.articles.map((art) => {
               const isSelected = column.selectedKey === art.id;
@@ -688,12 +691,12 @@ function HierarchyColumn({
                   className={`w-full text-left px-4 py-1.5 flex items-center gap-1.5 text-xs transition-colors ${
                     isSelected
                       ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
-                      : "text-[#6B6B6B] hover:bg-[#F5F5F7]"
+                      : "text-[var(--foreground-secondary)] hover:bg-[var(--surface-hover)]"
                   }`}
                 >
                   <span className="shrink-0">Art. {art.article_number}</span>
                   {art.article_title && (
-                    <span className={`truncate ${isSelected ? "text-[#A78BFA]/70" : "text-[#9B9B9B]"}`}>
+                    <span className={`truncate ${isSelected ? "text-[#A78BFA]/70" : "text-[var(--foreground-tertiary)]"}`}>
                       {art.article_title}
                     </span>
                   )}
@@ -718,9 +721,9 @@ function InstituteColumn({
   onSelect: (name: string) => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[240px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
-      <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
+    <div className="w-[calc(100vw-2px)] md:w-[240px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           Istituti Giuridici
         </span>
       </div>
@@ -728,7 +731,7 @@ function InstituteColumn({
         {loading ? (
           <div className="p-4 space-y-3 animate-pulse">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-4 bg-[#F0F0F0] rounded" style={{ width: `${50 + i * 10}%` }} />
+              <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 10}%` }} />
             ))}
           </div>
         ) : (
@@ -741,17 +744,17 @@ function InstituteColumn({
                 className={`w-full text-left px-4 py-2.5 flex items-center gap-2 text-xs transition-colors ${
                   isSelected
                     ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
-                    : "text-[#1A1A1A] hover:bg-[#F5F5F7]"
+                    : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
                 }`}
               >
                 <span className="truncate flex-1">{inst.label}</span>
                 <span className={`text-[10px] tabular-nums shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[#9B9B9B]"
+                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--foreground-tertiary)]"
                 }`}>
                   {inst.count}
                 </span>
                 <ChevronRight className={`w-3 h-3 shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[#D5D5D5]"
+                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--border)]"
                 }`} />
               </button>
             );
@@ -773,9 +776,9 @@ function InstituteArticlesColumn({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[260px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
-      <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
+    <div className="w-[calc(100vw-2px)] md:w-[260px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           Articoli ({articles.length})
         </span>
       </div>
@@ -783,11 +786,11 @@ function InstituteArticlesColumn({
         {loading ? (
           <div className="p-4 space-y-3 animate-pulse">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-4 bg-[#F0F0F0] rounded" style={{ width: `${50 + i * 10}%` }} />
+              <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 10}%` }} />
             ))}
           </div>
         ) : articles.length === 0 ? (
-          <p className="px-4 py-8 text-xs text-[#9B9B9B] text-center">Nessun articolo.</p>
+          <p className="px-4 py-8 text-xs text-[var(--foreground-tertiary)] text-center">Nessun articolo.</p>
         ) : (
           articles.map((art) => {
             const isSelected = selectedId === art.id;
@@ -798,16 +801,16 @@ function InstituteArticlesColumn({
                 className={`w-full text-left px-4 py-2 text-xs transition-colors ${
                   isSelected
                     ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
-                    : "text-[#1A1A1A] hover:bg-[#F5F5F7]"
+                    : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
                 }`}
               >
                 <span>Art. {art.article_number}</span>
                 {art.article_title && (
-                  <span className={`ml-1.5 ${isSelected ? "text-[#A78BFA]/70" : "text-[#9B9B9B]"}`}>
+                  <span className={`ml-1.5 ${isSelected ? "text-[#A78BFA]/70" : "text-[var(--foreground-tertiary)]"}`}>
                     &mdash; {art.article_title}
                   </span>
                 )}
-                <p className={`mt-0.5 text-[10px] ${isSelected ? "text-[#A78BFA]/50" : "text-[#9B9B9B]"}`}>
+                <p className={`mt-0.5 text-[10px] ${isSelected ? "text-[#A78BFA]/50" : "text-[var(--foreground-tertiary)]"}`}>
                   {art.source_name}
                 </p>
               </button>
@@ -831,14 +834,14 @@ function SearchResultsColumn({
   onClose: () => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[300px] shrink-0 snap-start border-r border-[#F0F0F0] flex flex-col min-h-0">
-      <div className="px-4 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA] flex items-center justify-between">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
+    <div className="w-[calc(100vw-2px)] md:w-[300px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)] flex items-center justify-between">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           {results.length} risultati
         </span>
         <button
           onClick={onClose}
-          className="text-[10px] text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
+          className="text-[10px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors"
         >
           Chiudi
         </button>
@@ -847,11 +850,11 @@ function SearchResultsColumn({
         {loading ? (
           <div className="p-4 space-y-3 animate-pulse">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-4 bg-[#F0F0F0] rounded" style={{ width: `${50 + i * 10}%` }} />
+              <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 10}%` }} />
             ))}
           </div>
         ) : results.length === 0 ? (
-          <p className="px-4 py-8 text-xs text-[#9B9B9B] text-center">Nessun risultato.</p>
+          <p className="px-4 py-8 text-xs text-[var(--foreground-tertiary)] text-center">Nessun risultato.</p>
         ) : (
           results.map((r) => {
             const isSelected = selectedId === r.id;
@@ -859,21 +862,21 @@ function SearchResultsColumn({
               <button
                 key={r.id}
                 onClick={() => onSelect(r.id)}
-                className={`w-full text-left px-4 py-2.5 border-b border-[#F0F0F0] text-xs transition-colors ${
+                className={`w-full text-left px-4 py-2.5 border-b border-[var(--border-subtle)] text-xs transition-colors ${
                   isSelected
                     ? "bg-[#A78BFA]/10"
-                    : "hover:bg-[#F5F5F7]"
+                    : "hover:bg-[var(--surface-hover)]"
                 }`}
               >
-                <span className={`font-medium ${isSelected ? "text-[#A78BFA]" : "text-[#1A1A1A]"}`}>
+                <span className={`font-medium ${isSelected ? "text-[#A78BFA]" : "text-[var(--foreground)]"}`}>
                   {r.article_reference}
                 </span>
                 {r.article_title && (
-                  <span className={`ml-1 ${isSelected ? "text-[#A78BFA]/70" : "text-[#6B6B6B]"}`}>
+                  <span className={`ml-1 ${isSelected ? "text-[#A78BFA]/70" : "text-[var(--foreground-secondary)]"}`}>
                     &mdash; {r.article_title}
                   </span>
                 )}
-                <p className="text-[10px] text-[#9B9B9B] mt-0.5">{r.law_source}</p>
+                <p className="text-[10px] text-[var(--foreground-tertiary)] mt-0.5">{r.law_source}</p>
               </button>
             );
           })
@@ -893,71 +896,71 @@ function ArticlePreview({ article, loading }: {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 min-w-[calc(100vw-2px)] md:min-w-[320px] snap-start flex flex-col min-h-0 bg-white"
+      className="flex-1 min-w-[calc(100vw-2px)] md:min-w-[320px] snap-start flex flex-col min-h-0 bg-[var(--surface)]"
     >
-      <div className="px-6 py-2.5 border-b border-[#F0F0F0] bg-[#FAFAFA]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[#9B9B9B] font-medium">
+      <div className="px-6 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           Anteprima
         </span>
       </div>
       <div className="flex-1 overflow-y-auto px-8 py-8">
         {loading ? (
           <div className="max-w-[600px] mx-auto space-y-4 animate-pulse">
-            <div className="h-3 w-48 bg-[#F0F0F0] rounded" />
-            <div className="h-8 w-72 bg-[#F0F0F0] rounded" />
-            <div className="h-5 w-56 bg-[#F0F0F0] rounded" />
-            <div className="h-px bg-[#F0F0F0] my-6" />
-            <div className="h-4 w-full bg-[#F0F0F0] rounded" />
-            <div className="h-4 w-full bg-[#F0F0F0] rounded" />
-            <div className="h-4 w-3/4 bg-[#F0F0F0] rounded" />
+            <div className="h-3 w-48 bg-[var(--border-subtle)] rounded" />
+            <div className="h-8 w-72 bg-[var(--border-subtle)] rounded" />
+            <div className="h-5 w-56 bg-[var(--border-subtle)] rounded" />
+            <div className="h-px bg-[var(--border-subtle)] my-6" />
+            <div className="h-4 w-full bg-[var(--border-subtle)] rounded" />
+            <div className="h-4 w-full bg-[var(--border-subtle)] rounded" />
+            <div className="h-4 w-3/4 bg-[var(--border-subtle)] rounded" />
           </div>
         ) : article ? (
           <div className="max-w-[600px] mx-auto">
             {/* Hierarchy breadcrumb */}
             {(article.source_name || Object.keys(article.hierarchy).length > 0) && (
-              <p className="text-[11px] text-[#9B9B9B] mb-5">
+              <p className="text-[11px] text-[var(--foreground-tertiary)] mb-5">
                 {[article.source_name, ...Object.values(article.hierarchy)].filter(Boolean).join(" / ")}
               </p>
             )}
 
-            <h3 className="font-serif text-3xl text-[#1A1A1A] tracking-tight leading-tight">
+            <h3 className="font-serif text-3xl text-[var(--foreground)] tracking-tight leading-tight">
               Articolo {article.article_number}
             </h3>
             {article.article_title && (
-              <p className="text-lg text-[#6B6B6B] font-light mt-1.5">{article.article_title}</p>
+              <p className="text-lg text-[var(--foreground-secondary)] font-light mt-1.5">{article.article_title}</p>
             )}
 
             {article.keywords && article.keywords.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-4">
                 {article.keywords.map((kw) => (
-                  <span key={kw} className="px-2 py-0.5 text-[10px] rounded-md bg-[#F8F8FA] text-[#9B9B9B]">
+                  <span key={kw} className="px-2 py-0.5 text-[10px] rounded-md bg-[var(--background-secondary)] text-[var(--foreground-tertiary)]">
                     {kw.replace(/_/g, " ")}
                   </span>
                 ))}
               </div>
             )}
 
-            <div className="border-t border-[#E5E5E5] mt-6 mb-8" />
+            <div className="border-t border-[var(--border)] mt-6 mb-8" />
 
             <div className="space-y-3">
               {article.article_text.split("\n").filter((p) => p.trim()).map((p, i) => (
                 <p
                   key={i}
-                  className="font-serif text-[17px] leading-[1.9] text-[#1A1A1A]/90"
+                  className="font-serif text-[17px] leading-[1.9] text-[var(--foreground)]/90"
                 >
                   {p}
                 </p>
               ))}
             </div>
 
-            <div className="border-t border-[#E5E5E5] mt-10 pt-5 flex items-center justify-between">
-              <span className="text-[11px] text-[#9B9B9B]">{article.source_name}</span>
+            <div className="border-t border-[var(--border)] mt-10 pt-5 flex items-center justify-between">
+              <span className="text-[11px] text-[var(--foreground-tertiary)]">{article.source_name}</span>
               {article.url && (
                 <a
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors"
+                  className="text-[11px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors"
                 >
                   Fonte ufficiale &rarr;
                 </a>
@@ -965,7 +968,7 @@ function ArticlePreview({ article, loading }: {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-sm text-[#9B9B9B] h-full">
+          <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-tertiary)] h-full">
             Seleziona un articolo per leggere
           </div>
         )}

@@ -61,7 +61,7 @@ function StatusIcon({ status }: { status: TestSpec["status"] }) {
     return <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />;
   if (status === "fail")
     return <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />;
-  return <Clock className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />;
+  return <Clock className="w-4 h-4 text-[var(--fg-invisible)] flex-shrink-0" />;
 }
 
 function TypeBadge({ type }: { type: "e2e" | "unit" }) {
@@ -80,7 +80,7 @@ function PriorityDot({ priority }: { priority: "high" | "medium" | "low" }) {
   const colors = {
     high: "bg-orange-400",
     medium: "bg-yellow-400",
-    low: "bg-[var(--ops-muted)]",
+    low: "bg-[var(--fg-invisible)]",
   };
   return <span className={`w-2 h-2 rounded-full flex-shrink-0 ${colors[priority]}`} />;
 }
@@ -91,33 +91,33 @@ function SpecRow({ spec }: { spec: TestSpec }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-[var(--ops-border-subtle)] rounded-lg overflow-hidden">
+    <div className="border border-[var(--border-dark-subtle)] rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--ops-surface-2)]/40 transition-colors text-left group"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-overlay)]/40 transition-colors text-left group"
       >
         <StatusIcon status={spec.status} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <TypeBadge type={spec.type} />
-            <span className="text-sm text-[var(--ops-fg)] font-medium group-hover:text-white transition-colors truncate">
+            <span className="text-sm text-[var(--fg-primary)] font-medium group-hover:text-white transition-colors truncate">
               {spec.name}
             </span>
           </div>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5 font-mono">{spec.file}</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5 font-mono">{spec.file}</p>
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right hidden sm:block">
-            <p className="text-xs text-[var(--ops-fg-muted)]">{spec.testCount} test</p>
-            <p className="text-xs text-[var(--ops-muted)]">{spec.category}</p>
+            <p className="text-xs text-[var(--fg-secondary)]">{spec.testCount} test</p>
+            <p className="text-xs text-[var(--fg-invisible)]">{spec.category}</p>
           </div>
           <ScoreBadge score={spec.score} />
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-[var(--ops-muted)]" />
+            <ChevronDown className="w-4 h-4 text-[var(--fg-invisible)]" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-[var(--ops-muted)]" />
+            <ChevronRight className="w-4 h-4 text-[var(--fg-invisible)]" />
           )}
         </div>
       </button>
@@ -131,22 +131,22 @@ function SpecRow({ spec }: { spec: TestSpec }) {
             transition={{ duration: 0.15 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 pt-3 border-t border-[var(--ops-border-subtle)] bg-[var(--ops-surface)]/50 space-y-3">
+            <div className="px-4 pb-4 pt-3 border-t border-[var(--border-dark-subtle)] bg-[var(--bg-raised)]/50 space-y-3">
               {/* Comment */}
-              <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
+              <p className="text-xs text-[var(--fg-secondary)] leading-relaxed border-l-2 border-[#FF6B35]/40 pl-3 py-0.5">
                 {spec.comment}
               </p>
 
               {/* Coverage areas */}
               <div>
-                <p className="text-xs text-[var(--ops-muted)] uppercase tracking-widest mb-2 font-medium">
+                <p className="text-xs text-[var(--fg-invisible)] uppercase tracking-widest mb-2 font-medium">
                   Aree coperte
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {spec.coverage.map((area, i) => (
                     <span
                       key={i}
-                      className="text-xs bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] px-2 py-0.5 rounded border border-[var(--ops-border-subtle)]"
+                      className="text-xs bg-[var(--bg-overlay)] text-[var(--fg-secondary)] px-2 py-0.5 rounded border border-[var(--border-dark-subtle)]"
                     >
                       {area}
                     </span>
@@ -214,7 +214,7 @@ export function QASuitePanel() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-[var(--ops-muted)] gap-3">
+      <div className="flex items-center justify-center py-16 text-[var(--fg-invisible)] gap-3">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">Caricamento suite test...</span>
       </div>
@@ -246,14 +246,14 @@ export function QASuitePanel() {
             <FlaskConical className="w-4 h-4 text-[#FF6B35]" />
             Suite Test — Quality Assurance
           </h3>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">
             {summary.total} spec · {summary.totalTests} test totali
           </p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-2 rounded-lg bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] text-[var(--ops-fg-muted)] hover:text-[var(--ops-fg)] transition-colors disabled:opacity-50"
+          className="p-2 rounded-lg bg-[var(--bg-overlay)] hover:bg-[var(--bg-hover)] text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-50"
           aria-label="Aggiorna"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -262,23 +262,23 @@ export function QASuitePanel() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
           <p className="text-xl font-bold text-white">{summary.totalTests}</p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Test totali</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Test totali</p>
         </div>
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.passCount > 0 ? "text-green-400" : "text-[var(--ops-muted)]"}`}>
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.passCount > 0 ? "text-green-400" : "text-[var(--fg-invisible)]"}`}>
             {summary.passCount}
           </p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Suite pass</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Suite pass</p>
         </div>
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
-          <p className={`text-xl font-bold ${summary.unknownCount > 0 ? "text-[var(--ops-fg-muted)]" : "text-[var(--ops-muted)]"}`}>
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
+          <p className={`text-xl font-bold ${summary.unknownCount > 0 ? "text-[var(--fg-secondary)]" : "text-[var(--fg-invisible)]"}`}>
             {summary.unknownCount}
           </p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Non eseguiti</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Non eseguiti</p>
         </div>
-        <div className="bg-[var(--ops-surface-2)]/50 rounded-lg px-3 py-3 text-center">
+        <div className="bg-[var(--bg-overlay)]/50 rounded-lg px-3 py-3 text-center">
           <p
             className={`text-xl font-bold ${
               summary.avgScore >= 9
@@ -290,20 +290,20 @@ export function QASuitePanel() {
           >
             {summary.avgScore.toFixed(1)}
           </p>
-          <p className="text-xs text-[var(--ops-muted)] mt-0.5">Score medio</p>
+          <p className="text-xs text-[var(--fg-invisible)] mt-0.5">Score medio</p>
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-1 p-1 bg-[var(--ops-surface-2)]/50 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-[var(--bg-overlay)]/50 rounded-lg w-fit">
         {(["e2e", "unit"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
               activeTab === tab
-                ? "bg-[var(--ops-hover)] text-white"
-                : "text-[var(--ops-muted)] hover:text-[var(--ops-fg-muted)]"
+                ? "bg-[var(--bg-hover)] text-white"
+                : "text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)]"
             }`}
           >
             {tab === "e2e" ? `E2E Playwright (${summary.e2e})` : `Unit Vitest (${summary.unit})`}
@@ -319,11 +319,11 @@ export function QASuitePanel() {
       </div>
 
       {/* Generate suggestions */}
-      <div className="border-t border-[var(--ops-border-subtle)] pt-4 space-y-3">
+      <div className="border-t border-[var(--border-dark-subtle)] pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-[var(--ops-fg-muted)] font-medium">Genera Nuove Domande di Test</p>
-            <p className="text-xs text-[var(--ops-muted)] mt-0.5">
+            <p className="text-xs text-[var(--fg-secondary)] font-medium">Genera Nuove Domande di Test</p>
+            <p className="text-xs text-[var(--fg-invisible)] mt-0.5">
               Suggerimenti basati su gap di copertura identificati
             </p>
           </div>
@@ -350,20 +350,20 @@ export function QASuitePanel() {
               className="space-y-2"
             >
               {suggestionsNote && (
-                <p className="text-xs text-[var(--ops-muted)] italic">{suggestionsNote}</p>
+                <p className="text-xs text-[var(--fg-invisible)] italic">{suggestionsNote}</p>
               )}
               {suggestions.map((sug) => {
                 const targetSpec = data.specs.find((s) => s.id === sug.target);
                 return (
                   <div
                     key={sug.id}
-                    className="flex items-start gap-3 px-3 py-3 rounded-lg bg-[var(--ops-surface-2)]/40 border border-[var(--ops-border-subtle)]"
+                    className="flex items-start gap-3 px-3 py-3 rounded-lg bg-[var(--bg-overlay)]/40 border border-[var(--border-dark-subtle)]"
                   >
                     <PriorityDot priority={sug.priority} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {targetSpec && (
-                          <span className="text-xs font-mono text-[var(--ops-muted)] bg-[var(--ops-hover)]/50 px-2 py-0.5 rounded">
+                          <span className="text-xs font-mono text-[var(--fg-invisible)] bg-[var(--bg-hover)]/50 px-2 py-0.5 rounded">
                             {targetSpec.file}
                           </span>
                         )}
@@ -373,13 +373,13 @@ export function QASuitePanel() {
                               ? "text-orange-400"
                               : sug.priority === "medium"
                               ? "text-yellow-400"
-                              : "text-[var(--ops-muted)]"
+                              : "text-[var(--fg-invisible)]"
                           }`}
                         >
                           {sug.priority}
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{sug.description}</p>
+                      <p className="text-xs text-[var(--fg-secondary)] leading-relaxed">{sug.description}</p>
                     </div>
                   </div>
                 );
@@ -391,7 +391,7 @@ export function QASuitePanel() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-xs text-[var(--ops-muted)]"
+              className="text-xs text-[var(--fg-invisible)]"
             >
               Nessun suggerimento disponibile.
             </motion.p>

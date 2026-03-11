@@ -133,7 +133,7 @@ function AnalyzerSummary({ data, onArticleClick }: { data: Record<string, unknow
   const clauses = (data.clauses as Array<{ severity: string; title: string; explanation?: string }>) || [];
   const critical = clauses.filter(c => c.severity === "alta").length;
   const high = clauses.filter(c => c.severity === "media").length;
-  const overallRisk = data.overallRisk as string;
+  const _overallRisk = data.overallRisk as string;
 
   return (
     <div className="space-y-2 text-sm">
@@ -187,7 +187,7 @@ function InvestigatorSummary({ data, onArticleClick }: { data: Record<string, un
   );
 }
 
-function AdvisorSummary({ data, onArticleClick }: { data: Record<string, unknown>; onArticleClick: (ref: string) => void }) {
+function AdvisorSummary({ data, onArticleClick: _onArticleClick }: { data: Record<string, unknown>; onArticleClick: (ref: string) => void }) {
   const fairness = data.fairnessScore as number || 0;
   const risks = (data.risks as Array<{ title: string }>) || [];
   const actions = (data.actions as Array<{ action: string }>) || [];

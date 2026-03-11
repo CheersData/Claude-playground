@@ -1,0 +1,29 @@
+{
+  "testId": "TC34",
+  "question": "Mio padre ha lasciato tutto alla badante nel testamento. I figli non prendono niente?",
+  "agentAnswer": "RISPOSTA DIRETTA\nI figli hanno diritto alla quota di legittima prevista dal Codice Civile; il testatore non può disporre dell’intero patrimonio a favore della badante escludendo totalmente i figli. Qualora la disposizione testamentaria superi la quota disponibile, è possibile chiedere la riduzione della quota assegnata alla badante.\n\nRIFERIMENTI NORMATIVI:\n- Art. 536 c.c. – \"legittimari\": individua i soggetti (coniuge, figli, ascendenti) a cui la legge riserva una quota di eredità.\n- Art. 537 c.c. – \"riserva a favore dei figli\": stabilisce che ai figli è riservata una quota del patrimonio (metà se più figli, un terzo se unico figlio).\n- Art. 554 c.c. – \"riduzione delle disposizioni testamentarie\": le disposizioni che eccedono la quota disponibile sono soggette a riduzione nella misura della quota stessa.\n\nIN PRATICA\nI figli devono presentare, entro il termine di prescrizione dell’azione di riduzione (norma non presente nel contesto ma prevista dal Codice Civile), un’azione giudiziale di riduzione contro la disposizione testamentaria a favore della badante, chiedendo al giudice di adeguare la quota assegnata alla badante al rispetto della legittima dei figli.\n\n",
+  "expectedAnswer": "I figli sono legittimari (art. 536) e hanno diritto a una quota riservata. Il testamento non è nullo ma possono agire in riduzione (art. 553-554) per recuperare la loro quota. Il termine per l'azione è 10 anni dall'apertura della successione.",
+  "scoringHints": {
+    "prep": "Ha formulato query su legittimari e azione di riduzione?",
+    "search": "Ha trovato art. 536 e 553-554 c.c.?",
+    "quality": "Distingue nullità (errata) da riducibilità (corretta)? Menziona i termini?"
+  },
+  "trapType": null,
+  "institutes": [
+    "legittimari",
+    "quota_riserva",
+    "azione_riduzione"
+  ],
+  "scope": "art. 536 (legittimari), art. 553-554 (azione di riduzione). Il testamento non è nullo ma riducibile.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 25,
+    "search": 25,
+    "quality": 35,
+    "total": 85,
+    "verdict": "PASS",
+    "reasoning": "L'agente ha identificato correttamente il tema giuridico e ha recuperato gli articoli pertinenti del Codice Civile. La risposta è accurata e completa, distinguendo tra nullità e riducibilità del testamento. Tuttavia, non menziona esplicitamente il termine di 10 anni per l'azione di riduzione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:08:33.285Z"
+}

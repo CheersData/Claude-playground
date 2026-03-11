@@ -2,14 +2,19 @@
   "_meta": {
     "dept": "trading",
     "schema_version": "1.0",
-    "last_updated": "2026-03-07T00:00:00.000Z",
-    "updated_by": "cme"
+    "last_updated": "2026-03-08T22:11:42.189Z",
+    "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "Paper trading ATTIVO — scheduler live. Account $99,676 | 9 posizioni aperte (USO +7.1%, RTX +2.5%, XOM +1.2%). Backtest ciclo #3: Sharpe=0.975 su 43 ticker (NO-GO per 0.025 sotto soglia). Alpaca paper connessa. Blockers: nessuno.",
+  "summary": "47 completati (ultimi 7gg). 47 completati (totale).",
   "phase": {
     "current": "backtest",
-    "stages": ["foundation", "backtest", "paper_trading", "go_live"],
+    "stages": [
+      "foundation",
+      "backtest",
+      "paper_trading",
+      "go_live"
+    ],
     "foundation": "completed",
     "backtest": "in_progress",
     "paper_trading": "pending",
@@ -74,17 +79,21 @@
       "strategy": "slope_volume",
       "universe": "S&P500 sector leaders + ETF (43 ticker)",
       "capital": 100000,
-      "params": { "sl_atr": 2.5, "tp_atr": 6.0, "max_positions": 10 },
+      "params": {
+        "sl_atr": 2.5,
+        "tp_atr": 6,
+        "max_positions": 10
+      },
       "results": {
         "sharpe": 0.975,
         "sortino": 1.668,
         "win_rate_pct": 52.2,
-        "profit_factor": 2.20,
+        "profit_factor": 2.2,
         "max_drawdown_pct": 3.85,
         "total_trades": 136,
         "total_return_pct": 23.39,
         "cagr_pct": 11.12,
-        "avg_win_pct": 8.00,
+        "avg_win_pct": 8,
         "avg_loss_pct": -2.75,
         "avg_hold_days": 20
       },
@@ -105,17 +114,21 @@
     "strategy": "slope_volume",
     "universe": "S&P500 sector leaders + ETF (43 ticker)",
     "capital": 100000,
-    "params": { "sl_atr": 2.5, "tp_atr": 6.0, "max_positions": 10 },
+    "params": {
+      "sl_atr": 2.5,
+      "tp_atr": 6,
+      "max_positions": 10
+    },
     "results": {
       "sharpe": 0.975,
       "sortino": 1.668,
       "win_rate_pct": 52.2,
-      "profit_factor": 2.20,
+      "profit_factor": 2.2,
       "max_drawdown_pct": 3.85,
       "total_trades": 136,
       "total_return_pct": 23.39,
       "cagr_pct": 11.12,
-      "avg_win_pct": 8.00,
+      "avg_win_pct": 8,
       "avg_loss_pct": -2.75,
       "avg_hold_days": 20
     },

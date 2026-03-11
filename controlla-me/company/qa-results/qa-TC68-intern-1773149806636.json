@@ -1,0 +1,29 @@
+{
+  "testId": "TC68",
+  "question": "Sono comproprietario di un appartamento con mio fratello ma lui non vuole vendere. Cosa posso fare?",
+  "agentAnswer": "RISPOSTA DIRETTA\n\nCome comproprietario di un immobile, hai il diritto di chiedere lo scioglimento della comunione, anche contro la volontà del tuo fratello. Secondo l'art. 1111 c.c., ciascun partecipante può sempre domandare lo scioglimento della comunione, salvo che l'autorità giudiziaria stabilisca una dilazione non superiore a cinque anni se l'immediato scioglimento può pregiudicare gli interessi degli altri. Inoltre, l'art. 1112 c.c. stabilisce che lo scioglimento non può essere chiesto quando si tratta di cose che, se divise, cesserebbero di servire all'uso a cui sono destinate.\n\nRiferimenti normativi:\n\nL'art. 1111 c.c. stabilisce che ciascun partecipante può sempre domandare lo scioglimento della comunione, con la possibilità per il giudice di concedere una dilazione fino a cinque anni se necessario per tutelare gli interessi degli altri. L'art. 1112 c.c. specifica che lo scioglimento non può essere richiesto se la divisione renderebbe l'immobile inutilizzabile per lo scopo a cui è destinato.\n\nIn pratica:\n\nPuoi avviare un'azione giudiziale per chiedere lo scioglimento della comunione. Se il giudice ritiene che la divisione non pregiudichi gli interessi del tuo fratello, potrà ordinare la vendita dell'immobile e la divisione del ricavato. Se invece il giudice ritiene che la vendita immediata sia pregiudizievole, potrebbe concedere una dilazione fino a cinque anni. In ogni caso, è consigliabile consultare un avvocato per valutare la situazione specifica e avviare la procedura legale.",
+  "expectedAnswer": "Puoi chiedere la divisione giudiziale (art. 1111 c.c. e artt. 713-714 c.p.c.): ogni comproprietario può sempre chiedere lo scioglimento della comunione. Se il bene è indivisibile (come un appartamento), il giudice può ordinare la vendita all'asta con distribuzione del ricavato, oppure l'assegnazione a uno dei comproprietari con conguaglio.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 1111 e artt. 713-714?",
+    "search": "Ha trovato art. 1111 c.c. e norme processuali sulla divisione?",
+    "quality": "Indica la divisione giudiziale e l'alternativa asta/conguaglio per immobile indivisibile?"
+  },
+  "trapType": null,
+  "institutes": [
+    "comproprietà",
+    "azione_di_divisione",
+    "indivisibilità"
+  ],
+  "scope": "art. 1111: può chiedere divisione giudiziale (art. 713-714). Se indivisibile → asta o conguaglio.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 20,
+    "search": 18,
+    "quality": 28,
+    "total": 66,
+    "verdict": "BORDERLINE",
+    "reasoning": "L'agente ha identificato correttamente l'art. 1111 c.c. e il diritto di chiedere la divisione, ma non ha citato gli artt. 713-714 c.p.c. né ha dettagliato l'asta o l'assegnazione con conguaglio. Inoltre, ha introdotto un'affermazione imprecisa sulla dilazione di cinque anni. La risposta è complessivamente corretta ma incompleta e con qualche imprecisione."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:36:05.479Z"
+}

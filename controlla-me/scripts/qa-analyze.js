@@ -1,4 +1,5 @@
 // Quick analysis of QA intern results
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const data = require('../company/autorun-logs/qa-intern-2026-03-08T17-54-33.json');
 const results = data.filter(r => r.agentAnswer && r.error === null);
 const errors = data.filter(r => r.error);

@@ -62,37 +62,43 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
   leader: [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
-    "mistral-small-3",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama4-maverick",
+    "mistral-small-3",        // 2 RPM (ultimo resort)
   ],
   "question-prep": [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama4-maverick",
     "mistral-small-3",
   ],
   classifier: [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
-    "cerebras-gpt-oss-120b",  // intern
-    "groq-llama4-scout",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",
     "mistral-small-3",
   ],
   "corpus-agent": [
     "claude-sonnet-4.5",      // partner
     "claude-haiku-4.5",       // associate
-    "gemini-2.5-flash",       // intern
-    "cerebras-gpt-oss-120b",
-    "groq-llama4-scout",
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM (più generoso)
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day, 70B qualità legale
+    "gemini-2.5-flash",       // 20 req/day (risparmiare per associate)
+    "mistral-small-3",        // fallback ultimo (2 RPM free)
   ],
   analyzer: [
     "claude-sonnet-4.5",      // partner
     "gemini-2.5-pro",         // associate
-    "mistral-large-3",        // intern (MoE 675B, 2 RPM)
-    "groq-llama3-70b",
-    "cerebras-gpt-oss-120b",
+    "groq-llama3-70b",        // intern — 500K tok/day
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-large-3",        // MoE 675B, 2 RPM (ultimo resort)
   ],
   investigator: [
     "claude-sonnet-4.5",      // partner
@@ -101,9 +107,10 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
   advisor: [
     "claude-sonnet-4.5",      // partner
     "gemini-2.5-pro",         // associate
-    "mistral-large-3",        // intern
-    "groq-llama3-70b",
-    "cerebras-gpt-oss-120b",
+    "groq-llama3-70b",        // intern — 500K tok/day
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-large-3",        // 2 RPM (ultimo resort)
   ],
   // ── Company Tasks (dipartimenti + CME) — Opus con fallback ──
   "task-executor": [
@@ -112,6 +119,16 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "claude-haiku-4.5",       // intern
     "gemini-2.5-flash",
     "cerebras-gpt-oss-120b",
+    "sambanova-llama3-70b",
+  ],
+  // ── Data Connector Mapper (ADR-2) — cheap, classificazione semplice ──
+  mapper: [
+    "claude-haiku-4.5",       // partner
+    "gemini-2.5-flash",       // associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
   ],
 };
 
@@ -128,6 +145,7 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   investigator:   { partner: 0, associate: 1, intern: 1 },  // intern = associate per investigator (solo Anthropic)
   advisor:        { partner: 0, associate: 1, intern: 2 },
   "task-executor": { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
+  mapper:           { partner: 0, associate: 1, intern: 2 },  // Haiku → Flash → Groq (ADR-2)
 };
 
 // ─── State ───
@@ -140,10 +158,57 @@ export function getCurrentTier(): TierName {
   return sessionTierStore.getStore()?.tier ?? currentTier;
 }
 
-// TODO TD-2: setCurrentTier non è chiamato da /api/analyze — rischio di shared state
-// tra worker serverless è teorico ma non attuale. Prima di implementare tier dinamico
-// per-utente in /api/analyze, wrappare con withRequestTier() usando sessionTierStore
-// (già presente e usato dalle route console). Effort stimato: 1h.
+/**
+ * TODO TD-2: Per-user tier isolation for /api/analyze
+ *
+ * CURRENT RISK:
+ *   `currentTier` (line 143) is global mutable state shared across all requests
+ *   in the same Node.js process. `setCurrentTier()` below mutates it, but is
+ *   never called from `/api/analyze` — so the risk is theoretical today.
+ *   However, if two concurrent requests in the same serverless worker called
+ *   `setCurrentTier()` with different tiers, they would stomp on each other.
+ *
+ * SOLUTION — AsyncLocalStorage-based `withRequestTier()`:
+ *   The `sessionTierStore` (AsyncLocalStorage) already exists above and is
+ *   used by the console routes. The fix is a thin wrapper function:
+ *
+ *     export async function withRequestTier<T>(
+ *       tier: TierName,
+ *       callback: () => Promise<T>
+ *     ): Promise<T> {
+ *       const ctx: SessionTierContext = {
+ *         tier,
+ *         disabledAgents: new Set(),  // or per-user disabled set
+ *         sid: crypto.randomUUID(),
+ *       };
+ *       return sessionTierStore.run(ctx, callback);
+ *     }
+ *
+ *   `getCurrentTier()` already reads from `sessionTierStore` first, falling
+ *   back to the global `currentTier`. So wrapping a request handler with
+ *   `withRequestTier(tier, () => runPipeline(...))` is enough — all
+ *   downstream calls to `getCurrentTier()`, `getAgentChain()`, and
+ *   `isAgentEnabled()` automatically pick up the per-request context.
+ *
+ * API INTEGRATION (in /api/analyze/route.ts):
+ *   const tier = mapUserPlanToTier(user.plan);  // e.g. "free" → "intern"
+ *   return withRequestTier(tier, async () => {
+ *     // entire SSE pipeline runs with this tier
+ *     return streamAnalysis(request);
+ *   });
+ *
+ * WHEN TO IMPLEMENT:
+ *   When per-user tier is introduced (user.plan → tier mapping). Until then,
+ *   the global `currentTier` = "partner" is correct for all requests and
+ *   `setCurrentTier()` is only called from the console UI tier switcher
+ *   (which already uses `sessionTierStore` for isolation).
+ *
+ * EXISTING CODE: No changes needed below — `setCurrentTier()` remains for
+ *   backward compatibility (tests, scripts, manual overrides). The global
+ *   acts as the default when no AsyncLocalStorage context is active.
+ *
+ * Effort estimate: ~1h (implement withRequestTier + add to /api/analyze).
+ */
 export function setCurrentTier(tier: TierName): void {
   currentTier = tier;
   console.log(`[TIER] Switched to: ${tier}`);
@@ -205,6 +270,67 @@ export function getActiveModel(agent: AgentName): ModelKey {
   return chain[0];
 }
 
+// ─── CLI+SDK Hybrid Execution ───
+
+/**
+ * Modalità di esecuzione per agente: CLI (subscription) o SDK (API credits).
+ *
+ * CLI: usa `claude -p` → subscription Claude Max, zero costi API.
+ *   Ideale per agenti pesanti (analyzer, advisor, investigator, corpus-agent, task-executor).
+ * SDK: usa SDK standard con catena di fallback.
+ *   Ideale per agenti leggeri (classifier, question-prep, leader).
+ *
+ * Logica: CLI-first → su errore cade alla catena SDK.
+ * Disabilitabile via env: DISABLE_CLI_RUNNER=true → tutti usano SDK.
+ */
+export type ExecutionMode = "cli" | "sdk";
+
+export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
+  // ── Light agents → SDK (Haiku/Flash, veloce, economico) ──
+  leader:          "sdk",
+  "question-prep": "sdk",
+  classifier:      "sdk",
+  mapper:          "sdk",   // Mapping = classificazione semplice, Groq/Cerebras via SDK (ADR-2)
+  // ── Heavy agents → CLI (subscription, zero costi) ──
+  "corpus-agent":  "sdk",
+  analyzer:        "cli",
+  investigator:    "cli",
+  advisor:         "cli",
+  "task-executor": "cli",
+};
+
+/**
+ * Mappa agente → modello alias per il CLI (`claude -p --model <alias>`).
+ * Alias supportati dal CLI: "opus", "sonnet", "haiku".
+ */
+export const CLI_MODEL_MAP: Record<AgentName, string> = {
+  leader:          "haiku",
+  "question-prep": "haiku",
+  classifier:      "haiku",
+  mapper:          "haiku",    // Mapping = task semplice, haiku sufficiente (ADR-2)
+  "corpus-agent":  "sonnet",
+  analyzer:        "sonnet",
+  investigator:    "sonnet",
+  advisor:         "sonnet",
+  "task-executor": "opus",
+};
+
+/**
+ * Ritorna la modalità di esecuzione effettiva per un agente.
+ * Rispetta DISABLE_CLI_RUNNER env var e il contesto sessione.
+ */
+export function getExecutionMode(agent: AgentName): ExecutionMode {
+  if (process.env.DISABLE_CLI_RUNNER === "true") return "sdk";
+  return AGENT_EXECUTION_MODE[agent];
+}
+
+/**
+ * Ritorna il modello CLI per un agente.
+ */
+export function getCliModel(agent: AgentName): string {
+  return CLI_MODEL_MAP[agent];
+}
+
 // ─── Info ───
 
 /**
@@ -215,7 +341,7 @@ export function getTierInfo(): TierInfo {
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor",
+    "analyzer", "investigator", "advisor", "task-executor", "mapper",
   ];
 
   for (const agent of allAgents) {
@@ -257,7 +383,7 @@ export function getTierInfoForSession(
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor",
+    "analyzer", "investigator", "advisor", "task-executor", "mapper",
   ];
 
   for (const agent of allAgents) {
@@ -305,6 +431,7 @@ export function estimateTierCost(): { perQuery: number; label: string } {
     investigator:   { input: 6000, output: 3000 },
     advisor:          { input: 8000, output: 2000 },
     "task-executor":  { input: 2000, output: 1500 },
+    mapper:           { input: 1500, output: 800 },
   };
 
   let total = 0;
@@ -338,6 +465,7 @@ export function estimateTierCostForSession(
     investigator:    { input: 6000,  output: 3000 },
     advisor:          { input: 8000,  output: 2000 },
     "task-executor":  { input: 2000,  output: 1500 },
+    mapper:           { input: 1500,  output: 800 },
   };
 
   let total = 0;

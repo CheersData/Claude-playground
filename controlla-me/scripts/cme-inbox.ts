@@ -16,7 +16,7 @@ import "dotenv/config";
 import * as fs from "fs";
 import * as path from "path";
 import { createTask, getOpenTasks, getTaskBoard } from "@/lib/company/tasks";
-import type { Task } from "@/lib/company/types";
+import type { Department } from "@/lib/company/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isTelegramConfigured, sendMessage } from "./lib/telegram";
 
@@ -212,7 +212,7 @@ async function harvestSuggestedNext(
       await createTask({
         title: c.suggestedNext.slice(0, 120),
         description: `Auto-harvested da task #${c.taskSeqNum ?? "?"} ("${c.taskTitle}"). Suggerimento originale: ${c.suggestedNext}`,
-        department: dept as any,
+        department: dept as Department,
         priority: "medium",
         createdBy: "cme-inbox-harvest",
         parentTaskId: c.taskId,

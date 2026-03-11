@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Missione Venezia — Lara Kraft</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e8e0d0;font-family:'Montserrat',sans-serif;min-height:100vh;min-height:100dvh;display:flex;justify-content:center;align-items:center;overflow:hidden}
+
+/* Ambient background */
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(ellipse at 30% 40%,rgba(200,168,75,0.06),transparent 50%),
+  radial-gradient(ellipse at 70% 60%,rgba(80,200,120,0.04),transparent 50%),
+  radial-gradient(ellipse at 50% 80%,rgba(74,158,202,0.03),transparent 40%);
+  animation:ambientMove 20s ease-in-out infinite;z-index:0;pointer-events:none}
+@keyframes ambientMove{0%,100%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(2%,-1%) rotate(0.3deg)}66%{transform:translate(-1%,2%) rotate(-0.3deg)}}
+
+/* Particles */
+.particles{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0;overflow:hidden}
+.particle{position:absolute;width:2px;height:2px;border-radius:50%;background:#c8a84b;opacity:0;animation:sparkle var(--dur) ease-in-out var(--delay) infinite}
+@keyframes sparkle{0%,100%{opacity:0;transform:scale(0) translateY(0)}50%{opacity:0.6;transform:scale(1) translateY(-20px)}}
+
+.wrap{text-align:center;padding:24px;max-width:420px;width:100%;animation:fadeUp 1s ease-out;position:relative;z-index:1}
+@keyframes fadeUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+
+/* Compass animation */
+.compass{width:120px;height:120px;margin:0 auto 24px;position:relative}
+.compass-ring{width:120px;height:120px;border:1px solid rgba(200,168,75,0.2);border-radius:50%;position:absolute;animation:compassSpin 12s linear infinite}
+.compass-ring::before{content:'N';position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2px;color:#c8a84b;font-weight:500}
+.compass-ring2{width:90px;height:90px;border:1px solid rgba(200,168,75,0.12);border-radius:50%;position:absolute;top:15px;left:15px;animation:compassSpin 8s linear infinite reverse}
+.compass-needle{position:absolute;top:50%;left:50%;width:2px;height:50px;transform-origin:bottom center;transform:translate(-50%,-100%);animation:needleSwing 4s ease-in-out infinite}
+.compass-needle::before{content:'';position:absolute;top:0;left:-4px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:25px solid #c8a84b;filter:drop-shadow(0 0 6px rgba(200,168,75,0.5))}
+.compass-needle::after{content:'';position:absolute;bottom:0;left:-4px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:25px solid rgba(200,168,75,0.2)}
+.compass-center{width:8px;height:8px;background:#c8a84b;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 12px rgba(200,168,75,0.6)}
+.compass-glow{width:60px;height:60px;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(200,168,75,0.1),transparent 70%);animation:glowPulse 3s ease-in-out infinite}
+@keyframes compassSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes needleSwing{0%,100%{transform:translate(-50%,-100%) rotate(-8deg)}50%{transform:translate(-50%,-100%) rotate(8deg)}}
+@keyframes glowPulse{0%,100%{opacity:0.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}}
+
+/* Crosshair marks */
+.compass-mark{position:absolute;width:1px;height:8px;background:rgba(200,168,75,0.3)}
+.compass-mark.top{top:8px;left:50%;transform:translateX(-50%)}
+.compass-mark.bottom{bottom:8px;left:50%;transform:translateX(-50%)}
+.compass-mark.left{top:50%;left:8px;transform:translateY(-50%) rotate(90deg)}
+.compass-mark.right{top:50%;right:8px;transform:translateY(-50%) rotate(90deg)}
+
+h1{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#c8a84b;letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:6px}
+.classified{display:inline-block;font-size:8px;letter-spacing:3px;color:rgba(255,71,87,0.6);text-transform:uppercase;border:1px solid rgba(255,71,87,0.2);padding:3px 12px;margin-bottom:36px;animation:classifiedBlink 3s ease-in-out infinite}
+@keyframes classifiedBlink{0%,100%{opacity:1;border-color:rgba(255,71,87,0.2)}50%{opacity:0.5;border-color:rgba(255,71,87,0.5)}}
+
+label{display:block;font-size:11px;letter-spacing:2px;color:rgba(232,224,208,0.5);text-transform:uppercase;margin-bottom:10px}
+input{width:100%;max-width:300px;background:rgba(255,255,255,0.04);border:1px solid rgba(200,168,75,0.25);color:#e8e0d0;font-family:'Cormorant Garamond',serif;font-size:22px;text-align:center;padding:14px 20px;letter-spacing:2px;outline:none;transition:all 0.3s}
+input:focus{border-color:#c8a84b;box-shadow:0 0 20px rgba(200,168,75,0.1)}
+input::placeholder{color:rgba(200,168,75,0.3);font-style:italic}
+
+.btn{display:inline-block;margin-top:32px;background:none;border:1px solid rgba(200,168,75,0.3);color:#c8a84b;font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:14px 48px;cursor:pointer;transition:all 0.3s;text-decoration:none;position:relative;overflow:hidden}
+.btn:hover{background:rgba(200,168,75,0.1);border-color:#c8a84b;box-shadow:0 0 30px rgba(200,168,75,0.2);transform:translateY(-2px)}
+.btn::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 40%,rgba(200,168,75,0.05) 50%,transparent 60%);animation:btnShine 4s linear infinite}
+@keyframes btnShine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+/* Scan line effect */
+.scanline{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,168,75,0.03),transparent);animation:scan 6s linear infinite;pointer-events:none;z-index:2}
+@keyframes scan{from{top:-2px}to{top:100vh}}
+
+@media(max-width:600px){
+  h1{font-size:28px;letter-spacing:2px}
+  .compass{width:100px;height:100px}
+  .compass-ring{width:100px;height:100px}
+  .compass-ring2{width:72px;height:72px;top:14px;left:14px}
+}
+@media(max-width:380px){
+  h1{font-size:22px}
+  .compass{width:80px;height:80px}
+  .compass-ring{width:80px;height:80px}
+  .compass-ring2{width:58px;height:58px;top:11px;left:11px}
+}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="particles" id="particles"></div>
+<div class="wrap">
+  <div class="compass">
+    <div class="compass-ring"></div>
+    <div class="compass-ring2"></div>
+    <div class="compass-glow"></div>
+    <div class="compass-needle"></div>
+    <div class="compass-center"></div>
+    <div class="compass-mark top"></div>
+    <div class="compass-mark bottom"></div>
+    <div class="compass-mark left"></div>
+    <div class="compass-mark right"></div>
+  </div>
+  <h1>Missione Venezia</h1>
+  <div class="sub">Operazione Laguna</div>
+  <div class="classified">Top Secret</div>
+  <br>
+  <label for="agent">Inserisci nome agente</label>
+  <input id="agent" type="text" placeholder="Laura Kraft" autocomplete="off" maxlength="30">
+  <br>
+  <a class="btn" href="#" id="startBtn">Inizia Missione</a>
+</div>
+<script>
+// Particles
+(function(){
+  var c=document.getElementById('particles');
+  for(var i=0;i<30;i++){
+    var p=document.createElement('div');
+    p.className='particle';
+    p.style.left=Math.random()*100+'%';
+    p.style.top=Math.random()*100+'%';
+    p.style.setProperty('--dur',(3+Math.random()*4)+'s');
+    p.style.setProperty('--delay',(Math.random()*5)+'s');
+    if(Math.random()>0.6) p.style.background='#50c878';
+    if(Math.random()>0.8) p.style.background='#4a9eca';
+    c.appendChild(p);
+  }
+})();
+
+document.getElementById('startBtn').addEventListener('click', function(e){
+  e.preventDefault();
+  var name = document.getElementById('agent').value.trim() || 'Laura Kraft';
+  localStorage.setItem('agentName', name);
+  window.location.href = 'quiz-martina/quiz.html';
+});
+document.getElementById('agent').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('startBtn').click();
+});
+</script>
+</body>
+</html>

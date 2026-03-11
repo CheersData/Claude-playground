@@ -1,0 +1,29 @@
+{
+  "testId": "TC70",
+  "question": "Mio nonno ha scritto il testamento a mano ma ha messo solo l'anno senza giorno e mese. È valido?",
+  "agentAnswer": "Il testamento olografo del tuo nonno è valido, ma è soggetto ad annullabilità per il difetto di forma nella data incompleta. Secondo l'art. 606 co.2 c.c., un testamento olografo con data incompleta (solo l'anno senza giorno e mese) è annullabile, non nullo. Questo significa che il testamento produce effetti fino a quando non viene impugnato con successo entro il termine di prescrizione di 5 anni dall'apertura della successione (art. 606 co.3 c.c.).\n\nRiferimenti normativi: L'art. 606 co.2 c.c. stabilisce che il testamento è nullo solo se manca l'autografia o la sottoscrizione, mentre ogni altro difetto di forma, inclusa la data incompleta, rende il testamento annullabile. La Cassazione a Sezioni Unite (sentenza n. 15295/2015) ha confermato questa distinzione, chiarendo che la data incompleta non rende il testamento nullo, ma solo annullabile.\n\nIn pratica: Se nessuno impugna il testamento entro 5 anni dalla morte del testatore, il testamento diventa definitivamente valido. Se desideri evitare contestazioni, puoi consultare un notaio per verificare la validità del testamento e assicurarti che non ci siano altre irregolarità formali.",
+  "expectedAnswer": "Il testamento olografo con data incompleta (solo anno) non è nullo ma ANNULLABILE (art. 606 co.2 c.c.). Se non viene impugnato entro 5 anni dall'apertura della successione, diventa definitivamente valido. Le Sezioni Unite (2015/15295) hanno confermato questa interpretazione: la data incompleta non produce nullità automatica.",
+  "scoringHints": {
+    "prep": "Ha formulato query su art. 606 co.2 e data incompleta?",
+    "search": "Ha trovato art. 606 co.2 c.c. e/o SU 2015/15295?",
+    "quality": "Usa 'annullabile' (non 'nullo')? Menziona il termine 5 anni e le SU?"
+  },
+  "trapType": null,
+  "institutes": [
+    "testamento_olografo",
+    "data_incompleta",
+    "annullabilità_testamento"
+  ],
+  "scope": "ANNULLABILE (non nullo, art. 606 co.2). Se non impugnato entro 5 anni = valido. SU 2015/15295.",
+  "tier": "intern",
+  "evaluation": {
+    "prep": 30,
+    "search": 30,
+    "quality": 40,
+    "total": 100,
+    "verdict": "PASS",
+    "reasoning": "La risposta dell'agente è completa e accurata. Ha correttamente identificato il tema giuridico, recuperato le norme pertinenti (art. 606 co.2 c.c.) e la giurisprudenza (SU 2015/15295), e ha fornito una spiegazione dettagliata e corretta, utilizzando i termini giusti come 'annullabile' e menzionando il termine di 5 anni."
+  },
+  "evaluator": "tier-fallback",
+  "runAt": "2026-03-10T13:31:10.556Z"
+}
