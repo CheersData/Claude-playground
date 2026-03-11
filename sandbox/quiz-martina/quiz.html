@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Deep Blue Academy - Test di Idoneità</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
 
@@ -349,8 +351,11 @@
     width: 100%; border-radius: 16px; overflow: hidden;
     border: 2px solid rgba(0,180,216,0.3); margin: 16px 0;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    position: relative;
   }
-  .map-container svg { width: 100%; display: block; }
+  #leaflet-map {
+    width: 100%; height: 350px;
+  }
   .map-legend {
     display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
     margin: 16px 0; font-size: 12px; color: rgba(255,255,255,0.7);
@@ -365,11 +370,25 @@
     font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.85);
   }
   .map-info strong { color: var(--sand); }
-  .map-pin-pulse { animation: pin-pulse 1.5s ease-in-out infinite; }
-  @keyframes pin-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+  .geo-status {
+    background: rgba(0,180,216,0.15); border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 12px; padding: 12px 16px; margin: 12px 0;
+    font-size: 13px; color: var(--teal-light); text-align: center;
   }
+  .geo-status.tracking {
+    border-color: rgba(0,255,100,0.4);
+    background: rgba(0,255,100,0.1);
+  }
+  .geo-status.error {
+    border-color: rgba(255,107,107,0.4);
+    background: rgba(255,107,107,0.1);
+    color: var(--coral-light);
+  }
+  @keyframes geo-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,180,216,0.4); }
+    50% { box-shadow: 0 0 12px 4px rgba(0,180,216,0.2); }
+  }
+  .geo-pulse { animation: geo-pulse 2s ease-in-out infinite; }
 
   /* === FISH === */
   .fish {
@@ -662,7 +681,7 @@
       <div class="splash-subtitle">Sede operativa: da qualche parte tra Sansepolcro e Padova</div>
 
       <div class="photo-frame">
-        <img id="photo-splash" src="20250426_174219.jpg" alt="Marco e Martina">
+        <img id="photo-splash" src="images/20250426_174219.jpg" alt="Marco e Martina">
       </div>
       <div class="photo-caption">Candidata n. 34 — fascicolo riservato</div>
 
@@ -762,7 +781,7 @@
 
       <!-- FOTO 4: foto divertente nel risultato -->
       <div class="photo-frame">
-        <img id="photo-result" src="Screenshot_20250427_220012_WhatsApp.jpg" alt="Martina">
+        <img id="photo-result" src="images/Screenshot_20250427_220012_WhatsApp.jpg" alt="Martina">
       </div>
       <div class="photo-caption">Il volto della candidata durante l'esame (ricostruzione fedele)</div>
 
@@ -779,49 +798,17 @@
       <div class="map-title">Destinazione sbloccata!</div>
       <div class="map-subtitle">Coordinate segrete decodificate con successo</div>
       <div class="map-container">
-        <svg viewBox="0 0 400 350" xmlns="http://www.w3.org/2000/svg">
-          <rect width="400" height="350" fill="#0a2540"/>
-          <ellipse cx="200" cy="180" rx="180" ry="140" fill="#0d3b66" opacity="0.6"/>
-          <ellipse cx="200" cy="180" rx="160" ry="120" fill="#114b7a" opacity="0.4"/>
-          <path d="M100,140 Q120,100 170,110 Q200,90 240,105 Q280,95 310,120 Q330,140 320,170 Q330,200 310,220 Q280,240 240,235 Q210,250 170,240 Q130,250 110,230 Q80,210 85,180 Q75,160 100,140 Z" fill="#1a5a3a" opacity="0.5" stroke="#2d8a5e" stroke-width="1"/>
-          <path d="M140,120 Q160,150 180,160 Q200,175 210,195 Q225,220 250,235" fill="none" stroke="#1a7ab5" stroke-width="8" opacity="0.6" stroke-linecap="round"/>
-          <line x1="160" y1="130" x2="200" y2="140" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
-          <line x1="200" y1="140" x2="230" y2="130" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
-          <line x1="190" y1="160" x2="220" y2="170" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
-          <path d="M175,155 Q185,145 195,155" fill="none" stroke="#ffd6a5" stroke-width="2" opacity="0.6"/>
-          <text x="185" y="143" text-anchor="middle" font-size="7" fill="#ffd6a5" opacity="0.5" font-family="Nunito">Rialto</text>
-          <rect x="250" y="175" width="6" height="6" fill="#ffd6a5" opacity="0.5" rx="1"/>
-          <text x="258" y="183" font-size="7" fill="#ffd6a5" opacity="0.5" font-family="Nunito">S.Marco</text>
-          <circle cx="108" cy="155" r="12" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b" stroke-width="2"/>
-          <circle cx="108" cy="155" r="6" fill="#ff6b6b" class="map-pin-pulse"/>
-          <text x="108" y="140" text-anchor="middle" font-family="Fredoka One,cursive" font-size="9" fill="#ff6b6b">P.le Roma</text>
-          <g transform="translate(85,165)">
-            <path d="M0,10 Q2,16 15,16 Q28,16 30,10 Z" fill="#ffd6a5" stroke="#ff9800" stroke-width="1"/>
-            <rect x="12" y="2" width="3" height="8" fill="#90e0ef" rx="1"/>
-            <path d="M15,2 Q22,4 15,8" fill="#00b4d8" opacity="0.7"/>
-            <path d="M-3,18 Q4,15 10,18 Q16,21 22,18 Q28,15 34,18" fill="none" stroke="#90e0ef" stroke-width="1" opacity="0.5"/>
-          </g>
-          <text x="108" y="195" text-anchor="middle" font-family="Nunito" font-size="7" fill="#ffd6a5" font-weight="700">BATTELLO</text>
-          <path d="M120,170 Q145,165 165,160 Q180,158 190,162" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
-          <polygon points="190,159 190,165 196,162" fill="#ff6b6b" opacity="0.7"/>
-          <g transform="translate(350,40)">
-            <circle cx="0" cy="0" r="18" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-            <text x="0" y="-8" text-anchor="middle" font-size="9" fill="#ff6b6b" font-weight="bold" font-family="Nunito">N</text>
-            <text x="0" y="14" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.3)" font-family="Nunito">S</text>
-            <text x="11" y="4" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.3)" font-family="Nunito">E</text>
-            <text x="-11" y="4" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.3)" font-family="Nunito">O</text>
-          </g>
-          <text x="200" y="280" text-anchor="middle" font-family="Fredoka One,cursive" font-size="20" fill="#90e0ef" opacity="0.4">VENEZIA</text>
-          <g transform="translate(200,320) rotate(-3)">
-            <rect x="-55" y="-12" width="110" height="22" rx="4" fill="rgba(255,107,107,0.15)" stroke="#ff6b6b" stroke-width="1"/>
-            <text x="0" y="4" text-anchor="middle" font-family="Fredoka One,cursive" font-size="11" fill="#ff6b6b">TOP SECRET</text>
-          </g>
-        </svg>
+        <div id="leaflet-map"></div>
       </div>
+      <div class="geo-status" id="geo-status">
+        📍 Premi il pulsante per attivare la geolocalizzazione
+      </div>
+      <button class="btn btn-primary geo-pulse" id="geo-btn" onclick="startGeolocation()" style="margin:8px 0;">
+        📍 ATTIVA POSIZIONE
+      </button>
       <div class="map-legend">
-        <div class="map-legend-item"><div class="map-legend-dot" style="background:#ff6b6b;"></div> Punto di ritrovo</div>
-        <div class="map-legend-item"><div class="map-legend-dot" style="background:#ffd6a5;"></div> Battello</div>
-        <div class="map-legend-item"><div class="map-legend-dot" style="background:#1a7ab5;"></div> Canal Grande</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#ff6b6b;"></div> Punto di ritrovo (P.le Roma)</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#00d4ff;"></div> La tua posizione</div>
       </div>
       <div class="map-info">
         <strong>Missione:</strong> raggiungere <strong>Piazzale Roma, Venezia</strong>.<br>
@@ -889,7 +876,7 @@ const questions = [
   },
   {
     question: "L'agente Laura Kraft si prepara per una spedizione. Cosa NON manca MAI nel suo zaino?",
-    photo: "20240814_105937.jpg",
+    photo: "images/20240814_105937.jpg",
     answers: [
       "Gel disinfettante, salviette e lista Excel delle cose da fare",
       "Una bussola, un coltellino e zero senso dell'orientamento",
@@ -905,7 +892,7 @@ const questions = [
   },
   {
     question: "Marco russa. Qual è la tua strategia di sopravvivenza notturna?",
-    photo: "20250209_114829.jpg",
+    photo: "images/20250209_114829.jpg",
     answers: [
       "Tappi per le orecchie, ormai sono professionista",
       "Lo spingo finché non si gira. Funziona 1 volta su 47",
@@ -921,7 +908,7 @@ const questions = [
   },
   {
     question: "Quanto è profonda una piscina olimpionica?",
-    photo: "20250813_153826.jpg",
+    photo: "images/20250813_153826.jpg",
     answers: [
       "2 metri",
       "3 metri",
@@ -937,7 +924,7 @@ const questions = [
   },
   {
     question: "ALLARME ROSSO: c'è un ragno in bagno. Protocollo Kraft attivato:",
-    photo: "20251026_134920.jpg",
+    photo: "images/20251026_134920.jpg",
     answers: [
       "Urlo, salgo sul tavolo, chiamo Marco come rinforzo",
       "Aspirapolvere a potenza massima. Nessuna pietà.",
@@ -953,7 +940,7 @@ const questions = [
   },
   {
     question: "Scegli il tuo animale marino spirituale:",
-    photo: "20251226_120547.jpg",
+    photo: "images/20251226_120547.jpg",
     answers: [
       "🦀 Granchio: cammino lateralmente ma arrivo sempre",
       "🐢 Tartaruga: lenta ma determinata, e vivo 150 anni",
@@ -969,7 +956,7 @@ const questions = [
   },
   {
     question: "In un colloquio, il candidato ti dice: 'Come hobby faccio il sub.' Tu pensi:",
-    photo: "20250518_135452.jpg",
+    photo: "images/20250518_135452.jpg",
     answers: [
       "Interessante, denota spirito avventuroso!",
       "Bene, almeno sa trattenere il respiro sotto pressione",
@@ -985,7 +972,7 @@ const questions = [
   },
   {
     question: "Domanda tecnica: cos'è la 'decompressione'?",
-    photo: "20241228_173049.jpg",
+    photo: "images/20241228_173049.jpg",
     answers: [
       "Quando torni in superficie e i gas nel sangue fanno cose strane",
       "Quella cosa che fai dopo una giornata di lavoro in Zucchetti",
@@ -1001,7 +988,7 @@ const questions = [
   },
   {
     question: "Sfida impossibile: Martina deve stare zitta per 24 ore. Quanto dura?",
-    photo: "20240822_130739.jpg",
+    photo: "images/20240822_130739.jpg",
     answers: [
       "24 ore? Facilissimo, sono una persona pacata",
       "Forse 4 ore, poi DEVO commentare qualcosa",
@@ -1017,7 +1004,7 @@ const questions = [
   },
   {
     question: "Completa la frase: 'Sansepolcro è famosa per...'",
-    photo: "20251026_114915.jpg",
+    photo: "images/20251026_114915.jpg",
     answers: [
       "Piero della Francesca, ovviamente",
       "La gente che se ne va a Padova",
@@ -1033,7 +1020,7 @@ const questions = [
   },
   {
     question: "Il tuo istruttore ti dice: 'oggi ci tuffiamo a 30 metri.' Tu rispondi:",
-    photo: "20250827_181809.jpg",
+    photo: "images/20250827_181809.jpg",
     answers: [
       "Perfetto, finalmente un po' di adrenalina!",
       "Ok, ma prima devo mandare un vocale di 7 minuti a Marco",
@@ -1065,7 +1052,7 @@ const questions = [
   },
   {
     question: "Domanda definitiva: secondo te, perché Marco ti ha mandato questo quiz?",
-    photo: "20250101_000700.jpg",
+    photo: "images/20250101_000700.jpg",
     answers: [
       "Perché è fatto così: complicato anche per farti gli auguri",
       "Per terrorizzarmi. Missione compiuta.",
@@ -1086,55 +1073,55 @@ const aphorisms = [
     text: "\"Chi non si tuffa, non trova perle. Chi si tuffa, trova meduse. La vita è una medusa.\"",
     author: "— Capitano Ignazio Salmone, 1847 (mai esistito)",
     icon: "🦪",
-    photo: "20241012_105905.jpg"
+    photo: "images/20241012_105905.jpg"
   },
   {
     text: "\"Il mare insegna agli uomini a nuotare. Il divano insegna a non dover nuotare. Padova insegna a prendere lo spritz.\"",
     author: "— Proverbio anonimo delle Osterie Venete",
     icon: "🍹",
-    photo: "20250802_105002.jpg"
+    photo: "images/20250802_105002.jpg"
   },
   {
     text: "\"Non contare i candidati prima di averli assunti, né i pesci prima di averli persi.\"",
     author: "— Confucio HR (versione Talent Acquisition)",
     icon: "🐟",
-    photo: "20250802_111445.jpg"
+    photo: "images/20250802_111445.jpg"
   },
   {
     text: "\"Laura Kraft non ha paura di niente. Tranne i ragni. E le barche. E l'altezza. E le cose sporche. Per il resto: impavida.\"",
     author: "— Dal fascicolo segreto dell'Agente Kraft, classificato TOP SECRET",
     icon: "🦸‍♀️",
-    photo: "20240822_185736.jpg"
+    photo: "images/20240822_185736.jpg"
   },
   {
     text: "\"L'ordine è la prima legge dell'universo. Il disordine è la prima legge di Marco. Il compromesso è la prima legge del divano.\"",
     author: "— Manuale di Convivenza Kraft-Cristophori, Cap. 47",
     icon: "🧹",
-    photo: "20260111_132339.jpg"
+    photo: "images/20260111_132339.jpg"
   },
   {
     text: "\"Se Sansepolcro avesse il mare, non sareste mai andati a Padova. Ma il Tevere ce la mette tutta.\"",
     author: "— Anonimo toscano emigrato in Veneto, 2019",
     icon: "🏔️",
-    photo: "20241102_103601.jpg"
+    photo: "images/20241102_103601.jpg"
   },
   {
     text: "\"Di notte Laura Kraft si trasforma: da maniaca dell'ordine a regina della pista. Marco la guarda e pensa: 'domani mi fa rifare il letto.'\"",
     author: "— Diario segreto di Chris Cristophori, pagina 234",
     icon: "🪩",
-    photo: "20250913_230622.jpg"
+    photo: "images/20250913_230622.jpg"
   },
   {
     text: "\"Chi ha detto che il coraggio è non avere paura? Il coraggio è avere paura e salire comunque sul battello. Con Marco che ti spinge.\"",
     author: "— Filosofo della Laguna, probabilmente dopo tre spritz",
     icon: "🚢",
-    photo: "20250821_194202.jpg"
+    photo: "images/20250821_194202.jpg"
   },
   {
     text: "\"Venezia non affonda. E nemmeno l'amore, se regge a Marco che dimentica tutto e Martina che riordina anche il suo zaino.\"",
     author: "— Gondoliere romantico, Piazzale Roma, stamattina",
     icon: "💕",
-    photo: "20250214_210714.jpg"
+    photo: "images/20250214_210714.jpg"
   }
 ];
 
@@ -1510,12 +1497,155 @@ function showResult() {
 }
 
 // ============================================================
-// MAP
+// MAP (Leaflet + Geolocation)
 // ============================================================
+
+let leafletMap = null;
+let destinationMarker = null;
+let userMarker = null;
+let userCircle = null;
+let geoWatchId = null;
+
+// Piazzale Roma, Venezia
+const DESTINATION = { lat: 45.4371, lng: 12.3190 };
 
 function showMap() {
   showScreen('map-screen');
   launchConfetti();
+
+  // Init Leaflet map (delayed to ensure container is visible)
+  setTimeout(() => {
+    if (leafletMap) { leafletMap.invalidateSize(); return; }
+
+    leafletMap = L.map('leaflet-map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([DESTINATION.lat, DESTINATION.lng], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19
+    }).addTo(leafletMap);
+
+    // Destination marker - Piazzale Roma
+    const destIcon = L.divIcon({
+      className: '',
+      html: '<div style="font-size:32px;text-shadow:0 2px 8px rgba(0,0,0,0.5);">📍</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32]
+    });
+    destinationMarker = L.marker([DESTINATION.lat, DESTINATION.lng], { icon: destIcon }).addTo(leafletMap);
+    destinationMarker.bindPopup(
+      '<div style="text-align:center;font-family:Nunito,sans-serif;">' +
+      '<strong style="font-size:14px;">🚢 Piazzale Roma</strong><br>' +
+      '<span style="font-size:12px;">Punto di ritrovo — Battello</span><br>' +
+      '<span style="font-size:11px;color:#888;">45.4371° N, 12.3190° E</span>' +
+      '</div>'
+    ).openPopup();
+
+    // Invalidate size after animation
+    setTimeout(() => leafletMap.invalidateSize(), 300);
+  }, 200);
+}
+
+function startGeolocation() {
+  const statusEl = document.getElementById('geo-status');
+  const geoBtn = document.getElementById('geo-btn');
+
+  if (!navigator.geolocation) {
+    statusEl.textContent = '❌ Geolocalizzazione non supportata dal browser';
+    statusEl.className = 'geo-status error';
+    return;
+  }
+
+  statusEl.textContent = '🔄 Ricerca posizione in corso...';
+  geoBtn.disabled = true;
+  geoBtn.textContent = '⏳ RICERCA...';
+
+  geoWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+
+      // Calculate distance to destination
+      const dist = getDistanceKm(lat, lng, DESTINATION.lat, DESTINATION.lng);
+      const distText = dist < 1 ? Math.round(dist * 1000) + ' m' : dist.toFixed(1) + ' km';
+
+      statusEl.innerHTML = '🟢 Posizione attiva — <strong>' + distText + '</strong> dalla destinazione';
+      statusEl.className = 'geo-status tracking';
+      geoBtn.textContent = '📍 POSIZIONE ATTIVA';
+      geoBtn.disabled = true;
+      geoBtn.style.opacity = '0.6';
+
+      // User marker
+      const userIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:18px;height:18px;background:#00d4ff;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px rgba(0,212,255,0.6);"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+
+      if (userMarker) {
+        userMarker.setLatLng([lat, lng]);
+      } else {
+        userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(leafletMap);
+        userMarker.bindPopup(
+          '<div style="text-align:center;font-family:Nunito,sans-serif;">' +
+          '<strong>📍 Sei qui!</strong><br>' +
+          '<span style="font-size:12px;">Agente Kraft in movimento</span>' +
+          '</div>'
+        );
+      }
+
+      // Accuracy circle
+      if (userCircle) {
+        userCircle.setLatLng([lat, lng]);
+        userCircle.setRadius(accuracy);
+      } else {
+        userCircle = L.circle([lat, lng], {
+          radius: accuracy,
+          color: '#00d4ff',
+          fillColor: '#00d4ff',
+          fillOpacity: 0.1,
+          weight: 1
+        }).addTo(leafletMap);
+      }
+
+      // Fit bounds to show both markers
+      const bounds = L.latLngBounds([
+        [lat, lng],
+        [DESTINATION.lat, DESTINATION.lng]
+      ]);
+      leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    },
+    (err) => {
+      const msgs = {
+        1: '❌ Permesso negato. Attiva la geolocalizzazione nelle impostazioni.',
+        2: '❌ Posizione non disponibile. Riprova all\'aperto.',
+        3: '⏰ Timeout. Riprova tra poco.'
+      };
+      statusEl.textContent = msgs[err.code] || '❌ Errore sconosciuto';
+      statusEl.className = 'geo-status error';
+      geoBtn.disabled = false;
+      geoBtn.textContent = '📍 RIPROVA';
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 5000
+    }
+  );
+}
+
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 // ============================================================
