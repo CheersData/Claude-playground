@@ -163,10 +163,10 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 <div id="hint">Tocca un punto per scoprirlo</div>
 <button id="geoBtn" title="La tua posizione">◎</button>
 <div id="chapters">
-  <button class="ch-btn green active-ch" onclick="showChapter(1)">Cap. 1</button>
-  <button class="ch-btn blue" onclick="showChapter(2)">Cap. 2</button>
-  <button class="ch-btn gold" onclick="showChapter(3)">Cap. 3</button>
-  <button class="ch-btn" onclick="showChapter(0)">Completa</button>
+  <button class="ch-btn green active-ch" onclick="showChapter(1)">1 · Non Ricordi</button>
+  <button class="ch-btn blue" onclick="showChapter(2)">2 · Don't Puke!</button>
+  <button class="ch-btn gold" onclick="showChapter(3)">3 · Queen of Venice</button>
+  <button class="ch-btn" onclick="showChapter(0)">Tutto</button>
 </div>
 <button id="nextChBtn" onclick="goNextChapter()">Cap. 2 →</button>
 <div id="panel">
@@ -422,18 +422,24 @@ function showChapter(ch){
     btns[0].classList.add('active-ch');
     map.setView([45.4400,12.3320],14);
     legend.innerHTML='<div class="li"><div class="ld lv"></div>Passeggiata segreta</div>';
+    document.querySelector('.hl h1').textContent='Cap. 1 · Non Ricordi';
+    document.querySelector('.hl p').textContent='Passeggiata segreta · Cannaregio';
     nextBtn.textContent='Cap. 2 →';nextBtn.style.display='block';
   } else if(ch===2){
     ch2Layer.addTo(map);
     btns[1].classList.add('active-ch');
     map.setView([45.4600,12.3700],12);
     legend.innerHTML='<div class="li"><div class="ld lb"></div>Tappe del viaggio</div>';
+    document.querySelector('.hl h1').textContent="Cap. 2 · Don't Puke!";
+    document.querySelector('.hl p').textContent='Viaggio in barca · La Laguna';
     nextBtn.textContent='Cap. 3 →';nextBtn.style.display='block';
   } else if(ch===3){
     ch3Layer.addTo(map);
     btns[2].classList.add('active-ch');
     map.setView([45.4370,12.3310],14);
     legend.innerHTML='<div class="li"><div class="ld lg"></div>Palazzi storici</div>';
+    document.querySelector('.hl h1').textContent='Cap. 3 · Queen of Venice';
+    document.querySelector('.hl p').textContent='I palazzi del Canal Grande';
     nextBtn.textContent='← Cap. 1';nextBtn.style.display='block';
   } else {
     // Show all
@@ -441,6 +447,8 @@ function showChapter(ch){
     btns[3].classList.add('active-ch');
     map.setView([45.4460,12.3350],13);
     legend.innerHTML='<div class="li"><div class="ld lg"></div>Palazzi storici</div><div class="li"><div class="ld lb"></div>Tappe del viaggio</div><div class="li"><div class="ld lv"></div>Passeggiata segreta</div>';
+    document.querySelector('.hl h1').textContent='Mappa Completa';
+    document.querySelector('.hl p').textContent='Tutti i capitoli · Venezia';
     nextBtn.style.display='none';
   }
 }
@@ -462,9 +470,9 @@ showChapter(1);
 
   function createGeoMarker(lat,lng,acc){
     if(geoCircle) map.removeLayer(geoCircle);
-    geoCircle=L.circle([lat,lng],{radius:acc,color:'#c8a84b',fillColor:'#c8a84b',fillOpacity:0.08,weight:1,opacity:0.3}).addTo(map);
+    geoCircle=L.circle([lat,lng],{radius:acc,color:'#ff4757',fillColor:'#ff4757',fillOpacity:0.06,weight:1,opacity:0.25}).addTo(map);
     if(geoMarker) map.removeLayer(geoMarker);
-    var dot=L.divIcon({html:'<div style="width:14px;height:14px;background:#c8a84b;border:3px solid #fff8e0;border-radius:50%;box-shadow:0 0 10px rgba(200,168,75,0.6)"></div>',className:'',iconSize:[14,14],iconAnchor:[7,7]});
+    var dot=L.divIcon({html:'<div style="width:16px;height:16px;background:#ff4757;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px rgba(255,71,87,0.7),0 0 24px rgba(255,71,87,0.3);animation:geoDot 2s ease-in-out infinite"></div><style>@keyframes geoDot{0%,100%{box-shadow:0 0 12px rgba(255,71,87,0.7),0 0 24px rgba(255,71,87,0.3)}50%{box-shadow:0 0 18px rgba(255,71,87,0.9),0 0 36px rgba(255,71,87,0.5)}}</style>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
     geoMarker=L.marker([lat,lng],{icon:dot,zIndexOffset:1000}).addTo(map);
   }
 
