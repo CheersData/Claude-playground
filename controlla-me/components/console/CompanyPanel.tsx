@@ -138,15 +138,11 @@ export default function CompanyPanel({ open, onClose }: CompanyPanelProps) {
     }
   }, []);
 
-  // Init on first open — serialize: dashboard first, then chat
-  // Webpack needs time to compile each route on first access
+  // Init on first open — fetch dashboard only, no auto-message
   useEffect(() => {
     if (open && !initialized) {
       setInitialized(true);
-      (async () => {
-        await fetchDashboard();
-        startSession("Buongiorno, qual è la situazione?", true);
-      })();
+      fetchDashboard();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);

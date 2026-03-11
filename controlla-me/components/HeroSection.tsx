@@ -206,6 +206,7 @@ function HeroVerifica({
                 value={contextPrompt}
                 onChange={(e) => onContextChange(e.target.value)}
                 placeholder="Descrivi il contesto: che tipo di documento e'? Hai dubbi specifici? (opzionale)"
+                aria-label="Descrivi il contesto del documento"
                 className="w-full px-4 py-3 rounded-xl bg-white border border-border text-sm text-foreground placeholder:text-foreground-tertiary resize-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all"
                 rows={2}
                 maxLength={500}
@@ -225,6 +226,9 @@ function HeroVerifica({
               className="relative w-full max-w-[480px]"
             >
               <div
+                role="button"
+                tabIndex={0}
+                aria-label="Carica documento da analizzare"
                 className={`relative rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
                   dragOver
                     ? "border-accent/70 bg-white scale-[1.02] shadow-lg"
@@ -237,6 +241,12 @@ function HeroVerifica({
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
               >
                 <input
                   ref={fileInputRef}

@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "generated_at": "2026-03-03",
+    "generated_by": "CME / Ufficio Trading",
+    "phase": "Phase 1 — Backtest in sviluppo",
+    "go_live_authorized": false,
+    "note": "Nessun go-live autorizzato. Sharpe < 1.0 in tutti i run."
+  },
+  "latest_run": {
+    "run_id": "20260303_122253",
+    "strategy": "composite_score",
+    "period": "2023-01-01 → 2024-12-31",
+    "initial_capital": 100000,
+    "performance": {
+      "total_return_pct": 7.98,
+      "cagr_pct": 3.93,
+      "annualized_volatility_pct": 2.44,
+      "sharpe_ratio": -0.03,
+      "sortino_ratio": -0.036,
+      "max_drawdown_pct": -1.14,
+      "max_drawdown_duration_days": 231
+    },
+    "trades": {
+      "total": 16,
+      "win_rate_pct": 62.5,
+      "profit_factor": 7.02,
+      "avg_win_pct": 10.13,
+      "avg_loss_pct": -2.18,
+      "avg_hold_days": 24.7
+    },
+    "go_nogo": {
+      "pass": false,
+      "verdict": "NO-GO — Does not meet criteria",
+      "checks": {
+        "sharpe_gt_1": { "required": "> 1.0", "actual": -0.03, "pass": false },
+        "max_drawdown_lt_15": { "required": "< 15%", "actual": 1.14, "pass": true },
+        "win_rate_gt_50": { "required": "> 50%", "actual": 62.5, "pass": true },
+        "profit_factor_gt_1_5": { "required": "> 1.5", "actual": 7.02, "pass": true },
+        "total_trades_gt_100": { "required": "> 100", "actual": 16, "pass": false }
+      }
+    }
+  },
+  "grid_search": {
+    "run_id": "grid_20260302_160400",
+    "combinations_tested": 96,
+    "best_combo": {
+      "stop_loss_atr": 2.0,
+      "take_profit_atr": 10.0,
+      "trailing_breakeven_atr": 1.5,
+      "trend_filter": true,
+      "total_return_pct": 24.5,
+      "cagr_pct": 3.11,
+      "sharpe_ratio": -0.204,
+      "win_rate_pct": 59,
+      "profit_factor": 1.54,
+      "total_trades": 322,
+      "max_drawdown_pct": -5.44
+    },
+    "go_nogo": {
+      "pass": false,
+      "verdict": "NO-GO — Sharpe < 1.0 (high intra-period volatility despite positive return)"
+    }
+  },
+  "total_runs": 37,
+  "roadmap": {
+    "grid_search_96_combos": "completed",
+    "fetch_spy_5min_historical": "pending",
+    "slope_volume_backtest_5min": "pending",
+    "paper_trading_30_days": "blocked_awaiting_stable_backtest",
+    "go_live": "blocked_awaiting_boss_approval"
+  },
+  "go_nogo_criteria": {
+    "sharpe_ratio_min": 1.0,
+    "max_drawdown_pct_max": 15.0,
+    "win_rate_pct_min": 50.0,
+    "profit_factor_min": 1.5,
+    "total_trades_min": 100,
+    "paper_trading_days_min": 30
+  }
+}

@@ -11,15 +11,14 @@
  *   - Stampa il parere in console
  *   - Salva il parere in task.resultData.architectReview (visibile nella TaskModal)
  *
- * Usa `claude -p` CLI (Claude Code) invece dell'API Anthropic diretta.
- * Esegui da un terminale esterno (non dentro una sessione Claude Code attiva).
+ * Usa provider gratuiti (Gemini Flash/Groq/Cerebras) via scripts/lib/llm.ts.
  */
 
 import * as dotenv from "dotenv";
 import * as path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
-import { execSync } from "child_process";
+import { callLLM, parseJSON } from "../lib/llm";
 import { getOpenTasks, updateTask } from "../lib/company/tasks";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -102,37 +101,32 @@ ${task.description ?? "(nessuna descrizione)"}
 
 Dai il tuo parere tecnico approfondito su questo task.`;
 
-  // ── Call Claude CLI ──
-  print(`\n${C.cyan}→ Chiamando claude CLI...${C.reset}`);
+  // ── Call LLM (provider gratuiti) ──
+  print(`\n${C.cyan}→ Chiamando LLM (free tier)...${C.reset}`);
   const start = Date.now();
-
-  const fullPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
 
   let rawText: string;
   try {
-    rawText = execSync(`claude -p ${JSON.stringify(fullPrompt)}`, {
-      encoding: "utf-8",
-      timeout: 60_000,
-    }).trim();
-    print(`${C.gray}← claude CLI (${Date.now() - start}ms)${C.reset}`);
+    rawText = await callLLM(prompt, {
+      systemPrompt: SYSTEM_PROMPT,
+      callerName: "ARCHITECT-REVIEW",
+      maxTokens: 2048,
+      temperature: 0.2,
+    });
+    print(`${C.gray}← LLM (${Date.now() - start}ms)${C.reset}`);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`claude CLI fallito: ${msg.slice(0, 200)}`);
+    throw new Error(`LLM call fallita: ${msg.slice(0, 200)}`);
   }
 
   // ── Parse JSON ──
   let review: Record<string, unknown>;
   try {
-    const clean = rawText.trim().replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-    review = JSON.parse(clean);
+    review = parseJSON<Record<string, unknown>>(rawText);
   } catch {
-    const match = rawText.match(/\{[\s\S]*\}/);
-    if (!match) {
-      err("Risposta non parsabile:");
-      print(rawText.slice(0, 300));
-      process.exit(1);
-    }
-    review = JSON.parse(match[0]);
+    err("Risposta non parsabile:");
+    print(rawText.slice(0, 300));
+    process.exit(1);
   }
 
   // ── Display ──

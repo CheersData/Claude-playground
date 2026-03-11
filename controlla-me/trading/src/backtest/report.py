@@ -107,6 +107,13 @@ def _write_json_report(result, metrics, output_dir: Path) -> None:
             "stop_loss": metrics.stop_loss_count,
             "take_profit": metrics.take_profit_count,
             "signal_exit": metrics.signal_exit_count,
+            "slope_exit": metrics.slope_exit_count,
+            "adverse_slope_exit": metrics.adverse_slope_exit_count,
+            "nb_exit": metrics.nb_exit_count,
+            "vwap_exit": metrics.vwap_exit_count,
+            "eod_close": metrics.eod_close_count,
+            "end_of_backtest": metrics.end_of_backtest_count,
+            "kill_switch": metrics.kill_switch_exit_count,
         },
         "portfolio": {
             "final_equity": metrics.final_equity,
@@ -293,6 +300,13 @@ def _print_summary(result, metrics) -> None:
     print(f"  Stop Loss:      {metrics.stop_loss_count}")
     print(f"  Take Profit:    {metrics.take_profit_count}")
     print(f"  Signal Exit:    {metrics.signal_exit_count}")
+    print(f"  Slope Exit:     {metrics.slope_exit_count}")
+    print(f"  Adverse Slope:  {metrics.adverse_slope_exit_count}")
+    print(f"  NB Exit:        {metrics.nb_exit_count}")
+    print(f"  VWAP Exit:      {metrics.vwap_exit_count}")
+    print(f"  EOD Close:      {metrics.eod_close_count}")
+    print(f"  End of BT:      {metrics.end_of_backtest_count}")
+    print(f"  Kill Switch:    {metrics.kill_switch_exit_count}")
     print()
 
     print("  EXPOSURE")

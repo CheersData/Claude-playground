@@ -58,3 +58,20 @@ Ottimizzare velocità ed efficienza di tutta la virtual company. Due assi parall
 | Data | Modifica |
 |------|----------|
 | 2026-03-02 | Creazione iniziale (Compito 4 boss) |
+
+---
+
+## Visione (6 mesi)
+
+Zero tech debt, massima velocità operativa. Cycle time medio < 24h per task medium. Codebase snella: ogni file ha uno scopo, ogni dipendenza è usata, zero warning.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Audit dipendenze npm** — depcheck + verifica @google/genai compatibility (IN CORSO)
+2. **[P1] Dead code cleanup** — identificare e rimuovere file .ts/.tsx non importati da nessuno
+3. **[P2] Cycle time tracking** — misurare e ridurre tempo medio task per priorità
+
+## Autonomia
+
+- **L1 (auto)**: rimuovere codice morto, aggiornare runbook obsoleti, audit dipendenze, misurare metriche
+- **L2+ (escalation)**: refactoring che cambia interfacce pubbliche, rimozione dipendenze usate da altri team

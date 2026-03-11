@@ -414,9 +414,9 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
   "question-prep": {
     primary: "claude-haiku-4.5",
     fallback: "claude-haiku-4.5",
-    maxTokens: 1024,
+    maxTokens: 2048,
     temperature: 0.2,
-    notes: "Riformulazione domanda. Haiku per precisione giuridica.",
+    notes: "Riformulazione domanda. Haiku per precisione giuridica. 2048 token per evitare stop:length su Cerebras/Groq.",
   },
   "corpus-agent": {
     primary: "claude-haiku-4.5",

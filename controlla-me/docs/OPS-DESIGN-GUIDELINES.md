@@ -32,7 +32,7 @@ Definiti in `app/globals.css` sotto `:root`. **Non usare valori hardcoded** — 
 | `--ops-cyan` | `#add7ff` | Info, link |
 | `--ops-error` | `#e58d78` | Errore, critico |
 
-> **Nota pratica**: finché Tailwind non è configurato con questi token custom, si usano i valori hardcoded equivalenti (`zinc-900` ≈ `--ops-surface`, `zinc-800` ≈ `--ops-surface-2`, ecc.). Migrare ai token è backlog low-priority.
+> **Nota pratica**: finché Tailwind non è configurato con questi token custom, si usano i valori hardcoded equivalenti (`var(--ops-surface)` ≈ `--ops-surface`, `var(--ops-surface-2)` ≈ `--ops-surface-2`, ecc.). Migrare ai token è backlog low-priority.
 
 ---
 
@@ -44,7 +44,7 @@ Definiti in `app/globals.css` sotto `:root`. **Non usare valori hardcoded** — 
 // CORRETTO — active state uniforme #FF6B35
 <button
   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors
-    ${isActive ? "bg-[#FF6B35] text-white" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"}`}
+    ${isActive ? "bg-[#FF6B35] text-white" : "bg-[var(--ops-surface-2)] hover:bg-[var(--ops-hover)] text-[var(--ops-fg-muted)]"}`}
 >
   <IconaLucide className="w-4 h-4" />
   Label
@@ -86,7 +86,7 @@ const PRIORITY_DOTS = {
   critical: "bg-red-500",
   high:     "bg-orange-500",
   medium:   "bg-yellow-500",
-  low:      "bg-zinc-500",
+  low:      "bg-[var(--ops-muted)]",
 };
 // Rendering: <span className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOTS[priority]}`} />
 ```
@@ -94,7 +94,7 @@ const PRIORITY_DOTS = {
 ### Card container
 
 ```
-bg-zinc-900 rounded-xl border border-zinc-800
+bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border)]
 ```
 
 ### Icone dipartimento
@@ -133,9 +133,9 @@ Il campo `emoji` nell'interfaccia `ReportGroup` è legacy (optional, non renderi
 
 - **Corpo**: DM Sans (default)
 - **Heading sezione**: `text-lg font-semibold text-white`
-- **Label secondarie**: `text-xs text-zinc-500`
-- **Testo body**: `text-sm text-zinc-300`
-- **Codice inline**: `bg-zinc-800 px-1 rounded text-[#FF6B35] font-mono text-xs`
+- **Label secondarie**: `text-xs text-[var(--ops-muted)]`
+- **Testo body**: `text-sm text-[var(--ops-fg-muted)]`
+- **Codice inline**: `bg-[var(--ops-surface-2)] px-1 rounded text-[#FF6B35] font-mono text-xs`
 - **Zero `font-serif`** nella console — Instrument Serif è solo per la landing
 
 ---
@@ -155,7 +155,7 @@ Il campo `emoji` nell'interfaccia `ReportGroup` è legacy (optional, non renderi
 2. Aggiungi stato `showNome` in `OpsPageClient.tsx`
 3. Aggiungi bottone nav con icona lucide + active state `bg-[#FF6B35]`
 4. Aggiungi render nella condizione nel main content
-5. Segui il pattern `bg-zinc-900 rounded-xl border border-zinc-800` per il container root
+5. Segui il pattern `bg-[var(--ops-surface)] rounded-xl border border-[var(--ops-border)]` per il container root
 
 ---
 

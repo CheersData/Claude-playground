@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { motion } from "framer-motion";
-import { Calendar, ArrowRight, Scale, Gavel, TrendingUp } from "lucide-react";
+import { Calendar, ArrowRight, Scale, Gavel, TrendingUp, CheckSquare } from "lucide-react";
 import FairnessScore from "./FairnessScore";
 import RiskCard from "./RiskCard";
 import DeepSearchChat from "./DeepSearchChat";
@@ -18,22 +18,28 @@ const SCORE_ITEMS: Array<{
   Icon: React.ElementType;
 }> = [
   {
-    key: "legalCompliance",
-    label: "Conformità Legale",
-    description: "Aderenza al quadro normativo vigente",
-    Icon: Gavel,
-  },
-  {
-    key: "contractBalance",
-    label: "Equilibrio Contrattuale",
-    description: "Bilanciamento tra le parti contrattuali",
+    key: "contractEquity",
+    label: "Equità Contrattuale",
+    description: "Bilanciamento tra le parti",
     Icon: Scale,
   },
   {
-    key: "industryPractice",
-    label: "Prassi di Settore",
-    description: "Conformità agli standard di mercato",
+    key: "legalCoherence",
+    label: "Coerenza Legale",
+    description: "Coerenza interna e con il quadro normativo",
+    Icon: Gavel,
+  },
+  {
+    key: "practicalCompliance",
+    label: "Conformità Pratica",
+    description: "Aderenza alla prassi di settore",
     Icon: TrendingUp,
+  },
+  {
+    key: "completeness",
+    label: "Completezza",
+    description: "Copertura delle situazioni tipiche",
+    Icon: CheckSquare,
   },
 ];
 

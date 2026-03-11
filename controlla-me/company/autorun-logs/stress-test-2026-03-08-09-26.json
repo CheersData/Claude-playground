@@ -1,0 +1,362 @@
+[
+  {
+    "tier": "intern",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 65400,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 2150
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 41917
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 1,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 21332
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata per uscire prima",
+      "Deposito cauzionale troppo alto",
+      "Manca il diritto di recesso per gravi motivi"
+    ]
+  },
+  {
+    "tier": "intern",
+    "contract": "compravendita_immobile",
+    "success": true,
+    "totalTimeMs": 54385,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 889
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 33829
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 0,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 19665
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 6.5,
+      "practicalCompliance": 5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata e bloccata",
+      "Nessuna garanzia per difetti nascosti della casa",
+      "Rischi urbanistici tutti a tuo carico"
+    ]
+  },
+  {
+    "tier": "intern",
+    "contract": "lavoro_subordinato",
+    "success": true,
+    "totalTimeMs": 61503,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 11299
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 32407
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 1,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 17796
+      }
+    },
+    "fairnessScore": 3.8,
+    "scores": {
+      "contractEquity": 2.5,
+      "legalCoherence": 4,
+      "practicalCompliance": 3.5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Periodo di prova troppo lungo",
+      "Patto di non concorrenza troppo gravoso",
+      "Possono cambiarti mansioni e livello senza chiederti"
+    ]
+  },
+  {
+    "tier": "associate",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 46440,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 7888
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 26430
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 0,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 12122
+      }
+    },
+    "fairnessScore": 3.1,
+    "scores": {
+      "contractEquity": 2,
+      "legalCoherence": 3,
+      "practicalCompliance": 3.5,
+      "completeness": 4
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata per lasciare casa prima",
+      "Caparra senza interessi",
+      "Mancanza del tuo diritto di recesso"
+    ]
+  },
+  {
+    "tier": "associate",
+    "contract": "compravendita_immobile",
+    "success": true,
+    "totalTimeMs": 104910,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 15880
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 74903
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 1,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 14126
+      }
+    },
+    "fairnessScore": 2.1,
+    "scores": {
+      "contractEquity": 2,
+      "legalCoherence": 2.5,
+      "practicalCompliance": 2,
+      "completeness": 2
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale troppo alta e non riducibile",
+      "Responsabilità per difformità urbanistiche",
+      "Nessuna garanzia sui difetti della casa"
+    ]
+  },
+  {
+    "tier": "associate",
+    "contract": "lavoro_subordinato",
+    "success": true,
+    "totalTimeMs": 58328,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 14229
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 32283
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 0,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 11815
+      }
+    },
+    "fairnessScore": 1.5,
+    "scores": {
+      "contractEquity": 1.5,
+      "legalCoherence": 1.5,
+      "practicalCompliance": 1.5,
+      "completeness": 1.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Non potrai lavorare altrove per anni",
+      "Possono abbassarti di livello senza il tuo permesso",
+      "Non ti pagano gli straordinari"
+    ]
+  },
+  {
+    "tier": "partner",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 83272,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 7248
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 28043
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 0,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 47981
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5,
+      "completeness": 6
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale assurda per uscire prima",
+      "Deposito cauzionale senza interessi",
+      "Diritto di recesso non scritto"
+    ]
+  },
+  {
+    "tier": "partner",
+    "contract": "compravendita_immobile",
+    "success": true,
+    "totalTimeMs": 117532,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 31988
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 35949
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 1,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 49594
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 5.5,
+      "practicalCompliance": 5,
+      "completeness": 6
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata e bloccata",
+      "Rischio abusi edilizi a tuo carico",
+      "Nessuna garanzia per difetti nascosti"
+    ]
+  },
+  {
+    "tier": "partner",
+    "contract": "lavoro_subordinato",
+    "success": true,
+    "totalTimeMs": 149897,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 31678
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 70488
+      },
+      "investigator": {
+        "status": "error",
+        "timeMs": 1,
+        "error": "TypeError: Cannot read properties of undefined (reading 'filter')"
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 47730
+      }
+    },
+    "fairnessScore": 3.8,
+    "scores": {
+      "contractEquity": 2.5,
+      "legalCoherence": 4,
+      "practicalCompliance": 3.5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Periodo di prova troppo lungo",
+      "Patto di non concorrenza ingiusto",
+      "Foro competente truccato"
+    ]
+  }
+]

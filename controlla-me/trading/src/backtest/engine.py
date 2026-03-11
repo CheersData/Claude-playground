@@ -19,7 +19,12 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD
 from ta.volatility import BollingerBands
 
-from ..analysis import analyze_composite, analyze_mean_reversion_v3
+from ..analysis import (
+    analyze_composite,
+    analyze_mean_reversion_v3,
+    analyze_slope_volume,
+    precompute_noise_boundaries,
+)
 from ..config.settings import RiskSettings, SignalSettings
 
 logger = structlog.get_logger()
@@ -126,13 +131,19 @@ def get_indicator_periods(timeframe: str = "1Day") -> dict:
 class TradeAction(StrEnum):
     BUY = "BUY"
     SELL = "SELL"
+    SHORT = "SHORT"
+    COVER = "COVER"
 
 
 class CloseReason(StrEnum):
     STOP_LOSS = "stop_loss"
     TAKE_PROFIT = "take_profit"
     SIGNAL_EXIT = "signal_exit"
-    EOD_CLOSE = "eod_close"        # intraday hard close at 15:30 ET
+    SLOPE_EXIT = "slope_exit"              # slope reversal (long held, slope turned negative)
+    ADVERSE_SLOPE_EXIT = "adverse_slope_exit"  # adverse slope without formal reversal
+    NB_EXIT = "nb_exit"                  # noise boundary signal changed at checkpoint
+    VWAP_EXIT = "vwap_exit"              # price crossed VWAP (Maroy 2025 profit-taking)
+    EOD_CLOSE = "eod_close"              # intraday hard close at 15:30 ET
     END_OF_BACKTEST = "end_of_backtest"
     KILL_SWITCH = "kill_switch"
 
@@ -157,7 +168,7 @@ class BacktestConfig(BaseModel):
     take_profit_atr: float = 10.0  # take profit ATR multiplier (grid search optimal: wider TP)
     trend_filter: bool = True  # require price > SMA long for BUY signals
     timeframe: str = "1Day"  # "1Day", "1Hour", or "15Min"
-    strategy: str = "trend_following"  # "trend_following", "mean_reversion", or "mean_reversion_v3"
+    strategy: str = "trend_following"  # "trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume", or "noise_boundary"
 
     # Daily filter for mean reversion v3 (dual-timeframe)
     daily_filter_enabled: bool = True  # Require daily uptrend for MR v3 entries
@@ -179,6 +190,53 @@ class BacktestConfig(BaseModel):
 
     # Signal exit: close positions on MACD bearish crossover
     signal_exit_enabled: bool = False  # Enable MACD bearish crossover exits
+
+    # Slope exit: close positions when slope turns adverse (for slope_volume strategy)
+    # Mirrors the live exit logic in signal_generator.py (slope reversal + adverse exit)
+    slope_exit_enabled: bool = True  # Auto-enabled for slope_volume strategy
+    slope_exit_lookback_bars: int = 5  # OLS regression lookback (same as entry)
+    slope_exit_threshold_pct: float = 0.01  # Minimum slope to be considered significant
+
+    # Slope entry parameters (passed through to analyze_slope_volume)
+    slope_lookback_bars: int = 10  # OLS regression lookback for entry signal
+    slope_threshold_pct: float = 0.01  # Min slope % to trigger entry
+    slope_volume_multiplier: float = 1.5  # Volume vs MA ratio for confirmation
+    slope_volume_ma_period: int = 20  # MA period for volume baseline
+
+    # Wave detection: 3-factor entry gate for slope_volume strategy
+    slope_acceleration_bars: int = 5  # Bars back to measure slope acceleration
+    slope_min_acceleration_pct: float = 0.01  # Min slope growth % for entry (tightened from 0.002)
+    slope_volume_trend_bars: int = 5  # Bars for volume trend regression
+    slope_persistence_bars: int = 8  # Consecutive bars with same slope direction (tightened from 5)
+    slope_contrarian: bool = False  # Fade the wave: invert BUY↔SHORT after 3-factor confirmation
+    slope_anticipatory: bool = False  # Enter on wave deceleration (early mean-reversion)
+
+    # Noise Boundary Momentum params (Zarattini-Aziz-Barbon 2024)
+    nb_band_mult: float = 1.0  # Noise boundary width multiplier (1.0 = paper default)
+    nb_lookback_days: int = 14  # Rolling window for sigma_open (trading days)
+    nb_trade_freq_bars: int = 6  # Signal evaluation interval in bars (6 × 5min = 30min)
+    nb_safety_sl_atr: float = 3.0  # Wide crash-protection SL (primary exit is signal change)
+    nb_last_entry_utc: int = 19  # Last UTC hour for new NB entries (19 = 3PM ET, avoids late EOD closes)
+
+    # NB Enhancement 1: Volatility-targeted sizing (paper uses ~15% target annual vol)
+    nb_vol_sizing: bool = False  # Enable vol-targeted position sizing
+    nb_vol_target_pct: float = 15.0  # Target annualized volatility (%)
+    nb_vol_max_leverage: float = 4.0  # Cap leverage to prevent extreme sizing
+
+    # NB Enhancement 2: VIX regime filter (momentum when VIX > threshold, skip when VIX < threshold)
+    nb_vix_filter: bool = False  # Enable VIX regime filtering
+    nb_vix_threshold: float = 20.0  # VIX threshold: trade momentum above, skip entries below
+
+    # NB Enhancement 3: VWAP-based exit (Maroy 2025 improvement — profit-taking on VWAP cross)
+    nb_vwap_exit: bool = False  # Enable VWAP exit for NB positions
+
+    # NB Enhancement 4: VWAP trailing stop (Maroy 2025 — replaces nb_exit with dynamic trailing)
+    # Long: trailing_stop = max(VWAP, UB). Short: trailing_stop = min(VWAP, LB).
+    # This lets winners run and only exits when price reverts to VWAP/boundary.
+    nb_vwap_trailing: bool = False  # Enable VWAP trailing stop (replaces nb_exit)
+
+    # NB Enhancement 5: Minimum hold time (bars) — suppress exits before min_hold elapses
+    nb_min_hold_bars: int = 0  # 0 = disabled. 12 = 60min on 5Min bars. Prevents premature exits.
 
     # Signal settings (override defaults if needed)
     signal: SignalSettings = Field(default_factory=SignalSettings)
@@ -228,13 +286,17 @@ class OpenPosition:
     signal_confidence: float
     cost_basis: float = 0.0
     initial_stop_loss: float = 0.0
-    highest_close: float = 0.0  # For trailing stop
+    highest_close: float = 0.0  # For long trailing stop (tracks max)
+    lowest_close: float = 0.0   # For short trailing stop (tracks min)
     atr_at_entry: float = 0.0  # ATR when trade was opened
+    direction: int = 1  # +1 long, -1 short
+    entry_bar_idx: int = 0  # bar index when position was opened (for min hold time)
 
     def __post_init__(self) -> None:
         self.cost_basis = self.shares * self.entry_price
         self.initial_stop_loss = self.stop_loss
         self.highest_close = self.entry_price
+        self.lowest_close = self.entry_price
 
 
 @dataclass
@@ -248,6 +310,7 @@ class PendingOrder:
     take_profit: float
     signal_score: float
     signal_confidence: float
+    close_reason: CloseReason = CloseReason.SIGNAL_EXIT  # reason for exit orders
 
 
 class BacktestResult(BaseModel):
@@ -275,7 +338,7 @@ class SignalResult:
     """Lightweight signal result for backtesting."""
 
     symbol: str
-    action: str  # "BUY" or "SELL"
+    action: str  # "BUY", "SELL", or "SHORT"
     score: float
     confidence: float
     entry_price: float
@@ -341,6 +404,70 @@ def analyze_stock(
     if result is None:
         return None
 
+    return SignalResult(
+        symbol=result["symbol"],
+        action=result["action"],
+        score=result["score"],
+        confidence=result["confidence"],
+        entry_price=result["entry_price"],
+        stop_loss=result["stop_loss"],
+        take_profit=result["take_profit"],
+    )
+
+
+def analyze_stock_slope_volume(
+    symbol: str,
+    df: pd.DataFrame,
+    lookback_bars: int = 5,
+    slope_threshold_pct: float = 0.05,
+    volume_multiplier: float = 1.5,
+    volume_ma_period: int = 20,
+    stop_loss_atr: float = 1.5,
+    take_profit_atr: float = 3.0,
+    atr_period: int = 14,
+    # Wave detection: 3-factor entry gate
+    acceleration_bars: int = 5,
+    min_acceleration_pct: float = 0.002,
+    volume_trend_bars: int = 5,
+    persistence_bars: int = 5,
+    # Contrarian: fade the wave
+    contrarian: bool = False,
+    # Anticipatory: enter on wave deceleration
+    anticipatory: bool = False,
+) -> SignalResult | None:
+    """
+    Wrapper around analyze_slope_volume() that returns a SignalResult.
+
+    Bridges the live-trading dict output to the backtesting SignalResult dataclass.
+    Market-hours filter is disabled (backtest data is already market-hours only).
+    """
+    result = analyze_slope_volume(
+        symbol,
+        df,
+        lookback_bars=lookback_bars,
+        slope_threshold_pct=slope_threshold_pct,
+        volume_multiplier=volume_multiplier,
+        volume_ma_period=volume_ma_period,
+        stop_loss_atr=stop_loss_atr,
+        take_profit_atr=take_profit_atr,
+        atr_period=atr_period,
+        # Disable time-of-day filter in backtest — data is already market-hours only
+        market_open_utc="00:00",
+        market_close_utc="23:59",
+        timeframe="5Min",
+        # Trend-continuation mode for backtest (no reversal needed, 3-factor gate)
+        require_reversal=False,
+        # Wave detection params
+        acceleration_bars=acceleration_bars,
+        min_acceleration_pct=min_acceleration_pct,
+        volume_trend_bars=volume_trend_bars,
+        persistence_bars=persistence_bars,
+        # Contrarian / Anticipatory mode
+        contrarian=contrarian,
+        anticipatory=anticipatory,
+    )
+    if result is None:
+        return None
     return SignalResult(
         symbol=result["symbol"],
         action=result["action"],
@@ -585,14 +712,28 @@ class BacktestEngine:
         self._week_start_equity: float = config.initial_capital
         self._bar_count: int = 0
 
+        # Precomputed noise boundary data (populated in run() for noise_boundary strategy)
+        self._nb_data: dict[str, pd.DataFrame] = {}
+
+        # VIX daily data for regime filtering (populated in run() if nb_vix_filter=True)
+        self._vix_data: pd.DataFrame | None = None
+
+        # Current bar index (used for min hold time tracking)
+        self._current_bar_idx: int = 0
+
         # Intraday flags
         self._is_hourly = config.timeframe == "1Hour"
         self._is_fifteen_min = config.timeframe == "15Min"
+        self._is_five_min = config.timeframe == "5Min"
         # 15-min: 26 bars/day × 5 days = 130 bars/week
+        # 5-min:  78 bars/day × 5 days = 390 bars/week
         # Hourly: 6.5 bars/day × 5 days = ~33 bars/week
         if self._is_fifteen_min:
             self._cooldown_bars = 130   # 5 trading days
             self._week_bars = 130
+        elif self._is_five_min:
+            self._cooldown_bars = 390   # 5 trading days
+            self._week_bars = 390
         elif self._is_hourly:
             self._cooldown_bars = 33
             self._week_bars = 33
@@ -616,6 +757,23 @@ class BacktestEngine:
             BacktestResult with trades, equity curve, and metrics inputs.
         """
         self._daily_data = daily_data  # Store for use in _generate_signals
+
+        # Precompute noise boundaries if using noise_boundary strategy
+        if self.config.strategy == "noise_boundary":
+            logger.info("precomputing_noise_boundaries", symbols=len(data))
+            for symbol, df in data.items():
+                self._nb_data[symbol] = precompute_noise_boundaries(
+                    df,
+                    lookback_days=self.config.nb_lookback_days,
+                    band_mult=self.config.nb_band_mult,
+                    trade_freq_bars=self.config.nb_trade_freq_bars,
+                )
+            logger.info("noise_boundaries_ready", symbols=len(self._nb_data))
+
+        # Load VIX data for regime filtering (noise_boundary + nb_vix_filter)
+        if self.config.strategy == "noise_boundary" and self.config.nb_vix_filter:
+            self._load_vix_data()
+
         # Build aligned date index (union of all trading timestamps)
         all_dates = set()
         for df in data.values():
@@ -658,6 +816,7 @@ class BacktestEngine:
         prev_day: str | None = None
 
         for bar_idx, current_date in enumerate(dates):
+            self._current_bar_idx = bar_idx
             date_str = self._format_date(current_date)
             day_str = self._extract_day(current_date)
 
@@ -667,13 +826,25 @@ class BacktestEngine:
             # Step 2: Check stop-loss / take-profit on existing positions
             self._check_exits(data, current_date, date_str)
 
+            # Step 2.2: Slope exit — close on adverse slope (slope_volume strategy only)
+            if (self._is_five_min or self.config.strategy == "slope_volume") and self.config.strategy != "noise_boundary" and self.config.slope_exit_enabled:
+                self._check_slope_exits(data, current_date, date_str)
+
             # Step 2.3: Signal exit — MACD bearish crossover closes positions
             if self.config.signal_exit_enabled:
                 self._check_signal_exits(data, current_date, date_str)
 
-            # Step 2.5: Hard EOD close for mean reversion (no overnight holds)
-            if self._is_fifteen_min and self._positions:
+            # Step 2.5: Hard EOD close for intraday strategies (no overnight holds)
+            if (self._is_fifteen_min or self.config.strategy == "noise_boundary") and self._positions:
                 self._check_eod_close(data, current_date, date_str)
+
+            # Step 2.6: NB exit — close positions when signal changes at checkpoint
+            if self.config.strategy == "noise_boundary" and self._positions:
+                self._check_nb_exits(data, current_date, date_str)
+
+            # Step 2.7: VWAP exit — profit-taking when price crosses VWAP (Maroy 2025)
+            if self.config.strategy == "noise_boundary" and self.config.nb_vwap_exit and self._positions:
+                self._check_vwap_exits(data, current_date, date_str)
 
             # Step 3: Check kill switch (daily/weekly loss limits)
             equity = self._calculate_equity(data, current_date)
@@ -793,22 +964,27 @@ class BacktestEngine:
 
                 self._cash -= cost
                 date_str = self._format_date(current_date)
-                # Calculate ATR at entry for trailing stop
-                atr_at_entry = (
-                    abs(fill_price - order.stop_loss) / self.config.stop_loss_atr
-                    if self.config.stop_loss_atr > 0
-                    else 0
-                )
+                # Recalculate SL/TP from ACTUAL fill price (not signal bar close).
+                # Extract ATR from original signal's SL/TP spread, then anchor to fill.
+                _sl_atr = self.config.stop_loss_atr
+                _tp_atr = self.config.take_profit_atr
+                if (_sl_atr + _tp_atr) > 0:
+                    atr_at_entry = (order.take_profit - order.stop_loss) / (_sl_atr + _tp_atr)
+                else:
+                    atr_at_entry = 0
+                recalc_sl = fill_price - max(_sl_atr * atr_at_entry, 0.02)
+                recalc_tp = fill_price + (_tp_atr * atr_at_entry)
                 self._positions[order.symbol] = OpenPosition(
                     symbol=order.symbol,
                     shares=order.shares,
                     entry_price=fill_price,
                     entry_date=date_str,
-                    stop_loss=order.stop_loss,
-                    take_profit=order.take_profit,
+                    stop_loss=recalc_sl,
+                    take_profit=recalc_tp,
                     signal_score=order.signal_score,
                     signal_confidence=order.signal_confidence,
                     atr_at_entry=atr_at_entry,
+                    entry_bar_idx=self._current_bar_idx,
                 )
                 self._orders_filled += 1
                 logger.debug(
@@ -826,7 +1002,60 @@ class BacktestEngine:
                 proceeds = pos.shares * fill_price - (pos.shares * self.config.commission_per_share)
                 self._cash += proceeds
                 date_str = self._format_date(current_date)
-                self._record_trade(pos, fill_price, date_str, CloseReason.SIGNAL_EXIT)
+                self._record_trade(pos, fill_price, date_str, order.close_reason)
+                del self._positions[order.symbol]
+                self._orders_filled += 1
+
+            elif order.action == TradeAction.SHORT:
+                if order.symbol in self._positions:
+                    continue  # Already have a position (long or short)
+
+                # Short sell: receive cash from selling borrowed shares
+                proceeds = order.shares * fill_price - (order.shares * self.config.commission_per_share)
+                self._cash += proceeds
+                date_str = self._format_date(current_date)
+                # Recalculate SL/TP from fill price for SHORT (SL above, TP below)
+                _sl_atr = self.config.stop_loss_atr
+                _tp_atr = self.config.take_profit_atr
+                if (_sl_atr + _tp_atr) > 0:
+                    atr_at_entry = (order.stop_loss - order.take_profit) / (_sl_atr + _tp_atr)
+                else:
+                    atr_at_entry = 0
+                recalc_sl = fill_price + max(_sl_atr * atr_at_entry, 0.02)
+                recalc_tp = fill_price - (_tp_atr * atr_at_entry)
+                self._positions[order.symbol] = OpenPosition(
+                    symbol=order.symbol,
+                    shares=order.shares,
+                    entry_price=fill_price,
+                    entry_date=date_str,
+                    stop_loss=recalc_sl,
+                    take_profit=recalc_tp,
+                    signal_score=order.signal_score,
+                    signal_confidence=order.signal_confidence,
+                    atr_at_entry=atr_at_entry,
+                    direction=-1,
+                    entry_bar_idx=self._current_bar_idx,
+                )
+                self._orders_filled += 1
+                logger.debug(
+                    "order_filled",
+                    symbol=order.symbol,
+                    action="SHORT",
+                    shares=order.shares,
+                    price=round(fill_price, 2),
+                )
+
+            elif order.action == TradeAction.COVER:
+                if order.symbol not in self._positions:
+                    continue
+                pos = self._positions[order.symbol]
+                if pos.direction != -1:
+                    continue  # Not a short position
+                # Cover: buy back shares to close short
+                cost = pos.shares * fill_price + (pos.shares * self.config.commission_per_share)
+                self._cash -= cost
+                date_str = self._format_date(current_date)
+                self._record_trade(pos, fill_price, date_str, order.close_reason)
                 del self._positions[order.symbol]
                 self._orders_filled += 1
 
@@ -835,7 +1064,12 @@ class BacktestEngine:
     # ------------------------------------------------------------------
 
     def _check_exits(self, data: dict[str, pd.DataFrame], current_date, date_str: str) -> None:
-        """Check stop-loss, take-profit, and optional trailing stop against intrabar prices."""
+        """Check stop-loss, take-profit, and optional trailing stop against intrabar prices.
+
+        Handles both long (+1) and short (-1) positions with inverted SL/TP logic:
+        - Long: SL hit when low <= stop_loss, TP hit when high >= take_profit
+        - Short: SL hit when high >= stop_loss, TP hit when low <= take_profit
+        """
         to_close: list[tuple[str, float, CloseReason]] = []
 
         for symbol, pos in self._positions.items():
@@ -850,57 +1084,188 @@ class BacktestEngine:
             high = float(bar["high"])
             close_price = float(bar["close"])
 
-            # Update highest close for potential trailing stop
-            if close_price > pos.highest_close:
-                pos.highest_close = close_price
-
-            # 4-tier trailing stop (evaluated top-down, max() ensures monotonic)
             atr = pos.atr_at_entry
-            if atr > 0:
-                profit_from_entry = pos.highest_close - pos.entry_price
 
-                # Tier 0: Breakeven — move SL to entry price
-                if profit_from_entry > self.config.trailing_breakeven_atr * atr:
-                    pos.stop_loss = max(pos.stop_loss, pos.entry_price)
+            if pos.direction == 1:
+                # --- LONG trailing stop ---
+                if close_price > pos.highest_close:
+                    pos.highest_close = close_price
 
-                # Tier 1: Lock profit — move SL to entry + cushion
-                if profit_from_entry > self.config.trailing_lock_atr * atr:
-                    lock_stop = pos.entry_price + (atr * self.config.trailing_lock_cushion_atr)
-                    pos.stop_loss = max(pos.stop_loss, lock_stop)
+                if atr > 0:
+                    profit_from_entry = pos.highest_close - pos.entry_price
 
-                # Tier 2: Trail — follow highest close at distance
-                if profit_from_entry > self.config.trailing_trail_threshold_atr * atr:
-                    trailing_stop = pos.highest_close - (atr * self.config.trailing_trail_distance_atr)
-                    pos.stop_loss = max(pos.stop_loss, trailing_stop)
+                    if profit_from_entry > self.config.trailing_breakeven_atr * atr:
+                        pos.stop_loss = max(pos.stop_loss, pos.entry_price)
+                    if profit_from_entry > self.config.trailing_lock_atr * atr:
+                        lock_stop = pos.entry_price + (atr * self.config.trailing_lock_cushion_atr)
+                        pos.stop_loss = max(pos.stop_loss, lock_stop)
+                    if profit_from_entry > self.config.trailing_trail_threshold_atr * atr:
+                        trailing_stop = pos.highest_close - (atr * self.config.trailing_trail_distance_atr)
+                        pos.stop_loss = max(pos.stop_loss, trailing_stop)
+                    if profit_from_entry > self.config.trailing_tight_threshold_atr * atr:
+                        tight_stop = pos.highest_close - (atr * self.config.trailing_tight_distance_atr)
+                        pos.stop_loss = max(pos.stop_loss, tight_stop)
 
-                # Tier 3: Tight trail — close trailing near take profit
-                if profit_from_entry > self.config.trailing_tight_threshold_atr * atr:
-                    tight_stop = pos.highest_close - (atr * self.config.trailing_tight_distance_atr)
-                    pos.stop_loss = max(pos.stop_loss, tight_stop)
+                # Long exit checks
+                if low <= pos.stop_loss:
+                    to_close.append((symbol, pos.stop_loss, CloseReason.STOP_LOSS))
+                elif high >= pos.take_profit:
+                    to_close.append((symbol, pos.take_profit, CloseReason.TAKE_PROFIT))
 
-            # Exit checks
-            if low <= pos.stop_loss:
-                to_close.append((symbol, pos.stop_loss, CloseReason.STOP_LOSS))
-            elif high >= pos.take_profit:
-                to_close.append((symbol, pos.take_profit, CloseReason.TAKE_PROFIT))
+            else:
+                # --- SHORT trailing stop ---
+                # For shorts, track lowest close and move SL downward (min, not max)
+                if close_price < pos.lowest_close:
+                    pos.lowest_close = close_price
+
+                if atr > 0:
+                    profit_from_entry = pos.entry_price - pos.lowest_close
+
+                    # Tier 0: Breakeven — move SL down to entry price
+                    if profit_from_entry > self.config.trailing_breakeven_atr * atr:
+                        pos.stop_loss = min(pos.stop_loss, pos.entry_price)
+                    # Tier 1: Lock profit — SL below entry
+                    if profit_from_entry > self.config.trailing_lock_atr * atr:
+                        lock_stop = pos.entry_price - (atr * self.config.trailing_lock_cushion_atr)
+                        pos.stop_loss = min(pos.stop_loss, lock_stop)
+                    # Tier 2: Trail — follow lowest close upward at distance
+                    if profit_from_entry > self.config.trailing_trail_threshold_atr * atr:
+                        trailing_stop = pos.lowest_close + (atr * self.config.trailing_trail_distance_atr)
+                        pos.stop_loss = min(pos.stop_loss, trailing_stop)
+                    # Tier 3: Tight trail
+                    if profit_from_entry > self.config.trailing_tight_threshold_atr * atr:
+                        tight_stop = pos.lowest_close + (atr * self.config.trailing_tight_distance_atr)
+                        pos.stop_loss = min(pos.stop_loss, tight_stop)
+
+                # Short exit checks (inverted: SL above entry, TP below entry)
+                if high >= pos.stop_loss:
+                    to_close.append((symbol, pos.stop_loss, CloseReason.STOP_LOSS))
+                elif low <= pos.take_profit:
+                    to_close.append((symbol, pos.take_profit, CloseReason.TAKE_PROFIT))
 
         for symbol, exit_price, reason in to_close:
             pos = self._positions[symbol]
-            proceeds = pos.shares * exit_price - (pos.shares * self.config.commission_per_share)
-            self._cash += proceeds
+            commission = pos.shares * self.config.commission_per_share
+            if pos.direction == 1:
+                # Close long: sell shares → receive cash
+                self._cash += pos.shares * exit_price - commission
+            else:
+                # Close short: buy back shares → spend cash
+                self._cash -= pos.shares * exit_price + commission
             self._record_trade(pos, exit_price, date_str, reason)
             del self._positions[symbol]
             logger.debug(
                 "position_closed",
                 symbol=symbol,
                 reason=reason.value,
+                direction=pos.direction,
                 exit_price=round(exit_price, 2),
             )
             # 15-min mean reversion: apply per-symbol cooldown after stop loss
-            # Prevents re-entering falling knives immediately after being stopped out
             if self._is_fifteen_min and reason == CloseReason.STOP_LOSS:
                 cooldown_periods = self._periods.get("symbol_cooldown_bars", 13)
                 self._symbol_stop_cooldown[symbol] = self._bar_count + cooldown_periods
+
+    # ------------------------------------------------------------------
+    # Slope exit (mirrors live signal_generator.py slope reversal + adverse exit)
+    # ------------------------------------------------------------------
+
+    def _check_slope_exits(
+        self, data: dict[str, pd.DataFrame], current_date, date_str: str
+    ) -> None:
+        """Check slope direction for open positions — close on adverse slope.
+
+        Mirrors the live exit logic from signal_generator.py:
+        Long positions:
+          1. Slope reversal: positive → negative → SELL (SLOPE_EXIT)
+          2. Adverse slope: negative without reversal → SELL (ADVERSE_SLOPE_EXIT)
+        Short positions:
+          1. Slope reversal: negative → positive → COVER (SLOPE_EXIT)
+          2. Adverse slope: positive without reversal → COVER (ADVERSE_SLOPE_EXIT)
+        """
+        if not self.config.slope_exit_enabled or not self._positions:
+            return
+
+        lookback = self.config.slope_exit_lookback_bars
+        threshold = self.config.slope_exit_threshold_pct
+
+        to_exit: list[tuple[str, TradeAction, CloseReason]] = []
+
+        for symbol, pos in self._positions.items():
+            if symbol not in data:
+                continue
+            df = data[symbol]
+            mask = df.index <= current_date
+            df_slice = df[mask]
+
+            if len(df_slice) < lookback * 2:
+                continue
+
+            close = df_slice["close"]
+            current_price = float(close.iloc[-1])
+            if current_price <= 0:
+                continue
+
+            # Current slope (OLS linear regression — same math as analyze_slope_volume)
+            y_curr = close.tail(lookback).values
+            x_curr = np.arange(len(y_curr), dtype=float)
+            x_mean_c, y_mean_c = x_curr.mean(), y_curr.mean()
+            denom_c = float(np.sum((x_curr - x_mean_c) ** 2))
+            if denom_c == 0:
+                continue
+            slope_raw = float(
+                np.sum((x_curr - x_mean_c) * (y_curr - y_mean_c)) / denom_c
+            )
+            slope_pct = (slope_raw / current_price) * 100
+
+            # Previous slope (for reversal detection)
+            y_prev = close.iloc[-(lookback * 2):-lookback].values
+            x_prev = np.arange(len(y_prev), dtype=float)
+            x_mean_p, y_mean_p = x_prev.mean(), y_prev.mean()
+            denom_p = float(np.sum((x_prev - x_mean_p) ** 2))
+            if denom_p == 0:
+                continue
+            slope_prev_raw = float(
+                np.sum((x_prev - x_mean_p) * (y_prev - y_mean_p)) / denom_p
+            )
+            slope_prev_pct = (slope_prev_raw / current_price) * 100
+
+            if pos.direction == 1:
+                # Long position: exit if slope is adverse (negative)
+                if slope_prev_pct > 0 and slope_pct < -threshold:
+                    to_exit.append((symbol, TradeAction.SELL, CloseReason.SLOPE_EXIT))
+                elif slope_pct < -threshold:
+                    to_exit.append((symbol, TradeAction.SELL, CloseReason.ADVERSE_SLOPE_EXIT))
+            else:
+                # Short position: exit if slope is adverse (positive)
+                if slope_prev_pct < 0 and slope_pct > threshold:
+                    to_exit.append((symbol, TradeAction.COVER, CloseReason.SLOPE_EXIT))
+                elif slope_pct > threshold:
+                    to_exit.append((symbol, TradeAction.COVER, CloseReason.ADVERSE_SLOPE_EXIT))
+
+        # Queue exit orders (filled next bar at open)
+        for symbol, action, reason in to_exit:
+            pos = self._positions[symbol]
+            self._pending_orders.append(
+                PendingOrder(
+                    symbol=symbol,
+                    action=action,
+                    shares=pos.shares,
+                    stop_loss=0,
+                    take_profit=0,
+                    signal_score=0,
+                    signal_confidence=0,
+                    close_reason=reason,
+                )
+            )
+            logger.debug(
+                "slope_exit_queued",
+                symbol=symbol,
+                action=action.value,
+                reason=reason.value,
+                direction=pos.direction,
+                date=date_str,
+            )
 
     # ------------------------------------------------------------------
     # Signal exit (MACD bearish crossover on open positions)
@@ -992,8 +1357,9 @@ class BacktestEngine:
             return  # At capacity
 
         # Macro filter: skip if SPY is below its SMA medium
+        # (disabled for noise_boundary — NB can go short in downtrends)
         sma_medium_period = self._periods["sma_medium"]
-        if self.config.trend_filter and "SPY" in data:
+        if self.config.trend_filter and self.config.strategy != "noise_boundary" and "SPY" in data:
             spy_df = data["SPY"]
             spy_mask = spy_df.index <= current_date
             spy_slice = spy_df[spy_mask]
@@ -1022,7 +1388,70 @@ class BacktestEngine:
                 continue  # Not enough history for indicators
 
             # Analyze stock — route to appropriate strategy
-            if self.config.strategy == "mean_reversion_v3":
+            if self.config.strategy == "noise_boundary":
+                # NB VIX regime filter: skip entries when VIX < threshold (low vol = no momentum edge)
+                if self.config.nb_vix_filter:
+                    vix_val = self._get_vix_for_date(current_date)
+                    if vix_val is not None and vix_val < self.config.nb_vix_threshold:
+                        continue  # Low vol regime — skip momentum entries
+
+                # NB time filter: only trade during regular market hours
+                # US market: 9:30-16:00 ET = 14:30-21:00 UTC (EST) / 13:30-20:00 (EDT)
+                # Conservative: 14:00 to nb_last_entry_utc (default 19 = 3PM ET)
+                # This avoids late entries that get force-closed at EOD (20:00 UTC)
+                try:
+                    _ts = (
+                        current_date.tz_convert("UTC")
+                        if getattr(current_date, "tzinfo", None) is not None
+                        else current_date
+                    )
+                    if hasattr(_ts, "hour") and (
+                        _ts.hour >= self.config.nb_last_entry_utc or _ts.hour < 14
+                    ):
+                        continue  # Outside entry window
+                except Exception:
+                    pass
+
+                # Noise Boundary Momentum: only check at 30-min checkpoints
+                nb_df = self._nb_data.get(symbol)
+                if nb_df is None or current_date not in nb_df.index:
+                    continue
+                nb_row = nb_df.loc[current_date]
+                if isinstance(nb_row, pd.DataFrame):
+                    nb_row = nb_row.iloc[0]
+                if not bool(nb_row.get("is_checkpoint", False)):
+                    continue
+
+                nb_sig = int(nb_row.get("nb_signal", 0))
+                if nb_sig == 0:
+                    continue
+
+                close_price = float(nb_row["close"])
+                atr_val = float(nb_row.get("atr", 0))
+                if atr_val <= 0 or np.isnan(atr_val):
+                    continue
+
+                safety_sl = self.config.nb_safety_sl_atr
+                if nb_sig == 1:
+                    action_str = "BUY"
+                    sl = close_price - safety_sl * atr_val
+                    tp = close_price + 100 * atr_val  # effectively no TP
+                else:
+                    action_str = "SHORT"
+                    sl = close_price + safety_sl * atr_val
+                    tp = close_price - 100 * atr_val
+
+                signal = SignalResult(
+                    symbol=symbol,
+                    action=action_str,
+                    score=0.7,
+                    confidence=0.7,
+                    entry_price=close_price,
+                    stop_loss=round(sl, 4),
+                    take_profit=round(tp, 4),
+                )
+
+            elif self.config.strategy == "mean_reversion_v3":
                 # v3: dual-timeframe — slice daily data up to current date
                 daily_slice = None
                 if self._daily_data and symbol in self._daily_data:
@@ -1048,6 +1477,23 @@ class BacktestEngine:
                     daily_slice,
                     self.config.signal,
                     self.config,
+                )
+            elif self._is_five_min or self.config.strategy == "slope_volume":
+                signal = analyze_stock_slope_volume(
+                    symbol,
+                    df_slice,
+                    lookback_bars=self.config.slope_lookback_bars,
+                    slope_threshold_pct=self.config.slope_threshold_pct,
+                    volume_multiplier=self.config.slope_volume_multiplier,
+                    volume_ma_period=self.config.slope_volume_ma_period,
+                    stop_loss_atr=self.config.stop_loss_atr,
+                    take_profit_atr=self.config.take_profit_atr,
+                    acceleration_bars=self.config.slope_acceleration_bars,
+                    min_acceleration_pct=self.config.slope_min_acceleration_pct,
+                    volume_trend_bars=self.config.slope_volume_trend_bars,
+                    persistence_bars=self.config.slope_persistence_bars,
+                    contrarian=self.config.slope_contrarian,
+                    anticipatory=self.config.slope_anticipatory,
                 )
             elif self._is_fifteen_min or self.config.strategy == "mean_reversion":
                 signal = analyze_stock_mean_reversion(
@@ -1077,26 +1523,55 @@ class BacktestEngine:
 
             self._signals_generated += 1
 
-            # Only take BUY signals (long-only strategy for now)
-            if signal.action != "BUY":
-                continue
+            # Determine trade action from signal
+            # Bidirectional strategies: slope_volume + noise_boundary can go long and short
+            is_bidirectional = self._is_five_min or self.config.strategy in ("slope_volume", "noise_boundary")
+            if signal.action == "BUY":
+                trade_action = TradeAction.BUY
+            elif signal.action == "SHORT" and is_bidirectional:
+                trade_action = TradeAction.SHORT
+            else:
+                continue  # Non-bidirectional strategies: long-only
 
-            # Position sizing: risk max_loss_per_trade_pct of portfolio
+            # Position sizing
             equity = self._calculate_equity(data, current_date)
-            risk_amount = equity * (self.config.max_loss_per_trade_pct / 100)
-            risk_per_share = abs(signal.entry_price - signal.stop_loss)
-
-            if risk_per_share <= 0:
-                continue
-
-            shares = int(risk_amount / risk_per_share)
-
-            # Cap by max position size
             max_position_value = equity * (self.config.max_position_pct / 100)
-            max_shares_by_value = int(max_position_value / signal.entry_price)
-            shares = min(shares, max_shares_by_value)
 
-            # Cap by available cash
+            if self.config.strategy == "noise_boundary":
+                if self.config.nb_vol_sizing:
+                    # Volatility-targeted sizing (Zarattini paper: target 15% annual vol)
+                    # leverage = target_vol / realized_vol, capped at max_leverage
+                    nb_df = self._nb_data.get(signal.symbol)
+                    realized_vol = None
+                    if nb_df is not None and current_date in nb_df.index:
+                        rv_row = nb_df.loc[current_date]
+                        if isinstance(rv_row, pd.DataFrame):
+                            rv_row = rv_row.iloc[0]
+                        rv = rv_row.get("realized_vol", None)
+                        if rv is not None and not np.isnan(rv) and rv > 0.01:
+                            realized_vol = rv
+                    if realized_vol is not None:
+                        target_vol = self.config.nb_vol_target_pct / 100.0  # e.g. 0.15
+                        leverage = min(target_vol / realized_vol, self.config.nb_vol_max_leverage)
+                        vol_target_value = equity * leverage
+                        shares = int(vol_target_value / signal.entry_price)
+                    else:
+                        # Fallback: fixed allocation if no vol data yet
+                        shares = int(max_position_value / signal.entry_price)
+                else:
+                    # NB: fixed allocation (wide SL is crash protection, not risk control)
+                    shares = int(max_position_value / signal.entry_price)
+            else:
+                # Other strategies: risk-based sizing from SL distance
+                risk_amount = equity * (self.config.max_loss_per_trade_pct / 100)
+                risk_per_share = abs(signal.entry_price - signal.stop_loss)
+                if risk_per_share <= 0:
+                    continue
+                shares = int(risk_amount / risk_per_share)
+                max_shares_by_value = int(max_position_value / signal.entry_price)
+                shares = min(shares, max_shares_by_value)
+
+            # Cap by available cash (for both longs and shorts — margin requirement)
             max_shares_by_cash = int(self._cash / signal.entry_price)
             shares = min(shares, max_shares_by_cash)
 
@@ -1106,7 +1581,7 @@ class BacktestEngine:
             self._pending_orders.append(
                 PendingOrder(
                     symbol=symbol,
-                    action=TradeAction.BUY,
+                    action=trade_action,
                     shares=shares,
                     stop_loss=signal.stop_loss,
                     take_profit=signal.take_profit,
@@ -1148,6 +1623,219 @@ class BacktestEngine:
             positions=len(self._positions),
         )
         self._close_all_positions(data, current_date, date_str, CloseReason.EOD_CLOSE)
+
+    # ------------------------------------------------------------------
+    # Noise Boundary exits (signal change at checkpoint)
+    # ------------------------------------------------------------------
+
+    def _check_nb_exits(
+        self, data: dict[str, pd.DataFrame], current_date, date_str: str
+    ) -> None:
+        """Exit NB positions using one of two modes:
+
+        Mode 1 (default): Signal change at checkpoint — exit when nb_signal flips.
+        Mode 2 (nb_vwap_trailing=True): VWAP trailing stop (Maroy 2025) —
+            Long trailing_stop = max(VWAP, UB). Exit when close < trailing_stop.
+            Short trailing_stop = min(VWAP, LB). Exit when close > trailing_stop.
+            This lets winners run and only exits when price reverts to mean.
+
+        Both modes respect nb_min_hold_bars (minimum hold time before any exit).
+        """
+        if not self._positions:
+            return
+        # NB time filter: skip outside market hours (EOD close handles those)
+        try:
+            _ts = (
+                current_date.tz_convert("UTC")
+                if getattr(current_date, "tzinfo", None) is not None
+                else current_date
+            )
+            if hasattr(_ts, "hour") and (_ts.hour >= 20 or _ts.hour < 14):
+                return
+        except Exception:
+            pass
+
+        to_exit: list[tuple[str, TradeAction, CloseReason]] = []
+        min_hold = self.config.nb_min_hold_bars
+
+        for symbol, pos in self._positions.items():
+            # Minimum hold time check
+            bars_held = self._current_bar_idx - pos.entry_bar_idx
+            if min_hold > 0 and bars_held < min_hold:
+                continue  # Too early to exit
+
+            nb_df = self._nb_data.get(symbol)
+            if nb_df is None or current_date not in nb_df.index:
+                continue
+
+            nb_row = nb_df.loc[current_date]
+            if isinstance(nb_row, pd.DataFrame):
+                nb_row = nb_row.iloc[0]
+
+            if self.config.nb_vwap_trailing:
+                # --- Mode 2: VWAP trailing stop (Maroy 2025) ---
+                # Check EVERY bar (not just checkpoints) for tighter risk control
+                close = float(nb_row.get("close", 0))
+                vwap = float(nb_row.get("vwap", 0))
+                ub = float(nb_row.get("UB", 0))
+                lb = float(nb_row.get("LB", 0))
+
+                if close <= 0 or vwap <= 0:
+                    continue
+
+                if pos.direction == 1:  # Long
+                    # Trailing stop = max(VWAP, UB) — the tighter of the two
+                    trailing_stop = max(vwap, ub) if ub > 0 else vwap
+                    if close < trailing_stop:
+                        to_exit.append((symbol, TradeAction.SELL, CloseReason.VWAP_EXIT))
+                elif pos.direction == -1:  # Short
+                    # Trailing stop = min(VWAP, LB) — the tighter of the two
+                    trailing_stop = min(vwap, lb) if lb > 0 else vwap
+                    if close > trailing_stop:
+                        to_exit.append((symbol, TradeAction.COVER, CloseReason.VWAP_EXIT))
+            else:
+                # --- Mode 1: Signal change at checkpoint (original) ---
+                if not bool(nb_row.get("is_checkpoint", False)):
+                    continue
+
+                nb_sig = int(nb_row.get("nb_signal", 0))
+
+                if pos.direction == 1 and nb_sig != 1:
+                    to_exit.append((symbol, TradeAction.SELL, CloseReason.NB_EXIT))
+                elif pos.direction == -1 and nb_sig != -1:
+                    to_exit.append((symbol, TradeAction.COVER, CloseReason.NB_EXIT))
+
+        for symbol, action, reason in to_exit:
+            pos = self._positions[symbol]
+            self._pending_orders.append(
+                PendingOrder(
+                    symbol=symbol,
+                    action=action,
+                    shares=pos.shares,
+                    stop_loss=0,
+                    take_profit=0,
+                    signal_score=0,
+                    signal_confidence=0,
+                    close_reason=reason,
+                )
+            )
+            logger.debug(
+                "nb_exit_queued",
+                symbol=symbol,
+                action=action.value,
+                reason=reason.value,
+                date=date_str,
+            )
+
+    # ------------------------------------------------------------------
+    # VIX data loading and regime check
+    # ------------------------------------------------------------------
+
+    def _load_vix_data(self) -> None:
+        """Load daily VIX data via yfinance for regime filtering."""
+        try:
+            import yfinance as yf
+        except ImportError:
+            logger.warning("yfinance_not_installed", msg="VIX filter disabled — pip install yfinance")
+            self.config.nb_vix_filter = False
+            return
+
+        try:
+            start_str = str(self.config.start)
+            end_str = str(self.config.end)
+            ticker = yf.Ticker("^VIX")
+            df = ticker.history(start=start_str, end=end_str, interval="1d", auto_adjust=True)
+            if df is not None and len(df) > 0:
+                df.columns = [c.lower() for c in df.columns]
+                df.index.name = "timestamp"
+                self._vix_data = df
+                logger.info("vix_data_loaded", bars=len(df), start=start_str, end=end_str)
+            else:
+                logger.warning("vix_data_empty", msg="VIX filter disabled")
+                self.config.nb_vix_filter = False
+        except Exception as e:
+            logger.error("vix_download_error", error=str(e), msg="VIX filter disabled")
+            self.config.nb_vix_filter = False
+
+    def _get_vix_for_date(self, current_date) -> float | None:
+        """Get the VIX close value for a given date (maps intraday bars to daily VIX)."""
+        if self._vix_data is None or self._vix_data.empty:
+            return None
+        try:
+            day = current_date.date() if hasattr(current_date, "date") else current_date
+            ts_day = pd.Timestamp(day)
+            if self._vix_data.index.tz is not None:
+                ts_day = ts_day.tz_localize(self._vix_data.index.tz)
+            # Find the most recent VIX value on or before this date (no look-ahead)
+            mask = self._vix_data.index.normalize() <= ts_day
+            if mask.any():
+                return float(self._vix_data.loc[mask, "close"].iloc[-1])
+        except Exception:
+            pass
+        return None
+
+    # ------------------------------------------------------------------
+    # VWAP-based exit (Maroy 2025 improvement)
+    # ------------------------------------------------------------------
+
+    def _check_vwap_exits(
+        self, data: dict[str, pd.DataFrame], current_date, date_str: str
+    ) -> None:
+        """Exit NB positions when price crosses VWAP (profit-taking).
+
+        Long: exit if price drops below VWAP (move has reverted to mean)
+        Short: exit if price rises above VWAP (move has reverted to mean)
+        Only exits positions that are in PROFIT (don't use VWAP to cut losses early).
+        """
+        if not self._positions:
+            return
+
+        to_exit: list[tuple[str, TradeAction]] = []
+
+        for symbol, pos in self._positions.items():
+            nb_df = self._nb_data.get(symbol)
+            if nb_df is None or current_date not in nb_df.index:
+                continue
+
+            nb_row = nb_df.loc[current_date]
+            if isinstance(nb_row, pd.DataFrame):
+                nb_row = nb_row.iloc[0]
+
+            vwap = float(nb_row.get("vwap", 0))
+            close = float(nb_row.get("close", 0))
+            if vwap <= 0 or close <= 0:
+                continue
+
+            # Only take profit via VWAP — position must be in profit
+            if pos.direction == 1:  # Long
+                if close > pos.entry_price and close < vwap:
+                    # Price was above entry (in profit) but dropped below VWAP — take profit
+                    to_exit.append((symbol, TradeAction.SELL))
+            elif pos.direction == -1:  # Short
+                if close < pos.entry_price and close > vwap:
+                    # Price was below entry (in profit) but rose above VWAP — take profit
+                    to_exit.append((symbol, TradeAction.COVER))
+
+        for symbol, action in to_exit:
+            pos = self._positions[symbol]
+            self._pending_orders.append(
+                PendingOrder(
+                    symbol=symbol,
+                    action=action,
+                    shares=pos.shares,
+                    stop_loss=0,
+                    take_profit=0,
+                    signal_score=0,
+                    signal_confidence=0,
+                    close_reason=CloseReason.VWAP_EXIT,
+                )
+            )
+            logger.debug(
+                "vwap_exit_queued",
+                symbol=symbol,
+                action=action.value,
+                date=date_str,
+            )
 
     # ------------------------------------------------------------------
     # Kill switch
@@ -1193,15 +1881,16 @@ class BacktestEngine:
     # ------------------------------------------------------------------
 
     def _calculate_equity(self, data: dict[str, pd.DataFrame], current_date) -> float:
-        """Calculate total portfolio value (cash + positions at current close)."""
+        """Calculate total portfolio value (cash + long positions - short liabilities)."""
         positions_value = 0.0
         for symbol, pos in self._positions.items():
             if symbol in data and current_date in data[symbol].index:
                 price = float(data[symbol].loc[current_date, "close"])
-                positions_value += pos.shares * price
+                # Long: +shares × price. Short: -shares × price (liability).
+                positions_value += pos.direction * pos.shares * price
             else:
-                # Use entry price as fallback
-                positions_value += pos.cost_basis
+                # Fallback: use entry price (net zero for equity impact)
+                positions_value += pos.direction * pos.cost_basis
         return self._cash + positions_value
 
     def _record_equity(
@@ -1212,9 +1901,9 @@ class BacktestEngine:
         for symbol, pos in self._positions.items():
             if symbol in data and current_date in data[symbol].index:
                 price = float(data[symbol].loc[current_date, "close"])
-                positions_value += pos.shares * price
+                positions_value += pos.direction * pos.shares * price
             else:
-                positions_value += pos.cost_basis
+                positions_value += pos.direction * pos.cost_basis
 
         peak = max(e["equity"] for e in self._equity_curve) if self._equity_curve else equity
         peak = max(peak, equity)
@@ -1232,9 +1921,12 @@ class BacktestEngine:
     def _record_trade(
         self, pos: OpenPosition, exit_price: float, exit_date: str, reason: CloseReason
     ) -> None:
-        """Record a completed trade."""
-        pnl = (exit_price - pos.entry_price) * pos.shares
-        pnl_pct = ((exit_price - pos.entry_price) / pos.entry_price) * 100
+        """Record a completed trade. Handles both long and short P&L."""
+        if pos.direction == 1:
+            pnl = (exit_price - pos.entry_price) * pos.shares
+        else:
+            pnl = (pos.entry_price - exit_price) * pos.shares
+        pnl_pct = (pnl / (pos.entry_price * pos.shares)) * 100 if pos.entry_price > 0 else 0.0
 
         # Calculate hold days from date strings
         try:
@@ -1247,7 +1939,7 @@ class BacktestEngine:
         self._trades.append(
             TradeRecord(
                 symbol=pos.symbol,
-                action=TradeAction.BUY,
+                action=TradeAction.BUY if pos.direction == 1 else TradeAction.SHORT,
                 entry_date=pos.entry_date,
                 entry_price=round(pos.entry_price, 2),
                 exit_date=exit_date,
@@ -1267,7 +1959,7 @@ class BacktestEngine:
     def _close_all_positions(
         self, data: dict[str, pd.DataFrame], current_date, date_str: str, reason: CloseReason
     ) -> None:
-        """Close all open positions."""
+        """Close all open positions (both long and short)."""
         for symbol in list(self._positions.keys()):
             pos = self._positions[symbol]
             if symbol in data and current_date in data[symbol].index:
@@ -1275,8 +1967,12 @@ class BacktestEngine:
             else:
                 exit_price = pos.entry_price
 
-            proceeds = pos.shares * exit_price
-            self._cash += proceeds
+            if pos.direction == 1:
+                # Close long: sell shares → receive cash
+                self._cash += pos.shares * exit_price
+            else:
+                # Close short: buy back shares → spend cash
+                self._cash -= pos.shares * exit_price
             self._record_trade(pos, exit_price, date_str, reason)
             del self._positions[symbol]
 

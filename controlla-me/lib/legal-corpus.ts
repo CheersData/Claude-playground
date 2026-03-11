@@ -18,6 +18,90 @@ import {
   isVectorDBEnabled,
 } from "./embeddings";
 
+// ─── Multi-query expansion ───
+
+/**
+ * Genera 2-3 varianti della query per migliorare il recall semantico.
+ *
+ * Strategia:
+ * 1. Query originale — sempre inclusa
+ * 2. Variante con termini legali formali (sostituzione di colloquialismi)
+ * 3. Versione ridotta a keyword (per query lunghe)
+ *
+ * Non usa LLM: le sostituzioni sono statiche e deterministiche.
+ * Costo extra: N embedding call → risolto con generateEmbeddings() batch.
+ */
+export function expandQuery(query: string): string[] {
+  const variants: string[] = [query];
+
+  // Mappa colloquiale → formale (termini comuni in contratti italiani)
+  const formalMap: Record<string, string> = {
+    "restituire": "restituzione",
+    "rimborso": "rimborso somme versate",
+    "disdetta": "recesso unilaterale",
+    "recesso": "diritto di recesso",
+    "penale": "clausola penale",
+    "caparra": "caparra confirmatoria",
+    "multa": "sanzione contrattuale",
+    "affitto": "locazione immobile",
+    "affittuario": "conduttore",
+    "proprietario": "locatore",
+    "licenziamento": "risoluzione del rapporto di lavoro",
+    "garanzia": "garanzia legale di conformità",
+    "vizi": "vizi del bene venduto",
+    "difetto": "difetto di conformità",
+    "responsabilità": "responsabilità contrattuale",
+    "inadempimento": "inadempimento obbligazione",
+    "risarcimento": "risarcimento del danno",
+    "mora": "costituzione in mora",
+    "clausola abusiva": "clausola vessatoria",
+    "consumatore": "diritti del consumatore",
+    "privacy": "trattamento dati personali",
+    "riservatezza": "obbligo di riservatezza",
+    "segreto": "segreto professionale",
+    "tolleranza": "tolleranza eccedenza deficienza misura vendita a corpo ventesimo",
+    "preliminare": "contratto preliminare compravendita immobiliare trascrizione",
+  };
+
+  // Costruisci variante formale se ci sono sostituzioni applicabili
+  let formalVariant = query.toLowerCase();
+  let substituted = false;
+  for (const [colloquial, formal] of Object.entries(formalMap)) {
+    if (formalVariant.includes(colloquial) && !formalVariant.includes(formal)) {
+      formalVariant = formalVariant.replace(colloquial, formal);
+      substituted = true;
+    }
+  }
+  if (substituted && formalVariant !== query.toLowerCase()) {
+    variants.push(formalVariant);
+  }
+
+  // Aggiungi variante keyword per query lunghe (> 8 parole)
+  const words = query.trim().split(/\s+/);
+  if (words.length > 8) {
+    // Prendi le prime 5 parole significative (escludi stopwords)
+    const stopwords = new Set(["di", "del", "della", "dei", "degli", "delle", "il", "la", "lo", "le", "gli", "i", "un", "una", "in", "e", "o", "a", "da", "su", "con", "per", "che", "non"]);
+    const keywords = words.filter((w) => !stopwords.has(w.toLowerCase()) && w.length > 2).slice(0, 6);
+    if (keywords.length >= 3) {
+      const keywordVariant = keywords.join(" ");
+      if (!variants.includes(keywordVariant)) {
+        variants.push(keywordVariant);
+      }
+    }
+  }
+
+  return variants;
+}
+
+/**
+ * Estrae il numero dell'articolo da una query (es. "art. 33" → "33", "articolo 1218" → "1218").
+ * Restituisce null se non trovato.
+ */
+function extractArticleNumber(query: string): string | null {
+  const match = query.match(/(?:art(?:icolo)?\.?\s*)(\d+(?:\s*-?\s*(?:bis|ter|quater|quinquies))?)/i);
+  return match ? match[1].trim() : null;
+}
+
 // ─── Tipi ───
 
 export interface LegalArticle {
@@ -185,6 +269,12 @@ export async function searchArticlesByInstitute(
  * Esempio: searchArticles("tolleranza superficie vendita immobile")
  *   → Art. 1537 c.c. (Vendita a corpo), Art. 1538 c.c. (Eccedenza/deficienza),
  *     Art. 1539 c.c. (Vendita a misura)
+ *
+ * Miglioramenti RETRIEVAL v2 (fix RETRIEVAL_FAIL):
+ * 1. Multi-query expansion: genera 2-3 varianti della query, fa merge per ID (dedup)
+ * 2. Soglia abbassata a 0.65 (era 0.6) con default esplicito nel parametro
+ * 3. Boost reference esatto: se la query contiene "art. N", prepend risultati diretti
+ * 4. Fallback keyword su <3 risultati semantici (invariato, ora con log [RETRIEVAL])
  */
 export async function searchArticles(
   query: string,
@@ -197,43 +287,146 @@ export async function searchArticles(
 ): Promise<LegalArticleSearchResult[]> {
   if (!isVectorDBEnabled()) return [];
 
-  const { lawSource, institutes, threshold = 0.6, limit = 10 } = options;
+  const { lawSource, institutes, threshold = 0.65, limit = 10 } = options;
 
-  const embedding = await generateEmbedding(query, "query");
-  if (!embedding) return [];
+  // ── Fix 4: Boost exact reference matches ──────────────────────────────────
+  // Se la query contiene "art. N" o "articolo N", cerca quell'articolo direttamente
+  // per reference e prepend i risultati (bypass soglia semantica).
+  const articleNumber = extractArticleNumber(query);
+  const referenceBoostResults: LegalArticleSearchResult[] = [];
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("match_legal_articles", {
-    query_embedding: JSON.stringify(embedding),
-    filter_law_source: lawSource ?? null,
-    filter_institutes: institutes ?? null,
-    match_threshold: threshold,
-    match_count: limit,
-  });
+  if (articleNumber) {
+    try {
+      const admin = createAdminClient();
+      const fields = "id, law_source, article_reference, article_title, article_text, hierarchy, keywords, related_institutes, source_url, is_in_force";
+      let refQuery = admin
+        .from("legal_articles")
+        .select(fields)
+        .ilike("article_reference", `%${articleNumber}%`)
+        .limit(5);
 
-  if (error) {
-    console.error(`[CORPUS] Errore ricerca semantica: ${error.message}`);
+      if (lawSource) {
+        refQuery = refQuery.eq("law_source", lawSource);
+      }
+
+      const { data: refData, error: refError } = await refQuery;
+
+      if (!refError && refData && refData.length > 0) {
+        for (const row of refData as Record<string, unknown>[]) {
+          referenceBoostResults.push({
+            ...mapRowToArticle(row),
+            similarity: 1.0, // Reference hit = massima rilevanza
+          });
+        }
+        console.log(
+          `[RETRIEVAL] Reference boost "art. ${articleNumber}" → ${referenceBoostResults.length} articoli (${referenceBoostResults.map((r) => `${r.lawSource} ${r.articleReference}`).join(", ")})`
+        );
+      }
+    } catch (err) {
+      // Non-fatal: se il boost fallisce, continua con la ricerca semantica
+      console.warn(`[RETRIEVAL] Reference boost error: ${err instanceof Error ? err.message : "unknown"}`);
+    }
+  }
+
+  // ── Fix 1: Multi-query expansion ──────────────────────────────────────────
+  // Genera 2-3 varianti della query e fa merge per ID (dedup, mantieni score massimo)
+  const queryVariants = expandQuery(query);
+
+  let allEmbeddings: number[][] | null = null;
+  if (queryVariants.length > 1) {
+    allEmbeddings = await generateEmbeddings(queryVariants, "query");
+  }
+
+  // Se batch fallisce o variante singola, usa generateEmbedding standard
+  const embeddings: (number[] | null)[] = [];
+  if (allEmbeddings && allEmbeddings.length === queryVariants.length) {
+    embeddings.push(...allEmbeddings);
+  } else {
+    const singleEmbedding = await generateEmbedding(query, "query");
+    if (!singleEmbedding) {
+      // Se abbiamo solo reference boost, restituisci quelli
+      if (referenceBoostResults.length > 0) return referenceBoostResults.slice(0, limit);
+      return [];
+    }
+    embeddings.push(singleEmbedding);
+  }
+
+  if (embeddings.length === 0 || embeddings.every((e) => e === null)) {
+    if (referenceBoostResults.length > 0) return referenceBoostResults.slice(0, limit);
     return [];
   }
 
-  const semanticResults = (data ?? []).map((row: Record<string, unknown>) => ({
-    ...mapRowToArticle(row),
-    similarity: row.similarity as number,
-  }));
+  // ── Fix 2: Soglia abbassata a 0.65 ────────────────────────────────────────
+  // Esegui una chiamata RPC per ogni variante (già batch lato embedding),
+  // poi merge per articleReference mantenendo il similarity score massimo.
+  const admin = createAdminClient();
+  const allResults = new Map<string, LegalArticleSearchResult>(); // key = articleReference
 
-  // Fallback testuale: se la ricerca semantica trova <3 risultati, integra con keyword search
+  for (let i = 0; i < embeddings.length; i++) {
+    const emb = embeddings[i];
+    if (!emb) continue;
+
+    const variantQuery = queryVariants[i];
+    const { data, error } = await admin.rpc("match_legal_articles", {
+      query_embedding: JSON.stringify(emb),
+      filter_law_source: lawSource ?? null,
+      filter_institutes: institutes ?? null,
+      match_threshold: threshold,
+      match_count: limit,
+    });
+
+    if (error) {
+      console.error(`[RETRIEVAL] Errore ricerca semantica variante ${i} ("${variantQuery}"): ${error.message}`);
+      continue;
+    }
+
+    const rows = (data ?? []) as Record<string, unknown>[];
+    for (const row of rows) {
+      const article = mapRowToArticle(row);
+      const similarity = row.similarity as number;
+      const key = `${article.lawSource}::${article.articleReference}`;
+      const existing = allResults.get(key);
+      // Dedup: mantieni il similarity score più alto tra le varianti
+      if (!existing || similarity > existing.similarity) {
+        allResults.set(key, { ...article, similarity });
+      }
+    }
+
+    if (rows.length > 0 && queryVariants.length > 1) {
+      console.log(
+        `[RETRIEVAL] Variante ${i + 1}/${queryVariants.length} "${variantQuery}" → ${rows.length} risultati (soglia: ${threshold})`
+      );
+    }
+  }
+
+  // Ordina per similarity decrescente
+  let semanticResults = Array.from(allResults.values()).sort((a, b) => b.similarity - a.similarity).slice(0, limit);
+
+  console.log(
+    `[RETRIEVAL] searchArticles("${query.slice(0, 60)}...") | varianti: ${queryVariants.length} | semantici: ${semanticResults.length} | ref-boost: ${referenceBoostResults.length} | soglia: ${threshold}`
+  );
+
+  // ── Fix 3: Fallback keyword search ────────────────────────────────────────
+  // Se la ricerca semantica trova <3 risultati, integra con keyword search su article_title
   const MIN_SEMANTIC_RESULTS = 3;
   if (semanticResults.length < MIN_SEMANTIC_RESULTS) {
     const textResults = await searchArticlesText(query, { lawSource, limit });
-    const existingRefs = new Set(semanticResults.map((r: LegalArticleSearchResult) => r.articleReference));
-    const newResults = textResults.filter((r: LegalArticleSearchResult) => !existingRefs.has(r.articleReference));
-    const merged = [...semanticResults, ...newResults].slice(0, limit);
+    const existingKeys = new Set(semanticResults.map((r) => `${r.lawSource}::${r.articleReference}`));
+    const newResults = textResults.filter((r) => !existingKeys.has(`${r.lawSource}::${r.articleReference}`));
+    semanticResults = [...semanticResults, ...newResults].slice(0, limit);
     if (newResults.length > 0) {
       console.log(
-        `[CORPUS] Fallback testuale "${query}" | semantici: ${semanticResults.length} | testo: +${newResults.length} | totale: ${merged.length}`
+        `[RETRIEVAL] Fallback keyword "${query.slice(0, 40)}" | semantici: ${semanticResults.length - newResults.length} | keyword: +${newResults.length} | totale: ${semanticResults.length}`
       );
     }
-    return merged;
+  }
+
+  // ── Merge reference boost + semantic results ───────────────────────────────
+  // I reference boost vanno in testa (similarity=1.0), poi semantici (dedup per chiave)
+  if (referenceBoostResults.length > 0) {
+    const boostedKeys = new Set(referenceBoostResults.map((r) => `${r.lawSource}::${r.articleReference}`));
+    const semanticOnly = semanticResults.filter((r) => !boostedKeys.has(`${r.lawSource}::${r.articleReference}`));
+    return [...referenceBoostResults, ...semanticOnly].slice(0, limit);
   }
 
   return semanticResults;

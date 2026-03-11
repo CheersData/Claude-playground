@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import structlog
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest
-from alpaca.data.timeframe import TimeFrame
+from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest, StockLatestQuoteRequest
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
 from alpaca.trading.requests import (
@@ -24,6 +24,7 @@ from alpaca.trading.requests import (
 )
 from datetime import datetime, timedelta
 import time
+from typing import Literal
 
 import pandas as pd
 
@@ -59,12 +60,46 @@ def _retry_on_rate_limit(func, max_retries=3, wait_seconds=30):
 class AlpacaClient:
     """Unified Alpaca client for trading + market data."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: Literal["slope", "conventional", "crypto"] = "slope") -> None:
         settings = get_settings()
-        self._api_key = settings.alpaca.api_key
-        self._secret_key = settings.alpaca.secret_key
-        self._base_url = settings.alpaca.base_url
-        self._is_paper = settings.alpaca.is_paper
+
+        if account_type == "conventional":
+            conv = settings.alpaca_conventional
+            if conv.is_configured:
+                self._api_key = conv.api_key
+                self._secret_key = conv.secret_key
+                self._base_url = conv.base_url
+                self._is_paper = conv.is_paper
+            else:
+                logger.warning(
+                    "alpaca_conventional_not_configured",
+                    reason="ALPACA_CONV_API_KEY/ALPACA_CONV_SECRET_KEY missing — falling back to slope account",
+                )
+                self._api_key = settings.alpaca.api_key
+                self._secret_key = settings.alpaca.secret_key
+                self._base_url = settings.alpaca.base_url
+                self._is_paper = settings.alpaca.is_paper
+        elif account_type == "crypto":
+            crypto = settings.alpaca_crypto
+            if crypto.is_configured:
+                self._api_key = crypto.api_key
+                self._secret_key = crypto.secret_key
+                self._base_url = crypto.base_url
+                self._is_paper = crypto.is_paper
+            else:
+                logger.warning(
+                    "alpaca_crypto_not_configured",
+                    reason="ALPACA_CRYPTO_API_KEY/ALPACA_CRYPTO_SECRET_KEY missing — falling back to slope account",
+                )
+                self._api_key = settings.alpaca.api_key
+                self._secret_key = settings.alpaca.secret_key
+                self._base_url = settings.alpaca.base_url
+                self._is_paper = settings.alpaca.is_paper
+        else:
+            self._api_key = settings.alpaca.api_key
+            self._secret_key = settings.alpaca.secret_key
+            self._base_url = settings.alpaca.base_url
+            self._is_paper = settings.alpaca.is_paper
 
         # Trading client
         self._trading = TradingClient(
@@ -81,6 +116,7 @@ class AlpacaClient:
 
         logger.info(
             "alpaca_client_init",
+            account_type=account_type,
             paper=self._is_paper,
             base_url=self._base_url,
         )
@@ -251,7 +287,7 @@ class AlpacaClient:
             tf = TimeFrame.Hour
         elif timeframe.endswith("Min") or timeframe.endswith("min"):
             minutes = int(timeframe.replace("Min", "").replace("min", ""))
-            tf = TimeFrame.Minute(minutes)
+            tf = TimeFrame(minutes, TimeFrameUnit.Minute)
         else:
             tf = TimeFrame.Day
         start = datetime.utcnow() - timedelta(days=days_back)
@@ -311,6 +347,28 @@ class AlpacaClient:
             for symbol, bar in bars.items()
         }
 
+    def get_latest_quote(self, symbols: list[str]) -> dict[str, dict]:
+        """Get latest bid/ask quote for symbols. Available pre-market unlike bars."""
+        request = StockLatestQuoteRequest(symbol_or_symbols=symbols)
+        quotes = self._data.get_stock_latest_quote(request)
+
+        result: dict[str, dict] = {}
+        for symbol, quote in quotes.items():
+            bid = float(quote.bid_price) if quote.bid_price else 0
+            ask = float(quote.ask_price) if quote.ask_price else 0
+            if bid > 0 and ask > 0:
+                result[symbol] = {
+                    "mid": round((bid + ask) / 2, 4),
+                    "bid": bid,
+                    "ask": ask,
+                    "timestamp": str(quote.timestamp),
+                }
+            elif ask > 0:
+                result[symbol] = {"mid": ask, "bid": 0, "ask": ask, "timestamp": str(quote.timestamp)}
+            elif bid > 0:
+                result[symbol] = {"mid": bid, "bid": bid, "ask": 0, "timestamp": str(quote.timestamp)}
+        return result
+
     def get_latest_bars(
         self,
         symbol: str,
@@ -336,7 +394,7 @@ class AlpacaClient:
         """
         if timeframe.endswith("Min") or timeframe.endswith("min"):
             minutes = int(timeframe.replace("Min", "").replace("min", ""))
-            tf = TimeFrame.Minute(minutes)
+            tf = TimeFrame(minutes, TimeFrameUnit.Minute)
         elif timeframe == "1Hour":
             tf = TimeFrame.Hour
         else:

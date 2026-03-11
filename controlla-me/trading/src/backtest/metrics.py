@@ -67,6 +67,13 @@ class PerformanceMetrics:
     stop_loss_count: int
     take_profit_count: int
     signal_exit_count: int
+    slope_exit_count: int
+    adverse_slope_exit_count: int
+    nb_exit_count: int
+    vwap_exit_count: int
+    eod_close_count: int
+    end_of_backtest_count: int
+    kill_switch_exit_count: int
 
     # Go/no-go
     go_nogo: dict
@@ -224,6 +231,13 @@ def calculate_metrics(result) -> PerformanceMetrics:
     stop_loss_count = sum(1 for t in trades if t.close_reason == "stop_loss")
     take_profit_count = sum(1 for t in trades if t.close_reason == "take_profit")
     signal_exit_count = sum(1 for t in trades if t.close_reason == "signal_exit")
+    slope_exit_count = sum(1 for t in trades if t.close_reason == "slope_exit")
+    adverse_slope_exit_count = sum(1 for t in trades if t.close_reason == "adverse_slope_exit")
+    nb_exit_count = sum(1 for t in trades if t.close_reason == "nb_exit")
+    vwap_exit_count = sum(1 for t in trades if t.close_reason == "vwap_exit")
+    eod_close_count = sum(1 for t in trades if t.close_reason == "eod_close")
+    end_of_backtest_count = sum(1 for t in trades if t.close_reason == "end_of_backtest")
+    kill_switch_exit_count = sum(1 for t in trades if t.close_reason == "kill_switch")
 
     # --- Go/No-Go check ---
     go_nogo = _check_go_nogo(
@@ -262,6 +276,13 @@ def calculate_metrics(result) -> PerformanceMetrics:
         stop_loss_count=stop_loss_count,
         take_profit_count=take_profit_count,
         signal_exit_count=signal_exit_count,
+        slope_exit_count=slope_exit_count,
+        adverse_slope_exit_count=adverse_slope_exit_count,
+        nb_exit_count=nb_exit_count,
+        vwap_exit_count=vwap_exit_count,
+        eod_close_count=eod_close_count,
+        end_of_backtest_count=end_of_backtest_count,
+        kill_switch_exit_count=kill_switch_exit_count,
         go_nogo=go_nogo,
     )
 

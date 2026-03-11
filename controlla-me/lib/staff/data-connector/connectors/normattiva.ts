@@ -50,6 +50,7 @@ const SOURCE_COLLECTION_MAP: Record<string, string> = {
   codice_consumo: "Codici",
   codice_proc_civile: "Codici",
   tu_edilizia: "Testi Unici",
+  tuir: "Testi Unici",          // D.P.R. 917/1986 — codice 086U0917 ("U" = Testo Unico)
   dlgs_231_2001: "Decreti Legislativi",
   dlgs_122_2005: "Decreti Legislativi",
   dlgs_81_2008: "Decreti Legislativi",
@@ -652,9 +653,16 @@ export class NormattivaConnector extends BaseConnector<ParsedArticle> {
     }
 
     const xml = await aknResp.text();
-    if (!xml.trim().startsWith("<") || xml.length < 500) {
+    const trimmed = xml.trim();
+    // Detect HTML error pages (Normattiva restituisce HTML quando l'atto non è supportato)
+    if (
+      !trimmed.startsWith("<") ||
+      xml.length < 500 ||
+      trimmed.toLowerCase().startsWith("<!doctype html") ||
+      trimmed.toLowerCase().startsWith("<html")
+    ) {
       throw new Error(
-        `caricaAKN web risposta non XML (${xml.length} chars): "${xml.slice(0, 200)}"`
+        `caricaAKN web risposta non XML (${xml.length} chars, probabile HTML di errore): "${xml.slice(0, 200)}"`
       );
     }
 

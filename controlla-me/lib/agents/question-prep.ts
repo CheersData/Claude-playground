@@ -81,6 +81,13 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   ensureInstitute(/interpretazion.*contratt|clausol.*contradditt/i, ["interpretazione_contratto"]);
   ensureInstitute(/riqualific.*contratt|qualificazione.*contratt/i, ["contratto", "interpretazione_contratto"]);
 
+  // Vendita immobiliare / tolleranza / vendita a corpo
+  ensureInstitute(/tolleranz.*(?:\d+%|ventesim|misura|corpo|superfici|eccedenz|deficienz)/i, ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"]);
+  ensureInstitute(/tolleranz.*(?:contratt|preliminar|compravendita|immobil)/i, ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"]);
+  ensureInstitute(/vendita.*(?:a corpo|a misura)|(?:a corpo|a misura).*vendita/i, ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"]);
+  ensureInstitute(/eccedenz.*(?:misura|superfici)|deficienz.*(?:misura|superfici)/i, ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"]);
+  ensureInstitute(/ventesimo|un.*ventesimo/i, ["vendita_a_corpo", "vendita_a_misura", "rettifica_prezzo"]);
+
   // Successione / Eredità
   ensureInstitute(/ereditari|eredit[àa]|succession|de cuius|mort[oae].*lasciando|decedut/i, ["successione", "legittima", "divisione_ereditaria"]);
   ensureInstitute(/legittima|quota.*riservat|lesione.*legittima/i, ["legittima", "successione"]);
@@ -117,6 +124,11 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   // 6. Enrich legalQuery for prescrizione (helps vector ranking find Art. 2946)
   if (/prescrizion/i.test(combined) && !/ordinari|decennal/i.test(result.legalQuery)) {
     result.legalQuery += " prescrizione ordinaria termine decennale";
+  }
+
+  // 7. Enrich legalQuery for tolleranza/vendita a corpo (helps vector ranking find Art. 1537-1538)
+  if (/tolleranz/i.test(combined) && !/vendita.*corpo|eccedenz|deficienz|ventesimo/i.test(result.legalQuery)) {
+    result.legalQuery += " vendita a corpo eccedenza deficienza misura ventesimo Art. 1538";
   }
 
   return result;

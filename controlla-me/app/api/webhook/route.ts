@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { profiles } from "@/lib/db";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  // Defense-in-depth: rate limit before heavy processing (Stripe signature is primary auth)
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
+
   if (!stripe) {
     return NextResponse.json(
       { error: "Stripe not configured" },
@@ -32,8 +39,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = createAdminClient();
-
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;
@@ -41,13 +46,10 @@ export async function POST(req: NextRequest) {
       const userId = session.metadata?.user_id;
 
       if (userId) {
-        await supabase
-          .from("profiles")
-          .update({
-            plan: "pro",
-            stripe_customer_id: customerId,
-          })
-          .eq("id", userId);
+        await profiles.updatePlan(userId, "pro", customerId);
+        recordProfileEvent(userId, "plan_changed", { to_plan: "pro", trigger: "checkout" }).catch((err) =>
+          console.error("[CDP] webhook checkout failed:", err)
+        );
       }
       break;
     }
@@ -55,11 +57,20 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
       const customerId = subscription.customer as string;
+      await profiles.downgradeByStripeId(customerId);
 
-      await supabase
+      // Lookup userId from stripeCustomerId for CDP event
+      const admin1 = createAdminClient();
+      const { data: profile1 } = await admin1
         .from("profiles")
-        .update({ plan: "free" })
-        .eq("stripe_customer_id", customerId);
+        .select("id")
+        .eq("stripe_customer_id", customerId)
+        .single();
+      if (profile1?.id) {
+        recordProfileEvent(profile1.id, "plan_changed", { to_plan: "free", trigger: "subscription_deleted" }).catch((err) =>
+          console.error("[CDP] webhook sub_deleted failed:", err)
+        );
+      }
       break;
     }
 
@@ -67,11 +78,21 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object;
       const customerId = subscription.customer as string;
       const isActive = ["active", "trialing"].includes(subscription.status);
+      const newPlan = isActive ? "pro" : "free";
+      await profiles.updatePlanByStripeId(customerId, newPlan);
 
-      await supabase
+      // Lookup userId from stripeCustomerId for CDP event
+      const admin2 = createAdminClient();
+      const { data: profile2 } = await admin2
         .from("profiles")
-        .update({ plan: isActive ? "pro" : "free" })
-        .eq("stripe_customer_id", customerId);
+        .select("id")
+        .eq("stripe_customer_id", customerId)
+        .single();
+      if (profile2?.id) {
+        recordProfileEvent(profile2.id, "plan_changed", { to_plan: newPlan, trigger: "subscription_updated" }).catch((err) =>
+          console.error("[CDP] webhook sub_updated failed:", err)
+        );
+      }
       break;
     }
   }

@@ -1,0 +1,41 @@
+[
+  {
+    "tier": "partner",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 156912,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 35772
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 70509
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 1
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 50630
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata se lasci la casa prima",
+      "Deposito cauzionale troppo alto",
+      "Nessun diritto di recesso per gravi motivi"
+    ]
+  }
+]

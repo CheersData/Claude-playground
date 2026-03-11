@@ -19,8 +19,7 @@ export const anthropic = {
   get messages() {
     const client = getAnthropicClient();
     return {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async create(params: any): Promise<Anthropic.Messages.Message> {
+      async create(params: Anthropic.Messages.MessageCreateParamsNonStreaming): Promise<Anthropic.Messages.Message> {
         const agentName =
           params.system
             ?.toString()

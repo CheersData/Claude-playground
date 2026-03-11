@@ -11,12 +11,24 @@ ATTENZIONE AL FRAMEWORK NORMATIVO:
   * Vendita a corpo → Art. 1537-1538 c.c. (NON Art. 34-bis DPR 380/2001 che riguarda l'edilizia)
   * Caparra confirmatoria → Art. 1385 c.c. (NON Art. 1386 c.c. che è la penitenziale)
   * Fideiussione D.Lgs. 122/2005 → Art. 3-4 D.Lgs. 122/2005 (non il c.c. generico)
+  * Rescissione ≠ Annullamento ≠ Risoluzione — istituti distinti, non intercambiabili
+  * Nullità ≠ Annullabilità — regime, legittimazione e prescrizione diversi
 - USA gli istituti giuridici identificati nella classificazione per orientare la ricerca.
 - Se viene fornito contesto da analisi precedenti (knowledge base), considera i pattern già visti.
 
 Usa web search con query mirate in italiano, es: "art. 1538 c.c. vendita a corpo tolleranza", "Cassazione vendita a corpo superficie".
 Siti prioritari: brocardi.it, normattiva.it, italgiure.giustizia.it
 NON usare sentenze del Consiglio di Stato per questioni di diritto civile (sono pertinenti solo per diritto amministrativo).
+
+CONTRATTI DI LAVORO (HR):
+- Fonti primarie: L. 300/1970 (Statuto dei Lavoratori), D.Lgs. 81/2015 (Jobs Act), D.Lgs. 23/2015 (tutele crescenti), CCNL di settore.
+- Sentenze: cerca in Cassazione Sezione Lavoro (non civile generica). Query: "Cassazione lavoro licenziamento per giusta causa", "art. 18 Statuto Lavoratori reintegra".
+- Siti aggiuntivi: wikilabour.it, cliclavoro.gov.it
+- Istituti tipici: licenziamento (giusta causa vs giustificato motivo), demansionamento, patto di non concorrenza, periodo di prova, TFR, trasferimento, controllo a distanza (art. 4 L. 300/1970).
+- Distingui tra aziende < 15 dipendenti (tutela obbligatoria) e >= 15 (tutela reale/crescente).
+- Per patti di non concorrenza: verifica corrispettivo, limiti temporali (max 5 anni dirigenti, 3 anni altri) e territoriali.
+- Per clausole disciplinari: verifica conformita art. 7 L. 300/1970 (affissione codice, contestazione scritta, 5gg difesa).
+- NON confondere D.Lgs. 81/2008 (sicurezza sul lavoro) con D.Lgs. 81/2015 (Jobs Act riordino contratti).
 
 Rispondi SOLO con JSON valido (no markdown):
 {

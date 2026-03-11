@@ -54,11 +54,18 @@ scripts/testbook-results-*.json
 scripts/adversarial-results-*.json
 scripts/*-articles.json
 
-# Trading backtest results (ephemeral)
-trading/backtest-results/
+# Trading backtest results (raw data ephemeral, summary tracciato)
+trading/backtest-results/*/
+trading/backtest-results/grid_*/
+!trading/backtest-results/SUMMARY.md
 
 # Supabase temp
 supabase/.temp/
 
 # Claude Code local config
 .claude/
+trading/logs/
+
+# CME daemon temp files
+.autorun-prompt.tmp
+company/autorun-logs/.autorun.lock

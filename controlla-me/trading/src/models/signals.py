@@ -16,7 +16,9 @@ class SignalType(StrEnum):
 
 class SignalAction(StrEnum):
     BUY = "BUY"
-    SELL = "SELL"
+    SELL = "SELL"   # Close long position
+    SHORT = "SHORT"  # Open short position (sell without owning)
+    COVER = "COVER"  # Close short position (buy to cover)
     HOLD = "HOLD"
 
 
@@ -48,6 +50,10 @@ class Signal(BaseModel):
     stop_loss: float
     take_profit: float
     rationale: str
+    news_risk: bool = False
+    """True when breaking news was detected at signal generation time (Tiingo News API)."""
+    news_headline: str = ""
+    """Most recent breaking headline if news_risk=True. Empty string otherwise."""
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     @property

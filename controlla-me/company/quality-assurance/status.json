@@ -1,0 +1,107 @@
+{
+  "_meta": {
+    "dept": "quality-assurance",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "cme"
+  },
+  "health": "ok",
+  "summary": "397 test passati, 19 file. Gap API route (vector-search, corpus/ask) chiusi. Coverage stimata ~72% → target 80%.",
+  "coverage": {
+    "overall_pct": 72,
+    "target_pct": 80,
+    "last_run": "2026-03-03T13:44:00.000Z"
+  },
+  "suites": {
+    "ts_unit": {
+      "framework": "vitest@4",
+      "files": [
+        "tests/unit/agent-runner.test.ts",
+        "tests/unit/tiers.test.ts",
+        "tests/unit/console-token.test.ts",
+        "tests/unit/analysis-cache.test.ts",
+        "tests/unit/generate.test.ts",
+        "tests/unit/advisor.test.ts",
+        "tests/unit/analyzer.test.ts",
+        "tests/unit/classifier.test.ts",
+        "tests/unit/investigator.test.ts",
+        "tests/unit/anthropic.test.ts",
+        "tests/unit/orchestrator.test.ts",
+        "tests/unit/extract-text.test.ts",
+        "tests/unit/middleware/auth.test.ts",
+        "tests/unit/middleware/csrf.test.ts",
+        "tests/unit/middleware/sanitize.test.ts",
+        "tests/unit/middleware/rate-limit.test.ts",
+        "tests/integration/analyze-route.test.ts",
+        "tests/integration/vector-search-route.test.ts",
+        "tests/integration/corpus-ask-route.test.ts"
+      ],
+      "total_tests": 397,
+      "passing": 397,
+      "status": "passing"
+    },
+    "ts_e2e": {
+      "framework": "playwright@1.58",
+      "files": [
+        "e2e/auth.spec.ts",
+        "e2e/upload.spec.ts",
+        "e2e/analysis.spec.ts",
+        "e2e/console.spec.ts"
+      ],
+      "total_tests": 7,
+      "passing": null,
+      "status": "configured"
+    },
+    "py_unit": {
+      "framework": "pytest",
+      "files": [
+        "trading/tests/unit/test_models.py",
+        "trading/tests/unit/test_slope_and_trailing.py"
+      ],
+      "total_tests": 34,
+      "passing": 34,
+      "status": "passing"
+    }
+  },
+  "gaps": [
+    {
+      "id": "P1",
+      "file": "lib/ai-sdk/agent-runner.ts",
+      "description": "CHIUSO — tests/unit/agent-runner.test.ts copre fallback chain, retry, 429, skip provider, JSON parse errors (17 test)",
+      "severity": "closed"
+    },
+    {
+      "id": "P2",
+      "file": "lib/tiers.ts",
+      "description": "CHIUSO — tests/unit/tiers.test.ts copre getCurrentTier, getAgentChain, isAgentEnabled, sessionTierStore isolation, TIER_START integrity (50+ test)",
+      "severity": "closed"
+    },
+    {
+      "id": "P3",
+      "file": "lib/middleware/console-token.ts",
+      "description": "CHIUSO — tests/unit/console-token.test.ts copre HMAC-SHA256 token auth",
+      "severity": "closed"
+    },
+    {
+      "id": "P4",
+      "file": "lib/analysis-cache.ts",
+      "description": "CHIUSO — tests/unit/analysis-cache.test.ts copre cache filesystem + RPC Supabase",
+      "severity": "closed"
+    },
+    {
+      "id": "P5",
+      "file": "lib/ai-sdk/generate.ts",
+      "description": "CHIUSO — tests/unit/generate.test.ts copre routing per modelKey e provider",
+      "severity": "closed"
+    },
+    {
+      "id": "E1",
+      "file": "e2e/",
+      "description": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con browser headless",
+      "severity": "medium"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "397 test passanti su 19 file (era 365 su 17). Nuovi test: vector-search-route.test.ts (15 test: auth/CSRF/rate-limit/vectorDB/type filter/error handling) e corpus-ask-route.test.ts (17 test: auth opzionale/validation/providers/error handling). Coverage stimata ~72% — avviciniamo il target 80%. Gap E2E resta (Playwright non CI). Gap residuo: /api/deep-search route non testata."
+}

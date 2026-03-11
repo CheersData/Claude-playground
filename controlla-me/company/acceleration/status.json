@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "dept": "acceleration",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "accelerator"
+  },
+  "health": "ok",
+  "summary": "2 task completati. Tech debt critico risolto (TD-1, TD-2, TD-3). Dipendenze npm pulite (tesseract.js rimosso). Build warnings: 0.",
+  "code_quality": {
+    "dead_dependencies": 0,
+    "unused_files": null,
+    "build_warnings": 0,
+    "eslint_clean": true,
+    "typescript_strict": true
+  },
+  "dept_performance": {
+    "last_audit": null,
+    "cycle_time_target_hours": 48,
+    "blocked_task_rate_target_pct": 10
+  },
+  "resolved_tech_debt": [
+    "TD-1: savePhaseTiming race condition (RPC atomica)",
+    "TD-2: tesseract.js rimosso da dependencies",
+    "TD-3: migration numbering rinumerato 001-015"
+  ],
+  "gaps": [
+    {
+      "id": "ACC-1",
+      "description": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time",
+      "severity": "low"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Dipartimento giovane (2 task storici). Focus: velocita dipartimenti + pulizia codebase."
+}

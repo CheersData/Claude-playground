@@ -41,13 +41,10 @@ export async function runAdvisor(
     result.actions = result.actions.slice(0, 3);
   }
 
-  // Ensure scores field exists with defaults
+  // Ensure scores field exists — log warning if missing instead of masking with uniform values
   if (!result.scores) {
-    result.scores = {
-      legalCompliance: result.fairnessScore,
-      contractBalance: result.fairnessScore,
-      industryPractice: result.fairnessScore,
-    };
+    console.warn(`[ADVISOR] scores object missing from LLM output — returning null (fairnessScore: ${result.fairnessScore})`);
+    result.scores = null;
   }
 
   return result;

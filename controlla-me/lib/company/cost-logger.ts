@@ -138,3 +138,81 @@ export async function getTotalSpend(days = 30): Promise<{
     fallbackRate: fallbacks / data.length,
   };
 }
+
+/**
+ * Get provider health status from recent agent_cost_log entries.
+ * For each provider: last call timestamp, fallback count (last hour), status indicator.
+ */
+export async function getProviderHealth(): Promise<
+  Record<
+    string,
+    {
+      lastCallAt: string | null;
+      recentCalls: number;
+      recentErrors: number;
+      status: "ok" | "degraded" | "error";
+    }
+  >
+> {
+  const admin = createAdminClient();
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await admin
+    .from("agent_cost_log")
+    .select("provider, used_fallback, created_at, duration_ms, total_cost_usd")
+    .gte("created_at", oneHourAgo)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return {};
+
+  const providers: Record<
+    string,
+    {
+      lastCallAt: string | null;
+      recentCalls: number;
+      recentErrors: number;
+      status: "ok" | "degraded" | "error";
+    }
+  > = {};
+
+  for (const row of data) {
+    const provider = row.provider as string;
+    if (!providers[provider]) {
+      providers[provider] = {
+        lastCallAt: null,
+        recentCalls: 0,
+        recentErrors: 0,
+        status: "ok",
+      };
+    }
+    const p = providers[provider];
+    p.recentCalls++;
+
+    // Track last call (data is descending, first seen is most recent)
+    if (!p.lastCallAt) {
+      p.lastCallAt = row.created_at as string;
+    }
+
+    // Count errors: fallback usage or anomalously slow calls (>120s = retry cycles)
+    const isFallback = row.used_fallback as boolean;
+    const isSlow = (row.duration_ms as number) > 120_000;
+    if (isFallback || isSlow) {
+      p.recentErrors++;
+    }
+  }
+
+  // Determine status
+  for (const p of Object.values(providers)) {
+    if (p.recentCalls === 0) {
+      p.status = "ok";
+    } else if (p.recentErrors / p.recentCalls > 0.5) {
+      p.status = "error";
+    } else if (p.recentErrors > 0) {
+      p.status = "degraded";
+    } else {
+      p.status = "ok";
+    }
+  }
+
+  return providers;
+}

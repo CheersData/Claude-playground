@@ -14,6 +14,7 @@ const ReasoningGraph = nextDynamic(() => import("@/components/console/ReasoningG
 const CorpusTreePanel = nextDynamic(() => import("@/components/console/CorpusTreePanel"), { ssr: false });
 const PowerPanel = nextDynamic(() => import("@/components/console/PowerPanel"), { ssr: false });
 const CompanyPanel = nextDynamic(() => import("@/components/console/CompanyPanel"), { ssr: false });
+const ShellPanel = nextDynamic(() => import("@/components/legaloffice/ShellPanel"), { ssr: false });
 import type {
   ConsoleAgentPhase,
   ConsolePhaseStatus,
@@ -28,8 +29,7 @@ export interface AgentStatus {
   status: ConsolePhaseStatus | "idle";
   summary?: string;
   timing?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  output?: any;
+  output?: Record<string, unknown>;
 }
 
 interface ActiveEvent {
@@ -37,8 +37,52 @@ interface ActiveEvent {
   status: ConsolePhaseStatus;
   summary?: string;
   timing?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  output?: any;
+  output?: Record<string, unknown>;
+}
+
+/** Union of all possible SSE event data shapes received by processEvent */
+interface SSEAgentData {
+  phase: ConsoleAgentPhase;
+  status: ConsolePhaseStatus;
+  summary?: string;
+  timing?: number;
+  output?: Record<string, unknown>;
+  decision?: LeaderDecision;
+}
+
+interface SSEClarificationData {
+  question: string;
+}
+
+interface SSECompleteData {
+  route?: string;
+}
+
+interface SSEErrorData {
+  message?: string;
+}
+
+type SSEEventData = SSEAgentData | SSEClarificationData | SSECompleteData | SSEErrorData;
+
+/** Shape of question-prep agent output as sent by the console SSE */
+interface QuestionPrepOutput {
+  originalQuestion: string;
+  legalQuery: string;
+  mechanismQuery: string | null;
+  suggestedInstitutes: string[];
+  targetArticles: string | null;
+  questionType: "specific" | "systematic";
+  needsProceduralLaw: boolean;
+  needsCaseLaw: boolean;
+  scopeNotes: string | null;
+  keywords: string[];
+}
+
+/** Shape of an article as returned by corpus-search SSE output */
+interface CorpusSearchArticle {
+  reference: string;
+  source: string;
+  title?: string;
 }
 
 interface CollectedContext {
@@ -51,6 +95,14 @@ interface AuthUser {
   nome: string;
   cognome: string;
   ruolo: string;
+}
+
+/** Response shape from POST /api/console/auth */
+interface AuthResponse {
+  authorized: boolean;
+  user?: AuthUser;
+  token?: string;
+  message: string;
 }
 
 const AGENT_DISPLAY_NAMES: Record<ConsoleAgentPhase, string> = {
@@ -116,6 +168,7 @@ export default function ConsolePageClient() {
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [powerOpen, setPowerOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
+  const [shellOpen, setShellOpen] = useState(false);
 
   // ── Session persistence ──
   useEffect(() => {
@@ -125,7 +178,7 @@ export default function ConsolePageClient() {
       try {
         // Verifica client-side che il token non sia scaduto (decodifica base64url payload)
         const payloadB64 = token.split(".")[0];
-        const payload = JSON.parse(
+        const payload: { exp: number } = JSON.parse(
           atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/").padEnd(
             payloadB64.length + ((4 - (payloadB64.length % 4)) % 4), "="
           ))
@@ -172,9 +225,9 @@ export default function ConsolePageClient() {
         body: JSON.stringify({ input }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as AuthResponse;
 
-      if (data.authorized) {
+      if (data.authorized && data.user) {
         setAuthUser(data.user);
         setAuthPhase("authenticated");
         setAuthMessage(data.message);
@@ -300,9 +353,9 @@ export default function ConsolePageClient() {
 
               if (eventType && eventData) {
                 try {
-                  const data = JSON.parse(eventData);
-                  if (eventType === "complete" && data.route) {
-                    finalRoute = data.route;
+                  const data = JSON.parse(eventData) as SSEEventData;
+                  if (eventType === "complete" && "route" in data && typeof (data as SSECompleteData).route === "string") {
+                    finalRoute = (data as SSECompleteData).route;
                   }
                   processEvent(eventType, data);
                 } catch {
@@ -367,72 +420,79 @@ export default function ConsolePageClient() {
     }
   }, [handleSubmit]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const processEvent = useCallback((eventType: string, data: any) => {
+  const processEvent = useCallback((eventType: string, data: SSEEventData) => {
     switch (eventType) {
       case "agent": {
-        const phase = data.phase as ConsoleAgentPhase;
+        const agentData = data as SSEAgentData;
+        const phase = agentData.phase;
         updateAgent(phase, {
-          status: data.status,
-          summary: data.summary,
-          timing: data.timing,
-          output: data.output,
+          status: agentData.status,
+          summary: agentData.summary,
+          timing: agentData.timing,
+          output: agentData.output,
         });
 
         setActiveEvent({
           phase,
-          status: data.status,
-          summary: data.summary,
-          timing: data.timing,
-          output: data.output,
+          status: agentData.status,
+          summary: agentData.summary,
+          timing: agentData.timing,
+          output: agentData.output,
         });
 
         // Accumulate context using ref (sync) + state (render)
-        if (data.status === "done") {
-          if (phase === "question-prep" && data.output) {
+        if (agentData.status === "done") {
+          if (phase === "question-prep" && agentData.output) {
+            const output = agentData.output;
             const updated = {
               ...contextRef.current,
-              institutes: data.output.suggestedInstitutes ?? contextRef.current.institutes,
-              targetArticles: data.output.targetArticles ?? contextRef.current.targetArticles,
+              institutes: (output.suggestedInstitutes as string[] | undefined) ?? contextRef.current.institutes,
+              targetArticles: (output.targetArticles as string | null | undefined) ?? contextRef.current.targetArticles,
             };
             contextRef.current = updated;
             setCollectedContext(updated);
           }
 
-          if (phase === "corpus-search" && data.output?.articles?.length) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const arts = data.output.articles.map((a: any) => ({
-              reference: a.reference,
-              source: a.source,
-              title: a.title,
-            }));
-            const updated = { ...contextRef.current, articles: arts };
-            contextRef.current = updated;
-            setCollectedContext(updated);
+          if (phase === "corpus-search" && agentData.output) {
+            const articles = agentData.output.articles as CorpusSearchArticle[] | undefined;
+            if (articles?.length) {
+              const arts = articles.map((a: CorpusSearchArticle) => ({
+                reference: a.reference,
+                source: a.source,
+                title: a.title,
+              }));
+              const updated = { ...contextRef.current, articles: arts };
+              contextRef.current = updated;
+              setCollectedContext(updated);
+            }
           }
         }
 
-        if (phase === "leader" && data.decision) {
-          setLeaderDecision(data.decision);
+        if (phase === "leader" && agentData.decision) {
+          setLeaderDecision(agentData.decision);
         }
         break;
       }
-      case "clarification":
-        setClarificationQ(data.question);
+      case "clarification": {
+        const clarData = data as SSEClarificationData;
+        setClarificationQ(clarData.question);
         setActiveEvent(null);
         setStatus("clarification");
         break;
+      }
       case "complete":
         if (status !== "clarification") {
           setStatus("done");
         }
         break;
-      case "error":
-        if (data.message) {
-          setError(data.message);
+      case "error": {
+        const errData = data as SSEErrorData;
+        if (errData.message) {
+          setError(errData.message);
           setStatus("error");
         }
         break;
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -458,6 +518,7 @@ export default function ConsolePageClient() {
         corpusActive={corpusOpen}
         onCorpusToggle={isAuthenticated ? () => { setCorpusOpen((v) => !v); setCompanyOpen(false); } : undefined}
         onPowerToggle={isAuthenticated ? () => setPowerOpen((v) => !v) : undefined}
+        onShellToggle={() => setShellOpen((v) => !v)}
         onCompanyToggle={isAuthenticated ? () => { setCompanyOpen((v) => !v); setCorpusOpen(false); } : undefined}
         onPrint={() => window.print()}
       />
@@ -595,7 +656,7 @@ export default function ConsolePageClient() {
                     ? "corpus-search"
                     : "question-prep";
 
-              const prepOutput = agentStatuses.get("question-prep")?.output;
+              const prepOutput = agentStatuses.get("question-prep")?.output as QuestionPrepOutput | undefined;
 
               return (
                 <ReasoningGraph
@@ -623,6 +684,7 @@ export default function ConsolePageClient() {
       )}
 
       <PowerPanel open={powerOpen} onClose={() => setPowerOpen(false)} />
+      <ShellPanel open={shellOpen} onClose={() => setShellOpen(false)} />
     </StudioShell>
   );
 }

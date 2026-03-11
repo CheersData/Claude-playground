@@ -165,3 +165,20 @@ CME approva → Contenuto esplorativo + Segnali di risposta del mercato → Feed
 - `runbooks/content-calendar.md` — Pianificazione contenuti mensile
 - `runbooks/growth-analysis.md` — Report metriche acquisizione e conversione
 - `runbooks/market-signal-report.md` — Come raccogliere e strutturare i segnali di mercato
+
+---
+
+## Visione (6 mesi)
+
+Traffico organico >5.000 sessioni/mese con funnel misurabile. Primo Market Signal Report che guida almeno 1 decisione di prodotto. Pipeline contenuto-acquisizione che genera lead qualificati senza spesa pubblicitaria.
+
+## Priorità operative (ordinate)
+
+1. **[P0] GSC + GA4 operativi** — configurare proprietà Google, verificare dominio, iniziare raccolta dati
+2. **[P1] Contenuto SEO seed** — 5 guide legali ad alto volume di ricerca per attrarre traffico organico iniziale
+3. **[P2] Primo Market Signal Report** — raccogliere segnali da keyword, community, competitor per alimentare Strategy
+
+## Autonomia
+
+- **L1 (auto)**: contenuto blog/social, analisi keyword, report metriche, monitoring competitor digitale
+- **L2+ (escalation)**: partnership con studi legali, campagne paid, richiesta nuove fonti a Data Engineering

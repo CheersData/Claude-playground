@@ -57,3 +57,20 @@ Vulnerabilità identificata
 ## Agenti
 
 - `agents/security-auditor.md` — Responsabile audit e fix
+
+---
+
+## Visione (6 mesi)
+
+Compliance automatizzata: audit security schedulati, DPA firmati con tutti i provider AI, EU AI Act readiness. Security scanning integrato nella CI/CD.
+
+## Priorità operative (ordinate)
+
+1. **[P0] DPA provider AI** — firmare Data Processing Agreement con Anthropic, Google, Mistral (IN REVIEW — prerequisito PMI)
+2. **[P1] EU AI Act readiness** — ingaggiare consulente, classificazione sistema, gap analysis (IN REVIEW — deadline agosto 2026)
+3. **[P2] Security scanning CI/CD** — integrare audit automatico delle route nella pipeline CI/CD
+
+## Autonomia
+
+- **L1 (auto)**: audit API routes, fix vulnerabilità medium/low, aggiornamento middleware, mappa auth
+- **L2+ (escalation)**: modifica architettura auth (L2), DPA negoziazioni (L3 boss), cambio policy dati (L4)

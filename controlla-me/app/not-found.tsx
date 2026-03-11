@@ -1,3 +1,9 @@
+// Server component wrapper — export const dynamic only works in server components.
+// Prevents /_not-found static prerender failure in Next.js 16 Turbopack.
+// Without force-dynamic, the prerender worker crashes with useContext null error
+// when the page is processed on the same worker as other client-heavy pages.
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 
 // Pagina 404 — nessun componente client per evitare prerender useContext crash (Framer Motion + React 19)

@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export const maxDuration = 120;
 
@@ -53,6 +54,19 @@ export async function POST(req: NextRequest) {
       } catch {
         // Non-critical — response still returns to user
         console.error("[DEEP-SEARCH] Failed to persist deep search");
+      }
+    }
+
+    // Fire-and-forget CDP event recording
+    if (auth.user.id) {
+      try {
+        recordProfileEvent(auth.user.id, "deep_search_performed", {
+          analysis_id: analysisId || null,
+          question: sanitizedQuestion,
+          sources_count: result.sources?.length || 0,
+        }).catch((err) => console.error("[CDP] Failed:", err));
+      } catch (err) {
+        console.error("[CDP] Failed:", err);
       }
     }
 

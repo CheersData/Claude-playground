@@ -1,0 +1,26 @@
+[
+  {
+    "tier": "partner",
+    "contract": "locazione_4+4",
+    "success": false,
+    "totalTimeMs": 3310,
+    "phases": {},
+    "error": "HTTP 401: {\"error\":\"Autenticazione richiesta\"}"
+  },
+  {
+    "tier": "partner",
+    "contract": "compravendita_immobile",
+    "success": false,
+    "totalTimeMs": 60,
+    "phases": {},
+    "error": "HTTP 401: {\"error\":\"Autenticazione richiesta\"}"
+  },
+  {
+    "tier": "partner",
+    "contract": "lavoro_subordinato",
+    "success": false,
+    "totalTimeMs": 55,
+    "phases": {},
+    "error": "HTTP 401: {\"error\":\"Autenticazione richiesta\"}"
+  }
+]

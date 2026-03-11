@@ -85,7 +85,7 @@ export async function runAgent<T>(
       }
 
       // Fire-and-forget cost logging
-      logAgentCost({ agentName, modelKey, inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, durationMs: result.durationMs, usedFallback: i > 0 }).catch(() => {});
+      logAgentCost({ agentName, modelKey, inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, durationMs: result.durationMs, usedFallback: i > 0 }).catch((err) => console.error("[AGENT-RUNNER] cost logging failed:", err?.message || err));
 
       return {
         ...result,

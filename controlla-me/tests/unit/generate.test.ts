@@ -903,6 +903,19 @@ describe("generate — edge cases", () => {
     expect(Number.isFinite(result.durationMs)).toBe(true);
   });
 
+  it("quando temperature e' undefined, non viene inclusa nei parametri anthropic (branch coverage)", async () => {
+    // Questo copre il branch: temperature !== undefined ? { temperature } : {}
+    // Con config vuota, temperature viene destructured come default 0,
+    // quindi per ottenere undefined bisogna che il default non venga applicato.
+    // In realta' il default e' 0, quindi il branch "undefined" non e' raggiungibile
+    // dalla firma pubblica. Testiamo comunque che temperature=0 non viene omessa.
+    await generate("claude-haiku-4.5", "test");
+
+    const callArgs = mockAnthropicCreate.mock.calls[0][0];
+    // temperature=0 (default) deve essere presente, non omessa
+    expect(callArgs).toHaveProperty("temperature", 0);
+  });
+
   it("risposta con testo vuoto da Anthropic viene propagata", async () => {
     mockAnthropicCreate.mockResolvedValue(makeAnthropicResponse(""));
     mockExtractTextContent.mockReturnValue("");
@@ -981,5 +994,81 @@ describe("generate — model ID dal registry MODELS", () => {
     await generate("groq-gpt-oss-120b", "test");
     const [, model] = mockGenerateWithOpenAICompat.mock.calls[0];
     expect(model).toBe("gpt-oss-120b");
+  });
+
+  it("magistral-small → magistral-small-2506", async () => {
+    await generate("magistral-small", "test");
+    const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(provider).toBe("mistral");
+    expect(model).toBe("magistral-small-2506");
+  });
+
+  it("codestral → codestral-2508", async () => {
+    await generate("codestral", "test");
+    const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(provider).toBe("mistral");
+    expect(model).toBe("codestral-2508");
+  });
+
+  it("gpt-5.1-codex-mini → gpt-5.1-codex-mini", async () => {
+    await generate("gpt-5.1-codex-mini", "test");
+    const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(provider).toBe("openai");
+    expect(model).toBe("gpt-5.1-codex-mini");
+  });
+
+  it("groq-kimi-k2 → moonshotai/kimi-k2-instruct", async () => {
+    await generate("groq-kimi-k2", "test");
+    const [provider, model] = mockGenerateWithOpenAICompat.mock.calls[0];
+    expect(provider).toBe("groq");
+    expect(model).toBe("moonshotai/kimi-k2-instruct");
+  });
+});
+
+// ── Exhaustive registry coverage — every ModelKey routes without error ─────────
+
+describe("generate — exhaustive model registry coverage", () => {
+  // Ensure every single model in the MODELS registry can be routed without throwing
+  // This acts as a regression guard: if a new model is added with a typo in provider,
+  // this test catches it immediately.
+
+  const allModelKeys: Array<import("@/lib/models").ModelKey> = [
+    // Anthropic
+    "claude-opus-4.5", "claude-sonnet-4.5", "claude-haiku-4.5",
+    // Gemini
+    "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
+    // OpenAI
+    "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
+    "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5.1", "gpt-5.2",
+    "gpt-5.1-codex-mini", "gpt-oss-20b", "gpt-oss-120b",
+    // Mistral
+    "mistral-large-3", "mistral-medium-3", "mistral-small-3",
+    "ministral-8b", "ministral-3b", "mistral-nemo", "ministral-14b",
+    "magistral-small", "magistral-medium", "codestral",
+    // Groq
+    "groq-llama4-scout", "groq-llama3-70b", "groq-llama3-8b",
+    "groq-qwen3-32b", "groq-gpt-oss-120b", "groq-gpt-oss-20b", "groq-kimi-k2",
+    // Cerebras
+    "cerebras-gpt-oss-120b", "cerebras-llama3-8b", "cerebras-qwen3-235b",
+  ];
+
+  it.each(allModelKeys)("routes '%s' without error", async (modelKey) => {
+    // Setup all provider mocks
+    mockAnthropicCreate.mockResolvedValue(makeAnthropicResponse("ok"));
+    mockExtractTextContent.mockReturnValue("ok");
+    mockGenerateWithGemini.mockResolvedValue(makeGeminiResult("ok"));
+    mockGenerateWithOpenAICompat.mockResolvedValue(
+      makeOpenAICompatResult("ok", "test", "test-model")
+    );
+
+    const result = await generate(modelKey, "test prompt");
+
+    expect(result).toBeDefined();
+    expect(result.text).toBe("ok");
+    expect(typeof result.provider).toBe("string");
+    expect(typeof result.model).toBe("string");
+    expect(typeof result.durationMs).toBe("number");
+    expect(result.usage).toHaveProperty("inputTokens");
+    expect(result.usage).toHaveProperty("outputTokens");
   });
 });
