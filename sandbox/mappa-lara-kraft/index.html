@@ -47,6 +47,19 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(10,10,15,0.85);border:1px solid rgba(200,168,75,0.15);padding:7px 16px;font-size:9px;letter-spacing:2px;color:rgba(200,168,75,0.45);text-transform:uppercase;z-index:900;pointer-events:none;transition:opacity 0.5s;white-space:nowrap}
 #hint.hidden{opacity:0}
 
+/* === COUNTDOWN TIMER === */
+#timerBox{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:rgba(10,10,15,0.92);border:1px solid rgba(255,71,87,0.3);padding:8px 16px;z-index:900;text-align:center;border-radius:4px;display:none}
+#timerLabel{font-size:7px;letter-spacing:2px;color:rgba(255,71,87,0.5);text-transform:uppercase}
+#timerCount{font-family:'Cormorant Garamond',serif;font-size:22px;color:#ff4757;line-height:1;margin-top:2px;letter-spacing:1px}
+#timerBox.expired #timerCount{animation:timerBlink 1s infinite}
+@keyframes timerBlink{0%,100%{opacity:1}50%{opacity:0.3}}
+.timer-marker{font-family:'Montserrat',sans-serif;font-size:8px;color:#ff4757;background:rgba(10,10,15,0.9);border:1px solid rgba(255,71,87,0.3);padding:2px 6px;border-radius:3px;white-space:nowrap;letter-spacing:1px;text-transform:uppercase}
+@media(max-width:600px){
+  #timerBox{top:auto;bottom:140px;padding:6px 12px}
+  #timerCount{font-size:18px}
+  #timerLabel{font-size:6px}
+}
+
 /* === GEOLOCATION === */
 #geoBtn{position:absolute;bottom:18px;right:14px;width:42px;height:42px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.22);color:#c8a84b;font-size:20px;cursor:pointer;z-index:900;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:all 0.25s;line-height:1}
 #geoBtn:hover,#geoBtn.active{background:rgba(200,168,75,0.15);border-color:#c8a84b;box-shadow:0 0 12px rgba(200,168,75,0.2)}
@@ -161,6 +174,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </div>
 <div id="counter"><div id="cn">0</div><div id="cl">visitati</div></div>
 <div id="hint">Tocca un punto per scoprirlo</div>
+<div id="timerBox"><div id="timerLabel">Riva degli Schiavoni · ore 16:00</div><div id="timerCount">--:--</div></div>
 <button id="geoBtn" title="La tua posizione">◎</button>
 <div id="chapters">
   <button class="ch-btn green active-ch" onclick="showChapter(1)">1 · Non Ricordi</button>
@@ -508,6 +522,61 @@ showChapter(1);
     geoBtn.textContent='◎';
     watchId=navigator.geolocation.watchPosition(onPosition,onError,{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
   });
+})();
+
+// === COUNTDOWN TIMER — Riva degli Schiavoni ore 16:00 ===
+(function(){
+  var timerBox=document.getElementById('timerBox');
+  var timerCount=document.getElementById('timerCount');
+  var timerLabel=document.getElementById('timerLabel');
+
+  // Target: today at 16:00 local time
+  function getTarget(){
+    var t=new Date();
+    t.setHours(16,0,0,0);
+    return t;
+  }
+
+  // Timer marker on the map at Riva degli Schiavoni
+  var timerMarkerIcon=L.divIcon({html:'<div class="timer-marker">⏱ 16:00</div>',className:'',iconSize:[70,20],iconAnchor:[35,25]});
+  var timerMapMarker=L.marker([45.4330,12.3425],{icon:timerMarkerIcon,zIndexOffset:500,interactive:false});
+  ch1Layer.addLayer(timerMapMarker);
+  ch2Layer.addLayer(timerMapMarker);
+
+  function updateTimer(){
+    var now=new Date();
+    var target=getTarget();
+    var diff=target.getTime()-now.getTime();
+
+    timerBox.style.display='block';
+
+    if(diff<=0){
+      // Time expired
+      timerBox.classList.add('expired');
+      timerCount.textContent='SCADUTO';
+      timerLabel.textContent='Riva degli Schiavoni · ore 16:00';
+      return;
+    }
+
+    timerBox.classList.remove('expired');
+    var totalMin=Math.floor(diff/60000);
+    var hours=Math.floor(totalMin/60);
+    var mins=totalMin%60;
+    var secs=Math.floor((diff%60000)/1000);
+
+    if(hours>0){
+      timerCount.textContent=hours+'h '+String(mins).padStart(2,'0')+'m '+String(secs).padStart(2,'0')+'s';
+    } else {
+      timerCount.textContent=mins+'m '+String(secs).padStart(2,'0')+'s';
+    }
+
+    // Update map marker too
+    var markerText=hours>0 ? '⏱ -'+hours+'h'+String(mins).padStart(2,'0') : '⏱ -'+mins+'m'+String(secs).padStart(2,'0')+'s';
+    timerMapMarker.setIcon(L.divIcon({html:'<div class="timer-marker">'+markerText+'</div>',className:'',iconSize:[90,20],iconAnchor:[45,25]}));
+  }
+
+  updateTimer();
+  setInterval(updateTimer,1000);
 })();
 
 // Load agent name from start page
