@@ -243,36 +243,41 @@ function loadImage(url, emoji) {
   pi.src = url;
 }
 
-// === VIAGGIO 1: Passeggiata segreta da Santa Lucia a Riva degli Schiavoni ===
+// === VIAGGIO 1: Passeggiata segreta da Santa Lucia a Riva degli Schiavoni (via Cannaregio) ===
 const walk=[
-  {n:"01",name:"Ponte degli Scalzi",sub:"1934 · Eugenio Miozzi",lat:45.4410,lng:12.3228,emoji:"🌉",
-   text:"Appena usciti dalla stazione, il primo dei quattro ponti sul Canal Grande. Ma il segreto è sotto: qui passava il Rio Novo, un canale scavato nel 1933 per collegare Piazzale Roma al Canal Grande. Venezia è l'unica città al mondo dove le autostrade sono d'acqua. Guardate a destra: la cupola della Salute. Guardate a sinistra: l'infinito del Canal Grande. Siete dentro."},
-  {n:"02",name:"Calle dei Preti",sub:"Cannaregio · La Venezia che non vedrete mai",lat:45.4418,lng:12.3248,emoji:"🚪",
-   text:"Svoltate subito a sinistra dalla Lista di Spagna — la strada turistica — e infilatevi qui. In dieci secondi sparite. Questa calle strettissima porta in un mondo parallelo: panni stesi tra le finestre, gatti sui davanzali, nessun negozio di maschere. I veneziani la chiamano 'la Venezia vera'. I muri hanno 600 anni e le macchie d'umidità raccontano ogni acqua alta."},
-  {n:"03",name:"Farmacia Ponci",sub:"1565 · La più antica di Venezia",lat:45.4425,lng:12.3275,emoji:"⚗️",
-   text:"Questa farmacia è aperta dal 1565, prima ancora che Shakespeare scrivesse il Mercante di Venezia. I veneziani la chiamavano 'spezieria' — spezie e medicine erano la stessa cosa. Qui si vendevano teriaca (un antidoto con 64 ingredienti, tra cui carne di vipera), acqua di rose e unguenti contro la peste. L'insegna originale è ancora lì, nascosta sotto l'intonaco."},
-  {n:"04",name:"Corte del Milion",sub:"XIII sec. · La casa di Marco Polo",lat:45.4398,lng:12.3378,emoji:"🗺️",
-   text:"Questo cortile minuscolo è dove nacque Marco Polo nel 1254. Quando tornò dalla Cina dopo 24 anni, nessuno lo riconobbe. Dovette scucire i vestiti per far cadere le gemme nascoste nelle fodere — solo allora i veneziani gli credettero. 'Il Milione' non era il suo libro: era il soprannome della famiglia, perché tutti pensavano che le sue storie fossero esagerazioni da un milione di bugie."},
-  {n:"05",name:"Santa Maria dei Miracoli",sub:"1489 · Pietro Lombardo",lat:45.4402,lng:12.3398,emoji:"✨",
-   text:"La leggenda: nel 1480, un quadro della Madonna abbandonato su un muro esterno cominciò a piangere. I malati guarivano toccandolo. In pochi mesi i veneziani raccolsero abbastanza soldi per costruire questa chiesa interamente rivestita di marmi policromi. È la più piccola e preziosa di Venezia — le veneziane la chiamano 'la bomboniera'. È il luogo preferito per i matrimoni."},
-  {n:"06",name:"Calle del Paradiso",sub:"XIV sec. · L'arco gotico segreto",lat:45.4370,lng:12.3408,emoji:"😇",
-   text:"Cercate l'arco gotico alla fine della calle: c'è una Madonna col Bambino scolpita nella pietra, datata 1300 e qualcosa. È l'unico arco gotico 'aereo' rimasto intatto a Venezia. La leggenda dice che chi passa sotto l'arco a mezzanotte nella notte di Natale vedrà il Paradiso per un istante. I balconi in legno sporgenti — i 'barbacani' — sono i più antichi della città, sopravvissuti a 700 anni di acqua alta."},
-  {n:"07",name:"Campo Santa Maria Formosa",sub:"VII sec. · La Madonna nuda",lat:45.4373,lng:12.3415,emoji:"👁️",
-   text:"Nel 639, il vescovo Magno ebbe una visione: una donna bellissima — 'formosa' — gli apparve e gli disse di costruire una chiesa dove avesse visto una nube bianca posarsi. Lui la costruì. Ma guardate il campanile: sulla base c'è una faccia mostruosa scolpita nella pietra, una maschera grottesca che terrorizza i bambini da secoli. Nessuno sa perché sia lì. I veneziani dicono che è il volto della peste."},
-  {n:"08",name:"Libreria Acqua Alta",sub:"La libreria più surreale del mondo",lat:45.4363,lng:12.3430,emoji:"📚",
+  {n:"01",name:"Ponte degli Scalzi",sub:"1934 · Eugenio Miozzi",lat:45.4408,lng:12.3222,emoji:"🌉",img:"images/ponte-degli-scalzi.jpg",
+   text:"Appena usciti dalla stazione, il primo dei quattro ponti sul Canal Grande. Costruito in pietra d'Istria nel 1934, ha sostituito un ponte austriaco in ferro. Da qui avete la prima vista completa: a destra la cupola della Salute, a sinistra l'infinito del Canal Grande. La notte, quando i turisti dormono, i veneziani attraversano questo ponte in silenzio — è il confine tra la terraferma e l'isola. Voi lo state attraversando per la prima volta."},
+  {n:"02",name:"Ponte delle Guglie",sub:"1580 · L'unico ponte con i gargoyle",lat:45.4430,lng:12.3258,emoji:"👹",img:"images/ponte-delle-guglie.jpg",
+   text:"Risalite lungo la Lista di Spagna e girate a sinistra sul Rio di Cannaregio. Questo è l'unico ponte di Venezia decorato con gargoyle — 'guglie' in veneziano. La leggenda dice che di notte le figure di pietra prendono vita per proteggere il sestiere. Il ponte segna l'ingresso a Cannaregio, il quartiere più veneziano: qui abitano ancora i veri residenti, qui si mangia il cicchetto da un euro, qui Venezia è ancora Venezia."},
+  {n:"03",name:"Fondamenta della Misericordia",sub:"Cannaregio · Il segreto notturno",lat:45.4450,lng:12.3310,emoji:"🌙",img:"images/fondamenta-misericordia.jpg",
+   text:"Questa fondamenta lungo il canale è il cuore segreto della Venezia notturna. Zero turisti, solo bacari con spritz a 3 euro e veneziani che parlano in dialetto. Di giorno sembra un quartiere qualsiasi; di notte diventa il salotto della città. Al numero 2515 c'è il Paradiso Perduto, un locale leggendario dove Hemingway veniva a bere e dove ancora oggi suonano jazz dal vivo. I gatti dormono sulle barche ormeggiate."},
+  {n:"04",name:"Madonna dell'Orto",sub:"XIV sec. · La chiesa di Tintoretto",lat:45.4468,lng:12.3318,emoji:"🎨",img:"images/madonna-dell-orto.jpg",
+   text:"Jacopo Tintoretto abitava qui vicino e questa era la sua parrocchia. Dipinse per lei gratuitamente: il Giudizio Universale e l'Adorazione del Vitello d'Oro sono qui, non agli Uffizi o al Louvre. Quando morì nel 1594, fu sepolto qui — nella navata destra, sotto una lapide semplice. Il nome 'dell'Orto' viene da una statua della Madonna trovata miracolosamente in un orto vicino nel 1377. La facciata gotica in cotto è tra le più belle di Venezia."},
+  {n:"05",name:"Corte Seconda del Milion",sub:"XIII sec. · La casa di Marco Polo",lat:45.4390,lng:12.3370,emoji:"🗺️",img:"images/corte-del-milion.jpg",
+   text:"Questo cortile minuscolo, nascosto dietro il Teatro Malibran, è dove nacque Marco Polo nel 1254. Quando tornò dalla Cina dopo 24 anni, nessuno lo riconobbe. Dovette scucire i vestiti e far cadere le gemme nascoste nelle fodere — solo allora i veneziani gli credettero. 'Il Milione' non era il suo libro: era il soprannome della famiglia, perché tutti pensavano che le sue storie fossero esagerazioni da un milione di bugie. L'arco bizantino all'ingresso è originale del XIII secolo."},
+  {n:"06",name:"Santa Maria dei Miracoli",sub:"1489 · Pietro Lombardo",lat:45.4395,lng:12.3390,emoji:"✨",img:"images/santa-maria-dei-miracoli.jpg",
+   text:"La leggenda: nel 1480, un quadro della Madonna appeso a un muro esterno cominciò a piangere. I malati guarivano toccandolo. In pochi mesi i veneziani raccolsero abbastanza soldi per costruire questa chiesa interamente rivestita di marmi policromi — rosa, verde, grigio. È la più piccola e preziosa di Venezia, le veneziane la chiamano 'la bomboniera'. È il luogo preferito per i matrimoni. Ruskin la definì 'un cofanetto di gioielli'."},
+  {n:"07",name:"Calle del Paradiso",sub:"XIV sec. · L'arco gotico segreto",lat:45.4368,lng:12.3395,emoji:"😇",img:"images/calle-del-paradiso.jpg",
+   text:"Cercate l'arco gotico alla fine della calle: c'è una Madonna col Bambino scolpita nella pietra, datata 1300. È l'unico arco gotico 'aereo' rimasto intatto a Venezia. La leggenda dice che chi passa sotto l'arco a mezzanotte nella notte di Natale vedrà il Paradiso per un istante. I balconi in legno sporgenti — i 'barbacani' — sono i più antichi della città, sopravvissuti a 700 anni di acqua alta e incendi."},
+  {n:"08",name:"Campo Santa Maria Formosa",sub:"VII sec. · La Madonna e la maschera",lat:45.4375,lng:12.3407,emoji:"👁️",img:"images/campo-santa-maria-formosa.jpg",
+   text:"Nel 639, il vescovo Magno ebbe una visione: una donna bellissima — 'formosa' — gli apparve e gli disse di costruire una chiesa dove avesse visto una nube bianca posarsi. Lui la costruì. Ma guardate il campanile: sulla base c'è una faccia mostruosa scolpita nella pietra, una maschera grottesca che terrorizza i bambini da secoli. Nessuno sa perché sia lì. I veneziani dicono che è il volto della peste, messo lì per ricordare che la bellezza e l'orrore convivono."},
+  {n:"09",name:"Libreria Acqua Alta",sub:"Castello · La libreria impossibile",lat:45.4360,lng:12.3425,emoji:"📚",img:"images/libreria-acqua-alta.jpg",
    text:"I libri sono dentro gondole, vasche da bagno, canoe. Quando l'acqua alta arriva — e arriva spesso — i libri galleggiano. Il proprietario, Luigi, ha un gatto su ogni pila di libri e una scala fatta interamente di enciclopedie che porta a un terrazzo con vista sul canale. Sul retro c'è un'uscita segreta: una porta che dà direttamente sull'acqua. Non è una libreria, è un'installazione artistica che vende libri."},
-  {n:"09",name:"Chiesa di San Zaccaria",sub:"IX sec. · Le monache ribelli",lat:45.4340,lng:12.3418,emoji:"⛪",
-   text:"Nel Medioevo, le famiglie nobili spedivano qui le figlie che non riuscivano a maritare. Le monache, tutte aristocratiche e per nulla vocate, trasformarono il convento nel luogo più scandaloso di Venezia: feste, amanti, un bordello interno. Il Doge doveva visitarle ogni anno a Pasqua — e ogni volta era un'avventura. Nella cripta sotto la chiesa ci sono ancora le tombe allagate: l'acqua arriva alle caviglie, i sarcofagi emergono come isole."}
+  {n:"10",name:"Chiesa di San Zaccaria",sub:"IX sec. · Le monache ribelli",lat:45.4338,lng:12.3412,emoji:"⛪",img:"images/chiesa-san-zaccaria.jpg",
+   text:"Nel Medioevo, le famiglie nobili spedivano qui le figlie che non riuscivano a maritare. Le monache, tutte aristocratiche e per nulla vocate, trasformarono il convento nel luogo più scandaloso di Venezia: feste, amanti che entravano dai tetti. Il Doge doveva visitarle ogni anno a Pasqua — e ogni volta era un'avventura. Nella cripta sotto la chiesa ci sono ancora le tombe allagate: l'acqua arriva alle caviglie, i sarcofagi emergono come isole. Sopra, nella navata, c'è la Pala di Giovanni Bellini — una delle più belle di tutta Venezia."}
 ];
 
-// Walking route polyline coordinates (realistic Venice walking path)
+// Walking route polyline — percorso reale attraverso Cannaregio
 var walkRoute=[
-  [45.4413,12.3213],[45.4410,12.3228],[45.4415,12.3240],[45.4418,12.3248],
-  [45.4420,12.3258],[45.4425,12.3275],[45.4428,12.3290],[45.4430,12.3310],
-  [45.4425,12.3330],[45.4418,12.3345],[45.4408,12.3360],[45.4398,12.3378],
-  [45.4402,12.3398],[45.4395,12.3405],[45.4385,12.3408],[45.4370,12.3408],
-  [45.4373,12.3415],[45.4368,12.3425],[45.4363,12.3430],[45.4355,12.3428],
-  [45.4348,12.3422],[45.4340,12.3418],[45.4335,12.3425]
+  [45.4413,12.3213],[45.4408,12.3222],
+  [45.4415,12.3238],[45.4420,12.3248],[45.4430,12.3258],
+  [45.4435,12.3270],[45.4442,12.3285],[45.4450,12.3310],
+  [45.4460,12.3315],[45.4468,12.3318],
+  [45.4460,12.3325],[45.4450,12.3335],[45.4440,12.3345],
+  [45.4425,12.3355],[45.4410,12.3365],[45.4390,12.3370],
+  [45.4395,12.3390],[45.4385,12.3395],[45.4368,12.3395],
+  [45.4375,12.3407],[45.4368,12.3418],[45.4360,12.3425],
+  [45.4350,12.3420],[45.4338,12.3412],[45.4335,12.3425]
 ];
 L.polyline(walkRoute,{color:'#50c878',weight:3,opacity:0.6,dashArray:'8,6',smoothFactor:1}).addTo(map);
 
