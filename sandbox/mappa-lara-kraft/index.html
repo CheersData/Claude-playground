@@ -130,7 +130,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 <div id="hint">Tocca un punto per scoprirlo</div>
 <div id="panel">
   <div id="piw">
-    <img id="pi" src="" alt="" referrerpolicy="no-referrer" crossorigin="anonymous" style="display:none">
+    <img id="pi" src="" alt="" referrerpolicy="no-referrer" style="display:none">
     <span id="pico">◈</span>
   </div>
   <div id="pc">
@@ -145,60 +145,60 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 <script>
 const stops=[
   {name:"Mazzorbo",sub:"La vostra isola · Partenza ore 17:00",lat:45.4842,lng:12.3538,emoji:"⚓",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Mazzorbo_Canal.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Mazzorbo_Canal.jpg/640px-Mazzorbo_Canal.jpg",
    text:"La vostra isola. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata — poche centinaia di residenti, orti, silenzio totale. Il vigneto di Venissa produce la Dorona, un vitigno veneziano quasi estinto riscoperto negli anni 2000. Da qui partite il 13 marzo alle 17:00 sul taxi acqueo verso Venezia."},
   {name:"Burano",sub:"Isola delle case colorate",lat:45.4852,lng:12.4167,emoji:"🏠",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Burano_02.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Burano_02.jpg/640px-Burano_02.jpg",
    text:"L'isola più fotogenica della laguna. Le case colorate non sono una trovata turistica: ogni famiglia dipingeva la propria in un colore diverso per riconoscerla dalla barca nelle nebbie invernali. La tradizione del merletto di Burano risale al XVI secolo — la regina Caterina de' Medici ne era cliente. La sera della proposta passeggerete qui sotto le luci."},
   {name:"Murano",sub:"Laguna nord · Vetro soffiato",lat:45.4583,lng:12.3535,emoji:"💎",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Murano_veduta.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Murano_veduta.jpg/640px-Murano_veduta.jpg",
    text:"Nel 1291 la Repubblica ordinò a tutti i maestri vetrai di trasferirsi a Murano — per controllare i segreti della lavorazione. Per secoli erano gli unici al mondo capaci di produrre certi tipi di vetro. Avevano il privilegio di portare la spada e di sposare nobili veneziane. I segreti erano protetti con la vita — letteralmente."},
   {name:"Fondamenta Nuove",sub:"Ingresso nord di Venezia",lat:45.4458,lng:12.3360,emoji:"🚢",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Venezia_Fondamente_Nuove.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Venezia_Fondamente_Nuove.jpg/640px-Venezia_Fondamente_Nuove.jpg",
    text:"Il punto dove il taxi entra nel corpo di Venezia dalla laguna nord. Da qui si vede l'isola di San Michele — il cimitero di Venezia, un'isola intera dedicata ai morti con i cipressi che si stagliano sull'acqua. Stravinsky, Diaghilev e Ezra Pound sono sepolti qui."},
   {name:"Ghetto Ebraico",sub:"Cannaregio · XVI secolo",lat:45.4442,lng:12.3273,emoji:"✡",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Ghetto_venezia.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Ghetto_venezia.jpg/640px-Ghetto_venezia.jpg",
    text:"Il primo ghetto della storia — la parola stessa viene da 'geto', la fonderia che c'era qui. Dal 1516 gli ebrei veneziani furono confinati in questa piccola isola, le porte chiuse la notte, le case sopraelevate fino a 7 piani per mancanza di spazio. Shakespeare ambientò qui Il Mercante di Venezia, con Shylock come protagonista."},
   {name:"Stazione Santa Lucia",sub:"Capolinea del Canal Grande",lat:45.4413,lng:12.3213,emoji:"🚂",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Venezia_-_Stazione_di_Santa_Lucia_(2013).jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Venezia_-_Stazione_di_Santa_Lucia_%282013%29.jpg/640px-Venezia_-_Stazione_di_Santa_Lucia_%282013%29.jpg",
    text:"L'unica stazione al mondo dove esci e sei direttamente sul Canal Grande. Inaugurata nel 1954. Davanti c'è il Ponte degli Scalzi, uno dei quattro ponti sul Canal Grande. Da qui il taxi scende verso Riva degli Schiavoni."},
   {name:"Riva degli Schiavoni",sub:"Arrivo · Bacino di San Marco",lat:45.4335,lng:12.3425,emoji:"🏁",
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Riva_degli_Schiavoni_(Venice).jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Riva_degli_Schiavoni_%28Venice%29.jpg/640px-Riva_degli_Schiavoni_%28Venice%29.jpg",
    text:"Il vostro punto di arrivo, davanti all'Hotel Metropole. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. È il cartolina più famosa di Venezia — e il punto da cui avete iniziato il viaggio 24 ore prima."}
 ];
 const palaces=[
   {n:"01",name:"Punta della Dogana",sub:"XVII sec. · Dogana da Mar",lat:45.4308,lng:12.3365,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Punta_della_dogana_vue_de_face.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Punta_della_dogana_vue_de_face.jpg/640px-Punta_della_dogana_vue_de_face.jpg",
    text:"Il triangolo di pietra che separa il Canal Grande dal Canale della Giudecca. Era la dogana marittima: ogni nave doveva fermarsi e pagare i dazi. Sulla sommità, una sfera dorata sorretta da due Atlanti e la Fortuna che ruota col vento. Oggi è uno dei musei d'arte contemporanea più importanti d'Europa, collezione Pinault."},
   {n:"02",name:"Santa Maria della Salute",sub:"1631 · Baldassarre Longhena",lat:45.4312,lng:12.3340,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Basilica_di_Santa_Maria_della_Salute_(Venice).jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Basilica_di_Santa_Maria_della_Salute_%28Venice%29.jpg/640px-Basilica_di_Santa_Maria_della_Salute_%28Venice%29.jpg",
    text:"La più bella chiesa barocca di Venezia, costruita come voto alla Madonna dopo la peste del 1630 che uccise un terzo della popolazione. L'enorme cupola ottagonale con le volute a spirale — le 'orecchie' — la rendono inconfondibile da qualsiasi angolo della laguna."},
   {n:"03",name:"Palazzo Venier dei Leoni",sub:"XVIII sec. · Guggenheim",lat:45.4315,lng:12.3318,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Peggy_Guggenheim_Collection_Canal_Grande.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Peggy_Guggenheim_Collection_Canal_Grande.jpg/640px-Peggy_Guggenheim_Collection_Canal_Grande.jpg",
    text:"Il 'palazzo nonfinito' — costruito solo al pianterreno, nessuno sa perché i lavori si fermarono nel 1749. Dal 1951 fu la residenza di Peggy Guggenheim, che lo trasformò in uno dei musei d'arte moderna più importanti al mondo. Sul terrazzo c'è l'Angelo della Città di Marino Marini, orientato verso i gondolieri."},
   {n:"04",name:"Palazzo Dario",sub:"1487 · Pietro Lombardo",lat:45.4318,lng:12.3308,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Palazzo_Dario_-_Venice_(composite).jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Palazzo_Dario_-_Venice_%28composite%29.jpg/640px-Palazzo_Dario_-_Venice_%28composite%29.jpg",
    text:"Il palazzo più maledetto di Venezia. Quasi tutti i proprietari nel corso dei secoli sono morti in circostanze tragiche. L'ultimo — il magnate Raul Gardini — si suicidò nel 1993. La facciata asimmetrica in marmo policromo è tra le più belle del Rinascimento veneziano."},
   {n:"05",name:"Ca' Rezzonico",sub:"XVII–XVIII sec. · Longhena e Massari",lat:45.4332,lng:12.3262,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Ca'_rezzonico_facade.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Ca%27_rezzonico_facade.jpg/640px-Ca%27_rezzonico_facade.jpg",
    text:"Iniziato nel 1649 e terminato quasi un secolo dopo. Qui morì Robert Browning nel 1889. Ospita il Museo del Settecento Veneziano, con gli affreschi di Tiepolo e una ricostruzione perfetta di come viveva la nobiltà veneziana nel suo ultimo secolo di splendore."},
   {n:"06",name:"Palazzo Grassi",sub:"1749 · Giorgio Massari",lat:45.4340,lng:12.3270,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Palazzo_Grassi_Venice_(cropped).jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Palazzo_Grassi_Venice_%28cropped%29.jpg/640px-Palazzo_Grassi_Venice_%28cropped%29.jpg",
    text:"L'ultimo grande palazzo costruito prima della caduta della Repubblica. Neoclassico, rigoroso — quasi austero rispetto ai vicini barocchi. Oggi è di François Pinault: Koons, Cattelan, Murakami hanno esposto qui."},
   {n:"07",name:"Ca' Foscari",sub:"1452 · Gotico veneziano",lat:45.4358,lng:12.3298,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Ca'_Foscari_Venice.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Ca%27_Foscari_Venice.jpg/640px-Ca%27_Foscari_Venice.jpg",
    text:"Capolavoro del gotico veneziano, costruito per il Doge Francesco Foscari nel 1452. Foscari governò per 34 anni ma fu costretto ad abdicare dal Consiglio dei Dieci — e morì pochi giorni dopo. Oggi è la sede principale dell'Università Ca' Foscari."},
   {n:"08",name:"Ponte di Rialto",sub:"1591 · Antonio da Ponte",lat:45.4380,lng:12.3360,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Rialto_bridge_at_night.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Rialto_bridge_at_night.jpg/640px-Rialto_bridge_at_night.jpg",
    text:"Per quasi trecento anni l'unico ponte sul Canal Grande. Antonio da Ponte vinse il concorso battendo Michelangelo, Palladio e Sansovino. 'Rialto' deriva da 'Rivo Alto', la prima zona abitata di Venezia. Sotto le arcate ci sono ancora le botteghe che ci sono sempre state."},
   {n:"09",name:"Ca' d'Oro",sub:"1428 · Gotico Fiorito",lat:45.4402,lng:12.3338,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Ca_d'oro_1.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Ca_d%27oro_1.jpg/640px-Ca_d%27oro_1.jpg",
    text:"La 'Casa d'Oro' — il palazzo più fotografato del Canal Grande. Nel '400 la facciata era ricoperta di foglia d'oro, lapislazzuli e vermiglio. Oggi il colore è andato ma la struttura gotica è rimasta intatta. Ospita la Galleria Franchetti, con Mantegna, Tiziano e Van Eyck."},
   {n:"10",name:"Ca' Pesaro",sub:"1710 · Baldassarre Longhena",lat:45.4418,lng:12.3255,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Ca'_Pesaro_Venice_2019.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Ca%27_Pesaro_Venice_2019.jpg/640px-Ca%27_Pesaro_Venice_2019.jpg",
    text:"Ultimo capolavoro barocco di Longhena — i mascheroni tra le finestre sono tra i dettagli più elaborati del Canal Grande. Qui si svolse l'ultimo ballo della nobiltà veneziana prima della caduta della Repubblica, nel 1797."},
   {n:"11",name:"Palazzo Vendramin Calergi",sub:"1509 · Mauro Codussi",lat:45.4438,lng:12.3235,
-   img:"https://commons.wikimedia.org/wiki/Special:FilePath/Palazzo_Vendramin_Calergi_Venice.jpg?width=640",
+   img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Palazzo_Vendramin_Calergi_Venice.jpg/640px-Palazzo_Vendramin_Calergi_Venice.jpg",
    text:"Il primo palazzo rinascimentale del Canal Grande. Le grandi bifore ad arco tondo sostituiscono le ogive gotiche: il capolavoro della transizione dal Medioevo al Rinascimento. Qui morì Richard Wagner nel 1883 — la camera è rimasta intatta. Oggi ospita il Casinò di Venezia."}
 ];
 
