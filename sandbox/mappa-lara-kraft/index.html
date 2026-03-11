@@ -176,13 +176,13 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 <div id="hint">Tocca un punto per scoprirlo</div>
 <div id="timerBox"><div id="timerLabel">Riva degli Schiavoni · ore 16:00</div><div id="timerCount">--:--</div></div>
 <button id="geoBtn" title="La tua posizione">◎</button>
-<div id="chapters">
+<div id="chapters" style="display:none">
   <button class="ch-btn green active-ch" onclick="showChapter(1)">1 · Non Ricordi</button>
   <button class="ch-btn blue" onclick="showChapter(2)">2 · Don't Puke!</button>
   <button class="ch-btn gold" onclick="showChapter(3)">3 · Queen of Venice</button>
   <button class="ch-btn" onclick="showChapter(0)">Tutto</button>
 </div>
-<button id="nextChBtn" onclick="goNextChapter()">Cap. 2 →</button>
+<button id="nextChBtn" style="display:none" onclick="goNextChapter()">Cap. 2 →</button>
 <div id="panel">
   <div id="piw">
     <img id="pi" src="" alt="" style="display:none">
@@ -438,7 +438,7 @@ function showChapter(ch){
     legend.innerHTML='<div class="li"><div class="ld lv"></div>Passeggiata segreta</div>';
     document.querySelector('.hl h1').textContent='Cap. 1 · Non Ricordi';
     document.querySelector('.hl p').textContent='Passeggiata segreta · Cannaregio';
-    nextBtn.textContent='Cap. 2 →';nextBtn.style.display='block';
+    nextBtn.style.display='none';
   } else if(ch===2){
     ch2Layer.addTo(map);
     btns[1].classList.add('active-ch');
@@ -446,7 +446,7 @@ function showChapter(ch){
     legend.innerHTML='<div class="li"><div class="ld lb"></div>Tappe del viaggio</div>';
     document.querySelector('.hl h1').textContent="Cap. 2 · Don't Puke!";
     document.querySelector('.hl p').textContent='Viaggio in barca · La Laguna';
-    nextBtn.textContent='Cap. 3 →';nextBtn.style.display='block';
+    nextBtn.style.display='none';
   } else if(ch===3){
     ch3Layer.addTo(map);
     btns[2].classList.add('active-ch');
@@ -454,7 +454,7 @@ function showChapter(ch){
     legend.innerHTML='<div class="li"><div class="ld lg"></div>Palazzi storici</div>';
     document.querySelector('.hl h1').textContent='Cap. 3 · Queen of Venice';
     document.querySelector('.hl p').textContent='I palazzi del Canal Grande';
-    nextBtn.textContent='← Cap. 1';nextBtn.style.display='block';
+    nextBtn.style.display='none';
   } else {
     // Show all
     ch1Layer.addTo(map);ch2Layer.addTo(map);ch3Layer.addTo(map);
