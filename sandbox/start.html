@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Missione Venezia — Lara Kraft</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e8e0d0;font-family:'Montserrat',sans-serif;min-height:100vh;min-height:100dvh;display:flex;justify-content:center;align-items:center;
+  background-image:radial-gradient(ellipse at 30% 40%,rgba(200,168,75,0.08),transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(80,200,120,0.05),transparent 50%)}
+
+.wrap{text-align:center;padding:24px;max-width:420px;width:100%;animation:fadeUp 0.8s ease-out}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+.icon{font-size:64px;margin-bottom:12px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+h1{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#c8a84b;letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:40px}
+
+label{display:block;font-size:11px;letter-spacing:2px;color:rgba(232,224,208,0.5);text-transform:uppercase;margin-bottom:10px}
+input{width:100%;max-width:300px;background:rgba(255,255,255,0.04);border:1px solid rgba(200,168,75,0.25);color:#e8e0d0;font-family:'Cormorant Garamond',serif;font-size:22px;text-align:center;padding:14px 20px;letter-spacing:2px;outline:none;transition:border-color 0.3s}
+input:focus{border-color:#c8a84b}
+input::placeholder{color:rgba(200,168,75,0.3);font-style:italic}
+
+.btn{display:inline-block;margin-top:32px;background:none;border:1px solid rgba(200,168,75,0.3);color:#c8a84b;font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:14px 48px;cursor:pointer;transition:all 0.3s;text-decoration:none}
+.btn:hover{background:rgba(200,168,75,0.1);border-color:#c8a84b;box-shadow:0 0 20px rgba(200,168,75,0.15)}
+
+@media(max-width:600px){
+  h1{font-size:28px;letter-spacing:2px}
+  .icon{font-size:48px}
+}
+@media(max-width:380px){
+  h1{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="icon">🕵️‍♀️</div>
+  <h1>Missione Venezia</h1>
+  <div class="sub">Operazione Laguna · Classificato</div>
+  <label for="agent">Inserisci nome agente</label>
+  <input id="agent" type="text" placeholder="Laura Kraft" autocomplete="off" maxlength="30">
+  <br>
+  <a class="btn" href="#" id="startBtn">Inizia Missione</a>
+</div>
+<script>
+document.getElementById('startBtn').addEventListener('click', function(e){
+  e.preventDefault();
+  var name = document.getElementById('agent').value.trim() || 'Laura Kraft';
+  // Save agent name for other pages
+  localStorage.setItem('agentName', name);
+  // Go to quiz
+  window.location.href = 'quiz-martina/quiz.html';
+});
+document.getElementById('agent').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('startBtn').click();
+});
+</script>
+</body>
+</html>
