@@ -100,3 +100,20 @@ I decision trees sono in `decision-trees/`. Ogni file YAML definisce:
 | Richiesta da classificare (da CME o scheduler) | Routing: lista dipartimenti + livello approvazione |
 | Pareri dei dipartimenti consultati | Sintesi con recommendation |
 | Richiesta nuovo protocollo | Decision tree YAML + contratto aggiornato |
+
+---
+
+## Visione (6 mesi)
+
+Governance zero-friction: ogni richiesta routata in <5s, plenarie automatiche quando board < 3 task aperti, audit trail completo. Il sistema si autoalimenta senza intervento del boss.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Auto-plenaria** — trigger automatico: quando open tasks < 3, CME legge priorità dei dept e genera nuovi task
+2. **[P1] Routing accuracy** — verificare che tutti i decision tree coprano i casi reali (zero fallback a CME)
+3. **[P2] Decision audit** — report mensile sulle decisioni prese, tempi di approvazione, bottleneck
+
+## Autonomia
+
+- **L1 (auto)**: aggiornare decision trees, verificare routing, audit trail, onboarding nuovi protocolli
+- **L2+ (escalation)**: modifica livelli approvazione, nuovo tipo di richiesta non coperto, cambio workflow

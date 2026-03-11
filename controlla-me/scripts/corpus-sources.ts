@@ -23,7 +23,8 @@ export type SourceLifecycle =
   | "api-tested"     // CONNECT completato: API funziona
   | "schema-ready"   // MODEL completato: schema DB verificato/creato
   | "loaded"         // LOAD completato: dati in DB
-  | "delta-active";  // Delta updates automatici attivi
+  | "delta-active"   // Delta updates automatici attivi
+  | "blocked";       // Bloccato: API non supporta questa fonte (es. atto non indicizzato)
 
 export interface ConnectorConfig {
   /** Normattiva: termini di ricerca per trovare l'atto */
@@ -239,6 +240,123 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     },
     lifecycle: "loaded",
   },
+  {
+    id: "dlgs_276_2003",
+    name: "Riforma Biagi — Mercato del lavoro",
+    shortName: "D.Lgs. 276/2003",
+    type: "normattiva",
+    description: "D.Lgs. 10 settembre 2003, n. 276 — Attuazione delle deleghe in materia di occupazione e mercato del lavoro",
+    urn: "urn:nir:stato:decreto.legislativo:2003-09-10;276",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-09-10;276",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 87,
+    connector: {
+      normattivaSearchTerms: ["riforma biagi", "decreto legislativo 276 2003", "mercato del lavoro"],
+      normattivaActType: "decreto.legislativo",
+      codiceRedazionale: "003G0297",   // verificato via hr-sources.ts 2026-03-01
+      directAkn: true,                 // ZIP async vuoti → directAkn
+      normattivaDataGU: "20031009",    // G.U. n. 235 del 9 ottobre 2003
+      preferredFormat: "akn",
+    },
+    vertical: "hr",
+    lifecycle: "loaded",   // caricato 2026-03-03 | 88 art. (verificato in DB)
+  },
+  // ── Fonti mancanti — pianificate per prossimo caricamento (da stress test qualità TC21-TC70) ──
+  {
+    id: "legge_431_1998",
+    name: "Disciplina delle locazioni abitative",
+    shortName: "L. 431/1998",
+    type: "normattiva",
+    description: "Legge 9 dicembre 1998, n. 431 — Disciplina delle locazioni e del rilascio degli immobili adibiti ad uso abitativo",
+    urn: "urn:nir:stato:legge:1998-12-09;431",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 18,
+    connector: {
+      normattivaSearchTerms: ["legge 431 1998", "locazioni abitative", "canone concordato"],
+      normattivaActType: "legge",
+      preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "098G0483", // da API: 098G0483 | LEGGE 1998/431
+      normattivaDataGU: "19981215",  // GU n.292 del 15 dicembre 1998
+    },
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 16 art. via directAkn — TC33, TC40, TC43, TC58, TC65
+  },
+  {
+    id: "dlgs_28_2010",
+    name: "Mediazione civile e commerciale",
+    shortName: "D.Lgs. 28/2010",
+    type: "normattiva",
+    description: "D.Lgs. 4 marzo 2010, n. 28 — Mediazione finalizzata alla conciliazione delle controversie civili e commerciali",
+    urn: "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 25,
+    connector: {
+      normattivaSearchTerms: ["mediazione civile", "decreto legislativo 28 2010", "mediazione obbligatoria"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "010G0050", // da API: 010G0050 | DECRETO LEGISLATIVO 2010/28
+      normattivaDataGU: "20100305",  // GU n.53 del 5 marzo 2010
+    },
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 44 art. via directAkn — TC26
+  },
+  {
+    id: "tub_dlgs_385_1993",
+    name: "Testo Unico Bancario",
+    shortName: "TUB D.Lgs. 385/1993",
+    type: "normattiva",
+    description: "D.Lgs. 1 settembre 1993, n. 385 — Testo unico delle leggi in materia bancaria e creditizia",
+    urn: "urn:nir:stato:decreto.legislativo:1993-09-01;385",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1993-09-01;385",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+      { key: "section", label: "Sezione" },
+    ],
+    estimatedArticles: 161,
+    connector: {
+      normattivaSearchTerms: ["testo unico bancario", "decreto legislativo 385 1993", "TUB"],
+      normattivaActType: "decreto.legislativo",
+      preferredFormat: "akn",
+      directAkn: true,
+      codiceRedazionale: "093G0428", // da API: 093G0428 | DECRETO LEGISLATIVO 1993/385
+      normattivaDataGU: "19930930",  // GU n.230 del 30 settembre 1993
+    },
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 386 art. via directAkn — TC34, TC51, TC66
+  },
+  {
+    id: "dlgs_23_2015",
+    name: "Jobs Act — Tutele crescenti",
+    shortName: "D.Lgs. 23/2015",
+    type: "normattiva",
+    description: "D.Lgs. 4 marzo 2015, n. 23 — Contratto a tutele crescenti (Jobs Act)",
+    urn: "urn:nir:stato:decreto.legislativo:2015-03-04;23",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-03-04;23",
+    hierarchyLevels: [
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 11,
+    connector: {
+      normattivaSearchTerms: ["jobs act", "tutele crescenti", "decreto legislativo 23 2015"],
+      normattivaActType: "decreto.legislativo",
+      codiceRedazionale: "15G00037",   // verificato via hr-sources.ts 2026-03-01
+      directAkn: true,                 // ZIP async vuoti → directAkn
+      normattivaDataGU: "20150306",    // G.U. n. 54 del 6 marzo 2015
+      preferredFormat: "akn",
+    },
+    vertical: "hr",
+    lifecycle: "loaded",   // caricato 2026-03-03 | 12 art. (verificato in DB)
+  },
 ];
 
 // ─── Fonti EU (EUR-Lex) ───
@@ -349,6 +467,20 @@ export const EURLEX_SOURCES: CorpusSource[] = [
     estimatedArticles: 113,
     connector: { preferredFormat: "html" },
     lifecycle: "loaded",
+  },
+  // ── Fonti EU mancanti — pianificate per prossimo caricamento (da stress test qualità TC21-TC70) ──
+  {
+    id: "reg_261_2004_passeggeri_aerei",
+    name: "Regolamento passeggeri aerei (CE 261/2004)",
+    shortName: "Reg. CE 261/2004",
+    type: "eurlex",
+    description: "Regolamento (CE) n. 261/2004 — Diritti dei passeggeri in caso di negato imbarco, cancellazione o ritardo prolungato del volo",
+    celexId: "32004R0261",
+    baseUrl: "https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32004R0261",
+    hierarchyLevels: [],
+    estimatedArticles: 17,
+    connector: { preferredFormat: "html" },
+    lifecycle: "loaded",  // Caricato 2026-03-04 | 19 art. via EUR-Lex HTML — TC37
   },
   {
     id: "nis2",

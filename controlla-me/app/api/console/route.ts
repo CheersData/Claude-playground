@@ -355,12 +355,10 @@ async function runCorpusQA(
     : [];
 
   const searchPromises = [
+    // Semantic primary: NESSUN filtro istituto — safety net per quando question-prep sbaglia
     searchArticles(prep.legalQuery, {
       threshold: 0.4,
       limit: 8,
-      institutes: normalizedInstitutes.length > 0
-        ? normalizedInstitutes
-        : undefined,
     }),
     prep.mechanismQuery
       ? searchArticles(prep.mechanismQuery, { threshold: 0.4, limit: 6 })

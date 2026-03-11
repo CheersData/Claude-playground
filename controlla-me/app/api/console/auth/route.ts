@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateUser, parseAuthInput } from "@/lib/console-auth";
 import { generateToken } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { auditLog, extractRequestMeta } from "@/lib/middleware/audit-log";
 
 export async function POST(req: NextRequest) {
   // Rate limiting (SEC-003)
   const rl = await checkRateLimit(req);
   if (rl) return rl;
+
+  // CSRF protection (SEC-005)
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
 
   const body = await req.json();
   const { input } = body as { input?: string };

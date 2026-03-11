@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
@@ -48,6 +48,18 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const style = severityStyles[risk.severity] || severityStyles.media;
 
+  // Pre-fetch usage on mount so the badge is visible before any click
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/user/usage")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setUsageData(data as UsageData);
+      })
+      .catch(() => {/* ignore — badge simply won't show */});
+    return () => { cancelled = true; };
+  }, []);
+
   const handleDeepSearchClick = async () => {
     if (showDeepSearch) {
       setShowDeepSearch(false);
@@ -60,7 +72,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
       return;
     }
 
-    // Check usage prima di aprire il chat
+    // Check usage prima di aprire il chat (fallback se useEffect non ha ancora risposto)
     setUsageLoading(true);
     try {
       const res = await fetch("/api/user/usage");
@@ -69,7 +81,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
         setUsageData(data);
         setShowDeepSearch(true); // mostra il pannello (con paywall o chat)
       } else {
-        // In caso di errore, mostra la chat (fail-open, il backend gesta i limiti)
+        // In caso di errore, mostra la chat (fail-open, il backend gestisce i limiti)
         setShowDeepSearch(true);
       }
     } catch {
@@ -106,18 +118,57 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
         </div>
       )}
 
-      <button
-        onClick={handleDeepSearchClick}
-        disabled={usageLoading}
-        className="flex items-center gap-1.5 text-xs font-medium text-accent/70 hover:text-accent transition-colors disabled:opacity-50"
-      >
-        {usageLoading ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <Search className="w-3.5 h-3.5" />
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <button
+          onClick={handleDeepSearchClick}
+          disabled={usageLoading}
+          className="flex items-center gap-1.5 text-xs font-medium text-accent/70 hover:text-accent transition-colors disabled:opacity-50"
+        >
+          {usageLoading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Search className="w-3.5 h-3.5" />
+          )}
+          Approfondisci questo punto
+        </button>
+
+        {/* Usage badge — shown once usageData is available */}
+        {usageData && (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.25 }}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+              !usageData.authenticated
+                ? "bg-gray-50 border-gray-200 text-gray-400"
+                : !usageData.canDeepSearch
+                ? "bg-red-50 border-red-200 text-red-500"
+                : usageData.plan === "pro"
+                ? "bg-green-50 border-green-200 text-green-600"
+                : "bg-accent/5 border-accent/20 text-accent/80"
+            }`}
+          >
+            {!usageData.authenticated ? (
+              <>
+                <Lock className="w-2.5 h-2.5" />
+                Accedi per usare la ricerca approfondita
+              </>
+            ) : !usageData.canDeepSearch ? (
+              <>
+                <Lock className="w-2.5 h-2.5" />
+                Limite raggiunto —{" "}
+                <Link href="/pricing" className="underline underline-offset-2 hover:text-red-600 transition-colors">
+                  Passa a Pro
+                </Link>
+              </>
+            ) : usageData.plan === "pro" ? (
+              <>Ricerche illimitate</>
+            ) : (
+              <>{usageData.deepSearchUsed}/{usageData.deepSearchLimit} ricerche usate</>
+            )}
+          </motion.span>
         )}
-        Approfondisci questo punto
-      </button>
+      </div>
 
       {showDeepSearch && (
         <motion.div

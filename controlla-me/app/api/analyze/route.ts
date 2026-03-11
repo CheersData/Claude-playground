@@ -10,6 +10,7 @@ import { sanitizeDocumentText } from "@/lib/middleware/sanitize";
 import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
+import { recordProfileEvent } from "@/lib/cdp/profile-builder";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
 
@@ -164,6 +165,27 @@ export async function POST(req: NextRequest) {
           sessionId: result.sessionId,
           analysisId: analysisDbId,
         });
+
+        // Fire-and-forget CDP event recording
+        if (userId) {
+          try {
+            const clauses = result.analysis?.clauses || [];
+            recordProfileEvent(userId, "analysis_completed", {
+              analysis_id: result.sessionId,
+              document_type: result.classification?.documentType || "unknown",
+              document_sub_type: result.classification?.documentSubType || null,
+              fairness_score: result.advice?.fairnessScore || null,
+              overall_risk: result.analysis?.overallRisk || null,
+              needs_lawyer: result.advice?.needsLawyer || false,
+              jurisdiction: result.classification?.jurisdiction || null,
+              clause_count: clauses.length,
+              critical_count: clauses.filter((c: { riskLevel?: string }) => c.riskLevel === "critical").length,
+              high_count: clauses.filter((c: { riskLevel?: string }) => c.riskLevel === "high").length,
+            }).catch((err) => console.error("[CDP] Failed:", err));
+          } catch (err) {
+            console.error("[CDP] Failed:", err);
+          }
+        }
 
         // Persist results to Supabase + increment counter
         if (userId) {

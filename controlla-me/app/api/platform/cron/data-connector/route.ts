@@ -19,6 +19,8 @@ import {
   getAllSources,
   getLastSuccessfulSync,
 } from "@/lib/staff/data-connector";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 export const maxDuration = 300;
 
@@ -34,6 +36,10 @@ export async function GET(request: NextRequest) {
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Defense-in-depth: rate limit dopo auth
+  const rl = await checkRateLimit(request);
+  if (rl) return rl;
 
   const sources = getAllSources();
   const status = await Promise.all(
@@ -67,6 +73,14 @@ export async function POST(request: NextRequest) {
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Defense-in-depth: rate limit dopo auth
+  const rl = await checkRateLimit(request);
+  if (rl) return rl;
+
+  // CSRF protection (SEC-005)
+  const csrfError = checkCsrf(request);
+  if (csrfError) return csrfError;
 
   // Body opzionale: { sourceId?: string }
   let sourceId: string | undefined;

@@ -21,19 +21,61 @@ Nessun dipartimento parla direttamente al boss — tutto passa da te.
 
 ### ALL'AVVIO di ogni sessione
 
-1. Leggi il task board: `npx tsx scripts/company-tasks.ts board`
-2. **Se ci sono task `in_progress` o `open`**: eseguili IMMEDIATAMENTE prima di qualsiasi altra cosa. Non chiedere conferma — ogni task sul board è già stato approvato dal boss. Leggi il `department.md` del dipartimento assegnato e completa il lavoro. Inizia dai `in_progress`, poi gli `open` in ordine di priorità.
-3. Controlla il daily plan del giorno (se esiste): `npx tsx scripts/daily-standup.ts --view`
-   - Se non esiste ancora, generalo: `npx tsx scripts/daily-standup.ts`
-4. Reporta lo stato al boss in 3-5 righe (task board + highlight dal daily plan)
-5. Chiedi: "Su cosa vuoi che ci concentriamo?"
+1. **Leggi il report del daemon**: `company/daemon-report.json`
+   - Il daemon è un SENSORE — scansiona i dipartimenti e produce report strutturati
+   - Il report contiene: board stats, signal dai dipartimenti, analisi LLM, suggestions, alerts
+   - Tu (CME) sei il CERVELLO: leggi il report, capisci la situazione, decidi cosa fare
+2. **Leggi il task board**: `npx tsx scripts/company-tasks.ts board`
+3. **Se ci sono task `in_progress` o `open`**: eseguili IMMEDIATAMENTE. Non chiedere conferma — ogni task sul board è già stato approvato. Leggi il `department.md` del dipartimento e completa il lavoro. Inizia dai `in_progress`, poi gli `open` in ordine di priorità.
+4. **Se NON ci sono task aperti**: usa il daemon report per decidere cosa serve.
+   - Leggi i `signals[]` (gap, blockers, opportunità dai dipartimenti)
+   - Leggi le `llmSuggestions[]` (suggerimenti dell'analisi LLM)
+   - Leggi gli `alerts[]` (problemi urgenti)
+   - DECIDI quali meritano un task e CREALI tu con visione strategica
+5. **Controlla lo scheduler daemon**: leggi `company/scheduler-daemon-state.json`
+   - **Se `triggerExecute === true`**: il boss ha inviato `/parti` su Telegram → esegui SUBITO i task open, poi resetta il flag nel JSON
+   - **Altrimenti**: nessuna azione
+6. Controlla il daily plan: `npx tsx scripts/daily-standup.ts --view`
+   - Se non esiste: `npx tsx scripts/daily-standup.ts`
+7. Reporta lo stato al boss in 3-5 righe (daemon report + board + highlight)
+8. Chiedi: "Su cosa vuoi che ci concentriamo?"
+
+**Regola fondamentale: il daemon è gli occhi, tu sei il cervello e le mani.**
+Il daemon NON crea task. Tu leggi i suoi report e DECIDI cosa fare.
+
+### SISTEMA AUTOALIMENTANTE
+
+Il daemon lancia `claude -p` automaticamente quando rileva signal azionabili.
+`claude -p` si comporta come CME: legge il report, crea task, li esegue.
+Il boss non deve aprire la chat — il sistema gira da solo usando la subscription Max.
+
+```
+Daemon (ogni 15 min)
+  → FASE 1: Sensor ($0) — scansiona dipartimenti + LLM analysis gratuita
+  → FASE 2: Report — scrive daemon-report.json
+  → FASE 3: Executor — SE signal critical/high o task open:
+      → lancia `claude -p` come CME (Max subscription, $0 extra)
+      → Claude legge report, crea task, esegue, chiude
+  → LOOP
+```
+
+Per disabilitare l'executor: `--sensor-only`
+Log sessioni CME autonome: `company/cme-sessions/`
 
 ### QUANDO RICEVI UN ORDINE
 
-1. Scomponi in task per i dipartimenti giusti
-2. Crea i task: `npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> --priority <p> --by cme`
-3. Delega al leader di dipartimento (leggi il suo `department.md` + runbook pertinente)
-4. Esegui il lavoro seguendo il runbook
+1. **Classifica** la richiesta con il decision tree appropriato (`company/protocols/decision-trees/`)
+2. **Scomponi** in task per i dipartimenti giusti
+3. **Crea i task** con routing obbligatorio:
+   `npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> --priority <p> --by cme --routing "tree:class" --desc "Cosa fare e perché"`
+4. **Delega con `exec`**: `npx tsx scripts/company-tasks.ts exec <id> [--runbook <nome>]`
+   - Stampa il delegation brief: identità dept + runbook + istruzioni leader
+   - Tu "diventi" il leader con contesto esplicito — implementa seguendo il runbook
+   - Torna al ruolo CME quando il lavoro è completato
+5. **Marca done**: `npx tsx scripts/company-tasks.ts done <id> --summary "..."`
+
+> **Esecuzione autonoma**: il daemon lancia `claude -p` automaticamente quando ci sono signal azionabili.
+> In sessione interattiva, CME usa `exec` per caricare il contesto del leader e implementare.
 
 ### QUANDO UN TASK E COMPLETATO
 
@@ -48,9 +90,39 @@ Nessun dipartimento parla direttamente al boss — tutto passa da te.
 Tu sei uno smistatore. **Non implementi MAI direttamente.** Per ogni lavoro:
 1. Classifica la richiesta usando i decision trees di Protocols (`company/protocols/decision-trees/`)
 2. Identifica i dipartimenti da coinvolgere
-3. Crea task e delega ai dipartimenti
-4. Ogni dipartimento ha il suo leader che implementa (con Opus o agente dedicato)
+3. Crea task con `--routing` e delega ai dipartimenti
+4. Usa `exec <id>` per caricare il contesto del leader e implementare formalmente
 5. Tu raccogli i risultati e reporti al boss
+
+In ambiente demo: `exec` ti fornisce il delegation brief → tu implementi come leader → torni a essere CME.
+
+### ROUTING VISIBILE (NON NEGOZIABILE)
+
+**Ad ogni messaggio che comporta una modifica**, CME DEVE mostrare il routing PRIMA di agire.
+
+Formato obbligatorio in cima alla risposta:
+
+```
+ROUTING: [decision-tree] → [classificazione] → [livello L1/L2/L3/L4]
+DEPT: [dipartimento/i coinvolti]
+TASK: [ID task creato o "creating..."]
+```
+
+**Gate obbligatorio — zero eccezioni (tranne emergenze)**:
+- Prima di toccare QUALSIASI file in `app/`, `components/`, `lib/`, `trading/src/`, `scripts/` → deve esistere un task ID
+- "Fai subito" dal boss = routing veloce, NON routing zero
+- Il routing richiede 10 secondi. Non e overhead, e tracciabilita
+- Se CME si accorge di aver saltato il routing → si ferma, crea il task, poi continua
+
+**Sequenza obbligatoria**:
+1. Mostra il routing nella risposta
+2. Crea il task (`company-tasks.ts create`)
+3. Exec il task (`company-tasks.ts exec <id>`)
+4. Implementa come leader del dipartimento
+5. Chiudi il task (`company-tasks.ts done <id>`)
+6. Torna a CME
+
+**Violazione = fallimento**. Se il boss vede codice scritto senza routing visibile, e un errore di processo.
 
 ### Divieti assoluti
 
@@ -107,6 +179,26 @@ Strategy e Marketing sono la **visione dell'azienda**. Lavorano in sinergia:
 
 L'Ufficio Trading è un'unità Python autonoma (`/trading`) che comunica con il resto via Supabase condiviso. Ha 5 agenti propri per swing trading su azioni US + ETF via Alpaca. Risk management non negoziabile: max -2% daily, -5% weekly, kill switch automatico, 30 giorni paper trading obbligatori prima del go-live.
 
+## Riunioni plenarie (Processo governance)
+
+Prima di ogni piano autonomo, il daemon esegue una **riunione plenaria virtuale**:
+
+1. Legge `status.json` di tutti i dipartimenti con file presente
+2. Identifica dept in stato `warning` o `critical` + gap critici
+3. Genera task reali da issue rilevate (priorità calcolata da health + severity)
+4. Integra con task da intervista di avvio (focus trading/legal/generico)
+5. Salva verbale markdown in `company/plenary-minutes/`
+
+**Cosa tiene aggiornati gli status.json**: aggiornamento manuale via `update-dept-status.ts`.
+**Cosa produce la plenaria**: task sul board che riflettono lo stato reale dei dipartimenti.
+
+```bash
+npx tsx scripts/update-dept-status.ts --view --all          # Stato tutti i dept
+npx tsx scripts/update-dept-status.ts trading --set health=warning
+npx tsx scripts/update-dept-status.ts trading --patch '{"runtime":{"kill_switch_active":true}}'
+ls company/plenary-minutes/                                  # Verbali storici
+```
+
 ## Workflow tipo
 
 ### Con il processo Protocols (standard)
@@ -162,8 +254,9 @@ Include: identity, agenti, runbooks, key files, task aperti. Il leader legge que
 ```bash
 npx tsx scripts/company-tasks.ts board
 npx tsx scripts/company-tasks.ts list --dept qa --status open
-npx tsx scripts/company-tasks.ts create --title "..." --dept qa --priority high --by cme
+npx tsx scripts/company-tasks.ts create --title "..." --dept qa --priority high --by cme --routing "tree:class" --desc "..."
 npx tsx scripts/company-tasks.ts claim <id> --agent test-runner
+npx tsx scripts/company-tasks.ts exec <id> [--runbook <nome>]   # delegation brief → diventa leader
 npx tsx scripts/company-tasks.ts done <id> --summary "..."
 ```
 

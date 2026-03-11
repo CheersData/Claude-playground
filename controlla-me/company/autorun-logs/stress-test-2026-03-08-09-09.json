@@ -1,0 +1,10 @@
+[
+  {
+    "tier": "intern",
+    "contract": "locazione_4+4",
+    "success": false,
+    "totalTimeMs": 369,
+    "phases": {},
+    "error": "Cache createSession failed: Could not find the table 'public.analysis_sessions' in the schema cache"
+  }
+]

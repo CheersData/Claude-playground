@@ -1,9 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/delta-update",
-      "schedule": "0 6 * * *"
+      "path": "/api/platform/cron/data-connector",
+      "schedule": "0 6 * * 0"
     }
   ]
 }
-

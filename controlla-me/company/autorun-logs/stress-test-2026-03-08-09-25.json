@@ -1,0 +1,41 @@
+[
+  {
+    "tier": "associate",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 155530,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 32760
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 71432
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 51337
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata per uscire prima",
+      "Deposito cauzionale troppo alto",
+      "Manca il diritto di recesso per gravi motivi"
+    ]
+  }
+]

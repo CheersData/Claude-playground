@@ -12,37 +12,41 @@ interface PipelineStatusProps {
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return "today";
-  if (days === 1) return "1d ago";
-  return `${days}d ago`;
+  const mins = Math.floor(diff / (1000 * 60));
+  if (mins < 1) return "ora";
+  if (mins < 60) return `${mins}m fa`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h fa`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "1g fa";
+  return `${days}g fa`;
 }
 
 export function PipelineStatus({ pipeline }: PipelineStatusProps) {
   return (
-    <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-4">
+    <div className="bg-[var(--ops-surface)] rounded-xl p-6 border border-[var(--ops-border-subtle)]">
+      <h3 className="text-xs font-semibold text-[var(--ops-muted)] flex items-center gap-2 mb-4 uppercase tracking-wider">
         <Database className="w-4 h-4" />
-        DATA PIPELINE
+        Data Pipeline
       </h3>
 
       {pipeline.length === 0 ? (
-        <p className="text-zinc-500 text-sm">Nessun dato pipeline</p>
+        <p className="text-[var(--ops-muted)] text-sm">Nessun dato pipeline</p>
       ) : (
         <div className="space-y-2">
           {pipeline.slice(0, 8).map((source) => {
             const isOk = source.lastSync?.status === "completed";
             return (
               <div key={source.sourceId} className="flex items-center gap-3 text-sm">
-                <span className={`w-2 h-2 rounded-full ${isOk ? "bg-green-500" : "bg-red-500"}`} />
-                <span className="text-zinc-300 flex-1 truncate">
+                <span className={`w-2 h-2 rounded-full ${isOk ? "bg-[var(--ops-teal)]" : "bg-[var(--ops-error)]"}`} />
+                <span className="text-[var(--ops-fg-muted)] flex-1 truncate">
                   {source.sourceId}
                 </span>
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-[var(--ops-muted)] font-mono">
                   {source.lastSync?.itemsFetched ?? 0} art.
                 </span>
-                <span className="text-xs text-zinc-500">
-                  {source.lastSync?.completedAt ? timeAgo(source.lastSync.completedAt) : "never"}
+                <span className="text-xs text-[var(--ops-muted)]">
+                  {source.lastSync?.completedAt ? timeAgo(source.lastSync.completedAt) : "mai"}
                 </span>
               </div>
             );

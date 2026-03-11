@@ -28,6 +28,7 @@ interface TreeNode {
 
 interface ArticleDetail {
   id: string;
+  source_id: string;
   source_name: string;
   article_number: string;
   article_title: string | null;
@@ -68,6 +69,8 @@ interface ColumnData {
 interface CorpusTreePanelProps {
   open: boolean;
   onClose: () => void;
+  /** When set, auto-navigates to this article (from cited article click in chat) */
+  focusArticleId?: string | null;
 }
 
 // ─── Helpers ───
@@ -76,6 +79,20 @@ function countArticles(node: TreeNode): number {
   let count = node.articles.length;
   for (const child of node.children) count += countArticles(child);
   return count;
+}
+
+/** Recursively find the path of TreeNodes leading to the article with the given ID. */
+function findArticleInTree(nodes: TreeNode[], articleId: string): TreeNode[] | null {
+  for (const node of nodes) {
+    if (node.articles.some(a => a.id === articleId)) {
+      return [node];
+    }
+    const childPath = findArticleInTree(node.children, articleId);
+    if (childPath) {
+      return [node, ...childPath];
+    }
+  }
+  return null;
 }
 
 function PanelCount({ value, suffix }: { value: number; suffix?: string }) {
@@ -103,7 +120,7 @@ function PanelCount({ value, suffix }: { value: number; suffix?: string }) {
 
 // ─── Main Component ───
 
-export default function CorpusTreePanel({ open, onClose: _onClose }: CorpusTreePanelProps) {
+export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleId }: CorpusTreePanelProps) {
   const [activeTab, setActiveTab] = useState<"fonti" | "istituti">("fonti");
 
   // Sources
@@ -239,6 +256,94 @@ export default function CorpusTreePanel({ open, onClose: _onClose }: CorpusTreeP
     } catch { /* ignore */ }
     setPreviewLoading(false);
   }, []);
+
+  // Full navigation: fetch article → load source tree → expand hierarchy → select article
+  const navigateToArticle = useCallback(async (articleId: string) => {
+    // 1. Fetch article details (preview + source info)
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(`/api/corpus/article?id=${articleId}`);
+      const article = await res.json();
+      if (!article.id) { setPreviewLoading(false); return; }
+      setPreviewArticle(article as ArticleDetail);
+      setPreviewLoading(false);
+
+      // 2. Switch to fonti tab, clear search
+      setActiveTab("fonti");
+      setSearchResults(null);
+      setSearchQuery("");
+
+      // 3. Ensure sources are loaded
+      let currentSources = sources;
+      if (currentSources.length === 0) {
+        const srcRes = await fetch("/api/corpus/hierarchy");
+        const srcData = await srcRes.json();
+        if (srcData.sources) {
+          setSources(srcData.sources);
+          currentSources = srcData.sources;
+        }
+      }
+
+      // 4. Find matching source by source_id
+      const matchedSource = currentSources.find(
+        s => s.source_id === article.source_id || s.source_name === article.source_name
+      );
+      if (!matchedSource) return;
+      setSelectedSource(matchedSource);
+
+      // 5. Load source tree
+      setTreeLoading(true);
+      const treeRes = await fetch(`/api/corpus/hierarchy?source=${matchedSource.source_id}`);
+      const treeData = await treeRes.json();
+      setTreeLoading(false);
+      if (!treeData.tree) return;
+      setFullTree(treeData.tree);
+
+      // 6. Find article path in tree and build columns
+      const path = findArticleInTree(treeData.tree, articleId);
+
+      if (path && path.length > 0) {
+        const newColumns: ColumnData[] = [{
+          nodes: treeData.tree,
+          articles: [],
+          selectedKey: path[0].key,
+          label: matchedSource.source_name,
+        }];
+
+        for (let i = 0; i < path.length; i++) {
+          const node = path[i];
+          const isLast = i === path.length - 1;
+          const nextSelectedKey = isLast ? articleId : path[i + 1].key;
+
+          newColumns.push({
+            nodes: node.children,
+            articles: node.articles,
+            selectedKey: nextSelectedKey,
+            label: node.label,
+          });
+        }
+
+        setColumns(newColumns);
+      } else {
+        // Article not found in tree hierarchy — show root with preview
+        setColumns([{
+          nodes: treeData.tree,
+          articles: [],
+          selectedKey: null,
+          label: matchedSource.source_name,
+        }]);
+      }
+    } catch {
+      setPreviewLoading(false);
+    }
+  }, [sources]);
+
+  // Auto-navigate to article when focusArticleId changes (from cited article click in chat)
+  useEffect(() => {
+    if (focusArticleId) {
+      navigateToArticle(focusArticleId);
+    }
+  }, [focusArticleId, navigateToArticle]);
 
   const handleSearchInput = useCallback((value: string) => {
     setSearchQuery(value);

@@ -1,0 +1,120 @@
+{
+  "domain": "legal",
+  "configPath": "/home/user/Claude-playground/controlla-me/corpus-configs/legal.json",
+  "timestamp": "2026-02-25T10:54:09.566Z",
+  "summary": {
+    "total": 7,
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 6,
+    "score": 92
+  },
+  "issues": [
+    {
+      "id": "SRC-RECOMMEND-DLgs2062005",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice del Consumo (D.Lgs. 206/2005) not in corpus — Spesso citato come parte del CC ma è legge separata",
+      "details": {
+        "law": {
+          "name": "Codice del Consumo",
+          "ref": "D.Lgs. 206/2005",
+          "note": "Spesso citato come parte del CC ma è legge separata"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-del-consumo legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-RD14431940",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice di Procedura Civile (R.D. 1443/1940) not in corpus — Norme processuali, non sostanziali",
+      "details": {
+        "law": {
+          "name": "Codice di Procedura Civile",
+          "ref": "R.D. 1443/1940",
+          "note": "Norme processuali, non sostanziali"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-di-procedura-civile legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-L3921978",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Legge sull'equo canone (L. 392/1978) not in corpus — Locazioni abitative, integra art. 1571+ CC",
+      "details": {
+        "law": {
+          "name": "Legge sull'equo canone",
+          "ref": "L. 392/1978",
+          "note": "Locazioni abitative, integra art. 1571+ CC"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh legge-sull'equo-canone legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs2092005",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice delle Assicurazioni (D.Lgs. 209/2005) not in corpus — Integra art. 1882+ CC",
+      "details": {
+        "law": {
+          "name": "Codice delle Assicurazioni",
+          "ref": "D.Lgs. 209/2005",
+          "note": "Integra art. 1882+ CC"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-delle-assicurazioni legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs3851993",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Testo Unico Bancario (D.Lgs. 385/1993) not in corpus — Integra disciplina mutuo/credito",
+      "details": {
+        "law": {
+          "name": "Testo Unico Bancario",
+          "ref": "D.Lgs. 385/1993",
+          "note": "Integra disciplina mutuo/credito"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh testo-unico-bancario legal"
+    },
+    {
+      "id": "SRC-RECOMMEND-DLgs142019",
+      "severity": "info",
+      "category": "source_recommended",
+      "message": "Codice della Crisi (D.Lgs. 14/2019) not in corpus — Sostituisce legge fallimentare",
+      "details": {
+        "law": {
+          "name": "Codice della Crisi",
+          "ref": "D.Lgs. 14/2019",
+          "note": "Sostituisce legge fallimentare"
+        }
+      },
+      "remediation": "Run connector workflow: ./scripts/run-connector.sh codice-della-crisi legal"
+    },
+    {
+      "id": "SRC-FETCH-ERR-Codice Civile",
+      "severity": "high",
+      "category": "source_fetch_error",
+      "message": "Failed to fetch sample from \"Codice Civile\": fetch failed",
+      "remediation": "Check network connectivity and dataset availability"
+    }
+  ],
+  "coverage": {
+    "hierarchyRanges": 66,
+    "hierarchyGaps": [],
+    "hierarchyCoverage": "100.0%",
+    "instituteRanges": 51,
+    "instituteCoverage": "79.1%",
+    "termPatterns": 49,
+    "dataSources": 1
+  },
+  "recommendations": [
+    "CRESCITA CORPUS: Integrare fonti legislative complementari: Codice del Consumo, Codice di Procedura Civile, Legge sull'equo canone, Codice delle Assicurazioni, Testo Unico Bancario, Codice della Crisi. Usare il connector workflow per ciascuna fonte.",
+    "RESILIENZA: Il corpus dipende da una singola fonte dati. Aggiungere almeno una fonte alternativa (es. Normattiva) per cross-validazione."
+  ]
+}

@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getDailyCosts, getTotalSpend } from "@/lib/company/cost-logger";
+import { getDailyCosts, getTotalSpend, getProviderHealth } from "@/lib/company/cost-logger";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -22,7 +22,12 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const days = parseInt(url.searchParams.get("days") ?? "7");
-    const view = url.searchParams.get("view") ?? "daily"; // "daily" | "total"
+    const view = url.searchParams.get("view") ?? "daily"; // "daily" | "total" | "provider-health"
+
+    if (view === "provider-health") {
+      const health = await getProviderHealth();
+      return NextResponse.json(health);
+    }
 
     if (view === "total") {
       const spend = await getTotalSpend(days);

@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 // CSP direttive — mantenute separate per leggibilità
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  // Next.js richiede unsafe-inline per hydration script; unsafe-eval per dev
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com",
+  // Next.js richiede unsafe-inline per hydration; unsafe-eval solo in dev (HMR, error overlay)
+  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com`,
   // Stili inline usati da Tailwind e Framer Motion; Google Fonts
   "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
   // Font: self + Google Fonts CDN
@@ -14,7 +16,7 @@ const ContentSecurityPolicy = [
   // Video: self (public/videos/) + blob
   "media-src 'self' blob:",
   // Connessioni API: self + Supabase + Stripe
-  "connect-src 'self' *.supabase.co *.stripe.com",
+  "connect-src 'self' *.supabase.co *.stripe.com https://www.google-analytics.com https://analytics.google.com",
   // Frame: Stripe per 3D Secure
   "frame-src 'self' js.stripe.com",
   // Worker: nessuno (pdf-parse gira server-side)

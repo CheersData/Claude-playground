@@ -22,6 +22,7 @@ from ta.trend import SMAIndicator
 from .base import BaseAgent
 from ..config import get_settings
 from ..connectors.alpaca_client import AlpacaClient
+from ..connectors.tiingo_client import TiingoClient
 from ..models.signals import ScanResult
 
 
@@ -45,22 +46,48 @@ DEFAULT_UNIVERSE = [
     "LMT", "NOC", "RTX", "GD",
     # Utilities — defensive rotation
     "XLU", "SO",
+    # Consumer Staples ETF — defensive, non-cyclical
+    "XLP",
+    # Real Estate — defensive yield play
+    "XLRE",
     # Commodities / Hard assets — rotation in corso
     "GLD", "GDX", "USO", "DBA",
+    # Bonds — safe haven / rates hedge
+    "TLT",   # 20Y Treasury — long-duration, flight-to-quality
+    "SHY",   # 1-3Y Treasury — short-duration, low-volatility safe haven
     # Broad ETFs
     "SPY", "QQQ", "IWM",
     # Sector ETFs
     "XLF", "XLK", "XLE", "XLV", "XLI", "ARKK",
+    # Inverse ETFs (1x, non-leveraged) — bearish market hedges
+    # Activated by scanner scoring when trend = bearish; low score in bull markets
+    "SH",   # ProShares Short S&P500
+    "PSQ",  # ProShares Short QQQ
+    "DOG",  # ProShares Short Dow30
 ]
 
 
 class MarketScanner(BaseAgent):
     """Screens the universe for trading candidates."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("market_scanner")
-        self._client = AlpacaClient()
-        self._settings = get_settings().scanner
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
+        cfg = get_settings()
+        # Use Tiingo IEX (real-time) for market data when configured.
+        # Alpaca free tier has 15-min delay; Tiingo IEX has no delay.
+        if cfg.tiingo.tiingo_api_key and cfg.tiingo.use_tiingo_for_market_data:
+            self._market_data = TiingoClient(cfg.tiingo.tiingo_api_key)
+            self.logger.info("market_data_provider", provider="tiingo_iex_rt")
+        else:
+            self._market_data = self._alpaca  # type: ignore[assignment]
+            self.logger.warning(
+                "market_data_provider",
+                provider="alpaca_delayed",
+                delay_min=15,
+                hint="Set TIINGO_API_KEY to get real-time IEX data",
+            )
+        self._settings = cfg.scanner
 
     async def run(self, universe: list[str] | None = None, **kwargs: Any) -> dict:
         """
@@ -76,7 +103,7 @@ class MarketScanner(BaseAgent):
         self.log_start(universe_size=len(symbols))
 
         # Fetch historical bars (60 days for SMA calculations)
-        bars = self._client.get_bars(symbols, timeframe="1Day", days_back=60)
+        bars = self._market_data.get_bars(symbols, timeframe="1Day", days_back=60)
 
         candidates: list[ScanResult] = []
 
@@ -90,7 +117,41 @@ class MarketScanner(BaseAgent):
 
         # Sort by composite score, take top N
         candidates.sort(key=lambda x: x.score, reverse=True)
-        watchlist = candidates[: self._settings.watchlist_size]
+
+        # --- Diversity override (post-processing) ---
+        # Reserve min_hedge_slots slots for decorrelated/defensive instruments so
+        # the watchlist stays balanced even in a strong bull market where inverse
+        # and defensive ETFs naturally score low (trend_score = 0.2).
+        min_hedge = self._settings.min_hedge_slots
+        normal_slots = max(self._settings.watchlist_size - min_hedge, 0)
+
+        # Top-N normal candidates (may already include some hedge symbols — that's fine)
+        top_normal = candidates[:normal_slots]
+        top_normal_symbols = {c.symbol for c in top_normal}
+
+        # Build a lookup of all scored candidates for quick retrieval
+        scored_by_symbol = {c.symbol: c for c in candidates}
+
+        # Pick hedge candidates: scored instruments in hedge_symbols pool
+        # that didn't make it into the top-N normal slice.
+        hedge_added: list[ScanResult] = []
+        for sym in self._settings.hedge_symbols:
+            if len(hedge_added) >= min_hedge:
+                break
+            if sym in top_normal_symbols:
+                # Already in watchlist — counts toward hedge coverage
+                continue
+            if sym in scored_by_symbol:
+                hedge_added.append(scored_by_symbol[sym])
+
+        watchlist = top_normal + hedge_added
+
+        if hedge_added:
+            self.logger.info(
+                "hedge_slots_filled",
+                count=len(hedge_added),
+                symbols=[c.symbol for c in hedge_added],
+            )
 
         self.log_complete(
             universe_scanned=len(symbols),

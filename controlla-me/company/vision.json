@@ -1,0 +1,70 @@
+{
+  "company": "Poimandres",
+  "vision": "Diventare la prima e più potente AGI",
+  "mission": "Piattaforma madre per team di agenti AI specializzati in diversi verticali",
+  "values": ["autonomy", "speed", "quality", "cost-efficiency"],
+  "verticals": {
+    "active": [
+      {
+        "id": "legal",
+        "name": "Controlla.me — Analisi Legale AI",
+        "status": "live",
+        "stack": "TypeScript/Next.js",
+        "agents": 7,
+        "priority": "optimize"
+      }
+    ],
+    "pipeline": [
+      {
+        "id": "hr",
+        "name": "Verticale HR — Contratti di lavoro",
+        "status": "corpus-pending",
+        "blocker": "Statuto dei Lavoratori nel corpus",
+        "priority": "next"
+      }
+    ],
+    "exploratory": [
+      {
+        "id": "trading",
+        "name": "Swing Trading Automatizzato",
+        "status": "backtest",
+        "stack": "Python/Alpaca",
+        "agents": 5,
+        "priority": "validate"
+      }
+    ]
+  },
+  "okr_q2_2026": {
+    "O1": {
+      "objective": "Deploy e primi utenti reali",
+      "key_results": [
+        "Deploy su Vercel con dominio custom",
+        "10+ analisi reali completate",
+        "Feedback da 3+ utenti"
+      ]
+    },
+    "O2": {
+      "objective": "Sharpe > 1.0 su backtest trading",
+      "key_results": [
+        "Grid search completo parametri TP/SL",
+        "Sharpe ≥ 1.0 su 2 anni di dati",
+        "30 giorni paper trading completati"
+      ]
+    },
+    "O3": {
+      "objective": "Compliance e sicurezza",
+      "key_results": [
+        "DPA firmato con almeno 1 provider AI",
+        "EU AI Act gap analysis completata",
+        "CI/CD pipeline attiva con test automatici"
+      ]
+    }
+  },
+  "constraints": {
+    "budget": "demo-environment — no API credits",
+    "team": "1 boss + CME + autonomous agents",
+    "infrastructure": "same localhost — trading + app",
+    "security": "GDPR compliant, EU AI Act ready"
+  },
+  "updated": "2026-03-08"
+}

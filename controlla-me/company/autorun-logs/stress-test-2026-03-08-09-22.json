@@ -1,0 +1,41 @@
+[
+  {
+    "tier": "intern",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 61458,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 1597
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 39527
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 1
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 20333
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata per uscire prima",
+      "Deposito cauzionale troppo alto",
+      "Manca il diritto di recesso per gravi motivi"
+    ]
+  }
+]

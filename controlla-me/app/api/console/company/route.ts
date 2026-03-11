@@ -14,20 +14,21 @@ import { getTotalSpend } from "@/lib/company/cost-logger";
 import { setSession, deleteSession } from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import type { NextRequest } from "next/server";
 
 export const maxDuration = 300; // Sessioni interattive possono durare di più
 
 const TARGETS: Record<string, { promptFile: string; label: string; model: string }> = {
-  cme:                { promptFile: "cme.md",                           label: "CME (CEO)",            model: "sonnet" },
-  "ufficio-legale":   { promptFile: "ufficio-legale/department.md",     label: "Ufficio Legale TL",    model: "sonnet" },
-  "data-engineering": { promptFile: "data-engineering/department.md",   label: "Data Engineering TL",  model: "sonnet" },
-  "quality-assurance":{ promptFile: "quality-assurance/department.md",  label: "Quality Assurance TL", model: "sonnet" },
+  cme:                { promptFile: "cme.md",                           label: "CME (CEO)",            model: "opus" },
+  "ufficio-legale":   { promptFile: "ufficio-legale/department.md",     label: "Ufficio Legale TL",    model: "opus" },
+  "data-engineering": { promptFile: "data-engineering/department.md",   label: "Data Engineering TL",  model: "opus" },
+  "quality-assurance":{ promptFile: "quality-assurance/department.md",  label: "Quality Assurance TL", model: "opus" },
   architecture:       { promptFile: "architecture/department.md",       label: "Architecture TL",      model: "opus" },
-  finance:            { promptFile: "finance/department.md",            label: "Finance TL",           model: "sonnet" },
-  operations:         { promptFile: "operations/department.md",         label: "Operations TL",        model: "sonnet" },
-  security:           { promptFile: "security/department.md",           label: "Security TL",          model: "sonnet" },
-  marketing:          { promptFile: "marketing/department.md",          label: "Marketing TL",         model: "sonnet" },
+  finance:            { promptFile: "finance/department.md",            label: "Finance TL",           model: "opus" },
+  operations:         { promptFile: "operations/department.md",         label: "Operations TL",        model: "opus" },
+  security:           { promptFile: "security/department.md",           label: "Security TL",          model: "opus" },
+  marketing:          { promptFile: "marketing/department.md",          label: "Marketing TL",         model: "opus" },
   strategy:           { promptFile: "strategy/department.md",           label: "Strategy TL",          model: "opus" },
   trading:            { promptFile: "trading/department.md",            label: "Trading TL",           model: "opus" },
 };
@@ -44,6 +45,10 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // CSRF protection
+  const csrfError = checkCsrf(req as unknown as NextRequest);
+  if (csrfError) return csrfError;
 
   try {
     const body = await req.json();

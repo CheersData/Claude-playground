@@ -12,7 +12,7 @@ from typing import Any
 
 import pandas as pd
 
-from ..config import get_settings
+from ..config import get_settings, SECTOR_MAP
 from ..connectors.alpaca_client import AlpacaClient
 from ..models.signals import RiskDecision, RiskDecisionStatus, SignalAction
 from ..models.portfolio import RiskEvent, RiskEventType
@@ -23,9 +23,9 @@ from .base import BaseAgent
 class RiskManager(BaseAgent):
     """Validates signals and manages portfolio risk."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("risk_manager")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         self._db = TradingDB()
         self._risk = get_settings().risk
 
@@ -171,7 +171,7 @@ class RiskManager(BaseAgent):
         stop_loss = signal.get("stop_loss")
         take_profit = signal.get("take_profit")
 
-        # SELL signals: find existing position to get qty
+        # SELL signals: close existing long position
         # Without position_size, executor silently skips the order (line 77)
         if action == SignalAction.SELL:
             open_position = next(
@@ -191,6 +191,164 @@ class RiskManager(BaseAgent):
                 position_size=int(open_position["qty"]),
                 reason=None,
             )
+
+        # COVER signals: close existing short position (buy to cover)
+        if action == SignalAction.COVER:
+            open_position = next(
+                (p for p in positions if p["symbol"] == symbol), None
+            )
+            if not open_position or open_position.get("qty", 0) >= 0:
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason="No open short position to cover",
+                )
+            return RiskDecision(
+                symbol=symbol,
+                action=action,
+                status=RiskDecisionStatus.APPROVED,
+                position_size=abs(int(open_position["qty"])),
+                reason=None,
+            )
+
+        # SHORT signals: open short position (sell without owning)
+        if action == SignalAction.SHORT:
+            if not self._risk.allow_short_selling:
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason="Short selling disabled (set TRADING_RISK_ALLOW_SHORT_SELLING=true to enable)",
+                )
+
+            # Check if already holding long position (would be a sell, not short)
+            for pos in positions:
+                if pos["symbol"] == symbol and pos.get("qty", 0) > 0:
+                    return RiskDecision(
+                        symbol=symbol,
+                        action=action,
+                        status=RiskDecisionStatus.REJECTED,
+                        reason=f"Already holding long {symbol} — use SELL to close first",
+                    )
+
+            # Check total short exposure
+            short_value = sum(
+                abs(p.get("market_value", 0))
+                for p in positions
+                if p.get("qty", 0) < 0
+            )
+            short_pct = (short_value / portfolio_value) * 100 if portfolio_value > 0 else 0
+            if short_pct >= self._risk.max_short_exposure_pct:
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason=f"Short exposure {short_pct:.1f}% exceeds limit {self._risk.max_short_exposure_pct}%",
+                )
+
+            # Position sizing for short (smaller limit — downside is theoretically unlimited)
+            max_short_position_value = portfolio_value * (self._risk.max_short_position_pct / 100)
+            if stop_loss and entry_price:
+                risk_per_share = abs(stop_loss - entry_price)  # stop is ABOVE entry for shorts
+                if risk_per_share > 0:
+                    max_loss_per_trade = portfolio_value * 0.01
+                    qty_by_risk = int(max_loss_per_trade / risk_per_share)
+                else:
+                    qty_by_risk = int(max_short_position_value / entry_price)
+            else:
+                qty_by_risk = int(max_short_position_value / entry_price)
+
+            qty_by_max = int(max_short_position_value / entry_price)
+            qty = min(qty_by_risk, qty_by_max)
+
+            if qty <= 0:
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason="Short position size too small or too risky",
+                )
+
+            # Check risk/reward for short (inverted: SL above entry, TP below entry)
+            if stop_loss and take_profit and entry_price:
+                risk = abs(stop_loss - entry_price)   # loss if price goes up
+                reward = abs(entry_price - take_profit)  # gain if price goes down
+                rr_ratio = reward / max(risk, 0.01)
+                if rr_ratio < self._risk.min_risk_reward:
+                    return RiskDecision(
+                        symbol=symbol,
+                        action=action,
+                        status=RiskDecisionStatus.REJECTED,
+                        reason=f"Short R/R {rr_ratio:.1f} below minimum {self._risk.min_risk_reward}",
+                    )
+
+            position_value = round(qty * entry_price, 2)
+            portfolio_pct = round((position_value / portfolio_value) * 100, 1)
+
+            return RiskDecision(
+                symbol=symbol,
+                action=action,
+                status=RiskDecisionStatus.APPROVED,
+                position_size=qty,
+                position_value=position_value,
+                portfolio_pct=portfolio_pct,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+                atr=signal.get("atr"),
+                entry_price=entry_price,
+            )
+
+        # --- Directional exposure check (BUY + SHORT) ---
+        # Prevents portfolio from becoming too concentrated in one direction.
+        # Uses max_directional_exposure_pct (default 60%): if the portfolio already
+        # has 60%+ in long (or short), reject new signals in that same direction.
+        long_value = sum(
+            abs(p.get("market_value", 0))
+            for p in positions
+            if p.get("qty", 0) > 0
+        )
+        short_value = sum(
+            abs(p.get("market_value", 0))
+            for p in positions
+            if p.get("qty", 0) < 0
+        )
+        total_invested = long_value + short_value
+        if total_invested > 0 and portfolio_value > 0:
+            long_pct = (long_value / portfolio_value) * 100
+            short_pct = (short_value / portfolio_value) * 100
+            max_dir_pct = self._risk.max_directional_exposure_pct
+
+            if action == SignalAction.BUY and long_pct >= max_dir_pct:
+                self.logger.warning(
+                    "directional_exposure_rejected",
+                    symbol=symbol,
+                    action=action.value,
+                    long_pct=round(long_pct, 1),
+                    short_pct=round(short_pct, 1),
+                    limit=max_dir_pct,
+                )
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason=f"Long exposure {long_pct:.1f}% exceeds directional limit {max_dir_pct}% — portfolio too concentrated long",
+                )
+            if action == SignalAction.SHORT and short_pct >= max_dir_pct:
+                self.logger.warning(
+                    "directional_exposure_rejected",
+                    symbol=symbol,
+                    action=action.value,
+                    long_pct=round(long_pct, 1),
+                    short_pct=round(short_pct, 1),
+                    limit=max_dir_pct,
+                )
+                return RiskDecision(
+                    symbol=symbol,
+                    action=action,
+                    status=RiskDecisionStatus.REJECTED,
+                    reason=f"Short exposure {short_pct:.1f}% exceeds directional limit {max_dir_pct}% — portfolio too concentrated short",
+                )
 
         # --- BUY validation ---
 
@@ -214,15 +372,31 @@ class RiskManager(BaseAgent):
                 )
 
         # Check sector concentration
-        sector = signal.get("sector")
+        # Resolve sector from SECTOR_MAP (Alpaca positions don't carry sector metadata).
+        # signal.get("sector") is a best-effort field from signal_generator; fall back
+        # to SECTOR_MAP so the check always fires for known symbols.
+        sector = SECTOR_MAP.get(symbol) or signal.get("sector")
         if sector:
             sector_value = sum(
                 p.get("market_value", 0)
                 for p in positions
-                if p.get("sector") == sector
+                if SECTOR_MAP.get(p.get("symbol", ""), p.get("sector")) == sector
             )
             sector_pct = (sector_value / portfolio_value) * 100 if portfolio_value > 0 else 0
-            if sector_pct >= self._risk.max_sector_exposure_pct:
+            sector_result = (
+                "rejected"
+                if sector_pct >= self._risk.max_sector_exposure_pct
+                else "approved"
+            )
+            self.logger.info(
+                "sector_exposure_check",
+                symbol=symbol,
+                sector=sector,
+                current_pct=round(sector_pct, 2),
+                limit_pct=self._risk.max_sector_exposure_pct,
+                result=sector_result,
+            )
+            if sector_result == "rejected":
                 return RiskDecision(
                     symbol=symbol,
                     action=action,
@@ -270,6 +444,22 @@ class RiskManager(BaseAgent):
                     status=RiskDecisionStatus.REJECTED,
                     reason=f"Risk/reward {rr_ratio:.1f} below minimum {self._risk.min_risk_reward}",
                 )
+
+        # ── News risk adjustment ─────────────────────────────────────────────
+        # Halve position size when breaking news is detected (flagged by signal generator).
+        # News-driven volatility can invalidate slope signals — smaller size = less damage.
+        if signal.get("news_risk", False):
+            original_size = qty
+            qty = max(1, qty // 2)
+            position_value = qty * entry_price
+            portfolio_pct = (position_value / portfolio_value) * 100
+            self.logger.warning(
+                "risk_news_size_reduction",
+                symbol=symbol,
+                original_shares=original_size,
+                reduced_shares=qty,
+                headline=str(signal.get("news_headline", ""))[:80],
+            )
 
         return RiskDecision(
             symbol=symbol,

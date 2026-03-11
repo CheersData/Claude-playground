@@ -7,6 +7,8 @@
  *   2. D.Lgs. 276/2003 — Riforma Biagi: contratti di lavoro flessibili (Normattiva)
  *   3. Legge 300/1970  — Statuto dei Lavoratori (Normattiva, directAkn)
  *   4. D.Lgs. 23/2015  — Jobs Act: tutele crescenti licenziamento (Normattiva)
+ *   5. D.Lgs. 81/2015  — Codice dei contratti di lavoro (Jobs Act contratti) (Normattiva)
+ *   6. D.Lgs. 148/2015 — Cassa Integrazione Guadagni (CIG) (Normattiva)
  *
  * CCNL (Contratti Collettivi Nazionali) — NON su Normattiva.
  * Richiedono un connettore custom (endpoint CNEL o INPS).
@@ -41,7 +43,7 @@ export const HR_SOURCES: CorpusSource[] = [
       normattivaDataGU: "20080430",    // G.U. n. 101 del 30 aprile 2008 (Suppl. Ord. n. 108)
       preferredFormat: "akn",
     },
-    lifecycle: "planned",
+    lifecycle: "loaded",   // caricato 2026-03-03
     vertical: "hr",
   },
   {
@@ -65,7 +67,7 @@ export const HR_SOURCES: CorpusSource[] = [
       normattivaDataGU: "20031009",    // G.U. n. 235 del 9 ottobre 2003
       preferredFormat: "akn",
     },
-    lifecycle: "planned",
+    lifecycle: "loaded",   // caricato 2026-03-03
     vertical: "hr",
   },
   {
@@ -89,7 +91,7 @@ export const HR_SOURCES: CorpusSource[] = [
       // dataGU = data pubblicazione GU (27 maggio 1970).
       normattivaDataGU: "19700527",
     },
-    lifecycle: "api-tested",
+    lifecycle: "loaded",   // caricato 2026-03-03 | 41 art.
     vertical: "hr",
   },
   {
@@ -112,7 +114,57 @@ export const HR_SOURCES: CorpusSource[] = [
       normattivaDataGU: "20150306",    // G.U. n. 54 del 6 marzo 2015
       preferredFormat: "akn",
     },
-    lifecycle: "planned",
+    lifecycle: "loaded",   // caricato 2026-03-03
+    vertical: "hr",
+  },
+  // ─── Fonti aggiuntive — Consulente del Lavoro (censimento 2026-03-03) ───
+
+  {
+    id: "dlgs_81_2015",
+    name: "D.Lgs. 81/2015 — Codice dei contratti di lavoro",
+    shortName: "Jobs Act Contratti",
+    type: "normattiva",
+    description: "Decreto Legislativo 15 giugno 2015, n. 81 — Disciplina organica dei contratti di lavoro e revisione della normativa in tema di mansioni (Jobs Act, deleghe L. 183/2014)",
+    urn: "urn:nir:stato:decreto.legislativo:2015-06-15;81",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-06-15;81",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 55,
+    connector: {
+      normattivaActType: "decreto.legislativo",
+      normattivaSearchTerms: ["decreto legislativo 81 2015", "codice contratti lavoro", "jobs act contratti"],
+      codiceRedazionale: "15G00095",   // verificato via CONNECT 2026-03-03
+      directAkn: true,                 // ZIP async vuoti → usa caricaAKN diretto (come dlgs_23_2015)
+      normattivaDataGU: "20150624",    // G.U. n. 144 del 24 giugno 2015, S.O. n. 34
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",   // caricato 2026-03-03
+    vertical: "hr",
+  },
+  {
+    id: "dlgs_148_2015",
+    name: "D.Lgs. 148/2015 — Cassa Integrazione Guadagni",
+    shortName: "CIG",
+    type: "normattiva",
+    description: "Decreto Legislativo 14 settembre 2015, n. 148 — Disposizioni per il riordino della normativa in materia di ammortizzatori sociali in costanza di rapporto di lavoro (Jobs Act, deleghe L. 183/2014)",
+    urn: "urn:nir:stato:decreto.legislativo:2015-09-14;148",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-09-14;148",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 46,
+    connector: {
+      normattivaActType: "decreto.legislativo",
+      normattivaSearchTerms: ["decreto legislativo 148 2015", "cassa integrazione guadagni", "ammortizzatori sociali"],
+      codiceRedazionale: "15G00160",   // verificato via CONNECT 2026-03-03
+      directAkn: true,                 // ZIP async vuoti → usa caricaAKN diretto (come dlgs_23_2015)
+      normattivaDataGU: "20150923",    // G.U. n. 221 del 23 settembre 2015, S.O. n. 53
+      preferredFormat: "akn",
+    },
+    lifecycle: "loaded",   // caricato 2026-03-03
     vertical: "hr",
   },
 ];
@@ -135,11 +187,18 @@ export const HR_SOURCE_IDS = HR_SOURCES.map((s) => s.id);
  * 1. Importa questo file nel tuo script di caricamento:
  *    import "@/scripts/hr-sources";  // registra automaticamente il verticale
  *
- * 2. Usa il data-connector per caricare le fonti:
+ * 2. Usa il data-connector per caricare le fonti (ordine suggerito):
+ *    npx tsx scripts/data-connector.ts connect statuto_lavoratori
+ *    npx tsx scripts/data-connector.ts connect dlgs_276_2003
+ *    npx tsx scripts/data-connector.ts connect dlgs_23_2015
+ *    npx tsx scripts/data-connector.ts connect dlgs_81_2015
+ *    npx tsx scripts/data-connector.ts connect dlgs_148_2015
  *    npx tsx scripts/data-connector.ts connect dlgs_81_2008
- *    npx tsx scripts/data-connector.ts load dlgs_81_2008
  *
  * 3. Verifica nel corpus che gli articoli siano presenti con vertical='hr'
+ *
+ * NOTE: D.Lgs. 81/2015 e D.Lgs. 148/2015 hanno codiceRedazionale da verificare.
+ * Se directAkn fallisce, usare normattivaSearchTerms come fallback (rimuovere directAkn: true).
  *
  * NOTE: CCNL (Contratti Collettivi) non sono su Normattiva.
  * Richiedono un custom CcnlConnector che legga dall'archivio CNEL (www.cnel.it/CCNL)

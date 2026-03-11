@@ -13,6 +13,7 @@ import { getTotalSpend } from "@/lib/company/cost-logger";
 import { getConnectorStatus } from "@/lib/staff/data-connector/sync-log";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 const STALE_DAYS = 7;
 const SYNC_GAP_DAYS = 7;
@@ -27,6 +28,10 @@ export async function POST(req: NextRequest) {
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
 
   const alerts: string[] = [];
 

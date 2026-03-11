@@ -31,9 +31,9 @@ MonitorMode = Literal["status", "daily_report", "check_stops", "trailing_stops"]
 class PortfolioMonitor(BaseAgent):
     """Monitors portfolio health and enforces risk limits."""
 
-    def __init__(self) -> None:
+    def __init__(self, account_type: str = "slope") -> None:
         super().__init__("portfolio_monitor")
-        self._alpaca = AlpacaClient()
+        self._alpaca = AlpacaClient(account_type=account_type)  # type: ignore[arg-type]
         self._db = TradingDB()
         self._risk = get_settings().risk
 
@@ -94,8 +94,8 @@ class PortfolioMonitor(BaseAgent):
         raw_positions = self._alpaca.get_positions()
         snapshots = self._db.get_snapshots(days=30)
 
-        portfolio_value = account["portfolio_value"]
-        cash = account["cash"]
+        portfolio_value = float(account.get("portfolio_value") or 0)
+        cash = float(account.get("cash") or 0)
         positions = self._build_positions(raw_positions)
         positions_value = sum(p.market_value for p in positions)
 
@@ -142,14 +142,13 @@ class PortfolioMonitor(BaseAgent):
         """Check and enforce stop-loss levels on open positions."""
         raw_positions = self._alpaca.get_positions()
         account = self._alpaca.get_account()
-        portfolio_value = account["portfolio_value"]
-
+        portfolio_value = float(account.get("portfolio_value") or 0)
         stop_events: list[dict] = []
 
         for p in raw_positions:
             symbol = p["symbol"]
-            unrealized_pnl_pct = p["unrealized_plpc"] * 100
-            current_price = p["current_price"]
+            unrealized_pnl_pct = float(p["unrealized_plpc"] or 0) * 100
+            current_price = float(p["current_price"] or 0)
 
             # Check position-level stop loss
             if unrealized_pnl_pct <= self._risk.stop_loss_pct:
@@ -210,6 +209,15 @@ class PortfolioMonitor(BaseAgent):
 
     async def _trailing_stops_mode(self) -> dict:
         """Update 4-tier trailing stops for all positions."""
+        # Sync positions from Alpaca to DB (keeps portfolio_positions fresh)
+        try:
+            raw_positions = self._alpaca.get_positions()
+            built_positions = self._build_positions(raw_positions)
+            self._db.upsert_positions([p.model_dump() for p in built_positions])
+            self.logger.info("positions_synced", count=len(built_positions))
+        except Exception as e:
+            self.logger.warning("positions_sync_failed", error=str(e))
+
         updates = self._update_trailing_stops()
         cleanup = self._cleanup_trailing_stop_state()
         return {
@@ -262,8 +270,50 @@ class PortfolioMonitor(BaseAgent):
             if atr <= 0:
                 continue
 
+            # Sanity check: stop must be BELOW current price for a long position.
+            # If not (e.g. GLD anomaly: stop=458.11 vs price=~180, stale DB entry,
+            # bad data from Alpaca), force a full rebootstrap from market data.
+            # Using 99% threshold to tolerate negligible rounding diffs.
+            _current_price_f = float(current_price) if current_price else 0.0
+            if _current_price_f > 0 and current_stop >= _current_price_f * 0.99:
+                self.logger.critical(
+                    "trailing_stop_above_market_price",
+                    symbol=symbol,
+                    current_stop=round(current_stop, 2),
+                    current_price=round(_current_price_f, 2),
+                    action="forcing_rebootstrap",
+                    reason="stop_price >= 99% current_price — would trigger immediately",
+                )
+                state = self._bootstrap_trailing_stop(pos)
+                if not state:
+                    continue
+                # Re-read all values from the fresh state
+                entry_price = float(state["entry_price"])
+                atr = float(state["atr_at_entry"])
+                highest_close = float(state["highest_close"])
+                current_stop = float(state["current_stop_price"])
+                stop_order_id = state.get("stop_order_id")
+                if atr <= 0:
+                    continue
+
             # Update highest close
             if current_price > highest_close:
+                highest_close = current_price
+
+            # Sanity check: highest_close should not vastly exceed current_price.
+            # Prevents persisted anomalous values (e.g. stale Alpaca data, split
+            # artifacts) from corrupting stop calculations.
+            # 50% tolerance is generous enough for volatile names.
+            _MAX_HC_RATIO = 1.5
+            if highest_close > current_price * _MAX_HC_RATIO and current_price > 0:
+                self.logger.warning(
+                    "trailing_stop_highest_close_anomaly",
+                    symbol=symbol,
+                    highest_close=round(highest_close, 2),
+                    current_price=round(current_price, 2),
+                    ratio=round(highest_close / current_price, 2),
+                    reason="highest_close > 1.5x current_price — clamping to current_price",
+                )
                 highest_close = current_price
 
             # Calculate profit from entry using highest_close
@@ -369,6 +419,25 @@ class PortfolioMonitor(BaseAgent):
                         order_id=stop_order_id,
                         error=str(e),
                     )
+                    # Recovery: stop order may have changed after a partial fill.
+                    # Search for a new valid stop order for this symbol and relink.
+                    try:
+                        orders = self._alpaca.get_orders(status="open")
+                        for o in orders:
+                            if o.get("symbol") == symbol and o.get("type") == "stop":
+                                new_found_id = o.get("order_id")
+                                if new_found_id and new_found_id != stop_order_id:
+                                    updated_state["stop_order_id"] = new_found_id
+                                    self.logger.info(
+                                        "trailing_stop_order_relinked",
+                                        symbol=symbol,
+                                        old_order_id=stop_order_id,
+                                        new_order_id=new_found_id,
+                                        reason="recovered_after_partial_fill",
+                                    )
+                                break
+                    except Exception:
+                        pass
 
             # Save state (even if order replace failed — we still track highest_close)
             self._db.upsert_trailing_stop_state(updated_state)
@@ -413,17 +482,36 @@ class PortfolioMonitor(BaseAgent):
         except Exception:
             pass
 
+        current_price = float(pos["current_price"] or entry_price)
+
         # Use existing Alpaca stop price if available, otherwise estimate
         if existing_stop_price:
             original_stop = float(existing_stop_price)
         else:
             original_stop = round(entry_price - 2.5 * atr, 2)
 
+        # Sanity check: for a long position, stop must be BELOW current price.
+        # If stop >= current_price the bracket would trigger immediately — data anomaly.
+        # Fall back to a standard 5% stop below current price.
+        if original_stop >= current_price:
+            fallback_stop = round(current_price * 0.95, 2)
+            self.logger.critical(
+                "trailing_stop_bootstrap_anomaly",
+                symbol=symbol,
+                entry_price=entry_price,
+                atr=round(atr, 4),
+                bad_stop=original_stop,
+                current_price=current_price,
+                fallback_stop=fallback_stop,
+                reason="stop_price >= current_price — likely stale entry_price data",
+            )
+            original_stop = fallback_stop
+
         state = {
             "symbol": symbol,
             "entry_price": round(entry_price, 4),
             "atr_at_entry": round(atr, 4),
-            "highest_close": round(max(pos["current_price"], entry_price), 4),
+            "highest_close": round(max(current_price, entry_price), 4),
             "current_stop_price": original_stop,
             "original_stop_price": original_stop,
             "stop_order_id": stop_order_id,
@@ -442,36 +530,93 @@ class PortfolioMonitor(BaseAgent):
         return state
 
     def _cleanup_trailing_stop_state(self) -> int:
-        """Remove trailing stop state for symbols no longer in portfolio."""
+        """Remove trailing stop state for symbols no longer in portfolio.
+
+        Guards against premature cleanup when a SELL is partially_filled:
+        if there's still an open order for the symbol, the position is not
+        fully settled yet, so we preserve the trailing stop state to keep
+        the residual position protected.
+        """
         raw_positions = self._alpaca.get_positions()
         current_symbols = {p["symbol"] for p in raw_positions}
+
+        # Check for pending orders — a partially_filled SELL may temporarily
+        # remove the position from get_positions() while it still partially exists.
+        pending_symbols: set[str] = set()
+        try:
+            open_orders = self._alpaca.get_orders(status="open")
+            pending_symbols = {o.get("symbol") for o in open_orders if o.get("symbol")}
+        except Exception as e:
+            self.logger.warning("cleanup_open_orders_fetch_failed", error=str(e))
+
         all_states = self._db.get_all_trailing_stop_states()
         cleaned = 0
         for state in all_states:
-            if state["symbol"] not in current_symbols:
-                self._db.delete_trailing_stop_state(state["symbol"])
+            symbol = state["symbol"]
+            if symbol not in current_symbols and symbol not in pending_symbols:
+                # --- Calcola exit price e P&L dalla chiusura ---
+                entry_price = state.get("entry_price")
+                exit_price: float | None = None
+                pnl: float | None = None
+                pnl_pct: float | None = None
+                try:
+                    recent_orders = self._alpaca.get_orders(status="all")
+                    sell_order = next(
+                        (
+                            o for o in recent_orders
+                            if o.get("symbol") == symbol
+                            and o.get("side") == "sell"
+                            and o.get("filled_avg_price")
+                        ),
+                        None,
+                    )
+                    if sell_order:
+                        exit_price = float(sell_order["filled_avg_price"])
+                        qty = float(sell_order.get("qty") or sell_order.get("filled_qty") or 0)
+                        if entry_price and qty:
+                            pnl = round((exit_price - entry_price) * qty, 2)
+                            pnl_pct = round((exit_price - entry_price) / entry_price * 100, 2)
+                except Exception as e:
+                    self.logger.warning("position_close_pnl_fetch_failed", symbol=symbol, error=str(e))
+
+                self._db.delete_trailing_stop_state(symbol)
                 self.logger.info(
                     "trailing_stop_cleaned",
-                    symbol=state["symbol"],
+                    symbol=symbol,
                     reason="position_closed",
+                    entry_price=entry_price,
+                    exit_price=exit_price,
+                    pnl=pnl,
+                    pnl_pct=pnl_pct,
+                    outcome="WIN" if (pnl or 0) > 0 else "LOSS" if (pnl or 0) < 0 else "FLAT",
                 )
                 cleaned += 1
+            elif symbol not in current_symbols and symbol in pending_symbols:
+                self.logger.info(
+                    "trailing_stop_preserved",
+                    symbol=symbol,
+                    reason="open_order_still_pending — partial fill in progress",
+                )
         return cleaned
 
     # ─── Helpers ──────────────────────────────────────────────
 
     @staticmethod
     def _build_positions(raw_positions: list[dict]) -> list[Position]:
-        """Convert raw Alpaca position dicts into Position models."""
+        """Convert raw Alpaca position dicts into Position models.
+
+        Note: current_price, unrealized_pl, unrealized_plpc can be None
+        from Alpaca during pre-market / when market is closed.
+        """
         return [
             Position(
                 symbol=p["symbol"],
-                qty=p["qty"],
-                avg_entry_price=p["avg_entry_price"],
-                current_price=p["current_price"],
-                market_value=p["market_value"],
-                unrealized_pnl=p["unrealized_pl"],
-                unrealized_pnl_pct=p["unrealized_plpc"] * 100,
+                qty=int(p["qty"]),
+                avg_entry_price=float(p["avg_entry_price"] or 0),
+                current_price=float(p["current_price"] or p["avg_entry_price"] or 0),
+                market_value=float(p["market_value"] or 0),
+                unrealized_pnl=float(p["unrealized_pl"] or 0),
+                unrealized_pnl_pct=float(p["unrealized_plpc"] or 0) * 100,
             )
             for p in raw_positions
         ]
@@ -552,7 +697,7 @@ class PortfolioMonitor(BaseAgent):
         orders = self._alpaca.get_orders(status="closed")
         if not orders:
             return None
-        wins = sum(1 for o in orders if float(o.get("filled_avg_price", 0)) > 0)
+        wins = sum(1 for o in orders if float(o.get("filled_avg_price") or 0) > 0)
         total = len(orders)
         if total == 0:
             return None

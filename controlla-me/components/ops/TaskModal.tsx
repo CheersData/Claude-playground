@@ -37,8 +37,8 @@ export interface TaskItem {
 export function TagBadge({ tag, size = "sm" }: { tag: string; size?: "xs" | "sm" }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono ${
-        size === "xs" ? "text-[9px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+      className={`inline-flex items-center rounded-full bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] border border-[var(--ops-border)] font-mono ${
+        size === "xs" ? "text-xs px-2 py-0.5" : "text-xs px-2 py-0.5"
       }`}
     >
       {tag}
@@ -53,18 +53,18 @@ interface TaskModalProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  open: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  in_progress: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  review: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  done: "bg-green-500/20 text-green-400 border-green-500/30",
-  blocked: "bg-red-500/20 text-red-400 border-red-500/30",
+  open: "bg-[rgba(173,215,255,0.2)] text-[var(--ops-cyan)] border-[rgba(173,215,255,0.3)]",
+  in_progress: "bg-[rgba(255,200,50,0.2)] text-[var(--ops-id-cost)] border-[rgba(255,200,50,0.3)]",
+  review: "bg-[rgba(255,107,53,0.2)] text-[var(--ops-accent)] border-[rgba(255,107,53,0.3)]",
+  done: "bg-[rgba(93,228,199,0.2)] text-[var(--ops-teal)] border-[rgba(93,228,199,0.3)]",
+  blocked: "bg-[rgba(229,141,120,0.2)] text-[var(--ops-error)] border-[rgba(229,141,120,0.3)]",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  critical: "text-red-400",
-  high: "text-orange-400",
-  medium: "text-yellow-400",
-  low: "text-zinc-400",
+  critical: "text-[var(--ops-error)]",
+  high: "text-[var(--ops-accent)]",
+  medium: "text-[var(--ops-id-cost)]",
+  low: "text-[var(--ops-fg-muted)]",
 };
 
 const DEPT_LABELS: Record<string, string> = {
@@ -216,24 +216,24 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-xl bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-xl bg-[var(--ops-surface)] border border-[var(--ops-border)] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-zinc-800 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[var(--ops-border-subtle)] flex-shrink-0">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-zinc-400 flex-shrink-0" />; })()}
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+            <div className="flex items-center gap-2 mb-2">
+              {(() => { const Icon = DEPT_ICONS[task.department] ?? ClipboardList; return <Icon className="w-4 h-4 text-[var(--ops-fg-muted)] flex-shrink-0" />; })()}
+              <span className="text-xs font-semibold text-[var(--ops-fg-muted)] uppercase tracking-wide">
                 {DEPT_LABELS[task.department] ?? task.department}
               </span>
-              {fetchingFull && <Loader2 className="w-3 h-3 text-zinc-600 animate-spin" />}
+              {fetchingFull && <Loader2 className="w-3 h-3 text-[var(--ops-muted)] animate-spin" />}
             </div>
             <h2 className="text-base font-semibold text-white leading-snug">{task.title}</h2>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="flex-shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="flex-shrink-0 p-2 rounded-lg text-[var(--ops-muted)] hover:text-white hover:bg-[var(--ops-surface-2)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -244,14 +244,14 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
           {/* Status + Priority row */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${STATUS_COLORS[task.status] ?? "bg-zinc-800 text-zinc-400 border-zinc-700"}`}>
+            <span className={`text-xs px-3 py-1 rounded-full border font-medium ${STATUS_COLORS[task.status] ?? "bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] border-[var(--ops-border)]"}`}>
               {task.status.replace("_", " ")}
             </span>
-            <span className={`text-xs font-semibold ${PRIORITY_COLORS[task.priority] ?? "text-zinc-400"}`}>
+            <span className={`text-xs font-semibold ${PRIORITY_COLORS[task.priority] ?? "text-[var(--ops-fg-muted)]"}`}>
               ● {task.priority.toUpperCase()}
             </span>
             {task.labels && task.labels.length > 0 && task.labels.map((l) => (
-              <span key={l} className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+              <span key={l} className="text-xs px-2 py-0.5 rounded-full bg-[var(--ops-surface-2)] text-[var(--ops-fg-muted)] border border-[var(--ops-border)]">
                 {l}
               </span>
             ))}
@@ -260,88 +260,88 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             <div className="flex items-center gap-2">
-              <Building2 className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
-              <span className="text-xs text-zinc-400">
-                <span className="text-zinc-600">Dipartimento</span>
-                <span className="block text-zinc-300 font-medium">{DEPT_LABELS[task.department] ?? task.department}</span>
+              <Building2 className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+              <span className="text-xs text-[var(--ops-fg-muted)]">
+                <span className="text-[var(--ops-muted)]">Dipartimento</span>
+                <span className="block text-[var(--ops-fg)] font-medium">{DEPT_LABELS[task.department] ?? task.department}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
-              <span className="text-xs text-zinc-400">
-                <span className="text-zinc-600">In carico a</span>
+              <User className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+              <span className="text-xs text-[var(--ops-fg-muted)]">
+                <span className="text-[var(--ops-muted)]">In carico a</span>
                 <span className="block">
                   {task.assignedTo
-                    ? <span className="text-zinc-200 font-medium">{task.assignedTo}</span>
-                    : <span className="text-zinc-600 italic">non assegnato</span>
+                    ? <span className="text-[var(--ops-fg)] font-medium">{task.assignedTo}</span>
+                    : <span className="text-[var(--ops-muted)] italic">non assegnato</span>
                   }
                 </span>
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Tag className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
-              <span className="text-xs text-zinc-600">Creato da <span className="text-zinc-500">{task.createdBy}</span></span>
+              <Tag className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+              <span className="text-xs text-[var(--ops-muted)]">Creato da <span className="text-[var(--ops-muted)]">{task.createdBy}</span></span>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
-              <span className="text-xs text-zinc-600">{formatDate(task.createdAt)}</span>
+              <Calendar className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+              <span className="text-xs text-[var(--ops-muted)]">{formatDate(task.createdAt)}</span>
             </div>
           </div>
 
           {/* Description */}
           {descBody && (
-            <div className="rounded-xl bg-zinc-800/50 border border-zinc-800 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <FileText className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide">Attività</span>
+            <div className="rounded-xl bg-[var(--ops-surface-2)]/50 border border-[var(--ops-border-subtle)] px-4 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-[var(--ops-muted)]" />
+                <span className="text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide">Attività</span>
               </div>
-              <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{descBody}</p>
+              <p className="text-sm text-[var(--ops-fg)] leading-relaxed whitespace-pre-wrap">{descBody}</p>
             </div>
           )}
 
           {/* Expected benefit */}
           {benefit && (
-            <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
-                <span className="text-[11px] text-blue-400/80 font-semibold uppercase tracking-wide">Beneficio atteso</span>
+            <div className="rounded-xl bg-[rgba(173,215,255,0.05)] border border-[rgba(173,215,255,0.2)] px-4 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-cyan)] inline-block" />
+                <span className="text-xs text-[var(--ops-cyan)]/80 font-semibold uppercase tracking-wide">Beneficio atteso</span>
               </div>
-              <p className="text-sm text-blue-200/80 leading-relaxed">{benefit}</p>
+              <p className="text-sm text-[var(--ops-fg)]/80 leading-relaxed">{benefit}</p>
             </div>
           )}
 
           {/* Stored architect review (generated via CLI) */}
           {storedReview && (
-            <div className="rounded-xl bg-zinc-800/60 border border-zinc-700 px-4 py-3 space-y-2">
+            <div className="rounded-xl bg-[var(--ops-surface-2)]/60 border border-[var(--ops-border)] px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wide">Parere Architetto</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                  storedReview.recommendation === "approva" ? "bg-green-500/20 text-green-400" :
-                  storedReview.recommendation === "rifiuta" ? "bg-red-500/20 text-red-400" :
-                  "bg-yellow-500/20 text-yellow-400"
+                <span className="text-xs text-[var(--ops-fg-muted)] font-semibold uppercase tracking-wide">Parere Architetto</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                  storedReview.recommendation === "approva" ? "bg-[rgba(93,228,199,0.2)] text-[var(--ops-teal)]" :
+                  storedReview.recommendation === "rifiuta" ? "bg-[rgba(229,141,120,0.2)] text-[var(--ops-error)]" :
+                  "bg-[rgba(255,200,50,0.2)] text-[var(--ops-id-cost)]"
                 }`}>{storedReview.recommendation?.toUpperCase()}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {storedReview.feasibility && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-zinc-700 text-zinc-300">
+                  <span className="text-xs px-2 py-0.5 rounded bg-[var(--ops-surface-2)] text-[var(--ops-fg)]">
                     Fattibilità: <strong>{storedReview.feasibility}</strong>
                   </span>
                 )}
                 {storedReview.effort && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-zinc-700 text-zinc-300">
+                  <span className="text-xs px-2 py-0.5 rounded bg-[var(--ops-surface-2)] text-[var(--ops-fg)]">
                     Effort: <strong>{storedReview.effort}</strong>
                   </span>
                 )}
               </div>
-              {storedReview.notes && <p className="text-xs text-zinc-400 leading-relaxed">{storedReview.notes}</p>}
+              {storedReview.notes && <p className="text-xs text-[var(--ops-fg-muted)] leading-relaxed">{storedReview.notes}</p>}
             </div>
           )}
 
           {/* CLI hint for architect review (review tasks without stored review) */}
           {isReview && !storedReview && !actionMode && (
-            <div className="rounded-lg bg-zinc-800/40 border border-zinc-700 px-3 py-2.5 flex items-center gap-2">
-              <Terminal className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-              <span className="text-[11px] text-zinc-500 font-mono">
+            <div className="rounded-lg bg-[var(--ops-surface-2)]/40 border border-[var(--ops-border)] px-3 py-3 flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-[var(--ops-muted)] flex-shrink-0" />
+              <span className="text-xs text-[var(--ops-muted)] font-mono">
                 npx tsx scripts/architect-review.ts {task.id.slice(0, 8)}
               </span>
             </div>
@@ -349,28 +349,28 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
 
           {/* Result summary */}
           {task.resultSummary && (
-            <div className="rounded-xl bg-green-500/5 border border-green-500/20 px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-                <span className="text-[11px] text-green-500/80 font-semibold uppercase tracking-wide">Risultato</span>
+            <div className="rounded-xl bg-[rgba(93,228,199,0.05)] border border-[rgba(93,228,199,0.2)] px-4 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-teal)] inline-block" />
+                <span className="text-xs text-[var(--ops-teal)]/80 font-semibold uppercase tracking-wide">Risultato</span>
               </div>
-              <p className="text-sm text-green-300/90 leading-relaxed whitespace-pre-wrap">{task.resultSummary}</p>
+              <p className="text-sm text-[var(--ops-teal)]/90 leading-relaxed whitespace-pre-wrap">{task.resultSummary}</p>
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-2.5 text-sm text-red-400">
+            <div className="rounded-lg bg-[rgba(229,141,120,0.1)] border border-[rgba(229,141,120,0.3)] px-4 py-3 text-sm text-[var(--ops-error)]">
               {error}
             </div>
           )}
 
           {/* ── APPROVAL PANEL ── */}
           {isReview && !actionMode && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse inline-block" />
-                <span className="text-xs text-amber-400 font-semibold uppercase tracking-wide">
+            <div className="rounded-xl border border-[rgba(255,107,53,0.3)] bg-[rgba(255,107,53,0.05)] overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-[rgba(255,107,53,0.2)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--ops-accent)] animate-pulse inline-block" />
+                <span className="text-xs text-[var(--ops-accent)] font-semibold uppercase tracking-wide">
                   In attesa di approvazione
                 </span>
               </div>
@@ -378,17 +378,17 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                 <button
                   onClick={(e) => { e.stopPropagation(); handleApprove(); }}
                   disabled={loading}
-                  className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-700/80 hover:bg-green-700 disabled:opacity-50 rounded-lg text-xs text-white font-medium transition-colors"
+                  className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[rgba(93,228,199,0.3)] hover:bg-[rgba(93,228,199,0.4)] disabled:opacity-50 rounded-lg text-xs text-white font-medium transition-colors"
                 >
-                  {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
                   Approva → open
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleReject(); }}
                   disabled={loading}
-                  className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-900/50 hover:bg-red-900/80 disabled:opacity-50 rounded-lg text-xs text-red-300 font-medium transition-colors"
+                  className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[rgba(229,141,120,0.2)] hover:bg-[rgba(229,141,120,0.35)] disabled:opacity-50 rounded-lg text-xs text-[var(--ops-error)] font-medium transition-colors"
                 >
-                  <ThumbsDown className="w-3.5 h-3.5" />
+                  <ThumbsDown className="w-4 h-4" />
                   Rifiuta
                 </button>
               </div>
@@ -398,14 +398,14 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
           {/* ACTION FORMS */}
 
           {actionMode === "claim" && (
-            <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 px-4 py-4 space-y-3">
-              <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide">Claim task</p>
+            <div className="rounded-xl bg-[rgba(173,215,255,0.05)] border border-[rgba(173,215,255,0.2)] px-4 py-4 space-y-3">
+              <p className="text-xs text-[var(--ops-cyan)] font-semibold uppercase tracking-wide">Claim task</p>
               <input
                 type="text"
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
                 placeholder="Nome agente (es. architect, test-runner...)"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)]"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && handleClaim()}
               />
@@ -413,12 +413,12 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                 <button
                   onClick={(e) => { e.stopPropagation(); handleClaim(); }}
                   disabled={loading || !agentName.trim()}
-                  className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-sm text-white font-medium transition-colors"
+                  className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[var(--ops-accent)] hover:bg-[var(--ops-accent)]/90 disabled:opacity-50 rounded-lg text-sm text-white font-medium transition-colors"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                   Claim
                 </button>
-                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-400 transition-colors">
+                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-surface-2)] rounded-lg text-sm text-[var(--ops-fg-muted)] transition-colors">
                   Annulla
                 </button>
               </div>
@@ -426,31 +426,31 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
           )}
 
           {actionMode === "done" && (
-            <div className="rounded-xl bg-green-500/5 border border-green-500/20 px-4 py-4 space-y-3">
-              <p className="text-xs text-green-400 font-semibold uppercase tracking-wide">Mark as Done</p>
+            <div className="rounded-xl bg-[rgba(93,228,199,0.05)] border border-[rgba(93,228,199,0.2)] px-4 py-4 space-y-3">
+              <p className="text-xs text-[var(--ops-teal)] font-semibold uppercase tracking-wide">Mark as Done</p>
               <textarea
                 value={resultText}
                 onChange={(e) => setResultText(e.target.value)}
                 placeholder="Riepilogo risultato (opzionale)..."
                 rows={3}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)] resize-none"
                 autoFocus
               />
               {task.expectedBenefit && (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide">Beneficio raggiunto?</p>
+                  <p className="text-xs text-[var(--ops-muted)] font-semibold uppercase tracking-wide">Beneficio raggiunto?</p>
                   <div className="flex gap-2">
                     {(["achieved", "partial", "missed"] as const).map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => setBenefitStatus(s)}
-                        className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${
+                        className={`flex-1 text-xs py-2 rounded-lg border font-medium transition-colors ${
                           benefitStatus === s
-                            ? s === "achieved" ? "bg-green-500/25 text-green-300 border-green-500/50"
-                            : s === "partial"  ? "bg-yellow-500/25 text-yellow-300 border-yellow-500/50"
-                            : "bg-red-500/25 text-red-300 border-red-500/50"
-                            : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-500"
+                            ? s === "achieved" ? "bg-[rgba(93,228,199,0.25)] text-[var(--ops-teal)] border-[rgba(93,228,199,0.5)]"
+                            : s === "partial"  ? "bg-[rgba(255,200,50,0.25)] text-[var(--ops-id-cost)] border-[rgba(255,200,50,0.5)]"
+                            : "bg-[rgba(229,141,120,0.25)] text-[var(--ops-error)] border-[rgba(229,141,120,0.5)]"
+                            : "bg-[var(--ops-surface-2)] text-[var(--ops-muted)] border-[var(--ops-border)] hover:border-[var(--ops-border)]"
                         }`}
                       >
                         {s === "achieved" ? "Raggiunto" : s === "partial" ? "Parziale" : "Mancato"}
@@ -462,7 +462,7 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                     onChange={(e) => setBenefitNotes(e.target.value)}
                     placeholder="Note sul beneficio (opzionale)..."
                     rows={2}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                    className="w-full bg-[var(--ops-surface-2)] border border-[var(--ops-border)] rounded-lg px-3 py-2 text-sm text-white placeholder-[var(--ops-muted)] focus:outline-none focus:border-[var(--ops-border)] resize-none"
                   />
                 </div>
               )}
@@ -470,12 +470,12 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDone(); }}
                   disabled={loading}
-                  className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 rounded-lg text-sm text-white font-medium transition-colors"
+                  className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[rgba(93,228,199,0.3)] hover:bg-[rgba(93,228,199,0.4)] disabled:opacity-50 rounded-lg text-sm text-white font-medium transition-colors"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
                   Conferma Done
                 </button>
-                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-400 transition-colors">
+                <button onClick={() => setActionMode(null)} className="cursor-pointer px-4 py-2 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-surface-2)] rounded-lg text-sm text-[var(--ops-fg-muted)] transition-colors">
                   Annulla
                 </button>
               </div>
@@ -483,8 +483,8 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
           )}
 
           {actionMode === "status" && (
-            <div className="rounded-xl bg-zinc-800/50 border border-zinc-700 px-4 py-4 space-y-3">
-              <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Cambia stato</p>
+            <div className="rounded-xl bg-[var(--ops-surface-2)]/50 border border-[var(--ops-border)] px-4 py-4 space-y-3">
+              <p className="text-xs text-[var(--ops-fg-muted)] font-semibold uppercase tracking-wide">Cambia stato</p>
               <div className="flex flex-wrap gap-2">
                 {(["open", "in_progress", "review", "blocked"] as const)
                   .filter((s) => s !== task.status)
@@ -493,40 +493,40 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
                       key={s}
                       onClick={(e) => { e.stopPropagation(); handleStatusChange(s); }}
                       disabled={loading}
-                      className={`cursor-pointer text-xs px-3 py-1.5 rounded-full font-medium border transition-colors disabled:opacity-50 ${STATUS_COLORS[s]}`}
+                      className={`cursor-pointer text-xs px-3 py-2 rounded-full font-medium border transition-colors disabled:opacity-50 ${STATUS_COLORS[s]}`}
                     >
                       {s.replace("_", " ")}
                     </button>
                   ))}
               </div>
-              <button onClick={() => setActionMode(null)} className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button onClick={() => setActionMode(null)} className="cursor-pointer text-xs text-[var(--ops-muted)] hover:text-[var(--ops-fg)] transition-colors">
                 Annulla
               </button>
             </div>
           )}
 
           {/* Task ID */}
-          <p className="text-[10px] text-zinc-700 font-mono pt-1">{task.id}</p>
+          <p className="text-xs text-[var(--ops-border)] font-mono pt-1">{task.id}</p>
         </div>
 
         {/* Footer — standard actions (not for review or done tasks) */}
         {!actionMode && !isDone && !isReview && (
-          <div className="px-6 py-4 border-t border-zinc-800 flex flex-wrap gap-2 flex-shrink-0">
+          <div className="px-6 py-4 border-t border-[var(--ops-border-subtle)] flex flex-wrap gap-2 flex-shrink-0">
             {task.status === "open" && (
               <button
                 onClick={(e) => { e.stopPropagation(); setActionMode("claim"); }}
-                className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-blue-600/80 hover:bg-blue-600 rounded-lg text-xs text-white font-medium transition-colors"
+                className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-[var(--ops-accent)]/80 hover:bg-[var(--ops-accent)] rounded-lg text-xs text-white font-medium transition-colors"
               >
-                <Play className="w-3.5 h-3.5" />
+                <Play className="w-4 h-4" />
                 Claim
               </button>
             )}
             {(task.status === "in_progress" || task.status === "review") && (
               <button
                 onClick={(e) => { e.stopPropagation(); setActionMode("done"); }}
-                className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-green-700/80 hover:bg-green-700 rounded-lg text-xs text-white font-medium transition-colors"
+                className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-[rgba(93,228,199,0.3)] hover:bg-[rgba(93,228,199,0.4)] rounded-lg text-xs text-white font-medium transition-colors"
               >
-                <CheckCheck className="w-3.5 h-3.5" />
+                <CheckCheck className="w-4 h-4" />
                 Mark Done
               </button>
             )}
@@ -534,9 +534,9 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
               <button
                 onClick={(e) => { e.stopPropagation(); handleStatusChange("open"); }}
                 disabled={loading}
-                className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs text-zinc-300 font-medium transition-colors disabled:opacity-50"
+                className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-surface-2)] rounded-lg text-xs text-[var(--ops-fg)] font-medium transition-colors disabled:opacity-50"
               >
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
                 Reopen
               </button>
             )}
@@ -544,15 +544,15 @@ export function TaskModal({ task: initialTask, onClose, onUpdate }: TaskModalPro
               <button
                 onClick={(e) => { e.stopPropagation(); handleStatusChange("blocked"); }}
                 disabled={loading}
-                className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-red-900/50 hover:bg-red-900/80 rounded-lg text-xs text-red-400 font-medium transition-colors disabled:opacity-50"
+                className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-[rgba(229,141,120,0.2)] hover:bg-[rgba(229,141,120,0.35)] rounded-lg text-xs text-[var(--ops-error)] font-medium transition-colors disabled:opacity-50"
               >
-                <AlertTriangle className="w-3.5 h-3.5" />
+                <AlertTriangle className="w-4 h-4" />
                 Block
               </button>
             )}
             <button
               onClick={(e) => { e.stopPropagation(); setActionMode("status"); }}
-              className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs text-zinc-400 font-medium transition-colors"
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-[var(--ops-surface-2)] hover:bg-[var(--ops-surface-2)] rounded-lg text-xs text-[var(--ops-fg-muted)] font-medium transition-colors"
             >
               Cambia stato
             </button>

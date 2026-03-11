@@ -87,3 +87,20 @@ Richiesta UX/UI → UX/UI propone mockup/wireframe → CME approva → UX/UI imp
 
 - `runbooks/implement-ui-change.md` — Come implementare una modifica UI
 - `runbooks/accessibility-audit.md` — Come eseguire un audit accessibilita
+
+---
+
+## Visione (6 mesi)
+
+Design system completo e riusabile per N verticali. Accessibilità WCAG 2.1 AA certificata. Ogni nuovo verticale eredita il design system senza lavoro custom.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Audit accessibilità WCAG** — verificare tutte le pagine principali (landing, corpus, dashboard, pricing, console)
+2. **[P1] Design system tokens** — estrarre tutti i valori hardcoded in token riusabili (colori, spacing, border-radius)
+3. **[P2] Template multi-verticale** — preparare layout template per nuovi verticali (HR, real estate)
+
+## Autonomia
+
+- **L1 (auto)**: fix accessibilità, aggiornamento design system, restyling componenti esistenti, beauty report
+- **L2+ (escalation)**: nuovo componente complesso, redesign pagina intera, modifica design system foundation

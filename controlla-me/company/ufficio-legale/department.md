@@ -47,3 +47,20 @@ Domanda utente → Question-Prep → RAG Retrieval → Corpus-Agent
 - NON modificare `lib/ai-sdk/` (infrastruttura condivisa)
 - NON modificare `lib/company/` (competenza Process Designer)
 - NON aggiungere dipendenze npm senza Architecture
+
+---
+
+## Visione (6 mesi)
+
+Analisi legale best-in-class Italia con almeno 2 verticali (contratti generici + contratti lavoro). Pipeline < 60s, accuracy > 95%, zero sentenze inventate. Testbook accuracy > 90%.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Verticale HR — agenti** — adattare prompt per contratti di lavoro (analista, investigatore, consigliere) quando corpus HR sarà pronto
+2. **[P1] Prompt optimization** — ridurre token usage mantenendo qualità output, calibrare fairness score
+3. **[P2] Testbook expansion** — aggiungere 10+ nuovi casi di test reali per coprire edge case
+
+## Autonomia
+
+- **L1 (auto)**: tuning prompt, configurazione modelli/catene, fix output JSON, aggiornamento quality criteria
+- **L2+ (escalation)**: nuovo agente nella pipeline, cambio architettura pipeline, nuovo verticale (L3 boss)

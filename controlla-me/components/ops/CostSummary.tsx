@@ -10,44 +10,51 @@ interface CostSummaryProps {
     byProvider: Record<string, { cost: number; calls: number }>;
     fallbackRate: number;
   } | null;
+  /** Time window in days. Shown in the header label. Defaults to 7. */
+  days?: number;
 }
 
-export function CostSummary({ costs }: CostSummaryProps) {
+function formatWindow(days: number): string {
+  if (days === 1) return "24h";
+  return `${days}d`;
+}
+
+export function CostSummary({ costs, days = 7 }: CostSummaryProps) {
   return (
-    <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-      <h3 className="text-sm font-semibold text-zinc-400 flex items-center gap-2 mb-3">
+    <div className="bg-[var(--ops-surface)] rounded-xl p-5 border border-[var(--ops-border-subtle)]">
+      <h3 className="text-sm font-semibold text-[var(--ops-fg-muted)] flex items-center gap-2 mb-3">
         <DollarSign className="w-4 h-4" />
-        COSTS (7 days)
+        COSTS ({formatWindow(days)})
       </h3>
 
       {!costs ? (
-        <p className="text-zinc-500 text-sm">Caricamento...</p>
+        <p className="text-[var(--ops-muted)] text-sm">Caricamento...</p>
       ) : (
         <div className="space-y-3">
           <div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-[var(--ops-fg)]">
               ${costs.total.toFixed(2)}
             </div>
-            <div className="text-xs text-zinc-500">
+            <div className="text-xs text-[var(--ops-muted)]">
               {costs.calls} calls &middot; ${costs.avgPerCall.toFixed(4)}/call
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {Object.entries(costs.byProvider)
               .sort(([, a], [, b]) => b.cost - a.cost)
               .map(([provider, info]) => (
                 <div key={provider} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400 capitalize">{provider}</span>
-                  <span className="text-white">${info.cost.toFixed(2)}</span>
+                  <span className="text-[var(--ops-fg-muted)] capitalize">{provider}</span>
+                  <span className="text-[var(--ops-fg)]">${info.cost.toFixed(2)}</span>
                 </div>
               ))}
           </div>
 
-          <div className="pt-2 border-t border-zinc-800">
+          <div className="pt-2 border-t border-[var(--ops-border-subtle)]">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-zinc-500">Fallback rate</span>
-              <span className={costs.fallbackRate > 0.3 ? "text-red-400" : "text-green-400"}>
+              <span className="text-[var(--ops-muted)]">Fallback rate</span>
+              <span className={costs.fallbackRate > 0.3 ? "text-[var(--ops-error)]" : "text-[var(--ops-teal)]"}>
                 {(costs.fallbackRate * 100).toFixed(0)}%
               </span>
             </div>

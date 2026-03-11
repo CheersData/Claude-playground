@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { FileText, Clock, ArrowRight, Plus, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 
 interface AnalysisRow {
   id: string;
@@ -53,10 +53,7 @@ export default function DashboardClient() {
   useEffect(() => {
     async function loadAnalyses() {
       try {
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createClient();
         const { data, error } = await supabase
           .from("analyses")
           .select("id, file_name, document_type, status, fairness_score, created_at")

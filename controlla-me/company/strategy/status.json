@@ -1,0 +1,361 @@
+{
+  "_meta": {
+    "dept": "strategy",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "strategist"
+  },
+  "health": "ok",
+  "summary": "Inizio Q2 2026. Fondamenta solide: 309 task completati, corpus 6731 articoli su 4 verticali, trading paper LIVE con 6 posizioni aperte. Il prodotto è tecnicamente pronto ma non ancora in produzione reale. Tre priorità strategiche dominano il trimestre: (1) convertire l'infrastruttura in utenti paganti reali, (2) lanciare il verticale HR in 3-4 settimane sfruttando l'infrastruttura già al 70%, (3) sbloccare le decisioni boss bloccate (DPA provider AI, EU AI Act, Poimandres GO/NO-GO). Il vantaggio competitivo stimato di 9-15 mesi sul segmento consumer legale italiano si erode se non usiamo Q2 per generare traction reale.",
+
+  "okr_q2": {
+    "o1": {
+      "title": "Rendere il prodotto production-ready",
+      "rationale": "La piattaforma è tecnicamente completa ma non è in produzione reale. Q2 deve chiudere tutti i gap bloccanti per il lancio commerciale: test coverage, tech debt critico e CI/CD verde. Senza questi prerequisiti, ogni bug in produzione costa 5× di più da correggere.",
+      "kr": [
+        {
+          "id": "KR1",
+          "description": "Test coverage percorsi critici ≥ 80%",
+          "baseline": "~55% (P1-P5 gap: agent-runner, tiers, console-token, analysis-cache, generate.ts a 0%)",
+          "target": "≥ 80% — tutti i componenti P1-P5 coperti",
+          "metric": "npm run test:coverage → statement coverage ≥ 80%",
+          "owner": "quality-assurance",
+          "priority": "P1"
+        },
+        {
+          "id": "KR2",
+          "description": "Tech debt TD-1 risolto: cache Supabase atomica al posto di filesystem",
+          "baseline": "analysis-cache.ts usa fs locale — non scala su multi-istanza Vercel",
+          "target": "Cache migrata su Supabase con RPC update_phase_timing atomico",
+          "metric": "grep 'import.*fs' lib/analysis-cache.ts → 0 match",
+          "owner": "architecture",
+          "priority": "P2"
+        },
+        {
+          "id": "KR3",
+          "description": "CI/CD verde al 100%: zero test fail, zero ESLint errors, build success",
+          "baseline": "115/124 test pass, 12 ESLint errors (no-unused-vars in scripts/test)",
+          "target": "100% test pass, 0 ESLint errors, build success su ogni PR verso main",
+          "metric": "GitHub Actions CI log: exit 0 su tutti e 3 i job (lint+typecheck, unit-tests, build)",
+          "owner": "quality-assurance",
+          "priority": "P1"
+        }
+      ],
+      "status": "on_track"
+    },
+    "o2": {
+      "title": "Espandere il corpus e lanciare il verticale HR",
+      "rationale": "Il verticale HR è la prima espansione della piattaforma madre. Con infrastruttura già al 70% (fonti mappate, pipeline testata, corpus legale base già utile per contratti lavoro), il time-to-market è 3-4 settimane. Nessun competitor italiano presidia l'analisi AI di contratti lavoro. TAM: ~200K professionisti, 3.5 Mld EUR/anno di mercato consulenza.",
+      "kr": [
+        {
+          "id": "KR1",
+          "description": "Corpus HR ≥ 400 articoli caricati (Statuto Lavoratori + TU Sicurezza + D.Lgs. 276 + D.Lgs. 23 + D.Lgs. 81/2015 + D.Lgs. 148/2015)",
+          "baseline": "0 articoli HR caricati (fonti configurate in hr-sources.ts ma non eseguite)",
+          "target": "≥ 400 articoli con embeddings Voyage AI e istituti giuridici mappati",
+          "metric": "SELECT COUNT(*) FROM legal_articles WHERE vertical = 'hr'",
+          "owner": "data-engineering",
+          "priority": "P0 — settimana 1"
+        },
+        {
+          "id": "KR2",
+          "description": "Copertura istituti giuridici da 54.5% a ≥ 80%",
+          "baseline": "54.5% (3329/6110 articoli con institutes NOT NULL) — gap critico riduce precisione RAG",
+          "target": "≥ 80% (≈ 5385 articoli) — AI pass automatizzato su articoli senza istituti",
+          "metric": "SELECT COUNT(*) FILTER (WHERE institutes IS NOT NULL)::float / COUNT(*) FROM legal_articles",
+          "owner": "data-engineering + ufficio-legale",
+          "priority": "P1"
+        },
+        {
+          "id": "KR3",
+          "description": "HR Agent prototipo operativo: 3 analisi contratti lavoro end-to-end validate da QA",
+          "baseline": "Non esiste — prompt Classifier non riconosce sottotipi HR, Analyzer non calibrato per punto di vista lavoratore",
+          "target": "3 analisi validate (TD, TI, licenziamento) con rischi coerenti e RAG corpus HR attivo",
+          "metric": "SELECT COUNT(*) FROM analyses WHERE status='completed' AND classification->>'documentType' ILIKE '%lavoro%' AND created_at >= '2026-04-01'",
+          "owner": "ufficio-legale + architecture",
+          "priority": "P1"
+        }
+      ],
+      "status": "on_track"
+    },
+    "o3": {
+      "title": "Validare il mercato con primi utenti reali",
+      "rationale": "Nessun utente reale ha ancora usato il prodotto. Il gap tra infrastruttura e traction è il rischio principale di Q2. Senza dati di utilizzo reale è impossibile validare il modello economico, identificare friction points e costruire prove sociali per il marketing. Il contenuto SEO pianificato in Q1 non è ancora pubblicato — è il quick win a costo zero per iniziare a generare traffico organico.",
+      "kr": [
+        {
+          "id": "KR1",
+          "description": "Primo utente Pro pagante con pagamento Stripe confermato",
+          "baseline": "0 utenti Pro — il prodotto non è ancora in produzione pubblica",
+          "target": "≥ 1 utente Pro con stripe_customer_id confermato e plan='pro'",
+          "metric": "SELECT COUNT(*) FROM profiles WHERE plan='pro' AND stripe_customer_id IS NOT NULL AND updated_at >= '2026-03-03'",
+          "owner": "cme + marketing",
+          "priority": "P1 — dipende da deploy produzione"
+        },
+        {
+          "id": "KR2",
+          "description": "≥ 20 analisi reali completate da utenti distinti",
+          "baseline": "0 analisi reali (solo test interni in ambiente demo)",
+          "target": "≥ 20 analisi status='completed' da ≥ 10 utenti distinti dopo go-live",
+          "metric": "SELECT COUNT(DISTINCT user_id), COUNT(*) FROM analyses WHERE status='completed' AND created_at >= '2026-04-01'",
+          "owner": "operations + marketing",
+          "priority": "P1"
+        },
+        {
+          "id": "KR3",
+          "description": "≥ 4 articoli SEO pubblicati live su controlla.me",
+          "baseline": "0 articoli live (content calendar redatto, landing /affitti pronta ma non deployata)",
+          "target": "≥ 4 articoli su keyword prioritarie (affitto, contratto lavoro, diritti consumatori, GDPR) con ≥ 50 sessioni organiche ciascuno",
+          "metric": "Google Analytics: organic sessions per articolo ≥ 50 entro fine Q2",
+          "owner": "marketing",
+          "priority": "P1 — quick win, dipende solo da boss approval D-07"
+        }
+      ],
+      "status": "at_risk"
+    }
+  },
+
+  "opportunities": [
+    {
+      "id": "OPP-1",
+      "title": "Verticale HR / Consulente del Lavoro",
+      "tam": "200K professionisti HR/giuslavoristi in Italia, mercato consulenza ~3.5 Mld EUR/anno. Segmento PMI (analisi one-shot) + studi CdL (licenza Pro). Opportunity Brief completo redatto 2026-03-03.",
+      "status": "active",
+      "priority": "high",
+      "rice_score": 510,
+      "tech_readiness": "70% — fonti in hr-sources.ts, pipeline testata, corpus legale base copre Codice Civile Libro V (artt. 2060-2642). Mancano: D.Lgs. 81/2015 e D.Lgs. 148/2015 da aggiungere a hr-sources.ts, poi data-connector per 6 fonti in planned.",
+      "competitive_gap": "Nessun competitor diretto in Italia per analisi AI contratti lavoro consumer-first. Harvey non ha localizzazione specifica per contratti italiani. Finestra 9-15 mesi.",
+      "time_to_market": "3-4 settimane (corpus 1gg + prompt Classifier 2h + Analyzer 1gg + QA 3gg + UI 3-5gg)",
+      "next_action": "DE: aggiungere D.Lgs. 81/2015 + D.Lgs. 148/2015 a hr-sources.ts e caricare tutte le 6 fonti HR via data-connector (settimana 1 Q2, effort 0.1w). Poi UL: aggiornare prompt Classifier con 8 nuovi documentSubType HR."
+    },
+    {
+      "id": "OPP-2",
+      "title": "Verticale Commercialista / Tax (D-05 boss: decidere ordine verticali)",
+      "tam": "120K commercialisti CNDCEC + ~30K tributaristi, mercato consulenza fiscale ~8 Mld EUR/anno. TAM monetario superiore all'HR ma professionisti acquirenti diretti inferiori.",
+      "status": "explore",
+      "priority": "medium",
+      "rice_score": 180,
+      "tech_readiness": "10% — D.Lgs. 231/2001 già caricato (89 articoli). Mancano: TUIR D.P.R. 917/1986 (~185 art.), IVA D.P.R. 633/1972 (~81 art.), Statuto Contribuente L.212/2000 (~21 art.). Codici Normattiva non ancora verificati via API — serve censimento (task DE oggi).",
+      "competitive_gap": "Harvey sta localizzando attivamente per mercato enterprise tax IT. Finestra più stretta rispetto a HR. Sul segmento PMI/mid-market la finestra è ancora aperta ma si restringe.",
+      "time_to_market": "8-10 settimane (1 settimana censimento + 1 corpus + 1 prompts + 4-5 QA + UI)",
+      "next_action": "Attendere validazione verticale HR (settimane 1-4). DE: completare censimento fonti Tax (task oggi). Marketing: 5 interviste con commercialisti per validare domanda. Raccomandazione: GO in Q3 se HR genera feedback positivi."
+    },
+    {
+      "id": "OPP-3",
+      "title": "Poimandres — Console Multi-Agente Standalone",
+      "tam": "Orchestrazione agenti AI: $7B (2025) → $93B (2032, CAGR 44.6%). Riposizionamento piattaforma da LegalTech ($5B TAM) a Agent Orchestration ($93B TAM). Validato da Relevance AI $24M Bessemer.",
+      "status": "pending_boss",
+      "priority": "high",
+      "rice_score": 270,
+      "tech_readiness": "95% — lib/ai-sdk/, lib/tiers.ts, lib/models.ts, components/console/ già estratti. Routing host-based in next.config.ts configurato. MVP: 3 settimane (branding 1 sett. + auth 3gg + pricing 2gg + deploy).",
+      "competitive_gap": "LangGraph (no fallback built-in), CrewAI (single provider), AutoGen (no cost control). Nessuno ha tier switch UI + N-fallback real-time. Finestra: 4-5 mesi prima che LangGraph copra il gap.",
+      "time_to_market": "3 settimane parallele a verticale HR (1 dev ARCH dedicato)",
+      "next_action": "Decisione boss D-03 urgente — finestra si chiude entro luglio 2026. Se GO: DNS poimandres.work, pricing model B2B (freemium vs SaaS), avvio parallelo a controlla.me senza distogliere focus consumer."
+    },
+    {
+      "id": "OPP-4",
+      "title": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act",
+      "tam": "~45.000 PMI italiane con >50 dipendenti obbligate a modello 231. Consulenza media 15-30K EUR per audit iniziale + 5-10K/anno. Deadline EU AI Act agosto 2026 crea domanda urgente.",
+      "status": "explore",
+      "priority": "medium",
+      "tech_readiness": "Corpus D.Lgs. 231/2001 già caricato (89 articoli). Serve agente specializzato e DPA firmati (prerequisito B2B).",
+      "competitive_gap": "Consulenti tradizionali ancora dominano. Nessun tool AI specifico per 231 nel mercato PMI italiano.",
+      "time_to_market": "2-3 settimane post-prerequisiti (DPA firmati + traction consumer confermata)",
+      "next_action": "BLOCCATA da DPA provider AI (D-01/D-02/D-03). Explore in Q2: Marketing redige landing page e articolo SEO '231 PMI'. GO in Q3 se DPA firmati entro aprile."
+    },
+    {
+      "id": "OPP-5",
+      "title": "Verticale Commerciale B2B (contratti commerciali tra imprese)",
+      "tam": "Ampio. Contratti di appalto, fornitura, distribuzione, NDA tra PMI. Il corpus Codice Civile Libro IV (obbligazioni) già caricato copre il 60% del framework normativo necessario.",
+      "status": "explore",
+      "priority": "low",
+      "tech_readiness": "60% — Codice Civile già nel corpus. Pipeline già copre contratti generici. Effort minimo su prompts Classifier/Analyzer.",
+      "competitive_gap": "Sovrapposto al verticale legale consumer. Differenziazione: punto di vista imprenditore (non consumatore).",
+      "time_to_market": "2-3 settimane (principalmente prompt update)",
+      "next_action": "Backlog — affrontare dopo HR e Tax. Segnalare a Marketing per keyword research ('contratto fornitura analisi' etc.)."
+    }
+  ],
+
+  "competitor_snapshot": [
+    {
+      "name": "Lexroom",
+      "country": "IT",
+      "threat": "media",
+      "funding": "16.2M EUR Series A",
+      "positioning": "B2B PMI e professionisti legali — analisi contratti, ricerca giuridica, redazione atti",
+      "q2_update": "Nessuna mossa rilevante rilevata. B2B puro con focus su studi legali e aziende. Un pivot consumer richiederebbe 12-18 mesi con budget significativo. Gap tecnologico stimato 12+ mesi su multi-provider e corpus legislativo specializzato.",
+      "trend": "stable"
+    },
+    {
+      "name": "LexDo",
+      "country": "IT",
+      "threat": "bassa",
+      "funding": "n.d.",
+      "positioning": "Template contratti e analisi basic per PMI",
+      "q2_update": "Zero AI real-time. Prodotto template-based senza agenti. Complementare a controlla.me, non competitor diretto. Gap tecnologico stimato 18+ mesi.",
+      "trend": "stable"
+    },
+    {
+      "name": "Lawyeria",
+      "country": "IT",
+      "threat": "bassa",
+      "funding": "n.d.",
+      "positioning": "Matching con avvocati, Q&A umani con 24h response time",
+      "q2_update": "Modello human-first. Complementare: controlla.me può essere prescreening AI prima della consulenza umana. Potenziale partnership referral (schema già progettato in DB).",
+      "trend": "stable"
+    },
+    {
+      "name": "Lawhive",
+      "country": "UK",
+      "threat": "media-alta",
+      "funding": "$60M Series B (febbraio 2026)",
+      "positioning": "Consumer legal AI per mercato UK — analisi documentale + matching avvocati AI-first",
+      "q2_update": "Series B di $60M è proof of concept che il consumer legal AI è un mercato reale e attrae investitori primari. Non opera in Italia. Il fatto che sia UK e non IT conferma la finestra di opportunità italiana aperta. Da monitorare: possibile espansione EU dopo consolidamento UK.",
+      "trend": "growing"
+    },
+    {
+      "name": "Harvey",
+      "country": "US",
+      "threat": "bassa",
+      "funding": "$1B+",
+      "positioning": "Enterprise legal AI — grandi studi, funzione legale di corporate. Agentic workflows Q1 2026.",
+      "q2_update": "Focus enterprise confermato in Q1. Annuncio 'agentic workflows' non scala al consumer italiano. Sta localizzando per Tax enterprise in EU — monitorare espansione a segmento PMI tax. Non competitor diretto oggi.",
+      "trend": "growing"
+    },
+    {
+      "name": "Luminance",
+      "country": "UK",
+      "threat": "bassa",
+      "funding": "$100M+",
+      "positioning": "Enterprise contract AI — 'institutional memory', machine learning su contratti aziendali",
+      "q2_update": "Feature 'institutional memory' (Q1 2026) è parallela al nostro auto-index legale knowledge. Conferma che il knowledge base auto-accrescente è differenziatore strategico riconosciuto. Enterprise-only, no consumer, no IT.",
+      "trend": "stable"
+    },
+    {
+      "name": "Big Tech (Google/Microsoft/OpenAI)",
+      "country": "US",
+      "threat": "alta",
+      "funding": "n/a",
+      "positioning": "Funzionalità 'analisi documento legale' integrate in Gemini/Copilot/ChatGPT — gratis o con subscription esistente",
+      "q2_update": "Rischio esistenziale a 6-12 mesi se integrano analisi contratto nativa. Moat difendibile: corpus IT+EU specializzato (voyage-law-2 specializzato per testi legali IT), istituti giuridici mappati, prospettiva parte debole (non replicabile senza riscrivere prompt da zero), knowledge base auto-accrescente. Big Tech non avrà istituti giuridici IT mappati entro fine 2026.",
+      "trend": "growing"
+    },
+    {
+      "name": "Ius Laboris AI",
+      "country": "EU",
+      "threat": "bassa",
+      "positioning": "Rete internazionale studi lavoro, tool interno non prodotto di mercato",
+      "q2_update": "Non prodotto consumer, non competitor diretto per controlla.me.",
+      "trend": "stable"
+    }
+  ],
+
+  "market_signals": [
+    "Lawhive $60M Series B (febbraio 2026) — conferma che il consumer legal AI attrae investitori primari. Il gap UK-IT è vantaggioso: finestra italiana stimata 9-15 mesi.",
+    "EU AI Act deadline agosto 2026 — crea urgenza compliance per PMI e professionisti. Controlla.me EU-native by design è già posizionato. Opportunità: articoli SEO 'EU AI Act per PMI'.",
+    "Harvey 'agentic workflows' e Luminance 'institutional memory' — il mercato enterprise si muove verso pipeline multi-agente e knowledge base auto-accrescente. Lo spazio si scalda, la finestra si restringe.",
+    "Provider AI proliferano: 7 provider con free tier attivi in controlla.me. I costi di inferenza tendono a zero per task semplici — il valore si concentra nei dati specializzati e nel corpus, non nella chiamata API.",
+    "Lawhive non opera in Italia — il mercato consumer legale IT è ancora presidio zero per player AI-first. Opportunità di first-mover confermata.",
+    "Segnali domanda organica IT (da Marketing Q1): 2.300/mese 'contratto di lavoro illegale', 1.800/mese 'diritti lavoratori contratto', 950/mese 'clausole illegittime affitto'. Tutti verticali già nel corpus.",
+    "Corpus delta update automatizzato attivo (cron Vercel domenica 06:00 UTC) — vantaggio operativo: il corpus rimane fresco senza intervento manuale, mentre i competitor devono aggiornare manualmente.",
+    "Ufficio Trading LIVE (2026-03-02): 9 posizioni aperte su paper portfolio $99.900. Slope+volume strategy attiva 24/7. Se Sharpe > 1.0 dopo 30gg (review 2026-04-02), possibile go-live che genera revenue reale per sostenere sviluppo."
+  ],
+
+  "risks": [
+    {
+      "id": "R-1",
+      "description": "EU AI Act scadenza agosto 2026 — controlla.me è classificabile come sistema ad alto rischio (Allegato III punto 5b: valutazione affidabilità creditizia/decisioni legali). Multa fino a 15M EUR o 3% del fatturato globale annuo.",
+      "severity": "high",
+      "probability": "certa — scadenza non negoziabile",
+      "mitigation": "Ingaggiare consulente EU AI Act entro aprile 2026. Budget stimato 5-15K EUR. 7 obblighi Titolo III da coprire: trasparenza, data governance, supervisione umana, robustezza. Azione boss D-02 urgente.",
+      "deadline": "aprile 2026 per ingaggio consulente, agosto 2026 scadenza compliance"
+    },
+    {
+      "id": "R-2",
+      "description": "DPA provider AI non firmati — senza Data Processing Agreement con Anthropic, Google Gemini e Mistral, nessun contratto B2B è stipulabile legalmente (GDPR). Blocca verticali HR e Tax B2B, sistema referral avvocati, qualsiasi PMI Compliance.",
+      "severity": "high",
+      "probability": "certa — non è una scelta, è un obbligo GDPR",
+      "mitigation": "Anthropic: firma self-served su anthropic.com/legal/dpa (30 minuti). Mistral: firma self-served su mistral.ai/terms (30 minuti). Google: decisione architetturale Vertex AI (enterprise, DPA standard) vs AI Studio (consumer, DPA limitato) — richiede input boss D-01.",
+      "deadline": "settimana 1 Q2 — bloccante per lancio B2B"
+    },
+    {
+      "id": "R-3",
+      "description": "Zero utenti reali dopo Q1 — il prodotto non è ancora in produzione pubblica. Senza dati di utilizzo reale è impossibile validare il modello economico, identificare friction points critici e costruire social proof. Il rischio aumenta ogni settimana di ritardo.",
+      "severity": "high",
+      "probability": "certa — stato attuale",
+      "mitigation": "Deploy in produzione Vercel è tecnicamente pronto (build stabile, CI/CD attivo, security verde). La landing /affitti è pronta. Il content calendar è redatto. Priorità CME: deploy + pubblicazione contenuto senza attendere feature aggiuntive. Parallel track: lead magnet PDF affitti + outreach 20 avvocati (marketing, task oggi).",
+      "deadline": "entro settimana 4 Q2 — ogni mese senza utenti reali ritarda il ciclo di feedback"
+    },
+    {
+      "id": "R-4",
+      "description": "Cache filesystem non scala su multi-istanza Vercel — quando il deploy va in produzione con traffico reale, le sessioni di analisi vengono perse su cold start. Ogni analisi ripetuta = costi API doppi + UX degradata.",
+      "severity": "medium",
+      "probability": "certa se deploy multi-istanza",
+      "mitigation": "TD-1: migrare analysis-cache.ts da filesystem a Supabase con RPC update_phase_timing atomico. Già pianificato in O1-KR2, effort 2 settimane. Eseguire PRIMA del traffico reale (settimane 9-10 Q2).",
+      "deadline": "prima del picco di traffico — target settimana 8-9 Q2"
+    },
+    {
+      "id": "R-5",
+      "description": "Big Tech entra nel mercato consumer legale — Google/Microsoft possono integrare 'analisi contratto' gratuitamente in Gemini/Copilot entro 6-12 mesi. Renderebbe il prodotto commodity.",
+      "severity": "medium",
+      "probability": "medio (6-12 mesi)",
+      "mitigation": "Moat difendibili: (1) corpus IT+EU specializzato con voyage-law-2 — Big Tech non avrà istituti giuridici mappati, (2) prospettiva parte debole — non replicabile senza riscrivere i prompt, (3) knowledge base auto-accrescente — effetto rete che Big Tech non può copiare immediatamente, (4) multi-verticale specializzato (HR, Tax) vs generalista. Accelerare traction in Q2.",
+      "deadline": "finestra strategica: Q2-Q3 2026"
+    },
+    {
+      "id": "R-6",
+      "description": "Finestra Poimandres si chiude — LangGraph/CrewAI stanno migliorando il loro supporto multi-provider. La finestra per lanciare Poimandres come console multi-agente standalone con N-fallback differenziato è stimata 4-5 mesi.",
+      "severity": "medium",
+      "probability": "alto (4-5 mesi)",
+      "mitigation": "Decisione boss D-03 urgente. Se GO: avvio parallelo in Q2 con 1 dev ARCH dedicato (3 settimane). Se NO-GO: rivalutare in Q3. Il costo del rimpianto è asimmetrico: perdere il TAM $93B è peggio che dedicare 3 settimane al MVP.",
+      "deadline": "decisione entro settimana 2 Q2"
+    },
+    {
+      "id": "R-7",
+      "description": "Sharpe trading negativo (-0.112) — il backtest unificato del trading engine mostra Sharpe sotto la soglia go-live (>1.0). Win rate 60.9% e profit factor 1.52 sono positivi, ma la volatilità dei rendimenti è troppo alta. Causa: require_macd_crossover=True troppo restrittivo.",
+      "severity": "medium",
+      "probability": "in risoluzione — grid search 96 combo in corso oggi",
+      "mitigation": "Grid search su TP/SL + trail tiers + soft-scoring (96 combo, preset --grid-preset tpsl già implementato). Fetch SPY 5-min storici 6 mesi per validare slope+volume strategy. Review paper 30gg il 2026-04-02: go/no-go live. Se Sharpe rimane <1.0: non andare live, continuare ottimizzazione.",
+      "deadline": "2026-04-02 — review 30gg paper trading"
+    }
+  ],
+
+  "decisions_pending_boss": [
+    {
+      "id": "D-01",
+      "description": "Firmare DPA Anthropic: anthropic.com/legal/dpa — self-served, 30 minuti. Prerequisito GDPR per qualsiasi contratto B2B e per il verticale HR con clienti aziendali. BLOCCANTE per revenue B2B.",
+      "urgency": "high"
+    },
+    {
+      "id": "D-02",
+      "description": "Ingaggiare consulente EU AI Act entro aprile 2026. Budget stimato 5-15K EUR. Controlla.me è classificabile come sistema ad alto rischio (Allegato III). Scadenza agosto 2026 non negoziabile — multa fino a 15M EUR.",
+      "urgency": "high"
+    },
+    {
+      "id": "D-03",
+      "description": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE 270. Tech readiness 95%. Finestra competitiva: 4-5 mesi. Decisione urgente: se GO, avvio questa settimana; se NO-GO, rivalutare in Q3 con dato aggiornato su LangGraph.",
+      "urgency": "high"
+    },
+    {
+      "id": "D-04",
+      "description": "Firmare DPA Google: decidere Vertex AI (enterprise, DPA standard EU) vs AI Studio (consumer, DPA limitato). Vertex AI richiede migrazione in lib/gemini.ts ma offre copertura GDPR completa. Impatto: blocca uso Gemini per clienti B2B se si rimane su AI Studio.",
+      "urgency": "medium"
+    },
+    {
+      "id": "D-05",
+      "description": "Decidere quale verticale professionale aprire dopo HR: Commercialista/Tax (TAM 8 Mld EUR, effort 8-10 settimane) vs Commerciale B2B (corpus già 60% pronto, effort 2-3 settimane). Raccomandazione strategy: Tax in Q3 dopo validazione HR, Commerciale B2B come bonus Q2.",
+      "urgency": "medium"
+    },
+    {
+      "id": "D-06",
+      "description": "Approvare deploy in produzione e pubblicazione landing /affitti + content calendar Marketing. La landing è pronta, il CI/CD è verde, la security è verde. L'unico blocco è autorizzazione esplicita. Zero costi aggiuntivi (Vercel free tier sufficiente per traffico iniziale).",
+      "urgency": "high"
+    },
+    {
+      "id": "D-07",
+      "description": "Approvare schema DB contract monitoring (Luminance-like) prima che ci siano utenti reali. La migrazione post-utenti è 5× più costosa e rischiosa. Decisione architetturale one-time che definisce il modello di retention B2B.",
+      "urgency": "medium"
+    }
+  ],
+
+  "open_tasks": [],
+  "blockers": []
+}

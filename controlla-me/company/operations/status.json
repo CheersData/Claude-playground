@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "dept": "operations",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "sistemista"
+  },
+  "health": "ok",
+  "summary": "Dashboard /ops operativa. Cost tracking attivo ($1.03 ultimi 7gg). 7 agenti runtime configurati. Pipeline corpus funzionante.",
+  "dashboard": {
+    "url": "/ops",
+    "status": "operational",
+    "components": ["agent_health", "task_board_kpi", "cost_trends", "pipeline_state"]
+  },
+  "agents_runtime": {
+    "total": 7,
+    "active": 7,
+    "agents": ["classifier", "analyzer", "investigator", "advisor", "corpus-agent", "question-prep", "leader"]
+  },
+  "cost_tracking": {
+    "last_7d_total": 1.03,
+    "last_7d_calls": 494,
+    "alert_threshold_daily": 1.00,
+    "alert_threshold_per_query": 0.10
+  },
+  "pipeline": {
+    "corpus_sync": "scheduled",
+    "last_sync": null,
+    "articles_total": 5600
+  },
+  "gaps": [
+    {
+      "id": "OPS-1",
+      "description": "analysis/[id]/page.tsx usa mock data — serve GET /api/analyses/[id] con RLS",
+      "severity": "medium"
+    },
+    {
+      "id": "OPS-2",
+      "description": "getAverageTimings() fire-and-forget — cleanup TTL ad ogni analisi, meglio cron dedicato",
+      "severity": "low"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Provider attivi: Groq, Gemini, Cerebras, Mistral. Anthropic e OpenAI non usati (crediti esauriti/insufficienti)."
+}

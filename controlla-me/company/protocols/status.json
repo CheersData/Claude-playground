@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "dept": "protocols",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-07T00:00:00.000Z",
+    "updated_by": "cme"
+  },
+  "health": "ok",
+  "summary": "Routing CLI operativo (lib/company/routing.ts). Validazione YAML enforced su task create. Comando 'route' per classificazione richieste. PROT-1 e PROT-3 risolti. Rimane PROT-2: audit settimanale mai eseguito.",
+  "decision_trees": {
+    "total": 6,
+    "trees": [
+      "feature-request",
+      "trading-operations",
+      "data-operations",
+      "infrastructure",
+      "company-operations",
+      "ui-ux-request"
+    ],
+    "enforcement": "cli_validated",
+    "auto_routing_cli": true
+  },
+  "approval_levels": {
+    "L1_auto": "CME approva direttamente",
+    "L2_cme": "CME dopo consultazione dept",
+    "L3_boss": "Boss via Telegram (24h max)",
+    "L4_boss_security": "Boss + Security audit (48h max)"
+  },
+  "audit": {
+    "last_audit_date": null,
+    "audit_frequency": "weekly (target)",
+    "audits_completed": 0,
+    "violations_found": 0
+  },
+  "contracts": {
+    "authorized_flows": 20,
+    "forbidden_flows_defined": true,
+    "contract_file": "company/contracts.md"
+  },
+  "resolved_gaps": [
+    "PROT-1: CLI routing automatico — implementato lib/company/routing.ts + comando 'route' in company-tasks.ts",
+    "PROT-3: Routing field validato su create — --routing obbligatorio, validato contro YAML reali"
+  ],
+  "gaps": [
+    {
+      "id": "PROT-2",
+      "description": "Nessun audit settimanale delle decisioni — decision-auditor mai eseguito",
+      "severity": "medium"
+    }
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Protocolli ora cablati nel CLI. Self-feeding loop operativo (--next obbligatorio, harvest in daily-standup). Prossimo passo: audit settimanale automatico (PROT-2)."
+}

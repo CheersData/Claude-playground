@@ -11,9 +11,8 @@ import UseCasesSection from "@/components/UseCasesSection";
 import VideoShowcase from "@/components/VideoShowcase";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
-import AnalysisProgress from "@/components/AnalysisProgress";
-import ResultsView from "@/components/ResultsView";
 import PaywallBanner from "@/components/PaywallBanner";
+import LegalWorkspaceShell from "@/components/workspace/LegalWorkspaceShell";
 import { AgentAvatar, agents } from "@/components/TeamSection";
 import type { AgentPhase, AdvisorResult } from "@/lib/types";
 
@@ -60,7 +59,7 @@ export default function HomePageClient() {
           setView("results");
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("[HOME] usage fetch failed:", err?.message || err));
   }, []);
 
   const scrollToUpload = useCallback(() => {
@@ -140,7 +139,7 @@ export default function HomePageClient() {
                     fetch("/api/user/usage")
                       .then((r) => r.json())
                       .then(setUsage)
-                      .catch(() => {});
+                      .catch((err) => console.error("[HOME] usage fetch failed:", err?.message || err));
                     setView("paywall");
                   } else {
                     setError(data.message || data.error || "Errore sconosciuto");
@@ -386,34 +385,27 @@ export default function HomePageClient() {
         </>
       )}
 
-      {/* ═══════════ ANALYZING ═══════════ */}
-      {view === "analyzing" && (
-        <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 relative z-10">
-          <AnalysisProgress
-            fileName={fileName}
-            currentPhase={currentPhase}
-            completedPhases={completedPhases}
-            error={error || undefined}
-            onReset={reset}
-            onRetry={handleRetry}
-            sessionId={sessionId}
-            phaseEstimates={phaseEstimates}
-            phaseResults={phaseResults}
-          />
-        </div>
+      {/* ═══════════ WORKSPACE (analyzing + results) ═══════════ */}
+      {(view === "analyzing" || view === "results") && (
+        <LegalWorkspaceShell
+          fileName={fileName}
+          currentPhase={currentPhase}
+          completedPhases={completedPhases}
+          phaseResults={phaseResults}
+          result={result}
+          sessionId={sessionId}
+          onBack={reset}
+          documentType={
+            (phaseResults.classifier as { documentType?: string } | null)
+              ?.documentType
+          }
+        />
       )}
 
       {/* ═══════════ PAYWALL ═══════════ */}
       {view === "paywall" && usage && (
         <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-28 pb-16 relative z-10">
           <PaywallBanner analysesUsed={usage.analysesUsed} analysesLimit={usage.analysesLimit} authenticated={usage.authenticated} />
-        </div>
-      )}
-
-      {/* ═══════════ RESULTS ═══════════ */}
-      {view === "results" && result && (
-        <div className="relative z-10">
-          <ResultsView result={result} fileName={fileName} onReset={reset} />
         </div>
       )}
     </div>

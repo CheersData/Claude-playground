@@ -1,0 +1,353 @@
+[
+  {
+    "tier": "intern",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 64692,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 1583
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 42138
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 2
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 20967
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 6.5,
+      "practicalCompliance": 5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata se lasci la casa prima",
+      "Deposito cauzionale troppo alto",
+      "Spese condominiali poco chiare"
+    ]
+  },
+  {
+    "tier": "intern",
+    "contract": "compravendita_immobile",
+    "success": true,
+    "totalTimeMs": 61649,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 3318
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 40032
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 18296
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 6.5,
+      "practicalCompliance": 5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata e bloccata",
+      "Nessuna garanzia per difetti o abusi",
+      "Caparra troppo alta"
+    ]
+  },
+  {
+    "tier": "intern",
+    "contract": "lavoro_subordinato",
+    "success": true,
+    "totalTimeMs": 51589,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 841
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 32502
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 18245
+      }
+    },
+    "fairnessScore": 3.8,
+    "scores": {
+      "contractEquity": 2.5,
+      "legalCoherence": 4,
+      "practicalCompliance": 3.5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Periodo di prova troppo lungo",
+      "Patto di non concorrenza troppo gravoso",
+      "Possono cambiarti mansioni e livello senza chiederti"
+    ]
+  },
+  {
+    "tier": "associate",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 153718,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 32964
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 71141
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 49612
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 6.5,
+      "practicalCompliance": 5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata se lasci la casa prima",
+      "Deposito cauzionale troppo alto",
+      "Manca il tuo diritto a lasciare la casa per gravi motivi"
+    ]
+  },
+  {
+    "tier": "associate",
+    "contract": "compravendita_immobile",
+    "success": true,
+    "totalTimeMs": 152763,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 37929
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 64956
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 49878
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 6.5,
+      "practicalCompliance": 5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata e rinuncia a chiedere uno sconto",
+      "Nessuna garanzia per difetti nascosti della casa",
+      "Rischi urbanistici tutti a tuo carico"
+    ]
+  },
+  {
+    "tier": "associate",
+    "contract": "lavoro_subordinato",
+    "success": true,
+    "totalTimeMs": 146132,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 31887
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 66088
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 48156
+      }
+    },
+    "fairnessScore": 3.9,
+    "scores": {
+      "contractEquity": 2.5,
+      "legalCoherence": 4,
+      "practicalCompliance": 3.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Periodo di prova troppo lungo",
+      "Patto di non concorrenza ingiusto",
+      "Possono cambiarti mansioni e livello senza chiederti"
+    ]
+  },
+  {
+    "tier": "partner",
+    "contract": "locazione_4+4",
+    "success": true,
+    "totalTimeMs": 157088,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 34037
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 71576
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 51474
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 3.5,
+      "legalCoherence": 6,
+      "practicalCompliance": 5.5,
+      "completeness": 5.5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata per uscire prima",
+      "Deposito cauzionale troppo alto",
+      "Manca il diritto di recesso per gravi motivi"
+    ]
+  },
+  {
+    "tier": "partner",
+    "contract": "compravendita_immobile",
+    "success": true,
+    "totalTimeMs": 150548,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 34163
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 64634
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 51751
+      }
+    },
+    "fairnessScore": 5.1,
+    "scores": {
+      "contractEquity": 4,
+      "legalCoherence": 6.5,
+      "practicalCompliance": 5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Penale esagerata e bloccata",
+      "Nessuna garanzia per difetti nascosti della casa",
+      "Rischi urbanistici tutti a tuo carico"
+    ]
+  },
+  {
+    "tier": "partner",
+    "contract": "lavoro_subordinato",
+    "success": true,
+    "totalTimeMs": 145785,
+    "phases": {
+      "classifier": {
+        "status": "done",
+        "timeMs": 31987
+      },
+      "analyzer": {
+        "status": "done",
+        "timeMs": 64478
+      },
+      "investigator": {
+        "status": "done",
+        "timeMs": 0
+      },
+      "advisor": {
+        "status": "done",
+        "timeMs": 49320
+      }
+    },
+    "fairnessScore": 3.8,
+    "scores": {
+      "contractEquity": 2.5,
+      "legalCoherence": 4,
+      "practicalCompliance": 3.5,
+      "completeness": 5
+    },
+    "risksCount": 3,
+    "actionsCount": 3,
+    "needsLawyer": true,
+    "risksFound": [
+      "Periodo di prova troppo lungo",
+      "Patto di non concorrenza troppo gravoso",
+      "Possono cambiarti mansioni e livello senza chiederti"
+    ]
+  }
+]

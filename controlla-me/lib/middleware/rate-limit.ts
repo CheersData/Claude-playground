@@ -138,6 +138,15 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/platform/cron": { windowSec: 60, max: 10 },
   // Delta update cron — CRON_SECRET-protected, defense-in-depth (SEC-F2)
   "api/cron/delta-update": { windowSec: 60, max: 5 },
+  // Legaloffice — chiama LLM, proteggere crediti API (SEC-NEW-H1/H2)
+  "api/legaloffice/leader": { windowSec: 60, max: 10 },
+  "api/legaloffice/orchestrator": { windowSec: 60, max: 10 },
+  // Resources subscribe — lead capture, anti-spam (SEC-NEW-FINDING)
+  "api/resources/subscribe": { windowSec: 60, max: 5 },
+  // Stripe webhook — defense-in-depth, signature is primary auth (Stripe can send bursts)
+  "api/webhook": { windowSec: 60, max: 30 },
+  // OAuth callback — anti-abuse on auth flow
+  "api/auth/callback": { windowSec: 60, max: 10 },
   // Default per endpoint non specificati
   default: { windowSec: 60, max: 30 },
 };

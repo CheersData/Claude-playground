@@ -53,6 +53,9 @@ function makeNextRequest(authHeader?: string): NextRequest {
     headers: {
       get: (key: string) => headers.get(key.toLowerCase()) ?? null,
     },
+    nextUrl: {
+      searchParams: new URLSearchParams(),
+    },
   } as unknown as NextRequest;
 }
 

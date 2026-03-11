@@ -7,6 +7,7 @@ import { createTask, getOpenTasks } from "@/lib/company/tasks";
 import type { Department, TaskStatus } from "@/lib/company/types";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 
 export async function GET(req: NextRequest) {
   const payload = requireConsoleAuth(req);
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
 
   // Rate limit
   const rl2 = await checkRateLimit(req);

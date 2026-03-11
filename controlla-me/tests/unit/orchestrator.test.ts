@@ -24,6 +24,32 @@ vi.mock("@/lib/agents/advisor", () => ({
   runAdvisor: (...args: unknown[]) => mockRunAdvisor(...args),
 }));
 
+// Mock legal-corpus, vector-store, embeddings, tiers, company hooks
+// Without these mocks, retrieveLegalContext calls createAdminClient() which
+// makes real Supabase RPC calls that hang indefinitely in test environments.
+vi.mock("@/lib/legal-corpus", () => ({
+  retrieveLegalContext: vi.fn().mockResolvedValue({
+    bySource: {},
+    byInstitute: {},
+    bySemantic: [],
+  }),
+  formatLegalContextForPrompt: vi.fn().mockReturnValue(""),
+}));
+vi.mock("@/lib/vector-store", () => ({
+  buildRAGContext: vi.fn().mockResolvedValue(""),
+  indexDocument: vi.fn().mockResolvedValue({ chunksIndexed: 0 }),
+  indexAnalysisKnowledge: vi.fn().mockResolvedValue({ entriesIndexed: 0 }),
+}));
+vi.mock("@/lib/embeddings", () => ({
+  isVectorDBEnabled: vi.fn().mockReturnValue(false),
+}));
+vi.mock("@/lib/tiers", () => ({
+  isAgentEnabled: vi.fn().mockReturnValue(true),
+}));
+vi.mock("@/lib/company/hooks", () => ({
+  onPipelineComplete: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock cache
 const mockCreateSession = vi.hoisted(() => vi.fn());
 const mockLoadSession = vi.hoisted(() => vi.fn());

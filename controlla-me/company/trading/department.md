@@ -137,3 +137,20 @@ ALPACA_SECRET_KEY=...        # Alpaca secret key
 ALPACA_BASE_URL=https://paper-api.alpaca.markets  # paper per default, live quando approvato
 FRED_API_KEY=...             # Federal Reserve Economic Data (opzionale, macro indicators)
 ```
+
+---
+
+## Visione (6 mesi)
+
+Trading live profittevole con Sharpe > 1.0, max drawdown < 10%, 30+ giorni paper validati. Revenue trading che copre almeno i costi infrastrutturali di Controlla.me.
+
+## Priorità operative (ordinate)
+
+1. **[P0] Sharpe > 1.0** — grid search parametri (TP/SL, threshold, lookback) per superare soglia 1.0
+2. **[P1] Paper trading 30 giorni** — validare strategia ottimizzata su paper con risultati consistenti col backtest
+3. **[P2] Go-live checklist** — preparare tutto per approvazione boss: kill switch testato, capital allocato, monitoring attivo
+
+## Autonomia
+
+- **L1 (auto)**: eseguire backtest, grid search parametri, monitoring paper, daily report, fix bug agenti
+- **L2+ (escalation)**: cambio strategia (L2), nuovi asset/mercati (L3 boss), go-live (L4 boss + security)

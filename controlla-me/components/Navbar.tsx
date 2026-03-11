@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Come funziona", href: "/#mission", sectionId: "mission" },
   { label: "Casi d'uso", href: "/#use-cases", sectionId: "use-cases" },
   { label: "Corpus", href: "/corpus", sectionId: null },
+  { label: "Legal Office", href: "/legaloffice", sectionId: null },
   { label: "Prezzi", href: "/pricing", sectionId: null },
 ];
 
@@ -186,6 +187,8 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
             e.stopPropagation();
             setMobileOpen(!mobileOpen);
           }}
+          aria-label={mobileOpen ? "Chiudi menu" : "Apri menu"}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? (
             <X className="w-5 h-5 text-foreground-secondary" />

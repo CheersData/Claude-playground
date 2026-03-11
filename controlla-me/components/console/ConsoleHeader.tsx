@@ -8,11 +8,12 @@ interface ConsoleHeaderProps {
   corpusActive?: boolean;
   onCorpusToggle?: () => void;
   onPowerToggle?: () => void;
+  onShellToggle?: () => void;
   onCompanyToggle?: () => void;
   onPrint?: () => void;
 }
 
-export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onCompanyToggle, onPrint }: ConsoleHeaderProps) {
+export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onPrint }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -73,6 +74,15 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
             className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden"
           >
             Company
+          </button>
+        )}
+        {onShellToggle && (
+          <button
+            onClick={onShellToggle}
+            className="text-[#9B9B9B] hover:text-[#1A1A1A] transition-colors print:hidden font-mono"
+            title="Shell Commands"
+          >
+            Shell
           </button>
         )}
         {onPowerToggle && (

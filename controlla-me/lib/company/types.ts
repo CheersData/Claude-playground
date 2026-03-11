@@ -54,6 +54,10 @@ export interface Task {
   benefitNotes?: string;
   /** Hint testuale per il task successivo (creazione rimane manuale) */
   suggestedNext?: string;
+  /** Livello di approvazione dal decision tree (auto-populated da routing) */
+  approvalLevel?: 'L1' | 'L2' | 'L3' | 'L4';
+  /** Dipartimenti da consultare dal decision tree (auto-populated da routing) */
+  consultDepts?: string[];
 }
 
 export interface CreateTaskInput {
@@ -77,6 +81,10 @@ export interface CreateTaskInput {
   tags?: string[];
   /** Beneficio concreto atteso dal task (max 200 char) */
   expectedBenefit?: string;
+  /** Livello di approvazione dal decision tree (auto-populated da routing) */
+  approvalLevel?: 'L1' | 'L2' | 'L3' | 'L4';
+  /** Dipartimenti da consultare dal decision tree (auto-populated da routing) */
+  consultDepts?: string[];
 }
 
 export interface UpdateTaskInput {
@@ -95,6 +103,10 @@ export interface UpdateTaskInput {
   benefitNotes?: string;
   /** Hint testuale per il task successivo */
   suggestedNext?: string;
+  /** Livello di approvazione dal decision tree */
+  approvalLevel?: 'L1' | 'L2' | 'L3' | 'L4';
+  /** Dipartimenti da consultare dal decision tree */
+  consultDepts?: string[];
 }
 
 export interface TaskBoard {

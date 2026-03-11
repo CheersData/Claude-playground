@@ -22,31 +22,47 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
   const autoStart = !!input.assignedTo;
   const resolvedStatus = input.status ?? (autoStart ? "in_progress" : "open");
 
-  const { data, error } = await admin
+  const insertPayload: Record<string, unknown> = {
+    title: input.title,
+    description: input.description ?? null,
+    department: input.department,
+    priority: input.priority ?? "medium",
+    status: resolvedStatus,
+    created_by: input.createdBy,
+    assigned_to: input.assignedTo ?? null,
+    started_at: autoStart ? new Date().toISOString() : null,
+    parent_task_id: input.parentTaskId ?? null,
+    blocked_by: input.blockedBy ?? [],
+    labels: input.labels ?? [],
+    routing: input.routing ?? null,
+    routing_exempt: input.routingExempt ?? false,
+    routing_reason: input.routingReason ?? null,
+    tags: input.tags ?? [],
+    expected_benefit: input.expectedBenefit ?? null,
+  };
+  // Approval metadata — campi opzionali (richiedono migration 025)
+  if (input.approvalLevel) insertPayload.approval_level = input.approvalLevel;
+  if (input.consultDepts && input.consultDepts.length > 0) insertPayload.consult_depts = input.consultDepts;
+
+  let { data, error } = await admin
     .from("company_tasks")
-    .insert({
-      title: input.title,
-      description: input.description ?? null,
-      department: input.department,
-      priority: input.priority ?? "medium",
-      status: resolvedStatus,
-      created_by: input.createdBy,
-      assigned_to: input.assignedTo ?? null,
-      started_at: autoStart ? new Date().toISOString() : null,
-      parent_task_id: input.parentTaskId ?? null,
-      blocked_by: input.blockedBy ?? [],
-      labels: input.labels ?? [],
-      routing: input.routing ?? null,
-      routing_exempt: input.routingExempt ?? false,
-      routing_reason: input.routingReason ?? null,
-      tags: input.tags ?? [],
-      expected_benefit: input.expectedBenefit ?? null,
-    })
+    .insert(insertPayload)
     .select("*")
     .single();
 
+  // Fallback: se migration 025 non applicata, riprova senza campi approval
+  if (error && error.message.includes("approval_level")) {
+    delete insertPayload.approval_level;
+    delete insertPayload.consult_depts;
+    ({ data, error } = await admin
+      .from("company_tasks")
+      .insert(insertPayload)
+      .select("*")
+      .single());
+  }
+
   if (error) throw new Error(`[TASKS] Errore createTask: ${error.message}`);
-  return mapRow(data);
+  return mapRow(data!);
 }
 
 // ─── Claim ───
@@ -98,6 +114,8 @@ export async function updateTask(
   if (update.benefitStatus !== undefined) payload.benefit_status = update.benefitStatus;
   if (update.benefitNotes !== undefined) payload.benefit_notes = update.benefitNotes;
   if (update.suggestedNext !== undefined) payload.suggested_next = update.suggestedNext;
+  if (update.approvalLevel !== undefined) payload.approval_level = update.approvalLevel;
+  if (update.consultDepts !== undefined) payload.consult_depts = update.consultDepts;
 
   const { data, error } = await admin
     .from("company_tasks")
@@ -240,5 +258,7 @@ function mapRow(row: Record<string, unknown>): Task {
     benefitStatus: (row.benefit_status as Task['benefitStatus']) ?? 'pending',
     benefitNotes: (row.benefit_notes as string) ?? undefined,
     suggestedNext: (row.suggested_next as string) ?? undefined,
+    approvalLevel: (row.approval_level as Task['approvalLevel']) ?? undefined,
+    consultDepts: (row.consult_depts as string[]) ?? [],
   };
 }
