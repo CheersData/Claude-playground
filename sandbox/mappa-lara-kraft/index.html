@@ -140,15 +140,19 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #introModal{position:fixed;inset:0;background:rgba(5,5,10,0.95);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity 0.5s}
 #introModal.hidden{opacity:0;pointer-events:none}
 #introInner{max-width:420px;width:90%;text-align:center;padding:40px 30px}
-#introInner h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#c8a84b;margin-bottom:6px;letter-spacing:2px}
-#introInner .intro-sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:24px}
-#introInner p{font-size:13px;line-height:1.9;color:rgba(232,224,208,0.7);font-weight:300;margin-bottom:20px}
-#introInner .intro-btn{background:none;border:1px solid rgba(200,168,75,0.35);color:#c8a84b;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:all 0.25s}
+#introInner h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#c8a84b;margin-bottom:6px;letter-spacing:2px;opacity:0;animation:briefSlideUp 0.7s ease-out 0.2s forwards,briefGlow 2.5s ease-in-out 1s infinite}
+#introInner .intro-sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:24px;opacity:0;animation:briefSlideUp 0.7s ease-out 0.5s forwards}
+#introInner p{font-size:13px;line-height:1.9;color:rgba(232,224,208,0.7);font-weight:300;margin-bottom:20px;opacity:0;animation:briefSlideUp 0.8s ease-out 0.9s forwards}
+#introInner .intro-btn{background:none;border:1px solid rgba(200,168,75,0.35);color:#c8a84b;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:all 0.25s;opacity:0;animation:briefSlideUp 0.6s ease-out 1.5s forwards}
 #introInner .intro-btn:hover{background:rgba(200,168,75,0.12);border-color:#c8a84b}
 #introInner .intro-btn.green{border-color:rgba(80,200,120,0.35);color:#50c878}
 #introInner .intro-btn.green:hover{background:rgba(80,200,120,0.12);border-color:#50c878}
 #introInner .intro-btn.blue{border-color:rgba(74,158,202,0.35);color:#4a9eca}
 #introInner .intro-btn.blue:hover{background:rgba(74,158,202,0.12);border-color:#4a9eca}
+@keyframes briefSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes briefGlow{0%,100%{text-shadow:0 0 8px rgba(200,168,75,0.2)}50%{text-shadow:0 0 20px rgba(200,168,75,0.5),0 0 40px rgba(200,168,75,0.15)}}
+@keyframes briefLineExpand{from{width:0;opacity:0}to{width:60px;opacity:1}}
+#introInner .brief-line{border:none;height:1px;background:linear-gradient(90deg,transparent,rgba(200,168,75,0.4),transparent);margin:0 auto 20px;width:0;opacity:0;animation:briefLineExpand 0.6s ease-out 0.7s forwards}
 
 @media(max-width:380px){
   header{flex-direction:column;align-items:flex-start;gap:2px}
@@ -176,7 +180,8 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
   <div id="introInner">
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
-    <p>Agente, bentornata. Il tuo compleanno non sarà una giornata qualunque. Venezia è il campo operativo. Tre capitoli ti aspettano — tre missioni, tre mondi diversi. Ogni tappa nasconde una storia che pochi conoscono. Tocca i punti sulla mappa per scoprirli. Buon compleanno, Lara.</p>
+    <hr class="brief-line">
+    <p>Agente, bentornata. Situazione critica: Venezia è invasa. Turisti ovunque, selfie stick in ogni calle, code infinite. La tua missione è semplice — scappare. Punto di estrazione: Riva degli Schiavoni, ore 16:00. Non farti trovare impreparata. Tre capitoli, tre giorni, zero margine d'errore. Tocca i punti sulla mappa per scoprire cosa ti aspetta. Buon compleanno, Lara.</p>
     <button class="intro-btn green" onclick="closeIntro()">Inizia Cap. 1</button>
   </div>
 </div>
@@ -188,7 +193,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </div>
 <div id="counter"><div id="cn">0</div><div id="cl">visitati</div></div>
 <div id="hint">Tocca un punto per scoprirlo</div>
-<div id="timerBox"><div id="timerLabel">Partenza Mazzorbo · 13 mar 17:00</div><div id="timerCount">--:--</div></div>
+<div id="timerBox"><div id="timerLabel">Estrazione · Riva Schiavoni 16:00</div><div id="timerCount">--:--</div></div>
 <button id="geoBtn" title="La tua posizione">◎</button>
 <button id="nextChBtn" onclick="goNextChapter()">Cap. 2 →</button>
 <div id="panel">
@@ -207,9 +212,9 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const stops=[
-  {name:"Mazzorbo",sub:"La vostra isola · Partenza ore 17:00",lat:45.4867,lng:12.4103,emoji:"⚓",
+  {name:"Mazzorbo",sub:"Base operativa · Isola segreta",lat:45.4867,lng:12.4103,emoji:"⚓",
    img:"images/mazzorbo.jpg",
-   text:"La vostra isola per due notti. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata — poche centinaia di residenti, orti, silenzio totale. Marco ha scelto questo posto perché è l'opposto di tutto: niente folle, niente rumore, solo laguna. Da qui partite il 13 marzo alle 17:00 sul taxi acqueo verso Venezia. Martina, tieni la macchina fotografica pronta."},
+   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata — poche centinaia di residenti, orti, silenzio totale. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
   {name:"Venissa",sub:"Mazzorbo · Vigneto & Osteria",lat:45.4875,lng:12.4115,emoji:"🍷",
    img:"",
    text:"Un vigneto murato nel cuore di Mazzorbo. Qui cresce la Dorona, un vitigno veneziano quasi estinto — solo 88 viti sopravvissero, riscoperte nel 2002 da Gianluca Bisol tra le erbacce. Oggi Venissa produce uno dei vini più rari al mondo: bottiglie numerate con etichetta in foglia d'oro. Il ristorante stellato è un tavolo tra le vigne con vista sulla laguna. L'osteria accanto è più semplice ma altrettanto magica — cicchetti e ombre de vin al tramonto."},
@@ -218,19 +223,19 @@ const stops=[
    text:"L'isola più fotogenica della laguna. Le case colorate non sono una trovata turistica: ogni famiglia dipingeva la propria in un colore diverso per riconoscerla dalla barca nelle nebbie invernali. La tradizione del merletto di Burano risale al XVI secolo — la regina Caterina de' Medici ne era cliente. Marco e Martina, la sera passeggerete qui sotto le luci — è un altro mondo quando i turisti se ne vanno."},
   {name:"Murano",sub:"Laguna nord · Vetro soffiato",lat:45.4583,lng:12.3535,emoji:"💎",
    img:"images/murano.jpg",
-   text:"Nel 1291 la Repubblica ordinò a tutti i maestri vetrai di trasferirsi a Murano — per controllare i segreti della lavorazione. Per secoli erano gli unici al mondo capaci di produrre certi tipi di vetro. Avevano il privilegio di portare la spada e di sposare nobili veneziane. I segreti erano protetti con la vita — letteralmente."},
+   text:"Nel 1291 la Repubblica ordinò a tutti i maestri vetrai di trasferirsi a Murano — ufficialmente per 'proteggere dai rischi di incendio', in realtà per controllare i segreti della lavorazione. Per secoli erano gli unici al mondo capaci di produrre certi tipi di vetro. Avevano il privilegio di portare la spada e di sposare nobili veneziane. Se provavi a scappare con i segreti, ti ammazzavano. Oggi vendono soprattutto pesci di vetro ai turisti. Come sono caduti i potenti."},
   {name:"Fondamenta Nuove",sub:"Ingresso nord di Venezia",lat:45.4458,lng:12.3360,emoji:"🚢",
    img:"images/fondamenta-nuove.jpg",
    text:"Il punto dove il taxi entra nel corpo di Venezia dalla laguna nord. Da qui si vede l'isola di San Michele — il cimitero di Venezia, un'isola intera dedicata ai morti con i cipressi che si stagliano sull'acqua. Stravinsky, Diaghilev e Ezra Pound sono sepolti qui."},
   {name:"Ghetto Ebraico",sub:"Cannaregio · XVI secolo",lat:45.4442,lng:12.3273,emoji:"✡",
    img:"images/ghetto-ebraico.jpg",
-   text:"Il primo ghetto della storia — la parola stessa viene da 'geto', la fonderia che c'era qui. Dal 1516 gli ebrei veneziani furono confinati in questa piccola isola, le porte chiuse la notte, le case sopraelevate fino a 7 piani per mancanza di spazio. Shakespeare ambientò qui Il Mercante di Venezia, con Shylock come protagonista."},
+   text:"Il primo ghetto della storia — la parola stessa viene da 'geto', la fonderia che c'era qui. Dal 1516 gli ebrei veneziani furono confinati in questa piccola isola, le porte chiuse la notte, le case sopraelevate fino a 7 piani per mancanza di spazio — i primi grattacieli di Venezia, per necessità e non per vanità. Shakespeare ambientò qui Il Mercante di Venezia, anche se probabilmente non c'è mai stato. Dettagli."},
   {name:"Stazione Santa Lucia",sub:"Capolinea del Canal Grande",lat:45.4413,lng:12.3213,emoji:"🚂",
    img:"images/stazione-santa-lucia.jpg",
    text:"L'unica stazione al mondo dove esci e sei direttamente sul Canal Grande. Inaugurata nel 1954. Davanti c'è il Ponte degli Scalzi, uno dei quattro ponti sul Canal Grande. Da qui il taxi scende verso Riva degli Schiavoni."},
   {name:"Riva degli Schiavoni",sub:"Arrivo · Bacino di San Marco",lat:45.4335,lng:12.3425,emoji:"🏁",
    img:"images/riva-degli-schiavoni.jpg",
-   text:"Il vostro punto di arrivo, davanti all'Hotel Metropole. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. È la cartolina più famosa di Venezia. Marco e Martina, qui finisce il viaggio in barca — e inizia la passeggiata segreta per Cannaregio."},
+   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore — praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Questo è dove il taxi acqueo vi raccoglie alle 16:00 per portarvi fuori dalla civiltà. Destinazione: classificata."},
   {name:"Torcello",sub:"V sec. · La madre di Venezia",lat:45.4969,lng:12.4181,emoji:"🏛️",
    img:"",
    text:"La prima isola abitata della laguna, fondata nel V secolo — molto prima di Venezia stessa. Qui c'erano 20.000 abitanti quando San Marco non esisteva ancora. Oggi ne restano meno di 20. La cattedrale di Santa Maria Assunta contiene mosaici bizantini del XII secolo tra i più belli d'Italia. Il Ponte del Diavolo è l'unico ponte senza parapetto rimasto nella laguna nord."},
@@ -253,7 +258,7 @@ const palaces=[
    text:"Il 'palazzo nonfinito' — costruito solo al pianterreno, nessuno sa perché i lavori si fermarono nel 1749. Dal 1951 fu la residenza di Peggy Guggenheim, che lo trasformò in uno dei musei d'arte moderna più importanti al mondo. Sul terrazzo c'è l'Angelo della Città di Marino Marini, orientato verso i gondolieri."},
   {n:"04",name:"Palazzo Dario",sub:"1487 · Pietro Lombardo",lat:45.4318,lng:12.3308,
    img:"images/palazzo-dario.jpg",
-   text:"Il palazzo più maledetto di Venezia. Quasi tutti i proprietari nel corso dei secoli sono morti in circostanze tragiche. L'ultimo — il magnate Raul Gardini — si suicidò nel 1993. La facciata asimmetrica in marmo policromo è tra le più belle del Rinascimento veneziano."},
+   text:"Il palazzo più maledetto di Venezia. Quasi tutti i proprietari nel corso dei secoli sono morti in circostanze tragiche — suicidi, omicidi, bancarotte seguite da morte misteriosa. L'ultimo — il magnate Raul Gardini — si suicidò nel 1993. Woody Allen provò a comprarlo negli anni '90. Il suo avvocato gli disse: 'Guarda la lista dei proprietari'. Non comprò. La facciata asimmetrica in marmo policromo è tra le più belle del Rinascimento veneziano. Forse è il palazzo che si vendica di chi non lo merita."},
   {n:"05",name:"Ca' Rezzonico",sub:"XVII–XVIII sec. · Longhena e Massari",lat:45.4332,lng:12.3262,
    img:"images/ca-rezzonico.jpg",
    text:"Iniziato nel 1649 e terminato quasi un secolo dopo. Qui morì Robert Browning nel 1889. Ospita il Museo del Settecento Veneziano, con gli affreschi di Tiepolo e una ricostruzione perfetta di come viveva la nobiltà veneziana nel suo ultimo secolo di splendore."},
@@ -310,13 +315,13 @@ function loadImage(url, emoji) {
 // === VIAGGIO 1: Passeggiata segreta da Santa Lucia a Riva degli Schiavoni (via Cannaregio) ===
 const walk=[
   {n:"01",name:"Ponte degli Scalzi",sub:"1934 · Eugenio Miozzi",lat:45.4408,lng:12.3222,emoji:"🌉",img:"images/Ponte_degli_Scalzi_20050525-030.jpg",
-   text:"Appena usciti dalla stazione, il primo dei quattro ponti sul Canal Grande. Costruito in pietra d'Istria nel 1934. Da qui avete la prima vista completa: a destra la cupola della Salute, a sinistra l'infinito del Canal Grande. La notte, quando i turisti dormono, i veneziani attraversano questo ponte in silenzio — è il confine tra la terraferma e l'isola. Marco e Martina, voi lo attraverserete di sera — con la luce giusta."},
+   text:"Appena usciti dalla stazione, il primo dei quattro ponti sul Canal Grande. Costruito in pietra d'Istria nel 1934 per sostituire un ponte austriaco in ferro che i veneziani odiavano — non per motivi estetici, ma per principio. Da qui avete la prima vista completa: a destra la cupola della Salute, a sinistra l'infinito del Canal Grande. La notte, quando i turisti dormono, i veneziani attraversano questo ponte in silenzio — è il confine tra la terraferma e l'isola. Se piove, meglio: Venezia sotto la pioggia è dieci volte più bella, e avrete i ponti tutti per voi."},
   {n:"02",name:"Ponte delle Guglie",sub:"1580 · L'unico ponte con i gargoyle",lat:45.4430,lng:12.3258,emoji:"👹",img:"images/Venice_-_Ponte_delle_Guglie.jpg",
-   text:"Risalite lungo la Lista di Spagna e girate a sinistra sul Rio di Cannaregio. Questo è l'unico ponte di Venezia decorato con gargoyle — 'guglie' in veneziano. La leggenda dice che di notte le figure di pietra prendono vita per proteggere il sestiere. Il ponte segna l'ingresso a Cannaregio, il quartiere più veneziano: qui abitano ancora i veri residenti, qui si mangia il cicchetto da un euro, qui Venezia è ancora Venezia."},
+   text:"Risalite lungo la Lista di Spagna e girate a sinistra sul Rio di Cannaregio. Questo è l'unico ponte di Venezia decorato con gargoyle — 'guglie' in veneziano. La leggenda dice che di notte le figure di pietra prendono vita per proteggere il sestiere. Probabilmente proteggono da i turisti con le valigie a rotelle, il rumore più odiato di Venezia. Il ponte segna l'ingresso a Cannaregio: qui abitano ancora i veri residenti, qui si mangia il cicchetto da un euro, qui Venezia è ancora Venezia."},
   {n:"03",name:"Ponte Chiodo",sub:"XV sec. · L'ultimo ponte senza parapetto",lat:45.4438,lng:12.3322,emoji:"🪨",img:"images/ponte chiodo.webp",
-   text:"L'ultimo ponte di Venezia senza parapetto — così com'erano tutti i ponti della città fino al XVIII secolo. Un gradino di pietra, il canale sotto, nessuna ringhiera. Il nome viene dal chiodo piantato sulla sommità a cui i gondolieri legavano la corda. Di notte, senza illuminazione, attraversarlo era un atto di fede. I veneziani ci passano ancora ogni giorno senza pensarci — i turisti non lo trovano mai perché non è su nessuna guida. Guardatevi i piedi."},
+   text:"L'ultimo ponte di Venezia senza parapetto — così com'erano TUTTI i ponti della città fino al XVIII secolo. Niente ringhiera, niente rete, niente nulla. Solo pietra e canale sotto. Il nome viene dal chiodo piantato sulla sommità a cui i gondolieri legavano la corda. Di notte, senza illuminazione, attraversarlo era un atto di fede — e anche di equilibrio dopo il terzo spritz. I veneziani ci passano ogni giorno senza pensarci. I turisti non lo trovano perché non è su nessuna guida. Voi ci siete. Complimenti."},
   {n:"04",name:"Fondamenta della Misericordia",sub:"Cannaregio · Il segreto notturno",lat:45.4450,lng:12.3310,emoji:"🌙",img:"images/fodnamenta misericordia.jpg",
-   text:"Questa fondamenta lungo il canale è il cuore segreto della Venezia notturna. Zero turisti, solo bacari con spritz a 3 euro e veneziani che parlano in dialetto. Di giorno sembra un quartiere qualsiasi; di notte diventa il salotto della città. Al numero 2515 c'è il Paradiso Perduto, un locale leggendario dove Hemingway veniva a bere e dove ancora oggi suonano jazz dal vivo. I gatti dormono sulle barche ormeggiate."},
+   text:"Questa fondamenta lungo il canale è il cuore segreto della Venezia notturna. Zero turisti, solo bacari con spritz a 3 euro e veneziani che parlano in dialetto. Di giorno sembra un quartiere qualsiasi; di notte diventa il salotto della città. Al numero 2515 c'è il Paradiso Perduto, un locale leggendario dove Hemingway veniva a bere — probabilmente troppo, come tutto quello che faceva. Ancora oggi suonano jazz dal vivo. I gatti dormono sulle barche ormeggiate e se ne fregano di tutto."},
   {n:"05",name:"Madonna dell'Orto",sub:"XIV sec. · La chiesa di Tintoretto",lat:45.4468,lng:12.3318,emoji:"🎨",img:"images/Maria_del_Orto_Venedig.jpg",
    text:"Jacopo Tintoretto abitava qui vicino e questa era la sua parrocchia. Dipinse per lei gratuitamente: il Giudizio Universale e l'Adorazione del Vitello d'Oro sono qui, non agli Uffizi o al Louvre. Quando morì nel 1594, fu sepolto qui — nella navata destra, sotto una lapide semplice. Il nome 'dell'Orto' viene da una statua della Madonna trovata miracolosamente in un orto vicino nel 1377. La facciata gotica in cotto è tra le più belle di Venezia."},
   {n:"06",name:"Campo dei Mori",sub:"XIII sec. · I mercanti e Tintoretto",lat:45.4462,lng:12.3300,emoji:"🗿",img:"images/Venice_-_Campo_dei_Mori.jpg",
@@ -532,14 +537,14 @@ showChapter(1);
   var timerCount=document.getElementById('timerCount');
   var timerLabel=document.getElementById('timerLabel');
 
-  // Target: 13 marzo 2026 ore 17:00 (partenza da Mazzorbo)
+  // Target: 13 marzo 2026 ore 16:00 (estrazione Riva degli Schiavoni)
   function getTarget(){
-    return new Date(2026,2,13,17,0,0,0); // mese 2 = marzo (0-indexed)
+    return new Date(2026,2,13,16,0,0,0); // mese 2 = marzo (0-indexed)
   }
 
   // Timer marker on the map at Riva degli Schiavoni
-  var timerMarkerIcon=L.divIcon({html:'<div class="timer-marker">⏱ 17:00</div>',className:'',iconSize:[70,20],iconAnchor:[35,25]});
-  var timerMapMarker=L.marker([45.4867,12.4103],{icon:timerMarkerIcon,zIndexOffset:500,interactive:false});
+  var timerMarkerIcon=L.divIcon({html:'<div class="timer-marker">⏱ 16:00</div>',className:'',iconSize:[70,20],iconAnchor:[35,25]});
+  var timerMapMarker=L.marker([45.4335,12.3425],{icon:timerMarkerIcon,zIndexOffset:500,interactive:false});
   ch1Layer.addLayer(timerMapMarker);
   ch2Layer.addLayer(timerMapMarker);
 
@@ -554,7 +559,7 @@ showChapter(1);
       // Time expired
       timerBox.classList.add('expired');
       timerCount.textContent='SCADUTO';
-      timerLabel.textContent='Partenza Mazzorbo · 13 mar 17:00';
+      timerLabel.textContent='Estrazione · Riva Schiavoni 16:00';
       return;
     }
 
@@ -591,8 +596,8 @@ function closeIntro(){
 }
 
 var intermezzi={
-  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Laguna",text:"Bene, agente. La passeggiata è finita. Ora si sale in barca. Taxi acqueo privato, partenza da Mazzorbo ore 17:00. Destinazione: il cuore di Venezia via laguna nord. Tieni lo stomaco saldo — il nome del capitolo non è casuale.",btnClass:"blue",btnText:"Inizia Cap. 2"},
-  3:{title:"Capitolo 3 · Queen of Venice",sub:"Missione Canal Grande",text:"Ultimo atto, agente. Il Canal Grande è il palcoscenico più bello del mondo. Undici palazzi, cinque secoli di storia. Ogni facciata nasconde intrighi, maledizioni e capolavori. Preparati — qui Venezia mostra la sua vera potenza.",btnClass:"",btnText:"Inizia Cap. 3"}
+  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. La destinazione è classificata — sappi solo che è un'isola quasi deserta nella laguna nord. La tua missione: sopravvivere fino alle 12:30 di domani. Niente turisti, niente rumori, niente vie di fuga. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale — il viaggio in barca per arrivarci potrebbe metterti alla prova. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
+  3:{title:"Capitolo 3 · Queen of Venice",sub:"Missione Rientro",text:"Sei sopravvissuta all'isola. Ora si torna nella civiltà. Venezia è ai tuoi piedi — letteralmente. Il Canal Grande è il palcoscenico più bello del mondo e oggi è tutto per te. Undici palazzi, cinque secoli di intrighi, maledizioni e capolavori. Cammina come una regina, agente. Perché oggi lo sei.",btnClass:"",btnText:"Inizia Cap. 3"}
 };
 
 // Override showChapter to show intermezzo
@@ -602,7 +607,7 @@ showChapter=function(ch){
     var i=intermezzi[ch];
     var modal=document.getElementById('introModal');
     var inner=document.getElementById('introInner');
-    inner.innerHTML='<h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
+    inner.innerHTML='<h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><hr class="brief-line"><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
     modal.classList.remove('hidden');
     return;
   }
