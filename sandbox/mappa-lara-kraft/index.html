@@ -51,9 +51,6 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #timerBox{position:absolute;top:62px;right:14px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.3);padding:6px 12px;z-index:900;text-align:center;border-radius:4px;display:none}
 #timerLabel{font-size:7px;letter-spacing:2px;color:rgba(200,168,75,0.5);text-transform:uppercase}
 #timerCount{font-family:'Cormorant Garamond',serif;font-size:22px;color:#c8a84b;line-height:1;margin-top:2px;letter-spacing:1px}
-#timerBox.expired{border-color:rgba(200,168,75,0.5)}
-#timerBox.expired #timerCount{animation:timerBlink 1s infinite}
-@keyframes timerBlink{0%,100%{opacity:1}50%{opacity:0.3}}
 @media(max-width:600px){
   #timerBox{top:auto;bottom:140px;right:8px;padding:5px 10px}
   #timerCount{font-size:16px}
@@ -530,46 +527,12 @@ showChapter(1);
   });
 })();
 
-// === COUNTDOWN TIMER - Riva degli Schiavoni ore 16:00 ===
+// === ORARIO ESTRAZIONE ===
 (function(){
   var timerBox=document.getElementById('timerBox');
   var timerCount=document.getElementById('timerCount');
-  var timerLabel=document.getElementById('timerLabel');
-
-  // Target: 13 marzo 2026 ore 16:00 (estrazione Riva degli Schiavoni)
-  function getTarget(){
-    return new Date(2026,2,13,16,0,0,0); // mese 2 = marzo (0-indexed)
-  }
-
-  function updateTimer(){
-    var now=new Date();
-    var target=getTarget();
-    var diff=target.getTime()-now.getTime();
-
-    timerBox.style.display='block';
-
-    if(diff<=0){
-      timerBox.classList.add('expired');
-      timerCount.textContent='SCADUTO';
-      timerLabel.textContent='Estrazione · Riva Schiavoni 16:00';
-      return;
-    }
-
-    timerBox.classList.remove('expired');
-    var totalMin=Math.floor(diff/60000);
-    var hours=Math.floor(totalMin/60);
-    var mins=totalMin%60;
-    var secs=Math.floor((diff%60000)/1000);
-
-    if(hours>0){
-      timerCount.textContent=hours+'h '+String(mins).padStart(2,'0')+'m '+String(secs).padStart(2,'0')+'s';
-    } else {
-      timerCount.textContent=mins+'m '+String(secs).padStart(2,'0')+'s';
-    }
-  }
-
-  updateTimer();
-  setInterval(updateTimer,1000);
+  timerBox.style.display='block';
+  timerCount.textContent='16:00';
 })();
 
 // Load agent name from start page
