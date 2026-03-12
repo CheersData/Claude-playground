@@ -351,25 +351,22 @@ var walkRoute=[
   [45.4342,12.3370],[45.4338,12.3395],[45.4338,12.3412],
   [45.4335,12.3425]
 ];
-// Boat route polyline - giro intorno a Venezia via laguna aperta (motoscafo)
-// Il motoscafo NON entra nel Canal Grande e NON passa per Venezia
+// Boat route polyline - da Riva degli Schiavoni verso est, giro laguna nord fino alle isole
 var boatRoute=[
-  // Laguna nord: Mazzorbo → Burano → Torcello
-  [45.4867,12.4103],[45.4852,12.4167],[45.4969,12.4181],
-  // Torcello → Burano → laguna aperta → Murano
-  [45.4852,12.4167],[45.4750,12.3900],[45.4583,12.3535],
-  // Murano → laguna est (passa a EST di Venezia, lontano dalla città)
-  [45.4500,12.3620],[45.4400,12.3680],
-  // Laguna est → passa largo davanti al Lido (bocca di porto)
-  [45.4300,12.3700],[45.4200,12.3650],
-  // Giro sud → laguna sud del Lido/Giudecca (acqua aperta)
-  [45.4120,12.3550],[45.4100,12.3400],[45.4100,12.3200],
-  // Laguna ovest → risalita larga fuori Venezia
-  [45.4150,12.3050],[45.4250,12.2950],
-  // Laguna nord-ovest → giro largo verso nord
-  [45.4380,12.2980],[45.4450,12.3050],
-  // Rientro verso Fondamenta Nuove da ovest (laguna aperta)
-  [45.4500,12.3150],[45.4500,12.3280],[45.4458,12.3360]
+  // Partenza: Riva degli Schiavoni
+  [45.4335,12.3425],
+  // Est lungo il bacino di San Marco → Sant'Elena
+  [45.4300,12.3500],[45.4280,12.3580],
+  // Laguna est di Venezia (largo, acqua aperta)
+  [45.4300,12.3700],[45.4350,12.3800],
+  // Nord-est nella laguna aperta
+  [45.4420,12.3750],[45.4480,12.3650],
+  // Passa largo a est di Murano
+  [45.4550,12.3650],[45.4583,12.3535],
+  // Murano → laguna nord verso Burano
+  [45.4650,12.3700],[45.4750,12.3900],
+  // Burano → Mazzorbo → Torcello
+  [45.4852,12.4167],[45.4867,12.4103],[45.4969,12.4181]
 ];
 // Canal Grande route polyline
 var canalRoute=[
