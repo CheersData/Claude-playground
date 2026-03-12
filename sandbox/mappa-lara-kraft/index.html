@@ -148,8 +148,10 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 @keyframes briefSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes briefGlow{0%,100%{text-shadow:0 0 8px rgba(200,168,75,0.2)}50%{text-shadow:0 0 20px rgba(200,168,75,0.5),0 0 40px rgba(200,168,75,0.15)}}
 @keyframes briefLineExpand{from{width:0;opacity:0}to{width:60px;opacity:1}}
-#introInner .tom-laugh{font-size:48px;opacity:0;animation:briefSlideUp 0.5s ease-out 0.1s forwards,tomShake 0.4s ease-in-out 0.8s 3}
-@keyframes tomShake{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-12deg) scale(1.1)}50%{transform:rotate(12deg) scale(1.2)}75%{transform:rotate(-8deg) scale(1.1)}}
+#introInner .compass-anim{width:52px;height:52px;margin:0 auto 10px;opacity:0;animation:briefSlideUp 0.5s ease-out 0.1s forwards}
+#introInner .compass-anim svg{width:52px;height:52px;filter:drop-shadow(0 0 8px rgba(200,168,75,0.4))}
+#introInner .compass-anim .compass-needle{transform-origin:center;animation:compassSpin 2s ease-in-out 0.6s 1 forwards}
+@keyframes compassSpin{0%{transform:rotate(0deg)}30%{transform:rotate(380deg)}50%{transform:rotate(340deg)}70%{transform:rotate(365deg)}85%{transform:rotate(355deg)}100%{transform:rotate(360deg)}}
 #introInner .brief-line{border:none;height:1px;background:linear-gradient(90deg,transparent,rgba(200,168,75,0.4),transparent);margin:0 auto 20px;width:0;opacity:0;animation:briefLineExpand 0.6s ease-out 0.7s forwards}
 
 @media(max-width:380px){
@@ -176,7 +178,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </header>
 <div id="introModal">
   <div id="introInner">
-    <div class="tom-laugh">😂</div>
+    <div class="compass-anim"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="rgba(200,168,75,0.5)" stroke-width="2"/><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(200,168,75,0.25)" stroke-width="1"/><text x="50" y="18" text-anchor="middle" fill="#c8a84b" font-size="9" font-family="Montserrat">N</text><text x="50" y="90" text-anchor="middle" fill="rgba(200,168,75,0.4)" font-size="8" font-family="Montserrat">S</text><text x="10" y="54" text-anchor="middle" fill="rgba(200,168,75,0.4)" font-size="8" font-family="Montserrat">W</text><text x="90" y="54" text-anchor="middle" fill="rgba(200,168,75,0.4)" font-size="8" font-family="Montserrat">E</text><g class="compass-needle"><polygon points="50,22 46,50 54,50" fill="#c8a84b"/><polygon points="50,78 46,50 54,50" fill="rgba(200,168,75,0.3)"/><circle cx="50" cy="50" r="4" fill="#c8a84b"/></g></svg></div>
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
     <hr class="brief-line">
@@ -561,7 +563,7 @@ showChapter=function(ch){
     var i=intermezzi[ch];
     var modal=document.getElementById('introModal');
     var inner=document.getElementById('introInner');
-    inner.innerHTML='<div class="tom-laugh">😂</div><h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><hr class="brief-line"><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
+    inner.innerHTML='<div class="compass-anim"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="rgba(200,168,75,0.5)" stroke-width="2"/><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(200,168,75,0.25)" stroke-width="1"/><text x="50" y="18" text-anchor="middle" fill="#c8a84b" font-size="9" font-family="Montserrat">N</text><text x="50" y="90" text-anchor="middle" fill="rgba(200,168,75,0.4)" font-size="8" font-family="Montserrat">S</text><text x="10" y="54" text-anchor="middle" fill="rgba(200,168,75,0.4)" font-size="8" font-family="Montserrat">W</text><text x="90" y="54" text-anchor="middle" fill="rgba(200,168,75,0.4)" font-size="8" font-family="Montserrat">E</text><g class="compass-needle"><polygon points="50,22 46,50 54,50" fill="#c8a84b"/><polygon points="50,78 46,50 54,50" fill="rgba(200,168,75,0.3)"/><circle cx="50" cy="50" r="4" fill="#c8a84b"/></g></svg></div><h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><hr class="brief-line"><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
     modal.classList.remove('hidden');
     return;
   }
