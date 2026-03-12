@@ -148,6 +148,8 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 @keyframes briefSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes briefGlow{0%,100%{text-shadow:0 0 8px rgba(200,168,75,0.2)}50%{text-shadow:0 0 20px rgba(200,168,75,0.5),0 0 40px rgba(200,168,75,0.15)}}
 @keyframes briefLineExpand{from{width:0;opacity:0}to{width:60px;opacity:1}}
+#introInner .tom-laugh{font-size:48px;opacity:0;animation:briefSlideUp 0.5s ease-out 0.1s forwards,tomShake 0.4s ease-in-out 0.8s 3}
+@keyframes tomShake{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-12deg) scale(1.1)}50%{transform:rotate(12deg) scale(1.2)}75%{transform:rotate(-8deg) scale(1.1)}}
 #introInner .brief-line{border:none;height:1px;background:linear-gradient(90deg,transparent,rgba(200,168,75,0.4),transparent);margin:0 auto 20px;width:0;opacity:0;animation:briefLineExpand 0.6s ease-out 0.7s forwards}
 
 @media(max-width:380px){
@@ -174,10 +176,11 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </header>
 <div id="introModal">
   <div id="introInner">
+    <div class="tom-laugh">😂</div>
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
     <hr class="brief-line">
-    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Estrazione ore 16:00, Riva degli Schiavoni. Tre capitoli, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara.</p>
+    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Estrazione ore 16:00, Riva degli Schiavoni. Tre capitoli, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara Kraft.</p>
     <button class="intro-btn green" onclick="closeIntro()">Inizia Cap. 1</button>
   </div>
 </div>
@@ -558,7 +561,7 @@ showChapter=function(ch){
     var i=intermezzi[ch];
     var modal=document.getElementById('introModal');
     var inner=document.getElementById('introInner');
-    inner.innerHTML='<h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><hr class="brief-line"><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
+    inner.innerHTML='<div class="tom-laugh">😂</div><h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><hr class="brief-line"><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
     modal.classList.remove('hidden');
     return;
   }
