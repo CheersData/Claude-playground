@@ -47,15 +47,10 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(10,10,15,0.85);border:1px solid rgba(200,168,75,0.15);padding:7px 16px;font-size:9px;letter-spacing:2px;color:rgba(200,168,75,0.45);text-transform:uppercase;z-index:900;pointer-events:none;transition:opacity 0.5s;white-space:nowrap}
 #hint.hidden{opacity:0}
 
-/* === COUNTDOWN TIMER === */
-#timerBox{position:absolute;top:62px;right:14px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.3);padding:6px 12px;z-index:900;text-align:center;border-radius:4px;display:none}
+/* === ORARIO ARRIVO === */
+#timerBox{position:absolute;top:62px;right:14px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.3);padding:6px 12px;z-index:900;text-align:center;border-radius:4px}
 #timerLabel{font-size:7px;letter-spacing:2px;color:rgba(200,168,75,0.5);text-transform:uppercase}
 #timerCount{font-family:'Cormorant Garamond',serif;font-size:22px;color:#c8a84b;line-height:1;margin-top:2px;letter-spacing:1px}
-@media(max-width:600px){
-  #timerBox{top:auto;bottom:140px;right:8px;padding:5px 10px}
-  #timerCount{font-size:16px}
-  #timerLabel{font-size:6px}
-}
 
 /* === GEOLOCATION === */
 #geoBtn{position:absolute;bottom:18px;right:14px;width:42px;height:42px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.22);color:#c8a84b;font-size:20px;cursor:pointer;z-index:900;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:all 0.25s;line-height:1}
@@ -196,7 +191,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </div>
 <div id="counter"><div id="cn">0</div><div id="cl">visitati</div></div>
 <div id="hint">Tocca un punto per scoprirlo</div>
-<div id="timerBox"><div id="timerLabel">Mazzorbo · ore 12:30</div><div id="timerCount">--:--</div></div>
+<div id="timerBox"><div id="timerLabel">Arrivo · Cannaregio</div><div id="timerCount">16:00</div></div>
 <button id="geoBtn" title="La tua posizione">◎</button>
 <button id="nextChBtn" onclick="goNextChapter()">Cap. 2 →</button>
 <div id="panel">
@@ -472,7 +467,7 @@ function showChapter(ch){
   var legend=document.getElementById('legend');
   var nextBtn=document.getElementById('nextChBtn');
 
-  stopTimer();
+  updateTimer(ch);
   if(ch===1){
     ch1Layer.addTo(map);
     map.setView([45.4400,12.3320],14);
@@ -487,7 +482,6 @@ function showChapter(ch){
     document.querySelector('.hl h1').textContent="Cap. 2 · Don't Puke!";
     document.querySelector('.hl p').textContent='La Laguna · ore 12:30 Mazzorbo';
     nextBtn.textContent="Cap. 3 →";nextBtn.style.display='block';
-    startTimer();
   } else if(ch===3){
     ch3Layer.addTo(map);
     map.setView([45.4370,12.3310],14);
@@ -562,30 +556,12 @@ showChapter(1);
   });
 })();
 
-// === COUNTDOWN TIMER per Cap. 2 (ore 12:30 Mazzorbo) ===
-var timerInterval=null;
-function startTimer(){
-  var timerBox=document.getElementById('timerBox');
-  var timerCount=document.getElementById('timerCount');
-  timerBox.style.display='block';
-  function update(){
-    var now=new Date();
-    var target=new Date(now);
-    target.setHours(12,30,0,0);
-    if(now>=target){target.setDate(target.getDate()+1);}
-    var diff=target-now;
-    var h=Math.floor(diff/3600000);
-    var m=Math.floor((diff%3600000)/60000);
-    var s=Math.floor((diff%60000)/1000);
-    timerCount.textContent=(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-  }
-  update();
-  timerInterval=setInterval(update,1000);
-}
-function stopTimer(){
-  var timerBox=document.getElementById('timerBox');
-  timerBox.style.display='none';
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+// === ORARIO ARRIVO per capitolo ===
+var chapterTimes={1:{label:'Arrivo · Cannaregio',time:'16:00'},2:{label:'Mazzorbo',time:'12:30'},3:{label:'Canal Grande',time:'17:00'},0:{label:'Mappa completa',time:'—'}};
+function updateTimer(ch){
+  var info=chapterTimes[ch]||chapterTimes[0];
+  document.getElementById('timerLabel').textContent=info.label;
+  document.getElementById('timerCount').textContent=info.time;
 }
 
 // Load agent name from start page
