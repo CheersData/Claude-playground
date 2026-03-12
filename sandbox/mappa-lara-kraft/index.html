@@ -354,13 +354,30 @@ var walkRoute=[
   [45.4342,12.3370],[45.4338,12.3395],[45.4338,12.3412],
   [45.4335,12.3425]
 ];
-// Boat route polyline
+// Boat route polyline - giro intorno a Venezia via laguna aperta (motoscafo)
 var boatRoute=[
-  [45.4867,12.4103],[45.4852,12.4167],
-  [45.4750,12.3900],[45.4583,12.3535],
-  [45.4458,12.3360],[45.4442,12.3273],
-  [45.4413,12.3213],[45.4370,12.3310],
-  [45.4335,12.3425]
+  // Laguna nord: Mazzorbo → Burano → Torcello
+  [45.4867,12.4103],[45.4852,12.4167],[45.4969,12.4181],
+  // Torcello → Burano → Murano
+  [45.4852,12.4167],[45.4750,12.3900],[45.4583,12.3535],
+  // Murano → San Michele → Fondamenta Nuove (nord Venezia)
+  [45.4480,12.3465],[45.4458,12.3360],
+  // Costa est di Venezia (laguna aperta, fuori dalla città)
+  [45.4440,12.3480],[45.4400,12.3520],[45.4370,12.3510],
+  // Riva degli Schiavoni / Bacino San Marco
+  [45.4335,12.3425],
+  // San Giorgio Maggiore → giro a sud
+  [45.4294,12.3433],
+  // Canale della Giudecca (sud Venezia) verso ovest
+  [45.4270,12.3350],[45.4260,12.3250],[45.4280,12.3150],
+  // Risalita ovest (Tronchetto / Piazzale Roma)
+  [45.4350,12.3100],[45.4390,12.3120],
+  // Stazione Santa Lucia (da fuori, lato Canal Grande)
+  [45.4413,12.3213],
+  // Cannaregio canal → Ghetto Ebraico
+  [45.4430,12.3240],[45.4442,12.3273],
+  // Ritorno a Fondamenta Nuove via nord
+  [45.4458,12.3360]
 ];
 // Canal Grande route polyline
 var canalRoute=[
