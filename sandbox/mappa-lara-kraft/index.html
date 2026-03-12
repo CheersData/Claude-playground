@@ -163,6 +163,8 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
   #piw,#pi{height:120px}
   #ptit{font-size:18px}
 }
+.island-label{background:rgba(10,10,15,0.85)!important;border:1px solid rgba(74,158,202,0.5)!important;color:#8cc8e8!important;font-family:'Montserrat',sans-serif!important;font-size:10px!important;letter-spacing:1px!important;padding:2px 6px!important;border-radius:3px!important;box-shadow:0 0 6px rgba(74,158,202,0.3)!important}
+.island-label::before{border-right-color:rgba(74,158,202,0.5)!important}
 </style>
 </head>
 <body>
@@ -445,6 +447,22 @@ walk.forEach(function(w){addMarkerTo(ch1Layer,w,'vm','Tappa '+w.n+' · Passeggia
 // Build Chapter 2 layer (blue boat)
 L.polyline(boatRoute,{color:'#4a9eca',weight:3,opacity:0.6,dashArray:'8,6',smoothFactor:1}).addTo(ch2Layer);
 stops.forEach(function(s){addMarkerTo(ch2Layer,s,'bm','● Tappa viaggio','tb','bt');});
+
+// Island markers along the boat route
+var islands=[
+  {name:'Mazzorbo',lat:45.4867,lng:12.4103},
+  {name:'Burano',lat:45.4852,lng:12.4167},
+  {name:'Torcello',lat:45.4969,lng:12.4181},
+  {name:'Murano',lat:45.4583,lng:12.3535},
+  {name:'San Michele',lat:45.4480,lng:12.3465},
+  {name:'San Giorgio',lat:45.4294,lng:12.3433},
+  {name:'Giudecca',lat:45.4270,lng:12.3350}
+];
+islands.forEach(function(isl){
+  L.circleMarker([isl.lat,isl.lng],{radius:6,fillColor:'#4a9eca',color:'#fff',weight:2,opacity:0.9,fillOpacity:0.8})
+    .bindTooltip(isl.name,{permanent:true,direction:'right',className:'island-label',offset:[8,0]})
+    .addTo(ch2Layer);
+});
 
 // Build Chapter 3 layer (gold palaces)
 L.polyline(canalRoute,{color:'#c8a84b',weight:3,opacity:0.6,dashArray:'8,6',smoothFactor:1}).addTo(ch3Layer);
