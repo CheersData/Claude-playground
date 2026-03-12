@@ -140,15 +140,19 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #introModal{position:fixed;inset:0;background:rgba(5,5,10,0.95);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity 0.5s}
 #introModal.hidden{opacity:0;pointer-events:none}
 #introInner{max-width:420px;width:90%;text-align:center;padding:40px 30px}
-#introInner h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#c8a84b;margin-bottom:6px;letter-spacing:2px}
-#introInner .intro-sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:24px}
-#introInner p{font-size:13px;line-height:1.9;color:rgba(232,224,208,0.7);font-weight:300;margin-bottom:20px}
-#introInner .intro-btn{background:none;border:1px solid rgba(200,168,75,0.35);color:#c8a84b;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:all 0.25s}
+#introInner h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#c8a84b;margin-bottom:6px;letter-spacing:2px;opacity:0;animation:briefSlideUp 0.7s ease-out 0.2s forwards,briefGlow 2.5s ease-in-out 1s infinite}
+#introInner .intro-sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:24px;opacity:0;animation:briefSlideUp 0.7s ease-out 0.5s forwards}
+#introInner p{font-size:13px;line-height:1.9;color:rgba(232,224,208,0.7);font-weight:300;margin-bottom:20px;opacity:0;animation:briefSlideUp 0.8s ease-out 0.9s forwards}
+#introInner .intro-btn{background:none;border:1px solid rgba(200,168,75,0.35);color:#c8a84b;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:all 0.25s;opacity:0;animation:briefSlideUp 0.6s ease-out 1.5s forwards}
 #introInner .intro-btn:hover{background:rgba(200,168,75,0.12);border-color:#c8a84b}
 #introInner .intro-btn.green{border-color:rgba(80,200,120,0.35);color:#50c878}
 #introInner .intro-btn.green:hover{background:rgba(80,200,120,0.12);border-color:#50c878}
 #introInner .intro-btn.blue{border-color:rgba(74,158,202,0.35);color:#4a9eca}
 #introInner .intro-btn.blue:hover{background:rgba(74,158,202,0.12);border-color:#4a9eca}
+@keyframes briefSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes briefGlow{0%,100%{text-shadow:0 0 8px rgba(200,168,75,0.2)}50%{text-shadow:0 0 20px rgba(200,168,75,0.5),0 0 40px rgba(200,168,75,0.15)}}
+@keyframes briefLineExpand{from{width:0;opacity:0}to{width:60px;opacity:1}}
+#introInner .brief-line{border:none;height:1px;background:linear-gradient(90deg,transparent,rgba(200,168,75,0.4),transparent);margin:0 auto 20px;width:0;opacity:0;animation:briefLineExpand 0.6s ease-out 0.7s forwards}
 
 @media(max-width:380px){
   header{flex-direction:column;align-items:flex-start;gap:2px}
@@ -176,6 +180,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
   <div id="introInner">
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
+    <hr class="brief-line">
     <p>Agente, bentornata. Situazione critica: Venezia è invasa. Turisti ovunque, selfie stick in ogni calle, code infinite. La tua missione è semplice — scappare. Punto di estrazione: Riva degli Schiavoni, ore 16:00. Non farti trovare impreparata. Tre capitoli, tre giorni, zero margine d'errore. Tocca i punti sulla mappa per scoprire cosa ti aspetta. Buon compleanno, Lara.</p>
     <button class="intro-btn green" onclick="closeIntro()">Inizia Cap. 1</button>
   </div>
@@ -602,7 +607,7 @@ showChapter=function(ch){
     var i=intermezzi[ch];
     var modal=document.getElementById('introModal');
     var inner=document.getElementById('introInner');
-    inner.innerHTML='<h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
+    inner.innerHTML='<h2>'+i.title+'</h2><div class="intro-sub">'+i.sub+'</div><hr class="brief-line"><p>'+i.text+'</p><button class="intro-btn '+i.btnClass+'" onclick="closeIntro();showChapterDirect('+ch+')">'+i.btnText+'</button>';
     modal.classList.remove('hidden');
     return;
   }
