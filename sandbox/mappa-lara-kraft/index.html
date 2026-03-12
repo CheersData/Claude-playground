@@ -54,7 +54,6 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #timerBox.expired{border-color:rgba(200,168,75,0.5)}
 #timerBox.expired #timerCount{animation:timerBlink 1s infinite}
 @keyframes timerBlink{0%,100%{opacity:1}50%{opacity:0.3}}
-.timer-marker{font-family:'Montserrat',sans-serif;font-size:8px;color:#c8a84b;background:rgba(10,10,15,0.9);border:1px solid rgba(200,168,75,0.3);padding:2px 6px;border-radius:3px;white-space:nowrap;letter-spacing:1px;text-transform:uppercase}
 @media(max-width:600px){
   #timerBox{top:auto;bottom:140px;right:8px;padding:5px 10px}
   #timerCount{font-size:16px}
@@ -181,7 +180,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
     <hr class="brief-line">
-    <p>Agente, bentornata. Situazione critica: Venezia è invasa. Turisti ovunque, selfie stick in ogni calle, code infinite. La tua missione è semplice — scappare. Punto di estrazione: Riva degli Schiavoni, ore 16:00. Non farti trovare impreparata. Tre capitoli, tre giorni, zero margine d'errore. Tocca i punti sulla mappa per scoprire cosa ti aspetta. Buon compleanno, Lara.</p>
+    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Estrazione ore 16:00, Riva degli Schiavoni. Tre capitoli, tre giorni, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara.</p>
     <button class="intro-btn green" onclick="closeIntro()">Inizia Cap. 1</button>
   </div>
 </div>
@@ -214,37 +213,37 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 const stops=[
   {name:"Mazzorbo",sub:"Base operativa · Isola segreta",lat:45.4867,lng:12.4103,emoji:"⚓",
    img:"images/mazzorbo.jpg",
-   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata — poche centinaia di residenti, orti, silenzio totale. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
+   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata: poche centinaia di residenti, orti, silenzio totale. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
   {name:"Venissa",sub:"Mazzorbo · Vigneto & Osteria",lat:45.4875,lng:12.4115,emoji:"🍷",
    img:"",
-   text:"Un vigneto murato nel cuore di Mazzorbo. Qui cresce la Dorona, un vitigno veneziano quasi estinto — solo 88 viti sopravvissero, riscoperte nel 2002 da Gianluca Bisol tra le erbacce. Oggi Venissa produce uno dei vini più rari al mondo: bottiglie numerate con etichetta in foglia d'oro. Il ristorante stellato è un tavolo tra le vigne con vista sulla laguna. L'osteria accanto è più semplice ma altrettanto magica — cicchetti e ombre de vin al tramonto."},
+   text:"Un vigneto murato nel cuore di Mazzorbo. Qui cresce la Dorona, un vitigno veneziano quasi estinto. Solo 88 viti sopravvissero, riscoperte nel 2002 da Gianluca Bisol tra le erbacce. Oggi Venissa produce uno dei vini più rari al mondo: bottiglie numerate con etichetta in foglia d'oro. Il ristorante stellato è un tavolo tra le vigne con vista sulla laguna. L'osteria accanto è più semplice ma altrettanto magica. Cicchetti e ombre de vin al tramonto."},
   {name:"Burano",sub:"Isola delle case colorate",lat:45.4852,lng:12.4167,emoji:"🏠",
    img:"images/burano.jpg",
-   text:"L'isola più fotogenica della laguna. Le case colorate non sono una trovata turistica: ogni famiglia dipingeva la propria in un colore diverso per riconoscerla dalla barca nelle nebbie invernali. La tradizione del merletto di Burano risale al XVI secolo — la regina Caterina de' Medici ne era cliente. Marco e Martina, la sera passeggerete qui sotto le luci — è un altro mondo quando i turisti se ne vanno."},
+   text:"L'isola più fotogenica della laguna. Le case colorate non sono una trovata turistica: ogni famiglia dipingeva la propria in un colore diverso per riconoscerla dalla barca nelle nebbie invernali. La tradizione del merletto di Burano risale al XVI secolo. La regina Caterina de' Medici ne era cliente. Marco e Martina, la sera passeggerete qui sotto le luci. È un altro mondo quando i turisti se ne vanno."},
   {name:"Murano",sub:"Laguna nord · Vetro soffiato",lat:45.4583,lng:12.3535,emoji:"💎",
    img:"images/murano.jpg",
-   text:"Nel 1291 la Repubblica ordinò a tutti i maestri vetrai di trasferirsi a Murano — ufficialmente per 'proteggere dai rischi di incendio', in realtà per controllare i segreti della lavorazione. Per secoli erano gli unici al mondo capaci di produrre certi tipi di vetro. Avevano il privilegio di portare la spada e di sposare nobili veneziane. Se provavi a scappare con i segreti, ti ammazzavano. Oggi vendono soprattutto pesci di vetro ai turisti. Come sono caduti i potenti."},
+   text:"Nel 1291 la Repubblica ordinò a tutti i maestri vetrai di trasferirsi a Murano. Ufficialmente per 'proteggere dai rischi di incendio', in realtà per controllare i segreti della lavorazione. Per secoli erano gli unici al mondo capaci di produrre certi tipi di vetro. Avevano il privilegio di portare la spada e di sposare nobili veneziane. Se provavi a scappare con i segreti, ti ammazzavano. Oggi vendono soprattutto pesci di vetro ai turisti. Come sono caduti i potenti."},
   {name:"Fondamenta Nuove",sub:"Ingresso nord di Venezia",lat:45.4458,lng:12.3360,emoji:"🚢",
    img:"images/fondamenta-nuove.jpg",
-   text:"Il punto dove il taxi entra nel corpo di Venezia dalla laguna nord. Da qui si vede l'isola di San Michele — il cimitero di Venezia, un'isola intera dedicata ai morti con i cipressi che si stagliano sull'acqua. Stravinsky, Diaghilev e Ezra Pound sono sepolti qui."},
+   text:"Il punto dove il taxi entra nel corpo di Venezia dalla laguna nord. Da qui si vede l'isola di San Michele, il cimitero di Venezia, un'isola intera dedicata ai morti con i cipressi che si stagliano sull'acqua. Stravinsky, Diaghilev e Ezra Pound sono sepolti qui."},
   {name:"Ghetto Ebraico",sub:"Cannaregio · XVI secolo",lat:45.4442,lng:12.3273,emoji:"✡",
    img:"images/ghetto-ebraico.jpg",
-   text:"Il primo ghetto della storia — la parola stessa viene da 'geto', la fonderia che c'era qui. Dal 1516 gli ebrei veneziani furono confinati in questa piccola isola, le porte chiuse la notte, le case sopraelevate fino a 7 piani per mancanza di spazio — i primi grattacieli di Venezia, per necessità e non per vanità. Shakespeare ambientò qui Il Mercante di Venezia, anche se probabilmente non c'è mai stato. Dettagli."},
+   text:"Il primo ghetto della storia. La parola stessa viene da 'geto', la fonderia che c'era qui. Dal 1516 gli ebrei veneziani furono confinati in questa piccola isola, le porte chiuse la notte, le case sopraelevate fino a 7 piani per mancanza di spazio. I primi grattacieli di Venezia, per necessità e non per vanità. Shakespeare ambientò qui Il Mercante di Venezia, anche se probabilmente non c'è mai stato. Dettagli."},
   {name:"Stazione Santa Lucia",sub:"Capolinea del Canal Grande",lat:45.4413,lng:12.3213,emoji:"🚂",
    img:"images/stazione-santa-lucia.jpg",
    text:"L'unica stazione al mondo dove esci e sei direttamente sul Canal Grande. Inaugurata nel 1954. Davanti c'è il Ponte degli Scalzi, uno dei quattro ponti sul Canal Grande. Da qui il taxi scende verso Riva degli Schiavoni."},
   {name:"Riva degli Schiavoni",sub:"Arrivo · Bacino di San Marco",lat:45.4335,lng:12.3425,emoji:"🏁",
    img:"images/riva-degli-schiavoni.jpg",
-   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore — praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Questo è dove il taxi acqueo vi raccoglie alle 16:00 per portarvi fuori dalla civiltà. Destinazione: classificata."},
+   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. Praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Questo è dove il taxi acqueo vi raccoglie alle 16:00 per portarvi fuori dalla civiltà. Destinazione: classificata."},
   {name:"Torcello",sub:"V sec. · La madre di Venezia",lat:45.4969,lng:12.4181,emoji:"🏛️",
    img:"",
-   text:"La prima isola abitata della laguna, fondata nel V secolo — molto prima di Venezia stessa. Qui c'erano 20.000 abitanti quando San Marco non esisteva ancora. Oggi ne restano meno di 20. La cattedrale di Santa Maria Assunta contiene mosaici bizantini del XII secolo tra i più belli d'Italia. Il Ponte del Diavolo è l'unico ponte senza parapetto rimasto nella laguna nord."},
+   text:"La prima isola abitata della laguna, fondata nel V secolo. Molto prima di Venezia stessa. Qui c'erano 20.000 abitanti quando San Marco non esisteva ancora. Oggi ne restano meno di 20. La cattedrale di Santa Maria Assunta contiene mosaici bizantini del XII secolo tra i più belli d'Italia. Il Ponte del Diavolo è l'unico ponte senza parapetto rimasto nella laguna nord."},
   {name:"San Michele",sub:"Isola dei morti · Cimitero di Venezia",lat:45.4480,lng:12.3465,emoji:"🪦",
    img:"",
    text:"L'isola-cimitero di Venezia, circondata da mura di mattoni rossi e cipressi. Napoleone decise nel 1807 che i morti non potevano più essere sepolti in città. Qui riposano Igor Stravinsky, Sergej Diaghilev, Ezra Pound e Joseph Brodsky. I veneziani arrivano in vaporetto con i fiori. Vista dalla laguna, sembra un giardino galleggiante."},
   {name:"San Giorgio Maggiore",sub:"1566 · Andrea Palladio",lat:45.4294,lng:12.3433,emoji:"⛪",
    img:"",
-   text:"L'isola di fronte a Piazza San Marco, con la chiesa capolavoro di Palladio. Il campanile offre la vista più bella di Venezia — meglio di quello di San Marco perché da qui si vede anche San Marco stesso. Dentro, due enormi Tintoretto: L'Ultima Cena e la Raccolta della Manna."}
+   text:"L'isola di fronte a Piazza San Marco, con la chiesa capolavoro di Palladio. Il campanile offre la vista più bella di Venezia. Meglio di quello di San Marco perché da qui si vede anche San Marco stesso. Dentro, due enormi Tintoretto: L'Ultima Cena e la Raccolta della Manna."}
 ];
 const palaces=[
   {n:"01",name:"Punta della Dogana",sub:"XVII sec. · Dogana da Mar",lat:45.4308,lng:12.3365,
@@ -252,34 +251,34 @@ const palaces=[
    text:"Il triangolo di pietra che separa il Canal Grande dal Canale della Giudecca. Era la dogana marittima: ogni nave doveva fermarsi e pagare i dazi. Sulla sommità, una sfera dorata sorretta da due Atlanti e la Fortuna che ruota col vento. Oggi è uno dei musei d'arte contemporanea più importanti d'Europa, collezione Pinault."},
   {n:"02",name:"Santa Maria della Salute",sub:"1631 · Baldassarre Longhena",lat:45.4312,lng:12.3340,
    img:"images/santa-maria-della-salute.jpg",
-   text:"La più bella chiesa barocca di Venezia, costruita come voto alla Madonna dopo la peste del 1630 che uccise un terzo della popolazione. L'enorme cupola ottagonale con le volute a spirale — le 'orecchie' — la rendono inconfondibile da qualsiasi angolo della laguna."},
+   text:"La più bella chiesa barocca di Venezia, costruita come voto alla Madonna dopo la peste del 1630 che uccise un terzo della popolazione. L'enorme cupola ottagonale con le volute a spirale, le 'orecchie', la rendono inconfondibile da qualsiasi angolo della laguna."},
   {n:"03",name:"Palazzo Venier dei Leoni",sub:"XVIII sec. · Guggenheim",lat:45.4315,lng:12.3318,
    img:"images/palazzo-venier-dei-leoni.jpg",
-   text:"Il 'palazzo nonfinito' — costruito solo al pianterreno, nessuno sa perché i lavori si fermarono nel 1749. Dal 1951 fu la residenza di Peggy Guggenheim, che lo trasformò in uno dei musei d'arte moderna più importanti al mondo. Sul terrazzo c'è l'Angelo della Città di Marino Marini, orientato verso i gondolieri."},
+   text:"Il 'palazzo nonfinito'. Costruito solo al pianterreno, nessuno sa perché i lavori si fermarono nel 1749. Dal 1951 fu la residenza di Peggy Guggenheim, che lo trasformò in uno dei musei d'arte moderna più importanti al mondo. Sul terrazzo c'è l'Angelo della Città di Marino Marini, orientato verso i gondolieri."},
   {n:"04",name:"Palazzo Dario",sub:"1487 · Pietro Lombardo",lat:45.4318,lng:12.3308,
    img:"images/palazzo-dario.jpg",
-   text:"Il palazzo più maledetto di Venezia. Quasi tutti i proprietari nel corso dei secoli sono morti in circostanze tragiche — suicidi, omicidi, bancarotte seguite da morte misteriosa. L'ultimo — il magnate Raul Gardini — si suicidò nel 1993. Woody Allen provò a comprarlo negli anni '90. Il suo avvocato gli disse: 'Guarda la lista dei proprietari'. Non comprò. La facciata asimmetrica in marmo policromo è tra le più belle del Rinascimento veneziano. Forse è il palazzo che si vendica di chi non lo merita."},
+   text:"Il palazzo più maledetto di Venezia. Quasi tutti i proprietari nel corso dei secoli sono morti in circostanze tragiche: suicidi, omicidi, bancarotte seguite da morte misteriosa. L'ultimo, il magnate Raul Gardini, si suicidò nel 1993. Woody Allen provò a comprarlo negli anni '90. Il suo avvocato gli disse: 'Guarda la lista dei proprietari'. Non comprò. La facciata asimmetrica in marmo policromo è tra le più belle del Rinascimento veneziano. Forse è il palazzo che si vendica di chi non lo merita."},
   {n:"05",name:"Ca' Rezzonico",sub:"XVII–XVIII sec. · Longhena e Massari",lat:45.4332,lng:12.3262,
    img:"images/ca-rezzonico.jpg",
    text:"Iniziato nel 1649 e terminato quasi un secolo dopo. Qui morì Robert Browning nel 1889. Ospita il Museo del Settecento Veneziano, con gli affreschi di Tiepolo e una ricostruzione perfetta di come viveva la nobiltà veneziana nel suo ultimo secolo di splendore."},
   {n:"06",name:"Palazzo Grassi",sub:"1749 · Giorgio Massari",lat:45.4340,lng:12.3270,
    img:"images/palazzo-grassi.jpg",
-   text:"L'ultimo grande palazzo costruito prima della caduta della Repubblica. Neoclassico, rigoroso — quasi austero rispetto ai vicini barocchi. Oggi è di François Pinault: Koons, Cattelan, Murakami hanno esposto qui."},
+   text:"L'ultimo grande palazzo costruito prima della caduta della Repubblica. Neoclassico, rigoroso. Quasi austero rispetto ai vicini barocchi. Oggi è di François Pinault: Koons, Cattelan, Murakami hanno esposto qui."},
   {n:"07",name:"Ca' Foscari",sub:"1452 · Gotico veneziano",lat:45.4358,lng:12.3298,
    img:"images/ca-foscari.jpg",
-   text:"Capolavoro del gotico veneziano, costruito per il Doge Francesco Foscari nel 1452. Foscari governò per 34 anni ma fu costretto ad abdicare dal Consiglio dei Dieci — e morì pochi giorni dopo. Oggi è la sede principale dell'Università Ca' Foscari."},
+   text:"Capolavoro del gotico veneziano, costruito per il Doge Francesco Foscari nel 1452. Foscari governò per 34 anni ma fu costretto ad abdicare dal Consiglio dei Dieci. E morì pochi giorni dopo. Oggi è la sede principale dell'Università Ca' Foscari."},
   {n:"08",name:"Ponte di Rialto",sub:"1591 · Antonio da Ponte",lat:45.4380,lng:12.3360,
    img:"images/ponte-di-rialto.jpg",
    text:"Per quasi trecento anni l'unico ponte sul Canal Grande. Antonio da Ponte vinse il concorso battendo Michelangelo, Palladio e Sansovino. 'Rialto' deriva da 'Rivo Alto', la prima zona abitata di Venezia. Sotto le arcate ci sono ancora le botteghe che ci sono sempre state."},
   {n:"09",name:"Ca' d'Oro",sub:"1428 · Gotico Fiorito",lat:45.4402,lng:12.3338,
    img:"images/ca-doro.jpg",
-   text:"La 'Casa d'Oro' — il palazzo più fotografato del Canal Grande. Nel '400 la facciata era ricoperta di foglia d'oro, lapislazzuli e vermiglio. Oggi il colore è andato ma la struttura gotica è rimasta intatta. Ospita la Galleria Franchetti, con Mantegna, Tiziano e Van Eyck."},
+   text:"La 'Casa d'Oro'. Il palazzo più fotografato del Canal Grande. Nel '400 la facciata era ricoperta di foglia d'oro, lapislazzuli e vermiglio. Oggi il colore è andato ma la struttura gotica è rimasta intatta. Ospita la Galleria Franchetti, con Mantegna, Tiziano e Van Eyck."},
   {n:"10",name:"Ca' Pesaro",sub:"1710 · Baldassarre Longhena",lat:45.4418,lng:12.3255,
    img:"images/ca-pesaro.jpg",
-   text:"Ultimo capolavoro barocco di Longhena — i mascheroni tra le finestre sono tra i dettagli più elaborati del Canal Grande. Qui si svolse l'ultimo ballo della nobiltà veneziana prima della caduta della Repubblica, nel 1797."},
+   text:"Ultimo capolavoro barocco di Longhena. I mascheroni tra le finestre sono tra i dettagli più elaborati del Canal Grande. Qui si svolse l'ultimo ballo della nobiltà veneziana prima della caduta della Repubblica, nel 1797."},
   {n:"11",name:"Palazzo Vendramin Calergi",sub:"1509 · Mauro Codussi",lat:45.4438,lng:12.3235,
    img:"images/palazzo-vendramin-calergi.jpg",
-   text:"Il primo palazzo rinascimentale del Canal Grande. Le grandi bifore ad arco tondo sostituiscono le ogive gotiche: il capolavoro della transizione dal Medioevo al Rinascimento. Qui morì Richard Wagner nel 1883 — la camera è rimasta intatta. Oggi ospita il Casinò di Venezia."}
+   text:"Il primo palazzo rinascimentale del Canal Grande. Le grandi bifore ad arco tondo sostituiscono le ogive gotiche: il capolavoro della transizione dal Medioevo al Rinascimento. Qui morì Richard Wagner nel 1883. La camera è rimasta intatta. Oggi ospita il Casinò di Venezia."}
 ];
 
 const map=L.map('map',{center:[45.4460,12.3350],zoom:14,zoomControl:true,tap:true});
@@ -315,30 +314,30 @@ function loadImage(url, emoji) {
 // === VIAGGIO 1: Passeggiata segreta da Santa Lucia a Riva degli Schiavoni (via Cannaregio) ===
 const walk=[
   {n:"01",name:"Ponte degli Scalzi",sub:"1934 · Eugenio Miozzi",lat:45.4408,lng:12.3222,emoji:"🌉",img:"images/Ponte_degli_Scalzi_20050525-030.jpg",
-   text:"Appena usciti dalla stazione, il primo dei quattro ponti sul Canal Grande. Costruito in pietra d'Istria nel 1934 per sostituire un ponte austriaco in ferro che i veneziani odiavano — non per motivi estetici, ma per principio. Da qui avete la prima vista completa: a destra la cupola della Salute, a sinistra l'infinito del Canal Grande. La notte, quando i turisti dormono, i veneziani attraversano questo ponte in silenzio — è il confine tra la terraferma e l'isola. Se piove, meglio: Venezia sotto la pioggia è dieci volte più bella, e avrete i ponti tutti per voi."},
+   text:"Appena usciti dalla stazione, il primo dei quattro ponti sul Canal Grande. Costruito in pietra d'Istria nel 1934 per sostituire un ponte austriaco in ferro che i veneziani odiavano. Non per motivi estetici, ma per principio. Da qui avete la prima vista completa: a destra la cupola della Salute, a sinistra l'infinito del Canal Grande. La notte, quando i turisti dormono, i veneziani attraversano questo ponte in silenzio. È il confine tra la terraferma e l'isola. Se piove, meglio: Venezia sotto la pioggia è dieci volte più bella, e avrete i ponti tutti per voi."},
   {n:"02",name:"Ponte delle Guglie",sub:"1580 · L'unico ponte con i gargoyle",lat:45.4430,lng:12.3258,emoji:"👹",img:"images/Venice_-_Ponte_delle_Guglie.jpg",
-   text:"Risalite lungo la Lista di Spagna e girate a sinistra sul Rio di Cannaregio. Questo è l'unico ponte di Venezia decorato con gargoyle — 'guglie' in veneziano. La leggenda dice che di notte le figure di pietra prendono vita per proteggere il sestiere. Probabilmente proteggono da i turisti con le valigie a rotelle, il rumore più odiato di Venezia. Il ponte segna l'ingresso a Cannaregio: qui abitano ancora i veri residenti, qui si mangia il cicchetto da un euro, qui Venezia è ancora Venezia."},
+   text:"Risalite lungo la Lista di Spagna e girate a sinistra sul Rio di Cannaregio. Questo è l'unico ponte di Venezia decorato con gargoyle, 'guglie' in veneziano. La leggenda dice che di notte le figure di pietra prendono vita per proteggere il sestiere. Probabilmente proteggono da i turisti con le valigie a rotelle, il rumore più odiato di Venezia. Il ponte segna l'ingresso a Cannaregio: qui abitano ancora i veri residenti, qui si mangia il cicchetto da un euro, qui Venezia è ancora Venezia."},
   {n:"03",name:"Ponte Chiodo",sub:"XV sec. · L'ultimo ponte senza parapetto",lat:45.4438,lng:12.3322,emoji:"🪨",img:"images/ponte chiodo.webp",
-   text:"L'ultimo ponte di Venezia senza parapetto — così com'erano TUTTI i ponti della città fino al XVIII secolo. Niente ringhiera, niente rete, niente nulla. Solo pietra e canale sotto. Il nome viene dal chiodo piantato sulla sommità a cui i gondolieri legavano la corda. Di notte, senza illuminazione, attraversarlo era un atto di fede — e anche di equilibrio dopo il terzo spritz. I veneziani ci passano ogni giorno senza pensarci. I turisti non lo trovano perché non è su nessuna guida. Voi ci siete. Complimenti."},
+   text:"L'ultimo ponte di Venezia senza parapetto. Così com'erano TUTTI i ponti della città fino al XVIII secolo. Niente ringhiera, niente rete, niente nulla. Solo pietra e canale sotto. Il nome viene dal chiodo piantato sulla sommità a cui i gondolieri legavano la corda. Di notte, senza illuminazione, attraversarlo era un atto di fede. E anche di equilibrio dopo il terzo spritz. I veneziani ci passano ogni giorno senza pensarci. I turisti non lo trovano perché non è su nessuna guida. Voi ci siete. Complimenti."},
   {n:"04",name:"Fondamenta della Misericordia",sub:"Cannaregio · Il segreto notturno",lat:45.4450,lng:12.3310,emoji:"🌙",img:"images/fodnamenta misericordia.jpg",
-   text:"Questa fondamenta lungo il canale è il cuore segreto della Venezia notturna. Zero turisti, solo bacari con spritz a 3 euro e veneziani che parlano in dialetto. Di giorno sembra un quartiere qualsiasi; di notte diventa il salotto della città. Al numero 2515 c'è il Paradiso Perduto, un locale leggendario dove Hemingway veniva a bere — probabilmente troppo, come tutto quello che faceva. Ancora oggi suonano jazz dal vivo. I gatti dormono sulle barche ormeggiate e se ne fregano di tutto."},
+   text:"Questa fondamenta lungo il canale è il cuore segreto della Venezia notturna. Zero turisti, solo bacari con spritz a 3 euro e veneziani che parlano in dialetto. Di giorno sembra un quartiere qualsiasi; di notte diventa il salotto della città. Al numero 2515 c'è il Paradiso Perduto, un locale leggendario dove Hemingway veniva a bere. Probabilmente troppo, come tutto quello che faceva. Ancora oggi suonano jazz dal vivo. I gatti dormono sulle barche ormeggiate e se ne fregano di tutto."},
   {n:"05",name:"Madonna dell'Orto",sub:"XIV sec. · La chiesa di Tintoretto",lat:45.4468,lng:12.3318,emoji:"🎨",img:"images/Maria_del_Orto_Venedig.jpg",
-   text:"Jacopo Tintoretto abitava qui vicino e questa era la sua parrocchia. Dipinse per lei gratuitamente: il Giudizio Universale e l'Adorazione del Vitello d'Oro sono qui, non agli Uffizi o al Louvre. Quando morì nel 1594, fu sepolto qui — nella navata destra, sotto una lapide semplice. Il nome 'dell'Orto' viene da una statua della Madonna trovata miracolosamente in un orto vicino nel 1377. La facciata gotica in cotto è tra le più belle di Venezia."},
+   text:"Jacopo Tintoretto abitava qui vicino e questa era la sua parrocchia. Dipinse per lei gratuitamente: il Giudizio Universale e l'Adorazione del Vitello d'Oro sono qui, non agli Uffizi o al Louvre. Quando morì nel 1594, fu sepolto qui. Nella navata destra, sotto una lapide semplice. Il nome 'dell'Orto' viene da una statua della Madonna trovata miracolosamente in un orto vicino nel 1377. La facciata gotica in cotto è tra le più belle di Venezia."},
   {n:"06",name:"Campo dei Mori",sub:"XIII sec. · I mercanti e Tintoretto",lat:45.4462,lng:12.3300,emoji:"🗿",img:"images/Venice_-_Campo_dei_Mori.jpg",
-   text:"Tre statue di pietra murate nelle facciate delle case: sono i fratelli Mastelli, mercanti medievali dal Peloponneso arrivati a Venezia nel XII secolo. I veneziani li chiamano 'i Mori' per le origini orientali. Uno ha il naso di ferro — i ragazzini glielo ruppero secoli fa e fu riparato con una protesi metallica. A pochi passi, al numero 3399, c'era la casa di Tintoretto: visse qui tutta la vita, dipingeva nella luce di Cannaregio e camminava ogni mattina fino alla Madonna dell'Orto. Sul muro c'è ancora il bassorilievo che lo ricorda — un uomo col pennello, il volto consumato dal tempo."},
+   text:"Tre statue di pietra murate nelle facciate delle case: sono i fratelli Mastelli, mercanti medievali dal Peloponneso arrivati a Venezia nel XII secolo. I veneziani li chiamano 'i Mori' per le origini orientali. Uno ha il naso di ferro. I ragazzini glielo ruppero secoli fa e fu riparato con una protesi metallica. A pochi passi, al numero 3399, c'era la casa di Tintoretto: visse qui tutta la vita, dipingeva nella luce di Cannaregio e camminava ogni mattina fino alla Madonna dell'Orto. Sul muro c'è ancora il bassorilievo che lo ricorda. Un uomo col pennello, il volto consumato dal tempo."},
   {n:"07",name:"Corte Seconda del Milion",sub:"XIII sec. · La casa di Marco Polo",lat:45.4390,lng:12.3370,emoji:"🗺️",img:"images/corte_del_milion.jpeg",
-   text:"Questo cortile minuscolo, nascosto dietro il Teatro Malibran, è dove nacque Marco Polo nel 1254. Quando tornò dalla Cina dopo 24 anni, nessuno lo riconobbe. Dovette scucire i vestiti e far cadere le gemme nascoste nelle fodere — solo allora i veneziani gli credettero. 'Il Milione' non era il suo libro: era il soprannome della famiglia, perché tutti pensavano che le sue storie fossero esagerazioni da un milione di bugie. L'arco bizantino all'ingresso è originale del XIII secolo."},
+   text:"Questo cortile minuscolo, nascosto dietro il Teatro Malibran, è dove nacque Marco Polo nel 1254. Quando tornò dalla Cina dopo 24 anni, nessuno lo riconobbe. Dovette scucire i vestiti e far cadere le gemme nascoste nelle fodere. Solo allora i veneziani gli credettero. 'Il Milione' non era il suo libro: era il soprannome della famiglia, perché tutti pensavano che le sue storie fossero esagerazioni da un milione di bugie. L'arco bizantino all'ingresso è originale del XIII secolo."},
   {n:"08",name:"Santa Maria dei Miracoli",sub:"1489 · Pietro Lombardo",lat:45.4395,lng:12.3390,emoji:"✨",img:"images/santa mariadei miracoli.jpg",
-   text:"La leggenda: nel 1480, un quadro della Madonna appeso a un muro esterno cominciò a piangere. I malati guarivano toccandolo. In pochi mesi i veneziani raccolsero abbastanza soldi per costruire questa chiesa interamente rivestita di marmi policromi — rosa, verde, grigio. È la più piccola e preziosa di Venezia, le veneziane la chiamano 'la bomboniera'. È il luogo preferito per i matrimoni. Ruskin la definì 'un cofanetto di gioielli'."},
+   text:"La leggenda: nel 1480, un quadro della Madonna appeso a un muro esterno cominciò a piangere. I malati guarivano toccandolo. In pochi mesi i veneziani raccolsero abbastanza soldi per costruire questa chiesa interamente rivestita di marmi policromi: rosa, verde, grigio. È la più piccola e preziosa di Venezia, le veneziane la chiamano 'la bomboniera'. È il luogo preferito per i matrimoni. Ruskin la definì 'un cofanetto di gioielli'."},
   {n:"09",name:"Calle del Paradiso",sub:"XIV sec. · L'arco gotico segreto",lat:45.4368,lng:12.3395,emoji:"😇",img:"images/calle del paradiso.jpg",
-   text:"Cercate l'arco gotico alla fine della calle: c'è una Madonna col Bambino scolpita nella pietra, datata 1300. È l'unico arco gotico 'aereo' rimasto intatto a Venezia. La leggenda dice che chi passa sotto l'arco a mezzanotte nella notte di Natale vedrà il Paradiso per un istante. I balconi in legno sporgenti — i 'barbacani' — sono i più antichi della città, sopravvissuti a 700 anni di acqua alta e incendi."},
+   text:"Cercate l'arco gotico alla fine della calle: c'è una Madonna col Bambino scolpita nella pietra, datata 1300. È l'unico arco gotico 'aereo' rimasto intatto a Venezia. La leggenda dice che chi passa sotto l'arco a mezzanotte nella notte di Natale vedrà il Paradiso per un istante. I balconi in legno sporgenti, i 'barbacani', sono i più antichi della città, sopravvissuti a 700 anni di acqua alta e incendi."},
   {n:"10",name:"Scala Contarini del Bovolo",sub:"XV sec. · La scala a chiocciola nascosta",lat:45.4348,lng:12.3345,emoji:"🐚",img:"images/scalacontarini bovolo.webp",
-   text:"Nascosta in un cortile invisibile, a 50 metri da Piazza San Marco ma dove non va nessuno. 'Bovolo' significa chiocciola in veneziano — costruita nel 1499 da un nobile che voleva salire ai piani alti senza passare per le stanze. Cinque piani di archi rinascimentali che girano su se stessi. In cima, una terrazza con vista sui tetti di Venezia: campanili, altane, comignoli a imbuto. Per secoli fu dimenticata, murata dentro un palazzo. Martina, questa è la tappa che Marco ha scelto apposta per te — il segreto meglio custodito di Venezia, che i veneziani stessi spesso non sanno che esiste."},
+   text:"Nascosta in un cortile invisibile, a 50 metri da Piazza San Marco ma dove non va nessuno. 'Bovolo' significa chiocciola in veneziano. Costruita nel 1499 da un nobile che voleva salire ai piani alti senza passare per le stanze. Cinque piani di archi rinascimentali che girano su se stessi. In cima, una terrazza con vista sui tetti di Venezia: campanili, altane, comignoli a imbuto. Per secoli fu dimenticata, murata dentro un palazzo. Martina, questa è la tappa che Marco ha scelto apposta per te. Il segreto meglio custodito di Venezia, che i veneziani stessi spesso non sanno che esiste."},
   {n:"11",name:"Chiesa di San Zaccaria",sub:"IX sec. · Le monache ribelli",lat:45.4338,lng:12.3412,emoji:"⛪",img:"images/Chiesa_di_San_Zaccaria_Venezia.jpg",
-   text:"Nel Medioevo, le famiglie nobili spedivano qui le figlie che non riuscivano a maritare. Le monache, tutte aristocratiche e per nulla vocate, trasformarono il convento nel luogo più scandaloso di Venezia: feste, amanti che entravano dai tetti. Il Doge doveva visitarle ogni anno a Pasqua — e ogni volta era un'avventura. Nella cripta sotto la chiesa ci sono ancora le tombe allagate: l'acqua arriva alle caviglie, i sarcofagi emergono come isole. Sopra, nella navata, c'è la Pala di Giovanni Bellini — una delle più belle di tutta Venezia."}
+   text:"Nel Medioevo, le famiglie nobili spedivano qui le figlie che non riuscivano a maritare. Le monache, tutte aristocratiche e per nulla vocate, trasformarono il convento nel luogo più scandaloso di Venezia: feste, amanti che entravano dai tetti. Il Doge doveva visitarle ogni anno a Pasqua. E ogni volta era un'avventura. Nella cripta sotto la chiesa ci sono ancora le tombe allagate: l'acqua arriva alle caviglie, i sarcofagi emergono come isole. Sopra, nella navata, c'è la Pala di Giovanni Bellini. Una delle più belle di tutta Venezia."}
 ];
 
-// Walking route polyline — percorso reale attraverso Cannaregio
+// Walking route polyline - percorso reale attraverso Cannaregio
 var walkRoute=[
   [45.4413,12.3213],[45.4408,12.3222],
   [45.4415,12.3238],[45.4420,12.3248],[45.4430,12.3258],
@@ -531,7 +530,7 @@ showChapter(1);
   });
 })();
 
-// === COUNTDOWN TIMER — Riva degli Schiavoni ore 16:00 ===
+// === COUNTDOWN TIMER - Riva degli Schiavoni ore 16:00 ===
 (function(){
   var timerBox=document.getElementById('timerBox');
   var timerCount=document.getElementById('timerCount');
@@ -542,12 +541,6 @@ showChapter(1);
     return new Date(2026,2,13,16,0,0,0); // mese 2 = marzo (0-indexed)
   }
 
-  // Timer marker on the map at Riva degli Schiavoni
-  var timerMarkerIcon=L.divIcon({html:'<div class="timer-marker">⏱ 16:00</div>',className:'',iconSize:[70,20],iconAnchor:[35,25]});
-  var timerMapMarker=L.marker([45.4335,12.3425],{icon:timerMarkerIcon,zIndexOffset:500,interactive:false});
-  ch1Layer.addLayer(timerMapMarker);
-  ch2Layer.addLayer(timerMapMarker);
-
   function updateTimer(){
     var now=new Date();
     var target=getTarget();
@@ -556,7 +549,6 @@ showChapter(1);
     timerBox.style.display='block';
 
     if(diff<=0){
-      // Time expired
       timerBox.classList.add('expired');
       timerCount.textContent='SCADUTO';
       timerLabel.textContent='Estrazione · Riva Schiavoni 16:00';
@@ -574,10 +566,6 @@ showChapter(1);
     } else {
       timerCount.textContent=mins+'m '+String(secs).padStart(2,'0')+'s';
     }
-
-    // Update map marker too
-    var markerText=hours>0 ? '⏱ -'+hours+'h'+String(mins).padStart(2,'0') : '⏱ -'+mins+'m'+String(secs).padStart(2,'0')+'s';
-    timerMapMarker.setIcon(L.divIcon({html:'<div class="timer-marker">'+markerText+'</div>',className:'',iconSize:[90,20],iconAnchor:[45,25]}));
   }
 
   updateTimer();
@@ -596,8 +584,8 @@ function closeIntro(){
 }
 
 var intermezzi={
-  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. La destinazione è classificata — sappi solo che è un'isola quasi deserta nella laguna nord. La tua missione: sopravvivere fino alle 12:30 di domani. Niente turisti, niente rumori, niente vie di fuga. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale — il viaggio in barca per arrivarci potrebbe metterti alla prova. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
-  3:{title:"Capitolo 3 · Queen of Venice",sub:"Missione Rientro",text:"Sei sopravvissuta all'isola. Ora si torna nella civiltà. Venezia è ai tuoi piedi — letteralmente. Il Canal Grande è il palcoscenico più bello del mondo e oggi è tutto per te. Undici palazzi, cinque secoli di intrighi, maledizioni e capolavori. Cammina come una regina, agente. Perché oggi lo sei.",btnClass:"",btnText:"Inizia Cap. 3"}
+  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. Destinazione classificata: un'isola quasi deserta nella laguna nord. Missione: sopravvivere fino alle 12:30 di domani. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
+  3:{title:"Capitolo 3 · Queen of Venice",sub:"Missione Rientro",text:"Sei sopravvissuta all'isola. Si torna nella civiltà. Il Canal Grande è il tuo palcoscenico: undici palazzi, cinque secoli di intrighi e capolavori. Cammina come una regina, agente. Oggi lo sei.",btnClass:"",btnText:"Inizia Cap. 3"}
 };
 
 // Override showChapter to show intermezzo
