@@ -182,7 +182,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
     <hr class="brief-line">
-    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Estrazione ore 16:00, Riva degli Schiavoni. Tre capitoli, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara Kraft.</p>
+    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Giro intorno a Venezia, appuntamento ore 12:30 a Mazzorbo. Tre capitoli, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara Kraft.</p>
     <button class="intro-btn green" onclick="closeIntro()">Inizia Cap. 1</button>
   </div>
 </div>
@@ -194,7 +194,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </div>
 <div id="counter"><div id="cn">0</div><div id="cl">visitati</div></div>
 <div id="hint">Tocca un punto per scoprirlo</div>
-<div id="timerBox"><div id="timerLabel">Estrazione · Riva Schiavoni 16:00</div><div id="timerCount">--:--</div></div>
+<div id="timerBox"><div id="timerLabel">Mazzorbo · ore 12:30</div><div id="timerCount">--:--</div></div>
 <button id="geoBtn" title="La tua posizione">◎</button>
 <button id="nextChBtn" onclick="goNextChapter()">Cap. 2 →</button>
 <div id="panel">
@@ -215,7 +215,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 const stops=[
   {name:"Mazzorbo",sub:"Base operativa · Isola segreta",lat:45.4867,lng:12.4103,emoji:"⚓",
    img:"images/mazzorbo.jpg",
-   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata: poche centinaia di residenti, orti, silenzio totale. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
+   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata: poche centinaia di residenti, orti, silenzio totale. Ci arriverete girando intorno a Venezia. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Appuntamento alle 12:30 qui. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
   {name:"Venissa",sub:"Mazzorbo · Vigneto & Osteria",lat:45.4875,lng:12.4115,emoji:"🍷",
    img:"",
    text:"Un vigneto murato nel cuore di Mazzorbo. Qui cresce la Dorona, un vitigno veneziano quasi estinto. Solo 88 viti sopravvissero, riscoperte nel 2002 da Gianluca Bisol tra le erbacce. Oggi Venissa produce uno dei vini più rari al mondo: bottiglie numerate con etichetta in foglia d'oro. Il ristorante stellato è un tavolo tra le vigne con vista sulla laguna. L'osteria accanto è più semplice ma altrettanto magica. Cicchetti e ombre de vin al tramonto."},
@@ -236,7 +236,7 @@ const stops=[
    text:"L'unica stazione al mondo dove esci e sei direttamente sul Canal Grande. Inaugurata nel 1954. Davanti c'è il Ponte degli Scalzi, uno dei quattro ponti sul Canal Grande. Da qui il taxi scende verso Riva degli Schiavoni."},
   {name:"Riva degli Schiavoni",sub:"Arrivo · Bacino di San Marco",lat:45.4335,lng:12.3425,emoji:"🏁",
    img:"images/riva-degli-schiavoni.jpg",
-   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. Praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Questo è dove il taxi acqueo vi raccoglie alle 16:00 per portarvi fuori dalla civiltà. Destinazione: classificata."},
+   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. Praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Da qui si gira intorno a Venezia verso la laguna nord. Destinazione: Mazzorbo, ore 12:30."},
   {name:"Torcello",sub:"V sec. · La madre di Venezia",lat:45.4969,lng:12.4181,emoji:"🏛️",
    img:"",
    text:"La prima isola abitata della laguna, fondata nel V secolo. Molto prima di Venezia stessa. Qui c'erano 20.000 abitanti quando San Marco non esisteva ancora. Oggi ne restano meno di 20. La cattedrale di Santa Maria Assunta contiene mosaici bizantini del XII secolo tra i più belli d'Italia. Il Ponte del Diavolo è l'unico ponte senza parapetto rimasto nella laguna nord."},
@@ -456,7 +456,7 @@ function showChapter(ch){
     map.setView([45.4600,12.3700],12);
     legend.innerHTML='<div class="li"><div class="ld lb"></div>Tappe del viaggio</div>';
     document.querySelector('.hl h1').textContent="Cap. 2 · Don't Puke!";
-    document.querySelector('.hl p').textContent='Viaggio in barca · La Laguna';
+    document.querySelector('.hl p').textContent='La Laguna · ore 12:30 Mazzorbo';
     nextBtn.textContent="Cap. 3 →";nextBtn.style.display='block';
   } else if(ch===3){
     ch3Layer.addTo(map);
@@ -532,12 +532,10 @@ showChapter(1);
   });
 })();
 
-// === ORARIO ESTRAZIONE ===
+// === ORARIO ESTRAZIONE (nascosto, info nel banner) ===
 (function(){
   var timerBox=document.getElementById('timerBox');
-  var timerCount=document.getElementById('timerCount');
-  timerBox.style.display='block';
-  timerCount.textContent='16:00';
+  timerBox.style.display='none';
 })();
 
 // Load agent name from start page
@@ -552,7 +550,7 @@ function closeIntro(){
 }
 
 var intermezzi={
-  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. Destinazione classificata: un'isola quasi deserta nella laguna nord. Missione: sopravvivere fino alle 12:30 di domani. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
+  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. Destinazione classificata: un'isola quasi deserta nella laguna nord. Girerete intorno a Venezia fino a Mazzorbo. Missione: sopravvivere fino alle 12:30 di domani. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
   3:{title:"Capitolo 3 · Queen of Venice",sub:"Missione Rientro",text:"Sei sopravvissuta all'isola. Si torna nella civiltà. Il Canal Grande è il tuo palcoscenico: undici palazzi, cinque secoli di intrighi e capolavori. Cammina come una regina, agente. Oggi lo sei.",btnClass:"",btnText:"Inizia Cap. 3"}
 };
 
