@@ -47,15 +47,10 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 #hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(10,10,15,0.85);border:1px solid rgba(200,168,75,0.15);padding:7px 16px;font-size:9px;letter-spacing:2px;color:rgba(200,168,75,0.45);text-transform:uppercase;z-index:900;pointer-events:none;transition:opacity 0.5s;white-space:nowrap}
 #hint.hidden{opacity:0}
 
-/* === COUNTDOWN TIMER === */
-#timerBox{position:absolute;top:62px;right:14px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.3);padding:6px 12px;z-index:900;text-align:center;border-radius:4px;display:none}
+/* === ORARIO ARRIVO === */
+#timerBox{position:absolute;top:62px;right:14px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.3);padding:6px 12px;z-index:900;text-align:center;border-radius:4px}
 #timerLabel{font-size:7px;letter-spacing:2px;color:rgba(200,168,75,0.5);text-transform:uppercase}
 #timerCount{font-family:'Cormorant Garamond',serif;font-size:22px;color:#c8a84b;line-height:1;margin-top:2px;letter-spacing:1px}
-@media(max-width:600px){
-  #timerBox{top:auto;bottom:140px;right:8px;padding:5px 10px}
-  #timerCount{font-size:16px}
-  #timerLabel{font-size:6px}
-}
 
 /* === GEOLOCATION === */
 #geoBtn{position:absolute;bottom:18px;right:14px;width:42px;height:42px;background:rgba(10,10,15,0.92);border:1px solid rgba(200,168,75,0.22);color:#c8a84b;font-size:20px;cursor:pointer;z-index:900;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:all 0.25s;line-height:1}
@@ -163,6 +158,8 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
   #piw,#pi{height:120px}
   #ptit{font-size:18px}
 }
+.island-label{background:rgba(10,10,15,0.85)!important;border:1px solid rgba(74,158,202,0.5)!important;color:#8cc8e8!important;font-family:'Montserrat',sans-serif!important;font-size:10px!important;letter-spacing:1px!important;padding:2px 6px!important;border-radius:3px!important;box-shadow:0 0 6px rgba(74,158,202,0.3)!important}
+.island-label::before{border-right-color:rgba(74,158,202,0.5)!important}
 </style>
 </head>
 <body>
@@ -182,7 +179,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
     <h2>Mission Briefing</h2>
     <div class="intro-sub">Operazione Lara Kraft · Venezia</div>
     <hr class="brief-line">
-    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Estrazione ore 16:00, Riva degli Schiavoni. Tre capitoli, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara Kraft.</p>
+    <p>Agente, bentornata. Venezia è invasa. Turisti ovunque, selfie stick in ogni calle. La missione: scappare. Giro intorno a Venezia, appuntamento ore 12:30 a Mazzorbo. Tre capitoli, zero margine d'errore. Tocca i punti sulla mappa. Buon compleanno, Lara Kraft.</p>
     <button class="intro-btn green" onclick="closeIntro()">Inizia Cap. 1</button>
   </div>
 </div>
@@ -194,7 +191,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 </div>
 <div id="counter"><div id="cn">0</div><div id="cl">visitati</div></div>
 <div id="hint">Tocca un punto per scoprirlo</div>
-<div id="timerBox"><div id="timerLabel">Estrazione · Riva Schiavoni 16:00</div><div id="timerCount">--:--</div></div>
+<div id="timerBox"><div id="timerLabel">Arrivo · Cannaregio</div><div id="timerCount">16:00</div></div>
 <button id="geoBtn" title="La tua posizione">◎</button>
 <button id="nextChBtn" onclick="goNextChapter()">Cap. 2 →</button>
 <div id="panel">
@@ -215,7 +212,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 const stops=[
   {name:"Mazzorbo",sub:"Base operativa · Isola segreta",lat:45.4867,lng:12.4103,emoji:"⚓",
    img:"images/mazzorbo.jpg",
-   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata: poche centinaia di residenti, orti, silenzio totale. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
+   text:"La vostra base operativa. Collegata a Burano da un ponte di legno medievale, Mazzorbo è quasi disabitata: poche centinaia di residenti, orti, silenzio totale. Ci arriverete girando intorno a Venezia. Marco ha scelto questa isola perché è l'opposto di tutto: niente folle, niente rumore, solo laguna e gatti randagi. Appuntamento alle 12:30 qui. Quando vi hanno detto 'andiamo a Venezia' non vi aspettavate di finire su un'isola dove il bar più vicino chiude alle sette."},
   {name:"Venissa",sub:"Mazzorbo · Vigneto & Osteria",lat:45.4875,lng:12.4115,emoji:"🍷",
    img:"",
    text:"Un vigneto murato nel cuore di Mazzorbo. Qui cresce la Dorona, un vitigno veneziano quasi estinto. Solo 88 viti sopravvissero, riscoperte nel 2002 da Gianluca Bisol tra le erbacce. Oggi Venissa produce uno dei vini più rari al mondo: bottiglie numerate con etichetta in foglia d'oro. Il ristorante stellato è un tavolo tra le vigne con vista sulla laguna. L'osteria accanto è più semplice ma altrettanto magica. Cicchetti e ombre de vin al tramonto."},
@@ -236,7 +233,7 @@ const stops=[
    text:"L'unica stazione al mondo dove esci e sei direttamente sul Canal Grande. Inaugurata nel 1954. Davanti c'è il Ponte degli Scalzi, uno dei quattro ponti sul Canal Grande. Da qui il taxi scende verso Riva degli Schiavoni."},
   {name:"Riva degli Schiavoni",sub:"Arrivo · Bacino di San Marco",lat:45.4335,lng:12.3425,emoji:"🏁",
    img:"images/riva-degli-schiavoni.jpg",
-   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. Praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Questo è dove il taxi acqueo vi raccoglie alle 16:00 per portarvi fuori dalla civiltà. Destinazione: classificata."},
+   text:"Il punto di estrazione. La Riva prende il nome dalle navi slave che qui attraccavano nel Medioevo. Da qui si vede la Basilica di San Marco, il Palazzo Ducale e, in lontananza, San Giorgio Maggiore. Praticamente la cartolina che tutti hanno sul frigo. Ma voi non siete qui per le cartoline. Da qui si gira intorno a Venezia verso la laguna nord. Destinazione: Mazzorbo, ore 12:30."},
   {name:"Torcello",sub:"V sec. · La madre di Venezia",lat:45.4969,lng:12.4181,emoji:"🏛️",
    img:"",
    text:"La prima isola abitata della laguna, fondata nel V secolo. Molto prima di Venezia stessa. Qui c'erano 20.000 abitanti quando San Marco non esisteva ancora. Oggi ne restano meno di 20. La cattedrale di Santa Maria Assunta contiene mosaici bizantini del XII secolo tra i più belli d'Italia. Il Ponte del Diavolo è l'unico ponte senza parapetto rimasto nella laguna nord."},
@@ -354,13 +351,25 @@ var walkRoute=[
   [45.4342,12.3370],[45.4338,12.3395],[45.4338,12.3412],
   [45.4335,12.3425]
 ];
-// Boat route polyline
+// Boat route polyline - giro intorno a Venezia via laguna aperta (motoscafo)
+// Il motoscafo NON entra nel Canal Grande e NON passa per Venezia
 var boatRoute=[
-  [45.4867,12.4103],[45.4852,12.4167],
-  [45.4750,12.3900],[45.4583,12.3535],
-  [45.4458,12.3360],[45.4442,12.3273],
-  [45.4413,12.3213],[45.4370,12.3310],
-  [45.4335,12.3425]
+  // Laguna nord: Mazzorbo → Burano → Torcello
+  [45.4867,12.4103],[45.4852,12.4167],[45.4969,12.4181],
+  // Torcello → Burano → laguna aperta → Murano
+  [45.4852,12.4167],[45.4750,12.3900],[45.4583,12.3535],
+  // Murano → laguna est (passa a EST di Venezia, lontano dalla città)
+  [45.4500,12.3620],[45.4400,12.3680],
+  // Laguna est → passa largo davanti al Lido (bocca di porto)
+  [45.4300,12.3700],[45.4200,12.3650],
+  // Giro sud → laguna sud del Lido/Giudecca (acqua aperta)
+  [45.4120,12.3550],[45.4100,12.3400],[45.4100,12.3200],
+  // Laguna ovest → risalita larga fuori Venezia
+  [45.4150,12.3050],[45.4250,12.2950],
+  // Laguna nord-ovest → giro largo verso nord
+  [45.4380,12.2980],[45.4450,12.3050],
+  // Rientro verso Fondamenta Nuove da ovest (laguna aperta)
+  [45.4500,12.3150],[45.4500,12.3280],[45.4458,12.3360]
 ];
 // Canal Grande route polyline
 var canalRoute=[
@@ -430,6 +439,20 @@ walk.forEach(function(w){addMarkerTo(ch1Layer,w,'vm','Tappa '+w.n+' · Passeggia
 L.polyline(boatRoute,{color:'#4a9eca',weight:3,opacity:0.6,dashArray:'8,6',smoothFactor:1}).addTo(ch2Layer);
 stops.forEach(function(s){addMarkerTo(ch2Layer,s,'bm','● Tappa viaggio','tb','bt');});
 
+// Island markers along the boat route
+var islands=[
+  {name:'Mazzorbo',lat:45.4867,lng:12.4103},
+  {name:'Burano',lat:45.4852,lng:12.4167},
+  {name:'Torcello',lat:45.4969,lng:12.4181},
+  {name:'Murano',lat:45.4583,lng:12.3535},
+  {name:'Lido',lat:45.4200,lng:12.3650}
+];
+islands.forEach(function(isl){
+  L.circleMarker([isl.lat,isl.lng],{radius:6,fillColor:'#4a9eca',color:'#fff',weight:2,opacity:0.9,fillOpacity:0.8})
+    .bindTooltip(isl.name,{permanent:true,direction:'right',className:'island-label',offset:[8,0]})
+    .addTo(ch2Layer);
+});
+
 // Build Chapter 3 layer (gold palaces)
 L.polyline(canalRoute,{color:'#c8a84b',weight:3,opacity:0.6,dashArray:'8,6',smoothFactor:1}).addTo(ch3Layer);
 palaces.forEach(function(p){addMarkerTo(ch3Layer,p,'pm','Palazzo '+p.n+' · di '+palaces.length,'tg','');});
@@ -444,6 +467,7 @@ function showChapter(ch){
   var legend=document.getElementById('legend');
   var nextBtn=document.getElementById('nextChBtn');
 
+  updateTimer(ch);
   if(ch===1){
     ch1Layer.addTo(map);
     map.setView([45.4400,12.3320],14);
@@ -456,7 +480,7 @@ function showChapter(ch){
     map.setView([45.4600,12.3700],12);
     legend.innerHTML='<div class="li"><div class="ld lb"></div>Tappe del viaggio</div>';
     document.querySelector('.hl h1').textContent="Cap. 2 · Don't Puke!";
-    document.querySelector('.hl p').textContent='Viaggio in barca · La Laguna';
+    document.querySelector('.hl p').textContent='La Laguna · ore 12:30 Mazzorbo';
     nextBtn.textContent="Cap. 3 →";nextBtn.style.display='block';
   } else if(ch===3){
     ch3Layer.addTo(map);
@@ -532,13 +556,13 @@ showChapter(1);
   });
 })();
 
-// === ORARIO ESTRAZIONE ===
-(function(){
-  var timerBox=document.getElementById('timerBox');
-  var timerCount=document.getElementById('timerCount');
-  timerBox.style.display='block';
-  timerCount.textContent='16:00';
-})();
+// === ORARIO ARRIVO per capitolo ===
+var chapterTimes={1:{label:'Arrivo · Cannaregio',time:'16:00'},2:{label:'Mazzorbo',time:'12:30'},3:{label:'Canal Grande',time:'17:00'},0:{label:'Mappa completa',time:'—'}};
+function updateTimer(ch){
+  var info=chapterTimes[ch]||chapterTimes[0];
+  document.getElementById('timerLabel').textContent=info.label;
+  document.getElementById('timerCount').textContent=info.time;
+}
 
 // Load agent name from start page
 (function(){
@@ -552,7 +576,7 @@ function closeIntro(){
 }
 
 var intermezzi={
-  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. Destinazione classificata: un'isola quasi deserta nella laguna nord. Missione: sopravvivere fino alle 12:30 di domani. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
+  2:{title:"Capitolo 2 · Don't Puke!",sub:"Missione Sopravvivenza",text:"Estrazione completata. Sei fuori dalla civiltà. Destinazione classificata: un'isola quasi deserta nella laguna nord. Girerete intorno a Venezia fino a Mazzorbo. Missione: sopravvivere fino alle 12:30 di domani. Solo laguna, silenzio e un'osteria. Il nome del capitolo non è casuale. Stomaco saldo, agente.",btnClass:"blue",btnText:"Inizia Cap. 2"},
   3:{title:"Capitolo 3 · Queen of Venice",sub:"Missione Rientro",text:"Sei sopravvissuta all'isola. Si torna nella civiltà. Il Canal Grande è il tuo palcoscenico: undici palazzi, cinque secoli di intrighi e capolavori. Cammina come una regina, agente. Oggi lo sei.",btnClass:"",btnText:"Inizia Cap. 3"}
 };
 
