@@ -357,28 +357,24 @@ var walkRoute=[
   [45.4335,12.3425]
 ];
 // Boat route polyline - giro intorno a Venezia via laguna aperta (motoscafo)
-// Il motoscafo NON entra nel Canal Grande (quello è solo Cap.3 al ritorno)
+// Il motoscafo NON entra nel Canal Grande e NON passa per Venezia
 var boatRoute=[
   // Laguna nord: Mazzorbo → Burano → Torcello
   [45.4867,12.4103],[45.4852,12.4167],[45.4969,12.4181],
   // Torcello → Burano → laguna aperta → Murano
   [45.4852,12.4167],[45.4750,12.3900],[45.4583,12.3535],
-  // Murano → San Michele (laguna aperta nord)
-  [45.4480,12.3465],
-  // Fondamenta Nuove (costa nord Venezia, acqua aperta)
-  [45.4458,12.3360],
-  // Costa nord-est → laguna est di Venezia (fuori dalla città)
-  [45.4450,12.3480],[45.4420,12.3530],[45.4380,12.3520],
-  // Riva degli Schiavoni / Bacino di San Marco
-  [45.4335,12.3425],
-  // San Giorgio Maggiore
-  [45.4294,12.3433],
-  // Giudecca → laguna sud, giro largo a ovest
-  [45.4270,12.3350],[45.4250,12.3250],[45.4250,12.3130],
-  // Laguna ovest → risalita fuori Venezia (Tronchetto esterno)
-  [45.4320,12.3050],[45.4380,12.3060],
-  // Laguna nord-ovest → rientro verso Fondamenta Nuove
-  [45.4430,12.3100],[45.4470,12.3200],[45.4458,12.3360]
+  // Murano → laguna est (passa a EST di Venezia, lontano dalla città)
+  [45.4500,12.3620],[45.4400,12.3680],
+  // Laguna est → passa largo davanti al Lido (bocca di porto)
+  [45.4300,12.3700],[45.4200,12.3650],
+  // Giro sud → laguna sud del Lido/Giudecca (acqua aperta)
+  [45.4120,12.3550],[45.4100,12.3400],[45.4100,12.3200],
+  // Laguna ovest → risalita larga fuori Venezia
+  [45.4150,12.3050],[45.4250,12.2950],
+  // Laguna nord-ovest → giro largo verso nord
+  [45.4380,12.2980],[45.4450,12.3050],
+  // Rientro verso Fondamenta Nuove da ovest (laguna aperta)
+  [45.4500,12.3150],[45.4500,12.3280],[45.4458,12.3360]
 ];
 // Canal Grande route polyline
 var canalRoute=[
@@ -454,9 +450,7 @@ var islands=[
   {name:'Burano',lat:45.4852,lng:12.4167},
   {name:'Torcello',lat:45.4969,lng:12.4181},
   {name:'Murano',lat:45.4583,lng:12.3535},
-  {name:'San Michele',lat:45.4480,lng:12.3465},
-  {name:'San Giorgio',lat:45.4294,lng:12.3433},
-  {name:'Giudecca',lat:45.4270,lng:12.3350}
+  {name:'Lido',lat:45.4200,lng:12.3650}
 ];
 islands.forEach(function(isl){
   L.circleMarker([isl.lat,isl.lng],{radius:6,fillColor:'#4a9eca',color:'#fff',weight:2,opacity:0.9,fillOpacity:0.8})
@@ -478,6 +472,7 @@ function showChapter(ch){
   var legend=document.getElementById('legend');
   var nextBtn=document.getElementById('nextChBtn');
 
+  stopTimer();
   if(ch===1){
     ch1Layer.addTo(map);
     map.setView([45.4400,12.3320],14);
@@ -492,6 +487,7 @@ function showChapter(ch){
     document.querySelector('.hl h1').textContent="Cap. 2 · Don't Puke!";
     document.querySelector('.hl p').textContent='La Laguna · ore 12:30 Mazzorbo';
     nextBtn.textContent="Cap. 3 →";nextBtn.style.display='block';
+    startTimer();
   } else if(ch===3){
     ch3Layer.addTo(map);
     map.setView([45.4370,12.3310],14);
@@ -566,11 +562,31 @@ showChapter(1);
   });
 })();
 
-// === ORARIO ESTRAZIONE (nascosto, info nel banner) ===
-(function(){
+// === COUNTDOWN TIMER per Cap. 2 (ore 12:30 Mazzorbo) ===
+var timerInterval=null;
+function startTimer(){
+  var timerBox=document.getElementById('timerBox');
+  var timerCount=document.getElementById('timerCount');
+  timerBox.style.display='block';
+  function update(){
+    var now=new Date();
+    var target=new Date(now);
+    target.setHours(12,30,0,0);
+    if(now>=target){target.setDate(target.getDate()+1);}
+    var diff=target-now;
+    var h=Math.floor(diff/3600000);
+    var m=Math.floor((diff%3600000)/60000);
+    var s=Math.floor((diff%60000)/1000);
+    timerCount.textContent=(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  }
+  update();
+  timerInterval=setInterval(update,1000);
+}
+function stopTimer(){
   var timerBox=document.getElementById('timerBox');
   timerBox.style.display='none';
-})();
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+}
 
 // Load agent name from start page
 (function(){
