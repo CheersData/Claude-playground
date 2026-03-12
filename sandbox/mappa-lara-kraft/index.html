@@ -129,7 +129,7 @@ header{padding:12px 20px;display:flex;align-items:center;justify-content:space-b
 
 /* === INTRO MODAL === */
 #introModal{position:fixed;inset:0;background:rgba(5,5,10,0.95);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity 0.5s}
-#introModal.hidden{opacity:0;pointer-events:none}
+#introModal.hidden{opacity:0;pointer-events:none;display:none}
 #introInner{max-width:420px;width:90%;text-align:center;padding:40px 30px}
 #introInner h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#c8a84b;margin-bottom:6px;letter-spacing:2px;opacity:0;animation:briefSlideUp 0.7s ease-out 0.2s forwards,briefGlow 2.5s ease-in-out 1s infinite}
 #introInner .intro-sub{font-size:10px;letter-spacing:3px;color:rgba(200,168,75,0.4);text-transform:uppercase;margin-bottom:24px;opacity:0;animation:briefSlideUp 0.7s ease-out 0.5s forwards}
@@ -505,6 +505,14 @@ function goNextChapter(){
   else if(currentCh===3) showChapter(0);
 }
 
+// === ORARIO ARRIVO per capitolo ===
+var chapterTimes={1:{label:'Arrivo · Cannaregio',time:'16:00'},2:{label:'Mazzorbo',time:'12:30'},3:{label:'Canal Grande',time:'17:00'},0:{label:'Mappa completa',time:'—'}};
+function updateTimer(ch){
+  var info=chapterTimes[ch]||chapterTimes[0];
+  document.getElementById('timerLabel').textContent=info.label;
+  document.getElementById('timerCount').textContent=info.time;
+}
+
 // Start with chapter 1
 showChapter(1);
 
@@ -555,14 +563,6 @@ showChapter(1);
     watchId=navigator.geolocation.watchPosition(onPosition,onError,{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
   });
 })();
-
-// === ORARIO ARRIVO per capitolo ===
-var chapterTimes={1:{label:'Arrivo · Cannaregio',time:'16:00'},2:{label:'Mazzorbo',time:'12:30'},3:{label:'Canal Grande',time:'17:00'},0:{label:'Mappa completa',time:'—'}};
-function updateTimer(ch){
-  var info=chapterTimes[ch]||chapterTimes[0];
-  document.getElementById('timerLabel').textContent=info.label;
-  document.getElementById('timerCount').textContent=info.time;
-}
 
 // Load agent name from start page
 (function(){
