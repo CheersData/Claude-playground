@@ -39,6 +39,8 @@ interface ConnectorMeta {
   icon: string;
   /** Auth mode for the wizard: "oauth" triggers OAuth flow, "api_key" shows credential form */
   authMode: "oauth" | "api_key";
+  /** If true, user can choose between OAuth and API key authentication */
+  supportsApiKey?: boolean;
   /** OAuth permission labels shown in the authorize step */
   oauthPermissions: { label: string }[];
   /** Custom label for the API key input field */
@@ -60,11 +62,15 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     description: "Sincronizza account, contatti, opportunita e pipeline di vendita.",
     icon: "Users",
     authMode: "oauth",
+    supportsApiKey: true,
     oauthPermissions: [
       { label: "Lettura contatti" },
       { label: "Lettura opportunita" },
       { label: "Lettura pipeline" },
     ],
+    apiKeyLabel: "API Key (Connected App Client ID)",
+    secretKeyLabel: "Client Secret (opzionale)",
+    helpText: "Per autenticazione manuale: crea una Connected App in Salesforce e usa Client ID + Secret. Per OAuth: autorizza direttamente l'accesso al tuo account Salesforce.",
     entities: [
       {
         id: "contacts",
@@ -115,11 +121,15 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     description: "Contatti, aziende, deal, ticket e campagne marketing.",
     icon: "Users",
     authMode: "oauth",
+    supportsApiKey: true,
     oauthPermissions: [
       { label: "Lettura contatti" },
       { label: "Lettura deal" },
       { label: "Lettura campagne" },
     ],
+    apiKeyLabel: "API Key (Private App Token)",
+    secretKeyLabel: undefined,
+    helpText: "Per autenticazione manuale via API key: vai a Impostazioni > Integrazioni > Private apps e copia il token. Per OAuth: autorizza direttamente l'accesso al tuo account HubSpot.",
     entities: [
       {
         id: "contacts",
@@ -187,10 +197,13 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     description: "Importa file, documenti e fogli di calcolo dal tuo Drive.",
     icon: "HardDrive",
     authMode: "oauth",
+    supportsApiKey: true,
     oauthPermissions: [
       { label: "Lettura file e cartelle" },
       { label: "Lettura metadati" },
     ],
+    apiKeyLabel: "Service Account JSON Key",
+    helpText: "Per autenticazione manuale: scarica il JSON della Service Account da Google Cloud Console. Per OAuth: autorizza direttamente l'accesso al tuo Google Account.",
     entities: [
       {
         id: "files",
@@ -316,6 +329,7 @@ export async function GET(
     icon: meta.icon,
     // Wizard configuration (used by ConnectorDetailClient setup wizard)
     authMode: meta.authMode,
+    supportsApiKey: meta.supportsApiKey ?? false,
     oauthPermissions: meta.oauthPermissions,
     apiKeyLabel: meta.apiKeyLabel ?? null,
     secretKeyLabel: meta.secretKeyLabel ?? null,

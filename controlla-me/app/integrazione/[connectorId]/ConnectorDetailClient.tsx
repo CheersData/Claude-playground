@@ -37,6 +37,8 @@ import {
   AlertTriangle,
   Save,
   FileText,
+  Pause,
+  Play,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +58,7 @@ interface ConnectorConfig {
   category: string;
   icon: string;
   authMode: AuthMode;
+  supportsApiKey?: boolean;
   oauthPermissions: { label: string }[];
   apiKeyLabel?: string;
   secretKeyLabel?: string;
@@ -123,6 +126,7 @@ interface ConnectorApiResponse {
   category: string;
   icon: string;
   authMode: "oauth" | "api_key";
+  supportsApiKey?: boolean;
   oauthPermissions: { label: string }[];
   apiKeyLabel?: string | null;
   secretKeyLabel?: string | null;
@@ -152,6 +156,7 @@ function mapApiResponseToConfig(data: ConnectorApiResponse): ConnectorConfig {
     category: data.category,
     icon: data.icon,
     authMode: data.authMode,
+    supportsApiKey: data.supportsApiKey,
     oauthPermissions: data.oauthPermissions ?? [],
     apiKeyLabel: data.apiKeyLabel ?? undefined,
     secretKeyLabel: data.secretKeyLabel ?? undefined,
@@ -303,6 +308,46 @@ export default function ConnectorDetailClient() {
         const data: ConnectorApiResponse = await res.json();
         if (!cancelled) {
           setConfig(mapApiResponseToConfig(data));
+
+          // If there's an existing connection (status not "disconnected"), hydrate wizard state.
+          // The API returns status at top level: "connected", "error", "syncing", "disconnected".
+          const isConnected = data.status && data.status !== "disconnected";
+          if (isConnected) {
+            // Mark auth as successful (user already authorized)
+            setVerifyStatus("success");
+            setVerifyMessage("Account gia autorizzato");
+
+            // Load saved mappings from API if available
+            // API returns: [{ entityId, fields: [{ source, target, confidence, aiSuggested }] }]
+            const savedMappings = data.mappings as {
+              entityId: string;
+              fields: {
+                source: string;
+                target: string;
+                confidence?: number;
+                aiSuggested?: boolean;
+              }[];
+            }[] | undefined;
+
+            if (savedMappings && savedMappings.length > 0) {
+              const hydratedMappings: EntityMappings[] = savedMappings.map((sm) => {
+                // Find entity name from config entities
+                const entityMeta = data.entities?.find((e) => e.id === sm.entityId);
+                return {
+                  entityId: sm.entityId,
+                  entityName: entityMeta?.name ?? sm.entityId,
+                  mappings: sm.fields.map((f) => ({
+                    sourceField: f.source,
+                    targetField: f.target,
+                    confidence: f.confidence ?? 0,
+                    autoMapped: f.aiSuggested ?? false,
+                  })),
+                };
+              });
+              setEntityMappings(hydratedMappings);
+              setSelectedEntities(savedMappings.map((m) => m.entityId));
+            }
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -815,6 +860,7 @@ export default function ConnectorDetailClient() {
                         <AuthStep
                           connectorName={config.name}
                           authMode={config.authMode}
+                          supportsApiKey={config.supportsApiKey}
                           oauthPermissions={config.oauthPermissions}
                           apiKeyLabel={config.apiKeyLabel}
                           secretKeyLabel={config.secretKeyLabel}
@@ -955,8 +1001,11 @@ function ConnectorSyncTab({
   const [syncError, setSyncError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedErrors, setExpandedErrors] = useState<Set<string>>(new Set());
+  const [pauseLoading, setPauseLoading] = useState(false);
 
   // Load real connection data from API
+  // The GET /api/integrations/[connectorId] returns fields at the top level
+  // (status, lastSync, totalRecords, syncHistory, errors) — NOT nested inside "connection".
   const loadConnectionData = useCallback(async () => {
     try {
       const res = await fetch(`/api/integrations/${connectorId}`);
@@ -967,27 +1016,28 @@ function ConnectorSyncTab({
       }
       const data = await res.json();
 
-      // Map API response to ConnectorSyncData
+      // Map API syncHistory response ({ date, success, failed }) to our SyncHistoryDay
       const history: SyncHistoryDay[] = (data.syncHistory || []).map(
-        (h: { date: string; records?: number; errors?: number }) => ({
+        (h: { date: string; success?: number; failed?: number }) => ({
           date: h.date,
-          success: h.records ?? 0,
-          failed: h.errors ?? 0,
+          success: h.success ?? 0,
+          failed: h.failed ?? 0,
         })
       );
 
       const errors: SyncErrorEntry[] = (data.errors || []).map(
-        (e: { id?: string; message: string; timestamp: string; details?: string }) => ({
+        (e: { id?: string; message: string; timestamp: string; details?: string; affectedRecords?: number }) => ({
           id: e.id || crypto.randomUUID(),
           timestamp: e.timestamp,
           message: e.message,
-          affectedRecords: 0,
+          affectedRecords: e.affectedRecords ?? 0,
           details: e.details,
         })
       );
 
-      const conn = data.connection || {};
+      // API returns status at top level: "connected", "error", "syncing", "disconnected"
       const statusMap: Record<string, ConnectorSyncData["status"]> = {
+        connected: "synced",
         active: "synced",
         error: "error",
         syncing: "syncing",
@@ -996,10 +1046,10 @@ function ConnectorSyncTab({
 
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSyncData({
-        status: statusMap[conn.status] || "disconnected",
-        lastSync: conn.lastSync || null,
-        nextSync: conn.nextSync || null,
-        totalRecords: conn.syncItems ?? 0,
+        status: statusMap[data.status] || "disconnected",
+        lastSync: data.lastSync || null,
+        nextSync: data.nextSync || null,
+        totalRecords: data.totalRecords ?? 0,
         history,
         errors,
       });
@@ -1036,6 +1086,30 @@ function ConnectorSyncTab({
     }
   }, [connectorId, loadConnectionData]);
 
+  const handlePauseResume = useCallback(async () => {
+    setPauseLoading(true);
+    setSyncError(null);
+    const action = syncData.status === "paused" ? "resume" : "pause";
+    try {
+      const res = await fetch(`/api/integrations/${connectorId}/pause`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncError(data.error || `Errore durante ${action === "pause" ? "la pausa" : "la ripresa"}`);
+      } else {
+        // Refresh sync data to reflect new status
+        await loadConnectionData();
+      }
+    } catch {
+      setSyncError("Errore di rete");
+    } finally {
+      setPauseLoading(false);
+    }
+  }, [connectorId, syncData.status, loadConnectionData]);
+
   const toggleError = useCallback((id: string) => {
     setExpandedErrors((prev) => {
       const next = new Set(prev);
@@ -1054,7 +1128,7 @@ function ConnectorSyncTab({
     syncing: { label: "In sync...", color: "var(--info-bright)", bg: "rgba(137, 221, 255, 0.15)" },
     paused: { label: "In pausa", color: "var(--caution)", bg: "rgba(255, 250, 194, 0.15)" },
   };
-  const _sc = statusConfig[syncData.status] || statusConfig.disconnected;
+  const sc = statusConfig[syncData.status] || statusConfig.disconnected;
 
   if (loading) {
     return (
@@ -1067,6 +1141,40 @@ function ConnectorSyncTab({
 
   return (
     <div>
+      {/* Connection status badge */}
+      <div className="flex items-center justify-between mb-4">
+        <div
+          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium"
+          style={{ background: sc.bg, color: sc.color }}
+        >
+          <span className="w-2 h-2 rounded-full" style={{ background: sc.color }} />
+          {sc.label}
+        </div>
+
+        {/* Pause / Resume button — only visible when connection is active or paused */}
+        {(syncData.status === "synced" || syncData.status === "paused") && (
+          <button
+            onClick={handlePauseResume}
+            disabled={pauseLoading}
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all hover:scale-[1.02] disabled:opacity-60"
+            style={{
+              background: syncData.status === "paused" ? "rgba(93, 228, 199, 0.15)" : "rgba(255, 250, 194, 0.15)",
+              color: syncData.status === "paused" ? "var(--success)" : "var(--caution)",
+              border: `1px solid ${syncData.status === "paused" ? "rgba(93, 228, 199, 0.3)" : "rgba(255, 250, 194, 0.3)"}`,
+            }}
+          >
+            {pauseLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : syncData.status === "paused" ? (
+              <Play className="w-4 h-4" />
+            ) : (
+              <Pause className="w-4 h-4" />
+            )}
+            {syncData.status === "paused" ? "Riprendi" : "Pausa"}
+          </button>
+        )}
+      </div>
+
       {/* Status cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
         <StatCard label="Ultimo sync" value={formatDateTime(syncData.lastSync)} />
@@ -1338,16 +1446,40 @@ function ConnectorMappingTab({
     return Math.round(fields.reduce((sum, f) => sum + f.confidence, 0) / fields.length);
   }, [entityMappings]);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setSaveError(null);
     try {
-      await fetch(`/api/integrations/${config.id}`, {
+      // Transform EntityMappings[] to the API-expected format:
+      // { mappings: [{ entityId, fields: [{ source, target, confidence, aiSuggested }] }] }
+      const apiMappings = entityMappings.map((em) => ({
+        entityId: em.entityId,
+        fields: em.mappings.map((m) => ({
+          source: m.sourceField,
+          target: m.targetField,
+          confidence: m.confidence,
+          aiSuggested: m.autoMapped,
+        })),
+      }));
+
+      const res = await fetch(`/api/integrations/${config.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mappings: entityMappings }),
+        body: JSON.stringify({ mappings: apiMappings }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "Errore nel salvataggio della mappatura");
+        return;
+      }
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setSaveError("Errore di rete durante il salvataggio");
     } finally {
       setSaving(false);
     }
@@ -1408,6 +1540,21 @@ function ConnectorMappingTab({
           )}
         </button>
       </div>
+
+      {/* Save error banner */}
+      {saveError && (
+        <div
+          className="flex items-center gap-3 p-4 rounded-xl mb-4 text-sm"
+          style={{
+            background: "rgba(229, 141, 120, 0.1)",
+            border: "1px solid rgba(229, 141, 120, 0.3)",
+            color: "var(--error)",
+          }}
+        >
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{saveError}</span>
+        </div>
+      )}
 
       {/* AI banner */}
       <div

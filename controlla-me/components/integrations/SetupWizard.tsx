@@ -30,6 +30,7 @@ interface ConnectorWizardConfig {
   category: string;
   icon: LucideIcon;
   authMode: AuthMode;
+  supportsApiKey?: boolean; // If true, user can choose between OAuth and API key
   oauthPermissions?: { label: string }[];
   apiKeyLabel?: string;
   secretKeyLabel?: string;
@@ -427,6 +428,7 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
                     <AuthStep
                       connectorName={connector.name}
                       authMode={connector.authMode}
+                      supportsApiKey={connector.supportsApiKey}
                       oauthPermissions={connector.oauthPermissions}
                       apiKeyLabel={connector.apiKeyLabel}
                       secretKeyLabel={connector.secretKeyLabel}

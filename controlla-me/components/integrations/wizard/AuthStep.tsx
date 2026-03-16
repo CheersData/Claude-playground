@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Check, Lock, Info, Eye, EyeOff, Loader2, AlertTriangle } from "lucide-react";
+import { Shield, Check, Lock, Info, Eye, EyeOff, Loader2, AlertTriangle, Key } from "lucide-react";
 
 // ─── Types ───
 
@@ -15,6 +15,7 @@ interface OAuthPermission {
 interface AuthStepProps {
   connectorName: string;
   authMode: AuthMode;
+  supportsApiKey?: boolean; // If true, show toggle between OAuth and API key
   oauthPermissions?: OAuthPermission[];
   apiKeyLabel?: string;
   secretKeyLabel?: string;
@@ -34,6 +35,7 @@ interface AuthStepProps {
 export default function AuthStep({
   connectorName,
   authMode,
+  supportsApiKey = false,
   oauthPermissions = [],
   apiKeyLabel = "API Key",
   secretKeyLabel = "Secret Key (opzionale)",
@@ -48,6 +50,10 @@ export default function AuthStep({
   onOAuthAuthorize,
 }: AuthStepProps) {
   const [showSecret, setShowSecret] = useState(false);
+  // For connectors that support both OAuth and API key, allow user to choose
+  const [authMethod, setAuthMethod] = useState<"oauth" | "api_key">(authMode);
+
+  const effectiveMode = supportsApiKey ? authMethod : authMode;
 
   return (
     <div>
@@ -55,13 +61,53 @@ export default function AuthStep({
         Connetti {connectorName}
       </h2>
       <p className="text-sm mt-2" style={{ color: "var(--fg-secondary)" }}>
-        {authMode === "oauth"
+        {effectiveMode === "oauth"
           ? "Autorizza l'accesso al tuo account"
           : "Inserisci le credenziali API"}
       </p>
 
+      {/* Method selector toggle (if connector supports both) */}
+      {supportsApiKey && (
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={() => setAuthMethod("oauth")}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+              authMethod === "oauth"
+                ? "text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+            style={{
+              background: authMethod === "oauth"
+                ? "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))"
+                : "var(--bg-overlay)",
+              border: `1px solid ${authMethod === "oauth" ? "var(--accent)" : "var(--border-dark)"}`,
+            }}
+          >
+            <Shield className="w-4 h-4 inline mr-2" />
+            OAuth
+          </button>
+          <button
+            onClick={() => setAuthMethod("api_key")}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+              authMethod === "api_key"
+                ? "text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+            style={{
+              background: authMethod === "api_key"
+                ? "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))"
+                : "var(--bg-overlay)",
+              border: `1px solid ${authMethod === "api_key" ? "var(--accent)" : "var(--border-dark)"}`,
+            }}
+          >
+            <Key className="w-4 h-4 inline mr-2" />
+            API Key
+          </button>
+        </div>
+      )}
+
       <div className="mt-6">
-        {authMode === "oauth" ? (
+        {effectiveMode === "oauth" ? (
           /* ─── OAuth Card ─── */
           <div
             className="rounded-xl p-8 text-center"
