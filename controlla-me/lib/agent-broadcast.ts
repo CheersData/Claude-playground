@@ -30,7 +30,7 @@ export interface AgentEvent {
 /* ── Constants ──────────────────────────────────────────────────────── */
 
 /** How long a "done"/"error" event stays visible before being pruned (ms) */
-const TTL_DONE_MS = 8_000;
+const TTL_DONE_MS = 30_000;
 /** How long a "running" event stays without update before being pruned (ms) */
 const TTL_RUNNING_MS = 120_000;
 /** Cleanup interval */
@@ -133,6 +133,8 @@ export function getActiveAgentEvents(): AgentEvent[] {
 
 /** Map console agent phases to department names for AgentDots */
 const PHASE_TO_DEPT: Record<string, string> = {
+  // Analysis pipeline (user-facing)
+  "analyze-pipeline": "ufficio-legale",
   // Console pipeline (existing)
   leader: "cme",
   classifier: "ufficio-legale",
@@ -146,6 +148,9 @@ const PHASE_TO_DEPT: Record<string, string> = {
   // Legal office Q&A
   "legal-leader": "ufficio-legale",
   "legal-orchestrator": "ufficio-legale",
+  // Medical / Studia.me
+  "medical-question-prep": "ufficio-legale",
+  "medical-corpus-agent": "ufficio-legale",
   // QA & stress testing
   "qa-test-run": "quality-assurance",
   "qa-evaluation": "quality-assurance",

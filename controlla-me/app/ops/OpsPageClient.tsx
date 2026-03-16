@@ -30,6 +30,7 @@ import {
   Zap,
   Microscope,
   Users,
+  Plug,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -57,6 +58,7 @@ import { DaemonControlPanel } from "@/components/ops/DaemonControlPanel";
 import { IntegrationHealthPanel } from "@/components/ops/IntegrationHealthPanel";
 import { ActivityFeed } from "@/components/ops/ActivityFeed";
 import { AgentDots } from "@/components/ops/AgentDots";
+import SessionIndicator from "@/components/console/SessionIndicator";
 import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
 import { CompanyRoadmap } from "@/components/ops/CompanyRoadmap";
 import type { Department, Task } from "@/lib/company/types";
@@ -103,6 +105,7 @@ type TabId =
   | "archive"
   | "daemon"
   | "agents"
+  | "integrations"
   | "testing";
 
 interface TabDef {
@@ -120,6 +123,7 @@ const TABS: TabDef[] = [
   { id: "archive", label: "Archivio", icon: Archive },
   { id: "daemon", label: "Daemon", icon: Zap },
   { id: "agents", label: "Agenti", icon: Users },
+  { id: "integrations", label: "Integrazioni", icon: Plug },
   { id: "testing", label: "QA & Test", icon: Microscope },
 ];
 
@@ -157,15 +161,16 @@ function FullscreenOverlay({
         </span>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-md transition-colors"
+          aria-label="Chiudi pannello"
+          className="p-1.5 rounded-md transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
           style={{ color: "var(--fg-secondary)" }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-overlay)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
-      <div className={`flex-1 min-h-0 ${noPadding ? "" : "overflow-y-auto p-6"}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto ${noPadding ? "" : "p-6"}`}>
         {children}
       </div>
     </motion.div>
@@ -194,6 +199,20 @@ export default function OpsPageClient() {
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [fullscreenPanel, setFullscreenPanel] = useState<string | null>(null);
   const [showSlope, setShowSlope] = useState(false);
+
+  // ── Live sessions from SessionIndicator (for AgentDots bridging) ──────────
+  type LiveSessionEntry = {
+    pid: number;
+    type: "console" | "task-runner" | "daemon";
+    target: string;
+    taskId?: string;
+    startedAt: string;
+    status: "active" | "closing";
+  };
+  const [liveSessions, setLiveSessions] = useState<LiveSessionEntry[]>([]);
+  const handleSessionsUpdate = useCallback((sessions: LiveSessionEntry[]) => {
+    setLiveSessions(sessions);
+  }, []);
 
   // ── Auth check ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -292,7 +311,13 @@ export default function OpsPageClient() {
     let retryTimeout: ReturnType<typeof setTimeout>;
 
     const connect = () => {
-      const token = sessionStorage.getItem("lexmea-token") ?? "";
+      const token = sessionStorage.getItem("lexmea-token");
+      if (!token) {
+        console.warn("[SSE] No token in sessionStorage — skipping connection");
+        // Session may have been cleared; deauth so the user sees the login screen
+        setAuthed(false);
+        return;
+      }
       const sseUrl = `/api/company/agents/live?t=${encodeURIComponent(token)}`;
       console.log("[SSE] Connecting to", sseUrl.slice(0, 60) + "...");
       eventSource = new EventSource(sseUrl);
@@ -323,7 +348,7 @@ export default function OpsPageClient() {
             return next;
           });
 
-          // Auto-expire done/error events after 8 seconds
+          // Auto-expire done/error events after 30 seconds (matches server TTL_DONE_MS)
           if (evt.status === "done" || evt.status === "error") {
             setTimeout(() => {
               setLiveAgents((prev) => {
@@ -335,7 +360,7 @@ export default function OpsPageClient() {
                 }
                 return next;
               });
-            }, 8_000);
+            }, 30_000);
           }
         } catch { /* ignore parse errors */ }
       });
@@ -357,33 +382,38 @@ export default function OpsPageClient() {
   }, [authed]);
 
   // ── Agent activity data for AgentDots + CapacityIndicator ─────────────────
-  // Merge: task board data + real-time SSE events (SSE takes priority for running)
+  // SSE events + live sessions merged for a unified view
   const activeAgentsMap = useMemo(() => {
     const map = new Map<string, { department: string; task?: string; status: "running" | "done" | "error" }>();
-    if (!data) return map;
 
-    // Layer 1: Derive from recent tasks (in_progress → running, blocked → error)
-    const tasks = data.board.recent ?? [];
-    for (const t of tasks) {
-      if (t.status === "in_progress") {
-        map.set(`task-${t.id}`, { department: t.department, task: t.title, status: "running" });
-      } else if (t.status === "blocked") {
-        map.set(`task-${t.id}`, { department: t.department, task: t.title, status: "error" });
-      }
-    }
-
-    // Layer 2: Overlay real-time SSE events (these are actual agent executions)
+    // SSE events represent actual agent executions
     liveAgents.forEach((value, key) => {
       map.set(key, { department: value.department, task: value.task, status: value.status });
     });
 
+    // Bridge live sessions (from SessionIndicator) into the map
+    // This lights up AgentDots for departments with active Claude sessions
+    for (const s of liveSessions) {
+      if (s.status === "active" && s.target && s.target !== "unknown" && s.taskId) {
+        const key = `session-${s.pid}`;
+        // Only add if not already tracked by SSE (avoid duplicates)
+        if (!map.has(key)) {
+          map.set(key, {
+            department: s.target,
+            task: s.taskId || s.type,
+            status: "running",
+          });
+        }
+      }
+    }
+
     return map;
-  }, [data, liveAgents]);
+  }, [liveAgents, liveSessions]);
 
   const activeAgentCount = useMemo(() => {
     let count = 0;
+    // Count all "running" entries from the merged activeAgentsMap
     activeAgentsMap.forEach((v) => {
-      // Count all running entries: both real-time SSE agents and board tasks (in_progress)
       if (v.status === "running") count++;
     });
     return count;
@@ -417,6 +447,7 @@ export default function OpsPageClient() {
       >
         <form
           onSubmit={handleLogin}
+          aria-label="Accesso Operations Center"
           className="rounded-2xl p-8 w-full max-w-sm space-y-5"
           style={{
             background: "var(--bg-raised)",
@@ -426,6 +457,7 @@ export default function OpsPageClient() {
         >
           <div>
             <h2
+              id="ops-login-title"
               className="text-lg font-semibold font-serif"
               style={{ color: "var(--fg-primary)" }}
             >
@@ -435,11 +467,17 @@ export default function OpsPageClient() {
               Inserisci le credenziali per accedere.
             </p>
           </div>
+          <label htmlFor="ops-auth-input" className="sr-only">
+            Credenziali: Nome Cognome, Ruolo
+          </label>
           <input
+            id="ops-auth-input"
             type="text"
             value={authInput}
             onChange={(e) => setAuthInput(e.target.value)}
             placeholder="Nome Cognome, Ruolo"
+            aria-label="Credenziali: Nome Cognome, Ruolo"
+            aria-describedby={authError ? "ops-auth-error" : undefined}
             className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
             style={{
               background: "var(--bg-base)",
@@ -457,13 +495,13 @@ export default function OpsPageClient() {
             autoFocus
           />
           {authError && (
-            <p className="text-xs" style={{ color: "var(--error)" }}>{authError}</p>
+            <p id="ops-auth-error" className="text-xs" style={{ color: "var(--error)" }} role="alert">{authError}</p>
           )}
           <button
             type="submit"
             disabled={!authInput.trim()}
             className="w-full px-4 py-2.5 text-white rounded-lg text-sm font-semibold
-              transition-all disabled:opacity-40"
+              transition-all disabled:opacity-40 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
             style={{
               background: "var(--accent)",
               boxShadow: "0 2px 8px rgba(255,107,53,0.25)",
@@ -540,7 +578,8 @@ export default function OpsPageClient() {
                   console.error("[TEST PALLINI] Error:", err);
                 }
               }}
-              className="ml-1 px-1.5 py-0.5 text-[9px] rounded border opacity-40 hover:opacity-100 transition-opacity"
+              aria-label="Test: attiva 5 pallini agente per 4 secondi"
+              className="ml-1 px-1.5 py-0.5 text-[9px] rounded border opacity-40 hover:opacity-100 transition-opacity focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
               style={{ borderColor: "var(--border)", color: "var(--fg-secondary)" }}
               title="Test: attiva 5 pallini per 4 secondi"
             >
@@ -548,6 +587,9 @@ export default function OpsPageClient() {
             </button>
           </div>
         )}
+
+        {/* Active sessions */}
+        <SessionIndicator onSessionsUpdate={handleSessionsUpdate} />
 
         {/* Error indicator */}
         {fetchError && (
@@ -588,8 +630,9 @@ export default function OpsPageClient() {
         <button
           onClick={fetchData}
           disabled={loading}
+          aria-label={`Aggiorna dati (ultimo aggiornamento: ${timeSince()} fa)`}
           className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs
-            transition-all duration-150 disabled:opacity-40 whitespace-nowrap"
+            transition-all duration-150 disabled:opacity-40 whitespace-nowrap focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
           style={{
             background: "var(--bg-overlay)",
             color: "var(--fg-secondary)",
@@ -597,7 +640,7 @@ export default function OpsPageClient() {
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border-dark)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-overlay)")}
         >
-          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
           {timeSince()}
         </button>
       </header>
@@ -605,10 +648,35 @@ export default function OpsPageClient() {
       {/* ── TAB BAR ─────────────────────────────────────────────────── */}
       <nav
         className="flex-none flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto scrollbar-none"
+        role="tablist"
+        aria-label="Sezioni Ops Center"
         style={{
           height: "40px",
           borderBottom: "1px solid var(--border-dark-subtle)",
           background: "var(--bg-raised)",
+        }}
+        onKeyDown={(e) => {
+          // WCAG 2.1.1: Arrow key navigation for tabs
+          const idx = TABS.findIndex((t) => t.id === activeTab);
+          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+            e.preventDefault();
+            const next = TABS[(idx + 1) % TABS.length];
+            setActiveTab(next.id);
+            (e.currentTarget.querySelector(`[data-tab="${next.id}"]`) as HTMLElement)?.focus();
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            e.preventDefault();
+            const prev = TABS[(idx - 1 + TABS.length) % TABS.length];
+            setActiveTab(prev.id);
+            (e.currentTarget.querySelector(`[data-tab="${prev.id}"]`) as HTMLElement)?.focus();
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            setActiveTab(TABS[0].id);
+            (e.currentTarget.querySelector(`[data-tab="${TABS[0].id}"]`) as HTMLElement)?.focus();
+          } else if (e.key === "End") {
+            e.preventDefault();
+            setActiveTab(TABS[TABS.length - 1].id);
+            (e.currentTarget.querySelector(`[data-tab="${TABS[TABS.length - 1].id}"]`) as HTMLElement)?.focus();
+          }
         }}
       >
         {TABS.map((tab) => {
@@ -617,9 +685,15 @@ export default function OpsPageClient() {
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={active}
+              aria-controls={`ops-tabpanel-${tab.id}`}
+              id={`ops-tab-${tab.id}`}
+              data-tab={tab.id}
+              tabIndex={active ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                whitespace-nowrap transition-all duration-150 shrink-0"
+                whitespace-nowrap transition-all duration-150 shrink-0 focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
               style={{
                 background: active ? "var(--bg-overlay)" : "transparent",
                 color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
@@ -632,7 +706,7 @@ export default function OpsPageClient() {
                 if (!active) e.currentTarget.style.background = "transparent";
               }}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );
@@ -640,7 +714,12 @@ export default function OpsPageClient() {
       </nav>
 
       {/* ── CONTENT AREA ─────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div
+        className="flex-1 min-h-0 overflow-hidden"
+        role="tabpanel"
+        id={`ops-tabpanel-${activeTab}`}
+        aria-labelledby={`ops-tab-${activeTab}`}
+      >
         {/* Dashboard */}
         {activeTab === "dashboard" && (
           <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
@@ -732,7 +811,7 @@ export default function OpsPageClient() {
 
         {/* CME Chat */}
         {activeTab === "cme" && (
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col min-h-0 overflow-hidden">
             <CompanyPanel open={true} onClose={() => {}} embedded />
           </div>
         )}
@@ -760,7 +839,7 @@ export default function OpsPageClient() {
 
         {/* Daemon */}
         {activeTab === "daemon" && (
-          <div className="h-full overflow-y-auto">
+          <div className="h-full overflow-y-auto p-4 md:p-6">
             <DaemonControlPanel />
           </div>
         )}
@@ -776,6 +855,13 @@ export default function OpsPageClient() {
                 <PipelineStatus pipeline={data?.pipeline ?? []} />
               </SectionCard>
             </div>
+          </div>
+        )}
+
+        {/* Integrazioni */}
+        {activeTab === "integrations" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6">
+            <IntegrationHealthPanel />
           </div>
         )}
 

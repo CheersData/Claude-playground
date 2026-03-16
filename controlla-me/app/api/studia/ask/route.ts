@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { sanitizeUserQuestion } from "@/lib/middleware/sanitize";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { isVectorDBEnabled } from "@/lib/embeddings";
 import { MEDICAL_CORPUS_SYSTEM_PROMPT } from "@/lib/prompts/medical-corpus-agent";
@@ -21,6 +22,7 @@ import {
 import { runAgent } from "@/lib/ai-sdk/agent-runner";
 import { generate } from "@/lib/ai-sdk/generate";
 import { parseAgentJSON } from "@/lib/anthropic";
+import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
 export const maxDuration = 60;
 
@@ -58,6 +60,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const question = sanitizeUserQuestion(rawQuestion);
+
   const provider = body.config?.provider ?? "auto";
   if (!["auto", "gemini", "haiku"].includes(provider)) {
     return NextResponse.json(
@@ -70,22 +74,25 @@ export async function POST(req: NextRequest) {
 
   try {
     // ── Step 1: Question Prep (riformulazione in linguaggio medico) ──
-    let medicalQuery = rawQuestion;
+    let medicalQuery = question;
     try {
+      broadcastConsoleAgent("medical-question-prep", "running", { task: "Riformulazione domanda medica" });
       const prepResult = await runAgent<{
         medicalQuery: string;
         keywords: string[];
         medicalAreas: string[];
         suggestedTopics: string[];
-      }>("question-prep", rawQuestion, {
+      }>("question-prep", question, {
         systemPrompt: MEDICAL_QUESTION_PREP_SYSTEM_PROMPT,
         maxTokens: 2048,
       });
-      medicalQuery = prepResult.parsed.medicalQuery || rawQuestion;
+      medicalQuery = prepResult.parsed.medicalQuery || question;
+      broadcastConsoleAgent("medical-question-prep", "done", { task: "Domanda medica riformulata" });
       console.log(
-        `[STUDIA-ASK] question-prep: "${rawQuestion}" → "${medicalQuery}"`
+        `[STUDIA-ASK] question-prep: "${question}" → "${medicalQuery}"`
       );
     } catch (err) {
+      broadcastConsoleAgent("medical-question-prep", "error", { task: "Errore riformulazione" });
       console.warn("[STUDIA-ASK] question-prep fallito, uso domanda originale:", err);
     }
 
@@ -130,7 +137,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const llmPrompt = `CONTESTO:\n${context}\n\nDOMANDA ORIGINALE: ${rawQuestion}\n\nRispondi alla domanda usando le fonti nel contesto.`;
+    const llmPrompt = `CONTESTO:\n${context}\n\nDOMANDA ORIGINALE: ${question}\n\nRispondi alla domanda usando le fonti nel contesto.`;
 
     // ── Step 4: LLM call ──
     interface MedicalResponse {
@@ -149,6 +156,8 @@ export async function POST(req: NextRequest) {
 
     let parsed: MedicalResponse;
     let usedProvider: string;
+
+    broadcastConsoleAgent("medical-corpus-agent", "running", { task: "Ricerca corpus medico" });
 
     if (provider === "haiku") {
       const result = await generate("claude-haiku-4.5", llmPrompt, {
@@ -181,6 +190,10 @@ export async function POST(req: NextRequest) {
       usedProvider = result.provider;
     }
 
+    broadcastConsoleAgent("medical-corpus-agent", "done", {
+      task: `Risposta medica (confidence: ${((parsed.confidence || 0) * 100).toFixed(0)}%)`,
+    });
+
     const durationMs = Date.now() - start;
     console.log(
       `[STUDIA-ASK] risposta in ${(durationMs / 1000).toFixed(1)}s | provider: ${usedProvider} | confidence: ${parsed.confidence}`
@@ -198,6 +211,8 @@ export async function POST(req: NextRequest) {
       durationMs,
     });
   } catch (err) {
+    broadcastConsoleAgent("medical-question-prep", "error", { task: "Errore" });
+    broadcastConsoleAgent("medical-corpus-agent", "error", { task: "Errore" });
     console.error("[STUDIA-ASK] Errore:", err);
     return NextResponse.json(
       { error: "Errore interno durante l'elaborazione della domanda medica" },

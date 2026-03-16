@@ -10,10 +10,14 @@
  * Designed for h-full usage inside the /ops Debug workspace.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { CheckCircle, XCircle, RefreshCw, ChevronRight, Zap } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 import { LiveConsolePanel } from "@/components/ops/LiveConsolePanel";
+
+// Memoize LiveConsolePanel so parent re-renders (loading, tierData, etc.)
+// never cause it to re-render or lose internal state (SSE connection, log lines).
+const StableLiveConsolePanel = memo(LiveConsolePanel);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -442,30 +446,34 @@ export function DebugPanel() {
       )}
 
       {/* ── Body ─────────────────────────────────────────────────────────────── */}
-      {loading && !tierData ? (
-        <div className="flex-1 flex items-center justify-center text-[var(--fg-invisible)] text-sm gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin" />
-          Caricamento stato sistema…
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 flex">
-          {/* ── Left column: Tier + Env (scrollable) ─────────────────────── */}
-          <div className="w-72 flex-none border-r border-[var(--border-dark-subtle)] overflow-y-auto">
-            <TierSection data={tierData} />
-            <EnvSection data={envData} />
-          </div>
-
-          {/* ── Right column: Costs + Provider Health (fixed) + LiveConsole (fills) */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <CostsSection data={costsData} />
-            <ProviderHealthSection data={providerHealth} />
-            {/* LiveConsolePanel takes remaining height */}
-            <div className="flex-1 min-h-0 p-3">
-              <LiveConsolePanel />
+      {/* Always render the full layout so LiveConsolePanel is never unmounted.
+          Before first data arrives we overlay a loading spinner on the left column. */}
+      <div className="flex-1 min-h-0 flex">
+        {/* ── Left column: Tier + Env (scrollable) ─────────────────────── */}
+        <div className="w-72 flex-none border-r border-[var(--border-dark-subtle)] overflow-y-auto">
+          {loading && !tierData ? (
+            <div className="flex items-center justify-center h-full text-[var(--fg-invisible)] text-sm gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Caricamento…
             </div>
+          ) : (
+            <>
+              <TierSection data={tierData} />
+              <EnvSection data={envData} />
+            </>
+          )}
+        </div>
+
+        {/* ── Right column: Costs + Provider Health (fixed) + LiveConsole (fills) */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <CostsSection data={costsData} />
+          <ProviderHealthSection data={providerHealth} />
+          {/* LiveConsolePanel takes remaining height — always mounted, never destroyed */}
+          <div className="flex-1 min-h-0 p-3">
+            <StableLiveConsolePanel />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
