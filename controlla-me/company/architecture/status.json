@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "architecture",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.194Z",
+    "last_updated": "2026-03-15T16:34:18.644Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "3 task aperti. 80 completati (ultimi 7gg). 145 completati (totale).",
+  "summary": "4 task in corso. 68 completati (ultimi 7gg). 205 completati (totale).",
   "decisions": {
     "adr_file": "company/architecture/decisions.md",
     "total_adrs": null,
@@ -41,22 +41,28 @@
   ],
   "open_tasks": [
     {
-      "id": "66db2f07",
-      "title": "Testare daemon su prossimo ciclo per verificare che claude -p crei e completi task",
-      "priority": "medium",
-      "status": "open"
+      "id": "5c0e3a9f",
+      "title": "FASE 1C: Migration 037 schema discovery tables",
+      "priority": "high",
+      "status": "in_progress"
     },
     {
-      "id": "58962ac3",
-      "title": "Testare AVVIA_CME.bat da terminale esterno e configurare Windows Task Scheduler per esecuzione automatica",
-      "priority": "medium",
-      "status": "open"
+      "id": "ab21e58c",
+      "title": "FASE 1A: UniversalConnector protocol + LegacyAdapter",
+      "priority": "high",
+      "status": "in_progress"
     },
     {
-      "id": "27b14ab6",
-      "title": "Testare autorun da terminale esterno per verificare che claude -p riceva il prompt via stdin",
+      "id": "a9bcffa3",
+      "title": "FASE 0A: Fix HubSpot 8 bug bloccanti",
+      "priority": "critical",
+      "status": "in_progress"
+    },
+    {
+      "id": "653f5682",
+      "title": "QA: test key rotation con chiavi invalide",
       "priority": "medium",
-      "status": "open"
+      "status": "in_progress"
     }
   ],
   "blockers": [],

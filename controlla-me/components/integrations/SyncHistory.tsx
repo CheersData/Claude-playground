@@ -142,9 +142,9 @@ export default function SyncHistory({ entries, loading = false, maxVisible = 10 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4" style={{ color: "var(--fg-muted)" }} />
+          <Clock className="w-4 h-4 shrink-0" style={{ color: "var(--fg-muted)" }} />
           <h3 className="text-sm font-semibold" style={{ color: "var(--fg-primary)" }}>
             Attivita recente
           </h3>
@@ -154,7 +154,7 @@ export default function SyncHistory({ entries, loading = false, maxVisible = 10 
         </div>
 
         {/* Filter pills */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <Filter className="w-3.5 h-3.5" style={{ color: "var(--fg-invisible)" }} />
           {(["all", "success", "partial", "error", "running"] as const).map((status) => {
             const isActive = filterStatus === status;
@@ -248,15 +248,9 @@ export default function SyncHistory({ entries, loading = false, maxVisible = 10 
                 <div key={entry.id}>
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                    className="w-full text-left grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr_0.8fr] gap-2 md:gap-4 px-5 py-3.5 transition-colors"
+                    className="w-full text-left grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr_0.8fr] gap-2 md:gap-4 px-5 py-3.5 transition-colors hover-bg-hover"
                     style={{
                       borderBottom: isLast && !isExpanded ? "none" : "1px solid var(--border-dark-subtle)",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = "transparent";
                     }}
                     aria-expanded={isExpanded}
                   >
@@ -359,16 +353,10 @@ export default function SyncHistory({ entries, loading = false, maxVisible = 10 
         {!loading && hasMore && !showAll && (
           <button
             onClick={() => setShowAll(true)}
-            className="w-full px-5 py-3 text-sm font-medium transition-colors text-center"
+            className="w-full px-5 py-3 text-sm font-medium transition-colors text-center hover-bg-hover"
             style={{
               color: "var(--info)",
               borderTop: "1px solid var(--border-dark-subtle)",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
             Mostra tutti ({filteredEntries.length - maxVisible} altri)

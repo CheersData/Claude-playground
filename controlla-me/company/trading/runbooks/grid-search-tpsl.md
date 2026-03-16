@@ -1,8 +1,8 @@
-# Runbook: Grid Search TP/SL — 96 Combinazioni
+# Runbook: Grid Search TP/SL — 96 Combinazioni (+ Cycle 4: 48 combo)
 
 **Task #263**
 **Autore:** Trading Lead
-**Data:** 2026-03-03
+**Data:** 2026-03-03 (aggiornato 2026-03-14 con Cycle 4)
 **Status:** Pronto per esecuzione — richiede dati Alpaca attivi
 
 ---
@@ -263,6 +263,28 @@ python -m src.backtest run \
   --trail-breakeven 1.5 \
   --trail-threshold 3.5 \
   --trail-distance 2.0
+```
+
+---
+
+## Preset `cycle4` — 48 combinazioni (aggiunto 2026-03-14)
+
+Derivato dall'analisi del Ciclo 3 (Sharpe 0.975, 92.6% SL exits). Differenze rispetto al preset `tpsl`:
+
+| Parametro | tpsl | cycle4 | Motivazione |
+|-----------|------|--------|-------------|
+| `signal_exit_enabled` | [True] | [False, True] | Ciclo 3 usava OFF |
+| `trailing_trail_threshold_atr` | [2.0, 3.5] | [3.5] | Fisso al grid-optimal |
+| `trailing_trail_distance_atr` | [1.5, 2.0] | [2.0] | Fisso al grid-optimal |
+| Combinazioni | 96 | 48 | Meno combos, piu mirato |
+
+```bash
+# Cycle 4: grid search su 2 anni (condizioni identiche a Cycle 3)
+cd C:\Users\crist\Claude-playground\controlla-me\trading
+py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000
+
+# Cycle 4: conferma su 3 anni
+py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000
 ```
 
 ---

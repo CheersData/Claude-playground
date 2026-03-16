@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { getVision, upsertVision, getLatestPlan } from "@/lib/company/vision";
 
 export async function GET(req: NextRequest) {
@@ -25,6 +26,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   const payload = requireConsoleAuth(req);
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

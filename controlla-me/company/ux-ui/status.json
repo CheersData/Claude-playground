@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "ux-ui",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.210Z",
+    "last_updated": "2026-03-15T16:34:18.720Z",
     "updated_by": "auto-update-dept-status"
   },
-  "health": "warning",
-  "summary": "5 task aperti. 37 completati (ultimi 7gg). 37 completati (totale).",
+  "health": "ok",
+  "summary": "3 task in corso. 43 completati (ultimi 7gg). 78 completati (totale).",
   "design_system": {
     "palette": {
       "background": "#0a0a0a",
@@ -53,34 +53,22 @@
   ],
   "open_tasks": [
     {
-      "id": "fc4cb9c9",
-      "title": "Applicare brand book al redesign Ops Center (task P3)",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "63217463",
-      "title": "Armonizzare componenti secondari (TaskBoardFullscreen, DepartmentList, CMEChatPanel, TradingDashboard, ecc.)",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "fe905345",
-      "title": "Applicare Brand Book universale a Ops Center dopo customer journey analysis",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "87c18643",
-      "title": "Redesign Ops Center basato su Brand Book v3 + Customer Journey",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "4cd4aaf0",
-      "title": "Redesign completo Gherardi Pro: UX professionale",
+      "id": "950916bd",
+      "title": "FASE 2: Visual Entity Mapper UI (12 componenti)",
       "priority": "high",
-      "status": "open"
+      "status": "in_progress"
+    },
+    {
+      "id": "a2ed8c2c",
+      "title": "Collegare wizard a API backend /api/integrations/setup e /api/integrations/dashboard per persistere configurazioni su DB",
+      "priority": "medium",
+      "status": "in_progress"
+    },
+    {
+      "id": "e1678291",
+      "title": "Test E2E per wizard integrazione",
+      "priority": "medium",
+      "status": "in_progress"
     }
   ],
   "blockers": [],

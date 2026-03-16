@@ -16,7 +16,7 @@
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.77.0",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@google/genai": "^1.42.0",
     "@next/third-parties": "^16.1.6",
     "@supabase/ssr": "^0.8.0",
@@ -27,13 +27,13 @@
     "fast-xml-parser": "^5.3.7",
     "framer-motion": "^12.34.2",
     "js-yaml": "^4.1.1",
-    "lucide-react": "^0.575.0",
+    "lucide-react": "^0.577.0",
     "mammoth": "^1.11.0",
     "next": "16.1.6",
     "openai": "^6.24.0",
     "pdf-parse": "^2.4.5",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "recharts": "^3.7.0",
     "stripe": "^20.3.1",
     "zustand": "^5.0.11"

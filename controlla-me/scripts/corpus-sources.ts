@@ -376,9 +376,9 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     connector: {
       normattivaSearchTerms: ["codice amministrazione digitale", "cad 82 2005", "firma digitale"],
       normattivaActType: "decreto.legislativo",
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 112 del 16 maggio 2005, S.O. n. 93
+      // codiceRedazionale: verificare via `npx tsx scripts/data-connector.ts connect dlgs_82_2005`
       directAkn: true,
+      normattivaDataGU: "20050516",    // G.U. n. 112 del 16 maggio 2005, S.O. n. 93
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -399,9 +399,9 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
     connector: {
       normattivaSearchTerms: ["equo canone", "legge 392 1978", "locazioni immobili urbani"],
       normattivaActType: "legge",
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 211 del 29 luglio 1978
+      // codiceRedazionale: verificare via `npx tsx scripts/data-connector.ts connect legge_392_1978`
       directAkn: true,
+      normattivaDataGU: "19780729",    // G.U. n. 211 del 29 luglio 1978
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -446,6 +446,29 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       preferredFormat: "akn",
     },
     lifecycle: "planned",
+  },
+  {
+    id: "dpr_602_1973",
+    name: "Riscossione imposte sul reddito — D.P.R. 602/1973",
+    shortName: "D.P.R. 602/1973",
+    type: "normattiva",
+    description: "D.P.R. 29 settembre 1973, n. 602 — Disposizioni sulla riscossione delle imposte sul reddito: iscrizione a ruolo, cartelle di pagamento, rateizzazione, fermo amministrativo, ipoteca, pignoramento. Art. 76: limiti al pignoramento immobiliare da parte dell'agente della riscossione (impignorabilita prima casa solo per Agenzia Entrate-Riscossione)",
+    urn: "urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602",
+    baseUrl: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602",
+    hierarchyLevels: [
+      { key: "title", label: "Titolo" },
+      { key: "chapter", label: "Capo" },
+    ],
+    estimatedArticles: 92,
+    connector: {
+      normattivaActType: "decreto.del.presidente.della.repubblica",
+      normattivaSearchTerms: ["riscossione imposte reddito", "dpr 602 1973", "pignoramento prima casa agente riscossione"],
+      // codiceRedazionale: verificare via `npx tsx scripts/data-connector.ts connect dpr_602_1973`
+      directAkn: true,
+      normattivaDataGU: "19731016",    // G.U. n. 268 del 16 ottobre 1973
+      preferredFormat: "akn",
+    },
+    lifecycle: "planned",   // Necessario per TC27 — art. 76 (limiti pignoramento immobiliare). Cross-ref con tax-sources.ts
   },
 ];
 

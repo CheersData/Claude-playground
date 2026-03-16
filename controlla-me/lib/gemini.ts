@@ -48,6 +48,14 @@ function rotateGeminiToAltKey(): boolean {
   return true;
 }
 
+// ─── Test Helpers (exported only for tests) ───
+
+/** Reset singleton client and rotation state. Only for tests. */
+export function _resetGeminiForTesting(): void {
+  _client = null;
+  _geminiRotatedToAlt = false;
+}
+
 // ─── Config ───
 
 export const GEMINI_MODEL = "gemini-2.5-flash";

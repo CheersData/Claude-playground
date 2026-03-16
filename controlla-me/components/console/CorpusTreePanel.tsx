@@ -400,8 +400,10 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
               key={tab}
               role="tab"
               aria-selected={activeTab === tab}
+              aria-controls={`corpus-tabpanel-${tab}`}
+              id={`corpus-tab-${tab}`}
               onClick={() => switchTab(tab)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
                 activeTab === tab
                   ? "bg-[var(--foreground)] text-white"
                   : "text-[var(--foreground-secondary)] hover:bg-[var(--border-subtle)]"
@@ -414,7 +416,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
         {/* Search */}
         <div className="flex-1 min-w-[140px] relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--foreground-tertiary)]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--foreground-tertiary)]" aria-hidden="true" />
           <input
             type="text"
             value={searchQuery}
@@ -440,6 +442,9 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
       {/* ─── Columns area: snap-scroll on mobile, side-by-side on desktop ─── */}
       <div
         ref={columnsContainerRef}
+        role="tabpanel"
+        id={`corpus-tabpanel-${activeTab}`}
+        aria-labelledby={`corpus-tab-${activeTab}`}
         className="flex-1 flex min-h-0 overflow-x-auto snap-x snap-mandatory md:snap-none"
       >
 
@@ -470,7 +475,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
             {/* Loading indicator */}
             {treeLoading && (
-              <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex items-center justify-center">
+              <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex items-center justify-center" role="status" aria-label="Caricamento struttura">
                 <div className="space-y-3 animate-pulse w-full px-4">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${60 + i * 8}%` }} />
@@ -562,15 +567,15 @@ function SourceColumn({
   onSelect: (source: SourceInfo) => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+    <nav className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0" aria-label="Fonti legislative">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           Fonti
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Lista fonti legislative">
         {loading ? (
-          <div className="p-4 space-y-3 animate-pulse">
+          <div className="p-4 space-y-3 animate-pulse" role="status" aria-label="Caricamento fonti">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 12}%` }} />
             ))}
@@ -600,7 +605,7 @@ function SourceColumn({
           </>
         )}
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -610,13 +615,16 @@ function SourceItem({ source, selected, onSelect }: {
   return (
     <button
       onClick={() => onSelect(source)}
-      className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors ${
+      role="option"
+      aria-selected={selected}
+      aria-label={`${source.source_name} — ${source.article_count} articoli`}
+      className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
         selected
           ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
           : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
       }`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selected ? "bg-[#A78BFA]" : "bg-[var(--border)]"}`} />
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selected ? "bg-[#A78BFA]" : "bg-[var(--border)]"}`} aria-hidden="true" />
       <span className="truncate flex-1">{source.source_name}</span>
       <span className="text-[10px] text-[var(--foreground-tertiary)] tabular-nums shrink-0">
         {source.article_count}
@@ -653,7 +661,9 @@ function HierarchyColumn({
             <button
               key={node.key}
               onClick={() => hasContent && onNodeSelect(colIndex, node)}
-              className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors group ${
+              aria-label={`${node.label}${total > 0 ? ` — ${total} articoli` : ""}${isSelected ? " (selezionato)" : ""}`}
+              aria-expanded={hasContent ? isSelected : undefined}
+              className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors group focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                 isSelected
                   ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
                   : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
@@ -670,7 +680,7 @@ function HierarchyColumn({
               {hasContent && (
                 <ChevronRight className={`w-3 h-3 shrink-0 ${
                   isSelected ? "text-[#A78BFA]/60" : "text-[var(--border)]"
-                }`} />
+                }`} aria-hidden="true" />
               )}
             </button>
           );
@@ -688,7 +698,8 @@ function HierarchyColumn({
                 <button
                   key={art.id}
                   onClick={() => onArticleSelect(art.id, colIndex)}
-                  className={`w-full text-left px-4 py-1.5 flex items-center gap-1.5 text-xs transition-colors ${
+                  aria-label={`Articolo ${art.article_number}${art.article_title ? ` — ${art.article_title}` : ""}${isSelected ? " (selezionato)" : ""}`}
+                  className={`w-full text-left px-4 py-1.5 flex items-center gap-1.5 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                     isSelected
                       ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
                       : "text-[var(--foreground-secondary)] hover:bg-[var(--surface-hover)]"
@@ -721,15 +732,15 @@ function InstituteColumn({
   onSelect: (name: string) => void;
 }) {
   return (
-    <div className="w-[calc(100vw-2px)] md:w-[240px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
+    <nav className="w-[calc(100vw-2px)] md:w-[240px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0" aria-label="Istituti giuridici">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
           Istituti Giuridici
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Lista istituti giuridici">
         {loading ? (
-          <div className="p-4 space-y-3 animate-pulse">
+          <div className="p-4 space-y-3 animate-pulse" role="status" aria-label="Caricamento istituti">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 10}%` }} />
             ))}
@@ -741,7 +752,10 @@ function InstituteColumn({
               <button
                 key={inst.name}
                 onClick={() => onSelect(inst.name)}
-                className={`w-full text-left px-4 py-2.5 flex items-center gap-2 text-xs transition-colors ${
+                role="option"
+                aria-selected={isSelected}
+                aria-label={`${inst.label} — ${inst.count} articoli${isSelected ? " (selezionato)" : ""}`}
+                className={`w-full text-left px-4 py-2.5 flex items-center gap-2 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                   isSelected
                     ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
                     : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
@@ -755,13 +769,13 @@ function InstituteColumn({
                 </span>
                 <ChevronRight className={`w-3 h-3 shrink-0 ${
                   isSelected ? "text-[#A78BFA]/60" : "text-[var(--border)]"
-                }`} />
+                }`} aria-hidden="true" />
               </button>
             );
           })
         )}
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -782,9 +796,9 @@ function InstituteArticlesColumn({
           Articoli ({articles.length})
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Articoli dell'istituto">
         {loading ? (
-          <div className="p-4 space-y-3 animate-pulse">
+          <div className="p-4 space-y-3 animate-pulse" role="status" aria-label="Caricamento articoli">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 10}%` }} />
             ))}
@@ -798,7 +812,10 @@ function InstituteArticlesColumn({
               <button
                 key={art.id}
                 onClick={() => onSelect(art.id)}
-                className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                role="option"
+                aria-selected={isSelected}
+                aria-label={`Articolo ${art.article_number}${art.article_title ? ` — ${art.article_title}` : ""}, ${art.source_name}`}
+                className={`w-full text-left px-4 py-2 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                   isSelected
                     ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
                     : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
@@ -841,14 +858,15 @@ function SearchResultsColumn({
         </span>
         <button
           onClick={onClose}
-          className="text-[10px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors"
+          aria-label="Chiudi risultati ricerca"
+          className="text-[10px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
         >
           Chiudi
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Risultati ricerca semantica">
         {loading ? (
-          <div className="p-4 space-y-3 animate-pulse">
+          <div className="p-4 space-y-3 animate-pulse" role="status" aria-label="Ricerca in corso">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-4 bg-[var(--border-subtle)] rounded" style={{ width: `${50 + i * 10}%` }} />
             ))}
@@ -862,7 +880,10 @@ function SearchResultsColumn({
               <button
                 key={r.id}
                 onClick={() => onSelect(r.id)}
-                className={`w-full text-left px-4 py-2.5 border-b border-[var(--border-subtle)] text-xs transition-colors ${
+                role="option"
+                aria-selected={isSelected}
+                aria-label={`${r.article_reference}${r.article_title ? ` — ${r.article_title}` : ""}, ${r.law_source}`}
+                className={`w-full text-left px-4 py-2.5 border-b border-[var(--border-subtle)] text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                   isSelected
                     ? "bg-[#A78BFA]/10"
                     : "hover:bg-[var(--surface-hover)]"
@@ -897,6 +918,9 @@ function ArticlePreview({ article, loading }: {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex-1 min-w-[calc(100vw-2px)] md:min-w-[320px] snap-start flex flex-col min-h-0 bg-[var(--surface)]"
+      role="region"
+      aria-label={article ? `Anteprima: Articolo ${article.article_number}${article.article_title ? ` — ${article.article_title}` : ""}` : "Anteprima articolo"}
+      aria-live="polite"
     >
       <div className="px-6 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
         <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
@@ -905,7 +929,7 @@ function ArticlePreview({ article, loading }: {
       </div>
       <div className="flex-1 overflow-y-auto px-8 py-8">
         {loading ? (
-          <div className="max-w-[600px] mx-auto space-y-4 animate-pulse">
+          <div className="max-w-[600px] mx-auto space-y-4 animate-pulse" role="status" aria-label="Caricamento anteprima">
             <div className="h-3 w-48 bg-[var(--border-subtle)] rounded" />
             <div className="h-8 w-72 bg-[var(--border-subtle)] rounded" />
             <div className="h-5 w-56 bg-[var(--border-subtle)] rounded" />
@@ -960,7 +984,8 @@ function ArticlePreview({ article, loading }: {
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors"
+                  aria-label={`Fonte ufficiale per Articolo ${article.article_number} (apre in nuova scheda)`}
+                  className="text-[11px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
                 >
                   Fonte ufficiale &rarr;
                 </a>

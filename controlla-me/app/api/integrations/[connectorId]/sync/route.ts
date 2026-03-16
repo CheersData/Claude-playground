@@ -13,12 +13,24 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { getVaultOrNull } from "@/lib/credential-vault";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { HubSpotConnector } from "@/lib/staff/data-connector/connectors/hubspot";
+import { getIntegrationSourceById } from "@/scripts/integration-sources";
+import { FieldMapper } from "@/lib/staff/data-connector/mapping";
 
 // ─── Provider-specific sync logic ───
 
+interface SyncItem {
+  external_id: string;
+  source: string;
+  entity_type: string;
+  data: Record<string, unknown>;
+  mapped_fields?: Record<string, unknown>;
+  mapping_confidence?: number;
+}
+
 interface SyncResult {
   itemCount: number;
-  items: Record<string, unknown>[];
+  items: SyncItem[];
   error?: string;
 }
 
@@ -47,15 +59,28 @@ async function syncGoogleDrive(accessToken: string): Promise<SyncResult> {
     const data = await response.json();
     const files = data.files || [];
 
-    return {
-      itemCount: files.length,
-      items: files.map((f: Record<string, unknown>) => ({
-        external_id: f.id,
-        source: "google-drive",
-        entity_type: "file",
-        data: f,
-      })),
-    };
+    // Apply field mapping via MappingEngine
+    const mapper = new FieldMapper();
+    const items: SyncItem[] = await Promise.all(
+      files.map(async (f: Record<string, unknown>) => {
+        const item: SyncItem = {
+          external_id: String(f.id ?? ""),
+          source: "google-drive",
+          entity_type: "file",
+          data: f,
+        };
+        try {
+          const mapped = await mapper.mapFields(f, "google-drive", "file", { skipLLM: true });
+          item.mapped_fields = mapped.fields;
+          item.mapping_confidence = mapped.confidence;
+        } catch (err) {
+          console.warn(`[Sync:google-drive] Mapping failed for file ${f.id}:`, err);
+        }
+        return item;
+      })
+    );
+
+    return { itemCount: items.length, items };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { itemCount: 0, items: [], error: message };
@@ -64,38 +89,40 @@ async function syncGoogleDrive(accessToken: string): Promise<SyncResult> {
 
 async function syncHubSpot(accessToken: string): Promise<SyncResult> {
   try {
-    const response = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/contacts?limit=50&properties=firstname,lastname,email,phone,company",
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `[Sync:hubspot] API error ${response.status}:`,
-        errorText
-      );
-      return {
-        itemCount: 0,
-        items: [],
-        error: `HubSpot API error: ${response.status}`,
-      };
+    const source = getIntegrationSourceById("hubspot_crm");
+    if (!source) {
+      return { itemCount: 0, items: [], error: "HubSpot source config not found" };
     }
 
-    const data = await response.json();
-    const contacts = data.results || [];
+    // BUG 5+6 FIX: Pass accessToken as explicit token.
+    // The sync route already retrieved the token from the vault, so we pass it
+    // directly — no need for vault/userId here (connector uses explicit token mode).
+    const connector = new HubSpotConnector(source, console.log, { accessToken });
+    const fetchResult = await connector.fetchAll({ limit: 200 });
 
-    return {
-      itemCount: contacts.length,
-      items: contacts.map((c: Record<string, unknown>) => ({
-        external_id: c.id || String(c),
-        source: "hubspot",
-        entity_type: "contact",
-        data: c,
-      })),
-    };
+    // Apply field mapping via MappingEngine
+    const mapper = new FieldMapper();
+    const items: SyncItem[] = await Promise.all(
+      fetchResult.items.map(async (record) => {
+        const flat = record as unknown as Record<string, unknown>;
+        const item: SyncItem = {
+          external_id: record.externalId,
+          source: "hubspot",
+          entity_type: record.objectType,
+          data: flat,
+        };
+        try {
+          const mapped = await mapper.mapFields(flat, "hubspot", record.objectType, { skipLLM: true });
+          item.mapped_fields = mapped.fields;
+          item.mapping_confidence = mapped.confidence;
+        } catch (err) {
+          console.warn(`[Sync:hubspot] Mapping failed for ${record.objectType} ${record.externalId}:`, err);
+        }
+        return item;
+      })
+    );
+
+    return { itemCount: items.length, items };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { itemCount: 0, items: [], error: message };
@@ -181,10 +208,12 @@ export async function POST(
     .from("integration_sync_log")
     .insert({
       connection_id: connection.id,
+      user_id: userId,
       status: "running",
       started_at: new Date().toISOString(),
-      records_processed: 0,
-      records_failed: 0,
+      items_fetched: 0,
+      items_processed: 0,
+      items_failed: 0,
     })
     .select("id")
     .single();
@@ -200,7 +229,8 @@ export async function POST(
   const durationMs = Date.now() - startTime;
 
   // Store items in integration_sync_log details (not crm_records which may not exist)
-  const syncStatus = result.error ? "error" : "completed";
+  const syncStatus = result.error ? "error" : "success";
+  const mappedCount = result.items.filter((i) => i.mapped_fields).length;
 
   // Update sync_log
   if (syncLog?.id) {
@@ -209,13 +239,15 @@ export async function POST(
       .update({
         status: syncStatus,
         completed_at: new Date().toISOString(),
-        records_processed: result.itemCount,
-        records_failed: result.error ? result.itemCount : 0,
-        error_message: result.error || null,
-        metadata: {
-          duration_ms: durationMs,
-          items_fetched: result.itemCount,
-        },
+        items_fetched: result.itemCount,
+        items_processed: result.error ? 0 : result.itemCount,
+        items_failed: result.error ? result.itemCount : 0,
+        duration_ms: durationMs,
+        error_details: result.error
+          ? { message: result.error, items_fetched: result.itemCount }
+          : mappedCount > 0
+            ? { mapped_items: mappedCount, total_items: result.itemCount }
+            : null,
       })
       .eq("id", syncLog.id);
   }

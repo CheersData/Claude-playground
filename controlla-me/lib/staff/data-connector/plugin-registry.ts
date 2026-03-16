@@ -23,6 +23,8 @@ import type { HubSpotRecord } from "./parsers/hubspot-parser";
 import type { SalesforceRecord } from "./parsers/salesforce-parser";
 import type { StripeRecord } from "./parsers/stripe-parser";
 import type { FattureRecord } from "./parsers/fatture-parser";
+import type { UniversalConnector } from "./protocol";
+import { LegacyConnectorAdapter } from "./protocol-adapter";
 
 // ─── Tipi factory (backward compatible — ParsedArticle/LegalArticle) ───
 
@@ -50,6 +52,13 @@ export type GenericStoreFactory<T = unknown> = (
   log: (msg: string) => void
 ) => StoreInterface<T>;
 
+// ─── Tipi factory UniversalConnector (FASE 1A) ───
+
+export type UniversalConnectorFactory<T = unknown> = (
+  source: DataSource,
+  log: (msg: string) => void
+) => UniversalConnector<T>;
+
 // ─── Registry maps ───
 
 // Registry tipizzato per legal/medical (backward compatible)
@@ -64,6 +73,10 @@ const storeRegistry = new Map<string, StoreFactory>();
 const genericConnectorRegistry = new Map<string, GenericConnectorFactory<any>>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const genericStoreRegistry = new Map<string, GenericStoreFactory<any>>();
+
+// Registry per UniversalConnector (FASE 1A — nuovo protocollo unificato)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const universalConnectorRegistry = new Map<string, UniversalConnectorFactory<any>>();
 
 // ─── Registrazione (backward compatible) ───
 
@@ -217,6 +230,65 @@ export function resolveGenericStore<T>(
   );
 }
 
+// ─── Registrazione UniversalConnector (FASE 1A) ───
+
+/**
+ * Registra un connettore che implementa direttamente UniversalConnector.
+ * Nuovi connettori dovrebbero usare questa funzione.
+ */
+export function registerUniversalConnector<T>(
+  connectorId: string,
+  factory: UniversalConnectorFactory<T>
+): void {
+  universalConnectorRegistry.set(connectorId, factory);
+}
+
+// ─── Lookup UniversalConnector (FASE 1A) ───
+
+/**
+ * Risolve un UniversalConnector per connectorId.
+ *
+ * Strategia di lookup (3 livelli):
+ *   1. Registry UniversalConnector (connettori nuovi)
+ *   2. Registry generico (ADR-1) → wrappato con LegacyConnectorAdapter
+ *   3. Registry legacy (ParsedArticle) → wrappato con LegacyConnectorAdapter
+ *
+ * Questo garantisce che TUTTI i connettori esistenti funzionino senza modifiche.
+ */
+export function resolveUniversalConnector<T>(
+  source: DataSource,
+  log: (msg: string) => void
+): UniversalConnector<T> {
+  // 1. Cerca nel registry UniversalConnector
+  const universalFactory = universalConnectorRegistry.get(source.connector);
+  if (universalFactory) {
+    return universalFactory(source, log) as UniversalConnector<T>;
+  }
+
+  // 2. Cerca nel registry generico (ADR-1) e wrappa
+  const genericFactory = genericConnectorRegistry.get(source.connector);
+  if (genericFactory) {
+    const legacy = genericFactory(source, log) as ConnectorInterface<T>;
+    return new LegacyConnectorAdapter<T>(legacy, source.connector, source, {
+      capabilities: { auth: true },
+    });
+  }
+
+  // 3. Cerca nel registry legacy (ParsedArticle) e wrappa
+  const legacyFactory = connectorRegistry.get(source.connector);
+  if (legacyFactory) {
+    const legacy = legacyFactory(source, log) as unknown as ConnectorInterface<T>;
+    return new LegacyConnectorAdapter<T>(legacy, source.connector, source);
+  }
+
+  throw new Error(
+    `Connettore non registrato: "${source.connector}" per fonte "${source.id}". ` +
+    `Registries: universal=[${[...universalConnectorRegistry.keys()].join(", ")}], ` +
+    `generic=[${[...genericConnectorRegistry.keys()].join(", ")}], ` +
+    `legacy=[${[...connectorRegistry.keys()].join(", ")}]`
+  );
+}
+
 // ─── Listing ───
 
 export function listRegistered(): {
@@ -225,6 +297,7 @@ export function listRegistered(): {
   stores: string[];
   genericConnectors: string[];
   genericStores: string[];
+  universalConnectors: string[];
 } {
   return {
     connectors: [...connectorRegistry.keys()],
@@ -232,6 +305,7 @@ export function listRegistered(): {
     stores: [...storeRegistry.keys()],
     genericConnectors: [...genericConnectorRegistry.keys()],
     genericStores: [...genericStoreRegistry.keys()],
+    universalConnectors: [...universalConnectorRegistry.keys()],
   };
 }
 
@@ -306,10 +380,13 @@ function registerDefaults(): void {
   // ── Business connectors (ADR-1 — generic pipeline) ──
 
   // HubSpot CRM — contacts, companies, deals, tickets
+  // BUG 5 FIX: Pipeline mode uses source.auth (api-key from HUBSPOT_API_KEY env var).
+  // For OAuth2 user-facing mode, the sync route creates the connector with explicit
+  // accessToken retrieved from the vault.
   registerGenericConnector<HubSpotRecord>("hubspot", (source, log) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { HubSpotConnector } = require("./connectors/hubspot");
-    return new HubSpotConnector(source, log);
+    return new HubSpotConnector(source, log, {});
   });
 
   registerGenericStore<HubSpotRecord>("crm-records:hubspot", (_source, log) => {

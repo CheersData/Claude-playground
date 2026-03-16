@@ -561,9 +561,10 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors"
+            className="text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-label="Chiudi pannello Company"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -571,7 +572,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
       {/* Two-column layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: Dashboard sidebar ── */}
-        <aside className="w-64 border-r border-[var(--border-dark-subtle)] overflow-y-auto p-4 space-y-5 hidden md:block">
+        <aside className="w-64 border-r border-[var(--border-dark-subtle)] overflow-y-auto p-4 space-y-5 hidden md:block" role="complementary" aria-label="Dashboard aziendale">
           {/* DA APPROVARE — review tasks awaiting boss approval */}
           {reviewTasks.length > 0 && (
             <DashboardSection title={`Da Approvare (${reviewTasks.length})`}>
@@ -583,7 +584,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                     onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                     className="cursor-pointer w-full flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg bg-[rgba(255,200,50,0.1)] border border-[rgba(255,200,50,0.2)] hover:bg-[rgba(255,200,50,0.15)] transition-colors text-left"
                   >
-                    <AlertCircle className="w-[10px] h-[10px] text-[var(--identity-gold)] mt-0.5 shrink-0" />
+                    <AlertCircle className="w-[10px] h-[10px] text-[var(--identity-gold)] mt-0.5 shrink-0" aria-hidden="true" />
                     <div className="min-w-0">
                       <p className="text-[var(--fg-primary)] truncate font-medium">{task.title}</p>
                       <p className="text-[var(--fg-muted)] text-[10px]">
@@ -668,7 +669,9 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                         type="button"
                         onClick={() => handleTargetChange(dept as TargetKey)}
                         disabled={responding}
-                        className={`w-full flex items-center justify-between text-[11px] px-1.5 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 ${
+                        aria-label={`Parla con ${DEPT_NAMES[dept] ?? dept} — ${info.open} aperti, ${info.inProgress} in corso, ${info.done} completati`}
+                        aria-pressed={isActive}
+                        className={`w-full flex items-center justify-between text-[11px] px-1.5 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
                           isActive
                             ? "bg-[var(--bg-active)] text-[var(--fg-primary)]"
                             : "hover:bg-[var(--bg-overlay)]"
@@ -756,13 +759,16 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
             <span className="text-[10px] text-[var(--fg-muted)] uppercase tracking-wider mb-2 block">
               Parla con
             </span>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Seleziona destinatario">
               {TARGETS.map((t) => (
                 <button
                   key={t.key}
                   onClick={() => handleTargetChange(t.key)}
                   disabled={responding}
-                  className={`text-[10px] px-2 py-1 rounded transition-colors disabled:opacity-50 ${
+                  role="radio"
+                  aria-checked={target === t.key}
+                  aria-label={`Parla con ${t.label}`}
+                  className={`text-[10px] px-2 py-1 rounded transition-colors disabled:opacity-50 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
                     target === t.key
                       ? "bg-[var(--bg-active)] text-[var(--fg-primary)]"
                       : "bg-[var(--bg-overlay)] text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)]"
@@ -777,9 +783,10 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
           <button
             onClick={() => fetchDashboard(false)}
             disabled={dashLoading}
-            className="flex items-center gap-1.5 text-[10px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors"
+            aria-label="Aggiorna dati dashboard"
+            className="flex items-center gap-1.5 text-[10px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
           >
-            <RefreshCw className={`w-3 h-3 ${dashLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3 h-3 ${dashLoading ? "animate-spin" : ""}`} aria-hidden="true" />
             Aggiorna dati
           </button>
         </aside>
@@ -787,13 +794,16 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
         {/* ── Center: Chat area ── */}
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile target selector */}
-          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-[var(--border-dark-subtle)] overflow-x-auto md:hidden scrollbar-none">
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-[var(--border-dark-subtle)] overflow-x-auto md:hidden scrollbar-none" role="radiogroup" aria-label="Seleziona destinatario">
             {TARGETS.map((t) => (
               <button
                 key={t.key}
                 onClick={() => handleTargetChange(t.key)}
                 disabled={responding}
-                className={`text-[11px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors touch-manipulation disabled:opacity-50 ${
+                role="radio"
+                aria-checked={target === t.key}
+                aria-label={`Parla con ${t.label}`}
+                className={`text-[11px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors touch-manipulation disabled:opacity-50 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
                   target === t.key ? "bg-[var(--bg-active)] text-[var(--fg-primary)]" : "bg-[var(--bg-overlay)] text-[var(--fg-secondary)]"
                 }`}
               >
@@ -811,16 +821,17 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                   <Image src={filePreview} alt={file.name} width={40} height={40} unoptimized className="rounded object-cover border border-[var(--border-dark-subtle)]" />
                 ) : (
                   <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
-                    <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" />
+                    <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" aria-hidden="true" />
                     <span className="text-xs text-[var(--fg-secondary)] max-w-[200px] truncate">{file.name}</span>
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={removeFile}
-                  className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--fg-primary)] transition-colors"
+                  aria-label={`Rimuovi file allegato: ${file?.name ?? "file"}`}
+                  className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -835,10 +846,11 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors shrink-0"
+                className="p-1.5 text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                aria-label="Allega file o incolla immagine"
                 title="Allega file (o incolla immagine)"
               >
-                <Paperclip className="w-4 h-4" />
+                <Paperclip className="w-4 h-4" aria-hidden="true" />
               </button>
               <input
                 ref={inputRef}
@@ -853,33 +865,36 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                     ? "Scrivi per interrompere o chiedere altro..."
                     : `Scrivi a ${TARGETS.find((t) => t.key === target)?.short ?? "CME"}...`
                 }
+                aria-label={`Messaggio per ${TARGETS.find((t) => t.key === target)?.label ?? "CME"}`}
                 className="flex-1 text-sm text-[var(--fg-primary)] placeholder:text-[var(--fg-invisible)] bg-transparent outline-none min-w-0"
               />
             {responding && (
               <button
                 type="button"
                 onClick={handleStop}
-                className="flex items-center gap-1.5 px-3 py-2 rounded bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 transition-colors text-xs shrink-0 touch-manipulation"
+                aria-label="Interrompi risposta in corso"
+                className="flex items-center gap-1.5 px-3 py-2 rounded bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 transition-colors text-xs shrink-0 touch-manipulation focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
               >
-                <Square className="w-3 h-3 fill-current" />
+                <Square className="w-3 h-3 fill-current" aria-hidden="true" />
                 Stop
               </button>
             )}
             <button
               type="submit"
               disabled={!input.trim() && !file}
-              className="p-2 -m-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-30 shrink-0 touch-manipulation"
+              aria-label="Invia messaggio"
+              className="p-2 -m-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-30 shrink-0 touch-manipulation focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
             >
-              <Send className="w-5 h-5 md:w-4 md:h-4" />
+              <Send className="w-5 h-5 md:w-4 md:h-4" aria-hidden="true" />
             </button>
             </div>
           </form>
 
           {/* Messages — newest first (reverse chronological) */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4" role="log" aria-label="Messaggi chat" aria-live="polite">
               {/* Waiting indicator — most recent, always on top */}
               {responding && !streaming && (
-                <div className="flex justify-start">
+                <div className="flex justify-start" role="status" aria-label="In attesa di risposta">
                   <div className="bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)] rounded-xl px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <PulseDot color="var(--identity-gold)" size={5} />
@@ -917,14 +932,15 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
 
         {/* ── Right: Debug Monitor ── */}
         {showDebug ? (
-          <aside className="w-72 border-l border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] flex flex-col overflow-hidden hidden lg:flex">
+          <aside className="w-72 border-l border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] flex flex-col overflow-hidden hidden lg:flex" role="complementary" aria-label="Monitor debug">
             <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-dark-subtle)]">
               <span className="text-[10px] text-[var(--fg-muted)] uppercase tracking-wider">Debug</span>
               <button
                 onClick={() => setShowDebug(false)}
-                className="text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors"
+                aria-label="Chiudi pannello debug"
+                className="text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3" aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[10px] space-y-0.5">
@@ -967,10 +983,11 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
         ) : (
           <button
             onClick={() => setShowDebug(true)}
-            className="w-6 border-l border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors hidden lg:flex items-center justify-center"
+            className="w-6 border-l border-[var(--border-dark-subtle)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors hidden lg:flex items-center justify-center focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-label="Mostra pannello debug"
             title="Mostra debug"
           >
-            <span className="text-[10px] text-[var(--fg-invisible)] [writing-mode:vertical-lr]">debug</span>
+            <span className="text-[10px] text-[var(--fg-invisible)] [writing-mode:vertical-lr]" aria-hidden="true">debug</span>
           </button>
         )}
       </div>
@@ -1030,7 +1047,7 @@ function ChatBubble({ msg, targetLabel }: { msg: ChatMessage; targetLabel: strin
       >
         {msg.role === "assistant" && (
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="w-[5px] h-[5px] rounded-full bg-[var(--accent)]" />
+            <span className="w-[5px] h-[5px] rounded-full bg-[var(--accent)]" aria-hidden="true" />
             <span className="text-[10px] font-medium text-[var(--fg-secondary)]">{targetLabel}</span>
           </div>
         )}
@@ -1053,7 +1070,11 @@ function DashboardSection({
     <div>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] text-[var(--fg-muted)] uppercase tracking-wider">{title}</span>
-        {loading && <RefreshCw className="w-2.5 h-2.5 text-[var(--fg-invisible)] animate-spin" />}
+        {loading && (
+          <span role="status" aria-label={`Caricamento ${title}`}>
+            <RefreshCw className="w-2.5 h-2.5 text-[var(--fg-invisible)] animate-spin" aria-hidden="true" />
+          </span>
+        )}
       </div>
       {children}
     </div>
@@ -1065,7 +1086,8 @@ function StatusBadge({ label, count, color, onClick }: { label: string; count: n
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      className="cursor-pointer flex items-center justify-between px-2 py-1 rounded bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors w-full text-left"
+      aria-label={`${label}: ${count} task. Clicca per vedere dettagli`}
+      className="cursor-pointer flex items-center justify-between px-2 py-1 rounded bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors w-full text-left focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
     >
       <span className="text-[var(--fg-secondary)]">{label}</span>
       <span className="font-medium" style={{ color }}>

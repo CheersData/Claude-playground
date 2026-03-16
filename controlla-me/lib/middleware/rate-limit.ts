@@ -131,6 +131,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Lawyer referrals — protegge da abuso (SEC-M1)
   "api/lawyer-referrals": { windowSec: 3600, max: 5 },
   // Company internal API — console-auth-protected, rate limit come defense-in-depth
+  "api/company/agents/test": { windowSec: 60, max: 10 },
   "api/company/costs": { windowSec: 60, max: 30 },
   "api/company/cron": { windowSec: 60, max: 5 },
   // Polling endpoints — /ops e CompanyPanel li chiamano ogni 30s, servono limiti alti

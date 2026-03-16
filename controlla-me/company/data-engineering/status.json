@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "data-engineering",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.190Z",
+    "last_updated": "2026-03-15T16:34:18.603Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task aperti. 30 completati (ultimi 7gg). 59 completati (totale).",
+  "summary": "3 task in corso. 60 completati (ultimi 7gg). 116 completati (totale).",
   "corpus": {
     "articles_total": 5600,
     "articles_estimated": true,
@@ -77,10 +77,22 @@
   ],
   "open_tasks": [
     {
-      "id": "1ba921f4",
-      "title": "Verticale Commerciale B2B: contratti fornitura e distribuzione",
+      "id": "eec6cb75",
+      "title": "FASE 1B: Schema Discovery Engine (7 file)",
+      "priority": "high",
+      "status": "in_progress"
+    },
+    {
+      "id": "f695bc4a",
+      "title": "Integrare MappingEngine nei connettori MVP",
       "priority": "medium",
-      "status": "open"
+      "status": "in_progress"
+    },
+    {
+      "id": "d5c6aceb",
+      "title": "Aggiungere unit test per HubSpot connector",
+      "priority": "medium",
+      "status": "in_progress"
     }
   ],
   "blockers": [],

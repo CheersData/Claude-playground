@@ -143,9 +143,36 @@ export class GoogleDriveStore implements StoreInterface<DriveRecord> {
  *   mapped_fields JSONB               — normalized key fields for quick access
  *   synced_at TIMESTAMPTZ
  *   UNIQUE(user_id, connector_source, object_type, external_id)
+ *
+ * If the record has been processed by the MappingEngine (via loadGenericPipeline),
+ * it will have `_mapped_fields` attached. We merge those with the hardcoded defaults,
+ * giving priority to the MappingEngine output (which supports user-confirmed,
+ * rule-based, similarity, and LLM-resolved mappings).
  */
-function toRow(record: DriveRecord): Record<string, unknown> {
+function toRow(record: DriveRecord & { _mapped_fields?: Record<string, unknown>; _mapping_confidence?: number }): Record<string, unknown> {
   const now = new Date().toISOString();
+
+  // Hardcoded defaults — always available as baseline
+  const defaultMappedFields: Record<string, unknown> = {
+    name: record.name,
+    mime_type: record.mimeType,
+    size_bytes: record.sizeBytes,
+    owner_name: record.ownerName,
+    owner_email: record.ownerEmail,
+    shared: record.shared,
+    is_folder: record.isFolder,
+    is_google_format: record.isGoogleFormat,
+    extension: record.extension,
+    web_view_link: record.webViewLink,
+    created_at: record.createdAt,
+    modified_at: record.modifiedAt,
+    parent_ids: record.parents,
+  };
+
+  // MappingEngine output takes priority when available (supports user-confirmed + learned mappings)
+  const mappedFields = record._mapped_fields
+    ? { ...defaultMappedFields, ...record._mapped_fields }
+    : defaultMappedFields;
 
   return {
     user_id: SYSTEM_USER_ID,
@@ -178,22 +205,11 @@ function toRow(record: DriveRecord): Record<string, unknown> {
       rawExtra: record.rawExtra,
     },
 
-    // Mapped fields: normalized key fields for quick queries
-    mapped_fields: {
-      name: record.name,
-      mime_type: record.mimeType,
-      size_bytes: record.sizeBytes,
-      owner_name: record.ownerName,
-      owner_email: record.ownerEmail,
-      shared: record.shared,
-      is_folder: record.isFolder,
-      is_google_format: record.isGoogleFormat,
-      extension: record.extension,
-      web_view_link: record.webViewLink,
-      created_at: record.createdAt,
-      modified_at: record.modifiedAt,
-      parent_ids: record.parents,
-    },
+    // Mapped fields: MappingEngine output merged with hardcoded defaults
+    mapped_fields: mappedFields,
+
+    // Mapping metadata (when MappingEngine was used)
+    ...(record._mapping_confidence != null ? { mapping_confidence: record._mapping_confidence } : {}),
 
     synced_at: now,
     updated_at: now,

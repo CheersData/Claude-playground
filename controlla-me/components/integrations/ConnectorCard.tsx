@@ -249,7 +249,9 @@ export default function ConnectorCard({ connector, index }: ConnectorCardProps) 
           </button>
         ) : isConnected ? (
           <>
-            <button
+            <Link
+              href={`/integrazione/${connector.id}?tab=sync`}
+              onClick={(e) => e.stopPropagation()}
               className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-medium transition-all hover:scale-[1.02]"
               style={{
                 background: "var(--bg-overlay)",
@@ -259,9 +261,9 @@ export default function ConnectorCard({ connector, index }: ConnectorCardProps) 
             >
               <Settings className="w-3.5 h-3.5" />
               Gestisci
-            </button>
+            </Link>
             <button
-              className="rounded-xl py-2.5 px-4 text-sm transition-all"
+              className="rounded-xl py-2.5 px-4 text-sm transition-all hover-bg-error-subtle"
               style={{ color: "var(--error)" }}
               onClick={async (e) => {
                 e.preventDefault();
@@ -274,12 +276,6 @@ export default function ConnectorCard({ connector, index }: ConnectorCardProps) 
                 } catch {
                   alert("Errore di rete");
                 }
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(229, 141, 120, 0.1)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
               }}
             >
               Disconnetti

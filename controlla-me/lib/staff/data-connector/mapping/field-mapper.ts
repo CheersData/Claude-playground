@@ -34,6 +34,7 @@ import { STRIPE_RULES } from "./rules/stripe-rules";
 import { HUBSPOT_RULES } from "./rules/hubspot-rules";
 import { SALESFORCE_RULES } from "./rules/salesforce-rules";
 import { GOOGLE_DRIVE_RULES } from "./rules/google-drive-rules";
+import { FATTURE_IN_CLOUD_RULES } from "./rules/fatture-in-cloud-rules";
 import type { FieldMappingRule } from "./rules/stripe-rules";
 
 // Re-export key types for consumers
@@ -51,6 +52,7 @@ const CONNECTOR_RULES: Record<string, Record<string, Record<string, FieldMapping
   hubspot: HUBSPOT_RULES,
   salesforce: SALESFORCE_RULES,
   "google-drive": GOOGLE_DRIVE_RULES,
+  "fatture-in-cloud": FATTURE_IN_CLOUD_RULES,
 };
 
 // ─── Default target schema ───

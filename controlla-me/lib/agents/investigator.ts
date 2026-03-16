@@ -41,10 +41,10 @@ async function selfRetrieveForClauses(
       const [knowledgeResults, articleResults] = await Promise.all([
         searchLegalKnowledge(query, {
           limit: maxResultsPerClause,
-          threshold: 0.60,
+          threshold: 0.50,
         }).catch((err) => { console.error("[Investigator] searchLegalKnowledge failed:", err); return []; }),
         searchArticles(query, {
-          threshold: 0.55,
+          threshold: 0.45,
           limit: maxResultsPerClause,
         }).catch((err) => { console.error("[Investigator] searchArticles failed:", err); return []; }),
       ]);

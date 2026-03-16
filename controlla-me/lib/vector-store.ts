@@ -397,7 +397,8 @@ export async function searchLegalKnowledge(
 ): Promise<SearchResult[]> {
   if (!isVectorDBEnabled()) return [];
 
-  const { category, threshold = 0.65, limit = 5 } = options;
+  // Voyage AI voyage-law-2 yields lower sim for Italian legal text (~0.40-0.65)
+  const { category, threshold = 0.55, limit = 5 } = options;
 
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
@@ -446,7 +447,7 @@ export async function searchAll(
 ): Promise<{ documents: SearchResult[]; knowledge: SearchResult[] }> {
   if (!isVectorDBEnabled()) return { documents: [], knowledge: [] };
 
-  const { threshold = 0.65, limit = 5 } = options;
+  const { threshold = 0.55, limit = 5 } = options;
 
   // Esegui entrambe le ricerche in parallelo
   const [documents, knowledge] = await Promise.all([
@@ -473,7 +474,7 @@ export async function buildRAGContext(
   const { maxChars = 3000, categories } = options;
 
   const results = await searchLegalKnowledge(query, {
-    threshold: 0.6,
+    threshold: 0.5,
     limit: 8,
   });
 

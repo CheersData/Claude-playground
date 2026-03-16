@@ -107,6 +107,7 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
 
   // Step 5: Activate
   const [activateStatus, setActivateStatus] = useState<"idle" | "activating" | "success" | "error">("idle");
+  const [activateError, setActivateError] = useState<string | null>(null);
 
   // ─── Navigation helpers ───
 
@@ -217,36 +218,26 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
 
   const handleActivate = useCallback(async () => {
     setActivateStatus("activating");
+    setActivateError(null);
     try {
-      // Create connection
-      const connRes = await fetch("/api/integrations", {
+      // Use unified setup endpoint — creates connection + saves mappings + triggers sync
+      const res = await fetch("/api/integrations/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           connectorId: connector.id,
           connectorName: connector.name,
-          frequency,
           selectedEntities,
+          frequency,
+          mappings: entityMappings,
+          triggerSync: true,
         }),
       });
 
-      if (!connRes.ok && connRes.status !== 409) {
-        throw new Error("Errore nella creazione della connessione");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Errore nella configurazione");
       }
-
-      // Save mappings
-      if (entityMappings.length > 0) {
-        await fetch(`/api/integrations/${connector.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mappings: entityMappings }),
-        });
-      }
-
-      // Trigger sync
-      await fetch(`/api/integrations/${connector.id}/sync`, {
-        method: "POST",
-      });
 
       setActivateStatus("success");
 
@@ -262,8 +253,11 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
       setTimeout(() => {
         onComplete(result);
       }, 1200);
-    } catch {
+    } catch (err) {
       setActivateStatus("error");
+      setActivateError(
+        err instanceof Error ? err.message : "Errore durante l'attivazione. Riprova."
+      );
     }
   }, [connector.id, connector.name, selectedEntities, apiKey, secretKey, entityMappings, frequency, onComplete]);
 
@@ -346,14 +340,8 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors hover-bg-overlay"
                 style={{ color: "var(--fg-muted)" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
                 aria-label="Chiudi wizard"
               >
                 <X className="w-5 h-5" />
@@ -478,6 +466,7 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
                       ignoredFieldsCount={mappingStats.ignored}
                       frequency={frequency}
                       activateStatus={activateStatus}
+                      activateError={activateError}
                       onActivate={handleActivate}
                       onGoToStep={goToStep}
                     />

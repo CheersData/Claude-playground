@@ -73,7 +73,11 @@ Ogni run genera automaticamente (in `trading/backtest-results/YYYYMMDD_HHMMSS/`)
 ### 1. Esecuzione
 
 ```bash
-py -m src.backtest run --start 2023-03-01 --end 2026-02-28 --capital 20000 --sl-atr 2.5 --tp-atr 6.0
+# Ciclo 4 defaults (SL=1.5, TP=3.0 — omessi perche ora sono default)
+py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --capital 100000
+
+# Con override esplicito
+py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --capital 100000 --sl-atr 1.5 --tp-atr 3.0
 ```
 
 ### 2. Verifica output CLI
@@ -143,13 +147,19 @@ Vedi report completo: `company/trading/reports/backtest-2026-03-02.md`
 
 ## Parametri ottimali trovati (da grid search)
 
-Per strategia daily MACD su ETF:
+Per strategia daily MACD su ETF (Ciclo 1-3):
 - `--sl-atr 2.5` (stop loss = 2.5x ATR)
 - `--tp-atr 6.0` (take profit = 6.0x ATR)
 - `--threshold 0.3` (signal score minimo)
 - `--max-positions 10`
 - Filtro SMA200: ON
 - Conferma RSI: ON
+
+**Nuovi defaults Ciclo 4** (aggiornati 2026-03-14 in `engine.py` e `__main__.py`):
+- `--sl-atr 1.5` (stop loss = 1.5x ATR, ridotto da 2.0)
+- `--tp-atr 3.0` (take profit = 3.0x ATR, ridotto da 6.0)
+- Risk/reward ratio: 2:1 (invariato)
+- Rationale: 126/136 exit su SL nel Ciclo 3 (92.6%). TP a 6x mai raggiunto.
 
 ## Trailing Stop — sistema a 4 tier (aggiornato 2026-03-02)
 
@@ -180,3 +190,71 @@ py -m src.backtest run --start 2019-01-01 --end 2026-02-28 --sl-atr 2.5 --tp-atr
   --trail-breakeven 1.0 --trail-lock 1.5 --trail-threshold 2.5 --trail-distance 1.5 \
   --universe XLF,XLK,XLE,XLV,XLI,XLU,XLY,XLP,XLRE,XLB,XLC,SPY,QQQ,IWM
 ```
+
+---
+
+## Ciclo 4 — Grid Search mirato (preparato 2026-03-14)
+
+### Diagnosi dal Ciclo 3
+
+| Metrica | Ciclo 3 (SL=2.5, TP=6.0) |
+|---------|--------------------------|
+| Sharpe | 0.975 (mancano 0.025) |
+| SL exit rate | 92.6% (126/136) |
+| TP exit rate | <1% |
+| Avg Win | +8% |
+| Avg Loss | -2.75% |
+| Avg Hold | 20 giorni |
+
+**Problema**: SL=2.5x ATR colpisce troppo spesso. TP=6.0x ATR quasi mai raggiunto (il trailing stop cattura i profitti prima). La volatilita dei ritorni e alta per i molti piccoli stop loss.
+
+**Ipotesi Ciclo 4**: Abbassare SL (1.5-2.0) riduce la dimensione media della perdita. Abbassare TP (3-5x) cattura piu profitti prima che si ritirino. Signal exit puo chiudere posizioni su inversione MACD.
+
+### Preset `cycle4` — 48 combinazioni
+
+| Parametro | Valori | Note |
+|-----------|--------|------|
+| `stop_loss_atr` | 1.5, 2.0, 2.5 | Focus su 1.5-2.0 (SL piu stretto) |
+| `take_profit_atr` | 3.0, 4.0, 5.0, 6.0 | Tighter TP range |
+| `trailing_breakeven_atr` | 0.5, 1.5 | Early vs late breakeven |
+| `signal_exit_enabled` | OFF, ON | Ciclo 3 usava OFF |
+| Trailing trail/tight | Fissi (3.5/2.0/4.0/1.0) | Grid-optimal da ricerche precedenti |
+| `trend_filter` | ON | Fisso |
+| `max_positions` | 10 | Fisso |
+
+**Totale: 3 x 4 x 2 x 2 = 48 combinazioni**
+
+### Comandi da eseguire
+
+```bash
+cd C:\Users\crist\Claude-playground\controlla-me\trading
+
+# Step 1: Grid search su 2 anni (2023-2024) — stesse condizioni del Ciclo 3
+py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000
+
+# Step 2: Se trovato GO, conferma su 3 anni (2022-2024) per robustezza
+py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000
+
+# Step 3: Run singolo con i parametri vincenti per equity curve
+# (sostituire SL/TP/tBE/sigExit con i valori migliori dal CSV)
+py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --capital 100000 \
+  --sl-atr X.X --tp-atr X.X --trail-breakeven X.X
+
+# Step 4: Train/test split per out-of-sample validation
+py -m src.backtest run --start 2022-01-01 --end 2024-12-31 --capital 100000 \
+  --sl-atr X.X --tp-atr X.X --trail-breakeven X.X --mode train_test
+```
+
+### Criteri di successo Ciclo 4
+
+- [ ] Almeno 1 combinazione con Sharpe > 1.0
+- [ ] SL exit rate < 70% (miglioramento vs 92.6% del Ciclo 3)
+- [ ] Combinazione vincente non su picco isolato nel CSV
+- [ ] Out-of-sample entro 20% dell'in-sample
+- [ ] Equity curve senza cliff
+
+### Dopo il Ciclo 4
+
+Se GO: applicare parametri a `BacktestConfig` defaults e `settings.py`, poi passare a Fase 3 (Paper Trading 30gg).
+
+Se NO-GO: considerare cambio strategia (noise boundary momentum, mean reversion v3) o ampliamento universo.

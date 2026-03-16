@@ -69,6 +69,11 @@ export function expandQuery(query: string): string[] {
     "asta": "vendita forzata esecuzione immobiliare asta giudiziaria",
     "mutuo": "mutuo prestito prova testimoniale forma scritta",
     "comproprietà": "comunione divisione scioglimento comproprietà",
+    "pignoramento": "pignoramento immobiliare espropriazione esecuzione forzata",
+    "prima casa": "impignorabilità prima casa art. 76 DPR 602/73 Agenzia Entrate creditore privato",
+    "pignorare casa": "pignoramento immobiliare prima casa espropriazione art. 76 DPR 602/73",
+    "mantenimento": "obbligo mantenimento figli art. 316-bis c.c. art. 570-bis c.p.",
+    "alimenti": "obbligazione alimentare mantenimento art. 433 c.c.",
   };
 
   // Costruisci variante formale se ci sono sostituzioni applicabili
@@ -371,7 +376,8 @@ export async function searchArticles(
     return [];
   }
 
-  // ── Fix 2: Soglia abbassata a 0.65 ────────────────────────────────────────
+  // ── Fix 2: Soglia abbassata a 0.45 (era 0.65→0.50→0.45) ─────────────────
+  // Voyage AI voyage-law-2 produce sim ~0.40-0.65 per testi legali italiani.
   // Esegui una chiamata RPC per ogni variante (già batch lato embedding),
   // poi merge per articleReference mantenendo il similarity score massimo.
   const admin = createAdminClient();
@@ -642,7 +648,7 @@ export async function retrieveLegalContext(params: {
     // Combina le clausole in una query unica per efficienza
     const combinedQuery = clauseTexts.slice(0, 5).join("\n\n");
     bySemantic = await searchArticles(combinedQuery, {
-      threshold: 0.55,
+      threshold: 0.40,
       limit: maxArticles,
     });
   }
@@ -1345,14 +1351,35 @@ const DECREE_TO_CANONICAL: Record<string, string> = {
   "206/2005": "Codice del Consumo",
   "122/2005": "Tutela acquirenti immobili da costruire",
   "231/2001": "Responsabilita amministrativa enti",
+  "28/2010": "Mediazione civile e commerciale",
+  "23/2015": "Jobs Act — Tutele crescenti",
+  "276/2003": "Riforma Biagi — Mercato del lavoro",
+  "82/2005": "Codice dell'Amministrazione Digitale (CAD)",
+  "385/1993": "Testo Unico Bancario",
+  "81/2008": "Sicurezza sul lavoro",
+  "81/2015": "Jobs Act — Tipologie contrattuali",
+  "148/2015": "Ammortizzatori sociali",
+  "74/2000": "Reati tributari — D.Lgs. 74/2000",
+  "446/1997": "IRAP — D.Lgs. 446/1997",
+  "472/1997": "Sanzioni tributarie — D.Lgs. 472/1997",
+  "546/1992": "Processo tributario — D.Lgs. 546/1992",
 };
 
 const DPR_TO_CANONICAL: Record<string, string> = {
   "380/2001": "Testo Unico Edilizia",
+  "917/1986": "TUIR — Testo Unico Imposte sui Redditi",
+  "633/1972": "Decreto IVA — D.P.R. 633/1972",
+  "600/1973": "Accertamento imposte sui redditi — D.P.R. 600/1973",
+  "602/1973": "Riscossione imposte — D.P.R. 602/1973",
 };
 
 const LEGGE_TO_CANONICAL: Record<string, string> = {
   "300/1970": "Statuto dei Lavoratori",
+  "431/1998": "Disciplina delle locazioni abitative",
+  "392/1978": "Equo canone — Disciplina delle locazioni",
+  "590/1965": "Prelazione agraria — L. 590/1965",
+  "817/1971": "Prelazione agraria — L. 817/1971",
+  "212/2000": "Statuto del Contribuente — L. 212/2000",
 };
 
 function normalizeLawSource(reference: string): string | null {

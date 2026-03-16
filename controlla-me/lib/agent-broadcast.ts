@@ -31,8 +31,10 @@ export interface AgentEvent {
 
 /** How long a "done"/"error" event stays visible before being pruned (ms) */
 const TTL_DONE_MS = 30_000;
-/** How long a "running" event stays without update before being pruned (ms) */
-const TTL_RUNNING_MS = 120_000;
+/** How long a "running" event stays without update before being pruned (ms).
+ * Reduced from 120s to 60s — individual pipeline phases take max ~30s.
+ * Any "running" event older than 60s is likely stale (missed "done" broadcast). */
+const TTL_RUNNING_MS = 60_000;
 /** Cleanup interval */
 const CLEANUP_INTERVAL_MS = 5_000;
 

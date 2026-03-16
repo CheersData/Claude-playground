@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "operations",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.198Z",
+    "last_updated": "2026-03-15T16:34:18.664Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "3 task aperti. 62 completati (ultimi 7gg). 71 completati (totale).",
+  "summary": "1 task in corso. 34 completati (ultimi 7gg). 104 completati (totale).",
   "dashboard": {
     "url": "/ops",
     "status": "operational",
@@ -50,22 +50,10 @@
   ],
   "open_tasks": [
     {
-      "id": "a79ba98e",
-      "title": "Fase 2: applicare brand book tokens al CSS, ristrutturare componenti interni ops (CostSummary, TaskBoard) con stessa spa",
+      "id": "15a2cc5f",
+      "title": "Implementare panel IntegrationHealthPanel (P1)",
       "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "a247f6e0",
-      "title": "Boss esegue SETUP_CME_SCHEDULER.ps1 come amministratore per attivare lo scheduler",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "cdeb6255",
-      "title": "Deploy app per acquisire primi utenti reali",
-      "priority": "high",
-      "status": "open"
+      "status": "in_progress"
     }
   ],
   "blockers": [],

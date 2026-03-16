@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     if (type === "all" || type === "articles") {
       results.articles = await searchArticles(query, {
-        threshold: 0.55,
+        threshold: 0.45,
         limit,
       });
     }

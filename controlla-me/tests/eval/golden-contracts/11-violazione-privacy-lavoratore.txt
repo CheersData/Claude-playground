@@ -1,0 +1,111 @@
+REGOLAMENTO AZIENDALE PER L'USO DEGLI STRUMENTI INFORMATICI
+E IL CONTROLLO DELL'ATTIVITA' LAVORATIVA
+
+SIGMA CONSULTING S.R.L.
+Via Dante 88
+20121 Milano
+
+Approvato dalla Direzione Aziendale in data 1 febbraio 2026
+Efficace dal 15 febbraio 2026
+
+PREMESSE
+
+Il presente regolamento disciplina l'utilizzo degli strumenti informatici aziendali e le
+modalita' di controllo dell'attivita' lavorativa da parte della Societa', al fine di garantire
+la sicurezza informatica, la protezione dei dati aziendali e l'efficiente utilizzo delle risorse.
+
+Art. 1 — AMBITO DI APPLICAZIONE
+
+Il presente regolamento si applica a tutti i dipendenti, collaboratori e stagisti della Societa',
+senza eccezioni. La sottoscrizione del presente regolamento e' condizione necessaria per la
+prosecuzione del rapporto di lavoro.
+
+Art. 2 — STRUMENTI SOTTOPOSTI A MONITORAGGIO
+
+La Societa' si riserva il diritto di monitorare costantemente e senza preavviso:
+
+a) Tutte le comunicazioni email inviate e ricevute dall'indirizzo aziendale, incluso il
+   contenuto dei messaggi e degli allegati;
+b) La cronologia di navigazione internet completa, inclusi i siti visitati durante le pause;
+c) I file salvati su qualsiasi dispositivo aziendale (PC, laptop, smartphone);
+d) Le conversazioni telefoniche effettuate e ricevute dal telefono aziendale, con possibilita'
+   di registrazione audio integrale;
+e) La posizione GPS in tempo reale del telefono aziendale, 24 ore su 24, 7 giorni su 7,
+   anche al di fuori dell'orario di lavoro;
+f) Le comunicazioni effettuate tramite applicazioni di messaggistica installate su dispositivi
+   aziendali (WhatsApp, Telegram, Teams), inclusi i messaggi personali;
+g) Le immagini acquisite dalle telecamere di videosorveglianza installate in tutti gli ambienti
+   di lavoro, inclusi corridoi, aree break e parcheggi, con conservazione delle registrazioni
+   per 12 mesi.
+
+Art. 3 — KEYLOGGER E SCREENSHOT
+
+Su tutti i dispositivi aziendali e' installato un software di monitoraggio che registra:
+a) Tutti i tasti premuti (keylogger), incluse le password personali;
+b) Uno screenshot del monitor ogni 3 minuti durante l'orario di lavoro;
+c) L'attivita' di copia/incolla e i contenuti della clipboard.
+
+I dati raccolti sono conservati per 24 mesi e accessibili alla Direzione e all'ufficio IT
+senza necessita' di autorizzazione specifica.
+
+Art. 4 — ACCESSO ALL'ACCOUNT EMAIL PERSONALE
+
+Il dipendente si impegna a fornire alla Direzione le credenziali di accesso al proprio
+account email personale (non aziendale) qualora la Societa' ritenga necessario verificare
+la sussistenza di violazioni degli obblighi di riservatezza. Il rifiuto di fornire tali
+credenziali costituisce grave inadempimento disciplinare.
+
+Art. 5 — SOCIAL MEDIA E ATTIVITA' EXTRALAVORATIVA
+
+La Societa' monitora i profili social media personali dei dipendenti (Facebook, Instagram,
+LinkedIn, X/Twitter) per verificare la compatibilita' dei contenuti pubblicati con l'immagine
+aziendale. La pubblicazione di contenuti ritenuti dalla Direzione incompatibili con i valori
+aziendali costituisce giusta causa di licenziamento.
+
+Il dipendente si impegna a non pubblicare sui propri profili personali alcun commento,
+opinione o informazione che possa essere ricondotta, direttamente o indirettamente, alla
+Societa' o al settore di attivita' della stessa, anche al di fuori dell'orario di lavoro.
+
+Art. 6 — DATI BIOMETRICI
+
+Per l'accesso ai locali aziendali e la rilevazione delle presenze, i dipendenti sono tenuti
+a sottoporre le proprie impronte digitali al sistema di riconoscimento biometrico installato
+all'ingresso. I dati biometrici sono conservati per l'intera durata del rapporto di lavoro
+e per i 5 anni successivi alla cessazione.
+
+Non sono previste modalita' alternative di accesso o rilevazione presenze.
+
+Art. 7 — CONTROLLI SANITARI
+
+La Societa' si riserva il diritto di richiedere ai dipendenti, in qualsiasi momento e senza
+motivazione specifica, di sottoporsi a test antidroga e alcol test. Il rifiuto di sottoporsi
+ai controlli costituisce giusta causa di licenziamento.
+
+I risultati dei test saranno conservati nel fascicolo personale del dipendente e accessibili
+alla Direzione, al responsabile diretto e all'ufficio HR.
+
+Art. 8 — SANZIONI
+
+La violazione di qualsiasi disposizione del presente regolamento costituisce grave
+inadempimento disciplinare e puo' comportare il licenziamento per giusta causa.
+
+Art. 9 — INFORMATIVA PRIVACY
+
+I dati raccolti ai sensi del presente regolamento saranno trattati dalla Societa' in qualita'
+di titolare del trattamento. Non e' prevista alcuna informativa separata ai sensi dell'art. 13
+del Reg. UE 2016/679 (GDPR) in quanto il presente regolamento assolve tale funzione.
+
+Il dipendente, con la sottoscrizione del presente regolamento, presta il proprio consenso al
+trattamento di tutti i dati personali sopra descritti, inclusi i dati biometrici e i dati
+relativi alla salute, e rinuncia a qualsiasi pretesa in relazione al trattamento dei medesimi.
+
+Per accettazione integrale:
+
+Firma del dipendente: _____________________
+Nome e Cognome: _____________________
+Data: ___/___/______
+
+SIGMA CONSULTING S.R.L.
+L'Amministratore Unico
+Dott. Paolo Venturi
+_____________________

@@ -381,13 +381,41 @@ export default function OpsPageClient() {
     };
   }, [authed]);
 
+  // ── Prune stale "running" SSE events (client-side GC) ─────────────────────
+  // If a "running" event hasn't been updated in 60s, it's likely stale
+  // (the "done" broadcast was never sent due to error/crash).
+  // This keeps AgentDots and CapacityIndicator consistent with SessionIndicator.
+  useEffect(() => {
+    const STALE_MS = 60_000;
+    const interval = setInterval(() => {
+      setLiveAgents((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next = new Map(prev);
+        for (const [key, entry] of next) {
+          if (entry.status === "running" && entry.timestamp && now - entry.timestamp > STALE_MS) {
+            next.delete(key);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // ── Agent activity data for AgentDots + CapacityIndicator ─────────────────
   // SSE events + live sessions merged for a unified view
   const activeAgentsMap = useMemo(() => {
     const map = new Map<string, { department: string; task?: string; status: "running" | "done" | "error" }>();
+    const now = Date.now();
+    const STALE_MS = 60_000;
 
-    // SSE events represent actual agent executions
+    // SSE events represent actual agent executions — skip stale "running" ones
     liveAgents.forEach((value, key) => {
+      if (value.status === "running" && value.timestamp && now - value.timestamp > STALE_MS) {
+        return; // stale — likely missed "done" broadcast
+      }
       map.set(key, { department: value.department, task: value.task, status: value.status });
     });
 

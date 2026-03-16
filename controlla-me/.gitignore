@@ -46,8 +46,9 @@ next-env.d.ts
 # Windows reserved device names (Turbopack crash)
 nul
 
-# Playwright reports
+# Playwright reports and results
 playwright-report/
+playwright-results.json
 
 # Test run results (ephemeral)
 scripts/testbook-results-*.json
@@ -70,3 +71,6 @@ trading/logs/
 .autorun-prompt.tmp
 company/autorun-logs/
 company/gui-daemon-logs/
+
+# Active session tracker (runtime state)
+company/.active-sessions.json

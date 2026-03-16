@@ -17,190 +17,267 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // ─── Static Connector Metadata ───
+// Single source of truth for connector wizard configuration.
+// Entities use display-friendly Italian labels and field names.
+// The client fetches this via GET to populate the setup wizard dynamically.
+
+interface ConnectorEntity {
+  id: string;
+  /** Italian display name shown in wizard entity select */
+  name: string;
+  /** Estimated record count (shown in entity select for context) */
+  estimatedRecords: number;
+  /** Display-friendly field names (Italian) for the entity */
+  fields: string[];
+}
 
 interface ConnectorMeta {
   name: string;
   category: string;
   description: string;
-  authType: "api_key" | "oauth2";
-  entities: {
-    id: string;
-    label: string;
-    fields: string[];
-  }[];
+  /** Icon key matching lucide-react icon names in the client ICON_MAP */
+  icon: string;
+  /** Auth mode for the wizard: "oauth" triggers OAuth flow, "api_key" shows credential form */
+  authMode: "oauth" | "api_key";
+  /** OAuth permission labels shown in the authorize step */
+  oauthPermissions: { label: string }[];
+  /** Custom label for the API key input field */
+  apiKeyLabel?: string;
+  /** Custom label for the optional secret key input field */
+  secretKeyLabel?: string;
+  /** Help text shown below the credential form */
+  helpText?: string;
+  /** Available entities for sync (wizard step 1) */
+  entities: ConnectorEntity[];
+  /** Target field options for the mapping step (wizard step 3) */
+  targetFields: string[];
 }
 
 const CONNECTOR_META: Record<string, ConnectorMeta> = {
-  stripe: {
-    name: "Stripe",
-    category: "Finance",
-    description: "Sincronizza pagamenti, clienti e abbonamenti.",
-    authType: "api_key",
+  salesforce: {
+    name: "Salesforce",
+    category: "CRM",
+    description: "Sincronizza account, contatti, opportunita e pipeline di vendita.",
+    icon: "Users",
+    authMode: "oauth",
+    oauthPermissions: [
+      { label: "Lettura contatti" },
+      { label: "Lettura opportunita" },
+      { label: "Lettura pipeline" },
+    ],
     entities: [
       {
-        id: "customer",
-        label: "Clienti",
-        fields: ["name", "email", "phone", "address", "created", "metadata"],
+        id: "contacts",
+        name: "Contatti",
+        estimatedRecords: 12450,
+        fields: ["Nome", "Email", "Telefono", "Azienda", "Ruolo"],
       },
       {
-        id: "subscription",
-        label: "Abbonamenti",
-        fields: [
-          "customer_id",
-          "plan",
-          "status",
-          "current_period_start",
-          "current_period_end",
-          "cancel_at",
-        ],
+        id: "opportunities",
+        name: "Opportunita",
+        estimatedRecords: 3210,
+        fields: ["Titolo", "Valore", "Fase", "Probabilita"],
       },
       {
-        id: "invoice",
-        label: "Fatture",
-        fields: [
-          "customer_id",
-          "amount_due",
-          "amount_paid",
-          "status",
-          "due_date",
-          "lines",
-        ],
+        id: "pipeline",
+        name: "Pipeline",
+        estimatedRecords: 8,
+        fields: ["Nome", "Fasi", "Probabilita default"],
       },
       {
-        id: "payment_intent",
-        label: "Pagamenti",
-        fields: [
-          "amount",
-          "currency",
-          "status",
-          "customer_id",
-          "payment_method",
-          "created",
-        ],
+        id: "activities",
+        name: "Attivita",
+        estimatedRecords: 8920,
+        fields: ["Tipo", "Data", "Oggetto", "Contatto"],
       },
+      {
+        id: "notes",
+        name: "Note",
+        estimatedRecords: 2100,
+        fields: ["Testo", "Data", "Autore"],
+      },
+      {
+        id: "reports",
+        name: "Report",
+        estimatedRecords: 45,
+        fields: ["Nome", "Tipo", "Ultima esecuzione"],
+      },
+    ],
+    targetFields: [
+      "nome", "cognome", "email", "telefono", "azienda", "ruolo",
+      "indirizzo", "titolo", "valore", "fase", "probabilita",
+      "data_creazione", "data_modifica", "note", "tipo", "oggetto", "stato",
     ],
   },
   hubspot: {
     name: "HubSpot",
-    category: "CRM",
-    description: "Sincronizza contatti, aziende, deal e ticket.",
-    authType: "oauth2",
+    category: "CRM / Marketing",
+    description: "Contatti, aziende, deal, ticket e campagne marketing.",
+    icon: "Users",
+    authMode: "oauth",
+    oauthPermissions: [
+      { label: "Lettura contatti" },
+      { label: "Lettura deal" },
+      { label: "Lettura campagne" },
+    ],
     entities: [
       {
-        id: "contact",
-        label: "Contatti",
-        fields: [
-          "first_name",
-          "last_name",
-          "email",
-          "phone",
-          "company",
-          "title",
-          "address",
-        ],
+        id: "contacts",
+        name: "Contatti",
+        estimatedRecords: 8200,
+        fields: ["Nome", "Email", "Azienda", "Lifecycle stage"],
       },
       {
-        id: "company",
-        label: "Aziende",
-        fields: [
-          "name",
-          "domain",
-          "industry",
-          "annual_revenue",
-          "employee_count",
-          "city",
-        ],
+        id: "deals",
+        name: "Deal",
+        estimatedRecords: 1450,
+        fields: ["Nome", "Valore", "Pipeline", "Stage"],
       },
       {
-        id: "deal",
-        label: "Opportunita",
-        fields: [
-          "deal_name",
-          "amount",
-          "stage",
-          "close_date",
-          "probability",
-          "owner",
-        ],
+        id: "campaigns",
+        name: "Campagne",
+        estimatedRecords: 120,
+        fields: ["Nome", "Tipo", "Budget", "Risultati"],
+      },
+    ],
+    targetFields: [
+      "nome", "cognome", "email", "azienda", "ruolo", "valore",
+      "pipeline", "stage", "budget", "tipo_campagna", "risultati",
+      "lifecycle_stage",
+    ],
+  },
+  stripe: {
+    name: "Stripe",
+    category: "Pagamenti",
+    description: "Pagamenti, fatture, abbonamenti e portale clienti.",
+    icon: "CreditCard",
+    authMode: "api_key",
+    oauthPermissions: [],
+    apiKeyLabel: "API Key",
+    secretKeyLabel: "Webhook Secret (opzionale)",
+    helpText: "Trova le tue chiavi API in Stripe Dashboard > Developers > API Keys",
+    entities: [
+      {
+        id: "invoices",
+        name: "Fatture",
+        estimatedRecords: 3200,
+        fields: ["Numero", "Importo", "Stato", "Cliente", "Data"],
       },
       {
-        id: "ticket",
-        label: "Ticket",
-        fields: [
-          "subject",
-          "status",
-          "priority",
-          "category",
-          "created_at",
-          "assigned_to",
-        ],
+        id: "subscriptions",
+        name: "Abbonamenti",
+        estimatedRecords: 890,
+        fields: ["Piano", "Stato", "Cliente", "Rinnovo"],
       },
+      {
+        id: "payments",
+        name: "Pagamenti",
+        estimatedRecords: 12400,
+        fields: ["Importo", "Metodo", "Stato", "Data"],
+      },
+    ],
+    targetFields: [
+      "numero_fattura", "importo", "stato", "cliente", "data",
+      "piano", "rinnovo", "metodo_pagamento", "valuta",
     ],
   },
   "google-drive": {
     name: "Google Drive",
     category: "Storage",
-    description: "Importa file e documenti dal tuo Drive.",
-    authType: "oauth2",
+    description: "Importa file, documenti e fogli di calcolo dal tuo Drive.",
+    icon: "HardDrive",
+    authMode: "oauth",
+    oauthPermissions: [
+      { label: "Lettura file e cartelle" },
+      { label: "Lettura metadati" },
+    ],
     entities: [
       {
-        id: "file",
-        label: "File",
-        fields: [
-          "name",
-          "mime_type",
-          "size",
-          "created_time",
-          "modified_time",
-          "parents",
-          "shared",
-        ],
+        id: "files",
+        name: "File",
+        estimatedRecords: 2500,
+        fields: ["Nome", "Tipo", "Dimensione", "Proprietario", "Data modifica"],
+      },
+      {
+        id: "folders",
+        name: "Cartelle",
+        estimatedRecords: 180,
+        fields: ["Nome", "Percorso", "Proprietario"],
       },
     ],
+    targetFields: [
+      "nome_file", "tipo_file", "dimensione", "proprietario",
+      "percorso", "data_modifica", "data_creazione",
+    ],
   },
-  salesforce: {
-    name: "Salesforce",
-    category: "CRM",
-    description: "Sincronizza contatti, opportunita e pipeline.",
-    authType: "oauth2",
+  normattiva: {
+    name: "Normattiva",
+    category: "Legale",
+    description: "Corpus legislativo italiano: codici, decreti e leggi ordinarie.",
+    icon: "FileText",
+    authMode: "api_key",
+    oauthPermissions: [],
+    apiKeyLabel: "Chiave API Open Data",
+    helpText: "Il portale Normattiva Open Data offre accesso pubblico alle fonti legislative italiane. La chiave API e opzionale per la maggior parte degli endpoint.",
     entities: [
       {
-        id: "Account",
-        label: "Account",
-        fields: [
-          "Name",
-          "Industry",
-          "Website",
-          "Phone",
-          "BillingAddress",
-          "AnnualRevenue",
-        ],
+        id: "codici",
+        name: "Codici",
+        estimatedRecords: 3200,
+        fields: ["Titolo", "Numero Articolo", "Corpo", "Fonte", "Data vigenza"],
       },
       {
-        id: "Contact",
-        label: "Contatti",
-        fields: [
-          "FirstName",
-          "LastName",
-          "Email",
-          "Phone",
-          "Title",
-          "AccountId",
-          "MailingAddress",
-        ],
+        id: "decreti",
+        name: "Decreti Legislativi",
+        estimatedRecords: 1850,
+        fields: ["Titolo", "Numero", "Data", "Articoli", "Materia"],
       },
       {
-        id: "Opportunity",
-        label: "Opportunita",
-        fields: [
-          "Name",
-          "Amount",
-          "StageName",
-          "CloseDate",
-          "Probability",
-          "AccountId",
-        ],
+        id: "leggi",
+        name: "Leggi Ordinarie",
+        estimatedRecords: 580,
+        fields: ["Titolo", "Numero", "Data", "Articoli", "Materia"],
       },
+    ],
+    targetFields: [
+      "titolo_atto", "numero_articolo", "corpo_articolo", "fonte",
+      "data_vigenza", "materia", "tipo_atto", "numero_atto",
+      "data_pubblicazione",
+    ],
+  },
+  eurlex: {
+    name: "EUR-Lex",
+    category: "Legale",
+    description: "Normativa europea: regolamenti, direttive e decisioni UE.",
+    icon: "FileText",
+    authMode: "api_key",
+    oauthPermissions: [],
+    apiKeyLabel: "Cellar API Key (opzionale)",
+    helpText: "EUR-Lex Cellar REST API fornisce accesso alla normativa europea. L'accesso di base e pubblico e non richiede autenticazione.",
+    entities: [
+      {
+        id: "regulations",
+        name: "Regolamenti UE",
+        estimatedRecords: 920,
+        fields: ["Titolo", "Numero CELEX", "Data", "Articoli", "Materia"],
+      },
+      {
+        id: "directives",
+        name: "Direttive UE",
+        estimatedRecords: 650,
+        fields: ["Titolo", "Numero CELEX", "Data", "Articoli", "Scadenza recepimento"],
+      },
+      {
+        id: "decisions",
+        name: "Decisioni UE",
+        estimatedRecords: 340,
+        fields: ["Titolo", "Numero CELEX", "Data", "Destinatari"],
+      },
+    ],
+    targetFields: [
+      "titolo_atto", "numero_celex", "numero_articolo", "corpo_articolo",
+      "fonte", "data_pubblicazione", "materia", "tipo_atto_eu",
+      "scadenza_recepimento",
     ],
   },
 };
@@ -211,10 +288,15 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ connectorId: string }> }
 ) {
-  // SEC-M12: rate-limit marketplace browsing (IP-based)
+  // SEC-M12: rate-limit
   const rateLimitError = await checkRateLimit(req);
   if (rateLimitError) return rateLimitError;
 
+  // SEC-M12: require authenticated user
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
+  const userId = authResult.user.id;
   const { connectorId } = await params;
 
   const meta = CONNECTOR_META[connectorId];
@@ -225,20 +307,33 @@ export async function GET(
     );
   }
 
-  // Base response with static data and defaults
+  // Base response with static metadata (wizard config) + dynamic defaults
   const response: Record<string, unknown> = {
     id: connectorId,
     name: meta.name,
     category: meta.category,
     description: meta.description,
-    authType: meta.authType,
+    icon: meta.icon,
+    // Wizard configuration (used by ConnectorDetailClient setup wizard)
+    authMode: meta.authMode,
+    oauthPermissions: meta.oauthPermissions,
+    apiKeyLabel: meta.apiKeyLabel ?? null,
+    secretKeyLabel: meta.secretKeyLabel ?? null,
+    helpText: meta.helpText ?? null,
+    targetFields: meta.targetFields,
+    // Legacy field kept for backward compatibility with sync tab
+    authType: meta.authMode === "oauth" ? "oauth2" : "api_key",
+    // Dynamic defaults (overridden from DB below if connection exists)
     status: "disconnected",
     lastSync: null,
     nextSync: null,
     totalRecords: 0,
+    // Entities with wizard metadata (recordCount/lastUpdated merged from DB)
     entities: meta.entities.map((e) => ({
-      ...e,
-      recordCount: 0,
+      id: e.id,
+      name: e.name,
+      fields: e.fields,
+      recordCount: e.estimatedRecords,
       lastUpdated: null,
     })),
     syncHistory: [],
@@ -246,147 +341,122 @@ export async function GET(
     mappings: [],
   };
 
-  // Merge dynamic data from DB if user is authenticated
+  // Merge dynamic data from DB for authenticated user
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (user) {
-      // Get connection for this user + connector_type
-      const { data: connection } = await supabase
-        .from("integration_connections")
-        .select("id, status, last_sync_at, last_sync_items, sync_frequency, config")
-        .eq("user_id", user.id)
-        .eq("connector_type", connectorId)
-        .neq("status", "disconnected")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    // Get connection for this user + connector_type
+    const { data: connection } = await supabase
+      .from("integration_connections")
+      .select("id, status, last_sync_at, last_sync_items, sync_frequency, config")
+      .eq("user_id", userId)
+      .eq("connector_type", connectorId)
+      .neq("status", "disconnected")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (connection) {
-        // Map DB status to response status
-        const statusMap: Record<string, string> = {
-          active: "connected",
-          connected: "connected",
-          error: "error",
-          syncing: "syncing",
-        };
-        response.status = statusMap[connection.status] ?? "disconnected";
-        response.lastSync = connection.last_sync_at;
-        response.totalRecords = connection.last_sync_items ?? 0;
+    if (connection) {
+      // Map DB status to response status
+      const statusMap: Record<string, string> = {
+        active: "connected",
+        connected: "connected",
+        error: "error",
+        syncing: "syncing",
+      };
+      response.status = statusMap[connection.status] ?? "disconnected";
+      response.lastSync = connection.last_sync_at;
+      response.totalRecords = connection.last_sync_items ?? 0;
 
-        const connectionId = connection.id;
+      const connectionId = connection.id;
 
-        // Fetch sync history (last 30 entries)
-        const { data: syncLogs } = await supabase
-          .from("integration_sync_log")
-          .select(
-            "id, status, started_at, completed_at, records_processed, records_failed, error_message, metadata"
-          )
-          .eq("connection_id", connectionId)
-          .order("started_at", { ascending: false })
-          .limit(30);
+      // Fetch sync history (last 30 entries)
+      const { data: syncLogs } = await supabase
+        .from("integration_sync_log")
+        .select(
+          "id, status, started_at, completed_at, items_processed, items_failed, error_details"
+        )
+        .eq("connection_id", connectionId)
+        .order("started_at", { ascending: false })
+        .limit(30);
 
-        if (syncLogs && syncLogs.length > 0) {
-          // Build syncHistory (aggregate by date)
-          const historyByDate = new Map<
-            string,
-            { success: number; failed: number }
-          >();
-          const errors: {
-            id: string;
-            timestamp: string;
-            message: string;
-            affectedRecords: number;
-            details?: string;
-          }[] = [];
+      if (syncLogs && syncLogs.length > 0) {
+        // Build syncHistory (aggregate by date)
+        const historyByDate = new Map<
+          string,
+          { success: number; failed: number }
+        >();
+        const errors: {
+          id: string;
+          timestamp: string;
+          message: string;
+          affectedRecords: number;
+          details?: string;
+        }[] = [];
 
-          for (const log of syncLogs) {
-            const date = (log.started_at as string).split("T")[0];
-            const entry = historyByDate.get(date) ?? {
-              success: 0,
-              failed: 0,
-            };
-            entry.success += (log.records_processed as number) ?? 0;
-            entry.failed += (log.records_failed as number) ?? 0;
-            historyByDate.set(date, entry);
+        for (const log of syncLogs) {
+          const date = (log.started_at as string).split("T")[0];
+          const entry = historyByDate.get(date) ?? {
+            success: 0,
+            failed: 0,
+          };
+          entry.success += (log.items_processed as number) ?? 0;
+          entry.failed += (log.items_failed as number) ?? 0;
+          historyByDate.set(date, entry);
 
-            // Collect errors
-            if (log.status === "error" && log.error_message) {
-              errors.push({
-                id: log.id as string,
-                timestamp: log.started_at as string,
-                message: log.error_message as string,
-                affectedRecords: (log.records_failed as number) ?? 0,
-                details:
-                  (log.metadata as Record<string, unknown>)?.details as
-                    | string
-                    | undefined,
-              });
-            }
-          }
-
-          response.syncHistory = Array.from(historyByDate.entries())
-            .map(([date, stats]) => ({
-              date,
-              success: stats.success,
-              failed: stats.failed,
-            }))
-            .sort(
-              (a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-
-          response.errors = errors;
-        }
-
-        // Fetch field mappings
-        const { data: mappingRows } = await supabase
-          .from("integration_field_mappings")
-          .select(
-            "id, source_entity, source_field, target_field, confidence, ai_suggested"
-          )
-          .eq("connection_id", connectionId)
-          .order("source_entity")
-          .order("source_field");
-
-        if (mappingRows && mappingRows.length > 0) {
-          // Group by source_entity
-          const mappingsByEntity = new Map<
-            string,
-            {
-              source: string;
-              sourceType: string;
-              target: string;
-              confidence: number;
-              aiSuggested: boolean;
-            }[]
-          >();
-
-          for (const row of mappingRows) {
-            const entity = row.source_entity as string;
-            if (!mappingsByEntity.has(entity)) {
-              mappingsByEntity.set(entity, []);
-            }
-            mappingsByEntity.get(entity)!.push({
-              source: row.source_field as string,
-              sourceType: "string", // DB doesn't store source type — default
-              target: row.target_field as string,
-              confidence: (row.confidence as number) ?? 0,
-              aiSuggested: (row.ai_suggested as boolean) ?? false,
+          // Collect errors
+          const errDetails = log.error_details as Record<string, unknown> | null;
+          if (log.status === "error" && errDetails) {
+            errors.push({
+              id: log.id as string,
+              timestamp: log.started_at as string,
+              message: (errDetails.message as string) || "Errore sconosciuto",
+              affectedRecords: (log.items_failed as number) ?? 0,
+              details: errDetails.details as string | undefined,
             });
           }
-
-          response.mappings = Array.from(mappingsByEntity.entries()).map(
-            ([entityId, fields]) => ({ entityId, fields })
-          );
         }
+
+        response.syncHistory = Array.from(historyByDate.entries())
+          .map(([date, stats]) => ({
+            date,
+            success: stats.success,
+            failed: stats.failed,
+          }))
+          .sort(
+            (a, b) =>
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+
+        response.errors = errors;
+      }
+
+      // Fetch field mappings from entity_mapping_configs (migration 037)
+      const { data: mappingConfigs } = await supabase
+        .from("entity_mapping_configs")
+        .select("source_entity, target_entity, mappings, version")
+        .eq("connection_id", connectionId)
+        .eq("status", "active")
+        .order("source_entity");
+
+      if (mappingConfigs && mappingConfigs.length > 0) {
+        response.mappings = mappingConfigs.map((config) => {
+          const mappingsArr = (config.mappings as { sourceField: string; targetField: string; confidence: number; mappedBy: string }[]) || [];
+          return {
+            entityId: config.source_entity as string,
+            fields: mappingsArr.map((m) => ({
+              source: m.sourceField,
+              sourceType: "string",
+              target: m.targetField,
+              confidence: m.confidence ?? 0,
+              aiSuggested: m.mappedBy !== "user_confirmed",
+            })),
+          };
+        });
       }
     }
   } catch {
-    // If auth/DB fails, return static data with defaults (already set above)
+    // If DB query fails, return static data with defaults (already set above)
   }
 
   return NextResponse.json(response);
@@ -484,51 +554,55 @@ export async function POST(
 
   const connectionId = connection.id;
 
-  // Delete existing mappings for this connection
-  const { error: deleteError } = await admin
-    .from("integration_field_mappings")
-    .delete()
-    .eq("connection_id", connectionId);
+  // Archive existing active mapping configs for this connection
+  await admin
+    .from("entity_mapping_configs")
+    .update({ status: "archived" })
+    .eq("connection_id", connectionId)
+    .eq("status", "active");
 
-  if (deleteError) {
-    console.error(
-      "[INTEGRATIONS] POST mappings — delete error:",
-      deleteError.message
-    );
-    return NextResponse.json(
-      { error: "Errore nell'aggiornamento dei mapping" },
-      { status: 500 }
-    );
-  }
+  // Upsert mapping configs per entity (JSONB mappings array)
+  let totalFields = 0;
 
-  // Flatten mappings for bulk insert
-  const rows = body.mappings.flatMap((mapping) =>
-    mapping.fields.map((field) => ({
-      connection_id: connectionId,
-      source_entity: mapping.entityId,
-      source_field: field.source,
-      target_field: field.target,
+  for (const mapping of body.mappings) {
+    const mappingsJsonb = mapping.fields.map((field) => ({
+      sourceField: field.source,
+      targetField: field.target,
       confidence: field.confidence ?? 0,
-      ai_suggested: field.aiSuggested ?? false,
-    }))
-  );
+      mappedBy: field.aiSuggested ? "similarity" : "user_confirmed",
+    }));
 
-  if (rows.length > 0) {
-    const { error: insertError } = await admin
-      .from("integration_field_mappings")
-      .insert(rows);
+    if (mappingsJsonb.length === 0) continue;
 
-    if (insertError) {
+    const { error: upsertError } = await admin
+      .from("entity_mapping_configs")
+      .upsert(
+        {
+          user_id: userId,
+          connection_id: connectionId,
+          source_entity: mapping.entityId,
+          target_entity: mapping.entityId,
+          mappings: mappingsJsonb,
+          status: "active",
+        },
+        { onConflict: "connection_id,source_entity,target_entity" }
+      );
+
+    if (upsertError) {
       console.error(
-        "[INTEGRATIONS] POST mappings — insert error:",
-        insertError.message
+        "[INTEGRATIONS] POST mappings — upsert error:",
+        upsertError.message
       );
       return NextResponse.json(
         { error: "Errore nel salvataggio dei mapping" },
         { status: 500 }
       );
     }
+
+    totalFields += mappingsJsonb.length;
   }
+
+  const rows = { length: totalFields };
 
   return NextResponse.json({
     success: true,

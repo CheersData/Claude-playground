@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "acceleration",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.214Z",
+    "last_updated": "2026-03-15T16:34:18.753Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "5 completati (ultimi 7gg). 5 completati (totale).",
+  "summary": "3 completati (ultimi 7gg). 8 completati (totale).",
   "code_quality": {
     "dead_dependencies": 0,
     "unused_files": null,

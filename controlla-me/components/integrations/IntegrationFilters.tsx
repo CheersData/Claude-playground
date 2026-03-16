@@ -64,23 +64,13 @@ export default function IntegrationFilters({
               onClick={() => onCategoryChange(key)}
               role="tab"
               aria-selected={isActive}
-              className="shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all"
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${!isActive ? "hover-border-dark" : ""}`}
               style={{
                 background: isActive ? "rgba(255, 107, 53, 0.15)" : "var(--bg-overlay)",
                 color: isActive ? "var(--accent)" : "var(--fg-muted)",
                 border: isActive
                   ? "1px solid rgba(255, 107, 53, 0.3)"
                   : "1px solid transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--border-dark)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.borderColor = "transparent";
-                }
               }}
             >
               {label} ({count})

@@ -56,6 +56,37 @@ TPSL_OPTIMIZATION_GRID = {
     "max_positions": [10],
 }
 
+# Cycle 4 grid — targeted optimization based on Cycle 3 findings (task 5f027811)
+#
+# Cycle 3 results: Sharpe 0.975, 136 trades, 126/136 exits on SL (92.6%).
+# Root cause: SL=2.5x hits too often, TP=6.0x almost never reached.
+# The trailing stop catches profits, but the high SL-exit rate drags Sharpe down.
+#
+# Strategy: Focus on tighter SL + tighter TP + signal exit ON/OFF comparison.
+# Key change vs TPSL grid: also tests signal_exit=OFF (Cycle 3 used OFF and got 0.975).
+# Trailing params: use grid-optimal from previous search (tBE=1.5, tTH=3.5, tTR=2.0).
+#
+# IMPORTANT: Run on 2-year window (2023-01-01 to 2024-12-31) with 43-ticker universe
+# to match Cycle 3 conditions. The 7-year window dilutes Sharpe below risk-free rate.
+#
+# 48 combinations: SL[1.5,2.0,2.5] x TP[3,4,5,6] x sigExit[ON,OFF] x tBE[0.5,1.5]
+CYCLE4_GRID = {
+    "stop_loss_atr": [1.5, 2.0, 2.5],
+    "take_profit_atr": [3.0, 4.0, 5.0, 6.0],
+    # Trailing stop: fix at grid-optimal values from previous runs
+    "trailing_breakeven_atr": [0.5, 1.5],             # Tier 0: test early (0.5) vs late (1.5)
+    "trailing_lock_atr": [1.5],                        # Tier 1: fixed
+    "trailing_lock_cushion_atr": [0.5],                # Tier 1: fixed
+    "trailing_trail_threshold_atr": [3.5],             # Tier 2: fixed at grid-optimal
+    "trailing_trail_distance_atr": [2.0],              # Tier 2: fixed at grid-optimal
+    "trailing_tight_threshold_atr": [4.0],             # Tier 3: fixed
+    "trailing_tight_distance_atr": [1.0],              # Tier 3: fixed
+    # Signal exit: test both ON and OFF (Cycle 3 had OFF with Sharpe 0.975)
+    "signal_exit_enabled": [False, True],
+    "trend_filter": [True],
+    "max_positions": [10],
+}
+
 
 def run_grid_search(
     symbols: list[str],

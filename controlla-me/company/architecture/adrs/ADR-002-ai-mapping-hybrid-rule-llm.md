@@ -2,11 +2,24 @@
 
 ## Status
 
-Proposed
+Accepted (Implemented)
 
 ## Date
 
-2026-03-10
+2026-03-10 (proposed) / 2026-03-14 (accepted, implementation verified)
+
+## Implementation
+
+Full 4-level mapping system implemented in `lib/staff/data-connector/mapping/`:
+
+- **L0 (user_confirmed)**: `learning.ts` -- DB-backed user confirmations via `integration_field_mappings` table.
+- **L1 (rule)**: `rules.ts` + `rules/` per-connector rules (HubSpot, Salesforce, Stripe, Google Drive). `rule-engine.ts` for generic rules.
+- **L2 (similarity)**: `similarity.ts` -- Levenshtein distance with 0.8 threshold.
+- **L3 (llm)**: `llm-mapper.ts` -- via `runAgent("mapper")` with tier Intern fallback.
+- **Orchestrator**: `index.ts` (`MappingEngine` class) with in-memory cache.
+
+Tests: `tests/unit/integration/mapping-engine.test.ts`, `mapping-rules.test.ts`, `mapping-similarity.test.ts`, `rule-engine.test.ts`.
+Migration: `030_integration_tables.sql` (connector_field_mappings table).
 
 ## Context
 

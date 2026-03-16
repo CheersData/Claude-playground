@@ -21,9 +21,28 @@ const OAUTH_AUTHORIZE_CONFIGS: Record<string, OAuthAuthorizeConfig> = {
     authorizeUrl: "https://app.hubspot.com/oauth/authorize",
     clientIdEnvVar: "HUBSPOT_CLIENT_ID",
     scopes: [
+      "oauth",
       "crm.objects.contacts.read",
       "crm.objects.companies.read",
       "crm.objects.deals.read",
+      "crm.objects.tickets.read",
+    ],
+  },
+  salesforce: {
+    authorizeUrl: "https://login.salesforce.com/services/oauth2/authorize",
+    clientIdEnvVar: "SALESFORCE_CLIENT_ID",
+    scopes: ["api", "refresh_token"],
+    // prompt=consent ensures we always get a refresh_token
+    extraParams: { prompt: "consent" },
+  },
+  "fatture-in-cloud": {
+    authorizeUrl: "https://api-v2.fattureincloud.it/oauth/authorize",
+    clientIdEnvVar: "FATTURE_CLIENT_ID",
+    scopes: [
+      "entity.clients:r",
+      "entity.suppliers:r",
+      "issued_documents:r",
+      "received_documents:r",
     ],
   },
 };

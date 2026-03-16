@@ -164,8 +164,8 @@ class BacktestConfig(BaseModel):
     warmup_bars: int | None = None  # Auto-calculated from timeframe if None
     train_test_split: float | None = None  # e.g. 0.7 for 70/30
     signal_threshold: float = 0.3  # composite score threshold for BUY/SELL
-    stop_loss_atr: float = 2.0  # stop loss ATR multiplier
-    take_profit_atr: float = 10.0  # take profit ATR multiplier (grid search optimal: wider TP)
+    stop_loss_atr: float = 1.5  # stop loss ATR multiplier (Cycle 4: tighter SL, was 2.0/2.5 — 126/136 SL exits in Cycle 3)
+    take_profit_atr: float = 3.0  # take profit ATR multiplier (Cycle 4: closer TP, was 6.0 — TP almost never reached at 6x)
     trend_filter: bool = True  # require price > SMA long for BUY signals
     timeframe: str = "1Day"  # "1Day", "1Hour", or "15Min"
     strategy: str = "trend_following"  # "trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume", or "noise_boundary"

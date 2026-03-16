@@ -18,6 +18,10 @@
  *   question-prep, leader, task-executor
  * - GenerateResult passthrough: all fields preserved in AgentRunResult
  * - Prompt passthrough: user prompt passed correctly to generate()
+ * - CLI-first execution path: CLI success, CLI failure → SDK fallback,
+ *   CLI not found (ENOENT), CLI timeout, CLI rate limit, CLI credits error,
+ *   CLI non-JSON response, CLI path skipped when conditions not met,
+ *   CLI + SDK chain interaction (both fail, cost logging, agentName passing)
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -31,13 +35,23 @@ const mockGetAgentChain = vi.hoisted(() => vi.fn());
 const mockIsProviderEnabled = vi.hoisted(() => vi.fn());
 const mockParseAgentJSON = vi.hoisted(() => vi.fn());
 const mockLogAgentCost = vi.hoisted(() => vi.fn());
+const mockRunViaCLI = vi.hoisted(() => vi.fn());
+const mockIsCliRunnerEnabled = vi.hoisted(() => vi.fn());
+const mockGetExecutionMode = vi.hoisted(() => vi.fn());
+const mockGetCliModel = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/ai-sdk/generate", () => ({ generate: mockGenerate }));
+vi.mock("@/lib/ai-sdk/cli-runner", () => ({
+  runViaCLI: mockRunViaCLI,
+  isCliRunnerEnabled: mockIsCliRunnerEnabled,
+}));
 vi.mock("@/lib/tiers", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/tiers")>();
   return {
     ...original,
     getAgentChain: mockGetAgentChain,
+    getExecutionMode: mockGetExecutionMode,
+    getCliModel: mockGetCliModel,
     sessionTierStore: { getStore: vi.fn(() => undefined) },
   };
 });
@@ -97,6 +111,10 @@ beforeEach(() => {
   mockIsProviderEnabled.mockReturnValue(true);
   mockParseAgentJSON.mockImplementation((text: string) => JSON.parse(text));
   mockLogAgentCost.mockResolvedValue(undefined);
+  // CLI path disabled by default — existing tests use SDK chain only
+  mockGetExecutionMode.mockReturnValue("sdk");
+  mockGetCliModel.mockReturnValue("sonnet");
+  mockIsCliRunnerEnabled.mockReturnValue(false);
 });
 
 // ── Test Suite ───────────────────────────────────────────────────────────────
@@ -1202,6 +1220,713 @@ describe("runAgent", () => {
       // Both should succeed independently
       expect(result1.parsed).toBeDefined();
       expect(result2.parsed).toBeDefined();
+    });
+  });
+
+  // ─── 17. CLI-first execution path ──────────────────────────────────────
+
+  describe("CLI-first execution path", () => {
+    /**
+     * Helper: sets up mocks so the CLI path is active for a given agent.
+     * Must be called at the start of each CLI test.
+     */
+    function enableCliPath(agent: AgentName = "analyzer") {
+      mockGetExecutionMode.mockImplementation((a: string) =>
+        a === agent ? "cli" : "sdk"
+      );
+      mockIsCliRunnerEnabled.mockReturnValue(true);
+      mockGetCliModel.mockReturnValue("sonnet");
+    }
+
+    // ── CLI success ─────────────────────────────────────────────────────
+
+    describe("CLI success", () => {
+      it("uses CLI when executionMode is 'cli' and CLI runner is enabled", async () => {
+        enableCliPath("analyzer");
+        const cliResult = {
+          text: '{"clauses": [], "overallRisk": "low"}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 5000,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        };
+        mockRunViaCLI.mockResolvedValue(cliResult);
+
+        const result = await runAgent<{ clauses: []; overallRisk: string }>(
+          "analyzer",
+          "analizza questo contratto"
+        );
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).not.toHaveBeenCalled();
+        expect(result.parsed).toEqual({ clauses: [], overallRisk: "low" });
+        expect(result.usedFallback).toBe(false);
+        expect(result.usedModelKey).toBe("cli-sonnet");
+      });
+
+      it("passes prompt to runViaCLI", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("analyzer", "il mio prompt speciale");
+
+        expect(mockRunViaCLI.mock.calls[0][0]).toBe("il mio prompt speciale");
+      });
+
+      it("passes systemPrompt from config to runViaCLI", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("analyzer", "test", {
+          systemPrompt: "Sei un analista legale esperto.",
+        });
+
+        const cliConfig = mockRunViaCLI.mock.calls[0][1];
+        expect(cliConfig.systemPrompt).toBe("Sei un analista legale esperto.");
+      });
+
+      it("passes the correct CLI model from getCliModel", async () => {
+        mockGetExecutionMode.mockReturnValue("cli");
+        mockIsCliRunnerEnabled.mockReturnValue(true);
+        mockGetCliModel.mockReturnValue("opus");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "opus",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("task-executor", "execute task");
+
+        const cliConfig = mockRunViaCLI.mock.calls[0][1];
+        expect(cliConfig.model).toBe("opus");
+        expect(result.usedModelKey).toBe("cli-opus");
+      });
+
+      it("enables webSearch for investigator agent", async () => {
+        enableCliPath("investigator");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"findings":[]}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("investigator", "ricerca giurisprudenza");
+
+        const cliConfig = mockRunViaCLI.mock.calls[0][1];
+        expect(cliConfig.enableWebSearch).toBe(true);
+      });
+
+      it("disables webSearch for non-investigator agents", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("analyzer", "test");
+
+        const cliConfig = mockRunViaCLI.mock.calls[0][1];
+        expect(cliConfig.enableWebSearch).toBe(false);
+      });
+
+      it("sets timeoutMs to 300_000 for CLI calls", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("analyzer", "test");
+
+        const cliConfig = mockRunViaCLI.mock.calls[0][1];
+        expect(cliConfig.timeoutMs).toBe(300_000);
+      });
+
+      it("logs cost with cli- prefixed modelKey on CLI success", async () => {
+        enableCliPath("advisor");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"score":8}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 2500,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("advisor", "test");
+
+        expect(mockLogAgentCost).toHaveBeenCalledOnce();
+        const costArgs = mockLogAgentCost.mock.calls[0][0];
+        expect(costArgs.agentName).toBe("advisor");
+        expect(costArgs.modelKey).toBe("cli-sonnet");
+        expect(costArgs.inputTokens).toBe(0);
+        expect(costArgs.outputTokens).toBe(0);
+        expect(costArgs.durationMs).toBe(2500);
+        expect(costArgs.usedFallback).toBe(false);
+      });
+
+      it("spreads CLIRunnerResult fields into AgentRunResult", async () => {
+        enableCliPath("analyzer");
+        const cliResult = {
+          text: '{"data":"value"}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 4200,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        };
+        mockRunViaCLI.mockResolvedValue(cliResult);
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(result.text).toBe('{"data":"value"}');
+        expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
+        expect(result.durationMs).toBe(4200);
+        expect(result.provider).toBe("cli");
+        expect(result.model).toBe("sonnet");
+      });
+    });
+
+    // ── CLI failure → SDK fallback ──────────────────────────────────────
+
+    describe("CLI failure falls back to SDK chain", () => {
+      it("falls back to SDK chain when CLI throws a generic error", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockRejectedValue(new Error("CLI process crashed"));
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ ok: true });
+        // SDK chain succeeds on first model → usedFallback=false (relative to SDK chain)
+        expect(result.usedFallback).toBe(false);
+        expect(result.usedModelKey).toBe(defaultChain[0]);
+      });
+
+      it("falls back to SDK chain when CLI throws ENOENT (claude not found)", async () => {
+        enableCliPath("analyzer");
+        const enoentError = new Error(
+          "[CLI-RUNNER] ANALYZER spawn error: spawn claude ENOENT (claude nel PATH?)"
+        );
+        mockRunViaCLI.mockRejectedValue(enoentError);
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ ok: true });
+      });
+
+      it("falls back to SDK chain when CLI throws timeout error", async () => {
+        enableCliPath("analyzer");
+        const timeoutError = new Error(
+          "[CLI-RUNNER] ANALYZER timed out after 300000ms"
+        );
+        mockRunViaCLI.mockRejectedValue(timeoutError);
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"fallback":true}'));
+        mockParseAgentJSON.mockReturnValue({ fallback: true });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ fallback: true });
+      });
+
+      it("falls back to SDK chain when CLI exits with rate limit error", async () => {
+        enableCliPath("analyzer");
+        const rateLimitError = new Error(
+          "[CLI-RUNNER] ANALYZER exit 1 (RATE_LIMIT): rate_limit_error"
+        );
+        mockRunViaCLI.mockRejectedValue(rateLimitError);
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ ok: true });
+      });
+
+      it("falls back to SDK chain when CLI exits with credit balance error", async () => {
+        enableCliPath("analyzer");
+        const creditsError = new Error(
+          "[CLI-RUNNER] ANALYZER exit 1 (CREDITS): Credit balance is too low"
+        );
+        mockRunViaCLI.mockRejectedValue(creditsError);
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ ok: true });
+      });
+
+      it("falls back to SDK chain when CLI returns non-JSON (parse fails)", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: "Sorry, I cannot help with that.",
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+        // parseAgentJSON will throw on non-JSON from CLI
+        mockParseAgentJSON
+          .mockImplementationOnce(() => {
+            throw new Error("Risposta non JSON da Claude");
+          })
+          .mockReturnValueOnce({ ok: true });
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ ok: true });
+      });
+
+      it("throws when both CLI and entire SDK chain fail", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockRejectedValue(new Error("CLI failed"));
+        mockGenerate.mockRejectedValue(new Error("SDK chain exhausted"));
+
+        await expect(runAgent("analyzer", "test")).rejects.toThrow(
+          "SDK chain exhausted"
+        );
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalledTimes(3); // all 3 models in defaultChain
+      });
+
+      it("does not log CLI cost when CLI fails (cost logged only on SDK success)", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockRejectedValue(new Error("CLI failed"));
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        await runAgent("analyzer", "test");
+
+        // Cost should be logged for the SDK success, not for the CLI failure
+        expect(mockLogAgentCost).toHaveBeenCalledOnce();
+        const costArgs = mockLogAgentCost.mock.calls[0][0];
+        expect(costArgs.modelKey).toBe(defaultChain[0]); // SDK model, not cli-*
+      });
+    });
+
+    // ── CLI path skipped ────────────────────────────────────────────────
+
+    describe("CLI path skipped when conditions not met", () => {
+      it("skips CLI when executionMode is 'sdk' (e.g. classifier)", async () => {
+        // Default: mockGetExecutionMode returns "sdk"
+        mockIsCliRunnerEnabled.mockReturnValue(true);
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        await runAgent("classifier", "test");
+
+        expect(mockRunViaCLI).not.toHaveBeenCalled();
+        expect(mockGenerate).toHaveBeenCalledOnce();
+      });
+
+      it("skips CLI when isCliRunnerEnabled returns false (DISABLE_CLI_RUNNER=true)", async () => {
+        mockGetExecutionMode.mockReturnValue("cli");
+        mockIsCliRunnerEnabled.mockReturnValue(false); // disabled
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).not.toHaveBeenCalled();
+        expect(mockGenerate).toHaveBeenCalledOnce();
+      });
+
+      it("skips CLI when executionMode is 'sdk' even if isCliRunnerEnabled is true", async () => {
+        mockGetExecutionMode.mockReturnValue("sdk");
+        mockIsCliRunnerEnabled.mockReturnValue(true);
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        await runAgent("classifier", "test");
+
+        expect(mockRunViaCLI).not.toHaveBeenCalled();
+        expect(mockGenerate).toHaveBeenCalledOnce();
+      });
+    });
+
+    // ── CLI + SDK chain interaction ─────────────────────────────────────
+
+    describe("CLI + SDK chain interaction", () => {
+      it("CLI failure with string error (non-Error) falls back to SDK", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockRejectedValue("string error from CLI");
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"ok":true}'));
+        mockParseAgentJSON.mockReturnValue({ ok: true });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).toHaveBeenCalled();
+        expect(result.parsed).toEqual({ ok: true });
+      });
+
+      it("CLI success does not call SDK generate at all", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"success":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 3000,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(mockRunViaCLI).toHaveBeenCalledOnce();
+        expect(mockGenerate).not.toHaveBeenCalled();
+        expect(result.parsed).toEqual({ success: true });
+      });
+
+      it("agentName is passed as UPPERCASE to CLI config", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("analyzer", "test");
+
+        const cliConfig = mockRunViaCLI.mock.calls[0][1];
+        expect(cliConfig.agentName).toBe("ANALYZER");
+      });
+
+      it("cost logger error does not break CLI success path (fire-and-forget)", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+        mockLogAgentCost.mockRejectedValue(new Error("Supabase down"));
+
+        // Should NOT throw
+        const result = await runAgent("analyzer", "test");
+        expect(result.parsed).toEqual({ ok: true });
+      });
+
+      it("cost logger with non-Error rejection does not break CLI path", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+        mockLogAgentCost.mockRejectedValue("string rejection");
+
+        const result = await runAgent("analyzer", "test");
+        expect(result.parsed).toEqual({ ok: true });
+      });
+    });
+
+    // ── CLI model per agent ──────────────────────────────────────────────
+
+    describe("CLI model varies per agent", () => {
+      it("uses 'haiku' model for classifier via CLI", async () => {
+        enableCliPath("classifier");
+        mockGetCliModel.mockReturnValue("haiku");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"type":"contratto"}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 800,
+          provider: "cli",
+          model: "haiku",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("classifier", "classifica documento");
+
+        expect(mockRunViaCLI.mock.calls[0][1].model).toBe("haiku");
+        expect(result.usedModelKey).toBe("cli-haiku");
+      });
+
+      it("uses 'opus' model for task-executor via CLI", async () => {
+        enableCliPath("task-executor");
+        mockGetCliModel.mockReturnValue("opus");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"completed":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 15000,
+          provider: "cli",
+          model: "opus",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("task-executor", "esegui task");
+
+        expect(mockRunViaCLI.mock.calls[0][1].model).toBe("opus");
+        expect(result.usedModelKey).toBe("cli-opus");
+      });
+
+      it("uses 'sonnet' model for advisor via CLI", async () => {
+        enableCliPath("advisor");
+        mockGetCliModel.mockReturnValue("sonnet");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"score":7,"advice":"ok"}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 5000,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("advisor", "consiglio");
+
+        expect(mockRunViaCLI.mock.calls[0][1].model).toBe("sonnet");
+        expect(result.usedModelKey).toBe("cli-sonnet");
+      });
+    });
+
+    // ── CLI per multiple agent types ─────────────────────────────────────
+
+    describe("CLI execution across different agent types", () => {
+      const cliAgentTests: Array<{
+        agent: AgentName;
+        expectedWebSearch: boolean;
+      }> = [
+        { agent: "analyzer", expectedWebSearch: false },
+        { agent: "advisor", expectedWebSearch: false },
+        { agent: "investigator", expectedWebSearch: true },
+        { agent: "corpus-agent", expectedWebSearch: false },
+        { agent: "task-executor", expectedWebSearch: false },
+        { agent: "classifier", expectedWebSearch: false },
+        { agent: "question-prep", expectedWebSearch: false },
+        { agent: "leader", expectedWebSearch: false },
+      ];
+
+      for (const { agent, expectedWebSearch } of cliAgentTests) {
+        it(`${agent}: CLI path sets enableWebSearch=${expectedWebSearch}`, async () => {
+          enableCliPath(agent);
+          mockRunViaCLI.mockResolvedValue({
+            text: '{"ok":true}',
+            usage: { inputTokens: 0, outputTokens: 0 },
+            durationMs: 100,
+            provider: "cli",
+            model: "sonnet",
+            costUsd: 0,
+          });
+
+          await runAgent(agent, "test");
+
+          const cliConfig = mockRunViaCLI.mock.calls[0][1];
+          expect(cliConfig.enableWebSearch).toBe(expectedWebSearch);
+        });
+      }
+
+      for (const { agent } of cliAgentTests) {
+        it(`${agent}: CLI success returns usedFallback=false`, async () => {
+          enableCliPath(agent);
+          mockRunViaCLI.mockResolvedValue({
+            text: '{"ok":true}',
+            usage: { inputTokens: 0, outputTokens: 0 },
+            durationMs: 100,
+            provider: "cli",
+            model: "sonnet",
+            costUsd: 0,
+          });
+
+          const result = await runAgent(agent, "test");
+
+          expect(result.usedFallback).toBe(false);
+          expect(result.provider).toBe("cli");
+        });
+      }
+    });
+
+    // ── CLI result field preservation ─────────────────────────────────────
+
+    describe("CLI result field preservation", () => {
+      it("preserves costUsd=0 from CLI subscription result", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"clauses":[]}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 3200,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("analyzer", "test");
+
+        // costUsd is spread from CLIRunnerResult via ...cliResult
+        expect((result as unknown as Record<string, unknown>).costUsd).toBe(0);
+      });
+
+      it("preserves usage tokens (always 0 for CLI)", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(result.usage.inputTokens).toBe(0);
+        expect(result.usage.outputTokens).toBe(0);
+      });
+
+      it("preserves actual durationMs from CLI execution", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 42_567,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(result.durationMs).toBe(42_567);
+      });
+
+      it("preserves model name from CLI result", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: '{"ok":true}',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(result.model).toBe("sonnet");
+      });
+    });
+
+    // ── CLI parseAgentJSON interaction ────────────────────────────────────
+
+    describe("CLI output JSON parsing", () => {
+      it("calls parseAgentJSON with trimmed text from CLI result", async () => {
+        enableCliPath("analyzer");
+        const rawJson = '{"complex": [1, 2, {"nested": true}]}';
+        mockRunViaCLI.mockResolvedValue({
+          text: rawJson,
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+
+        await runAgent("analyzer", "test");
+
+        expect(mockParseAgentJSON).toHaveBeenCalledOnce();
+        expect(mockParseAgentJSON).toHaveBeenCalledWith(rawJson);
+      });
+
+      it("returns parsed result from parseAgentJSON for CLI output", async () => {
+        enableCliPath("analyzer");
+        const parsedObject = { risks: ["alto"], score: 3 };
+        mockRunViaCLI.mockResolvedValue({
+          text: JSON.stringify(parsedObject),
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+        mockParseAgentJSON.mockReturnValue(parsedObject);
+
+        const result = await runAgent("analyzer", "test");
+
+        expect(result.parsed).toEqual(parsedObject);
+        expect(result.parsed).toBe(parsedObject); // same reference from mock
+      });
+
+      it("CLI parse failure triggers SDK fallback, not double CLI attempt", async () => {
+        enableCliPath("analyzer");
+        mockRunViaCLI.mockResolvedValue({
+          text: "This is not JSON at all",
+          usage: { inputTokens: 0, outputTokens: 0 },
+          durationMs: 100,
+          provider: "cli",
+          model: "sonnet",
+          costUsd: 0,
+        });
+        // First call (CLI): parse throws
+        // Second call (SDK chain model 1): parse succeeds
+        mockParseAgentJSON
+          .mockImplementationOnce(() => {
+            throw new SyntaxError("Unexpected token T in JSON at position 0");
+          })
+          .mockReturnValueOnce({ fromSdk: true });
+        mockGenerate.mockResolvedValue(makeGenerateResult('{"fromSdk":true}'));
+
+        const result = await runAgent("analyzer", "test");
+
+        // CLI was called once, SDK was called once (first in chain succeeds)
+        expect(mockRunViaCLI).toHaveBeenCalledTimes(1);
+        expect(mockGenerate).toHaveBeenCalledTimes(1);
+        expect(result.parsed).toEqual({ fromSdk: true });
+        expect(result.usedModelKey).toBe(defaultChain[0]);
+      });
     });
   });
 });

@@ -43,11 +43,11 @@ BEGIN
     ALTER TABLE public.legal_articles ADD COLUMN hierarchy jsonb NOT NULL DEFAULT '{}';
   END IF;
 
-  -- embedding (vector) — per ricerca semantica futura
+  -- embedding (vector) — per ricerca semantica (Voyage AI voyage-law-2: 1024 dimensioni)
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'legal_articles' AND column_name = 'embedding') THEN
     -- Assicurati che l'estensione vector esista
     CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
-    ALTER TABLE public.legal_articles ADD COLUMN embedding vector(1536);
+    ALTER TABLE public.legal_articles ADD COLUMN embedding vector(1024);
   END IF;
 
   -- last_updated

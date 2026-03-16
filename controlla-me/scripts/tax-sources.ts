@@ -9,9 +9,11 @@
  *   3. Statuto del Contribuente — L. 212/2000 (Normattiva)
  *   4. D.Lgs. 231/2001 — Responsabilità amministrativa enti (cross-ref da "legal")
  *
+ * === FONTI PRONTE PER CARICAMENTO (lifecycle: "api-tested") ===
+ *   5. D.P.R. 600/1973 — Accertamento imposte sui redditi (codiceRedazionale: 073U0600)
+ *   6. D.P.R. 602/1973 — Riscossione imposte (codiceRedazionale: 073U0602)
+ *
  * === FONTI PIANIFICATE (lifecycle: "planned") ===
- *   5. D.P.R. 600/1973 — Accertamento imposte sui redditi
- *   6. D.P.R. 602/1973 — Riscossione imposte
  *   7. D.Lgs. 74/2000  — Reati tributari (penale fiscale)
  *   8. D.Lgs. 446/1997 — IRAP
  *   9. D.Lgs. 472/1997 — Sanzioni tributarie non penali
@@ -165,12 +167,12 @@ export const TAX_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.del.presidente.della.repubblica",
       normattivaSearchTerms: ["accertamento imposte redditi", "dpr 600 1973"],
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 268 del 16 ottobre 1973
+      codiceRedazionale: "073U0600",   // pattern YY+U+NNNN (cfr. 072U0633 DPR IVA, 086U0917 TUIR)
       directAkn: true,
+      normattivaDataGU: "19731016",    // G.U. n. 268 del 16 ottobre 1973
       preferredFormat: "akn",
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",   // codiceRedazionale verificato 2026-03-14 — pronto per LOAD
     vertical: "tax",
   },
   {
@@ -189,12 +191,12 @@ export const TAX_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.del.presidente.della.repubblica",
       normattivaSearchTerms: ["riscossione imposte reddito", "dpr 602 1973"],
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 268 del 16 ottobre 1973
+      codiceRedazionale: "073U0602",   // pattern YY+U+NNNN (cfr. 072U0633 DPR IVA, 086U0917 TUIR)
       directAkn: true,
+      normattivaDataGU: "19731016",    // G.U. n. 268 del 16 ottobre 1973, S.O.
       preferredFormat: "akn",
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",   // codiceRedazionale verificato 2026-03-14 — pronto per LOAD
     vertical: "tax",
   },
   {
@@ -212,9 +214,9 @@ export const TAX_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.legislativo",
       normattivaSearchTerms: ["reati tributari", "decreto legislativo 74 2000", "dichiarazione fraudolenta"],
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 76 del 31 marzo 2000
+      codiceRedazionale: "000G0096",   // stima — verificare via CONNECT prima del caricamento
       directAkn: true,
+      normattivaDataGU: "20000331",    // G.U. n. 76 del 31 marzo 2000
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -236,9 +238,9 @@ export const TAX_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.legislativo",
       normattivaSearchTerms: ["irap", "decreto legislativo 446 1997", "imposta regionale attivita produttive"],
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 298 del 23 dicembre 1997, S.O. n. 252
+      codiceRedazionale: "097G0440",   // stima — verificare via CONNECT prima del caricamento
       directAkn: true,
+      normattivaDataGU: "19971223",    // G.U. n. 298 del 23 dicembre 1997, S.O. n. 252
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -259,9 +261,9 @@ export const TAX_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.legislativo",
       normattivaSearchTerms: ["sanzioni tributarie", "decreto legislativo 472 1997", "ravvedimento operoso"],
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 5 dell'8 gennaio 1998, S.O. n. 4
+      codiceRedazionale: "097G0466",   // stima — verificare via CONNECT prima del caricamento
       directAkn: true,
+      normattivaDataGU: "19980108",    // G.U. n. 5 dell'8 gennaio 1998, S.O. n. 4
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -284,9 +286,9 @@ export const TAX_SOURCES: CorpusSource[] = [
     connector: {
       normattivaActType: "decreto.legislativo",
       normattivaSearchTerms: ["processo tributario", "decreto legislativo 546 1992", "commissione tributaria"],
-      // codiceRedazionale: TODO — verificare via CONNECT prima del caricamento
-      // normattivaDataGU: TODO — G.U. n. 9 del 13 gennaio 1993, S.O. n. 8
+      codiceRedazionale: "093G0005",   // stima — verificare via CONNECT prima del caricamento
       directAkn: true,
+      normattivaDataGU: "19930113",    // G.U. n. 9 del 13 gennaio 1993, S.O. n. 8
       preferredFormat: "akn",
     },
     lifecycle: "planned",
@@ -323,8 +325,8 @@ export const TAX_SOURCE_IDS = TAX_SOURCES.map((s) => s.id);
  * Ordine suggerito (priorità per completezza verticale):
  *
  * Fase 1 — Core procedurale (essenziali per consulente tributarista):
- *   4. npx tsx scripts/data-connector.ts connect dpr_600_1973   (83 art. — accertamento)
- *   5. npx tsx scripts/data-connector.ts connect dpr_602_1973   (92 art. — riscossione)
+ *   4. npx tsx scripts/data-connector.ts pipeline dpr_600_1973  (83 art. — accertamento) [api-tested, codiceRedazionale: 073U0600]
+ *   5. npx tsx scripts/data-connector.ts pipeline dpr_602_1973  (92 art. — riscossione) [api-tested, codiceRedazionale: 073U0602]
  *
  * Fase 2 — Penale e sanzioni (compliance e contenzioso):
  *   6. npx tsx scripts/data-connector.ts connect dlgs_74_2000   (24 art. — reati tributari)

@@ -145,7 +145,7 @@ export default function FieldMappingStep({
                   onChange={(e) =>
                     onUpdateMapping(activeMappings.entityId, mapping.sourceField, e.target.value)
                   }
-                  className="flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-all focus:ring-2 cursor-pointer appearance-none"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 cursor-pointer appearance-none"
                   style={{
                     background: "var(--bg-base)",
                     border: "1px solid var(--border-dark-subtle)",

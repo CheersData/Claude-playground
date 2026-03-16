@@ -1,17 +1,17 @@
 /**
- * cme-autorun.ts — Daemon SENSOR + PING per CME
+ * cme-autorun.ts — Daemon SENSOR + EXECUTOR per CME
  *
- * Il daemon scansiona i dipartimenti e produce un ping per la sessione Claude Code attiva.
- * NIENTE LLM (spreco di quote). NIENTE claude -p (non funziona in nested session).
+ * Il daemon scansiona i dipartimenti, produce un report, e ESEGUE task via LLM gratuiti.
  *
  * Flusso:
  *   FASE 1: Sensor ($0) → scansiona dipartimenti, produce signal
  *   FASE 2: Report → scrive daemon-report.json strutturato
- *   FASE 3: Ping → scrive riassunto in clipboard + company/daemon-ping.txt
- *           Il boss incolla il ping nella chat Claude Code → CME agisce.
+ *   FASE 3: Executor → esegue task open via LLM gratuiti (Gemini/Groq/Cerebras/Mistral)
+ *           Fallback: scrive ping in clipboard se LLM non disponibili.
  *
- * Il daemon è gli occhi. La sessione Claude Code attiva è il cervello e le mani.
- * Il boss incolla il ping → CME legge i segnali → agisce.
+ * Executor: usa callLLM() da lib/llm.ts con catena fallback su provider gratuiti.
+ * NON usa claude -p (rotto dal 9 marzo 2026 — ENOENT / crediti insufficienti).
+ * Vedi: task 8565f0eb, company/architecture/designs/daemon-idle-plenary.md
  *
  * Usage:
  *   npx tsx scripts/cme-autorun.ts              # Sessione singola (sensor + executor)
@@ -26,6 +26,7 @@ import { spawnSync } from "child_process";
 import * as fs from "fs";
 import { resolve } from "path";
 import { callLLM, parseJSON } from "../lib/llm";
+import { fileRegisterSession, fileUnregisterSession } from "../lib/company/sessions";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -731,12 +732,21 @@ function scanDepartmentStatus(): ActionableItem[] {
 
 // autoGenerateTasks RIMOSSO — il daemon non crea task, produce solo report per CME
 
-// ─── CME Executor (claude -p, Max subscription) ────────────────────────────
+// ─── CME Executor (Free LLM — $0.00) ────────────────────────────────────────
+//
+// HISTORY: Prima del 2026-03-09, il daemon usava `claude -p` (spawnSync) per
+// eseguire task autonomamente. Questo approccio falliva sistematicamente:
+//   1. ENOENT — `claude` non nel PATH del processo daemon
+//   2. Credit balance too low — ambiente demo senza crediti API Anthropic
+//
+// FIX (2026-03-14): L'executor usa callLLM() da lib/llm.ts con catena fallback
+// su provider gratuiti (Gemini Flash → Groq → Cerebras → Mistral). Stessa
+// infrastruttura del sensor phase, che funziona da sempre. Zero costi.
+//
+// La vecchia funzione _executeCMESession (claude -p) è stata RIMOSSA.
+// executeCMESessionFree() la sostituisce completamente.
+// buildCMEPrompt() rimane disponibile se si vuole ripristinare claude -p in futuro.
 
-/**
- * Determina se il report ha signal che meritano di triggerare una sessione CME.
- * Trigger solo su signal critical/high NON human_required.
- */
 /**
  * Conta i task open che NON sono human_required.
  * Legge la lista task e filtra via HUMAN_REQUIRED_PATTERNS.
@@ -768,10 +778,13 @@ function shouldTriggerCME(report: DaemonReport): { trigger: boolean; reason: str
   }
 
   // F1: Cooldown progressivo — se N sessioni consecutive senza azioni, backoff
+  // Nota: nel modello ping (daemon scrive clipboard, boss incolla) il counter
+  // saliva troppo perché le sessioni "no-op" sono la norma. Threshold alzato
+  // a 20 e skip max 3 cicli per evitare di bloccare il daemon per giorni.
   const consecutiveNoOp = state.consecutiveNoOp ?? 0;
-  if (consecutiveNoOp >= 6) {
-    // Dopo 6 sessioni vuote, triggera solo ogni N cicli
-    const skipCycles = Math.min(consecutiveNoOp - 4, 5); // max 5 cicli di skip
+  if (consecutiveNoOp >= 20) {
+    // Dopo 20 sessioni vuote, triggera solo ogni N cicli (max 3 skip)
+    const skipCycles = Math.min(Math.floor((consecutiveNoOp - 18) / 2), 3);
     const cycleNum = state.totalRuns % (skipCycles + 1);
     if (cycleNum !== 0) {
       return { trigger: false, reason: `Cooldown progressivo (${consecutiveNoOp} sessioni no-op, skip ciclo ${cycleNum}/${skipCycles + 1})`, actionableCount: 0 };
@@ -942,68 +955,203 @@ ${report.llmAnalysis?.slice(0, 800) || "(non disponibile — provider gratuiti e
 }
 
 /**
- * Lancia claude -p come CME autonomo.
- * Usa la subscription Max del boss (nessun costo aggiuntivo).
+ * Esegue una sessione CME autonoma via LLM gratuiti (ZERO COSTI).
+ *
+ * Analizza lo stato aziendale e propone azioni concrete (task da creare).
+ * Usa callLLM() con catena fallback: Gemini Flash → Groq → Cerebras → Mistral.
+ *
+ * Sostituisce la vecchia _executeCMESession che usava `claude -p` (rotto dal 2026-03-09).
  */
-function _executeCMESession(report: DaemonReport): { success: boolean; output: string; durationMs: number } {
-  const prompt = buildCMEPrompt(report);
-
-  log("[CME] Lancio sessione autonoma via claude -p (Max subscription)...");
+async function executeCMESessionFree(report: DaemonReport): Promise<{
+  success: boolean;
+  output: string;
+  durationMs: number;
+  tasksCreated: number;
+}> {
   const startTime = Date.now();
 
-  // F3: Usa spawnSync con `input` diretto — più affidabile di pipe via shell su Windows.
-  // Il vecchio approccio (type file | claude -p) causava troncamento intermittente del prompt.
-  // Se `input` non funziona, fallback su file temporaneo + pipe.
-  const promptFile = resolve(LOG_DIR, ".cme-prompt.tmp");
+  log("[EXECUTOR-LLM] Lancio sessione CME via LLM gratuiti ($0.00)...");
+
+  // Prompt compatto ottimizzato per provider gratuiti (context window più piccolo)
+  const actionableSignals = report.signals
+    .filter((s) => !s.requiresHuman)
+    .sort((a, b) => {
+      const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+      return (order[a.priority] ?? 3) - (order[b.priority] ?? 3);
+    })
+    .slice(0, 10);
+
+  const signalList = actionableSignals
+    .map((s) => `- [${s.priority}] ${s.deptId}: ${s.title} | ${s.description.slice(0, 150)}`)
+    .join("\n");
+
+  const openTasksText = readOpenTasks().slice(0, 2000);
+
+  const prompt = `Sei CME, il CEO virtuale di Controlla.me (app analisi legale AI).
+
+## STATO BOARD
+- Open: ${report.board.open} | In Progress: ${report.board.inProgress} | Done: ${report.board.done}
+
+## TASK APERTI
+${openTasksText || "(nessuno)"}
+
+## SIGNAL AZIONABILI (${actionableSignals.length} totali)
+${signalList || "(nessuno)"}
+
+## ISTRUZIONI
+
+Analizza lo stato e proponi azioni concrete. Rispondi SOLO in JSON puro (inizia con { e finisci con }).
+
+{
+  "analysis": "Stato aziendale in 2-3 frasi",
+  "actions": [
+    {
+      "type": "create_task",
+      "title": "Titolo task conciso (max 80 chars)",
+      "dept": "dipartimento",
+      "priority": "critical|high|medium|low",
+      "description": "Cosa fare e perche (max 200 chars)"
+    }
+  ],
+  "summary": "Riassunto di cosa hai deciso (max 200 parole)"
+}
+
+REGOLE:
+- Max 3 azioni per sessione
+- Solo azioni concrete e realizzabili da un agente AI
+- Non creare task per cose che richiedono intervento umano (DPA, deploy, go-live)
+- Dipartimenti validi: ufficio-legale, trading, data-engineering, quality-assurance, architecture, finance, operations, security, strategy, marketing, ux-ui
+- Se non ci sono azioni utili, actions = [] e spiega perche in summary`;
 
   try {
-    // Metodo primario: stdin diretto via `input` — no shell, no pipe, no troncamento
-    let result: ReturnType<typeof spawnSync>;
-    const claudeCmd = process.platform === "win32" ? "claude.cmd" : "claude";
-
-    try {
-      result = spawnSync(claudeCmd, ["-p", "--verbose"], {
-        cwd: ROOT,
-        encoding: "utf-8",
-        timeout: MAX_CME_SESSION_TIMEOUT,
-        input: prompt,
-        env: { ...process.env },
-        windowsHide: true,
-      });
-
-      // Verifica: se exit code null e output vuoto, il metodo input non ha funzionato → fallback
-      if (result.status === null && !(result.stdout || "").trim() && !(result.stderr || "").trim()) {
-        throw new Error("spawnSync input method returned empty — fallback to pipe");
-      }
-    } catch (inputErr) {
-      // Fallback: file + pipe (vecchio metodo)
-      log(`[CME] Input diretto fallito (${inputErr instanceof Error ? inputErr.message : inputErr}), fallback a pipe`);
-      fs.writeFileSync(promptFile, prompt, "utf-8");
-      const pipeCmd = process.platform === "win32"
-        ? `type "${promptFile}" | claude -p --verbose`
-        : `cat "${promptFile}" | claude -p --verbose`;
-      result = spawnSync(pipeCmd, [], {
-        cwd: ROOT,
-        encoding: "utf-8",
-        timeout: MAX_CME_SESSION_TIMEOUT,
-        shell: true,
-        env: { ...process.env },
-        windowsHide: true,
-      });
-    }
+    const response = await callLLM(prompt, {
+      callerName: "cme-executor",
+      maxTokens: 2048,
+      temperature: 0.3,
+      jsonOutput: true,
+    });
 
     const durationMs = Date.now() - startTime;
-    const output = (result.stdout || "") + (result.stderr || "");
+    log(`[EXECUTOR-LLM] Risposta: ${response.length} chars in ${(durationMs / 1000).toFixed(1)}s`);
 
-    // Log sessione CME
-    ensureDir(CME_SESSION_LOG_DIR);
-    const now = new Date();
-    const sessionFile = `${now.toISOString().slice(0, 16).replace(/[T:]/g, "-")}.md`;
-    const sessionLog = `# CME Session Autonoma — ${now.toLocaleString("it-IT")}
+    // Parsa risposta JSON
+    let parsed: {
+      analysis?: string;
+      actions?: Array<{
+        type: string;
+        title?: string;
+        dept?: string;
+        priority?: string;
+        description?: string;
+      }>;
+      summary?: string;
+    };
 
-- Durata: ${(durationMs / 1000).toFixed(0)}s
-- Exit code: ${result.status}
-- Trigger: ${report.signals.filter((s) => !s.requiresHuman && (s.priority === "critical" || s.priority === "high")).length} signal + ${report.board.open} task open
+    try {
+      parsed = parseJSON(response);
+    } catch (parseErr) {
+      log(`[EXECUTOR-LLM] JSON parse fallito: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
+      logCMESession(report, prompt, response, durationMs, false, 0);
+      return { success: false, output: response, durationMs, tasksCreated: 0 };
+    }
+
+    // Esegui azioni: crea task sulla board
+    let tasksCreated = 0;
+    const actions = parsed.actions || [];
+
+    for (const action of actions.slice(0, 3)) {
+      if (action.type === "create_task" && action.title && action.dept) {
+        try {
+          const createResult = spawnSync("npx", [
+            "tsx", "scripts/company-tasks.ts", "create",
+            "--title", action.title.slice(0, 80),
+            "--dept", action.dept,
+            "--priority", action.priority || "medium",
+            "--by", "cme-daemon-executor",
+            "--desc", action.description || action.title,
+          ], {
+            cwd: ROOT, encoding: "utf-8", timeout: 15000, shell: true, windowsHide: true,
+          });
+          if (createResult.status === 0) {
+            tasksCreated++;
+            log(`[EXECUTOR-LLM] Task creato: [${action.priority}] ${action.dept} — ${action.title}`);
+          } else {
+            log(`[EXECUTOR-LLM] Task creation failed: ${createResult.stderr?.slice(0, 100)}`);
+          }
+        } catch (err) {
+          log(`[EXECUTOR-LLM] Task creation error: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    }
+
+    const output = [
+      `Analysis: ${parsed.analysis || "N/A"}`,
+      `Actions: ${actions.length} proposti, ${tasksCreated} task creati`,
+      `Summary: ${parsed.summary || "N/A"}`,
+    ].join("\n");
+
+    logCMESession(report, prompt, response, durationMs, true, tasksCreated);
+    log(`[EXECUTOR-LLM] Sessione completata: ${tasksCreated} task creati in ${(durationMs / 1000).toFixed(0)}s`);
+    return { success: true, output, durationMs, tasksCreated };
+
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const msg = err instanceof Error ? err.message : String(err);
+    const errorCat = categorizeExecutorError(msg);
+    log(`[EXECUTOR-LLM] ${errorCat.label}: ${msg.slice(0, 200)}`);
+    logCMESession(report, prompt, `ERROR [${errorCat.code}]: ${msg}`, durationMs, false, 0);
+    return { success: false, output: `${errorCat.label}: ${msg}`, durationMs, tasksCreated: 0 };
+  }
+}
+
+/**
+ * Categorizza errori dell'executor per logging e diagnostica migliore.
+ */
+function categorizeExecutorError(msg: string): { code: string; label: string; retryable: boolean } {
+  const lower = msg.toLowerCase();
+  if (lower.includes("enoent")) {
+    return { code: "ENOENT", label: "Comando non trovato nel PATH", retryable: false };
+  }
+  if (lower.includes("credit") || lower.includes("balance") || lower.includes("quota")) {
+    return { code: "CREDITS", label: "Crediti/quota esauriti", retryable: false };
+  }
+  if (lower.includes("rate_limit") || lower.includes("429") || lower.includes("too many")) {
+    return { code: "RATE_LIMIT", label: "Rate limit raggiunto", retryable: true };
+  }
+  if (lower.includes("timeout") || lower.includes("etimedout")) {
+    return { code: "TIMEOUT", label: "Timeout connessione", retryable: true };
+  }
+  if (lower.includes("network") || lower.includes("econnrefused") || lower.includes("fetch failed")) {
+    return { code: "NETWORK", label: "Errore di rete", retryable: true };
+  }
+  if (lower.includes("tutti i provider")) {
+    return { code: "ALL_PROVIDERS_FAILED", label: "Tutti i provider gratuiti hanno fallito", retryable: false };
+  }
+  return { code: "UNKNOWN", label: "Errore executor", retryable: false };
+}
+
+/**
+ * Log sessione CME su file per archivio.
+ */
+function logCMESession(
+  report: DaemonReport,
+  prompt: string,
+  output: string,
+  durationMs: number,
+  success: boolean,
+  tasksExecuted: number
+): void {
+  ensureDir(CME_SESSION_LOG_DIR);
+  const now = new Date();
+  const sessionFile = `${now.toISOString().slice(0, 16).replace(/[T:]/g, "-")}.md`;
+  const sessionLog = `# CME Session — ${now.toLocaleString("it-IT")}
+
+- **Engine**: Free LLM (callLLM via lib/llm.ts)
+- **Durata**: ${(durationMs / 1000).toFixed(0)}s
+- **Successo**: ${success}
+- **Task eseguiti**: ${tasksExecuted}
+- **Signal totali**: ${report.signals.length} (${report.signals.filter(s => !s.requiresHuman).length} azionabili)
+- **Board**: open=${report.board.open} inProgress=${report.board.inProgress} done=${report.board.done}
 
 ## Prompt
 
@@ -1017,24 +1165,7 @@ ${prompt.slice(0, 5000)}
 ${output.slice(0, 50_000)}
 \`\`\`
 `;
-    fs.writeFileSync(resolve(CME_SESSION_LOG_DIR, sessionFile), sessionLog, "utf-8");
-
-    if (result.status === 0) {
-      log(`[CME] Sessione completata in ${(durationMs / 1000).toFixed(0)}s`);
-      return { success: true, output, durationMs };
-    } else {
-      log(`[CME] Sessione fallita (exit ${result.status}): ${output.slice(0, 200)}`);
-      return { success: false, output, durationMs };
-    }
-  } catch (err) {
-    const durationMs = Date.now() - startTime;
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[CME] Errore sessione: ${msg}`);
-    return { success: false, output: msg, durationMs };
-  } finally {
-    // Pulisci file temporaneo
-    try { fs.unlinkSync(promptFile); } catch { /* ignore */ }
-  }
+  fs.writeFileSync(resolve(CME_SESSION_LOG_DIR, sessionFile), sessionLog, "utf-8");
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -1107,6 +1238,15 @@ async function main() {
 
     if (!acquireLock()) return;
 
+    // Register daemon session in the active session tracker
+    fileRegisterSession({
+      pid: process.pid,
+      type: "daemon",
+      target: "daemon",
+      startedAt: new Date(),
+      status: "active",
+    });
+
     const startTime = Date.now();
 
     try {
@@ -1153,8 +1293,9 @@ async function main() {
 
       // Log session sensor (testo per archivio umano)
       log(`[SENSOR] Completato in ${(durationMs / 1000).toFixed(0)}s — exit ${exitCode} — $0.00`);
+      const sensorOutput = `Costo: $0.00\nSignal: ${signals.length}\nSuggestions: ${report.llmSuggestions.length}\nAlerts: ${report.alerts.length}\nBoard: open=${boardStats.open} inProgress=${boardStats.inProgress} done=${boardStats.done}`;
       logSession(
-        `Costo: $0.00\nSignal: ${signals.length}\nSuggestions: ${report.llmSuggestions.length}\nAlerts: ${report.alerts.length}\n\n${output}`,
+        sensorOutput,
         exitCode,
         durationMs
       );
@@ -1285,14 +1426,109 @@ async function main() {
         console.log(pingText);
         console.log("=".repeat(60) + "\n");
 
-        writeDaemonState({ consecutiveNoOp: 0 });
+        // consecutiveNoOp gestito in FASE 5 (executor)
       } else if (sensorOnly) {
         log(`[EXECUTOR] Skip (--sensor-only). Signal azionabili: ${actionableCount}`);
       } else {
         log(`[EXECUTOR] Skip: ${reason}`);
-        if (!reason.includes("backoff") && !reason.includes("Cooldown")) {
-          writeDaemonState({ consecutiveNoOp: 0 });
+        // consecutiveNoOp gestito in FASE 5 (executor)
+      }
+
+      // FASE 5: EXECUTOR — catena di fallback per esecuzione task
+      //
+      // Strategia a 3 livelli:
+      //   1. task-runner-api.ts → esegue task open esistenti via runAgent() (free tier)
+      //   2. executeCMESessionFree() → analizza signal e CREA nuovi task via callLLM() (free tier)
+      //   3. Ping fallback → scrive in clipboard/file (il boss incolla manualmente)
+      //
+      // Se il livello 1 fallisce (es. nessun task open, o errore npx),
+      // il livello 2 tenta di creare task dai signal.
+      // Se anche il livello 2 fallisce (es. tutti i provider gratuiti down),
+      // il ping della FASE 4 è già stato scritto come ultima risorsa.
+      //
+      // ZERO costi in tutti i livelli. Niente claude -p.
+
+      if (trigger && !sensorOnly) {
+        let executorSuccess = false;
+        let totalTasksExecuted = 0;
+
+        // Livello 1: task-runner-api (esegue task open esistenti)
+        const automatableTasks = countAutomatableTasks();
+        if (automatableTasks > 0) {
+          log(`[EXECUTOR-L1] ${automatableTasks} task open automatizzabili. Lancio task-runner-api...`);
+          try {
+            const execResult = spawnSync("npx", [
+              "tsx", "scripts/task-runner-api.ts", "--all",
+            ], {
+              cwd: ROOT,
+              encoding: "utf-8",
+              timeout: 5 * 60 * 1000, // 5 minuti max
+              shell: true,
+              windowsHide: true,
+              env: { ...process.env },
+            });
+
+            const execOutput = (execResult.stdout || "") + (execResult.stderr || "");
+            if (execResult.status === 0) {
+              const completedMatch = execOutput.match(/(\d+) completati/);
+              const tasksCompleted = completedMatch ? parseInt(completedMatch[1]) : 0;
+              log(`[EXECUTOR-L1] task-runner-api: ${tasksCompleted} task completati.`);
+              if (tasksCompleted > 0) {
+                executorSuccess = true;
+                totalTasksExecuted += tasksCompleted;
+              }
+            } else {
+              const errorCat = categorizeExecutorError(execOutput);
+              log(`[EXECUTOR-L1] task-runner-api fallito [${errorCat.code}] (exit ${execResult.status}): ${execOutput.slice(0, 200)}`);
+            }
+          } catch (execErr) {
+            const msg = execErr instanceof Error ? execErr.message : String(execErr);
+            const errorCat = categorizeExecutorError(msg);
+            log(`[EXECUTOR-L1] Errore lancio [${errorCat.code}]: ${msg.slice(0, 150)}`);
+          }
+        } else {
+          log(`[EXECUTOR-L1] Nessun task open automatizzabile.`);
         }
+
+        // Livello 2: executeCMESessionFree (crea nuovi task da signal via LLM gratuiti)
+        // Attivato se: L1 non ha eseguito task E ci sono signal azionabili
+        if (!executorSuccess && actionableCount > 0) {
+          log(`[EXECUTOR-L2] L1 non ha eseguito task. Lancio analisi CME via LLM gratuiti...`);
+          try {
+            const cmeResult = await executeCMESessionFree(report);
+            if (cmeResult.success && cmeResult.tasksCreated > 0) {
+              executorSuccess = true;
+              totalTasksExecuted += cmeResult.tasksCreated;
+              log(`[EXECUTOR-L2] ${cmeResult.tasksCreated} task creati da signal.`);
+            } else if (cmeResult.success) {
+              log(`[EXECUTOR-L2] Analisi completata ma nessun task creato.`);
+            } else {
+              log(`[EXECUTOR-L2] Fallito: ${cmeResult.output.slice(0, 200)}`);
+            }
+          } catch (cmeErr) {
+            log(`[EXECUTOR-L2] Errore: ${cmeErr instanceof Error ? cmeErr.message : String(cmeErr)}`);
+          }
+        }
+
+        // Aggiorna stato daemon
+        if (executorSuccess) {
+          writeDaemonState({
+            lastTasksExecuted: totalTasksExecuted,
+            consecutiveNoOp: 0,
+          });
+          log(`[EXECUTOR] Successo: ${totalTasksExecuted} task totali (L1+L2).`);
+        } else {
+          // L1 e L2 falliti. Il ping della FASE 4 è già stato scritto come fallback.
+          log(`[EXECUTOR] L1+L2 falliti. Ping disponibile in company/daemon-ping.txt.`);
+          writeDaemonState({
+            consecutiveNoOp: (readDaemonState().consecutiveNoOp ?? 0) + 1,
+          });
+        }
+      } else if (!sensorOnly) {
+        // Nessun trigger — incrementa no-op counter
+        writeDaemonState({
+          consecutiveNoOp: (readDaemonState().consecutiveNoOp ?? 0) + 1,
+        });
       }
 
       // Log rotation
@@ -1309,13 +1545,15 @@ async function main() {
         log(`[ALERTING] Check failed: ${e}`);
       }
 
-      // Aggiorna stato daemon
+      // Aggiorna stato daemon (preserva lastTasksExecuted se Phase 5 l'ha già aggiornato)
       const totalDuration = Date.now() - startTime;
+      const finalState = readDaemonState();
       writeDaemonState({
         lastRun: new Date().toISOString(),
         lastDurationMs: totalDuration,
         lastExitCode: exitCode,
-        lastTasksExecuted: trigger && !sensorOnly ? 1 : 0,
+        // lastTasksExecuted è già aggiornato da Phase 5 se ha eseguito task
+        lastTasksExecuted: finalState.lastTasksExecuted,
         totalRuns: state.totalRuns + 1,
         updatedBy: "cme-autorun-autoalimentante",
       });
@@ -1323,6 +1561,8 @@ async function main() {
       log(`[DONE] ${signals.length} signal, ${report.llmSuggestions.length} suggestions, ${report.alerts.length} alerts. CME triggered: ${trigger && !sensorOnly}`);
     } finally {
       releaseLock();
+      // Unregister daemon session from active session tracker
+      fileUnregisterSession(process.pid);
     }
   };
 
@@ -1355,5 +1595,6 @@ async function main() {
 main().catch((err) => {
   console.error(`Errore fatale: ${err.message}`);
   releaseLock();
+  fileUnregisterSession(process.pid);
   process.exit(1);
 });

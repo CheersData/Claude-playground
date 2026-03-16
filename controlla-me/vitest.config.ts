@@ -13,7 +13,19 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["lib/**/*.ts", "app/api/**/*.ts"],
-      exclude: ["lib/supabase/**", "lib/prompts/**", "lib/stripe.ts"],
+      exclude: [
+        "lib/supabase/**",
+        "lib/prompts/**",
+        "lib/stripe.ts",
+        "**/types.ts",
+        "**/types/**",
+      ],
+      thresholds: {
+        statements: 50,
+        branches: 40,
+        functions: 45,
+        lines: 50,
+      },
     },
   },
 });

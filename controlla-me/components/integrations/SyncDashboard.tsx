@@ -177,16 +177,10 @@ function IntegrationCard({
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl p-6 mb-3 transition-colors"
+      className="rounded-xl p-6 mb-3 transition-colors hover-border-dark"
       style={{
         background: "var(--bg-raised)",
         border: "1px solid var(--border-dark-subtle)",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-dark)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-dark-subtle)";
       }}
     >
       {/* Header row */}
@@ -212,14 +206,8 @@ function IntegrationCard({
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors hover-bg-overlay"
             style={{ color: "var(--fg-muted)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
             aria-label="Menu azioni"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -432,15 +420,9 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors"
+      className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors hover-bg-hover"
       style={{
         color: danger ? "var(--error)" : "var(--fg-secondary)",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "transparent";
       }}
     >
       <Icon className="w-4 h-4" />
@@ -661,7 +643,27 @@ export default function SyncDashboard() {
     fetchData();
   }, [fetchData]);
 
+  const dashboardAction = useCallback(
+    async (connectorId: string, action: "sync" | "pause" | "resume" | "disconnect") => {
+      try {
+        const res = await fetch("/api/integrations/dashboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, connectorId }),
+        });
+        if (res.ok) {
+          // Refresh data from server after action
+          fetchData();
+        }
+      } catch (err) {
+        console.error(`[SyncDashboard] ${action} failed for ${connectorId}:`, err);
+      }
+    },
+    [fetchData]
+  );
+
   const handleSync = useCallback((id: string) => {
+    // Optimistic UI update
     setIntegrations((prev) =>
       prev.map((i) =>
         i.id === id
@@ -669,13 +671,15 @@ export default function SyncDashboard() {
           : i
       )
     );
-  }, []);
+    dashboardAction(id, "sync");
+  }, [dashboardAction]);
 
   const handlePause = useCallback((id: string) => {
     setIntegrations((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status: "paused" as SyncStatus, nextSync: null } : i))
     );
-  }, []);
+    dashboardAction(id, "pause");
+  }, [dashboardAction]);
 
   const handleResume = useCallback((id: string) => {
     setIntegrations((prev) =>
@@ -685,7 +689,8 @@ export default function SyncDashboard() {
           : i
       )
     );
-  }, []);
+    dashboardAction(id, "resume");
+  }, [dashboardAction]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-base)", color: "var(--fg-primary)" }}>

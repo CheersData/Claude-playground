@@ -36,6 +36,7 @@ import {
   ArrowRight,
   AlertTriangle,
   Save,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -101,6 +102,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   HardDrive,
   Building2,
+  FileText,
 };
 
 const STEPS = [
@@ -111,215 +113,59 @@ const STEPS = [
   { id: "review", label: "Attiva" },
 ] as const;
 
-// ─── Demo connector configs ───
+// ─── API response → ConnectorConfig mapper ───
+// Connector metadata is fetched from GET /api/integrations/[connectorId].
+// This function maps the API response to the ConnectorConfig shape used by the wizard.
 
-const CONNECTOR_CONFIGS: Record<string, ConnectorConfig> = {
-  salesforce: {
-    id: "salesforce",
-    name: "Salesforce",
-    category: "CRM",
-    icon: "Users",
-    authMode: "oauth",
-    oauthPermissions: [
-      { label: "Lettura contatti" },
-      { label: "Lettura opportunita" },
-      { label: "Lettura pipeline" },
-    ],
-    entities: [
-      {
-        id: "contacts",
-        name: "Contatti",
-        recordCount: 12450,
-        lastUpdated: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Email", "Telefono", "Azienda", "Ruolo"],
-      },
-      {
-        id: "opportunities",
-        name: "Opportunita",
-        recordCount: 3210,
-        lastUpdated: new Date(Date.now() - 30 * 60_000).toISOString(),
-        fields: ["Titolo", "Valore", "Fase", "Probabilita"],
-      },
-      {
-        id: "pipeline",
-        name: "Pipeline",
-        recordCount: 8,
-        lastUpdated: new Date(Date.now() - 24 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Fasi", "Probabilita default"],
-      },
-      {
-        id: "activities",
-        name: "Attivita",
-        recordCount: 8920,
-        lastUpdated: new Date(Date.now() - 4 * 60 * 60_000).toISOString(),
-        fields: ["Tipo", "Data", "Oggetto", "Contatto"],
-      },
-      {
-        id: "notes",
-        name: "Note",
-        recordCount: 2100,
-        lastUpdated: new Date(Date.now() - 12 * 60 * 60_000).toISOString(),
-        fields: ["Testo", "Data", "Autore"],
-      },
-      {
-        id: "reports",
-        name: "Report",
-        recordCount: 45,
-        lastUpdated: new Date(Date.now() - 48 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Tipo", "Ultima esecuzione"],
-      },
-    ],
-    targetFields: [
-      "nome",
-      "cognome",
-      "email",
-      "telefono",
-      "azienda",
-      "ruolo",
-      "indirizzo",
-      "titolo",
-      "valore",
-      "fase",
-      "probabilita",
-      "data_creazione",
-      "data_modifica",
-      "note",
-      "tipo",
-      "oggetto",
-      "stato",
-    ],
-  },
-  hubspot: {
-    id: "hubspot",
-    name: "HubSpot",
-    category: "CRM / Marketing",
-    icon: "Users",
-    authMode: "oauth",
-    oauthPermissions: [
-      { label: "Lettura contatti" },
-      { label: "Lettura deal" },
-      { label: "Lettura campagne" },
-    ],
-    entities: [
-      {
-        id: "contacts",
-        name: "Contatti",
-        recordCount: 8200,
-        lastUpdated: new Date(Date.now() - 60 * 60_000).toISOString(),
-        fields: ["Nome", "Email", "Azienda", "Lifecycle stage"],
-      },
-      {
-        id: "deals",
-        name: "Deal",
-        recordCount: 1450,
-        lastUpdated: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Valore", "Pipeline", "Stage"],
-      },
-      {
-        id: "campaigns",
-        name: "Campagne",
-        recordCount: 120,
-        lastUpdated: new Date(Date.now() - 5 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Tipo", "Budget", "Risultati"],
-      },
-    ],
-    targetFields: [
-      "nome",
-      "cognome",
-      "email",
-      "azienda",
-      "ruolo",
-      "valore",
-      "pipeline",
-      "stage",
-      "budget",
-      "tipo_campagna",
-      "risultati",
-      "lifecycle_stage",
-    ],
-  },
-  stripe: {
-    id: "stripe",
-    name: "Stripe",
-    category: "Pagamenti",
-    icon: "CreditCard",
-    authMode: "api_key",
-    oauthPermissions: [],
-    apiKeyLabel: "API Key",
-    secretKeyLabel: "Webhook Secret (opzionale)",
-    helpText: "Trova le tue chiavi API in Stripe Dashboard > Developers > API Keys",
-    entities: [
-      {
-        id: "invoices",
-        name: "Fatture",
-        recordCount: 3200,
-        lastUpdated: new Date(Date.now() - 60 * 60_000).toISOString(),
-        fields: ["Numero", "Importo", "Stato", "Cliente", "Data"],
-      },
-      {
-        id: "subscriptions",
-        name: "Abbonamenti",
-        recordCount: 890,
-        lastUpdated: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
-        fields: ["Piano", "Stato", "Cliente", "Rinnovo"],
-      },
-      {
-        id: "payments",
-        name: "Pagamenti",
-        recordCount: 12400,
-        lastUpdated: new Date(Date.now() - 30 * 60_000).toISOString(),
-        fields: ["Importo", "Metodo", "Stato", "Data"],
-      },
-    ],
-    targetFields: [
-      "numero_fattura",
-      "importo",
-      "stato",
-      "cliente",
-      "data",
-      "piano",
-      "rinnovo",
-      "metodo_pagamento",
-      "valuta",
-    ],
-  },
-  "google-drive": {
-    id: "google-drive",
-    name: "Google Drive",
-    category: "Storage",
-    icon: "HardDrive",
-    authMode: "oauth",
-    oauthPermissions: [
-      { label: "Lettura file e cartelle" },
-      { label: "Lettura metadati" },
-    ],
-    entities: [
-      {
-        id: "files",
-        name: "File",
-        recordCount: 2500,
-        lastUpdated: new Date(Date.now() - 3 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Tipo", "Dimensione", "Proprietario", "Data modifica"],
-      },
-      {
-        id: "folders",
-        name: "Cartelle",
-        recordCount: 180,
-        lastUpdated: new Date(Date.now() - 6 * 60 * 60_000).toISOString(),
-        fields: ["Nome", "Percorso", "Proprietario"],
-      },
-    ],
-    targetFields: [
-      "nome_file",
-      "tipo_file",
-      "dimensione",
-      "proprietario",
-      "percorso",
-      "data_modifica",
-      "data_creazione",
-    ],
-  },
-};
+interface ConnectorApiResponse {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  authMode: "oauth" | "api_key";
+  oauthPermissions: { label: string }[];
+  apiKeyLabel?: string | null;
+  secretKeyLabel?: string | null;
+  helpText?: string | null;
+  targetFields: string[];
+  entities: {
+    id: string;
+    name: string;
+    fields: string[];
+    recordCount: number;
+    lastUpdated: string | null;
+  }[];
+  // Dynamic data (sync status, history, etc.)
+  status?: string;
+  lastSync?: string | null;
+  nextSync?: string | null;
+  totalRecords?: number;
+  syncHistory?: unknown[];
+  errors?: unknown[];
+  mappings?: unknown[];
+}
+
+function mapApiResponseToConfig(data: ConnectorApiResponse): ConnectorConfig {
+  return {
+    id: data.id,
+    name: data.name,
+    category: data.category,
+    icon: data.icon,
+    authMode: data.authMode,
+    oauthPermissions: data.oauthPermissions ?? [],
+    apiKeyLabel: data.apiKeyLabel ?? undefined,
+    secretKeyLabel: data.secretKeyLabel ?? undefined,
+    helpText: data.helpText ?? undefined,
+    entities: data.entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      recordCount: e.recordCount ?? 0,
+      lastUpdated: e.lastUpdated ?? null,
+      fields: e.fields,
+    })),
+    targetFields: data.targetFields,
+  };
+}
 
 // ─── Auto-mapping generator ───
 
@@ -426,12 +272,69 @@ export default function ConnectorDetailClient() {
   const { connectorId } = useParams<{ connectorId: string }>();
   const router = useRouter();
 
-  // Resolve config
-  const config = CONNECTOR_CONFIGS[connectorId ?? ""] ?? null;
+  // ─── Fetch connector metadata from API ───
+  const [config, setConfig] = useState<ConnectorConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!connectorId) return;
+    let cancelled = false;
+
+    async function fetchMetadata() {
+      setConfigLoading(true);
+      setConfigError(null);
+      try {
+        const res = await fetch(`/api/integrations/${connectorId}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            // Connector not found in registry
+            setConfig(null);
+            setConfigLoading(false);
+            return;
+          }
+          if (res.status === 401) {
+            setConfigError("Autenticazione richiesta. Effettua il login per configurare i connettori.");
+            setConfigLoading(false);
+            return;
+          }
+          throw new Error(`Errore ${res.status}`);
+        }
+        const data: ConnectorApiResponse = await res.json();
+        if (!cancelled) {
+          setConfig(mapApiResponseToConfig(data));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setConfigError(
+            err instanceof Error
+              ? err.message
+              : "Errore nel caricamento della configurazione del connettore"
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setConfigLoading(false);
+        }
+      }
+    }
+
+    fetchMetadata();
+    return () => { cancelled = true; };
+  }, [connectorId]);
+
   const ConnectorIcon = config ? ICON_MAP[config.icon] || Plug : Plug;
 
   // ─── Tab state ───
-  const [activeTab, setActiveTab] = useState<TabId>("setup");
+  // Initialize tab from URL query param (e.g. ?tab=sync from ConnectorCard "Gestisci")
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "sync" || tabParam === "mapping") return tabParam;
+    }
+    return "setup";
+  });
 
   // ─── Wizard state ───
   const [step, setStep] = useState(0);
@@ -457,6 +360,7 @@ export default function ConnectorDetailClient() {
 
   // Step 5: activate
   const [activateStatus, setActivateStatus] = useState<"idle" | "activating" | "success" | "error">("idle");
+  const [activateError, setActivateError] = useState<string | null>(null);
 
   // ─── Derived data ───
 
@@ -595,9 +499,10 @@ export default function ConnectorDetailClient() {
 
   const handleActivate = useCallback(async () => {
     setActivateStatus("activating");
+    setActivateError(null);
     try {
-      // 1. Create connection
-      const connRes = await fetch("/api/integrations", {
+      // Use unified setup endpoint — creates connection + saves mappings + triggers sync
+      const res = await fetch("/api/integrations/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -605,36 +510,34 @@ export default function ConnectorDetailClient() {
           connectorName: config?.name || connectorId,
           frequency,
           selectedEntities,
+          mappings: entityMappings,
+          triggerSync: true,
         }),
       });
 
-      if (!connRes.ok && connRes.status !== 409) {
-        throw new Error("Errore nella creazione della connessione");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Errore nella configurazione del connettore");
       }
 
-      // 2. Save mappings
-      if (entityMappings.length > 0) {
-        await fetch(`/api/integrations/${connectorId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mappings: entityMappings }),
-        });
-      }
-
-      // 3. Trigger first sync
-      const syncRes = await fetch(`/api/integrations/${connectorId}/sync`, {
-        method: "POST",
-      });
-
-      if (syncRes.ok) {
-        const syncData = await syncRes.json();
-        console.log(`[Activate] Sync completed: ${syncData.itemCount} items`);
-      }
+      const result = await res.json();
+      console.log(
+        `[Activate] ${result.connectorName} configured: ` +
+          `${result.selectedEntities?.length} entities, ${result.mappingsCount} mappings`
+      );
 
       setActivateStatus("success");
+
+      // Auto-switch to sync tab after successful activation
+      setTimeout(() => {
+        setActiveTab("sync");
+      }, 1500);
     } catch (err) {
       console.error("[Activate] Error:", err);
       setActivateStatus("error");
+      setActivateError(
+        err instanceof Error ? err.message : "Errore durante l'attivazione. Riprova."
+      );
     }
   }, [connectorId, config, frequency, selectedEntities, entityMappings]);
 
@@ -678,6 +581,51 @@ export default function ConnectorDetailClient() {
         return false;
     }
   }, [step, selectedEntities.length, verifyStatus, entityMappings.length, activateStatus]);
+
+  // ─── Loading state ───
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-base)" }}>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "var(--accent)" }} />
+          <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+            Caricamento configurazione connettore...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Error state ───
+
+  if (configError) {
+    return (
+      <div className="min-h-screen" style={{ background: "var(--bg-base)", color: "var(--fg-primary)" }}>
+        <div className="max-w-[1400px] mx-auto px-6 md:px-10 pt-8">
+          <Link
+            href="/integrazione"
+            className="inline-flex items-center gap-2 text-sm mb-6 transition-colors"
+            style={{ color: "var(--fg-secondary)" }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Torna alle integrazioni
+          </Link>
+          <div
+            className="flex items-center gap-3 p-4 rounded-xl text-sm"
+            style={{
+              background: "rgba(229, 141, 120, 0.1)",
+              border: "1px solid rgba(229, 141, 120, 0.3)",
+              color: "var(--error)",
+            }}
+          >
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span>{configError}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Not found ───
 
@@ -734,14 +682,9 @@ export default function ConnectorDetailClient() {
         <div className="max-w-5xl mx-auto flex items-center gap-4">
           <Link
             href="/integrazione"
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors hover-bg-overlay"
             style={{ color: "var(--fg-muted)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
+            aria-label="Torna alle integrazioni"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -787,14 +730,8 @@ export default function ConnectorDetailClient() {
               </p>
               <button
                 onClick={() => setOauthBanner(null)}
-                className="p-1 rounded transition-colors shrink-0"
+                className="p-1 rounded transition-colors shrink-0 hover-color-primary"
                 style={{ color: "var(--fg-muted)" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.color = "var(--fg-primary)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.color = "var(--fg-muted)";
-                }}
                 aria-label="Chiudi"
               >
                 &times;
@@ -917,6 +854,7 @@ export default function ConnectorDetailClient() {
                           ignoredFieldsCount={mappingStats.ignored}
                           frequency={frequency}
                           activateStatus={activateStatus}
+                          activateError={activateError}
                           onActivate={handleActivate}
                           onGoToStep={goToStep}
                         />
@@ -933,14 +871,8 @@ export default function ConnectorDetailClient() {
                   {step > 0 ? (
                     <button
                       onClick={goBack}
-                      className="flex items-center gap-2 text-sm transition-colors"
+                      className="flex items-center gap-2 text-sm transition-colors hover-color-primary"
                       style={{ color: "var(--fg-secondary)" }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.color = "var(--fg-primary)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.color = "var(--fg-secondary)";
-                      }}
                     >
                       <ChevronLeft className="w-4 h-4" />
                       Indietro
@@ -1593,7 +1525,7 @@ function ConnectorMappingTab({
                     onChange={(e) =>
                       onUpdateMapping(currentMapping.entityId, mapping.sourceField, e.target.value)
                     }
-                    className="w-full text-sm px-3 py-2 rounded-lg outline-none cursor-pointer appearance-none"
+                    className="w-full text-sm px-3 py-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 cursor-pointer appearance-none"
                     style={{
                       background: "var(--bg-base)",
                       color: "var(--fg-primary)",

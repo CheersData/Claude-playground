@@ -60,18 +60,19 @@ export const HUBSPOT_SOURCES: DataSource[] = [
       deltaInterval: "daily",
     },
     // Demo mode: uses HUBSPOT_API_KEY as Bearer token (private app pattern)
-    // Production: switch to oauth2-pkce strategy:
-    // auth: {
-    //   type: "oauth2-pkce",
-    //   config: {
-    //     authorizeUrl: "https://app.hubspot.com/oauth/authorize",
-    //     tokenUrl: "https://api.hubapi.com/oauth/v1/token",
-    //     clientId: "your-hubspot-client-id",
-    //     scopes: ["crm.objects.contacts.read", "crm.objects.companies.read", "crm.objects.deals.read", "tickets"],
-    //     redirectUri: "https://controlla.me/api/auth/connector-callback",
-    //     credentialVaultKey: "hubspot",
-    //   },
-    // },
+    // Production: OAuth2 via /api/integrations/hubspot/authorize → callback → vault
+    // Auth: uses HUBSPOT_API_KEY env var for demo mode (api-key strategy).
+    // In production, the OAuth2 flow is handled by the authorize/callback API routes.
+    // The connector reads tokens from the vault when created with vault+userId options.
+    // BUG 1 FIX: Use api-key strategy for pipeline/CLI mode (reads HUBSPOT_API_KEY).
+    // OAuth2 is handled at the API route level, not at the DataSource config level,
+    // because OAuth2 PKCE requires user interaction (browser redirect).
+    auth: {
+      type: "api-key",
+      header: "Authorization",
+      envVar: "HUBSPOT_API_KEY",
+      prefix: "Bearer ",
+    },
     rateLimit: {
       requestsPerSecond: 5, // HubSpot: 100 req/10s, conservative limit
     },

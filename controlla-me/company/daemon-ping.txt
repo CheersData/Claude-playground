@@ -1,0 +1,18 @@
+DAEMON PING — 15/03/2026, 17:45:36
+Board: 0 open | 20 in-progress | 887 done
+Signal: 1 critical/high + 30 medium
+
+PRIORITÀ:
+  [strategy] Zero utenti reali dopo Q1 — il prodotto non è ancora in produzione pubblica. Sen
+
+MEDIUM (top 8):
+  [architecture] Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-dr
+  [marketing] Write content: Contratto di lavoro: 7 clausole illegali che il tuo datore n
+  [marketing] Write content: Social: LinkedIn carousel '5 clausole che nessuno legge (e c
+  [marketing] Write content: Caparra confirmatoria o penitenziale: qual è la differenza e
+  [marketing] Write content: Contratto di affitto: tutto quello che il proprietario non p
+  [marketing] Write content: Social: Instagram story '3 clausole di affitto che potrebber
+  [marketing] Write content: Patto di non concorrenza nel contratto di lavoro: quando è l
+  [marketing] Write content: Il tuo contratto è stato scritto da un'AI: cosa dice la legg
+
+Incolla in Claude Code → CME agisce.

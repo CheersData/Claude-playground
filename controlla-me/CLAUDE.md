@@ -57,12 +57,12 @@ L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.t
 |---------|-----------|----------|
 | Framework | Next.js (App Router) | 16.1.6 |
 | UI | React | 19.2.3 |
-| Linguaggio | TypeScript (strict) | 5 |
+| Linguaggio | TypeScript (strict) | 5.9.x |
 | CSS | Tailwind CSS 4 + PostCSS | 4 |
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
-| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
+| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.42.x |
 | AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 6.x |
 | AI Registry | lib/models.ts — ~40 modelli, 7 provider | — |
 | Tier System | lib/tiers.ts — 3 tier, catene N-fallback | — |
@@ -191,6 +191,10 @@ controlla-me/
 │   ├── analysis/[id]/page.tsx     # Dettaglio analisi
 │   ├── corpus/page.tsx            # Navigazione corpus legislativo + Q&A
 │   ├── corpus/article/[id]/page.tsx # Dettaglio articolo legislativo
+│   ├── integrazione/page.tsx      # Dashboard connettori integrazione PMI
+│   ├── integrazione/IntegrazioneClient.tsx  # Client component dashboard
+│   ├── integrazione/[connectorId]/page.tsx  # Dettaglio connettore
+│   ├── integrazione/[connectorId]/ConnectorDetailClient.tsx  # Client component dettaglio
 │   └── api/
 │       ├── analyze/route.ts       # CORE - SSE streaming analisi
 │       ├── upload/route.ts        # Estrazione testo da file
@@ -227,6 +231,13 @@ controlla-me/
 │   ├── PaywallBanner.tsx         # Banner limite utilizzo
 │   ├── CTASection.tsx            # Call-to-action
 │   ├── Footer.tsx                # Footer
+│   ├── integrations/             # Componenti Ufficio Integrazione
+│   │   ├── ConnectorCard.tsx     # Card connettore con stato sync
+│   │   ├── IntegrationFilters.tsx # Filtri per categoria/stato
+│   │   ├── SetupWizard.tsx       # Wizard OAuth setup (4 step)
+│   │   ├── SyncDashboard.tsx     # Dashboard sync real-time
+│   │   ├── SyncHistory.tsx       # Storico sincronizzazioni
+│   │   └── wizard/               # Step wizard (AuthStep, FieldMappingStep, EntitySelect, FrequencyStep, ReviewStep)
 │   └── console/                  # Componenti console
 │       ├── StudioShell.tsx       # Layout console
 │       ├── ConsoleHeader.tsx     # Header + Power button
@@ -295,11 +306,13 @@ controlla-me/
 ├── scripts/
 │   ├── data-connector.ts          # CLI: connect, model, load, status, update
 │   ├── corpus-sources.ts          # 14 fonti con ConnectorConfig + lifecycle
+│   ├── tax-sources.ts             # 11 fonti verticale Tax/Commercialista
+│   ├── integration-sources.ts     # Fonti business connector (Stripe, HubSpot, GDrive, Salesforce)
 │   ├── model-census-agent.ts      # CLI: verifica modelli provider (npx tsx scripts/model-census-agent.ts)
 │   ├── seed-corpus.ts             # Seed legacy (HuggingFace)
 │   └── check-data.ts              # QA dati corpus
 │
-├── supabase/migrations/           # SQL per setup DB (001-019)
+├── supabase/migrations/           # SQL per setup DB (001-033)
 ├── public/videos/                 # Video generati AI
 ├── .analysis-cache/               # Cache analisi (gitignored)
 │
@@ -1143,6 +1156,106 @@ company/trading/
 
 ---
 
+## 16B. UFFICIO INTEGRAZIONE (Connettori OAuth2 per PMI)
+
+### Missione
+
+Integrazione dati business per PMI italiane: connettori OAuth2 verso piattaforme esterne (fatturazione, CRM, document management), pipeline CONNECT-AUTH-MAP-SYNC, analisi legale automatica sui documenti importati.
+
+### Vincolo architetturale
+
+- **Riuso framework data-connector**: tutti i connettori estendono `AuthenticatedBaseConnector` (da `lib/staff/data-connector/connectors/base.ts`)
+- **Zero breaking changes**: i connettori legislativi esistenti (Normattiva, EUR-Lex) non vengono toccati
+- **Credential vault**: credenziali OAuth2 per-utente criptate con AES-256-GCM tramite `lib/credential-vault.ts`
+- **Tenant isolation**: ogni PMI ha le sue credenziali, i suoi dati. RLS Supabase su tabelle `integration_*`
+- **Pipeline agenti riusata al 100%**: analisi legale usa la stessa pipeline 4 agenti dell'Ufficio Legale
+
+### Stack
+
+TypeScript/Next.js (App Router), OAuth2 per-utente, AES-256-GCM credential vault, mapping ibrido (regole + Levenshtein + LLM).
+
+### Pipeline
+
+```
+[1] CONNECT — OAuth2 flow per-utente → token criptato nel vault
+[2] AUTH — Validazione e refresh token automatico
+[3] MAP — Normalizzazione campi (regole → Levenshtein → LLM → learning)
+[4] SYNC — Estrazione, analisi 4 agenti AI, notifica, indicizzazione vector DB
+```
+
+### Connettori MVP (Fase 1)
+
+| Connettore | RICE Score | Categoria | API | Stato |
+|-----------|------------|-----------|-----|-------|
+| Fatture in Cloud | 216.0 | Fatturazione IT | REST | Pianificato |
+| Google Drive | 168.0 | Document Mgmt | REST | Pianificato |
+| HubSpot | 126.0 | CRM | REST | Pianificato |
+
+### Schema Database (Migration 030-032)
+
+```sql
+integration_credentials    -- AES-256-GCM encrypted OAuth2/API key storage
+integration_connections    -- Connector config + sync status (unique per user+type)
+integration_sync_log       -- Sync history (TTL 90gg)
+integration_field_mappings -- Cached mappings rule/similarity/llm/user (TTL 30gg)
+integration_credential_audit -- GDPR audit trail (TTL 2 anni)
+```
+
+RLS per-user + service_role. Unique partial index su `integration_connections(user_id, connector_type)` per connessioni attive.
+
+### Variabili d'ambiente
+
+```env
+# Credential Vault (obbligatorio per integrazione)
+# pgcrypto vault: genera con node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+VAULT_ENCRYPTION_KEY=...        # min 32 chars, usato da lib/credential-vault.ts (pgcrypto)
+
+# Fatture in Cloud (MVP)
+FATTURE_CLIENT_ID=...
+FATTURE_CLIENT_SECRET=...
+
+# Google Drive (MVP)
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+
+# HubSpot (MVP)
+HUBSPOT_CLIENT_ID=...
+HUBSPOT_CLIENT_SECRET=...
+```
+
+### Company structure
+
+```
+company/integration/
+├── department.md                  # Identita ufficio
+├── status.json                    # Stato corrente (fase, connettori, metriche)
+├── agents/
+│   ├── integration-lead.md        # Coordinatore ufficio
+│   ├── connector-builder.md       # Costruisce connettori OAuth2
+│   └── mapping-engine.md          # AI mapping ibrido
+└── runbooks/
+    ├── add-connector.md           # Procedura nuovo connettore
+    ├── credential-management.md   # OAuth2 flow, storage, refresh, revoca
+    └── mapping-troubleshoot.md    # Debug mapping 4 livelli
+```
+
+### Fasi di deployment
+
+| Fase | Stato |
+|------|-------|
+| 0. Infrastruttura | **IN CORSO** — Credential vault, AuthenticatedBaseConnector, schema DB, OAuth2 flow generico |
+| 1A. Fatture in Cloud | Pianificato |
+| 1B. Google Drive | Pianificato |
+| 1C. HubSpot | Pianificato |
+| Beta chiusa | Pianificato — 10-20 PMI |
+
+### UI
+
+- `/integrazione` — Dashboard connettori con filtri, stato sync, setup wizard
+- `/integrazione/[connectorId]` — Dettaglio connettore: config, sync history, field mapping
+
+---
+
 ## 17. FEATURE INCOMPLETE (Ufficio Legale / App)
 
 1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
@@ -1215,7 +1328,7 @@ company/trading/
 
 - ~~`tesseract.js` in `dependencies` ma mai importato~~  — **RISOLTO**: rimosso da `dependencies` il 2026-03-01 (TD-2).
 - ~~`openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x)~~ — **RISOLTO**: CLAUDE.md aggiornato a 6.x. Breaking changes v5→v6 verificati: nessun impatto sul nostro uso (solo `chat.completions.create`).
-- `@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.
+- ~~`@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.~~ **RISOLTO 2026-03-14**: CLAUDE.md aggiornato a 1.42.x.
 - `@upstash/ratelimit` + `@upstash/redis` usati in `lib/middleware/rate-limit.ts` ma `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` non erano documentate in `.env.local.example` (ora aggiunte).
 
 ### Rischi architetturali (non urgenti)
@@ -1303,6 +1416,7 @@ Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 |---------|----------|-------|------|
 | Ufficio Legale | 7 agenti AI analisi legale | TypeScript/Next.js | `company/ufficio-legale/` |
 | Ufficio Trading | 5 agenti swing trading | Python/Alpaca | `company/trading/` |
+| Ufficio Integrazione | 3 agenti connettori OAuth2 per PMI (Fatture in Cloud, Google Drive, HubSpot) | TypeScript/Next.js | `company/integration/` |
 
 ### Dipartimenti (Staff)
 

@@ -30,6 +30,7 @@ import {
   updateTask,
   createTask,
 } from "../lib/company/tasks";
+import { fileRegisterSession, fileUnregisterSession } from "../lib/company/sessions";
 import type { Task, TaskPriority, Department } from "../lib/company/types";
 
 // ─── Config ───
@@ -430,6 +431,18 @@ npx tsx scripts/company-tasks.ts update <id> --status open
 
 async function runOnce(): Promise<void> {
   const runStart = Date.now();
+
+  // Register this script in the active session tracker
+  fileRegisterSession({
+    pid: process.pid,
+    type: "task-runner",
+    target: "task-runner",
+    startedAt: new Date(),
+    status: "active",
+  });
+
+  try {
+
   log("🔍 Checking task board...");
 
   const board = await getTaskBoard();
@@ -525,6 +538,11 @@ Esegui \`npx tsx scripts/company-tasks.ts board\` per lo stato completo.
 `;
 
   writeNotification(notification);
+
+  } finally {
+    // Unregister from active session tracker
+    fileUnregisterSession(process.pid);
+  }
 }
 
 // ─── Entry point ───

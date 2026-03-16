@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-03-09T21:42:45.828Z",
-  "durationMs": 11204,
+  "timestamp": "2026-03-15T16:45:15.285Z",
+  "durationMs": 75,
   "board": {
     "total": 0,
-    "open": 2,
-    "inProgress": 5,
-    "done": 739
+    "open": 0,
+    "inProgress": 20,
+    "done": 887
   },
   "signals": [
     {
@@ -362,8 +362,8 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-0",
-      "title": "PRIORITY: Run fetch_spy_5min.py → backtest_5min_slope.py → grid_search_tpsl.py (",
-      "description": "PRIORITY: Run fetch_spy_5min.py → backtest_5min_slope.py → grid_search_tpsl.py (96 combos) per trovare Sharpe >1.0",
+      "title": "PRIORITY: Execute Cycle 4 grid search — run pending_cycle4.commands.grid_search_",
+      "description": "PRIORITY: Execute Cycle 4 grid search — run pending_cycle4.commands.grid_search_2yr from external terminal",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -371,8 +371,8 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-1",
-      "title": "Tuning parametri backtest (sl-atr 1.5-2.0, threshold 0.4) per raggiungere Sharpe",
-      "description": "Tuning parametri backtest (sl-atr 1.5-2.0, threshold 0.4) per raggiungere Sharpe >1.0",
+      "title": "Step 1: Run 48-combo grid on 2-year window (2023-2024) matching Cycle 3 conditio",
+      "description": "Step 1: Run 48-combo grid on 2-year window (2023-2024) matching Cycle 3 conditions",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -380,8 +380,8 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-2",
-      "title": "Configurare ALPACA_API_KEY per paper trading",
-      "description": "Configurare ALPACA_API_KEY per paper trading",
+      "title": "Step 2: If GO found, confirm on 3-year window (2022-2024) for robustness",
+      "description": "Step 2: If GO found, confirm on 3-year window (2022-2024) for robustness",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -389,8 +389,26 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-3",
-      "title": "Short selling: validato long-only è superiore (long+short Sharpe ~0.959)",
-      "description": "Short selling: validato long-only è superiore (long+short Sharpe ~0.959)",
+      "title": "Step 3: Best combo → standalone run for equity curve + trades.csv analysis",
+      "description": "Step 3: Best combo → standalone run for equity curve + trades.csv analysis",
+      "priority": "medium",
+      "routing": "trading-operations:routine",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "trading",
+      "sourceId": "action-trading-4",
+      "title": "Step 4: If Sharpe > 1.0 confirmed → proceed to Phase 3 (Paper Trading)",
+      "description": "Step 4: If Sharpe > 1.0 confirmed → proceed to Phase 3 (Paper Trading)",
+      "priority": "medium",
+      "routing": "trading-operations:routine",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "trading",
+      "sourceId": "action-trading-5",
+      "title": "Configurare ALPACA_API_KEY per paper trading",
+      "description": "Configurare ALPACA_API_KEY per paper trading",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false

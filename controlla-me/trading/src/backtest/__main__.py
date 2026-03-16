@@ -88,9 +88,9 @@ def parse_args() -> argparse.Namespace:
         help="Custom output directory for results",
     )
     grid_parser.add_argument(
-        "--grid-preset", type=str, choices=["default", "tpsl"],
+        "--grid-preset", type=str, choices=["default", "tpsl", "cycle4"],
         default="default",
-        help="Grid preset: 'default' (original 64-combo) or 'tpsl' (TP/SL optimization with trailing + signal exit)",
+        help="Grid preset: 'default' (original 64-combo), 'tpsl' (96-combo TP/SL + trailing), or 'cycle4' (48-combo targeted SL/TP + signal exit, for 2-year window)",
     )
 
     return parser.parse_args()
@@ -135,12 +135,12 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Signal score threshold for BUY/SELL (default: 0.3)",
     )
     parser.add_argument(
-        "--sl-atr", type=float, default=1.5,
-        help="Stop loss ATR multiplier (default: 1.5)",
+        "--sl-atr", type=float, default=2.0,
+        help="Stop loss ATR multiplier (default: 2.0 — Cycle 4 tests 1.5-2.5)",
     )
     parser.add_argument(
-        "--tp-atr", type=float, default=3.0,
-        help="Take profit ATR multiplier (default: 3.0)",
+        "--tp-atr", type=float, default=6.0,
+        help="Take profit ATR multiplier (default: 6.0 — Cycle 4 tests 3.0-6.0)",
     )
     parser.add_argument(
         "--no-trend-filter", action="store_true",
@@ -519,6 +519,9 @@ def cmd_grid(args: argparse.Namespace) -> None:
     if args.grid_preset == "tpsl":
         from .grid_search import TPSL_OPTIMIZATION_GRID
         selected_grid = TPSL_OPTIMIZATION_GRID
+    elif args.grid_preset == "cycle4":
+        from .grid_search import CYCLE4_GRID
+        selected_grid = CYCLE4_GRID
 
     run_grid_search(
         symbols=symbols,

@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "finance",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.196Z",
+    "last_updated": "2026-03-15T16:34:18.654Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "10 completati (ultimi 7gg). 15 completati (totale).",
+  "summary": "1 task in corso. 5 completati (ultimi 7gg). 20 completati (totale).",
   "costs": {
     "last_7d": {
       "total_usd": 1.03,
@@ -51,7 +51,14 @@
     "notes": "App in fase pre-lancio, nessun revenue ancora"
   },
   "gaps": [],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "492fd390",
+      "title": "Daily FIN — cost tracking [CTRL-2026-03-15]",
+      "priority": "low",
+      "status": "in_progress"
+    }
+  ],
   "blockers": [],
   "notes": "Strategia tier system funziona: modelli gratuiti (Cerebras, Groq) coprono 87% delle chiamate. Costo medio per chiamata: $0.002."
 }

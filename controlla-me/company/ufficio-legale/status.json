@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "ufficio-legale",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.185Z",
+    "last_updated": "2026-03-15T16:34:18.572Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task aperti. 16 completati (ultimi 7gg). 22 completati (totale).",
+  "summary": "12 completati (ultimi 7gg). 32 completati (totale).",
   "pipeline": {
     "agents": [
       "classifier",
@@ -66,14 +66,7 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [
-    {
-      "id": "ff57f7d2",
-      "title": "Eseguire stress test ricorsivo sulla pipeline con contratti reali",
-      "priority": "medium",
-      "status": "open"
-    }
-  ],
+  "open_tasks": [],
   "blockers": [],
   "notes": "Pipeline core funzionante. Investigator usa web_search (solo Anthropic). Scoring multidimensionale COMPLETATO: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) in ResultsView, FairnessScore, ChatMessage, FinalEvaluationPanel. Verticale HR: 572 articoli caricati, prompt update pending."
 }

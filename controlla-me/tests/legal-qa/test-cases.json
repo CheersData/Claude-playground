@@ -17,7 +17,7 @@
     "scoringHints": {
       "prep": "Ha capito la distinzione ultra/extra petizione e formulato query giusta?",
       "search": "Ha trovato art. 112 c.p.c. e art. 360 n.4 c.p.c.?",
-      "quality": "Distingue chiaramente ultra da extra petizione? Cita la Cassazione SU?"
+      "quality": "Distingue chiaramente ultra da extra petizione? Cita art. 112 c.p.c.? Indica il rimedio (appello o cassazione)? Bonus se cita Cass. SU."
     }
   },
   {
@@ -54,12 +54,12 @@
     "multiQuery": "deposito documenti udienza termine preclusione art 171-ter riforma 2022 2023 rito ordinario",
     "institutes": ["preclusioni_istruttorie", "deposito_documenti", "riforma_Cartabia"],
     "scope": "art. 171-ter c.p.c. (riforma Cartabia, D.Lgs. 149/2022)",
-    "expected": "Con la riforma Cartabia (2022): memorie e documenti vanno depositati prima dell'udienza secondo art. 171-ter c.p.c. Se l'agente cita art. 183 vecchio rito è FAIL.",
+    "expected": "Con la riforma Cartabia (D.Lgs. 149/2022, vigente dal 28/02/2023): memorie e documenti vanno depositati prima dell'udienza secondo art. 171-ter c.p.c. L'agente deve almeno SEGNALARE la riforma Cartabia. Se cita SOLO art. 183 senza avvertire che potrebbe essere superato, penalizzare.",
     "trapType": "norma_superata",
     "scoringHints": {
       "prep": "Ha formulato query che include 'Cartabia' o 'riforma 2022' o art. 171-ter?",
-      "search": "Ha trovato art. 171-ter e NON solo art. 183 (vecchio rito)?",
-      "quality": "Distingue chiaramente il vecchio dal nuovo rito? Segnala la riforma Cartabia?"
+      "search": "Ha trovato art. 171-ter c.p.c.? Se il corpus contiene solo art. 183, l'agente deve comunque segnalare la riforma Cartabia come norma vigente.",
+      "quality": "Segnala la riforma Cartabia? Se cita art. 183 DEVE avvertire che potrebbe essere norma pre-riforma. Se cita art. 171-ter, pieno punteggio."
     }
   },
   {
@@ -142,8 +142,8 @@
     "trapType": "falsa_tutela",
     "scoringHints": {
       "prep": "Ha distinto tra creditore privato e Agenzia Entrate nella query?",
-      "search": "Ha trovato art. 76 DPR 602/73 con il limite del soggetto?",
-      "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Senza ambiguità?"
+      "search": "Ha trovato art. 555 ss. c.p.c. (pignoramento immobiliare)? Menziona art. 76 DPR 602/73 anche se non nel corpus?",
+      "quality": "Chiarisce ESPLICITAMENTE che la tutela NON vale per privati? Spiega che il creditore privato PUO pignorare senza limiti? Senza ambiguità?"
     }
   },
   {
@@ -541,8 +541,8 @@
     "trapType": "requisito_non_ovvio",
     "scoringHints": {
       "prep": "Ha distinto proprietà da coltivazione diretta nella query?",
-      "search": "Ha trovato L.590/65 e L.817/71 con il requisito della coltivazione?",
-      "quality": "Chiarisce ESPLICITAMENTE che la proprietà da sola non basta?"
+      "search": "Ha trovato riferimenti alla prelazione agraria? Se L.590/65 e L.817/71 non sono nel corpus, menzionarle come fonti mancanti vale comunque come ricerca positiva.",
+      "quality": "Chiarisce ESPLICITAMENTE che la proprietà da sola non basta? NON inventa numeri di articoli o commi di L.590/65 o L.817/71 se il testo non era nel contesto? Penalizzare GRAVEMENTE se inventa citazioni inesistenti come 'AGGIORNAMENTO (1)' o simili."
     }
   },
   {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -164,47 +165,48 @@ function mapDbStatus(
 }
 
 export async function GET(request: NextRequest) {
-  // SEC-M12: rate-limit marketplace browsing (IP-based)
+  // SEC-M12: rate-limit
   const rateLimitError = await checkRateLimit(request);
   if (rateLimitError) return rateLimitError;
+
+  // SEC-M12: require authenticated user
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
+  const userId = authResult.user.id;
 
   // Start with a deep copy of static connectors
   const result = connectors.map((c) => ({ ...c }));
 
-  // If user is authenticated, merge connection status from DB
+  // Merge connection status from DB for authenticated user
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (user) {
-      const { data: connections, error } = await supabase
-        .from("integration_connections")
-        .select(
-          "connector_type, status, last_sync_at, last_sync_items"
-        )
-        .eq("user_id", user.id)
-        .neq("status", "disconnected");
+    const { data: connections, error } = await supabase
+      .from("integration_connections")
+      .select(
+        "connector_type, status, last_sync_at, last_sync_items"
+      )
+      .eq("user_id", userId)
+      .neq("status", "disconnected");
 
-      if (!error && connections) {
-        // Build a lookup map: connector_type → connection data
-        const connectionMap = new Map(
-          connections.map((c) => [c.connector_type, c])
-        );
+    if (!error && connections) {
+      // Build a lookup map: connector_type → connection data
+      const connectionMap = new Map(
+        connections.map((c) => [c.connector_type, c])
+      );
 
-        for (const connector of result) {
-          const conn = connectionMap.get(connector.id);
-          if (conn) {
-            connector.status = mapDbStatus(conn.status) as typeof connector.status;
-            connector.entityCount = conn.last_sync_items ?? 0;
-            connector.lastSync = conn.last_sync_at;
-          }
+      for (const connector of result) {
+        const conn = connectionMap.get(connector.id);
+        if (conn) {
+          connector.status = mapDbStatus(conn.status) as typeof connector.status;
+          connector.entityCount = conn.last_sync_items ?? 0;
+          connector.lastSync = conn.last_sync_at;
         }
       }
     }
   } catch {
-    // If auth fails (no session, cookie issues), return static defaults silently
+    // If DB query fails, return static defaults silently
   }
 
   return NextResponse.json({ connectors: result });

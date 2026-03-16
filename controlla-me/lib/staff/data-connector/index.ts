@@ -21,6 +21,7 @@ import {
   listRegistered,
 } from "./plugin-registry";
 import type { LegalArticle } from "@/lib/legal-corpus";
+import { FieldMapper } from "./mapping";
 import type {
   DataSource,
   ConnectorInterface,
@@ -110,8 +111,35 @@ async function loadGenericPipeline(
     };
   }
 
-  // Save directly — validation is handled by the store/model specific to each data type
-  return store.save(fetchResult.items, {
+  // ─── FIELD MAPPING (ADR-002: hybrid rule + LLM) ───
+  const connectorId = source.connector;
+  const entityType = (source.businessDataType ?? source.dataType) as string;
+  const mapper = new FieldMapper();
+  let mappedCount = 0;
+
+  const mappedItems = await Promise.all(
+    fetchResult.items.map(async (item) => {
+      const record = item as Record<string, unknown>;
+      try {
+        const mapped = await mapper.mapFields(record, connectorId, entityType, { skipLLM: true });
+        if (mapped.confidence > 0) {
+          mappedCount++;
+          return { ...record, _mapped_fields: mapped.fields, _mapping_confidence: mapped.confidence };
+        }
+      } catch (err) {
+        // Non-fatal: proceed with raw data
+        console.warn(`[LOAD] Mapping failed for record:`, err instanceof Error ? err.message : err);
+      }
+      return record;
+    })
+  );
+
+  if (mappedCount > 0) {
+    log(`[LOAD] Field mapping: ${mappedCount}/${fetchResult.items.length} records mappati`);
+  }
+
+  // Save — store receives records with optional _mapped_fields
+  return store.save(mappedItems, {
     dryRun: options.dryRun,
   });
 }

@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "trading",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.189Z",
+    "last_updated": "2026-03-15T16:34:18.593Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "47 completati (ultimi 7gg). 47 completati (totale).",
+  "summary": "7 completati (ultimi 7gg). 53 completati (totale).",
   "phase": {
     "current": "backtest",
     "stages": [
@@ -142,14 +142,66 @@
     },
     "notes": "Sharpe 0.975 — mancano 0.025 per GO. 4/5 criteri soddisfatti. 126/136 exit per stop loss (TP 6x ATR troppo distante). Prossimo: tuning parametri (sl-atr, tp-atr, threshold) per spingere Sharpe >1.0."
   },
-  "pending_backtest_5min": "scripts ready — execute in order: (1) python scripts/fetch_spy_5min.py  (2) python scripts/backtest_5min_slope.py  (3) python scripts/grid_search_tpsl.py. Requires TIINGO_API_KEY in .env.local.",
+  "pending_cycle4": {
+    "status": "ready_to_execute",
+    "prepared_date": "2026-03-14",
+    "grid_preset": "cycle4",
+    "combinations": 48,
+    "code_changes": {
+      "engine.py": "BacktestConfig defaults: stop_loss_atr 2.0→1.5, take_profit_atr 10.0→3.0",
+      "__main__.py": "CLI defaults: --sl-atr 2.0→1.5, --tp-atr 6.0→3.0",
+      "grid_search.py": "CYCLE4_GRID preset already defined (48 combos)",
+      "settings.py": "SlopeVolumeSettings already at SL=1.5/TP=3.0 (no change needed)"
+    },
+    "param_ranges": {
+      "stop_loss_atr": [
+        1.5,
+        2,
+        2.5
+      ],
+      "take_profit_atr": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "trailing_breakeven_atr": [
+        0.5,
+        1.5
+      ],
+      "signal_exit_enabled": [
+        false,
+        true
+      ]
+    },
+    "fixed_params": {
+      "trailing_trail_threshold_atr": 3.5,
+      "trailing_trail_distance_atr": 2,
+      "trailing_tight_threshold_atr": 4,
+      "trailing_tight_distance_atr": 1,
+      "trailing_lock_atr": 1.5,
+      "trailing_lock_cushion_atr": 0.5,
+      "trend_filter": true,
+      "max_positions": 10
+    },
+    "rationale": "Cycle 3: 126/136 exits on SL (92.6%), TP at 6x ATR almost never reached. Two changes: (1) bring TP closer (3-4x) so it gets hit more often, converting SL-exits into TP-wins; (2) test tighter SL (1.5x) to cut losers faster. Signal exit ON/OFF comparison: Cycle 3 used OFF and got 0.975, testing ON may catch reversals before SL hits.",
+    "hypothesis": "Tighter SL+TP should improve the win/loss ratio. If SL=1.5x and TP=3.0x, the risk/reward is 2:1. With trailing stop engaging at 1.5x ATR profit, winners should be locked before TP. Expected outcome: higher Sharpe through reduced SL-exit rate and better profit capture.",
+    "commands": {
+      "grid_search_2yr": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+      "grid_search_3yr_robustness": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+      "single_run_new_defaults": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --sl-atr 1.5 --tp-atr 3.0 --capital 100000",
+      "execution_order": "Run grid_search_2yr first (matches Cycle 3 window). If GO found, confirm on 3yr. Best combo → standalone run for equity curve."
+    }
+  },
   "next_actions": [
-    "PRIORITY: Run fetch_spy_5min.py → backtest_5min_slope.py → grid_search_tpsl.py (96 combos) per trovare Sharpe >1.0",
-    "Tuning parametri backtest (sl-atr 1.5-2.0, threshold 0.4) per raggiungere Sharpe >1.0",
-    "Configurare ALPACA_API_KEY per paper trading",
-    "Short selling: validato long-only è superiore (long+short Sharpe ~0.959)"
+    "PRIORITY: Execute Cycle 4 grid search — run pending_cycle4.commands.grid_search_2yr from external terminal",
+    "Step 1: Run 48-combo grid on 2-year window (2023-2024) matching Cycle 3 conditions",
+    "Step 2: If GO found, confirm on 3-year window (2022-2024) for robustness",
+    "Step 3: Best combo → standalone run for equity curve + trades.csv analysis",
+    "Step 4: If Sharpe > 1.0 confirmed → proceed to Phase 3 (Paper Trading)",
+    "Configurare ALPACA_API_KEY per paper trading"
   ],
   "open_tasks": [],
   "blockers": [],
-  "notes": "Infrastruttura 5+1 agenti completa. 72 unit test passanti. Backtest ciclo #3 completato: 43 ticker, 136 trade, Sharpe 0.975. Enorme progresso rispetto al ciclo #2 (5 ticker, 8 trade). Solo il Sharpe manca di 0.025 per GO. Short selling confermato peggiore rispetto a long-only. Prossimo step: grid search o tuning manuale parametri."
+  "notes": "Infrastruttura 5+1 agenti completa. 72 unit test passanti. Backtest ciclo #3 completato: 43 ticker, 136 trade, Sharpe 0.975. Ciclo #4 preparato (2026-03-14): defaults aggiornati a SL=1.5x/TP=3.0x in engine.py e CLI, CYCLE4_GRID con 48 combinazioni pronto. Obiettivo: ridurre SL-exit rate dal 92.6% e spingere Sharpe sopra 1.0."
 }

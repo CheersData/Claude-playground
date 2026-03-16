@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "security",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.201Z",
+    "last_updated": "2026-03-15T16:34:18.666Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "26 completati (ultimi 7gg). 50 completati (totale).",
+  "summary": "1 task in corso. 22 completati (ultimi 7gg). 71 completati (totale).",
   "findings": {
     "critical": 0,
     "high": 0,
@@ -47,7 +47,14 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "68009293",
+      "title": "Boss invia email a top 3 consulenti",
+      "priority": "medium",
+      "status": "in_progress"
+    }
+  ],
   "blockers": [],
   "notes": "Ultimo audit completo: 2026-03-02. Prossimo audit raccomandato entro 2 settimane."
 }

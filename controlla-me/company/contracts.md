@@ -30,6 +30,10 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 | 15 | Uff. Trading | CME | risk alert (kill switch) | immediatamente |
 | 16 | Finance | CME | alert P&L trading | quando loss > soglia |
 | 17 | QA | Uff. Trading | backtest validation | prima di go-live |
+| 25 | Uff. Integrazione | CME | sync failure alert | quando sync failure rate > 5% |
+| 26 | Uff. Integrazione | Security | audit OAuth flow | prima di go-live connettore |
+| 27 | Uff. Integrazione | Finance | costo AI per documento | report mensile |
+| 28 | Uff. Integrazione | Uff. Legale | pipeline analisi condivisa | stessa pipeline, nessuna duplicazione |
 | 18 | CME | Protocols | richiesta routing | ogni decisione non-triviale |
 | 19 | Protocols | qualsiasi | richiesta parere | consultazione da decision tree |
 | 20 | Protocols | CME | routing + recommendation | risultato classificazione |
@@ -47,6 +51,8 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 - Strategy → implementare feature direttamente (passa da CME → Architecture)
 - Qualsiasi → bypassare Protocols per decisioni strategiche/critiche (L3/L4 richiedono sempre routing)
 - Protocols → implementare codice (solo governance e routing, mai esecuzione)
+- Uff. Integrazione → modificare pipeline agenti legali (competenza Ufficio Legale)
+- Uff. Integrazione → modificare infrastruttura data-connector base (competenza Architecture / Data Engineering)
 
 ## Formati I/O per unità organizzativa
 
@@ -56,6 +62,7 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 |---------|----------------|-------------------|
 | Ufficio Legale | Task con tipo (prompt review, agent config, revisione contenuto) | Prompt aggiornato, config modificata, contenuto validato |
 | Ufficio Trading | Task con tipo (strategy config, risk params, go/no-go review) | Signal report, trade log, P&L report, risk alert |
+| Ufficio Integrazione | Task con tipo (new connector, fix mapping, sync debug, OAuth flow review) | Connettore operativo, mapping config, sync report, credential audit |
 
 ### Dipartimenti (Staff)
 

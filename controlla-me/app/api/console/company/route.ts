@@ -11,7 +11,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
-import { setSession, deleteSession } from "@/lib/company/sessions";
+import { setSession, deleteSession, registerSession, unregisterSession } from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
@@ -173,6 +173,17 @@ export async function POST(req: Request) {
         // Store session for follow-up messages
         setSession(sessionId, { child, target });
 
+        // Register in the tracked session registry (Layer 2)
+        if (child.pid) {
+          registerSession({
+            pid: child.pid,
+            type: "console",
+            target,
+            startedAt: new Date(),
+            status: "active",
+          });
+        }
+
         // Send first message in stream-json format (DON'T close stdin!)
         const firstMsg = JSON.stringify({
           type: "user",
@@ -280,6 +291,7 @@ export async function POST(req: Request) {
 
         child.on("close", (code) => {
           deleteSession(sessionId);
+          if (child.pid) unregisterSession(child.pid);
           // Broadcast completion to Ops dashboard
           broadcastAgentEvent({
             id: `company-${target}`,
@@ -303,6 +315,7 @@ export async function POST(req: Request) {
 
         child.on("error", (err) => {
           deleteSession(sessionId);
+          if (child.pid) unregisterSession(child.pid);
           broadcastAgentEvent({
             id: `company-${target}`,
             department: target === "cme" ? "cme" : target,
@@ -318,6 +331,7 @@ export async function POST(req: Request) {
       cancel() {
         // Client disconnected — clean up child process
         deleteSession(sessionId);
+        // Note: child.on("close") handler will unregister from tracker
       },
     });
 

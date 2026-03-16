@@ -96,7 +96,7 @@ export function ArchivePanel({ onBack }: ArchivePanelProps) {
   });
 
   return (
-    <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] flex flex-col" style={{ minHeight: "400px" }}>
+    <div className="bg-[var(--bg-raised)] rounded-xl border border-[var(--border-dark-subtle)] flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-dark-subtle)] flex-shrink-0">
         <div className="flex items-center gap-2">

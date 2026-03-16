@@ -125,7 +125,7 @@ export default function AuthStep({
                 value={apiKey}
                 onChange={(e) => onApiKeyChange(e.target.value)}
                 placeholder="sk_live_..."
-                className="w-full rounded-xl px-4 py-3 text-sm font-mono outline-none transition-all focus:ring-2"
+                className="w-full rounded-xl px-4 py-3 text-sm font-mono outline-none transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                 style={{
                   background: "var(--bg-base)",
                   border: "1px solid var(--border-dark-subtle)",
@@ -149,7 +149,7 @@ export default function AuthStep({
                   value={secretKey}
                   onChange={(e) => onSecretKeyChange(e.target.value)}
                   placeholder="whsec_..."
-                  className="w-full rounded-xl px-4 py-3 pr-12 text-sm font-mono outline-none transition-all focus:ring-2"
+                  className="w-full rounded-xl px-4 py-3 pr-12 text-sm font-mono outline-none transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                   style={{
                     background: "var(--bg-base)",
                     border: "1px solid var(--border-dark-subtle)",

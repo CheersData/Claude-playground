@@ -6,15 +6,28 @@
  *
  * Auth modes:
  *   1. API Key (demo/testing): HUBSPOT_API_KEY env var (private app access token)
- *   2. OAuth2 PKCE (production): via AuthenticatedBaseConnector + credential vault
+ *   2. OAuth2 (production): via AuthenticatedBaseConnector + credential vault
+ *      The OAuth2 flow is handled by:
+ *        - /api/integrations/hubspot/authorize (redirects user to HubSpot)
+ *        - /api/integrations/hubspot/callback (exchanges code for tokens, stores in vault)
+ *      The connector reads tokens from the vault via AuthenticatedBaseConnector.
  *
  * HubSpot free developer sandbox provides full CRM API access — ideal for demos.
  *
  * Pagination: cursor-based with `after` parameter + `paging.next.after` in response.
  * Delta sync: uses HubSpot Search API with `lastmodifieddate` filter.
+ *
+ * BUGFIX HISTORY (FASE 0A):
+ * - BUG 2: Constructor now passes authOptions (vault, userId) to parent
+ * - BUG 3: OAuth2 mode now properly uses credential vault via parent class
+ * - BUG 4: API key mode uses parent's auth handler (ApiKeyAuthHandler) instead of manual override
+ * - BUG 5: Plugin registry factory updated to pass vault/userId options
+ * - BUG 6: accessToken option integrated into parent's auth lifecycle
+ * - BUG 8: Removed hardcoded rateLimitPause override — uses parent's configurable one
  */
 
 import { AuthenticatedBaseConnector } from "./authenticated-base";
+import type { AuthHandlerOptions } from "../auth";
 import {
   parseHubSpotObject,
   PROPERTIES_BY_TYPE,
@@ -40,44 +53,85 @@ const SYNC_TYPES: HubSpotObjectType[] = ["contact", "company", "deal", "ticket"]
 const LIST_PAGE_SIZE = 100;
 const SEARCH_PAGE_SIZE = 100;
 
+/**
+ * Options for creating a HubSpotConnector.
+ *
+ * - accessToken: explicit Bearer token (e.g. from vault via sync route).
+ *   When provided, the connector operates in "explicit token" mode.
+ * - vault / userId: passed to AuthenticatedBaseConnector for OAuth2 PKCE flow.
+ */
+export interface HubSpotConnectorOptions {
+  accessToken?: string;
+  vault?: AuthHandlerOptions["vault"];
+  userId?: AuthHandlerOptions["userId"];
+}
+
 export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> {
-  private apiKey: string | null = null;
+  /**
+   * Explicit access token for "direct token" mode.
+   * When set, fetchWithRetry injects this as Bearer token, bypassing the
+   * auth handler. This is used by the sync route which already retrieved
+   * the token from the vault.
+   *
+   * When null, the parent's AuthenticatedBaseConnector handles auth
+   * (OAuth2 PKCE via vault, or API key via env var depending on source.auth).
+   */
+  private explicitToken: string | null = null;
 
-  constructor(source: DataSource, log: (msg: string) => void = console.log) {
-    super(source, log);
+  constructor(
+    source: DataSource,
+    log: (msg: string) => void = console.log,
+    options?: HubSpotConnectorOptions
+  ) {
+    // BUG 2+3 FIX: Pass vault and userId to parent so OAuth2PKCEHandler can work
+    super(source, log, {
+      vault: options?.vault ?? null,
+      userId: options?.userId ?? null,
+    });
 
-    // Check for API key fallback (demo mode — private app access token)
-    this.apiKey = process.env.HUBSPOT_API_KEY ?? null;
+    // BUG 4+6 FIX: Only use explicitToken when explicitly provided by caller
+    // (e.g. sync route that already retrieved token from vault).
+    // For API key mode (HUBSPOT_API_KEY env var), the source.auth config
+    // should be set to { type: "api-key", header: "Authorization", envVar: "HUBSPOT_API_KEY", prefix: "Bearer " }
+    // and the parent's ApiKeyAuthHandler handles it automatically.
+    // We do NOT read HUBSPOT_API_KEY here to avoid dual auth paths.
+    this.explicitToken = options?.accessToken ?? null;
   }
 
-  // ─── Auth override: API key mode bypasses OAuth2 ───
+  // ─── Auth override: explicit token mode ───
 
   /**
-   * Override fetchWithRetry to inject API key auth when OAuth2 is not configured.
-   * If HUBSPOT_API_KEY is set, it's used as Bearer token (private app pattern).
-   * Otherwise, falls through to AuthenticatedBaseConnector's OAuth2 flow.
+   * Override fetchWithRetry to inject explicit token when provided.
+   * This is ONLY used when the sync route passes an accessToken directly
+   * (already retrieved from the vault). In all other cases, the parent's
+   * AuthenticatedBaseConnector handles auth (OAuth2 PKCE or API key).
+   *
+   * BUG 4 FIX: No longer manually reads HUBSPOT_API_KEY — that's handled
+   * by the parent's auth handler via source.auth config.
    */
   protected override async fetchWithRetry(
     url: string,
     options?: RequestInit,
     maxRetries = 3
   ): Promise<Response> {
-    if (this.apiKey) {
-      // API key mode: inject Bearer token directly
+    if (this.explicitToken) {
+      // Explicit token mode: inject Bearer token directly
       const mergedOptions: RequestInit = {
         ...options,
         headers: {
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.explicitToken}`,
           "Content-Type": "application/json",
           ...Object.fromEntries(
             new Headers(options?.headers ?? {}).entries()
           ),
         },
       };
+      // Call BaseConnector.fetchWithRetry (skip parent auth handler since we have explicit token)
       return super.fetchWithRetry(url, mergedOptions, maxRetries);
     }
 
-    // OAuth2 mode: let AuthenticatedBaseConnector handle auth headers
+    // Auth handler mode: let AuthenticatedBaseConnector handle auth headers
+    // (OAuth2 PKCE via vault, or API key via env var, or none)
     return super.fetchWithRetry(url, options, maxRetries);
   }
 
@@ -85,7 +139,11 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
 
   async connect(): Promise<ConnectResult> {
     const sourceId = this.source.id;
-    const authMode = this.apiKey ? "API Key" : "OAuth2";
+    const authMode = this.explicitToken
+      ? "Explicit Token"
+      : this.authHandler.strategyType === "none"
+        ? "None"
+        : this.authHandler.strategyType;
 
     try {
       this.log(`[HUBSPOT] Testing API connection (auth: ${authMode})...`);
@@ -285,6 +343,7 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
         after = body.paging.next.after;
 
         // Rate limit pause between pages
+        // BUG 8 FIX: Uses parent's configurable rateLimitPause (reads source.rateLimit)
         await this.rateLimitPause();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -431,17 +490,8 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
     return `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}?${searchParams.toString()}`;
   }
 
-  // ─── Rate limiting ───
-
-  /**
-   * HubSpot rate limits:
-   *   - Private apps (API key): 100 requests per 10 seconds
-   *   - OAuth apps: 100 requests per 10 seconds
-   *   - Search API: 4 requests per second
-   *
-   * We use 200ms pause (5 req/s) — conservative for both modes.
-   */
-  protected override async rateLimitPause(): Promise<void> {
-    await this.sleep(200);
-  }
+  // BUG 8 FIX: Removed hardcoded rateLimitPause override.
+  // The parent AuthenticatedBaseConnector.rateLimitPause() reads source.rateLimit
+  // which is set to { requestsPerSecond: 5 } in integration-sources.ts.
+  // This gives 200ms pause (1000/5) — same effective behavior but now configurable.
 }

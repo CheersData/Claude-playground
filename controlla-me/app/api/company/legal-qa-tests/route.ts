@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { sessionTierStore, type TierName } from "@/lib/tiers";
 import { askCorpusAgent } from "@/lib/agents/corpus-agent";
 import { runAgent } from "@/lib/ai-sdk/agent-runner";
@@ -309,6 +310,10 @@ export async function GET(req: NextRequest) {
 // ─── POST ─────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = requireConsoleAuth(req);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

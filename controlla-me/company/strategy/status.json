@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "strategy",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.204Z",
+    "last_updated": "2026-03-15T16:34:18.682Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task aperti. 11 completati (ultimi 7gg). 20 completati (totale).",
+  "summary": "11 completati (ultimi 7gg). 30 completati (totale).",
   "okr_q2": {
     "o1": {
       "title": "Rendere il prodotto production-ready",
@@ -349,13 +349,6 @@
       "urgency": "medium"
     }
   ],
-  "open_tasks": [
-    {
-      "id": "83240ed3",
-      "title": "Implementare tre modalita output per persona nel frontend",
-      "priority": "medium",
-      "status": "open"
-    }
-  ],
+  "open_tasks": [],
   "blockers": []
 }

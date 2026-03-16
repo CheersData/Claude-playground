@@ -146,9 +146,37 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
  *   mapped_fields JSONB         — normalized key fields for quick access
  *   synced_at TIMESTAMPTZ
  *   UNIQUE(user_id, connector_source, object_type, external_id)
+ *
+ * If the record has been processed by the MappingEngine (via loadGenericPipeline),
+ * it will have `_mapped_fields` attached. We merge those with the hardcoded defaults,
+ * giving priority to the MappingEngine output (which supports user-confirmed,
+ * rule-based, similarity, and LLM-resolved mappings).
  */
-function toRow(record: HubSpotRecord): Record<string, unknown> {
+function toRow(record: HubSpotRecord & { _mapped_fields?: Record<string, unknown>; _mapping_confidence?: number }): Record<string, unknown> {
   const now = new Date().toISOString();
+
+  // Hardcoded defaults — always available as baseline
+  const defaultMappedFields: Record<string, unknown> = {
+    display_name: record.displayName,
+    email: record.email,
+    phone: record.phone,
+    company_name: record.companyName,
+    domain: record.domain,
+    industry: record.industry,
+    stage: record.stage,
+    pipeline: record.pipeline,
+    amount: record.amount,
+    currency: record.currency,
+    close_date: record.closeDate,
+    priority: record.priority,
+    hubspot_created_at: record.createdAt,
+    hubspot_updated_at: record.updatedAt,
+  };
+
+  // MappingEngine output takes priority when available (supports user-confirmed + learned mappings)
+  const mappedFields = record._mapped_fields
+    ? { ...defaultMappedFields, ...record._mapped_fields }
+    : defaultMappedFields;
 
   return {
     user_id: SYSTEM_USER_ID,
@@ -179,23 +207,11 @@ function toRow(record: HubSpotRecord): Record<string, unknown> {
       rawProperties: record.rawProperties,
     },
 
-    // Mapped fields: normalized key fields for quick queries without digging into data JSONB
-    mapped_fields: {
-      display_name: record.displayName,
-      email: record.email,
-      phone: record.phone,
-      company_name: record.companyName,
-      domain: record.domain,
-      industry: record.industry,
-      stage: record.stage,
-      pipeline: record.pipeline,
-      amount: record.amount,
-      currency: record.currency,
-      close_date: record.closeDate,
-      priority: record.priority,
-      hubspot_created_at: record.createdAt,
-      hubspot_updated_at: record.updatedAt,
-    },
+    // Mapped fields: MappingEngine output merged with hardcoded defaults
+    mapped_fields: mappedFields,
+
+    // Mapping metadata (when MappingEngine was used)
+    ...(record._mapping_confidence != null ? { mapping_confidence: record._mapping_confidence } : {}),
 
     synced_at: now,
     updated_at: now,

@@ -152,12 +152,14 @@ function ConnectorCard({
   onRetry,
   onPause,
   onViewLogs,
+  loadingAction,
 }: {
   connector: ConnectorStatus;
   index: number;
   onRetry?: (id: string) => void;
   onPause?: (id: string) => void;
   onViewLogs?: (id: string) => void;
+  loadingAction?: { id: string; type: string } | null;
 }) {
   const cfg = STATUS_CONFIG[connector.status];
   const StatusIcon = cfg.icon;
@@ -329,23 +331,26 @@ function ConnectorCard({
         {(connector.status === "error" || connector.status === "warning") && (
           <button
             onClick={() => onRetry?.(connector.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all"
+            disabled={loadingAction?.id === connector.id && loadingAction?.type === "retry"}
+            aria-label={`Riprova sincronizzazione per ${connector.name}`}
+            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
             style={{
               background: "var(--bg-overlay)",
               color: "var(--fg-secondary)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--bg-active)";
-              e.currentTarget.style.color = "var(--accent)";
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.background = "var(--bg-active)";
+                e.currentTarget.style.color = "var(--accent)";
+              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "var(--bg-overlay)";
               e.currentTarget.style.color = "var(--fg-secondary)";
             }}
-            title="Riprova sincronizzazione"
           >
-            <RotateCcw className="w-3 h-3" />
-            Riprova
+            <RotateCcw className={`w-3 h-3 ${loadingAction?.id === connector.id && loadingAction?.type === "retry" ? "animate-spin" : ""}`} aria-hidden="true" />
+            {loadingAction?.id === connector.id && loadingAction?.type === "retry" ? "Invio..." : "Riprova"}
           </button>
         )}
 
@@ -353,30 +358,34 @@ function ConnectorCard({
         {connector.status === "healthy" && (
           <button
             onClick={() => onPause?.(connector.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all"
+            disabled={loadingAction?.id === connector.id && loadingAction?.type === "pause"}
+            aria-label={`Metti in pausa ${connector.name}`}
+            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
             style={{
               background: "var(--bg-overlay)",
               color: "var(--fg-secondary)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--bg-active)";
-              e.currentTarget.style.color = "#FFC832";
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.background = "var(--bg-active)";
+                e.currentTarget.style.color = "#FFC832";
+              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "var(--bg-overlay)";
               e.currentTarget.style.color = "var(--fg-secondary)";
             }}
-            title="Metti in pausa connettore"
           >
-            <Pause className="w-3 h-3" />
-            Pausa
+            <Pause className={`w-3 h-3 ${loadingAction?.id === connector.id && loadingAction?.type === "pause" ? "animate-pulse" : ""}`} aria-hidden="true" />
+            {loadingAction?.id === connector.id && loadingAction?.type === "pause" ? "Invio..." : "Pausa"}
           </button>
         )}
 
         {/* View logs — always visible */}
         <button
           onClick={() => onViewLogs?.(connector.id)}
-          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all"
+          aria-label={`Visualizza log di ${connector.name}`}
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
           style={{
             background: "var(--bg-overlay)",
             color: "var(--fg-secondary)",
@@ -389,9 +398,8 @@ function ConnectorCard({
             e.currentTarget.style.background = "var(--bg-overlay)";
             e.currentTarget.style.color = "var(--fg-secondary)";
           }}
-          title="Visualizza log sincronizzazione"
         >
-          <ScrollText className="w-3 h-3" />
+          <ScrollText className="w-3 h-3" aria-hidden="true" />
           Log
         </button>
       </div>
@@ -458,10 +466,10 @@ function SyncHistoryChart({ history }: { history: SyncHistoryDay[] }) {
                 />
               </div>
 
-              {/* Day label */}
+              {/* Day label — bumped from fg-invisible to fg-faint for WCAG AA contrast */}
               <span
                 className="text-[9px] font-mono"
-                style={{ color: "var(--fg-invisible)" }}
+                style={{ color: "var(--fg-faint)" }}
               >
                 {day.dayLabel}
               </span>
@@ -529,7 +537,10 @@ function ErrorLog({
       {/* Toggle header */}
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full px-4 py-3 flex items-center gap-2 transition-colors"
+        aria-expanded={expanded}
+        aria-controls="error-log-content"
+        aria-label={`Log errori — ${errors.filter((e) => !e.resolved).length} aperti. ${expanded ? "Comprimi" : "Espandi"}`}
+        className="w-full px-4 py-3 flex items-center gap-2 transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
         style={{ color: "var(--fg-primary)" }}
         onMouseEnter={(e) =>
           (e.currentTarget.style.background = "var(--bg-overlay)")
@@ -541,6 +552,7 @@ function ErrorLog({
         <AlertTriangle
           className="w-3.5 h-3.5 shrink-0"
           style={{ color: "#FF6B6B" }}
+          aria-hidden="true"
         />
         <span className="text-xs font-semibold uppercase tracking-wider flex-1 text-left">
           Log Errori
@@ -551,18 +563,21 @@ function ErrorLog({
             background: "rgba(255, 107, 107, 0.1)",
             color: "#FF6B6B",
           }}
+          aria-hidden="true"
         >
           {errors.filter((e) => !e.resolved).length} aperti
         </span>
         <ChevronDown
           className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`}
           style={{ color: "var(--fg-invisible)" }}
+          aria-hidden="true"
         />
       </button>
 
       <AnimatePresence>
         {expanded && (
           <motion.div
+            id="error-log-content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -580,11 +595,14 @@ function ErrorLog({
               <Filter
                 className="w-3 h-3"
                 style={{ color: "var(--fg-invisible)" }}
+                aria-hidden="true"
               />
+              <label htmlFor="error-log-filter" className="sr-only">Filtra per connettore</label>
               <select
+                id="error-log-filter"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="text-xs bg-transparent border-none outline-none cursor-pointer"
+                className="text-xs bg-transparent border-none outline-none cursor-pointer focus:ring-1 focus:ring-[var(--accent)]"
                 style={{ color: "var(--fg-secondary)" }}
               >
                 <option value="all">Tutti i connettori</option>
@@ -612,7 +630,9 @@ function ErrorLog({
                       onClick={() =>
                         setExpandedError(isOpen ? null : err.id)
                       }
-                      className="w-full px-4 py-2 flex items-start gap-2.5 text-left transition-colors"
+                      aria-expanded={err.details ? isOpen : undefined}
+                      aria-label={`${err.severity === "error" ? "Errore" : err.severity === "warning" ? "Attenzione" : "Info"}: ${err.message} — ${err.sourceName}${err.resolved ? " (risolto)" : ""}`}
+                      className="w-full px-4 py-2 flex items-start gap-2.5 text-left transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.background =
                           "var(--bg-overlay)")
@@ -741,24 +761,69 @@ export function IntegrationHealthPanel() {
 
   // ── Quick action handlers ───────────────────────────────────────────────────
 
-  const handleRetry = useCallback((connectorId: string) => {
+  const handleRetry = useCallback(async (connectorId: string) => {
     setActionFeedback({ id: connectorId, type: "retry" });
-    // TODO: wire to actual retry endpoint when backend supports it
-    console.log(`[IntegrationHealth] Retry sync requested for: ${connectorId}`);
-    setTimeout(() => setActionFeedback(null), 2000);
+    try {
+      const res = await fetch(`/api/ops/integration/${connectorId}/retry`, {
+        method: "POST",
+        headers: {
+          ...getConsoleAuthHeaders(),
+          "Content-Type": "application/json",
+          "x-csrf-token": "1",
+        },
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        console.log(`[IntegrationHealth] Retry queued for ${connectorId}:`, json);
+        setActionFeedback({ id: connectorId, type: "retry-ok" });
+      } else {
+        console.error(`[IntegrationHealth] Retry failed for ${connectorId}:`, json.error);
+        setActionFeedback({ id: connectorId, type: "retry-error" });
+      }
+    } catch (err) {
+      console.error(`[IntegrationHealth] Retry error for ${connectorId}:`, err);
+      setActionFeedback({ id: connectorId, type: "retry-error" });
+    }
+    setTimeout(() => setActionFeedback(null), 3000);
   }, []);
 
-  const handlePause = useCallback((connectorId: string) => {
+  const handlePause = useCallback(async (connectorId: string) => {
     setActionFeedback({ id: connectorId, type: "pause" });
-    // TODO: wire to actual pause endpoint when backend supports it
-    console.log(`[IntegrationHealth] Pause requested for: ${connectorId}`);
-    setTimeout(() => setActionFeedback(null), 2000);
-  }, []);
+    try {
+      const res = await fetch(`/api/ops/integration/${connectorId}/pause`, {
+        method: "POST",
+        headers: {
+          ...getConsoleAuthHeaders(),
+          "Content-Type": "application/json",
+          "x-csrf-token": "1",
+        },
+        body: JSON.stringify({ action: "pause" }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        console.log(`[IntegrationHealth] Pause confirmed for ${connectorId}:`, json);
+        setActionFeedback({ id: connectorId, type: "pause-ok" });
+        // Refresh data to reflect new state
+        setTimeout(() => fetchData(true), 1000);
+      } else {
+        console.error(`[IntegrationHealth] Pause failed for ${connectorId}:`, json.error);
+        setActionFeedback({ id: connectorId, type: "pause-error" });
+      }
+    } catch (err) {
+      console.error(`[IntegrationHealth] Pause error for ${connectorId}:`, err);
+      setActionFeedback({ id: connectorId, type: "pause-error" });
+    }
+    setTimeout(() => setActionFeedback(null), 3000);
+  }, [fetchData]);
 
   const handleViewLogs = useCallback((connectorId: string) => {
     setActionFeedback({ id: connectorId, type: "logs" });
-    // TODO: open log detail panel or navigate to filtered error log
-    console.log(`[IntegrationHealth] View logs requested for: ${connectorId}`);
+    // Scroll to error log section and auto-filter by this connector
+    const errorLogSection = document.querySelector("[data-error-log]");
+    if (errorLogSection) {
+      errorLogSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    console.log(`[IntegrationHealth] View logs for: ${connectorId}`);
     setTimeout(() => setActionFeedback(null), 2000);
   }, []);
 
@@ -939,14 +1004,38 @@ export function IntegrationHealthPanel() {
           >
             {actionFeedback.type === "retry" && (
               <>
-                <RotateCcw className="w-3 h-3" style={{ color: "var(--accent)" }} />
-                Sincronizzazione in coda per {actionFeedback.id}...
+                <RotateCcw className="w-3 h-3 animate-spin" style={{ color: "var(--accent)" }} />
+                Invio richiesta di sync per {actionFeedback.id}...
+              </>
+            )}
+            {actionFeedback.type === "retry-ok" && (
+              <>
+                <CheckCircle className="w-3 h-3" style={{ color: "#4ECDC4" }} />
+                Sincronizzazione accodata per {actionFeedback.id}
+              </>
+            )}
+            {actionFeedback.type === "retry-error" && (
+              <>
+                <XCircle className="w-3 h-3" style={{ color: "#FF6B6B" }} />
+                Errore nell&apos;accodamento del retry per {actionFeedback.id}
               </>
             )}
             {actionFeedback.type === "pause" && (
               <>
                 <Pause className="w-3 h-3" style={{ color: "#FFC832" }} />
-                Connettore {actionFeedback.id} messo in pausa.
+                Messa in pausa di {actionFeedback.id}...
+              </>
+            )}
+            {actionFeedback.type === "pause-ok" && (
+              <>
+                <CheckCircle className="w-3 h-3" style={{ color: "#4ECDC4" }} />
+                Connettore {actionFeedback.id} messo in pausa
+              </>
+            )}
+            {actionFeedback.type === "pause-error" && (
+              <>
+                <XCircle className="w-3 h-3" style={{ color: "#FF6B6B" }} />
+                Errore nella pausa di {actionFeedback.id}
               </>
             )}
             {actionFeedback.type === "logs" && (
@@ -969,6 +1058,7 @@ export function IntegrationHealthPanel() {
             onRetry={handleRetry}
             onPause={handlePause}
             onViewLogs={handleViewLogs}
+            loadingAction={actionFeedback}
           />
         ))}
       </div>
@@ -997,7 +1087,9 @@ export function IntegrationHealthPanel() {
       </div>
 
       {/* ── Error Log ───────────────────────────────────────────────────────── */}
-      <ErrorLog errors={data.errors} connectors={data.connectors} />
+      <div data-error-log>
+        <ErrorLog errors={data.errors} connectors={data.connectors} />
+      </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       {data.summary.lastGlobalSync && (

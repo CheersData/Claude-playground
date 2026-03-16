@@ -148,9 +148,48 @@ export class FattureStore implements StoreInterface<FattureRecord> {
  *   mapped_fields JSONB         — normalized key fields for quick access
  *   synced_at TIMESTAMPTZ
  *   UNIQUE(user_id, connector_source, object_type, external_id)
+ *
+ * If the record has been processed by the MappingEngine (via loadGenericPipeline),
+ * it will have `_mapped_fields` attached. We merge those with the hardcoded defaults,
+ * giving priority to the MappingEngine output (which supports user-confirmed,
+ * rule-based, similarity, and LLM-resolved mappings).
  */
-function toRow(record: FattureRecord): Record<string, unknown> {
+function toRow(record: FattureRecord & { _mapped_fields?: Record<string, unknown>; _mapping_confidence?: number }): Record<string, unknown> {
   const now = new Date().toISOString();
+
+  // Hardcoded defaults — always available as baseline
+  const defaultMappedFields: Record<string, unknown> = {
+    // Invoice fields
+    invoice_number: record.invoiceNumber,
+    invoice_date: record.invoiceDate,
+    net_amount: record.netAmount,
+    vat_amount: record.vatAmount,
+    gross_amount: record.grossAmount,
+    vat_rate: record.vatRate,
+    document_type: record.documentType,
+    payment_status: record.paymentStatus,
+    payment_method: record.paymentMethod,
+    e_invoice: record.eInvoice,
+    fiscal_year: record.fiscalYear,
+    // Entity fields
+    company_name: record.companyName,
+    vat_number: record.vatNumber,
+    tax_code: record.taxCode,
+    city: record.city,
+    province: record.province,
+    country: record.country,
+    // General
+    status: record.status,
+    name: record.name,
+    email: record.email,
+    description: record.description,
+    currency: record.currency,
+  };
+
+  // MappingEngine output takes priority when available (supports user-confirmed + learned mappings)
+  const mappedFields = record._mapped_fields
+    ? { ...defaultMappedFields, ...record._mapped_fields }
+    : defaultMappedFields;
 
   return {
     user_id: SYSTEM_USER_ID,
@@ -197,34 +236,11 @@ function toRow(record: FattureRecord): Record<string, unknown> {
       rawExtra: record.rawExtra,
     },
 
-    // Mapped fields: normalized key fields for quick queries
-    mapped_fields: {
-      // Invoice fields
-      invoice_number: record.invoiceNumber,
-      invoice_date: record.invoiceDate,
-      net_amount: record.netAmount,
-      vat_amount: record.vatAmount,
-      gross_amount: record.grossAmount,
-      vat_rate: record.vatRate,
-      document_type: record.documentType,
-      payment_status: record.paymentStatus,
-      payment_method: record.paymentMethod,
-      e_invoice: record.eInvoice,
-      fiscal_year: record.fiscalYear,
-      // Entity fields
-      company_name: record.companyName,
-      vat_number: record.vatNumber,
-      tax_code: record.taxCode,
-      city: record.city,
-      province: record.province,
-      country: record.country,
-      // General
-      status: record.status,
-      name: record.name,
-      email: record.email,
-      description: record.description,
-      currency: record.currency,
-    },
+    // Mapped fields: MappingEngine output merged with hardcoded defaults
+    mapped_fields: mappedFields,
+
+    // Mapping metadata (when MappingEngine was used)
+    ...(record._mapping_confidence != null ? { mapping_confidence: record._mapping_confidence } : {}),
 
     synced_at: now,
     updated_at: now,

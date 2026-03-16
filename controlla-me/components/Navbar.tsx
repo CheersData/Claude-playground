@@ -11,6 +11,7 @@ const navLinks = [
   { label: "Casi d'uso", href: "/#use-cases", sectionId: "use-cases" },
   { label: "Corpus", href: "/corpus", sectionId: null },
   { label: "Integrazioni", href: "/integrazione", sectionId: null },
+  { label: "Blog", href: "/blog", sectionId: null },
   { label: "Legal Office", href: "/legaloffice", sectionId: null },
   { label: "Prezzi", href: "/pricing", sectionId: null },
 ];

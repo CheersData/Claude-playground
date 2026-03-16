@@ -47,7 +47,7 @@ export default function Footer() {
               {[
                 { label: "Dashboard", href: "/dashboard" },
                 { label: "FAQ", href: "/#faq" },
-                { label: "Blog", href: "#" },
+                { label: "Blog", href: "/blog" },
                 { label: "Contatti", href: "#" },
               ].map((item) => (
                 <li key={item.href}>

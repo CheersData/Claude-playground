@@ -103,6 +103,14 @@ function rotateToAltKey(provider: OpenAICompatProvider): boolean {
   return true;
 }
 
+// ─── Test Helpers (exported only for tests) ───
+
+/** Reset singleton pool and rotation state. Only for tests. */
+export function _resetForTesting(): void {
+  _clients.clear();
+  _rotatedProviders.clear();
+}
+
 // ─── Public API ───
 
 /**
