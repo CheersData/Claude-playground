@@ -48,7 +48,7 @@ export function deleteSession(id: string) {
 
 // ─── Layer 2: Tracked Session Registry ───
 
-export type SessionType = "console" | "task-runner" | "daemon";
+export type SessionType = "console" | "task-runner" | "daemon" | "interactive";
 
 export interface TrackedSession {
   /** OS process ID (if a child process was spawned), or the script's own PID */
@@ -445,15 +445,23 @@ export function discoverOrphanSessions(): TrackedSession[] {
     return [];
   }
 
-  // Filter out already-known PIDs and our own process
+  // Filter out already-known PIDs, our own process, and the parent process
+  // (which is typically the boss's terminal/shell that spawned this Node server)
   const myPid = process.pid;
+  const parentPid = process.ppid;
   const orphans: TrackedSession[] = [];
 
   for (const proc of discovered) {
-    if (knownPids.has(proc.pid) || proc.pid === myPid) continue;
+    if (knownPids.has(proc.pid) || proc.pid === myPid || proc.pid === parentPid) continue;
 
     // Infer type from command line
     const type = inferSessionType(proc.commandLine);
+
+    // Skip interactive Claude Code sessions entirely — they are the boss's own
+    // terminal, not automated processes. Showing them as "unknown" on the
+    // dashboard is confusing and not actionable.
+    if (type === "interactive") continue;
+
     const target = inferTarget(proc.commandLine);
 
     orphans.push({
@@ -474,21 +482,80 @@ function inferSessionType(commandLine: string): SessionType {
   const cl = commandLine.toLowerCase();
   if (cl.includes("task-runner")) return "task-runner";
   if (cl.includes("cme-autorun") || cl.includes("daemon")) return "daemon";
+
+  // If the command has no -p or --print flag, it's an interactive Claude Code session
+  // (the boss's own terminal), not a background automation process.
+  const hasPrintFlag = /\s-p\b/.test(cl) || cl.includes("--print");
+  if (!hasPrintFlag) return "interactive";
+
   return "console";
 }
+
+/** All known department keywords for target inference */
+const DEPT_KEYWORDS = [
+  "cme",
+  "ufficio-legale",
+  "trading",
+  "integration",
+  "architecture",
+  "security",
+  "operations",
+  "marketing",
+  "strategy",
+  "finance",
+  "data-engineering",
+  "quality-assurance",
+  "protocols",
+  "ux-ui",
+  "acceleration",
+] as const;
+
+/** Map script names → target identifiers */
+const SCRIPT_TARGET_MAP: Record<string, string> = {
+  "company-tasks": "task-runner",
+  "daily-standup": "cme",
+  "dept-context": "cme",
+  "data-connector": "data-engineering",
+  "cme-autorun": "daemon",
+  "cme-inbox": "cme",
+  "auto-plenary": "cme",
+  "update-dept-status": "operations",
+  "ops-alerting": "operations",
+  "model-census": "architecture",
+  "run-qa-batch": "quality-assurance",
+  "seed-corpus": "data-engineering",
+  "seed-normattiva": "data-engineering",
+  "seed-opendata": "data-engineering",
+  "stress-test": "quality-assurance",
+};
 
 function inferTarget(commandLine: string): string {
   const cl = commandLine.toLowerCase();
   if (cl.includes("task-runner")) return "task-runner";
   if (cl.includes("cme-autorun") || cl.includes("daemon")) return "daemon";
 
-  // Try to extract target from command line arguments
-  const targetMatch = commandLine.match(
-    /--system-prompt\s+"[^"]*?(cme|ufficio-legale|trading|architecture|security|operations|marketing|strategy|finance|data-engineering|quality-assurance|protocols|ux-ui|acceleration)/i
-  );
-  if (targetMatch) return targetMatch[1].toLowerCase();
+  // 1. Interactive sessions (no -p flag) — the boss's own Claude Code terminal
+  const hasPrintFlag = /\s-p\b/.test(cl) || cl.includes("--print");
+  if (!hasPrintFlag) return "interactive";
 
-  return "unknown";
+  // 2. Try --system-prompt (existing logic, most specific)
+  const systemPromptMatch = commandLine.match(
+    /--system-prompt\s+"[^"]*?(cme|ufficio-legale|trading|integration|architecture|security|operations|marketing|strategy|finance|data-engineering|quality-assurance|protocols|ux-ui|acceleration)/i
+  );
+  if (systemPromptMatch) return systemPromptMatch[1].toLowerCase();
+
+  // 3. Check for known script names in the command line
+  for (const [scriptName, target] of Object.entries(SCRIPT_TARGET_MAP)) {
+    if (cl.includes(scriptName)) return target;
+  }
+
+  // 4. Check for department keywords anywhere in the command line
+  for (const dept of DEPT_KEYWORDS) {
+    if (cl.includes(dept)) return dept;
+  }
+
+  // 5. Has -p flag but no identifiable target — manual CLI invocation
+  return "cli-manual";
 }
 
 /**
