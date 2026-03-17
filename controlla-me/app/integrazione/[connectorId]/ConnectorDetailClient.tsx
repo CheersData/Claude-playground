@@ -55,11 +55,11 @@ import FieldMappingStep, {
 import FrequencyStep, { type SyncFrequency } from "@/components/integrations/wizard/FrequencyStep";
 import ReviewStep from "@/components/integrations/wizard/ReviewStep";
 import SyncProgress, { type SyncProgressData, type SupervisorMessage } from "@/components/integrations/SyncProgress";
-import IntegrationAgentChat from "@/components/integrations/IntegrationAgentChat";
 import { ConnectorSyncSkeleton } from "@/components/integrations/Skeletons";
 import ErrorState from "@/components/integrations/ErrorStates";
 import { NoSyncHistory, NoRecords } from "@/components/integrations/EmptyStates";
 import { useToast } from "@/components/integrations/Toast";
+import { useIntegrationPanel } from "@/app/integrazione/layout";
 
 // ─── Types ───
 
@@ -111,7 +111,6 @@ const TABS = [
   { id: "sync", label: "Sincronizzazione" },
   { id: "mapping", label: "Mappatura" },
   { id: "dati", label: "Dati" },
-  { id: "assistente", label: "Assistente AI" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -299,6 +298,7 @@ export default function ConnectorDetailClient() {
   const { connectorId } = useParams<{ connectorId: string }>();
   const router = useRouter();
   const toast = useToast();
+  const { setConnector } = useIntegrationPanel();
 
   // ─── Fetch connector metadata from API ───
   const [config, setConfig] = useState<ConnectorConfig | null>(null);
@@ -393,13 +393,24 @@ export default function ConnectorDetailClient() {
 
   const ConnectorIcon = config ? ICON_MAP[config.icon] || Plug : Plug;
 
+  // Update floating panel connector context when config loads
+  useEffect(() => {
+    if (config) {
+      setConnector(config.name, connectorId);
+    }
+    return () => {
+      // Clear connector context when leaving detail page
+      setConnector(undefined, undefined);
+    };
+  }, [config, connectorId, setConnector]);
+
   // ─── Tab state ───
   // Initialize tab from URL query param (e.g. ?tab=sync from ConnectorCard "Gestisci")
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "sync" || tabParam === "mapping" || tabParam === "dati" || tabParam === "assistente") return tabParam;
+      if (tabParam === "sync" || tabParam === "mapping" || tabParam === "dati") return tabParam;
     }
     return "setup";
   });
@@ -1018,25 +1029,6 @@ export default function ConnectorDetailClient() {
             </motion.div>
           )}
 
-          {/* ═══ TAB 5: ASSISTENTE AI ═══ */}
-          {activeTab === "assistente" && (
-            <motion.div
-              key="assistente"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <IntegrationAgentChat
-                connectorType={config.name}
-                onConfigReady={(agentConfig) => {
-                  console.log("[AgentChat] Config ready:", agentConfig);
-                  // Switch to setup tab after config is ready
-                  setActiveTab("setup");
-                }}
-              />
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
     </div>

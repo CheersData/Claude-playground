@@ -102,9 +102,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Optional connectorId from request context (useful when agent works from catalog page)
+  const connectorId =
+    typeof body.connectorId === "string" && body.connectorId.trim().length > 0
+      ? body.connectorId.trim()
+      : undefined;
+
   // Run the setup agent
   try {
-    const result = await runSetupAgent(validatedHistory, message.trim());
+    const result = await runSetupAgent(
+      validatedHistory,
+      message.trim(),
+      connectorId
+    );
 
     return NextResponse.json({
       message: result.message,
@@ -114,6 +124,8 @@ export async function POST(req: NextRequest) {
       proposedMapping: result.proposedMapping ?? [],
       connectorConfig: result.connectorConfig ?? null,
       needsUserInput: result.needsUserInput ?? true,
+      discoveredEntities: result.discoveredEntities ?? null,
+      connectorId: result.connectorId ?? connectorId ?? null,
       provider: result.provider,
       durationMs: result.durationMs,
     });

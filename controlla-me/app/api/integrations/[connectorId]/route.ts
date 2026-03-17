@@ -53,12 +53,18 @@ interface ConnectorMeta {
   secretKeyPlaceholder?: string;
   /** Help text shown below the credential form */
   helpText?: string;
-  /** Available entities for sync (wizard step 1) */
+  /** Available entities for sync (wizard step 1) — static defaults */
   entities: ConnectorEntity[];
   /** Target field options for the mapping step (wizard step 3) */
   targetFields: string[];
   /** Env var names to check for OAuth availability (client_id + optional client_secret) */
   oauthEnvVars?: string[];
+  /**
+   * Whether this connector supports dynamic entity discovery via the
+   * entity-discovery module. When true, the UI can offer expanded
+   * entity selection beyond the static `entities` list.
+   */
+  supportsDiscovery?: boolean;
 }
 
 const CONNECTOR_META: Record<string, ConnectorMeta> = {
@@ -69,6 +75,7 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     icon: "Users",
     authMode: "oauth",
     supportsApiKey: true,
+    supportsDiscovery: true,
     oauthPermissions: [
       { label: "Lettura contatti" },
       { label: "Lettura opportunita" },
@@ -131,6 +138,7 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     icon: "Users",
     authMode: "oauth",
     supportsApiKey: true,
+    supportsDiscovery: true,
     oauthPermissions: [
       { label: "Lettura contatti" },
       { label: "Lettura deal" },
@@ -174,6 +182,7 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     description: "Pagamenti, fatture, abbonamenti e portale clienti.",
     icon: "CreditCard",
     authMode: "api_key",
+    supportsDiscovery: true,
     oauthPermissions: [],
     apiKeyLabel: "API Key",
     secretKeyLabel: "Webhook Secret (opzionale)",
@@ -212,6 +221,7 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     icon: "HardDrive",
     authMode: "oauth",
     supportsApiKey: true,
+    supportsDiscovery: true,
     oauthPermissions: [
       { label: "Lettura file e cartelle" },
       { label: "Lettura metadati" },
@@ -317,6 +327,7 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     icon: "FileText",
     authMode: "oauth",
     supportsApiKey: true,
+    supportsDiscovery: true,
     oauthPermissions: [
       { label: "Lettura clienti" },
       { label: "Lettura fornitori" },
@@ -404,6 +415,7 @@ export async function GET(
     authMode: meta.authMode,
     supportsApiKey: meta.supportsApiKey ?? false,
     oauthAvailable,
+    supportsDiscovery: meta.supportsDiscovery ?? false,
     oauthPermissions: meta.oauthPermissions,
     apiKeyLabel: meta.apiKeyLabel ?? null,
     secretKeyLabel: meta.secretKeyLabel ?? null,

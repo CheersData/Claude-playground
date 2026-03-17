@@ -9,6 +9,9 @@
  *   - Clickable suggestion chips from agent questions
  *   - Proposed mapping table (source -> target + confidence)
  *   - "Ready to connect" card with confirm button
+ *   - Discovered entity cards (selectable, searchable)
+ *   - Floating selection bar ("N entita selezionate — Configura sync")
+ *   - Embedded mode for IntegrationAgentPanel (no internal header, full height)
  *   - Framer Motion animations for new messages
  *
  * Design: Poimandres dark theme, accent #FF6B35.
@@ -26,6 +29,11 @@ import {
   Sparkles,
   HelpCircle,
   Plug,
+  Search,
+  Check,
+  Settings,
+  Database,
+  Star,
 } from "lucide-react";
 
 // ─── Types ───
@@ -43,6 +51,8 @@ interface ChatMessage {
   needsUserInput?: boolean;
   /** Action type from the agent */
   action?: string;
+  /** Discovered entities from the agent */
+  entities?: DiscoveredEntity[];
 }
 
 interface ProposedMapping {
@@ -51,8 +61,20 @@ interface ProposedMapping {
   confidence: number;
 }
 
+/** Entity discovered by the agent during conversation */
+export interface DiscoveredEntity {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  core?: boolean;
+}
+
 interface IntegrationAgentChatProps {
   connectorType?: string;
+  connectorId?: string;
+  /** When true, hides the internal header (used inside IntegrationAgentPanel) */
+  embedded?: boolean;
   onConfigReady?: (config: Record<string, unknown>) => void;
 }
 
@@ -89,6 +111,8 @@ function confidenceColor(pct: number): string {
 
 export default function IntegrationAgentChat({
   connectorType,
+  connectorId,
+  embedded = false,
   onConfigReady,
 }: IntegrationAgentChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -96,8 +120,29 @@ export default function IntegrationAgentChat({
   const [isLoading, setIsLoading] = useState(false);
   const [configConfirmed, setConfigConfirmed] = useState(false);
 
+  // Entity selection state
+  const [selectedEntities, setSelectedEntities] = useState<Set<string>>(
+    new Set()
+  );
+  const [entitySearchQuery, setEntitySearchQuery] = useState("");
+  const [showEntitySearch, setShowEntitySearch] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Collect all discovered entities from all messages
+  const allEntities: DiscoveredEntity[] = [];
+  const seenIds = new Set<string>();
+  for (const msg of messages) {
+    if (msg.entities) {
+      for (const entity of msg.entities) {
+        if (!seenIds.has(entity.id)) {
+          seenIds.add(entity.id);
+          allEntities.push(entity);
+        }
+      }
+    }
+  }
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -137,8 +182,10 @@ export default function IntegrationAgentChat({
         if (!res.ok) {
           const status = res.status;
           let errorText = "Si e' verificato un errore. Riprova.";
-          if (status === 429) errorText = "Troppe richieste, riprova tra poco.";
-          else if (status === 503) errorText = "Servizio temporaneamente non disponibile.";
+          if (status === 429)
+            errorText = "Troppe richieste, riprova tra poco.";
+          else if (status === 503)
+            errorText = "Servizio temporaneamente non disponibile.";
           else {
             const data = await res.json().catch(() => null);
             if (data?.error) errorText = data.error;
@@ -161,6 +208,7 @@ export default function IntegrationAgentChat({
           connectorConfig: data.connectorConfig,
           needsUserInput: data.needsUserInput,
           action: data.action,
+          entities: data.entities,
         };
 
         setMessages((prev) => [...prev, agentMessage]);
@@ -194,42 +242,74 @@ export default function IntegrationAgentChat({
     onConfigReady?.(config);
   };
 
+  const handleToggleEntity = (entityId: string) => {
+    setSelectedEntities((prev) => {
+      const next = new Set(prev);
+      if (next.has(entityId)) {
+        next.delete(entityId);
+      } else {
+        next.add(entityId);
+      }
+      return next;
+    });
+  };
+
+  const handleEntitySearch = () => {
+    if (!entitySearchQuery.trim()) return;
+    sendMessage(`cerca entita: ${entitySearchQuery.trim()}`);
+    setEntitySearchQuery("");
+    setShowEntitySearch(false);
+  };
+
+  const handleConfigureSync = () => {
+    const names = allEntities
+      .filter((e) => selectedEntities.has(e.id))
+      .map((e) => e.name);
+    sendMessage(
+      `Voglio configurare la sincronizzazione per: ${names.join(", ")}`
+    );
+  };
+
   // ─── Render ───
 
   const hasMessages = messages.length > 0;
+  const selectedCount = selectedEntities.size;
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden"
+      className="flex flex-col overflow-hidden"
       style={{
-        background: "var(--bg-raised)",
-        border: "1px solid var(--border-dark)",
-        height: "min(600px, 70vh)",
+        background: embedded ? "transparent" : "var(--bg-raised)",
+        border: embedded ? "none" : "1px solid var(--border-dark)",
+        borderRadius: embedded ? 0 : "16px",
+        height: embedded ? "100%" : "min(600px, 70vh)",
       }}
     >
-      {/* Header */}
-      <div
-        className="flex items-center gap-3 px-5 py-4 shrink-0"
-        style={{ borderBottom: "1px solid var(--border-dark-subtle)" }}
-      >
+      {/* Header — only in standalone mode */}
+      {!embedded && (
         <div
-          className="flex items-center justify-center w-9 h-9 rounded-lg"
-          style={{ background: "rgba(255, 107, 53, 0.1)" }}
+          className="flex items-center gap-3 px-5 py-4 shrink-0"
+          style={{ borderBottom: "1px solid var(--border-dark-subtle)" }}
         >
-          <Bot className="w-5 h-5" style={{ color: "var(--accent)" }} />
-        </div>
-        <div>
-          <h3
-            className="text-sm font-semibold"
-            style={{ color: "var(--fg-primary)" }}
+          <div
+            className="flex items-center justify-center w-9 h-9 rounded-lg"
+            style={{ background: "rgba(255, 107, 53, 0.1)" }}
           >
-            Assistente Integrazione
-          </h3>
-          <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
-            Descrivimi la fonte dati che vuoi collegare
-          </p>
+            <Bot className="w-5 h-5" style={{ color: "var(--accent)" }} />
+          </div>
+          <div>
+            <h3
+              className="text-sm font-semibold"
+              style={{ color: "var(--fg-primary)" }}
+            >
+              Assistente Integrazione
+            </h3>
+            <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
+              Descrivimi la fonte dati che vuoi collegare
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
@@ -369,6 +449,100 @@ export default function IntegrationAgentChat({
                           {q}
                         </motion.button>
                       ))}
+                    </div>
+                  )}
+
+                {/* ─── Discovered Entity Cards ─── */}
+                {msg.role === "assistant" &&
+                  msg.entities &&
+                  msg.entities.length > 0 && (
+                    <div className="space-y-2">
+                      {msg.entities.map((entity) => {
+                        const isSelected = selectedEntities.has(entity.id);
+                        return (
+                          <motion.button
+                            key={entity.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={() => handleToggleEntity(entity.id)}
+                            className="w-full flex items-start gap-3 rounded-xl px-4 py-3 text-left transition-all hover:scale-[1.005]"
+                            style={{
+                              background: isSelected
+                                ? "rgba(255, 107, 53, 0.08)"
+                                : "var(--bg-base)",
+                              border: isSelected
+                                ? "1px solid rgba(255, 107, 53, 0.3)"
+                                : "1px solid var(--border-dark-subtle)",
+                            }}
+                          >
+                            {/* Selection indicator */}
+                            <div
+                              className="flex items-center justify-center w-5 h-5 rounded-md shrink-0 mt-0.5 transition-colors"
+                              style={{
+                                background: isSelected
+                                  ? "var(--accent)"
+                                  : "var(--bg-overlay)",
+                                border: isSelected
+                                  ? "none"
+                                  : "1px solid var(--border-dark)",
+                              }}
+                            >
+                              {isSelected && (
+                                <Check
+                                  className="w-3 h-3"
+                                  style={{ color: "white" }}
+                                />
+                              )}
+                            </div>
+
+                            {/* Entity info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className="text-sm font-medium"
+                                  style={{ color: "var(--fg-primary)" }}
+                                >
+                                  {entity.name}
+                                </span>
+                                {entity.category && (
+                                  <span
+                                    className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                                    style={{
+                                      background: "var(--bg-overlay)",
+                                      color: "var(--fg-muted)",
+                                      border:
+                                        "1px solid var(--border-dark-subtle)",
+                                    }}
+                                  >
+                                    {entity.category}
+                                  </span>
+                                )}
+                                {entity.core && (
+                                  <span
+                                    className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                    style={{
+                                      background: "rgba(255, 200, 50, 0.1)",
+                                      color: "var(--identity-gold)",
+                                    }}
+                                  >
+                                    <Star className="w-2.5 h-2.5" />
+                                    Core
+                                  </span>
+                                )}
+                              </div>
+                              {entity.description && (
+                                <p
+                                  className="text-xs mt-1 leading-relaxed"
+                                  style={{ color: "var(--fg-muted)" }}
+                                >
+                                  {entity.description}
+                                </p>
+                              )}
+                            </div>
+                          </motion.button>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -575,12 +749,121 @@ export default function IntegrationAgentChat({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* ─── Entity selection bar ─── */}
+      <AnimatePresence>
+        {selectedCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="shrink-0 px-5 py-3 flex items-center justify-between gap-3"
+            style={{
+              background: "rgba(255, 107, 53, 0.06)",
+              borderTop: "1px solid rgba(255, 107, 53, 0.15)",
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4" style={{ color: "var(--accent)" }} />
+              <span className="text-sm" style={{ color: "var(--fg-secondary)" }}>
+                <strong style={{ color: "var(--fg-primary)" }}>
+                  {selectedCount}
+                </strong>{" "}
+                {selectedCount === 1 ? "entita selezionata" : "entita selezionate"}
+              </span>
+            </div>
+            <button
+              onClick={handleConfigureSync}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02] disabled:opacity-50"
+              style={{
+                background:
+                  "linear-gradient(135deg, var(--accent), var(--accent-dark, #E85A24))",
+              }}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Configura sync
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Entity search toggle ─── */}
+      <AnimatePresence>
+        {showEntitySearch && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="shrink-0 px-5 overflow-hidden"
+          >
+            <div
+              className="flex gap-2 py-3"
+              style={{ borderTop: "1px solid var(--border-dark-subtle)" }}
+            >
+              <div className="flex-1 relative">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+                  style={{ color: "var(--fg-muted)" }}
+                />
+                <input
+                  type="text"
+                  value={entitySearchQuery}
+                  onChange={(e) => setEntitySearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEntitySearch()}
+                  placeholder="Cerca entita (es. fatture, contatti)..."
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm transition-all focus:outline-none"
+                  style={{
+                    background: "var(--bg-overlay)",
+                    border: "1px solid var(--border-dark-subtle)",
+                    color: "var(--fg-primary)",
+                  }}
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={handleEntitySearch}
+                disabled={!entitySearchQuery.trim() || isLoading}
+                className="flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:scale-[1.04] disabled:opacity-40"
+                style={{ background: "var(--accent)", color: "white" }}
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input area */}
       <div
         className="shrink-0 px-5 py-4"
         style={{ borderTop: "1px solid var(--border-dark-subtle)" }}
       >
         <form onSubmit={handleSubmit} className="flex gap-2">
+          {/* Entity search toggle button */}
+          {allEntities.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowEntitySearch(!showEntitySearch)}
+              className="flex items-center justify-center w-11 h-11 rounded-xl transition-all hover:scale-[1.04]"
+              style={{
+                background: showEntitySearch
+                  ? "rgba(255, 107, 53, 0.15)"
+                  : "var(--bg-overlay)",
+                border: showEntitySearch
+                  ? "1px solid rgba(255, 107, 53, 0.3)"
+                  : "1px solid var(--border-dark-subtle)",
+                color: showEntitySearch
+                  ? "var(--accent)"
+                  : "var(--fg-muted)",
+              }}
+              title="Cerca entita"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+          )}
+
           <input
             ref={inputRef}
             type="text"
