@@ -1,10 +1,18 @@
 /**
  * API Route: /api/integrations/agent/setup
  *
- * POST — Conversational endpoint for the Integration Setup Agent.
+ * POST — Conversational endpoint for the Integration Setup Agent v2.
  *
- * Accepts a user message and conversation history, calls the Setup Agent,
- * and returns a structured JSON response with the agent's reply.
+ * Accepts a user message and conversation history, loads the user's
+ * integration context (connections, record counts, syncs, credentials),
+ * then calls the Setup Agent (via `claude -p` CLI) and returns a
+ * structured JSON response with the agent's reply.
+ *
+ * v2 changes:
+ *   - Passes userId to runSetupAgent for context injection
+ *   - Agent uses `claude -p` CLI (subscription) instead of `runAgent()` (API)
+ *   - Supports universal connectors (any REST API, not just 5 presets)
+ *   - maxDuration raised to 300s (CLI spawn can take time)
  *
  * This is a standard request/response endpoint (NOT SSE streaming).
  * The frontend manages the conversation state and sends the full history
@@ -21,6 +29,9 @@ import {
   runSetupAgent,
   type SetupAgentMessage,
 } from "@/lib/agents/integration-setup-agent";
+
+// CLI spawn can take up to 2 minutes per pass (+ potential 2nd pass for discovery)
+export const maxDuration = 300;
 
 // ─── Validation ───
 
@@ -108,12 +119,13 @@ export async function POST(req: NextRequest) {
       ? body.connectorId.trim()
       : undefined;
 
-  // Run the setup agent
+  // Run the setup agent (v2: passes userId for context injection)
   try {
     const result = await runSetupAgent(
       validatedHistory,
       message.trim(),
-      connectorId
+      connectorId,
+      userId
     );
 
     return NextResponse.json({

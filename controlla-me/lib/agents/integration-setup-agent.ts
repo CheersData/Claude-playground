@@ -1,24 +1,36 @@
 /**
- * Integration Setup Agent — agente conversazionale per la configurazione
- * di nuovi connettori dati.
+ * Integration Setup Agent v2 — Conversational agent for configuring
+ * ANY external data connector via `claude -p` CLI.
  *
- * Guida l'utente attraverso:
- *   1. Identificazione della sorgente dati
- *   2. Scoperta dello schema
- *   3. Proposta di field mapping
- *   4. Configurazione autenticazione
- *   5. Generazione config connettore
+ * Key changes from v1:
+ *   - Uses `spawnSync("claude", ["-p", ...])` (CLI subscription, NOT API SDK)
+ *   - Massive system prompt with knowledge of 5 preset connectors + custom APIs
+ *   - User context injection (connections, record counts, syncs, credentials)
+ *   - Universal connector: handles ANY REST API, not just 5 presets
+ *   - Two-pass entity discovery still works via local catalog lookup
  *
- * Usa runAgent("integration-setup") con catena di fallback dal tier system.
+ * Pattern taken from `app/api/console/company/route.ts` (the proven CLI pattern).
+ *
+ * DEMO ENVIRONMENT NOTE:
+ * The `claude` CLI must be in PATH and the user must have an active subscription.
+ * In demo environments where `claude` is not available, the agent falls back to
+ * a structured error message.
  */
 
-import { runAgent } from "../ai-sdk/agent-runner";
-import { INTEGRATION_SETUP_SYSTEM_PROMPT } from "../prompts/integration-setup";
+import { spawnSync } from "child_process";
+import { writeFileSync, unlinkSync, mkdirSync } from "fs";
+import { join } from "path";
+import { randomUUID } from "crypto";
+import { buildIntegrationSystemPrompt } from "../prompts/integration-setup";
 import {
   discoverEntities,
   searchEntities,
   type DiscoveredEntity,
 } from "../staff/data-connector/entity-discovery";
+import {
+  loadUserIntegrationContext,
+  formatContextForPrompt,
+} from "./integration-context";
 
 // ─── Types ───
 
@@ -44,6 +56,7 @@ export interface SetupAgentResult {
     | "discover_entities"
     | "test_connection"
     | "propose_mapping"
+    | "propose_connector_config"
     | "confirm_setup"
     | "error";
   questions?: string[];
@@ -79,6 +92,20 @@ interface SetupParsedResponse {
   connectorId?: string;
 }
 
+// ─── Valid actions ───
+
+const VALID_ACTIONS = [
+  "ask_details",
+  "discover_entities",
+  "test_connection",
+  "propose_mapping",
+  "propose_connector_config",
+  "confirm_setup",
+  "error",
+] as const;
+
+type ValidAction = (typeof VALID_ACTIONS)[number];
+
 // ─── Conversation formatting ───
 
 /**
@@ -112,6 +139,11 @@ function formatConversationHistory(
             `  [mapping: ${msg.proposedMapping.length} campi proposti]`
           );
         }
+        if (msg.connectorConfig) {
+          parts.push(
+            `  [connectorConfig: ${JSON.stringify(msg.connectorConfig).slice(0, 200)}]`
+          );
+        }
       }
     }
     parts.push("");
@@ -120,6 +152,133 @@ function formatConversationHistory(
   parts.push(`MESSAGGIO UTENTE:\n${userMessage}`);
 
   return parts.join("\n");
+}
+
+// ─── CLI spawn helper ───
+
+/**
+ * Spawn `claude -p` with the given system prompt and user prompt.
+ *
+ * Uses a temp file for the system prompt to avoid Windows cmd length limits.
+ * The --system-prompt flag has a ~8192 char limit on Windows, and our
+ * comprehensive prompt is ~15-20K chars.
+ *
+ * Pattern from `app/api/console/company/route.ts`:
+ * - Strip ANTHROPIC_API_KEY and CLAUDE* env vars to force subscription mode
+ * - Use --output-format text for simple text output
+ * - Use --no-session-persistence to avoid state leaks between calls
+ */
+function spawnClaude(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number = 120_000
+): { stdout: string; stderr: string; exitCode: number | null } {
+  // Write system prompt to a temp file (Windows cmd length limit workaround)
+  const tmpDir = join(process.cwd(), ".tmp");
+  try {
+    mkdirSync(tmpDir, { recursive: true });
+  } catch {
+    // Directory may already exist
+  }
+
+  const tmpFile = join(tmpDir, `integration-prompt-${randomUUID()}.txt`);
+
+  try {
+    writeFileSync(tmpFile, systemPrompt, "utf-8");
+
+    // Build sanitized environment
+    const env: Record<string, string | undefined> = { ...process.env };
+    for (const key of Object.keys(env)) {
+      if (key === "ANTHROPIC_API_KEY" || key.startsWith("CLAUDE")) {
+        delete env[key];
+      }
+    }
+
+    const args = [
+      "-p",
+      userPrompt,
+      "--system-prompt-file",
+      tmpFile,
+      "--output-format",
+      "text",
+      "--no-session-persistence",
+    ];
+
+    const result = spawnSync("claude", args, {
+      cwd: process.cwd(),
+      env: env as NodeJS.ProcessEnv,
+      shell: true,
+      encoding: "utf-8",
+      timeout: timeoutMs,
+      maxBuffer: 1024 * 1024, // 1MB
+    });
+
+    return {
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+      exitCode: result.status,
+    };
+  } finally {
+    // Clean up temp file
+    try {
+      unlinkSync(tmpFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+// ─── JSON parser (robust, handles imperfect LLM output) ───
+
+/**
+ * Parse JSON from LLM output. Handles common issues:
+ * 1. Direct parse
+ * 2. Strip code fences (```json ... ```)
+ * 3. Extract first { ... } block via regex
+ * 4. Return error
+ */
+function parseAgentResponse(raw: string): SetupParsedResponse {
+  const trimmed = raw.trim();
+
+  // 1. Direct parse
+  try {
+    return JSON.parse(trimmed) as SetupParsedResponse;
+  } catch {
+    // Continue to fallbacks
+  }
+
+  // 2. Strip code fences
+  const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1].trim()) as SetupParsedResponse;
+    } catch {
+      // Continue
+    }
+  }
+
+  // 3. Extract first { ... } block
+  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0]) as SetupParsedResponse;
+    } catch {
+      // Continue
+    }
+  }
+
+  // 4. Last resort: treat the whole output as the message
+  console.error(
+    `[INTEGRATION-SETUP] Failed to parse JSON. Raw output (first 500 chars): ${trimmed.slice(0, 500)}`
+  );
+
+  return {
+    message: trimmed.length > 0
+      ? trimmed.slice(0, 1000)
+      : "Mi dispiace, non sono riuscito a generare una risposta strutturata. Riprova.",
+    action: "error",
+    needsUserInput: true,
+  };
 }
 
 // ─── Main ───
@@ -135,51 +294,106 @@ function formatConversationHistory(
  * @param conversationHistory - Cronologia della conversazione precedente
  * @param userMessage - Ultimo messaggio dell'utente
  * @param contextConnectorId - Optional connectorId from the page context
+ * @param userId - User ID for context loading (optional, falls back to no context)
  * @returns Risposta strutturata dell'agente
  */
 export async function runSetupAgent(
   conversationHistory: SetupAgentMessage[],
   userMessage: string,
-  contextConnectorId?: string
+  contextConnectorId?: string,
+  userId?: string
 ): Promise<SetupAgentResult> {
   const startTime = Date.now();
 
-  // If a connectorId is provided from context, prepend it to the prompt
+  // ─── Load user context (if userId provided) ───
+
+  let userContextText = "";
+  if (userId) {
+    try {
+      const ctx = await loadUserIntegrationContext(userId);
+      userContextText = formatContextForPrompt(ctx);
+    } catch (err) {
+      console.warn(
+        `[INTEGRATION-SETUP] Failed to load user context: ${err instanceof Error ? err.message : String(err)}`
+      );
+      userContextText =
+        "Errore nel caricamento del contesto utente. Procedi senza dati storici.";
+    }
+  }
+
+  // ─── Build system prompt ───
+
+  const systemPrompt = buildIntegrationSystemPrompt(userContextText);
+
+  // ─── Build user prompt ───
+
   let contextPrefix = "";
   if (contextConnectorId) {
     contextPrefix = `CONTESTO: L'utente sta configurando il connettore "${contextConnectorId}".\n\n`;
   }
 
-  const prompt = contextPrefix + formatConversationHistory(conversationHistory, userMessage);
+  const userPrompt =
+    contextPrefix +
+    formatConversationHistory(conversationHistory, userMessage);
+
+  // ─── First pass: call claude -p ───
 
   try {
-    const result = await runAgent<SetupParsedResponse>(
-      "integration-setup",
-      prompt,
-      {
-        systemPrompt: INTEGRATION_SETUP_SYSTEM_PROMPT,
-      }
-    );
+    const cliResult = spawnClaude(systemPrompt, userPrompt);
 
-    const parsed = result.parsed;
+    if (cliResult.exitCode !== 0) {
+      // Check for known error patterns
+      const stderr = cliResult.stderr.toLowerCase();
+      const isNotFound =
+        stderr.includes("enoent") || stderr.includes("not found") || stderr.includes("is not recognized");
+      const isCredits =
+        stderr.includes("credit") || stderr.includes("balance");
+      const isRateLimit =
+        stderr.includes("rate limit") || stderr.includes("rate_limit");
+      const isTimeout = stderr.includes("timed out") || stderr.includes("timeout");
+
+      let errorMessage: string;
+      if (isNotFound) {
+        errorMessage =
+          "Il servizio AI non e disponibile in questo ambiente. " +
+          "Claude CLI non e nel PATH. Per usare l'assistente integrazione, " +
+          "assicurati che il CLI Claude sia installato e accessibile.";
+      } else if (isCredits) {
+        errorMessage =
+          "Crediti subscription esauriti per questa finestra. " +
+          "Riprova piu tardi quando i crediti si rigenerano.";
+      } else if (isRateLimit) {
+        errorMessage =
+          "Limite di velocita raggiunto. Attendi qualche minuto e riprova.";
+      } else if (isTimeout) {
+        errorMessage =
+          "La richiesta ha impiegato troppo tempo. Prova con un messaggio piu breve.";
+      } else {
+        errorMessage = `Errore dal servizio AI (exit code ${cliResult.exitCode}). Riprova tra qualche istante.`;
+        console.error(
+          `[INTEGRATION-SETUP] CLI error: exit=${cliResult.exitCode} stderr=${cliResult.stderr.slice(0, 500)}`
+        );
+      }
+
+      return {
+        message: errorMessage,
+        action: "error",
+        needsUserInput: true,
+        provider: "claude-cli",
+        durationMs: Date.now() - startTime,
+      };
+    }
+
+    // Parse the response
+    const parsed = parseAgentResponse(cliResult.stdout);
 
     console.log(
       `[INTEGRATION-SETUP] action: ${parsed.action ?? "unknown"} | ` +
-        `provider: ${result.provider} | ${Date.now() - startTime}ms`
+        `provider: claude-cli | ${Date.now() - startTime}ms`
     );
 
     // Validate and normalize the action field
-    const validActions = [
-      "ask_details",
-      "discover_entities",
-      "test_connection",
-      "propose_mapping",
-      "confirm_setup",
-      "error",
-    ] as const;
-    const action = validActions.includes(
-      parsed.action as (typeof validActions)[number]
-    )
+    const action = VALID_ACTIONS.includes(parsed.action as ValidAction)
       ? (parsed.action as SetupAgentResult["action"])
       : "ask_details";
 
@@ -210,39 +424,39 @@ export async function runSetupAgent(
             entityContext;
 
           try {
-            const secondResult = await runAgent<SetupParsedResponse>(
-              "integration-setup",
-              secondPassPrompt,
-              {
-                systemPrompt: INTEGRATION_SETUP_SYSTEM_PROMPT,
-              }
-            );
+            const secondResult = spawnClaude(systemPrompt, secondPassPrompt);
 
-            const secondParsed = secondResult.parsed;
-            const durationMs = Date.now() - startTime;
+            if (secondResult.exitCode === 0) {
+              const secondParsed = parseAgentResponse(secondResult.stdout);
+              const durationMs = Date.now() - startTime;
 
-            console.log(
-              `[INTEGRATION-SETUP] Second pass: action=${secondParsed.action ?? "ask_details"} | ` +
-                `provider: ${secondResult.provider} | ${durationMs}ms`
-            );
+              console.log(
+                `[INTEGRATION-SETUP] Second pass: action=${secondParsed.action ?? "ask_details"} | ` +
+                  `provider: claude-cli | ${durationMs}ms`
+              );
 
-            return {
-              message:
-                secondParsed.message ?? parsed.message ?? "Ecco le entita disponibili.",
-              action: "discover_entities",
-              questions: secondParsed.questions ?? parsed.questions,
-              discoveredSchema: secondParsed.discoveredSchema,
-              proposedMapping: secondParsed.proposedMapping,
-              connectorConfig: secondParsed.connectorConfig,
-              needsUserInput: secondParsed.needsUserInput ?? true,
-              discoveredEntities: entities,
-              connectorId: targetConnectorId,
-              provider: secondResult.provider,
-              durationMs,
-            };
+              return {
+                message:
+                  secondParsed.message ??
+                  parsed.message ??
+                  "Ecco le entita disponibili.",
+                action: "discover_entities",
+                questions: secondParsed.questions ?? parsed.questions,
+                discoveredSchema: secondParsed.discoveredSchema,
+                proposedMapping: secondParsed.proposedMapping,
+                connectorConfig: secondParsed.connectorConfig,
+                needsUserInput: secondParsed.needsUserInput ?? true,
+                discoveredEntities: entities,
+                connectorId: targetConnectorId,
+                provider: "claude-cli",
+                durationMs,
+              };
+            }
           } catch {
             // If second pass fails, return entities with the first-pass message
-            console.log("[INTEGRATION-SETUP] Second pass failed — returning entities with first-pass message");
+            console.log(
+              "[INTEGRATION-SETUP] Second pass failed -- returning entities with first-pass message"
+            );
           }
         }
 
@@ -259,12 +473,12 @@ export async function runSetupAgent(
           discoveredEntities: entities,
           connectorId: targetConnectorId,
           needsUserInput: true,
-          provider: result.provider,
+          provider: "claude-cli",
           durationMs,
         };
       }
 
-      // No connector identified — ask the user
+      // No connector identified -- ask the user
       const durationMs = Date.now() - startTime;
       return {
         message:
@@ -277,9 +491,10 @@ export async function runSetupAgent(
           "Fatture in Cloud",
           "Stripe",
           "Salesforce",
+          "Altro (app custom)",
         ],
         needsUserInput: true,
-        provider: result.provider,
+        provider: "claude-cli",
         durationMs,
       };
     }
@@ -298,7 +513,7 @@ export async function runSetupAgent(
       connectorConfig: parsed.connectorConfig,
       needsUserInput: parsed.needsUserInput ?? true,
       connectorId: parsed.connectorId ?? contextConnectorId,
-      provider: result.provider,
+      provider: "claude-cli",
       durationMs,
     };
   } catch (err) {
@@ -310,7 +525,7 @@ export async function runSetupAgent(
         "Mi dispiace, ho avuto un problema tecnico. Riprova tra qualche istante.",
       action: "error",
       needsUserInput: true,
-      provider: "none",
+      provider: "claude-cli",
       durationMs: Date.now() - startTime,
     };
   }
@@ -325,7 +540,9 @@ export async function runSetupAgent(
 function formatDiscoveryResults(entities: DiscoveredEntity[]): string {
   const lines: string[] = [];
   lines.push("ENTITA DISPONIBILI (risultato della discovery):");
-  lines.push("Presenta queste entita all'utente in modo chiaro e conciso. Non ripetere la lista grezza, ma descrivi le piu importanti e chiedi quali vuole sincronizzare.");
+  lines.push(
+    "Presenta queste entita all'utente in modo chiaro e conciso. Non ripetere la lista grezza, ma descrivi le piu importanti e chiedi quali vuole sincronizzare."
+  );
   lines.push("");
 
   for (const entity of entities) {
