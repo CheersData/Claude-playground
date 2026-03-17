@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Check, Lock, Info, Eye, EyeOff, Loader2, AlertTriangle, Key } from "lucide-react";
+import { Shield, Check, Lock, Info, Eye, EyeOff, Loader2, AlertTriangle, Key, ShieldCheck, ExternalLink } from "lucide-react";
 
 // ─── Types ───
 
@@ -16,9 +16,12 @@ interface AuthStepProps {
   connectorName: string;
   authMode: AuthMode;
   supportsApiKey?: boolean; // If true, show toggle between OAuth and API key
+  oauthAvailable?: boolean; // If false and supportsApiKey, hide/disable OAuth option
   oauthPermissions?: OAuthPermission[];
   apiKeyLabel?: string;
   secretKeyLabel?: string;
+  apiKeyPlaceholder?: string;
+  secretKeyPlaceholder?: string;
   helpText?: string;
   apiKey: string;
   secretKey: string;
@@ -36,9 +39,12 @@ export default function AuthStep({
   connectorName,
   authMode,
   supportsApiKey = false,
+  oauthAvailable = true,
   oauthPermissions = [],
   apiKeyLabel = "API Key",
   secretKeyLabel = "Secret Key (opzionale)",
+  apiKeyPlaceholder = "Inserisci la tua API key...",
+  secretKeyPlaceholder = "Inserisci il secret (opzionale)...",
   helpText,
   apiKey,
   secretKey,
@@ -50,8 +56,11 @@ export default function AuthStep({
   onOAuthAuthorize,
 }: AuthStepProps) {
   const [showSecret, setShowSecret] = useState(false);
+
+  // When OAuth is not available and API key is supported, default to API key
+  const defaultMethod = (!oauthAvailable && supportsApiKey) ? "api_key" : authMode;
   // For connectors that support both OAuth and API key, allow user to choose
-  const [authMethod, setAuthMethod] = useState<"oauth" | "api_key">(authMode);
+  const [authMethod, setAuthMethod] = useState<"oauth" | "api_key">(defaultMethod);
 
   const effectiveMode = supportsApiKey ? authMethod : authMode;
 
@@ -66,8 +75,8 @@ export default function AuthStep({
           : "Inserisci le credenziali API"}
       </p>
 
-      {/* Method selector toggle (if connector supports both) */}
-      {supportsApiKey && (
+      {/* Method selector toggle (if connector supports both and OAuth is available) */}
+      {supportsApiKey && oauthAvailable && (
         <div className="mt-4 flex gap-2">
           <button
             onClick={() => setAuthMethod("oauth")}
@@ -106,6 +115,17 @@ export default function AuthStep({
         </div>
       )}
 
+      {/* When OAuth is not available, show info notice */}
+      {supportsApiKey && !oauthAvailable && (
+        <div
+          className="mt-4 flex items-start gap-2 rounded-lg p-3 text-xs"
+          style={{ background: "var(--bg-overlay)", color: "var(--fg-muted)" }}
+        >
+          <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--info)" }} />
+          <span>OAuth non configurato per questo connettore. Usa l&apos;autenticazione via API Key.</span>
+        </div>
+      )}
+
       <div className="mt-6">
         {effectiveMode === "oauth" ? (
           /* ─── OAuth Card ─── */
@@ -131,19 +151,65 @@ export default function AuthStep({
               ))}
             </div>
 
-            <p className="text-xs mb-6" style={{ color: "var(--fg-muted)" }}>
+            <p className="text-xs mb-4" style={{ color: "var(--fg-muted)" }}>
               Non modifichiamo mai i tuoi dati.
             </p>
 
-            <button
-              onClick={onOAuthAuthorize}
-              className="w-full rounded-xl py-3 px-8 text-sm font-semibold text-white transition-all hover:scale-[1.02]"
+            {/* GDPR reassurance note */}
+            <div
+              className="flex items-start gap-2.5 rounded-xl p-3.5 mb-5 text-left"
               style={{
-                background: "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))",
+                background: "rgba(93, 228, 199, 0.06)",
+                border: "1px solid rgba(93, 228, 199, 0.12)",
               }}
             >
-              Autorizza con {connectorName}
-            </button>
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--success)" }} />
+              <div>
+                <p className="text-xs font-medium" style={{ color: "var(--success)" }}>
+                  I tuoi dati restano tuoi
+                </p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--fg-muted)" }}>
+                  Controlla.me accede solo ai documenti, mai ai tuoi dati personali.
+                  Criptazione AES-256-GCM, conforme GDPR.{" "}
+                  <a
+                    href="/privacy"
+                    className="inline-flex items-center gap-0.5 underline decoration-dotted underline-offset-2 transition-colors hover-color-primary"
+                    style={{ color: "var(--info)" }}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Privacy policy
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </p>
+              </div>
+            </div>
+
+            {/* Authorize button with security tooltip */}
+            <div className="relative group/auth">
+              <button
+                onClick={onOAuthAuthorize}
+                className="w-full rounded-xl py-3 px-8 text-sm font-semibold text-white transition-all hover:scale-[1.02]"
+                style={{
+                  background: "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))",
+                }}
+              >
+                Autorizza con {connectorName}
+              </button>
+
+              {/* Tooltip on hover */}
+              <div
+                className="absolute -top-11 left-1/2 -translate-x-1/2 opacity-0 group-hover/auth:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px]"
+                style={{
+                  background: "var(--bg-overlay)",
+                  border: "1px solid var(--border-dark)",
+                  color: "var(--fg-secondary)",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                }}
+              >
+                Accesso in sola lettura ai documenti, mai ai dati personali
+              </div>
+            </div>
 
             <div className="flex items-center justify-center gap-2 mt-4">
               <Lock className="w-3.5 h-3.5" style={{ color: "var(--fg-muted)" }} />
@@ -170,7 +236,7 @@ export default function AuthStep({
                 type="text"
                 value={apiKey}
                 onChange={(e) => onApiKeyChange(e.target.value)}
-                placeholder="sk_live_..."
+                placeholder={apiKeyPlaceholder}
                 className="w-full rounded-xl px-4 py-3 text-sm font-mono outline-none transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                 style={{
                   background: "var(--bg-base)",
@@ -194,7 +260,7 @@ export default function AuthStep({
                   type={showSecret ? "text" : "password"}
                   value={secretKey}
                   onChange={(e) => onSecretKeyChange(e.target.value)}
-                  placeholder="whsec_..."
+                  placeholder={secretKeyPlaceholder}
                   className="w-full rounded-xl px-4 py-3 pr-12 text-sm font-mono outline-none transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                   style={{
                     background: "var(--bg-base)",
@@ -225,6 +291,32 @@ export default function AuthStep({
                 <span>{helpText}</span>
               </div>
             )}
+
+            {/* GDPR reassurance for API key mode */}
+            <div
+              className="flex items-start gap-2.5 rounded-xl p-3.5 mt-3 text-left"
+              style={{
+                background: "rgba(93, 228, 199, 0.06)",
+                border: "1px solid rgba(93, 228, 199, 0.12)",
+              }}
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--success)" }} />
+              <p className="text-[11px] leading-relaxed" style={{ color: "var(--fg-muted)" }}>
+                <span className="font-medium" style={{ color: "var(--success)" }}>Dati protetti</span>
+                {" "}&mdash; Le tue credenziali sono criptate con AES-256-GCM e non vengono
+                mai condivise. Conforme GDPR.{" "}
+                <a
+                  href="/privacy"
+                  className="inline-flex items-center gap-0.5 underline decoration-dotted underline-offset-2 transition-colors hover-color-primary"
+                  style={{ color: "var(--info)" }}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Privacy policy
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </p>
+            </div>
 
             {/* Verify button */}
             <button

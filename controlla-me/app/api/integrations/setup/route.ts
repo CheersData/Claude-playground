@@ -49,6 +49,7 @@ const CONNECTOR_NAMES: Record<string, string> = {
   hubspot: "HubSpot",
   salesforce: "Salesforce",
   stripe: "Stripe",
+  "fatture-in-cloud": "Fatture in Cloud",
   normattiva: "Normattiva",
   eurlex: "EUR-Lex",
 };

@@ -520,6 +520,12 @@ html {
   animation: studio-reveal 0.3s ease-out forwards;
 }
 
+/* ── Skeleton shimmer for loading placeholders ── */
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ── Prefers reduced motion — WCAG 2.3.3 ── */
 @media (prefers-reduced-motion: reduce) {
   *,

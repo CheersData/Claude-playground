@@ -130,6 +130,22 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "sambanova-llama3-70b",   // 200K tok/day
     "mistral-small-3",        // 2 RPM (ultimo resort)
   ],
+  // ── Integration Setup Agent — conversational, lightweight ──
+  "integration-setup": [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
+  // ── Sync Supervisor — real-time commentary, lightweight ──
+  "sync-supervisor": [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
 };
 
 /**
@@ -144,8 +160,10 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   analyzer:       { partner: 0, associate: 1, intern: 2 },
   investigator:   { partner: 0, associate: 1, intern: 1 },  // intern = associate per investigator (solo Anthropic)
   advisor:        { partner: 0, associate: 1, intern: 2 },
-  "task-executor": { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
-  mapper:           { partner: 0, associate: 1, intern: 2 },  // Haiku → Flash → Groq (ADR-2)
+  "task-executor":     { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
+  mapper:              { partner: 0, associate: 1, intern: 2 },  // Haiku → Flash → Groq (ADR-2)
+  "integration-setup": { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
+  "sync-supervisor":   { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
 };
 
 // ─── State ───
@@ -297,6 +315,9 @@ export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
   investigator:    "cli",
   advisor:         "cli",
   "task-executor": "cli",
+  // ── Integration agents → SDK (lightweight, Gemini Flash/Groq) ──
+  "integration-setup": "sdk",
+  "sync-supervisor":   "sdk",
 };
 
 /**
@@ -307,7 +328,9 @@ export const CLI_MODEL_MAP: Record<AgentName, string> = {
   leader:          "haiku",
   "question-prep": "haiku",
   classifier:      "haiku",
-  mapper:          "haiku",    // Mapping = task semplice, haiku sufficiente (ADR-2)
+  mapper:              "haiku",    // Mapping = task semplice, haiku sufficiente (ADR-2)
+  "integration-setup": "haiku",   // Fallback CLI, non usato (SDK mode)
+  "sync-supervisor":   "haiku",   // Fallback CLI, non usato (SDK mode)
   "corpus-agent":  "sonnet",
   analyzer:        "sonnet",
   investigator:    "sonnet",
@@ -342,6 +365,7 @@ export function getTierInfo(): TierInfo {
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
     "analyzer", "investigator", "advisor", "task-executor", "mapper",
+    "integration-setup", "sync-supervisor",
   ];
 
   for (const agent of allAgents) {
@@ -384,6 +408,7 @@ export function getTierInfoForSession(
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
     "analyzer", "investigator", "advisor", "task-executor", "mapper",
+    "integration-setup", "sync-supervisor",
   ];
 
   for (const agent of allAgents) {
@@ -423,15 +448,17 @@ export function getTierInfoForSession(
  */
 export function estimateTierCost(): { perQuery: number; label: string } {
   const TYPICAL_TOKENS: Record<AgentName, { input: number; output: number }> = {
-    leader:         { input: 800,  output: 200 },
-    "question-prep": { input: 1000, output: 400 },
-    classifier:     { input: 5000, output: 1200 },
-    "corpus-agent": { input: 8000, output: 2000 },
-    analyzer:       { input: 10000, output: 4000 },
-    investigator:   { input: 6000, output: 3000 },
-    advisor:          { input: 8000, output: 2000 },
-    "task-executor":  { input: 2000, output: 1500 },
-    mapper:           { input: 1500, output: 800 },
+    leader:              { input: 800,  output: 200 },
+    "question-prep":     { input: 1000, output: 400 },
+    classifier:          { input: 5000, output: 1200 },
+    "corpus-agent":      { input: 8000, output: 2000 },
+    analyzer:            { input: 10000, output: 4000 },
+    investigator:        { input: 6000, output: 3000 },
+    advisor:             { input: 8000, output: 2000 },
+    "task-executor":     { input: 2000, output: 1500 },
+    mapper:              { input: 1500, output: 800 },
+    "integration-setup": { input: 1500, output: 800 },
+    "sync-supervisor":   { input: 800,  output: 400 },
   };
 
   let total = 0;
@@ -457,15 +484,17 @@ export function estimateTierCostForSession(
   disabled: Set<AgentName>
 ): { perQuery: number; label: string } {
   const TYPICAL_TOKENS: Record<AgentName, { input: number; output: number }> = {
-    leader:          { input: 800,   output: 200 },
-    "question-prep": { input: 1000,  output: 400 },
-    classifier:      { input: 5000,  output: 1200 },
-    "corpus-agent":  { input: 8000,  output: 2000 },
-    analyzer:        { input: 10000, output: 4000 },
-    investigator:    { input: 6000,  output: 3000 },
-    advisor:          { input: 8000,  output: 2000 },
-    "task-executor":  { input: 2000,  output: 1500 },
-    mapper:           { input: 1500,  output: 800 },
+    leader:              { input: 800,   output: 200 },
+    "question-prep":     { input: 1000,  output: 400 },
+    classifier:          { input: 5000,  output: 1200 },
+    "corpus-agent":      { input: 8000,  output: 2000 },
+    analyzer:            { input: 10000, output: 4000 },
+    investigator:        { input: 6000,  output: 3000 },
+    advisor:             { input: 8000,  output: 2000 },
+    "task-executor":     { input: 2000,  output: 1500 },
+    mapper:              { input: 1500,  output: 800 },
+    "integration-setup": { input: 1500,  output: 800 },
+    "sync-supervisor":   { input: 800,   output: 400 },
   };
 
   let total = 0;

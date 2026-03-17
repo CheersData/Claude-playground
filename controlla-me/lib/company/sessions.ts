@@ -17,10 +17,15 @@
  * The tracker also provides `discoverOrphanSessions()` which scans OS processes
  * for `claude` instances not in the registry (e.g. manually spawned).
  *
+ * ADR-005: Extended with parentPid, currentTask, department, sessionId fields.
+ *          In-memory ring buffer for terminal output (500 lines per session).
+ *          outputBus EventEmitter for SSE fan-out.
+ *
  * ADR: Process-level tracking (not per-request). Designed for Windows (wmic/tasklist).
  */
 
 import { execSync } from "child_process";
+import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as path from "path";
 import type { ChildProcess } from "child_process";
@@ -63,6 +68,34 @@ export interface TrackedSession {
   startedAt: Date;
   /** Current status */
   status: "active" | "closing";
+
+  // ─── ADR-005 new fields ───
+
+  /** Human-readable description of what this terminal is currently doing.
+   *  Set by the spawner at launch time and updated via broadcastAgentEvent(). */
+  currentTask?: string;
+
+  /** Department this terminal belongs to (e.g. "cme", "ufficio-legale").
+   *  Redundant with target for some session types, explicit for daemon/task-runner. */
+  department?: string;
+
+  /** PID of the parent terminal that spawned this process.
+   *  Used to build the terminal -> sub-agent tree.
+   *  Absent for top-level terminals (e.g. the interactive Claude Code session). */
+  parentPid?: number;
+
+  /** sessionId from Layer 1 (the interactive sessions Map).
+   *  Bridges Layer 1 and Layer 2 for sessions started via /api/console/company. */
+  sessionId?: string;
+}
+
+/** Serializable agent DTO for inclusion in TrackedSessionDTO */
+export interface AgentDTO {
+  id: string;
+  department: string;
+  task?: string;
+  status: "running" | "done" | "error";
+  timestamp: number;
 }
 
 /**
@@ -76,6 +109,126 @@ export interface TrackedSessionDTO {
   taskId?: string;
   startedAt: string;
   status: "active" | "closing";
+  currentTask?: string;
+  department?: string;
+  parentPid?: number;
+  sessionId?: string;
+  /** Agents whose parentPid matches this session's pid — synthesized at response time */
+  agents: AgentDTO[];
+  agentCount: number;
+}
+
+// ─── Output Ring Buffer (ADR-005) ───
+
+const OUTPUT_RING_SIZE = 500; // lines
+
+interface OutputRing {
+  lines: string[];
+  head: number;   // index of next write slot (circular, 0-based)
+  total: number;  // total lines ever written (monotonic cursor for subscribers)
+}
+
+// Singleton ring buffer map, keyed by PID
+const globalForOutput = globalThis as unknown as {
+  __outputRings?: Map<number, OutputRing>;
+  __outputBus?: EventEmitter;
+};
+
+if (!globalForOutput.__outputRings) {
+  globalForOutput.__outputRings = new Map<number, OutputRing>();
+}
+if (!globalForOutput.__outputBus) {
+  globalForOutput.__outputBus = new EventEmitter();
+  globalForOutput.__outputBus.setMaxListeners(50);
+}
+
+const outputRings = globalForOutput.__outputRings;
+const outputBus = globalForOutput.__outputBus;
+
+/**
+ * Append a line to the ring buffer for a PID.
+ * Automatically fans out to SSE subscribers via outputBus.
+ */
+export function appendOutputLine(pid: number, line: string): void {
+  let ring = outputRings.get(pid);
+  if (!ring) {
+    ring = { lines: new Array(OUTPUT_RING_SIZE), head: 0, total: 0 };
+    outputRings.set(pid, ring);
+  }
+
+  // Write into circular slot
+  ring.lines[ring.head] = line;
+  ring.head = (ring.head + 1) % OUTPUT_RING_SIZE;
+  ring.total++;
+
+  // Fan out to SSE subscribers (no-op if no listeners)
+  const index = ring.total - 1;
+  const stream = line.startsWith("[STDERR]") ? "stderr" : "stdout";
+  outputBus.emit(`output:${pid}`, { line, index, stream });
+}
+
+/**
+ * Get buffered output lines for a PID.
+ * Returns ordered lines (oldest first) and the next cursor index.
+ * @param sinceIndex  If provided, only lines with index >= sinceIndex are returned.
+ */
+export function getOutputLines(
+  pid: number,
+  sinceIndex?: number
+): { lines: string[]; nextIndex: number } {
+  const ring = outputRings.get(pid);
+  if (!ring || ring.total === 0) {
+    return { lines: [], nextIndex: 0 };
+  }
+
+  // Reconstruct ordered lines from circular buffer
+  const stored = Math.min(ring.total, OUTPUT_RING_SIZE);
+  const orderedLines: string[] = [];
+  const oldestSlot = ring.total > OUTPUT_RING_SIZE
+    ? ring.head  // head is the oldest when buffer is full
+    : 0;         // buffer not yet wrapped — oldest is slot 0
+
+  for (let i = 0; i < stored; i++) {
+    const slot = (oldestSlot + i) % OUTPUT_RING_SIZE;
+    const line = ring.lines[slot];
+    if (line !== undefined) {
+      orderedLines.push(line);
+    }
+  }
+
+  // Filter by sinceIndex if requested
+  const firstIndex = ring.total - stored;
+  if (sinceIndex !== undefined && sinceIndex > firstIndex) {
+    const offset = sinceIndex - firstIndex;
+    return {
+      lines: orderedLines.slice(offset),
+      nextIndex: ring.total,
+    };
+  }
+
+  return { lines: orderedLines, nextIndex: ring.total };
+}
+
+/**
+ * Clear the ring buffer for a PID (called on session cleanup).
+ */
+export function clearOutputRing(pid: number): void {
+  outputRings.delete(pid);
+  // Remove all listeners for this pid's output channel
+  outputBus.removeAllListeners(`output:${pid}`);
+}
+
+/**
+ * Subscribe to new output lines for a PID.
+ * Returns an unsubscribe function.
+ */
+export function onOutputLine(
+  pid: number,
+  cb: (ev: { line: string; index: number; stream: string }) => void
+): () => void {
+  const event = `output:${pid}`;
+  outputBus.on(event, cb);
+  return () => outputBus.off(event, cb);
 }
 
 // ─── In-Memory Registry (for console sessions in the Next.js process) ───
@@ -155,6 +308,108 @@ const SESSIONS_FILE = path.resolve(
   "company",
   ".active-sessions.json"
 );
+
+/**
+ * Heartbeat file for interactive Claude Code sessions.
+ * Written by the /api/company/sessions/heartbeat endpoint,
+ * read by getUnifiedSessions() to detect active interactive sessions.
+ * Located in .claude/ which is gitignored.
+ */
+const HEARTBEAT_FILE = path.resolve(
+  process.cwd(),
+  ".claude",
+  "heartbeat.json"
+);
+
+/** Max age (ms) for a heartbeat to be considered active — 30 seconds */
+const HEARTBEAT_MAX_AGE_MS = 30_000;
+
+interface HeartbeatData {
+  active: boolean;
+  pid: number;
+  startedAt: string; // ISO
+  lastHeartbeat: string; // ISO
+  type: "interactive";
+  target: string;
+}
+
+/**
+ * Write a heartbeat for the current interactive Claude Code session.
+ * Called periodically by the client-side /ops page via API.
+ */
+export function writeHeartbeat(pid: number, target?: string): void {
+  try {
+    const dir = path.dirname(HEARTBEAT_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    let existing: HeartbeatData | null = null;
+    try {
+      if (fs.existsSync(HEARTBEAT_FILE)) {
+        existing = JSON.parse(fs.readFileSync(HEARTBEAT_FILE, "utf-8"));
+      }
+    } catch { /* ignore parse errors */ }
+
+    const data: HeartbeatData = {
+      active: true,
+      pid,
+      startedAt: existing?.startedAt ?? new Date().toISOString(),
+      lastHeartbeat: new Date().toISOString(),
+      type: "interactive",
+      target: target ?? "interactive",
+    };
+
+    fs.writeFileSync(HEARTBEAT_FILE, JSON.stringify(data, null, 2), "utf-8");
+  } catch {
+    // Best effort — don't crash if write fails
+  }
+}
+
+/**
+ * Clear the heartbeat (mark session as inactive).
+ */
+export function clearHeartbeat(): void {
+  try {
+    if (fs.existsSync(HEARTBEAT_FILE)) {
+      fs.unlinkSync(HEARTBEAT_FILE);
+    }
+  } catch {
+    // Best effort
+  }
+}
+
+/**
+ * Read the heartbeat file and return a TrackedSession if it's still fresh.
+ * Returns null if no heartbeat, stale, or inactive.
+ */
+export function readHeartbeat(): TrackedSession | null {
+  try {
+    if (!fs.existsSync(HEARTBEAT_FILE)) return null;
+    const raw = fs.readFileSync(HEARTBEAT_FILE, "utf-8");
+    const data: HeartbeatData = JSON.parse(raw);
+
+    if (!data.active) return null;
+
+    // Check freshness — heartbeat must be younger than HEARTBEAT_MAX_AGE_MS
+    const age = Date.now() - new Date(data.lastHeartbeat).getTime();
+    if (age > HEARTBEAT_MAX_AGE_MS) {
+      // Stale heartbeat — clean up
+      try { fs.unlinkSync(HEARTBEAT_FILE); } catch { /* ignore */ }
+      return null;
+    }
+
+    return {
+      pid: data.pid,
+      type: "interactive",
+      target: data.target,
+      startedAt: new Date(data.startedAt),
+      status: "active",
+    };
+  } catch {
+    return null;
+  }
+}
 
 interface FileSessionEntry {
   pid: number;
@@ -365,6 +620,12 @@ export function getUnifiedSessions(options?: {
     }
   }
 
+  // 6. Read heartbeat for interactive Claude Code session
+  const heartbeatSession = readHeartbeat();
+  if (heartbeatSession && !allByPid.has(heartbeatSession.pid)) {
+    allByPid.set(heartbeatSession.pid, heartbeatSession);
+  }
+
   return {
     sessions: Array.from(allByPid.values()),
     orphanCount,
@@ -456,11 +717,6 @@ export function discoverOrphanSessions(): TrackedSession[] {
 
     // Infer type from command line
     const type = inferSessionType(proc.commandLine);
-
-    // Skip interactive Claude Code sessions entirely — they are the boss's own
-    // terminal, not automated processes. Showing them as "unknown" on the
-    // dashboard is confusing and not actionable.
-    if (type === "interactive") continue;
 
     const target = inferTarget(proc.commandLine);
 
@@ -592,6 +848,7 @@ function isProcessAlive(pid: number): boolean {
 
 /**
  * Convert TrackedSession to a serializable DTO for API responses.
+ * Agents array defaults to empty — use toDTOWithAgents() to include agents.
  */
 export function toDTO(session: TrackedSession): TrackedSessionDTO {
   return {
@@ -601,5 +858,42 @@ export function toDTO(session: TrackedSession): TrackedSessionDTO {
     taskId: session.taskId,
     startedAt: session.startedAt.toISOString(),
     status: session.status,
+    currentTask: session.currentTask,
+    department: session.department,
+    parentPid: session.parentPid,
+    sessionId: session.sessionId,
+    agents: [],
+    agentCount: 0,
+  };
+}
+
+/**
+ * Convert TrackedSession to DTO with synthesized agents list.
+ * Agents are filtered from the provided events by parentPid or sessionId.
+ */
+export function toDTOWithAgents(
+  session: TrackedSession,
+  allAgentEvents: AgentDTO[]
+): TrackedSessionDTO {
+  const agents = allAgentEvents.filter(
+    (ev) =>
+      (ev as AgentDTO & { parentPid?: number; sessionId?: string }).parentPid === session.pid ||
+      (session.sessionId &&
+        (ev as AgentDTO & { parentPid?: number; sessionId?: string }).sessionId === session.sessionId)
+  );
+
+  return {
+    pid: session.pid,
+    type: session.type,
+    target: session.target,
+    taskId: session.taskId,
+    startedAt: session.startedAt.toISOString(),
+    status: session.status,
+    currentTask: session.currentTask,
+    department: session.department,
+    parentPid: session.parentPid,
+    sessionId: session.sessionId,
+    agents,
+    agentCount: agents.length,
   };
 }

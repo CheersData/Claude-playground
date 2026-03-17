@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -23,6 +23,8 @@ import {
   Building2,
   Plug,
 } from "lucide-react";
+import { SyncDashboardSkeleton } from "@/components/integrations/Skeletons";
+import { NoConnectors } from "@/components/integrations/EmptyStates";
 
 // ─── Types ───
 
@@ -616,9 +618,10 @@ export default function SyncDashboard() {
   const [integrations, setIntegrations] = useState<IntegrationRow[]>([]);
   const [errors, setErrors] = useState<SyncErrorEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isBackgroundPoll = false) => {
+    if (!isBackgroundPoll) setLoading(true);
     try {
       const res = await fetch("/api/integrations/dashboard");
       if (res.ok) {
@@ -631,17 +634,39 @@ export default function SyncDashboard() {
         setErrors(DEMO_ERRORS);
       }
     } catch {
-      // Fallback to demo data
-      setIntegrations(DEMO_INTEGRATIONS);
-      setErrors(DEMO_ERRORS);
+      // Fallback to demo data on first load only
+      if (!isBackgroundPoll) {
+        setIntegrations(DEMO_INTEGRATIONS);
+        setErrors(DEMO_ERRORS);
+      }
     } finally {
-      setLoading(false);
+      if (!isBackgroundPoll) setLoading(false);
     }
   }, []);
 
+  // Initial fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time polling: 3s when any integration is syncing, 30s otherwise
+  const hasSyncing = integrations.some((i) => i.status === "syncing");
+
+  useEffect(() => {
+    const interval = hasSyncing ? 3000 : 30000;
+
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+    }
+    pollRef.current = setInterval(() => fetchData(true), interval);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [hasSyncing, fetchData]);
 
   const dashboardAction = useCallback(
     async (connectorId: string, action: "sync" | "pause" | "resume" | "disconnect") => {
@@ -738,12 +763,30 @@ export default function SyncDashboard() {
       {/* Content */}
       <main className="px-6 md:px-10 pb-16 max-w-[1400px] mx-auto">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--fg-muted)" }} />
-          </div>
+          <SyncDashboardSkeleton />
+        ) : integrations.length === 0 ? (
+          <NoConnectors />
         ) : (
           <>
             <StatsBar integrations={integrations} />
+
+            {/* Syncing indicator */}
+            {hasSyncing && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-lg text-sm"
+                style={{
+                  background: "rgba(137, 221, 255, 0.06)",
+                  border: "1px solid rgba(137, 221, 255, 0.15)",
+                }}
+              >
+                <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: "var(--info-bright)" }} />
+                <span style={{ color: "var(--info-bright)" }}>
+                  Sincronizzazione in corso — aggiornamento automatico ogni 3 secondi
+                </span>
+              </motion.div>
+            )}
 
             {/* Integration list */}
             <div>
@@ -757,18 +800,6 @@ export default function SyncDashboard() {
                 />
               ))}
             </div>
-
-            {integrations.length === 0 && (
-              <div className="text-center py-20">
-                <Plug className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--fg-muted)" }} />
-                <p className="text-lg font-medium" style={{ color: "var(--fg-secondary)" }}>
-                  Nessuna integrazione attiva
-                </p>
-                <p className="text-sm mt-1" style={{ color: "var(--fg-muted)" }}>
-                  Configura il tuo primo connettore per iniziare
-                </p>
-              </div>
-            )}
 
             {/* Error log */}
             <ErrorLog errors={errors} />

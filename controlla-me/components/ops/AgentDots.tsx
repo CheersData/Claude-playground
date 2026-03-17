@@ -20,6 +20,7 @@ export const DEPT_COLORS: Record<string, string> = {
   acceleration: "#2DD4BF",
   finance: "#A3E635",
   cme: "#FF6B35",
+  interactive: "#38BDF8",
 };
 
 const DEPT_LABELS: Record<string, string> = {
@@ -37,6 +38,7 @@ const DEPT_LABELS: Record<string, string> = {
   acceleration: "Acceleration",
   finance: "Finance",
   cme: "CME",
+  interactive: "Boss Terminal",
 };
 
 const DEPT_KEYS = Object.keys(DEPT_COLORS);

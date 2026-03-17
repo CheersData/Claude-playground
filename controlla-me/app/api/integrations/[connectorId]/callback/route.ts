@@ -30,6 +30,7 @@ import { getVaultOrNull } from "@/lib/credential-vault";
 import { getCredentialVault } from "@/lib/staff/credential-vault";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { timingSafeEqual } from "crypto";
 
 // ─── OAuth provider configs ───
 
@@ -212,7 +213,14 @@ export async function GET(
     });
   }
 
-  if (state !== storedState) {
+  // INT-SEC-001: Timing-safe comparison to prevent timing oracle attacks on state parameter
+  const stateBuffer = Buffer.from(state, "utf-8");
+  const storedBuffer = Buffer.from(storedState, "utf-8");
+  const stateValid =
+    stateBuffer.length === storedBuffer.length &&
+    timingSafeEqual(stateBuffer, storedBuffer);
+
+  if (!stateValid) {
     console.error(
       `[OAuth:${connectorId}] State mismatch — possible CSRF attack. ` +
         `expected="${storedState.slice(0, 8)}...", got="${state.slice(0, 8)}..."`
@@ -307,9 +315,10 @@ export async function GET(
       });
     }
 
+    // INT-SEC-002: Never log token length or any derivative of token content.
+    // Token length can narrow brute-force search space.
     console.log(
       `[OAuth:${connectorId}] Token exchange successful. ` +
-        `access_token: ${tokenData.access_token.length} chars, ` +
         `refresh_token: ${tokenData.refresh_token ? "present" : "absent"}, ` +
         `expires_in: ${tokenData.expires_in ?? "unspecified"}s`
     );

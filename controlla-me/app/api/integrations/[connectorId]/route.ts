@@ -47,12 +47,18 @@ interface ConnectorMeta {
   apiKeyLabel?: string;
   /** Custom label for the optional secret key input field */
   secretKeyLabel?: string;
+  /** Placeholder text for the API key input */
+  apiKeyPlaceholder?: string;
+  /** Placeholder text for the secret key input */
+  secretKeyPlaceholder?: string;
   /** Help text shown below the credential form */
   helpText?: string;
   /** Available entities for sync (wizard step 1) */
   entities: ConnectorEntity[];
   /** Target field options for the mapping step (wizard step 3) */
   targetFields: string[];
+  /** Env var names to check for OAuth availability (client_id + optional client_secret) */
+  oauthEnvVars?: string[];
 }
 
 const CONNECTOR_META: Record<string, ConnectorMeta> = {
@@ -70,7 +76,10 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     ],
     apiKeyLabel: "API Key (Connected App Client ID)",
     secretKeyLabel: "Client Secret (opzionale)",
+    apiKeyPlaceholder: "consumer-key...",
+    secretKeyPlaceholder: "consumer-secret...",
     helpText: "Per autenticazione manuale: crea una Connected App in Salesforce e usa Client ID + Secret. Per OAuth: autorizza direttamente l'accesso al tuo account Salesforce.",
+    oauthEnvVars: ["SALESFORCE_CLIENT_ID"],
     entities: [
       {
         id: "contacts",
@@ -129,7 +138,10 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     ],
     apiKeyLabel: "API Key (Private App Token)",
     secretKeyLabel: undefined,
+    apiKeyPlaceholder: "pat-na1-...",
+    secretKeyPlaceholder: undefined,
     helpText: "Per autenticazione manuale via API key: vai a Impostazioni > Integrazioni > Private apps e copia il token. Per OAuth: autorizza direttamente l'accesso al tuo account HubSpot.",
+    oauthEnvVars: ["HUBSPOT_CLIENT_ID"],
     entities: [
       {
         id: "contacts",
@@ -165,6 +177,8 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     oauthPermissions: [],
     apiKeyLabel: "API Key",
     secretKeyLabel: "Webhook Secret (opzionale)",
+    apiKeyPlaceholder: "sk_live_...",
+    secretKeyPlaceholder: "whsec_...",
     helpText: "Trova le tue chiavi API in Stripe Dashboard > Developers > API Keys",
     entities: [
       {
@@ -203,7 +217,10 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
       { label: "Lettura metadati" },
     ],
     apiKeyLabel: "Service Account JSON Key",
+    apiKeyPlaceholder: "AIza... o JSON Service Account",
+    secretKeyPlaceholder: undefined,
     helpText: "Per autenticazione manuale: scarica il JSON della Service Account da Google Cloud Console. Per OAuth: autorizza direttamente l'accesso al tuo Google Account.",
+    oauthEnvVars: ["GOOGLE_CLIENT_ID"],
     entities: [
       {
         id: "files",
@@ -293,6 +310,57 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
       "scadenza_recepimento",
     ],
   },
+  "fatture-in-cloud": {
+    name: "Fatture in Cloud",
+    category: "Fatturazione IT",
+    description: "Fatture attive e passive, clienti, fornitori e corrispettivi.",
+    icon: "FileText",
+    authMode: "oauth",
+    supportsApiKey: true,
+    oauthPermissions: [
+      { label: "Lettura clienti" },
+      { label: "Lettura fornitori" },
+      { label: "Lettura fatture emesse" },
+      { label: "Lettura fatture ricevute" },
+    ],
+    apiKeyLabel: "API Key (Bearer Token)",
+    secretKeyLabel: undefined,
+    apiKeyPlaceholder: "Bearer token da Fatture in Cloud...",
+    secretKeyPlaceholder: undefined,
+    helpText: "Per autenticazione manuale: copia il bearer token dalle impostazioni API del tuo account. Per OAuth: autorizza direttamente l'accesso al tuo account Fatture in Cloud.",
+    oauthEnvVars: ["FATTURE_CLIENT_ID"],
+    entities: [
+      {
+        id: "issued_invoices",
+        name: "Fatture Emesse",
+        estimatedRecords: 4500,
+        fields: ["Numero", "Data", "Cliente", "Importo", "Stato", "Tipo documento"],
+      },
+      {
+        id: "received_invoices",
+        name: "Fatture Ricevute",
+        estimatedRecords: 2800,
+        fields: ["Numero", "Data", "Fornitore", "Importo", "Stato", "Tipo documento"],
+      },
+      {
+        id: "clients",
+        name: "Clienti",
+        estimatedRecords: 1200,
+        fields: ["Ragione sociale", "P.IVA", "Email", "Indirizzo", "Codice SDI"],
+      },
+      {
+        id: "suppliers",
+        name: "Fornitori",
+        estimatedRecords: 650,
+        fields: ["Ragione sociale", "P.IVA", "Email", "Indirizzo", "Codice SDI"],
+      },
+    ],
+    targetFields: [
+      "numero_fattura", "data_fattura", "ragione_sociale", "partita_iva",
+      "importo", "stato", "tipo_documento", "email", "indirizzo",
+      "codice_sdi", "codice_fiscale",
+    ],
+  },
 };
 
 // ─── GET: Return connector details ───
@@ -320,6 +388,11 @@ export async function GET(
     );
   }
 
+  // Check if OAuth env vars are actually configured for this connector
+  const oauthAvailable = meta.oauthEnvVars
+    ? meta.oauthEnvVars.every((envVar) => !!process.env[envVar])
+    : meta.authMode === "oauth"; // api_key-only connectors: false by default
+
   // Base response with static metadata (wizard config) + dynamic defaults
   const response: Record<string, unknown> = {
     id: connectorId,
@@ -330,9 +403,12 @@ export async function GET(
     // Wizard configuration (used by ConnectorDetailClient setup wizard)
     authMode: meta.authMode,
     supportsApiKey: meta.supportsApiKey ?? false,
+    oauthAvailable,
     oauthPermissions: meta.oauthPermissions,
     apiKeyLabel: meta.apiKeyLabel ?? null,
     secretKeyLabel: meta.secretKeyLabel ?? null,
+    apiKeyPlaceholder: meta.apiKeyPlaceholder ?? null,
+    secretKeyPlaceholder: meta.secretKeyPlaceholder ?? null,
     helpText: meta.helpText ?? null,
     targetFields: meta.targetFields,
     // Legacy field kept for backward compatibility with sync tab
@@ -384,66 +460,79 @@ export async function GET(
 
       const connectionId = connection.id;
 
-      // Fetch sync history (last 30 entries)
+      // Fetch sync logs from last 7 days for this connection
+      const sevenDaysAgo = new Date(
+        Date.now() - 7 * 24 * 60 * 60 * 1000
+      ).toISOString();
+
       const { data: syncLogs } = await supabase
         .from("integration_sync_log")
         .select(
           "id, status, started_at, completed_at, items_processed, items_failed, error_details"
         )
         .eq("connection_id", connectionId)
+        .gte("started_at", sevenDaysAgo)
         .order("started_at", { ascending: false })
-        .limit(30);
+        .limit(200);
+
+      // Build 7-day syncHistory with zero-filled gaps
+      // Always returns exactly 7 entries (today + 6 previous days), oldest first
+      const historyByDate = new Map<
+        string,
+        { success: number; failed: number }
+      >();
+
+      // Pre-fill 7 days with zeros
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        const dateStr = d.toISOString().slice(0, 10);
+        historyByDate.set(dateStr, { success: 0, failed: 0 });
+      }
+
+      const errors: {
+        id: string;
+        timestamp: string;
+        message: string;
+        affectedRecords: number;
+        details?: string;
+      }[] = [];
 
       if (syncLogs && syncLogs.length > 0) {
-        // Build syncHistory (aggregate by date)
-        const historyByDate = new Map<
-          string,
-          { success: number; failed: number }
-        >();
-        const errors: {
-          id: string;
-          timestamp: string;
-          message: string;
-          affectedRecords: number;
-          details?: string;
-        }[] = [];
-
         for (const log of syncLogs) {
           const date = (log.started_at as string).split("T")[0];
-          const entry = historyByDate.get(date) ?? {
-            success: 0,
-            failed: 0,
-          };
-          entry.success += (log.items_processed as number) ?? 0;
-          entry.failed += (log.items_failed as number) ?? 0;
-          historyByDate.set(date, entry);
+          const entry = historyByDate.get(date);
+          if (entry) {
+            entry.success += (log.items_processed as number) ?? 0;
+            entry.failed += (log.items_failed as number) ?? 0;
+          }
 
           // Collect errors
-          const errDetails = log.error_details as Record<string, unknown> | null;
+          const errDetails = log.error_details as Record<
+            string,
+            unknown
+          > | null;
           if (log.status === "error" && errDetails) {
             errors.push({
               id: log.id as string,
               timestamp: log.started_at as string,
-              message: (errDetails.message as string) || "Errore sconosciuto",
+              message:
+                (errDetails.message as string) || "Errore sconosciuto",
               affectedRecords: (log.items_failed as number) ?? 0,
               details: errDetails.details as string | undefined,
             });
           }
         }
-
-        response.syncHistory = Array.from(historyByDate.entries())
-          .map(([date, stats]) => ({
-            date,
-            success: stats.success,
-            failed: stats.failed,
-          }))
-          .sort(
-            (a, b) =>
-              new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-
-        response.errors = errors;
       }
+
+      response.syncHistory = Array.from(historyByDate.entries()).map(
+        ([date, stats]) => ({
+          date,
+          success: stats.success,
+          failed: stats.failed,
+        })
+      );
+
+      response.errors = errors;
 
       // Fetch field mappings from entity_mapping_configs (migration 037)
       const { data: mappingConfigs } = await supabase
@@ -471,6 +560,27 @@ export async function GET(
     }
   } catch {
     // If DB query fails, return static data with defaults (already set above)
+  }
+
+  // Entity breakdown from crm_records (for "Dati" tab pills)
+  try {
+    const admin = createAdminClient();
+    const { data: breakdownData } = await admin
+      .from("crm_records")
+      .select("object_type")
+      .eq("user_id", userId)
+      .eq("connector_source", connectorId);
+
+    if (breakdownData && breakdownData.length > 0) {
+      const breakdown: Record<string, number> = {};
+      for (const row of breakdownData) {
+        const t = row.object_type as string;
+        breakdown[t] = (breakdown[t] || 0) + 1;
+      }
+      response.entityBreakdown = breakdown;
+    }
+  } catch {
+    // Non-critical — breakdown is optional
   }
 
   return NextResponse.json(response);

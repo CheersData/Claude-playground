@@ -47,8 +47,8 @@ export const HUBSPOT_SOURCES: DataSource[] = [
     vertical: "business",
     connector: "hubspot",
     config: {
-      // Sync types: contact, company, deal, ticket
-      syncTypes: ["contact", "company", "deal", "ticket"],
+      // Sync types: company (first for association enrichment), contact, deal, ticket, engagement
+      syncTypes: ["company", "contact", "deal", "ticket", "engagement"],
       // Auth modes:
       //   1. API Key (demo): set HUBSPOT_API_KEY env var (private app access token)
       //   2. OAuth2 PKCE (production): configure auth strategy below
@@ -155,6 +155,33 @@ export const SALESFORCE_SOURCES: DataSource[] = [
   },
 ];
 
+// ─── Fatture in Cloud Sources ───
+
+export const FATTURE_SOURCES: DataSource[] = [
+  {
+    id: "fatture_in_cloud_business",
+    name: "Fatture in Cloud",
+    shortName: "Fatture",
+    dataType: "crm-records",
+    vertical: "business",
+    connector: "fatture-in-cloud",
+    config: {
+      // companyId is set per-user via integration_connections.config
+      // Sync types: issued invoices, received invoices, clients
+      syncTypes: ["issued_invoice", "received_invoice", "client"],
+    },
+    lifecycle: "planned",
+    estimatedItems: 1000,
+    schedule: {
+      deltaInterval: "daily",
+    },
+    // Auth: OAuth2 per-user via credential vault (sync route handles token injection)
+    rateLimit: {
+      requestsPerSecond: 5, // Fatture in Cloud: 300 req/min, conservative limit
+    },
+  },
+];
+
 // ─── Aggregations ───
 
 export const ALL_INTEGRATION_SOURCES: DataSource[] = [
@@ -162,6 +189,7 @@ export const ALL_INTEGRATION_SOURCES: DataSource[] = [
   ...HUBSPOT_SOURCES,
   ...GOOGLE_DRIVE_SOURCES,
   ...SALESFORCE_SOURCES,
+  ...FATTURE_SOURCES,
 ];
 
 export function getIntegrationSourceById(id: string): DataSource | undefined {

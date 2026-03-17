@@ -11,7 +11,14 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
-import { setSession, deleteSession, registerSession, unregisterSession } from "@/lib/company/sessions";
+import {
+  setSession,
+  deleteSession,
+  registerSession,
+  unregisterSession,
+  clearOutputRing,
+  appendOutputLine,
+} from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
@@ -140,14 +147,6 @@ export async function POST(req: Request) {
 
         send("debug", { type: "spawn", msg: `claude -p --model ${targetConfig.model} (interactive)`, ts: Date.now() });
 
-        // Broadcast agent activity to Ops dashboard
-        broadcastAgentEvent({
-          id: `company-${target}`,
-          department: target === "cme" ? "cme" : target,
-          task: `${targetConfig.label} chat`,
-          status: "running",
-        });
-
         // Remove env vars that would interfere:
         // - CLAUDECODE + CLAUDE_CODE_*: avoid "nested session" error and DLL init crashes
         // - ANTHROPIC_API_KEY: force subscription mode (not API credits)
@@ -165,7 +164,9 @@ export async function POST(req: Request) {
           stdio: ["pipe", "pipe", "pipe"],
         });
 
-        send("debug", { type: "pid", msg: `PID: ${child.pid}`, ts: Date.now() });
+        const terminalPid = child.pid;
+
+        send("debug", { type: "pid", msg: `PID: ${terminalPid}`, ts: Date.now() });
 
         // Emit session ID so frontend can send follow-up messages
         send("session", { sessionId });
@@ -173,16 +174,29 @@ export async function POST(req: Request) {
         // Store session for follow-up messages
         setSession(sessionId, { child, target });
 
-        // Register in the tracked session registry (Layer 2)
-        if (child.pid) {
+        // Register in the tracked session registry (Layer 2) — ADR-005: include new fields
+        if (terminalPid) {
           registerSession({
-            pid: child.pid,
+            pid: terminalPid,
             type: "console",
             target,
             startedAt: new Date(),
             status: "active",
+            currentTask: `${targetConfig.label} chat`,
+            department: target,
+            sessionId,
           });
         }
+
+        // Broadcast agent activity to Ops dashboard — ADR-005: include parentPid + sessionId
+        broadcastAgentEvent({
+          id: `company-${target}`,
+          department: target === "cme" ? "cme" : target,
+          task: `${targetConfig.label} chat`,
+          status: "running",
+          parentPid: terminalPid,
+          sessionId,
+        });
 
         // Send first message in stream-json format (DON'T close stdin!)
         const firstMsg = JSON.stringify({
@@ -206,6 +220,12 @@ export async function POST(req: Request) {
 
           for (const line of lines) {
             if (!line.trim()) continue;
+
+            // ADR-005: Tee raw line into ring buffer for output SSE endpoint
+            if (terminalPid) {
+              appendOutputLine(terminalPid, `[STDOUT] ${line}`);
+            }
+
             try {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const event: any = JSON.parse(line);
@@ -285,19 +305,29 @@ export async function POST(req: Request) {
           const text = chunk.toString().trim();
           if (text) {
             stderrOutput += text + "\n";
+            // ADR-005: Tee stderr into ring buffer
+            if (terminalPid) {
+              appendOutputLine(terminalPid, `[STDERR] ${text}`);
+            }
             send("debug", { type: "stderr", msg: text.slice(0, 300), ts: Date.now() });
           }
         });
 
         child.on("close", (code) => {
           deleteSession(sessionId);
-          if (child.pid) unregisterSession(child.pid);
-          // Broadcast completion to Ops dashboard
+          if (terminalPid) {
+            unregisterSession(terminalPid);
+            // ADR-005: Clear ring buffer on session close
+            clearOutputRing(terminalPid);
+          }
+          // Broadcast completion to Ops dashboard — ADR-005: include parentPid + sessionId
           broadcastAgentEvent({
             id: `company-${target}`,
             department: target === "cme" ? "cme" : target,
             task: `${targetConfig.label} chat`,
             status: code === 0 ? "done" : "error",
+            parentPid: terminalPid,
+            sessionId,
           });
           send("debug", { type: "exit", msg: `Codice uscita: ${code}`, ts: Date.now() });
           if (code !== 0) {
@@ -315,12 +345,18 @@ export async function POST(req: Request) {
 
         child.on("error", (err) => {
           deleteSession(sessionId);
-          if (child.pid) unregisterSession(child.pid);
+          if (terminalPid) {
+            unregisterSession(terminalPid);
+            // ADR-005: Clear ring buffer on error
+            clearOutputRing(terminalPid);
+          }
           broadcastAgentEvent({
             id: `company-${target}`,
             department: target === "cme" ? "cme" : target,
             task: `${targetConfig.label} errore`,
             status: "error",
+            parentPid: terminalPid,
+            sessionId,
           });
           send("debug", { type: "spawn-error", msg: err.message, ts: Date.now() });
           send("error", { error: `Errore spawn: ${err.message}. Claude Code è installato?` });

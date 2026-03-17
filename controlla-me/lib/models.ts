@@ -411,7 +411,9 @@ export type AgentName =
   | "advisor"
   | "corpus-agent"
   | "task-executor"
-  | "mapper";
+  | "mapper"
+  | "integration-setup"
+  | "sync-supervisor";
 
 export interface AgentModelConfig {
   /** Primary model for this agent */
@@ -498,6 +500,21 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     maxTokens: 2048,
     temperature: 0,
     notes: "Mapping campi: task di classificazione semplice. Tier Intern (Groq/Cerebras, ~gratis). ADR: adr-ai-mapping-hybrid.md",
+  },
+  // ── Integration Agents — Setup conversazionale + Sync monitoring ──
+  "integration-setup": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 2048,
+    temperature: 0.3,
+    notes: "Setup wizard conversazionale. Lightweight, economico. Flash per qualità, Groq fallback.",
+  },
+  "sync-supervisor": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 1024,
+    temperature: 0.2,
+    notes: "Commenti real-time durante sync. Risposte brevi, Italiano. Flash per velocità, Groq fallback.",
   },
 };
 

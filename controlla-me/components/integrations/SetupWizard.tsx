@@ -299,16 +299,16 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
           style={{ background: "rgba(0, 0, 0, 0.7)", backdropFilter: "blur(4px)" }}
         >
-          {/* Modal */}
+          {/* Modal — full-screen on mobile, centered modal on desktop */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-[680px] max-h-[90vh] overflow-y-auto rounded-2xl"
+            className="relative w-full sm:max-w-[680px] h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
             style={{
               background: "var(--bg-base)",
               border: "1px solid var(--border-dark)",
@@ -317,36 +317,59 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
           >
             {/* Header */}
             <div
-              className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
+              className="sticky top-0 z-10 px-6 py-4"
               style={{
                 background: "var(--bg-base)",
                 borderBottom: "1px solid var(--border-dark-subtle)",
               }}
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex items-center justify-center w-8 h-8 rounded-lg"
-                  style={{ background: "var(--bg-overlay)" }}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex items-center justify-center w-8 h-8 rounded-lg"
+                    style={{ background: "var(--bg-overlay)" }}
+                  >
+                    <connector.icon className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold" style={{ color: "var(--fg-primary)" }}>
+                      Configura {connector.name}
+                    </h2>
+                    <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
+                      {connector.category}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg transition-colors hover-bg-overlay"
+                  style={{ color: "var(--fg-muted)" }}
+                  aria-label="Chiudi wizard"
                 >
-                  <connector.icon className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: "var(--fg-primary)" }}>
-                    Configura {connector.name}
-                  </h2>
-                  <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
-                    {connector.category}
-                  </p>
-                </div>
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg transition-colors hover-bg-overlay"
-                style={{ color: "var(--fg-muted)" }}
-                aria-label="Chiudi wizard"
+
+              {/* Security reassurance badge */}
+              <div
+                className="flex items-center gap-2 mt-3 rounded-lg px-3 py-2"
+                style={{
+                  background: "rgba(93, 228, 199, 0.06)",
+                  border: "1px solid rgba(93, 228, 199, 0.12)",
+                }}
               >
-                <X className="w-5 h-5" />
-              </button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--success)", flexShrink: 0 }}>
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span className="text-[11px] font-medium" style={{ color: "var(--success)" }}>
+                  Connessione sicura e criptata
+                </span>
+                <span className="text-[11px] mx-1" style={{ color: "var(--fg-invisible)" }}>|</span>
+                <span className="text-[11px]" style={{ color: "var(--fg-muted)" }}>
+                  AES-256-GCM &middot; I tuoi dati restano tuoi
+                </span>
+              </div>
             </div>
 
             {/* Step indicator */}

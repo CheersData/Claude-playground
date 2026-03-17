@@ -3,7 +3,14 @@
  * into a flat FattureRecord format for the crm_records table.
  *
  * Handles: issued invoices, received invoices, clients.
- * Normalizes amounts, dates, entity info, and payment status.
+ *
+ * Normalization rules:
+ * - Amounts: stored in cents (integer) to avoid floating-point errors.
+ *   E.g. 1234.56 EUR -> 123456 cents. The `currency` field is always EUR unless
+ *   the API provides a different ISO 4217 code.
+ * - Dates: normalized to ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ).
+ *   Fatture in Cloud dates come as "YYYY-MM-DD" — we append T00:00:00.000Z.
+ * - Null/missing fields: gracefully handled with null fallbacks.
  *
  * Compatible with Fatture in Cloud API v2 (2026).
  */
@@ -146,44 +153,48 @@ export interface FattureInCloudCompany {
 /**
  * Normalized record for the crm_records table.
  * Common shape for both invoices and clients from Fatture in Cloud.
+ *
+ * Amount convention: all monetary values are stored as **cents (integer)**
+ * to avoid floating-point precision errors. E.g. EUR 1234.56 -> 123456.
+ * The original decimal values from the API are preserved in `rawExtra.originalAmounts`.
  */
 export interface FattureRecord {
-  /** Fatture in Cloud object ID (e.g. "fic_inv_123", "fic_cli_456") */
+  /** Fatture in Cloud object ID (e.g. "fic_issued_123", "fic_cli_456") */
   externalId: string;
-  /** Object type: issued_invoice | received_invoice | client */
-  objectType: string;
+  /** Object type: "issued_invoice" | "received_invoice" | "client" */
+  objectType: "issued_invoice" | "received_invoice" | "client";
   /** Status for invoices (paid/not_paid/reversed), null for clients */
   status: string | null;
   /** Contact email (for clients) */
   email: string | null;
   /** Entity/client name */
   name: string | null;
-  /** Gross amount in decimal (for invoices). Null for clients. */
+  /** Gross amount in cents (integer). Null for clients. E.g. 123456 = EUR 1234.56 */
   amount: number | null;
   /** ISO 4217 currency code. Null for clients. */
   currency: string | null;
-  /** Invoice date or client creation date */
+  /** ISO 8601 date: invoice date or client creation date */
   createdAt: string;
-  /** Last update date (when available) */
+  /** ISO 8601 date: last update (when available) */
   updatedAt: string | null;
 
   // ─── Invoice-specific fields ───
 
   /** Formatted invoice number (e.g. "1/2026") */
   invoiceNumber: string | null;
-  /** Invoice date (YYYY-MM-DD) */
+  /** Invoice date as ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ) */
   invoiceDate: string | null;
-  /** Net amount (before VAT) */
+  /** Net amount in cents (before VAT). E.g. 100000 = EUR 1000.00 */
   netAmount: number | null;
-  /** VAT amount */
+  /** VAT amount in cents. E.g. 22000 = EUR 220.00 */
   vatAmount: number | null;
-  /** Gross amount (net + VAT) */
+  /** Gross amount in cents (net + VAT). E.g. 122000 = EUR 1220.00 */
   grossAmount: number | null;
-  /** Calculated VAT rate from items (e.g. 22) */
+  /** Calculated dominant VAT rate from items (e.g. 22 for 22%) */
   vatRate: number | null;
   /** Invoice document type (invoice, receipt, credit_note, etc.) */
   documentType: string | null;
-  /** Payment status: "paid" | "unpaid" | "reversed" */
+  /** Payment status: "paid" | "unpaid" | "reversed" | "unknown" */
   paymentStatus: string | null;
   /** Payment method name */
   paymentMethod: string | null;
@@ -235,6 +246,9 @@ export interface FattureRecord {
 /**
  * Parse a Fatture in Cloud invoice into a normalized FattureRecord.
  *
+ * Amounts are converted from decimal (API) to cents (integer) for precision.
+ * Dates are normalized to ISO 8601 format.
+ *
  * @param raw - Raw invoice from the API
  * @param direction - "issued" (fattura emessa) or "received" (fattura ricevuta)
  */
@@ -242,7 +256,7 @@ export function parseFattureInvoice(
   raw: FattureInCloudInvoice,
   direction: "issued" | "received"
 ): FattureRecord {
-  const objectType =
+  const objectType: FattureRecord["objectType"] =
     direction === "issued" ? "issued_invoice" : "received_invoice";
 
   // Calculate dominant VAT rate from items
@@ -253,31 +267,41 @@ export function parseFattureInvoice(
     ? `${raw.numeration}${raw.number}/${raw.year}`
     : `${raw.number}/${raw.year}`;
 
+  // Normalize amounts to cents (integer)
+  const netAmountCents = euroToCents(raw.amount_net);
+  const vatAmountCents = euroToCents(raw.amount_vat);
+  const grossAmountCents = euroToCents(raw.amount_gross);
+
+  // Normalize dates to ISO 8601
+  const invoiceDateISO = normalizeDate(raw.date);
+  const createdAtISO = invoiceDateISO ?? normalizeDate(raw.created_at) ?? new Date().toISOString();
+  const updatedAtISO = normalizeDate(raw.updated_at);
+
   return {
     externalId: `fic_${direction}_${raw.id}`,
     objectType,
-    status: raw.status,
+    status: raw.status ?? null,
     email: null,
     name: raw.entity?.name ?? null,
-    amount: raw.amount_gross ?? null,
+    amount: grossAmountCents,
     currency: raw.currency?.id ?? "EUR",
-    createdAt: raw.date ?? raw.created_at ?? new Date().toISOString(),
-    updatedAt: raw.updated_at ?? null,
+    createdAt: createdAtISO,
+    updatedAt: updatedAtISO,
 
     // Invoice-specific
     invoiceNumber,
-    invoiceDate: raw.date,
-    netAmount: raw.amount_net,
-    vatAmount: raw.amount_vat,
-    grossAmount: raw.amount_gross,
+    invoiceDate: invoiceDateISO,
+    netAmount: netAmountCents,
+    vatAmount: vatAmountCents,
+    grossAmount: grossAmountCents,
     vatRate,
-    documentType: raw.type,
+    documentType: raw.type ?? null,
     paymentStatus: mapPaymentStatus(raw.status),
     paymentMethod: raw.payment_method?.name ?? null,
     eInvoice: raw.e_invoice ?? null,
     eInvoiceStatus: raw.ei_status ?? null,
     description: raw.subject || raw.visible_subject || null,
-    fiscalYear: raw.year,
+    fiscalYear: raw.year ?? null,
 
     // Entity
     companyName: raw.entity?.name ?? null,
@@ -299,7 +323,13 @@ export function parseFattureInvoice(
       fic_id: raw.id,
       direction,
       items_count: raw.items_list?.length ?? 0,
-      amount_due_discount: raw.amount_due_discount,
+      // Preserve original decimal amounts for reference
+      originalAmounts: {
+        net: raw.amount_net ?? null,
+        vat: raw.amount_vat ?? null,
+        gross: raw.amount_gross ?? null,
+        due_discount: raw.amount_due_discount ?? null,
+      },
       notes: raw.notes ?? null,
       rivalsa: raw.rivalsa ?? null,
       cassa: raw.cassa ?? null,
@@ -311,10 +341,14 @@ export function parseFattureInvoice(
 
 /**
  * Parse a Fatture in Cloud client into a normalized FattureRecord.
+ * Dates are normalized to ISO 8601 format.
  */
 export function parseFattureClient(
   raw: FattureInCloudClient
 ): FattureRecord {
+  const createdAtISO = normalizeDate(raw.created_at) ?? new Date().toISOString();
+  const updatedAtISO = normalizeDate(raw.updated_at);
+
   return {
     externalId: `fic_cli_${raw.id}`,
     objectType: "client",
@@ -323,8 +357,8 @@ export function parseFattureClient(
     name: raw.name || formatClientName(raw) || null,
     amount: null,
     currency: null,
-    createdAt: raw.created_at ?? new Date().toISOString(),
-    updatedAt: raw.updated_at ?? null,
+    createdAt: createdAtISO,
+    updatedAt: updatedAtISO,
 
     // Invoice-specific (not applicable to clients)
     invoiceNumber: null,
@@ -352,14 +386,14 @@ export function parseFattureClient(
     country: raw.country || null,
 
     // Client-specific
-    clientType: raw.type,
+    clientType: raw.type ?? null,
     certifiedEmail: raw.certified_email || null,
     phone: raw.phone || null,
     sdiCode: raw.ei_code ?? null,
 
     rawExtra: {
       fic_id: raw.id,
-      code: raw.code,
+      code: raw.code ?? null,
       first_name: raw.first_name || null,
       last_name: raw.last_name || null,
       contact_person: raw.contact_person || null,
@@ -373,6 +407,54 @@ export function parseFattureClient(
 }
 
 // ─── Utilities ───
+
+/**
+ * Convert a decimal Euro amount to cents (integer).
+ * Uses Math.round to avoid floating-point precision issues.
+ *
+ * Examples:
+ *   1234.56 -> 123456
+ *   0.01    -> 1
+ *   null    -> null
+ *   NaN     -> null
+ */
+function euroToCents(amount: number | null | undefined): number | null {
+  if (amount == null || isNaN(amount)) return null;
+  return Math.round(amount * 100);
+}
+
+/**
+ * Normalize a date string to ISO 8601 format.
+ *
+ * Fatture in Cloud dates come in several formats:
+ * - "YYYY-MM-DD" (invoice dates) -> "YYYY-MM-DDTHH:mm:ss.sssZ"
+ * - ISO 8601 with timezone (created_at/updated_at) -> kept as-is
+ * - null/undefined/empty -> null
+ *
+ * Returns null for invalid or missing dates.
+ */
+function normalizeDate(date: string | null | undefined): string | null {
+  if (!date || date.trim() === "") return null;
+
+  // Already ISO 8601 with time component
+  if (date.includes("T")) {
+    const parsed = new Date(date);
+    if (isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
+  }
+
+  // YYYY-MM-DD format — append midnight UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const parsed = new Date(`${date}T00:00:00.000Z`);
+    if (isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
+  }
+
+  // Try generic parsing as fallback
+  const parsed = new Date(date);
+  if (isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
 
 /**
  * Calculate the dominant (most common) VAT rate from invoice items.

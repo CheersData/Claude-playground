@@ -605,3 +605,108 @@ describe("model-to-provider mapping consistency", () => {
     }
   });
 });
+
+// =============================================================================
+// Edge cases and additional validation
+// =============================================================================
+
+describe("edge cases", () => {
+  it("MODELS object is frozen (const satisfies prevents mutation at type level)", () => {
+    // The `as const satisfies` pattern ensures TypeScript treats this as readonly.
+    // Verify the object has entries and they are well-formed.
+    const keys = Object.keys(MODELS);
+    expect(keys.length).toBeGreaterThan(0);
+    // Every key should resolve to a valid model config
+    for (const key of keys) {
+      const model = MODELS[key as ModelKey];
+      expect(model.provider).toBeTruthy();
+      expect(model.model).toBeTruthy();
+    }
+  });
+
+  it("no model has contextWindow of 0", () => {
+    for (const key of ALL_MODEL_KEYS) {
+      expect(MODELS[key].contextWindow).not.toBe(0);
+    }
+  });
+
+  it("all context windows are standard sizes (multiples of 1000)", () => {
+    for (const key of ALL_MODEL_KEYS) {
+      expect(MODELS[key].contextWindow % 1000).toBe(0);
+    }
+  });
+
+  it("Anthropic models have 200K context window", () => {
+    const anthropicKeys = ALL_MODEL_KEYS.filter((k) => MODELS[k].provider === "anthropic");
+    for (const key of anthropicKeys) {
+      expect(MODELS[key].contextWindow).toBe(200_000);
+    }
+  });
+
+  it("Gemini models have 1M context window", () => {
+    const geminiKeys = ALL_MODEL_KEYS.filter((k) => MODELS[k].provider === "gemini");
+    for (const key of geminiKeys) {
+      expect(MODELS[key].contextWindow).toBe(1_000_000);
+    }
+  });
+
+  it("isProviderEnabled handles both primary and ALT keys being set", () => {
+    process.env.GEMINI_API_KEY = "primary";
+    process.env.GEMINI_API_KEY_ALT = "alt";
+    expect(isProviderEnabled("gemini")).toBe(true);
+  });
+
+  it("estimateAgentCost handles very large token counts without overflow", () => {
+    const cost = estimateAgentCost("analyzer", 100_000_000, 50_000_000);
+    expect(Number.isFinite(cost)).toBe(true);
+    expect(cost).toBeGreaterThan(0);
+  });
+
+  it("each agent maxTokens does not exceed the model context window", () => {
+    for (const agent of ALL_AGENTS) {
+      const config = AGENT_MODELS[agent];
+      const model = MODELS[config.primary];
+      expect(config.maxTokens).toBeLessThan(model.contextWindow);
+    }
+  });
+
+  it("AGENT_MODELS covers exactly the expected agent names", () => {
+    const configuredAgents = Object.keys(AGENT_MODELS).sort();
+    const expectedAgents = [...ALL_AGENTS].sort();
+    expect(configuredAgents).toEqual(expectedAgents);
+  });
+
+  it("openai provider has the most models", () => {
+    const counts = new Map<string, number>();
+    for (const key of ALL_MODEL_KEYS) {
+      const provider = MODELS[key].provider;
+      counts.set(provider, (counts.get(provider) ?? 0) + 1);
+    }
+    const openaiCount = counts.get("openai") ?? 0;
+    for (const [provider, count] of counts) {
+      if (provider !== "openai") {
+        expect(openaiCount).toBeGreaterThanOrEqual(count);
+      }
+    }
+  });
+
+  it("no displayName is duplicated within the same provider", () => {
+    const byProvider = new Map<string, Set<string>>();
+    for (const key of ALL_MODEL_KEYS) {
+      const model = MODELS[key];
+      if (!byProvider.has(model.provider)) {
+        byProvider.set(model.provider, new Set());
+      }
+      const names = byProvider.get(model.provider)!;
+      expect(names.has(model.displayName)).toBe(false);
+      names.add(model.displayName);
+    }
+  });
+
+  it("output cost is always >= input cost for the same model", () => {
+    for (const key of ALL_MODEL_KEYS) {
+      const model = MODELS[key];
+      expect(model.outputCostPer1M).toBeGreaterThanOrEqual(model.inputCostPer1M);
+    }
+  });
+});

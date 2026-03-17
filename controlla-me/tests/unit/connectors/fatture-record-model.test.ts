@@ -28,7 +28,8 @@ import { FattureRecordModel, validateFattureRecord } from "@/lib/staff/data-conn
 
 // ─── Fixtures ───
 
-function makeValidInvoiceRecord(overrides: Partial<FattureRecord> = {}): FattureRecord {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeValidInvoiceRecord(overrides: Partial<Record<keyof FattureRecord, any>> = {}): FattureRecord {
   return {
     externalId: "fic_issued_123",
     objectType: "issued_invoice",
@@ -244,6 +245,149 @@ describe("validateFattureRecord", () => {
     it("does not apply client validation to invoice records", () => {
       const result = validateFattureRecord(
         makeValidInvoiceRecord({ name: null, vatNumber: null, taxCode: null })
+      );
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("objectType validation", () => {
+    it("fails when objectType is an unknown value", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ objectType: "unknown_type" })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("Unknown objectType");
+    });
+
+    it("accepts issued_invoice", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ objectType: "issued_invoice" })
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    it("accepts received_invoice", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ objectType: "received_invoice" })
+      );
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("date validation", () => {
+    it("fails when createdAt is an invalid date string", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ createdAt: "not-a-date" })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("Invalid createdAt");
+    });
+
+    it("fails when updatedAt is an invalid date string", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ updatedAt: "invalid" })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("Invalid updatedAt");
+    });
+
+    it("accepts valid ISO 8601 dates", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({
+          createdAt: "2026-01-15T00:00:00.000Z",
+          updatedAt: "2026-01-15T14:00:00.000Z",
+          invoiceDate: "2026-01-15T00:00:00.000Z",
+        })
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    it("accepts null updatedAt and invoiceDate", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ updatedAt: null, invoiceDate: null })
+      );
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("cents integer validation", () => {
+    it("fails when grossAmount is a decimal (not cents)", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ grossAmount: 1234.56 })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("cents");
+    });
+
+    it("fails when netAmount is a decimal", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ netAmount: 100.50 })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("cents");
+    });
+
+    it("accepts integer amounts (cents)", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({
+          netAmount: 100000,
+          vatAmount: 22000,
+          grossAmount: 122000,
+          amount: 122000,
+        })
+      );
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("vatRate validation", () => {
+    it("fails when vatRate exceeds 100", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ vatRate: 150 })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("vatRate");
+    });
+
+    it("fails when vatRate is negative", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ vatRate: -5 })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("vatRate");
+    });
+
+    it("accepts valid vatRate percentages", () => {
+      for (const rate of [0, 4, 10, 22, 100]) {
+        const result = validateFattureRecord(
+          makeValidInvoiceRecord({ vatRate: rate })
+        );
+        expect(result.valid).toBe(true);
+      }
+    });
+  });
+
+  describe("paymentStatus validation", () => {
+    it("fails when paymentStatus is an unknown value", () => {
+      const result = validateFattureRecord(
+        makeValidInvoiceRecord({ paymentStatus: "invalid_status" })
+      );
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain("paymentStatus");
+    });
+
+    it("accepts all valid payment statuses", () => {
+      for (const status of ["paid", "unpaid", "reversed", "unknown"]) {
+        const result = validateFattureRecord(
+          makeValidInvoiceRecord({ paymentStatus: status })
+        );
+        expect(result.valid).toBe(true);
+      }
+    });
+
+    it("accepts null paymentStatus (e.g. for clients)", () => {
+      const result = validateFattureRecord(
+        makeValidClientRecord({ paymentStatus: null })
       );
       expect(result.valid).toBe(true);
     });

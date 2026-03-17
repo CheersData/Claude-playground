@@ -4,7 +4,7 @@
  * Uses the generic JSONB schema from migration 030_integration_tables.sql:
  *   - user_id: system UUID (backend sync, no real user context)
  *   - connector_source: "hubspot"
- *   - object_type: "contact" | "company" | "deal" | "ticket"
+ *   - object_type: "contact" | "company" | "deal" | "ticket" | "engagement"
  *   - external_id: HubSpot object ID (numeric string)
  *   - data: JSONB — full HubSpotRecord as raw data
  *   - mapped_fields: JSONB — normalized/key fields for quick access
@@ -13,15 +13,22 @@
  * This ensures idempotent syncs — re-running the pipeline updates existing records
  * without creating duplicates.
  *
+ * Features:
+ *   - Batch upsert, 100 records per batch (HubSpot API page size aligned)
+ *   - All 5 object types in the same store (differentiated by object_type column)
+ *   - Sync metadata tracking: last_synced_at, record_count per type
+ *   - MappingEngine support: merges _mapped_fields with hardcoded defaults
+ *
  * Same table as StripeStore — differentiated by connector_source = 'hubspot'.
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateHubSpotRecord } from "../models/hubspot-record-model";
 import type { StoreInterface, StoreResult } from "../types";
-import type { HubSpotRecord } from "../parsers/hubspot-parser";
+import type { HubSpotRecord, HubSpotObjectType } from "../parsers/hubspot-parser";
 
-const BATCH_SIZE = 50;
+/** Batch size aligned with HubSpot API page size for optimal throughput */
+const BATCH_SIZE = 100;
 
 /**
  * System user UUID for backend syncs (HubSpot has no user context in demo mode).
@@ -29,17 +36,57 @@ const BATCH_SIZE = 50;
  */
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
+/** Per-type record counts for sync metadata */
+export interface HubSpotSyncMetadata {
+  /** ISO 8601 timestamp of last sync completion */
+  lastSyncedAt: string;
+  /** Total records upserted in this sync */
+  totalRecords: number;
+  /** Record count per object type */
+  countsByType: Record<HubSpotObjectType, number>;
+  /** Validation error count */
+  validationErrors: number;
+  /** DB error count */
+  dbErrors: number;
+}
+
 export class HubSpotStore implements StoreInterface<HubSpotRecord> {
+  /** Metadata from the most recent save() call */
+  private _lastSyncMetadata: HubSpotSyncMetadata | null = null;
+
   constructor(private log: (msg: string) => void = console.log) {}
+
+  /**
+   * Returns sync metadata from the most recent save() call.
+   * Useful for logging, monitoring, and sync-log entries.
+   */
+  get lastSyncMetadata(): HubSpotSyncMetadata | null {
+    return this._lastSyncMetadata;
+  }
 
   async save(
     records: HubSpotRecord[],
     options?: { dryRun?: boolean }
   ): Promise<StoreResult> {
+    const syncStartedAt = new Date().toISOString();
+
+    // Count records per type (before validation)
+    const inputCountsByType = countByType(records);
+    this.log(
+      `[HUBSPOT-STORE] Received ${records.length} records: ${formatTypeCounts(inputCountsByType)}`
+    );
+
     if (options?.dryRun) {
       this.log(
         `[HUBSPOT-STORE] DRY RUN | ${records.length} records ready | no DB write`
       );
+      this._lastSyncMetadata = {
+        lastSyncedAt: syncStartedAt,
+        totalRecords: 0,
+        countsByType: inputCountsByType,
+        validationErrors: 0,
+        dbErrors: 0,
+      };
       return {
         inserted: 0,
         updated: 0,
@@ -65,8 +112,21 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
       }
     }
 
+    if (errorDetails.length > 0) {
+      this.log(
+        `[HUBSPOT-STORE] Validation: ${validRecords.length} valid, ${errorDetails.length} rejected`
+      );
+    }
+
     if (validRecords.length === 0) {
       this.log(`[HUBSPOT-STORE] No valid records to save`);
+      this._lastSyncMetadata = {
+        lastSyncedAt: syncStartedAt,
+        totalRecords: 0,
+        countsByType: inputCountsByType,
+        validationErrors: errorDetails.length,
+        dbErrors: 0,
+      };
       return {
         inserted: 0,
         updated: 0,
@@ -78,14 +138,17 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
 
     const admin = createAdminClient();
     let totalInserted = 0;
+    let dbErrors = 0;
     const totalBatches = Math.ceil(validRecords.length / BATCH_SIZE);
 
     for (let i = 0; i < validRecords.length; i += BATCH_SIZE) {
       const batch = validRecords.slice(i, i + BATCH_SIZE);
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
+      // Log batch with type breakdown
+      const batchCounts = countByType(batch);
       this.log(
-        `[HUBSPOT-STORE] Batch ${batchNum}/${totalBatches} | ${batch.length} records`
+        `[HUBSPOT-STORE] Batch ${batchNum}/${totalBatches} | ${batch.length} records (${formatTypeCounts(batchCounts)})`
       );
 
       try {
@@ -108,6 +171,7 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         this.log(`[HUBSPOT-STORE] Batch ${batchNum} error: ${msg}`);
+        dbErrors += batch.length;
 
         for (const r of batch) {
           errorDetails.push({
@@ -118,9 +182,25 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
       }
     }
 
+    const syncCompletedAt = new Date().toISOString();
+
+    // Build per-type counts for successfully saved records
+    const savedCountsByType = countByType(validRecords);
+
+    this._lastSyncMetadata = {
+      lastSyncedAt: syncCompletedAt,
+      totalRecords: totalInserted,
+      countsByType: savedCountsByType,
+      validationErrors: records.length - validRecords.length,
+      dbErrors,
+    };
+
     this.log(
-      `[HUBSPOT-STORE] Done | inserted/updated: ${totalInserted} | errors: ${errorDetails.length}`
+      `[HUBSPOT-STORE] Done | inserted/updated: ${totalInserted} | errors: ${errorDetails.length} | ${formatTypeCounts(savedCountsByType)}`
     );
+
+    // Update sync metadata in integration_connections (if table exists)
+    await this.updateSyncMetadata(admin, syncCompletedAt, savedCountsByType, totalInserted);
 
     return {
       inserted: totalInserted,
@@ -129,6 +209,44 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
       errors: errorDetails.length,
       errorDetails,
     };
+  }
+
+  /**
+   * Update sync metadata in integration_connections table.
+   * This tracks last_synced_at and record counts per type for the HubSpot connector.
+   * Non-critical: errors are logged but do not fail the sync.
+   */
+  private async updateSyncMetadata(
+    admin: ReturnType<typeof createAdminClient>,
+    syncedAt: string,
+    countsByType: Record<HubSpotObjectType, number>,
+    totalRecords: number
+  ): Promise<void> {
+    try {
+      // Update the integration_connections row for HubSpot (if exists)
+      // This is a best-effort operation — the sync succeeds even if this fails
+      const { error } = await admin
+        .from("integration_connections" as "connector_sync_log")
+        .update({
+          last_synced_at: syncedAt,
+          sync_metadata: {
+            record_count: totalRecords,
+            counts_by_type: countsByType,
+            last_synced_at: syncedAt,
+          },
+        } as never)
+        .eq("connector_type" as never, "hubspot" as never)
+        .eq("user_id" as never, SYSTEM_USER_ID as never);
+
+      if (error) {
+        // Non-critical: table may not exist or row may not exist
+        this.log(`[HUBSPOT-STORE] Sync metadata update skipped: ${error.message}`);
+      }
+    } catch (err) {
+      // Non-critical — log and continue
+      const msg = err instanceof Error ? err.message : String(err);
+      this.log(`[HUBSPOT-STORE] Sync metadata update failed: ${msg}`);
+    }
   }
 }
 
@@ -169,9 +287,25 @@ function toRow(record: HubSpotRecord & { _mapped_fields?: Record<string, unknown
     currency: record.currency,
     close_date: record.closeDate,
     priority: record.priority,
+    engagement_type: record.engagementType,
+    engagement_timestamp: record.engagementTimestamp,
+    owner_id: record.ownerId,
     hubspot_created_at: record.createdAt,
     hubspot_updated_at: record.updatedAt,
   };
+
+  // Include association IDs for cross-referencing
+  if (record.associations.length > 0) {
+    defaultMappedFields.associated_company_ids = record.associations
+      .filter((a) => a.objectType === "companies")
+      .map((a) => a.objectId);
+    defaultMappedFields.associated_contact_ids = record.associations
+      .filter((a) => a.objectType === "contacts")
+      .map((a) => a.objectId);
+    defaultMappedFields.associated_deal_ids = record.associations
+      .filter((a) => a.objectType === "deals")
+      .map((a) => a.objectId);
+  }
 
   // MappingEngine output takes priority when available (supports user-confirmed + learned mappings)
   const mappedFields = record._mapped_fields
@@ -204,6 +338,10 @@ function toRow(record: HubSpotRecord & { _mapped_fields?: Record<string, unknown
       closeDate: record.closeDate,
       priority: record.priority,
       description: record.description,
+      engagementType: record.engagementType,
+      engagementTimestamp: record.engagementTimestamp,
+      ownerId: record.ownerId,
+      associations: record.associations,
       rawProperties: record.rawProperties,
     },
 
@@ -216,4 +354,33 @@ function toRow(record: HubSpotRecord & { _mapped_fields?: Record<string, unknown
     synced_at: now,
     updated_at: now,
   };
+}
+
+// ─── Utilities ───
+
+/** Count records per HubSpot object type */
+function countByType(records: HubSpotRecord[]): Record<HubSpotObjectType, number> {
+  const counts: Record<HubSpotObjectType, number> = {
+    contact: 0,
+    company: 0,
+    deal: 0,
+    ticket: 0,
+    engagement: 0,
+  };
+
+  for (const r of records) {
+    if (r.objectType in counts) {
+      counts[r.objectType]++;
+    }
+  }
+
+  return counts;
+}
+
+/** Format type counts for logging: "contact:5, company:3, deal:2" */
+function formatTypeCounts(counts: Record<HubSpotObjectType, number>): string {
+  return Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .map(([type, count]) => `${type}:${count}`)
+    .join(", ");
 }

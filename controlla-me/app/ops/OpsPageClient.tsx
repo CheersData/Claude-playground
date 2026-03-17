@@ -31,6 +31,7 @@ import {
   Microscope,
   Users,
   Plug,
+  Terminal,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -58,6 +59,7 @@ import { DaemonControlPanel } from "@/components/ops/DaemonControlPanel";
 import { IntegrationHealthPanel } from "@/components/ops/IntegrationHealthPanel";
 import { ActivityFeed } from "@/components/ops/ActivityFeed";
 import { AgentDots } from "@/components/ops/AgentDots";
+import { TerminalMonitor } from "@/components/ops/TerminalMonitor";
 import SessionIndicator from "@/components/console/SessionIndicator";
 import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
 import { CompanyRoadmap } from "@/components/ops/CompanyRoadmap";
@@ -106,7 +108,8 @@ type TabId =
   | "daemon"
   | "agents"
   | "integrations"
-  | "testing";
+  | "testing"
+  | "terminals";
 
 interface TabDef {
   id: TabId;
@@ -125,6 +128,7 @@ const TABS: TabDef[] = [
   { id: "agents", label: "Agenti", icon: Users },
   { id: "integrations", label: "Integrazioni", icon: Plug },
   { id: "testing", label: "QA & Test", icon: Microscope },
+  { id: "terminals", label: "Terminali", icon: Terminal },
 ];
 
 // ─── Shared UI ──────────────────────────────────────────────────────────────
@@ -203,7 +207,7 @@ export default function OpsPageClient() {
   // ── Live sessions from SessionIndicator (for AgentDots bridging) ──────────
   type LiveSessionEntry = {
     pid: number;
-    type: "console" | "task-runner" | "daemon";
+    type: "console" | "task-runner" | "daemon" | "interactive";
     target: string;
     taskId?: string;
     startedAt: string;
@@ -381,6 +385,40 @@ export default function OpsPageClient() {
     };
   }, [authed]);
 
+  // ── Heartbeat for interactive session visibility ────────────────────────────
+  // While /ops is open and authed, send a heartbeat every 10s to signal
+  // that an interactive Claude Code session is active. This makes the session
+  // visible in SessionIndicator, AgentDots, and CapacityIndicator.
+  useEffect(() => {
+    if (!authed) return;
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch("/api/company/sessions/heartbeat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getConsoleAuthHeaders(),
+          },
+          body: JSON.stringify({ target: "interactive" }),
+        });
+      } catch {
+        // Silently ignore — heartbeat is best-effort
+      }
+    };
+
+    // Send immediately on mount
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 30_000);
+
+    return () => {
+      clearInterval(interval);
+      // No explicit cleanup needed: heartbeat auto-expires after 30s
+      // (HEARTBEAT_MAX_AGE_MS in sessions.ts). When the page closes,
+      // the heartbeat simply won't be renewed and will be pruned.
+    };
+  }, [authed]);
+
   // ── Prune stale "running" SSE events (client-side GC) ─────────────────────
   // If a "running" event hasn't been updated in 60s, it's likely stale
   // (the "done" broadcast was never sent due to error/crash).
@@ -420,19 +458,25 @@ export default function OpsPageClient() {
     });
 
     // Bridge live sessions (from SessionIndicator) into the map
-    // This lights up AgentDots for departments with active Claude sessions
+    // This lights up AgentDots for departments with active Claude sessions.
+    // Interactive sessions (Claude Code terminal) don't have a taskId — bridge
+    // them using their type as the department key so they show up in AgentDots
+    // and CapacityIndicator.
     for (const s of liveSessions) {
-      if (s.status === "active" && s.target && s.target !== "unknown" && s.taskId) {
-        const key = `session-${s.pid}`;
-        // Only add if not already tracked by SSE (avoid duplicates)
-        if (!map.has(key)) {
-          map.set(key, {
-            department: s.target,
-            task: s.taskId || s.type,
-            status: "running",
-          });
-        }
-      }
+      if (s.status !== "active") continue;
+      if (!s.target || s.target === "unknown") continue;
+
+      const key = `session-${s.pid}`;
+      // Only add if not already tracked by SSE (avoid duplicates)
+      if (map.has(key)) continue;
+
+      // Map interactive sessions to a visible department
+      const dept = s.type === "interactive" ? "interactive" : s.target;
+      map.set(key, {
+        department: dept,
+        task: s.taskId || s.type,
+        status: "running",
+      });
     }
 
     return map;
@@ -905,6 +949,13 @@ export default function OpsPageClient() {
             <SectionCard title="Debug">
               <DebugPanel />
             </SectionCard>
+          </div>
+        )}
+
+        {/* Terminali */}
+        {activeTab === "terminals" && (
+          <div className="h-full overflow-hidden">
+            <TerminalMonitor />
           </div>
         )}
       </div>

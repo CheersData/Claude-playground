@@ -12,7 +12,7 @@
  * Accent: #FF6B35
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -39,6 +39,11 @@ import {
   FileText,
   Pause,
   Play,
+  Download,
+  Search,
+  Eye,
+  Database,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 
@@ -49,6 +54,12 @@ import FieldMappingStep, {
 } from "@/components/integrations/wizard/FieldMappingStep";
 import FrequencyStep, { type SyncFrequency } from "@/components/integrations/wizard/FrequencyStep";
 import ReviewStep from "@/components/integrations/wizard/ReviewStep";
+import SyncProgress, { type SyncProgressData, type SupervisorMessage } from "@/components/integrations/SyncProgress";
+import IntegrationAgentChat from "@/components/integrations/IntegrationAgentChat";
+import { ConnectorSyncSkeleton } from "@/components/integrations/Skeletons";
+import ErrorState from "@/components/integrations/ErrorStates";
+import { NoSyncHistory, NoRecords } from "@/components/integrations/EmptyStates";
+import { useToast } from "@/components/integrations/Toast";
 
 // ─── Types ───
 
@@ -59,9 +70,12 @@ interface ConnectorConfig {
   icon: string;
   authMode: AuthMode;
   supportsApiKey?: boolean;
+  oauthAvailable?: boolean;
   oauthPermissions: { label: string }[];
   apiKeyLabel?: string;
   secretKeyLabel?: string;
+  apiKeyPlaceholder?: string;
+  secretKeyPlaceholder?: string;
   helpText?: string;
   entities: EntityOption[];
   targetFields: string[];
@@ -96,6 +110,8 @@ const TABS = [
   { id: "setup", label: "Setup" },
   { id: "sync", label: "Sincronizzazione" },
   { id: "mapping", label: "Mappatura" },
+  { id: "dati", label: "Dati" },
+  { id: "assistente", label: "Assistente AI" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -127,9 +143,12 @@ interface ConnectorApiResponse {
   icon: string;
   authMode: "oauth" | "api_key";
   supportsApiKey?: boolean;
+  oauthAvailable?: boolean;
   oauthPermissions: { label: string }[];
   apiKeyLabel?: string | null;
   secretKeyLabel?: string | null;
+  apiKeyPlaceholder?: string | null;
+  secretKeyPlaceholder?: string | null;
   helpText?: string | null;
   targetFields: string[];
   entities: {
@@ -157,9 +176,12 @@ function mapApiResponseToConfig(data: ConnectorApiResponse): ConnectorConfig {
     icon: data.icon,
     authMode: data.authMode,
     supportsApiKey: data.supportsApiKey,
+    oauthAvailable: data.oauthAvailable,
     oauthPermissions: data.oauthPermissions ?? [],
     apiKeyLabel: data.apiKeyLabel ?? undefined,
     secretKeyLabel: data.secretKeyLabel ?? undefined,
+    apiKeyPlaceholder: data.apiKeyPlaceholder ?? undefined,
+    secretKeyPlaceholder: data.secretKeyPlaceholder ?? undefined,
     helpText: data.helpText ?? undefined,
     entities: data.entities.map((e) => ({
       id: e.id,
@@ -276,6 +298,7 @@ function WizardStepper({ currentStep }: { currentStep: number }) {
 export default function ConnectorDetailClient() {
   const { connectorId } = useParams<{ connectorId: string }>();
   const router = useRouter();
+  const toast = useToast();
 
   // ─── Fetch connector metadata from API ───
   const [config, setConfig] = useState<ConnectorConfig | null>(null);
@@ -376,7 +399,7 @@ export default function ConnectorDetailClient() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "sync" || tabParam === "mapping") return tabParam;
+      if (tabParam === "sync" || tabParam === "mapping" || tabParam === "dati" || tabParam === "assistente") return tabParam;
     }
     return "setup";
   });
@@ -443,9 +466,14 @@ export default function ConnectorDetailClient() {
 
       // Map known error codes to user-friendly Italian messages
       const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-        not_authenticated: "Devi effettuare il login prima di collegare questo servizio",
+        not_authenticated: "Devi accedere prima di collegare un servizio.",
         invalid_state: "La sessione di autorizzazione è scaduta o non valida. Riprova.",
         token_exchange_failed: "Scambio token fallito. Riprova o contatta il supporto.",
+        server_config: "OAuth non disponibile per questo connettore. Usa l'autenticazione via API Key.",
+        expired_state: "Sessione scaduta. Riprova.",
+        invalid_code: "Codice di autorizzazione scaduto. Riprova.",
+        vault_unavailable: "Errore nel salvataggio credenziali. Riprova.",
+        no_access_token: "Il provider non ha restituito un token. Riprova.",
       };
 
       const message = OAUTH_ERROR_MESSAGES[errorCode ?? ""] || errorDesc || `Errore OAuth: ${errorCode}`;
@@ -572,6 +600,7 @@ export default function ConnectorDetailClient() {
       );
 
       setActivateStatus("success");
+      toast.success(`${config?.name || "Connettore"} configurato con successo`);
 
       // Auto-switch to sync tab after successful activation
       setTimeout(() => {
@@ -580,11 +609,11 @@ export default function ConnectorDetailClient() {
     } catch (err) {
       console.error("[Activate] Error:", err);
       setActivateStatus("error");
-      setActivateError(
-        err instanceof Error ? err.message : "Errore durante l'attivazione. Riprova."
-      );
+      const errorMsg = err instanceof Error ? err.message : "Errore durante l'attivazione. Riprova.";
+      setActivateError(errorMsg);
+      toast.error(`Attivazione fallita: ${errorMsg}`);
     }
-  }, [connectorId, config, frequency, selectedEntities, entityMappings]);
+  }, [connectorId, config, frequency, selectedEntities, entityMappings, toast]);
 
   const goNext = useCallback(() => {
     if (step < STEPS.length - 1) {
@@ -861,9 +890,12 @@ export default function ConnectorDetailClient() {
                           connectorName={config.name}
                           authMode={config.authMode}
                           supportsApiKey={config.supportsApiKey}
+                          oauthAvailable={config.oauthAvailable}
                           oauthPermissions={config.oauthPermissions}
                           apiKeyLabel={config.apiKeyLabel}
                           secretKeyLabel={config.secretKeyLabel}
+                          apiKeyPlaceholder={config.apiKeyPlaceholder}
+                          secretKeyPlaceholder={config.secretKeyPlaceholder}
                           helpText={config.helpText}
                           apiKey={apiKey}
                           secretKey={secretKey}
@@ -972,6 +1004,39 @@ export default function ConnectorDetailClient() {
               />
             </motion.div>
           )}
+
+          {/* ═══ TAB 4: DATI (Records Viewer) ═══ */}
+          {activeTab === "dati" && (
+            <motion.div
+              key="dati"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ConnectorDataTab connectorId={connectorId} connectorName={config.name} />
+            </motion.div>
+          )}
+
+          {/* ═══ TAB 5: ASSISTENTE AI ═══ */}
+          {activeTab === "assistente" && (
+            <motion.div
+              key="assistente"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <IntegrationAgentChat
+                connectorType={config.name}
+                onConfigReady={(agentConfig) => {
+                  console.log("[AgentChat] Config ready:", agentConfig);
+                  // Switch to setup tab after config is ready
+                  setActiveTab("setup");
+                }}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
     </div>
@@ -984,11 +1049,12 @@ export default function ConnectorDetailClient() {
 
 function ConnectorSyncTab({
   connectorId,
-  connectorName: _connectorName,
+  connectorName,
 }: {
   connectorId: string;
   connectorName: string;
 }) {
+  const toast = useToast();
   const [syncData, setSyncData] = useState<ConnectorSyncData>({
     status: "disconnected",
     lastSync: null,
@@ -1002,6 +1068,11 @@ function ConnectorSyncTab({
   const [loading, setLoading] = useState(true);
   const [expandedErrors, setExpandedErrors] = useState<Set<string>>(new Set());
   const [pauseLoading, setPauseLoading] = useState(false);
+  const [showSyncProgress, setShowSyncProgress] = useState(false);
+  const [supervisorMessages, setSupervisorMessages] = useState<SupervisorMessage[]>([]);
+  const [syncProgress, setSyncProgressData] = useState<Partial<SyncProgressData> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sseAbortRef = useRef<AbortController | null>(null);
 
   // Load real connection data from API
   // The GET /api/integrations/[connectorId] returns fields at the top level
@@ -1064,27 +1135,174 @@ function ConnectorSyncTab({
     loadConnectionData();
   }, [loadConnectionData]);
 
+  // Real-time polling: 3s during syncing, 30s otherwise
+  useEffect(() => {
+    const isSyncing = syncData.status === "syncing" || syncing;
+    const interval = isSyncing ? 3000 : 30000;
+
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => loadConnectionData(), interval);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [syncData.status, syncing, loadConnectionData]);
+
   const handleSync = useCallback(async () => {
     setSyncing(true);
     setSyncError(null);
+    setShowSyncProgress(true);
+    setSupervisorMessages([]);
+    setSyncProgressData(null);
+    toast.info(`Sincronizzazione ${connectorName} avviata...`);
+
+    // Abort any previous SSE connection
+    if (sseAbortRef.current) {
+      sseAbortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    sseAbortRef.current = abortController;
+
     try {
-      const res = await fetch(`/api/integrations/${connectorId}/sync`, {
+      const res = await fetch(`/api/integrations/${connectorId}/sync?stream=true`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
+        signal: abortController.signal,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setSyncError(data.error || "Errore durante la sincronizzazione");
-      } else {
-        // Refresh the sync data after successful sync
-        await loadConnectionData();
+
+      // If the response is not a stream (no SSE support), fall back to JSON
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("text/event-stream")) {
+        const data = await res.json();
+        if (!res.ok) {
+          let errorMsg = data.error || "Errore durante la sincronizzazione";
+          if (errorMsg.includes("required scopes") || errorMsg.includes("granted all required scopes")) {
+            errorMsg = "La Private App HubSpot non ha i permessi necessari. " +
+              "Vai su HubSpot \u2192 Settings \u2192 Integrations \u2192 Private Apps \u2192 Scopes e abilita: " +
+              "crm.objects.contacts.read, crm.objects.companies.read, crm.objects.deals.read. " +
+              "Dopo il salvataggio, aggiorna il token nel wizard.";
+          }
+          setSyncError(errorMsg);
+          setShowSyncProgress(false);
+          toast.error(`Sync fallita: ${errorMsg.slice(0, 80)}${errorMsg.length > 80 ? "..." : ""}`);
+        } else if (data.itemCount === 0) {
+          const msg = "Sync completata ma 0 record trovati. Verifica che l'account abbia dati o che i permessi API siano corretti.";
+          setSyncError(msg);
+          setShowSyncProgress(false);
+          toast.warning("Nessun record trovato nella sincronizzazione");
+        } else {
+          await loadConnectionData();
+          toast.success(`Sync completata: ${data.itemCount?.toLocaleString("it-IT") ?? ""} documenti importati`);
+        }
+        setSyncing(false);
+        return;
       }
-    } catch {
+
+      // SSE stream — parse events
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setSyncError("Errore: stream non disponibile");
+        setShowSyncProgress(false);
+        setSyncing(false);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop() || "";
+
+        for (const block of blocks) {
+          if (!block.trim()) continue;
+          const eventMatch = block.match(/^event: (.+)$/m);
+          const dataMatch = block.match(/^data: (.+)$/m);
+          if (!eventMatch || !dataMatch) continue;
+
+          const eventType = eventMatch[1];
+          let eventData: Record<string, unknown>;
+          try {
+            eventData = JSON.parse(dataMatch[1]);
+          } catch {
+            continue;
+          }
+
+          if (eventType === "supervisor") {
+            setSupervisorMessages((prev) => [
+              ...prev,
+              {
+                message: (eventData.message as string) || "",
+                severity: (eventData.severity as SupervisorMessage["severity"]) || "info",
+                suggestion: eventData.suggestion as string | undefined,
+                timestamp: new Date(),
+              },
+            ]);
+          } else if (eventType === "progress") {
+            setSyncProgressData({
+              stage: (eventData.stage as SyncProgressData["stage"]) || "fetching",
+              progress: (eventData.progress as number) || 0,
+              recordsSynced: (eventData.recordsProcessed as number) || 0,
+              recordsTotal: (eventData.recordsTotal as number) || 0,
+            });
+          } else if (eventType === "complete") {
+            const itemsFetched = (eventData.itemsFetched as number) || 0;
+            await loadConnectionData();
+            if (itemsFetched > 0) {
+              toast.success(`Sync completata: ${itemsFetched.toLocaleString("it-IT")} documenti importati`);
+            } else {
+              toast.warning("Sincronizzazione completata senza nuovi record");
+            }
+          } else if (eventType === "done") {
+            setSyncing(false);
+            setShowSyncProgress(false);
+          }
+        }
+      }
+
+      // Stream ended without a "done" event
+      setSyncing(false);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User cancelled — handled by handleSyncCancel
+        return;
+      }
       setSyncError("Errore di rete");
-    } finally {
+      setShowSyncProgress(false);
+      toast.error("Errore di rete durante la sincronizzazione");
       setSyncing(false);
     }
-  }, [connectorId, loadConnectionData]);
+  }, [connectorId, connectorName, loadConnectionData, toast]);
+
+  const handleSyncComplete = useCallback((completedData: SyncProgressData) => {
+    setShowSyncProgress(false);
+    setSyncing(false);
+    loadConnectionData();
+    if (completedData.recordsSynced > 0) {
+      toast.success(
+        `Sync completata: ${completedData.recordsSynced.toLocaleString("it-IT")} documenti importati`
+      );
+    }
+  }, [loadConnectionData, toast]);
+
+  const handleSyncCancel = useCallback(() => {
+    // Abort SSE stream if active
+    if (sseAbortRef.current) {
+      sseAbortRef.current.abort();
+      sseAbortRef.current = null;
+    }
+    setShowSyncProgress(false);
+    setSyncing(false);
+    toast.warning("Sincronizzazione annullata");
+  }, [toast]);
 
   const handlePauseResume = useCallback(async () => {
     setPauseLoading(true);
@@ -1098,17 +1316,24 @@ function ConnectorSyncTab({
       });
       const data = await res.json();
       if (!res.ok) {
-        setSyncError(data.error || `Errore durante ${action === "pause" ? "la pausa" : "la ripresa"}`);
+        const errorMsg = data.error || `Errore durante ${action === "pause" ? "la pausa" : "la ripresa"}`;
+        setSyncError(errorMsg);
+        toast.error(errorMsg);
       } else {
         // Refresh sync data to reflect new status
         await loadConnectionData();
+        toast.info(action === "pause"
+          ? `${connectorName}: sincronizzazione in pausa`
+          : `${connectorName}: sincronizzazione ripresa`
+        );
       }
     } catch {
       setSyncError("Errore di rete");
+      toast.error("Errore di rete");
     } finally {
       setPauseLoading(false);
     }
-  }, [connectorId, syncData.status, loadConnectionData]);
+  }, [connectorId, connectorName, syncData.status, loadConnectionData, toast]);
 
   const toggleError = useCallback((id: string) => {
     setExpandedErrors((prev) => {
@@ -1131,16 +1356,53 @@ function ConnectorSyncTab({
   const sc = statusConfig[syncData.status] || statusConfig.disconnected;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--fg-muted)" }} />
-        <span className="ml-3 text-sm" style={{ color: "var(--fg-muted)" }}>Caricamento dati...</span>
-      </div>
-    );
+    return <ConnectorSyncSkeleton />;
   }
 
   return (
     <div>
+      {/* SyncProgress — shown during active sync */}
+      <AnimatePresence>
+        {(showSyncProgress || syncData.status === "syncing") && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4"
+          >
+            <SyncProgress
+              connectorId={connectorId}
+              active={showSyncProgress || syncData.status === "syncing"}
+              onComplete={handleSyncComplete}
+              onCancel={handleSyncCancel}
+              initialData={syncProgress ?? undefined}
+              supervisorMessages={supervisorMessages}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Error state — typed error handling */}
+      {syncData.status === "error" && syncData.errors.length > 0 && !syncError && (
+        <div className="mb-4">
+          <ErrorState
+            error={{
+              type: syncData.errors[0]?.message?.includes("token") || syncData.errors[0]?.message?.includes("401")
+                ? "auth_expired"
+                : syncData.errors[0]?.message?.includes("429") || syncData.errors[0]?.message?.includes("rate")
+                  ? "rate_limited"
+                  : "sync_failed",
+              message: syncData.errors[0]?.message,
+              connectorId,
+              retryAfterSeconds: syncData.errors[0]?.message?.includes("429") ? 300 : undefined,
+            }}
+            onRetry={handleSync}
+            onReconnect={() => window.location.href = `/api/integrations/${connectorId}/authorize`}
+            compact
+          />
+        </div>
+      )}
+
       {/* Connection status badge */}
       <div className="flex items-center justify-between mb-4">
         <div
@@ -1281,12 +1543,10 @@ function ConnectorSyncTab({
         </div>
       ) : (
         <div
-          className="rounded-xl p-8 text-center mb-6"
+          className="rounded-xl mb-6"
           style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark-subtle)" }}
         >
-          <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
-            Nessuno storico disponibile. Configura il connettore e avvia la prima sincronizzazione.
-          </p>
+          <NoSyncHistory onStartSync={handleSync} />
         </div>
       )}
 
@@ -1725,4 +1985,800 @@ function ConnectorMappingTab({
       )}
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════
+// TAB 4: DATA VIEWER (records from crm_records)
+// ═══════════════════════════════════════════════
+
+interface CrmRecord {
+  id: string;
+  external_id: string;
+  object_type: string;
+  data: Record<string, unknown>;
+  mapped_fields: Record<string, unknown>;
+  synced_at: string;
+}
+
+interface RecordsApiResponse {
+  records: CrmRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  breakdown: Record<string, number>;
+}
+
+function ConnectorDataTab({
+  connectorId,
+  connectorName,
+}: {
+  connectorId: string;
+  connectorName: string;
+}) {
+  const [records, setRecords] = useState<CrmRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(25);
+  const [breakdown, setBreakdown] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [objectTypeFilter, setObjectTypeFilter] = useState<string | null>(null);
+  const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  // Push state
+  const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set());
+  const [showPushModal, setShowPushModal] = useState(false);
+  const [pushTarget, setPushTarget] = useState("");
+  const [pushTargetEntity, setPushTargetEntity] = useState("");
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState<{
+    success: boolean;
+    created?: number;
+    updated?: number;
+    failed?: number;
+    errors?: string[];
+  } | null>(null);
+
+  // Fetch records
+  const fetchRecords = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      });
+      if (objectTypeFilter) params.set("objectType", objectTypeFilter);
+      if (search) params.set("search", search);
+
+      const res = await fetch(`/api/integrations/${connectorId}/records?${params}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Errore ${res.status}`);
+      }
+      const data: RecordsApiResponse = await res.json();
+      setRecords(data.records);
+      setTotal(data.total);
+      setBreakdown(data.breakdown);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nel caricamento dei record");
+    } finally {
+      setLoading(false);
+    }
+  }, [connectorId, page, pageSize, objectTypeFilter, search]);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  // Search on Enter
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        setSearch(searchInput);
+        setPage(1);
+      }
+    },
+    [searchInput]
+  );
+
+  const handleSearchClear = useCallback(() => {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  }, []);
+
+  // Filter by entity type
+  const handleFilterType = useCallback((type: string | null) => {
+    setObjectTypeFilter(type);
+    setPage(1);
+  }, []);
+
+  // Toggle record expansion
+  const toggleRecord = useCallback((id: string) => {
+    setExpandedRecord((prev) => (prev === id ? null : id));
+  }, []);
+
+  // CSV export
+  const handleExportCsv = useCallback(async () => {
+    setExporting(true);
+    try {
+      // Fetch ALL records (up to 10000) for export
+      const params = new URLSearchParams({ page: "1", pageSize: "10000" });
+      if (objectTypeFilter) params.set("objectType", objectTypeFilter);
+      if (search) params.set("search", search);
+
+      const res = await fetch(`/api/integrations/${connectorId}/records?${params}`);
+      if (!res.ok) throw new Error("Export fallito");
+      const data: RecordsApiResponse = await res.json();
+
+      if (data.records.length === 0) return;
+
+      // Collect all unique data keys
+      const allKeys = new Set<string>();
+      data.records.forEach((r) => {
+        Object.keys(r.data || {}).forEach((k) => allKeys.add(k));
+      });
+      const dataKeys = Array.from(allKeys).sort();
+
+      // Build CSV
+      const headers = ["external_id", "object_type", "synced_at", ...dataKeys];
+      const csvRows = [headers.join(",")];
+
+      data.records.forEach((r) => {
+        const row = [
+          csvEscape(r.external_id),
+          csvEscape(r.object_type),
+          csvEscape(r.synced_at),
+          ...dataKeys.map((k) => csvEscape(String(r.data?.[k] ?? ""))),
+        ];
+        csvRows.push(row.join(","));
+      });
+
+      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${connectorId}-records-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Errore durante l'export CSV");
+    } finally {
+      setExporting(false);
+    }
+  }, [connectorId, objectTypeFilter, search]);
+
+  // Toggle record selection
+  const toggleRecordSelection = useCallback((id: string) => {
+    setSelectedRecordIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedRecordIds.size === records.length) {
+      setSelectedRecordIds(new Set());
+    } else {
+      setSelectedRecordIds(new Set(records.map((r) => r.id)));
+    }
+  }, [records, selectedRecordIds.size]);
+
+  // Push handler
+  const handlePush = useCallback(async () => {
+    if (!pushTarget || selectedRecordIds.size === 0) return;
+    setPushing(true);
+    setPushResult(null);
+    try {
+      const res = await fetch(`/api/integrations/${pushTarget}/push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceConnectorId: connectorId,
+          entityType: objectTypeFilter || records[0]?.object_type || "contact",
+          targetEntityType: pushTargetEntity || undefined,
+          recordIds: Array.from(selectedRecordIds),
+        }),
+      });
+      const data = await res.json();
+      setPushResult({
+        success: data.success ?? false,
+        created: data.pushResult?.created,
+        updated: data.pushResult?.updated,
+        failed: data.pushResult?.failed,
+        errors: data.errors,
+      });
+    } catch {
+      setPushResult({ success: false, errors: ["Errore di rete durante il push"] });
+    } finally {
+      setPushing(false);
+    }
+  }, [pushTarget, pushTargetEntity, selectedRecordIds, connectorId, objectTypeFilter, records]);
+
+  const totalRecords = Object.values(breakdown).reduce((a, b) => a + b, 0);
+  const totalPages = Math.ceil(total / pageSize);
+
+  // Extract display fields from a record's data
+  const getDisplayValue = (data: Record<string, unknown>, key: string): string => {
+    const val = data[key];
+    if (val === null || val === undefined) return "--";
+    if (typeof val === "object") return JSON.stringify(val).slice(0, 80);
+    return String(val);
+  };
+
+  // Get primary display fields for table
+  const primaryFields = useMemo(() => {
+    const fieldCounts: Record<string, number> = {};
+    records.forEach((r) => {
+      Object.keys(r.data || {}).forEach((k) => {
+        fieldCounts[k] = (fieldCounts[k] || 0) + 1;
+      });
+    });
+    // Pick top 4 most common fields (skip very internal ones)
+    return Object.entries(fieldCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k]) => k)
+      .filter((k) => !k.startsWith("hs_") && !k.startsWith("_"))
+      .slice(0, 4);
+  }, [records]);
+
+  if (loading && records.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--fg-muted)" }} />
+        <span className="ml-3 text-sm" style={{ color: "var(--fg-muted)" }}>Caricamento record...</span>
+      </div>
+    );
+  }
+
+  if (error && records.length === 0) {
+    return (
+      <div
+        className="flex items-center gap-3 p-4 rounded-xl text-sm"
+        style={{
+          background: "rgba(229, 141, 120, 0.1)",
+          border: "1px solid rgba(229, 141, 120, 0.3)",
+          color: "var(--error)",
+        }}
+      >
+        <AlertCircle className="w-5 h-5 shrink-0" />
+        <span>{error}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header with total + export */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-semibold" style={{ color: "var(--fg-primary)" }}>
+            Record Sincronizzati
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: "var(--fg-secondary)" }}>
+            {totalRecords.toLocaleString("it-IT")} record da {connectorName}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Push button — visible when records are selected */}
+          {selectedRecordIds.size > 0 && (
+            <button
+              onClick={() => setShowPushModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-dark, #E85A24))" }}
+            >
+              <Send className="w-4 h-4" />
+              Invia {selectedRecordIds.size} record...
+            </button>
+          )}
+          <button
+            onClick={handleExportCsv}
+            disabled={exporting || totalRecords === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02] disabled:opacity-50"
+            style={{
+              background: "var(--bg-overlay)",
+              color: "var(--fg-secondary)",
+              border: "1px solid var(--border-dark-subtle)",
+            }}
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Esporta CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Entity breakdown pills */}
+      {Object.keys(breakdown).length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => handleFilterType(null)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+            style={{
+              background: !objectTypeFilter
+                ? "rgba(255, 107, 53, 0.15)"
+                : "var(--bg-overlay)",
+              color: !objectTypeFilter ? "var(--accent)" : "var(--fg-muted)",
+              border: `1px solid ${!objectTypeFilter ? "rgba(255, 107, 53, 0.3)" : "var(--border-dark-subtle)"}`,
+            }}
+          >
+            <Database className="w-3 h-3" />
+            Tutti ({totalRecords})
+          </button>
+          {Object.entries(breakdown)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type, count]) => (
+              <button
+                key={type}
+                onClick={() => handleFilterType(objectTypeFilter === type ? null : type)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                style={{
+                  background:
+                    objectTypeFilter === type
+                      ? "rgba(255, 107, 53, 0.15)"
+                      : "var(--bg-overlay)",
+                  color: objectTypeFilter === type ? "var(--accent)" : "var(--fg-muted)",
+                  border: `1px solid ${objectTypeFilter === type ? "rgba(255, 107, 53, 0.3)" : "var(--border-dark-subtle)"}`,
+                }}
+              >
+                {entityTypeLabel(type)} ({count})
+              </button>
+            ))}
+        </div>
+      )}
+
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+          style={{ color: "var(--fg-muted)" }}
+        />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Cerca per nome, email, azienda... (Invio per cercare)"
+          className="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+          style={{
+            background: "var(--bg-raised)",
+            color: "var(--fg-primary)",
+            border: "1px solid var(--border-dark-subtle)",
+          }}
+        />
+        {searchInput && (
+          <button
+            onClick={handleSearchClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs px-2 py-0.5 rounded transition-colors"
+            style={{ color: "var(--fg-muted)" }}
+          >
+            &times;
+          </button>
+        )}
+      </div>
+
+      {/* Error banner (for non-blocking errors) */}
+      {error && (
+        <div
+          className="flex items-center gap-3 p-3 rounded-xl mb-4 text-sm"
+          style={{
+            background: "rgba(229, 141, 120, 0.1)",
+            border: "1px solid rgba(229, 141, 120, 0.3)",
+            color: "var(--error)",
+          }}
+        >
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Records table */}
+      {records.length === 0 ? (
+        search ? (
+          <div
+            className="rounded-xl p-8 text-center"
+            style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark-subtle)" }}
+          >
+            <Database className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--fg-muted)" }} />
+            <p className="text-sm" style={{ color: "var(--fg-secondary)" }}>
+              Nessun record trovato per &ldquo;{search}&rdquo;
+            </p>
+          </div>
+        ) : (
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark-subtle)" }}
+          >
+            <NoRecords />
+          </div>
+        )
+      ) : (
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark-subtle)" }}
+        >
+          {/* Table header */}
+          <div
+            className="grid gap-2 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider items-center"
+            style={{
+              gridTemplateColumns: `28px 40px 120px ${primaryFields.map(() => "1fr").join(" ")} 100px 40px`,
+              color: "var(--fg-invisible)",
+              background: "var(--bg-overlay)",
+              borderBottom: "1px solid var(--border-dark-subtle)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={selectedRecordIds.size === records.length && records.length > 0}
+              onChange={toggleSelectAll}
+              className="w-3.5 h-3.5 rounded cursor-pointer accent-[#FF6B35]"
+            />
+            <span>#</span>
+            <span>Tipo</span>
+            {primaryFields.map((f) => (
+              <span key={f} className="truncate">{f}</span>
+            ))}
+            <span>Sync</span>
+            <span />
+          </div>
+
+          {/* Table rows */}
+          {records.map((record, idx) => {
+            const isExpanded = expandedRecord === record.id;
+            return (
+              <div key={record.id}>
+                <div
+                  className="w-full grid gap-2 px-4 py-3 text-left transition-colors hover:bg-[var(--bg-overlay)] items-center cursor-pointer"
+                  style={{
+                    gridTemplateColumns: `28px 40px 120px ${primaryFields.map(() => "1fr").join(" ")} 100px 40px`,
+                    borderBottom: isExpanded ? "none" : "1px solid var(--border-dark-subtle)",
+                  }}
+                  onClick={() => toggleRecord(record.id)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedRecordIds.has(record.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleRecordSelection(record.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-3.5 h-3.5 rounded cursor-pointer accent-[#FF6B35]"
+                  />
+                  <span className="text-xs font-mono" style={{ color: "var(--fg-invisible)" }}>
+                    {(page - 1) * pageSize + idx + 1}
+                  </span>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full truncate text-center"
+                    style={{
+                      background: entityTypeColor(record.object_type).bg,
+                      color: entityTypeColor(record.object_type).fg,
+                    }}
+                  >
+                    {entityTypeLabel(record.object_type)}
+                  </span>
+                  {primaryFields.map((f) => (
+                    <span
+                      key={f}
+                      className="text-sm truncate"
+                      style={{ color: "var(--fg-primary)" }}
+                    >
+                      {getDisplayValue(record.data, f)}
+                    </span>
+                  ))}
+                  <span className="text-xs font-mono" style={{ color: "var(--fg-muted)" }}>
+                    {formatDateTime(record.synced_at)}
+                  </span>
+                  <span className="flex justify-center">
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4" style={{ color: "var(--fg-muted)" }} />
+                    ) : (
+                      <Eye className="w-4 h-4" style={{ color: "var(--fg-muted)" }} />
+                    )}
+                  </span>
+                </div>
+
+                {/* Expanded record detail */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        className="mx-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+                      >
+                        {/* Raw data */}
+                        <div>
+                          <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-muted)" }}>
+                            Dati Originali
+                          </h4>
+                          <pre
+                            className="p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap max-h-[300px] overflow-y-auto"
+                            style={{
+                              background: "var(--bg-base)",
+                              border: "1px solid var(--border-dark-subtle)",
+                              color: "var(--fg-secondary)",
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {JSON.stringify(record.data, null, 2)}
+                          </pre>
+                        </div>
+
+                        {/* Mapped fields */}
+                        <div>
+                          <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-muted)" }}>
+                            Campi Mappati
+                          </h4>
+                          {Object.keys(record.mapped_fields || {}).length > 0 ? (
+                            <pre
+                              className="p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap max-h-[300px] overflow-y-auto"
+                              style={{
+                                background: "var(--bg-base)",
+                                border: "1px solid var(--border-dark-subtle)",
+                                color: "var(--fg-secondary)",
+                                fontFamily: "monospace",
+                              }}
+                            >
+                              {JSON.stringify(record.mapped_fields, null, 2)}
+                            </pre>
+                          ) : (
+                            <div
+                              className="p-4 rounded-lg text-xs text-center"
+                              style={{
+                                background: "var(--bg-base)",
+                                border: "1px solid var(--border-dark-subtle)",
+                                color: "var(--fg-muted)",
+                              }}
+                            >
+                              Nessun campo mappato. Configura la mappatura nel tab Mapping.
+                            </div>
+                          )}
+
+                          {/* Record metadata */}
+                          <div className="mt-3 text-xs space-y-1" style={{ color: "var(--fg-muted)" }}>
+                            <div><strong>ID esterno:</strong> {record.external_id}</div>
+                            <div><strong>Tipo:</strong> {record.object_type}</div>
+                            <div><strong>Ultimo sync:</strong> {new Date(record.synced_at).toLocaleString("it-IT")}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-xs" style={{ color: "var(--fg-muted)" }}>
+            Pagina {page} di {totalPages} &middot; {total.toLocaleString("it-IT")} record
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || loading}
+              className="p-2 rounded-lg transition-colors disabled:opacity-30"
+              style={{ background: "var(--bg-overlay)", color: "var(--fg-secondary)" }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || loading}
+              className="p-2 rounded-lg transition-colors disabled:opacity-30"
+              style={{ background: "var(--bg-overlay)", color: "var(--fg-secondary)" }}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading overlay for pagination */}
+      {loading && records.length > 0 && (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--fg-muted)" }} />
+          <span className="ml-2 text-xs" style={{ color: "var(--fg-muted)" }}>Aggiornamento...</span>
+        </div>
+      )}
+
+      {/* Push Modal */}
+      <AnimatePresence>
+        {showPushModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.6)" }}
+            onClick={() => !pushing && setShowPushModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg rounded-2xl p-6"
+              style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--fg-primary)" }}>
+                Invia {selectedRecordIds.size} record
+              </h3>
+              <p className="text-sm mb-5" style={{ color: "var(--fg-muted)" }}>
+                Da {connectorName} verso un altro sistema
+              </p>
+
+              {/* Target connector selector */}
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-muted)" }}>
+                Connettore di destinazione
+              </label>
+              <select
+                value={pushTarget}
+                onChange={(e) => setPushTarget(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-sm mb-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+                style={{
+                  background: "var(--bg-base)",
+                  color: "var(--fg-primary)",
+                  border: "1px solid var(--border-dark-subtle)",
+                }}
+              >
+                <option value="">Seleziona connettore...</option>
+                <option value="hubspot">HubSpot CRM</option>
+                <option value="salesforce">Salesforce</option>
+                <option value="fatture-in-cloud">Fatture in Cloud</option>
+                <option value="google-drive">Google Drive</option>
+              </select>
+
+              {/* Target entity type */}
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--fg-muted)" }}>
+                Tipo entita target (opzionale)
+              </label>
+              <select
+                value={pushTargetEntity}
+                onChange={(e) => setPushTargetEntity(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-sm mb-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+                style={{
+                  background: "var(--bg-base)",
+                  color: "var(--fg-primary)",
+                  border: "1px solid var(--border-dark-subtle)",
+                }}
+              >
+                <option value="">Stesso tipo sorgente</option>
+                <option value="contacts">Contatti</option>
+                <option value="companies">Aziende</option>
+                <option value="deals">Affari</option>
+                <option value="invoices">Fatture</option>
+                <option value="tickets">Ticket</option>
+                <option value="documents">Documenti</option>
+              </select>
+
+              {/* Push result */}
+              {pushResult && (
+                <div
+                  className="flex items-center gap-3 p-4 rounded-xl mb-4 text-sm"
+                  style={{
+                    background: pushResult.success
+                      ? "rgba(93, 228, 199, 0.1)"
+                      : "rgba(229, 141, 120, 0.1)",
+                    border: `1px solid ${pushResult.success ? "rgba(93, 228, 199, 0.3)" : "rgba(229, 141, 120, 0.3)"}`,
+                    color: pushResult.success ? "var(--success)" : "var(--error)",
+                  }}
+                >
+                  {pushResult.success ? (
+                    <CheckCircle className="w-5 h-5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                  )}
+                  <div>
+                    {pushResult.success ? (
+                      <span>
+                        {pushResult.created ?? 0} creati, {pushResult.updated ?? 0} aggiornati
+                        {(pushResult.failed ?? 0) > 0 && `, ${pushResult.failed} falliti`}
+                      </span>
+                    ) : (
+                      <span>{pushResult.errors?.[0] || "Push fallito"}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowPushModal(false);
+                    setPushResult(null);
+                  }}
+                  disabled={pushing}
+                  className="px-4 py-2 rounded-xl text-sm transition-colors"
+                  style={{ color: "var(--fg-secondary)" }}
+                >
+                  {pushResult ? "Chiudi" : "Annulla"}
+                </button>
+                {!pushResult && (
+                  <button
+                    onClick={handlePush}
+                    disabled={pushing || !pushTarget}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02] disabled:opacity-50"
+                    style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-dark, #E85A24))" }}
+                  >
+                    {pushing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Invio in corso...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Invia {selectedRecordIds.size} record
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Helpers for Data Tab ───
+
+function entityTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    contact: "Contatto",
+    contacts: "Contatto",
+    company: "Azienda",
+    companies: "Azienda",
+    deal: "Affare",
+    deals: "Affare",
+    ticket: "Ticket",
+    tickets: "Ticket",
+    invoice: "Fattura",
+    invoices: "Fattura",
+    document: "Documento",
+    documents: "Documento",
+  };
+  return labels[type.toLowerCase()] || type;
+}
+
+function entityTypeColor(type: string): { bg: string; fg: string } {
+  const colors: Record<string, { bg: string; fg: string }> = {
+    contact: { bg: "rgba(78, 205, 196, 0.15)", fg: "#4ECDC4" },
+    contacts: { bg: "rgba(78, 205, 196, 0.15)", fg: "#4ECDC4" },
+    company: { bg: "rgba(167, 139, 250, 0.15)", fg: "#A78BFA" },
+    companies: { bg: "rgba(167, 139, 250, 0.15)", fg: "#A78BFA" },
+    deal: { bg: "rgba(255, 200, 50, 0.15)", fg: "#FFC832" },
+    deals: { bg: "rgba(255, 200, 50, 0.15)", fg: "#FFC832" },
+    ticket: { bg: "rgba(255, 107, 107, 0.15)", fg: "#FF6B6B" },
+    tickets: { bg: "rgba(255, 107, 107, 0.15)", fg: "#FF6B6B" },
+  };
+  return colors[type.toLowerCase()] || { bg: "var(--bg-overlay)", fg: "var(--fg-muted)" };
+}
+
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }

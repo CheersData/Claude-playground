@@ -15,8 +15,11 @@ import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import {
   getUnifiedSessions,
-  toDTO,
+  toDTOWithAgents,
 } from "@/lib/company/sessions";
+import { getActiveAgentEvents } from "@/lib/agent-broadcast";
+import type { AgentDTO } from "@/lib/company/sessions";
+import type { AgentEvent } from "@/lib/agent-broadcast";
 import type { NextRequest } from "next/server";
 
 export async function GET(req: Request) {
@@ -41,8 +44,25 @@ export async function GET(req: Request) {
       includeOrphans,
     });
 
+    // Build AgentDTO list from active agent events (ADR-005)
+    const agentEvents: AgentEvent[] = getActiveAgentEvents();
+    const agentDTOs: AgentDTO[] = agentEvents.map((ev) => ({
+      id: ev.id,
+      department: ev.department,
+      task: ev.task,
+      status: ev.status,
+      timestamp: ev.timestamp,
+      // Pass through parentPid and sessionId for toDTOWithAgents filtering
+      ...(ev.parentPid !== undefined ? { parentPid: ev.parentPid } : {}),
+      ...(ev.sessionId !== undefined ? { sessionId: ev.sessionId } : {}),
+    }));
+
     const activeCount = sessions.filter((s) => s.status === "active").length;
     const closingCount = sessions.filter((s) => s.status === "closing").length;
+
+    // Build session DTOs with agents synthesized per session
+    const sessionDTOs = sessions.map((s) => toDTOWithAgents(s, agentDTOs));
+    const totalAgents = sessionDTOs.reduce((sum, s) => sum + s.agentCount, 0);
 
     return new Response(
       JSON.stringify({
@@ -51,7 +71,8 @@ export async function GET(req: Request) {
         closingCount,
         total: sessions.length,
         orphanCount,
-        sessions: sessions.map(toDTO),
+        totalAgents,
+        sessions: sessionDTOs,
       }),
       {
         status: 200,

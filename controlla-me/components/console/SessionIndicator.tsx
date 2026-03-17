@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Monitor, Bot, Clock, X, AlertCircle } from "lucide-react";
+import { Monitor, Bot, Clock, Terminal, X, AlertCircle } from "lucide-react";
 import { SessionDetailPanel } from "@/components/ops/SessionDetailPanel";
 
 // ─── Types ───
 
 interface Session {
   pid: number;
-  type: "console" | "task-runner" | "daemon";
+  type: "console" | "task-runner" | "daemon" | "interactive";
   target: string;
   taskId?: string;
   startedAt: string;
@@ -28,9 +28,10 @@ interface SessionIndicatorProps {
 // ─── Constants ───
 
 const TYPE_CONFIG: Record<Session["type"], { icon: typeof Monitor; label: string }> = {
-  console:       { icon: Monitor, label: "Console" },
-  "task-runner": { icon: Bot,     label: "Task Runner" },
-  daemon:        { icon: Clock,   label: "Daemon" },
+  console:       { icon: Monitor,  label: "Console" },
+  "task-runner": { icon: Bot,      label: "Task Runner" },
+  daemon:        { icon: Clock,    label: "Daemon" },
+  interactive:   { icon: Terminal, label: "Interactive" },
 };
 
 const DEPT_LABELS: Record<string, string> = {
@@ -49,6 +50,7 @@ const DEPT_LABELS: Record<string, string> = {
   protocols:            "Protocolli",
   "ux-ui":              "UX/UI",
   acceleration:         "Accelerazione",
+  interactive:          "Boss Terminal",
 };
 
 // ─── Helpers ───
@@ -109,7 +111,7 @@ export default function SessionIndicator({ onSessionsUpdate }: SessionIndicatorP
 
   useEffect(() => {
     fetchSessions();
-    const interval = setInterval(fetchSessions, 5000);
+    const interval = setInterval(fetchSessions, 15_000);
     return () => clearInterval(interval);
   }, [fetchSessions]);
 
@@ -286,7 +288,9 @@ export default function SessionIndicator({ onSessionsUpdate }: SessionIndicatorP
                                 ? "bg-emerald-500/15 text-emerald-400"
                                 : session.type === "task-runner"
                                   ? "bg-[#A78BFA]/15 text-[#A78BFA]"
-                                  : "bg-[#FFC832]/15 text-[#FFC832]"
+                                  : session.type === "interactive"
+                                    ? "bg-sky-500/15 text-sky-400"
+                                    : "bg-[#FFC832]/15 text-[#FFC832]"
                             }`}>
                               <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                             </div>

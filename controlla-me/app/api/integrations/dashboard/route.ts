@@ -108,20 +108,79 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       integrations: [],
       errors: [],
+      syncHistory: [],
     });
   }
 
-  // Fetch recent sync errors across all connections
+  // Fetch all sync logs from last 7 days across all connections
+  // Used for: error log, per-connector sync counts, and global sync history
   const connectionIds = connections.map((c) => c.id);
-  const { data: errorLogs } = await supabase
+  const sevenDaysAgo = new Date(
+    Date.now() - 7 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data: allSyncLogs } = await supabase
     .from("integration_sync_log")
     .select(
-      "connection_id, status, started_at, error_details, items_failed"
+      "connection_id, status, started_at, completed_at, items_processed, items_failed, error_details"
     )
     .in("connection_id", connectionIds)
-    .eq("status", "error")
+    .gte("started_at", sevenDaysAgo)
     .order("started_at", { ascending: false })
-    .limit(20);
+    .limit(500);
+
+  const syncLogs = allSyncLogs ?? [];
+
+  // Extract error logs from all sync logs
+  const errorLogs = syncLogs.filter((log) => log.status === "error");
+
+  // Build per-connection sync record counts from last 7 days
+  const perConnectionSyncRecords = new Map<
+    string,
+    { success: number; failed: number; syncCount: number }
+  >();
+  for (const log of syncLogs) {
+    const connId = log.connection_id as string;
+    const entry = perConnectionSyncRecords.get(connId) ?? {
+      success: 0,
+      failed: 0,
+      syncCount: 0,
+    };
+    entry.success += (log.items_processed as number) ?? 0;
+    entry.failed += (log.items_failed as number) ?? 0;
+    entry.syncCount += 1;
+    perConnectionSyncRecords.set(connId, entry);
+  }
+
+  // Build 7-day aggregated sync history across all connections
+  const historyByDate = new Map<
+    string,
+    { success: number; failed: number }
+  >();
+
+  // Pre-fill 7 days with zeros (oldest first)
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    historyByDate.set(dateStr, { success: 0, failed: 0 });
+  }
+
+  for (const log of syncLogs) {
+    const date = (log.started_at as string).split("T")[0];
+    const entry = historyByDate.get(date);
+    if (entry) {
+      entry.success += (log.items_processed as number) ?? 0;
+      entry.failed += (log.items_failed as number) ?? 0;
+    }
+  }
+
+  const syncHistory = Array.from(historyByDate.entries()).map(
+    ([date, stats]) => ({
+      date,
+      success: stats.success,
+      failed: stats.failed,
+    })
+  );
 
   // Build dashboard integrations
   const integrations = connections.map((conn) => {
@@ -155,11 +214,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Find errors for this connection
-    const connErrors = (errorLogs || []).filter(
+    const connErrors = errorLogs.filter(
       (log) => log.connection_id === conn.id
     );
-    const latestErrorDetails = connErrors[0]?.error_details as Record<string, unknown> | null;
-    const latestError = (latestErrorDetails?.message as string) || undefined;
+    const latestErrorDetails = connErrors[0]?.error_details as Record<
+      string,
+      unknown
+    > | null;
+    const latestError =
+      (latestErrorDetails?.message as string) || undefined;
+
+    // Per-connection 7d sync summary
+    const connSyncStats = perConnectionSyncRecords.get(conn.id as string);
 
     return {
       id: connectorType,
@@ -172,11 +238,14 @@ export async function GET(req: NextRequest) {
       recordCount: (conn.last_sync_items as number) || 0,
       entities,
       error: latestError || undefined,
+      recentSyncCount: connSyncStats?.syncCount ?? 0,
+      recentRecordsSynced: connSyncStats?.success ?? 0,
+      recentRecordsFailed: connSyncStats?.failed ?? 0,
     };
   });
 
   // Build error log entries
-  const errors = (errorLogs || []).map((log) => {
+  const errors = errorLogs.map((log) => {
     const conn = connections.find((c) => c.id === log.connection_id);
     const connectorType = (conn?.connector_type as string) || "unknown";
     const startedAt = log.started_at as string;
@@ -187,11 +256,15 @@ export async function GET(req: NextRequest) {
         })
       : "--";
 
-    const errorDetails = log.error_details as Record<string, unknown> | null;
+    const errorDetails = log.error_details as Record<
+      string,
+      unknown
+    > | null;
     return {
       timestamp: time,
       connector: CONNECTOR_NAMES[connectorType] || connectorType,
-      message: (errorDetails?.message as string) || "Errore sconosciuto",
+      message:
+        (errorDetails?.message as string) || "Errore sconosciuto",
       details: errorDetails?.details as string | undefined,
     };
   });
@@ -199,6 +272,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     integrations,
     errors,
+    syncHistory,
   });
 }
 

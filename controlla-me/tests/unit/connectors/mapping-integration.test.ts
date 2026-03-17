@@ -244,6 +244,10 @@ describe("Store integration — MappingEngine _mapped_fields", () => {
         closeDate: null,
         priority: null,
         description: null,
+        engagementType: null,
+        engagementTimestamp: null,
+        ownerId: null,
+        associations: [],
         rawProperties: {},
       };
 
@@ -278,6 +282,10 @@ describe("Store integration — MappingEngine _mapped_fields", () => {
         closeDate: null,
         priority: null,
         description: null,
+        engagementType: null,
+        engagementTimestamp: null,
+        ownerId: null,
+        associations: [],
         rawProperties: {},
         // MappingEngine output (from loadGenericPipeline)
         _mapped_fields: {
@@ -362,7 +370,7 @@ describe("Store integration — MappingEngine _mapped_fields", () => {
       expect(row.mapped_fields.company_name).toBe("Acme S.r.l.");
       expect(row.mapped_fields.user_custom_note).toBe("Nota personalizzata");
       // Default fields should still be present
-      expect(row.mapped_fields.net_amount).toBe(1000);
+      expect(row.mapped_fields.net_amount_cents).toBe(1000);
       expect(row.mapped_fields.vat_number).toBe("IT12345678901");
       expect(row.mapping_confidence).toBe(0.98);
     });

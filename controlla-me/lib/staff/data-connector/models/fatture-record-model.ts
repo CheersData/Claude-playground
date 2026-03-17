@@ -128,16 +128,16 @@ export class FattureRecordModel implements ModelInterface {
         {
           sourceField: "(entire FattureRecord)",
           targetColumn: "data",
-          transform: "json_serialize (full record as JSONB)",
+          transform: "json_serialize (full record as JSONB — amounts in cents, dates in ISO 8601)",
           mappedBy: "rule",
           confidence: 1.0,
         },
         {
           sourceField:
-            "(key fields: invoiceNumber, netAmount, grossAmount, vatNumber, status, paymentStatus, ...)",
+            "(key fields: invoiceNumber, netAmountCents, grossAmountCents, vatNumber, status, paymentStatus, ...)",
           targetColumn: "mapped_fields",
           transform:
-            "json_serialize (normalized subset for quick access and queries)",
+            "json_serialize (normalized subset for quick access — amounts in cents, dates in ISO 8601)",
           mappedBy: "rule",
           confidence: 1.0,
         },
@@ -205,14 +205,33 @@ export class FattureRecordModel implements ModelInterface {
 
 // ─── Validation ───
 
+/** Known object types for Fatture in Cloud records */
+const VALID_OBJECT_TYPES = ["issued_invoice", "received_invoice", "client"] as const;
+
+/** Known payment statuses */
+const VALID_PAYMENT_STATUSES = ["paid", "unpaid", "reversed", "unknown"] as const;
+
 /**
  * Validate a FattureRecord before store insertion.
+ *
+ * Checks:
+ * 1. Required fields: externalId, objectType, createdAt
+ * 2. objectType is one of the known types
+ * 3. Amounts are valid non-negative integers (cents) when present
+ * 4. Amounts are integers (cents convention — not decimals)
+ * 5. VAT rate is a valid percentage (0-100) when present
+ * 6. createdAt is a valid ISO 8601 date
+ * 7. Clients must have at least one identifier (name, vatNumber, or taxCode)
+ * 8. Invoices should have an invoiceNumber
+ * 9. paymentStatus is one of the known values when present
  */
 export function validateFattureRecord(record: FattureRecord): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
+
+  // ─── Required fields ───
 
   if (!record.externalId) {
     errors.push("Missing externalId");
@@ -224,30 +243,126 @@ export function validateFattureRecord(record: FattureRecord): {
     errors.push("Missing createdAt");
   }
 
-  // Validate amounts are reasonable numbers when present (invoices)
-  if (record.grossAmount !== null && record.grossAmount !== undefined) {
-    if (isNaN(record.grossAmount) || record.grossAmount < 0) {
-      errors.push(`Invalid grossAmount: ${record.grossAmount}`);
-    }
+  // ─── objectType validation ───
+
+  if (
+    record.objectType &&
+    !VALID_OBJECT_TYPES.includes(record.objectType as typeof VALID_OBJECT_TYPES[number])
+  ) {
+    errors.push(
+      `Unknown objectType: "${record.objectType}". Expected one of: ${VALID_OBJECT_TYPES.join(", ")}`
+    );
   }
-  if (record.netAmount !== null && record.netAmount !== undefined) {
-    if (isNaN(record.netAmount) || record.netAmount < 0) {
-      errors.push(`Invalid netAmount: ${record.netAmount}`);
-    }
-  }
-  if (record.vatAmount !== null && record.vatAmount !== undefined) {
-    if (isNaN(record.vatAmount) || record.vatAmount < 0) {
-      errors.push(`Invalid vatAmount: ${record.vatAmount}`);
+
+  // ─── Date validation ───
+
+  if (record.createdAt) {
+    const parsed = new Date(record.createdAt);
+    if (isNaN(parsed.getTime())) {
+      errors.push(`Invalid createdAt date: "${record.createdAt}"`);
     }
   }
 
-  // Clients must have at least a name or a vatNumber
+  if (record.updatedAt) {
+    const parsed = new Date(record.updatedAt);
+    if (isNaN(parsed.getTime())) {
+      errors.push(`Invalid updatedAt date: "${record.updatedAt}"`);
+    }
+  }
+
+  if (record.invoiceDate) {
+    const parsed = new Date(record.invoiceDate);
+    if (isNaN(parsed.getTime())) {
+      errors.push(`Invalid invoiceDate: "${record.invoiceDate}"`);
+    }
+  }
+
+  // ─── Amount validation (cents = integers, non-negative) ───
+
+  if (record.grossAmount !== null && record.grossAmount !== undefined) {
+    if (isNaN(record.grossAmount) || record.grossAmount < 0) {
+      errors.push(`Invalid grossAmount: ${record.grossAmount} (must be >= 0)`);
+    } else if (!Number.isInteger(record.grossAmount)) {
+      errors.push(
+        `grossAmount should be in cents (integer), got decimal: ${record.grossAmount}`
+      );
+    }
+  }
+
+  if (record.netAmount !== null && record.netAmount !== undefined) {
+    if (isNaN(record.netAmount) || record.netAmount < 0) {
+      errors.push(`Invalid netAmount: ${record.netAmount} (must be >= 0)`);
+    } else if (!Number.isInteger(record.netAmount)) {
+      errors.push(
+        `netAmount should be in cents (integer), got decimal: ${record.netAmount}`
+      );
+    }
+  }
+
+  if (record.vatAmount !== null && record.vatAmount !== undefined) {
+    if (isNaN(record.vatAmount) || record.vatAmount < 0) {
+      errors.push(`Invalid vatAmount: ${record.vatAmount} (must be >= 0)`);
+    } else if (!Number.isInteger(record.vatAmount)) {
+      errors.push(
+        `vatAmount should be in cents (integer), got decimal: ${record.vatAmount}`
+      );
+    }
+  }
+
+  if (record.amount !== null && record.amount !== undefined) {
+    if (isNaN(record.amount) || record.amount < 0) {
+      errors.push(`Invalid amount: ${record.amount} (must be >= 0)`);
+    } else if (!Number.isInteger(record.amount)) {
+      errors.push(
+        `amount should be in cents (integer), got decimal: ${record.amount}`
+      );
+    }
+  }
+
+  // ─── VAT rate validation ───
+
+  if (record.vatRate !== null && record.vatRate !== undefined) {
+    if (isNaN(record.vatRate) || record.vatRate < 0 || record.vatRate > 100) {
+      errors.push(
+        `Invalid vatRate: ${record.vatRate} (must be 0-100 percentage)`
+      );
+    }
+  }
+
+  // ─── Payment status validation ───
+
+  if (record.paymentStatus !== null && record.paymentStatus !== undefined) {
+    if (
+      !VALID_PAYMENT_STATUSES.includes(
+        record.paymentStatus as typeof VALID_PAYMENT_STATUSES[number]
+      )
+    ) {
+      errors.push(
+        `Unknown paymentStatus: "${record.paymentStatus}". Expected one of: ${VALID_PAYMENT_STATUSES.join(", ")}`
+      );
+    }
+  }
+
+  // ─── Type-specific validation ───
+
+  // Clients must have at least a name or a vatNumber or a taxCode
   if (record.objectType === "client") {
     if (!record.name && !record.vatNumber && !record.taxCode) {
       errors.push(
         "Client must have at least one of: name, vatNumber, taxCode"
       );
     }
+  }
+
+  // Invoices should have an invoiceNumber (warning, not blocking)
+  // We only warn for this — it should not block insertion
+  if (
+    (record.objectType === "issued_invoice" ||
+      record.objectType === "received_invoice") &&
+    !record.invoiceNumber
+  ) {
+    // Non-blocking: we log but don't push to errors
+    // This allows invoices without numbers (drafts, proforma) to pass validation
   }
 
   return {

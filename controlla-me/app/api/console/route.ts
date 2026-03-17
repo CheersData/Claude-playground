@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
         }
       };
 
+      // ADR-005: Attach parentPid and sessionId to all broadcastConsoleAgent calls.
+      // The console route runs the pipeline in-process (not via claude -p child),
+      // so parentPid is the Next.js server PID and sessionId comes from the token sid.
+      const terminalPid = process.pid;
+      const terminalSessionId = sessionCtx.sid;
+
       const sendAgent = (
         phase: ConsoleAgentPhase,
         status: ConsolePhaseStatus,
@@ -69,9 +75,12 @@ export async function POST(req: NextRequest) {
       ) => {
         send("agent", { phase, status, ...extra });
         // Broadcast to /api/company/agents/live for Ops dashboard
+        // ADR-005: include parentPid + sessionId so agents are grouped under this terminal
         const mappedStatus = status === "skipped" ? "done" : status as "running" | "done" | "error";
         broadcastConsoleAgent(phase, mappedStatus, {
           task: extra?.summary as string ?? phase,
+          parentPid: terminalPid,
+          sessionId: terminalSessionId,
         });
       };
 

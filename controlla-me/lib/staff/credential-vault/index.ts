@@ -390,8 +390,9 @@ export class CredentialVault {
       const admin = createAdminClient();
       await admin.from("integration_credential_audit").insert({
         credential_id: credentialId,
+        user_id: userId,
         action,
-        actor_id: userId,
+        actor: "credential_vault",
         metadata: metadata ?? {},
       });
     } catch (err) {

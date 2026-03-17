@@ -134,6 +134,12 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/company/agents/test": { windowSec: 60, max: 10 },
   "api/company/costs": { windowSec: 60, max: 30 },
   "api/company/cron": { windowSec: 60, max: 5 },
+  // ADR-005: Terminal monitoring — kill is destructive, output is SSE long-lived
+  "api/company/sessions/kill": { windowSec: 60, max: 5 },
+  "api/company/sessions/output": { windowSec: 60, max: 30 },
+  // Sessions polling — /ops polls frequently
+  "api/company/sessions/heartbeat": { windowSec: 60, max: 20 },
+  "api/company/sessions": { windowSec: 60, max: 30 },
   // Polling endpoints — /ops e CompanyPanel li chiamano ogni 30s, servono limiti alti
   "api/company/status": { windowSec: 60, max: 120 },
   "api/company/summary": { windowSec: 60, max: 120 },
@@ -156,6 +162,28 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/integrations/credentials": { windowSec: 60, max: 15 },
   // SEC-M12: Integration marketplace browsing — public, IP-based
   "api/integrations/status": { windowSec: 60, max: 30 },
+  // INT-SEC-004: Integration sub-route rate limits
+  // OAuth authorize — prevents enumeration + redirect flood (1 flow at a time per user)
+  "api/integrations/authorize": { windowSec: 60, max: 5 },
+  // OAuth callback — rate-limited to prevent token exchange abuse
+  "api/integrations/callback": { windowSec: 60, max: 10 },
+  // Sync trigger — expensive operation (fetches external API + 4-agent pipeline)
+  "api/integrations/sync": { windowSec: 60, max: 3 },
+  // Push — expensive write operation to external API
+  "api/integrations/push": { windowSec: 60, max: 5 },
+  // Pause/resume — state-changing, prevent toggle flood
+  "api/integrations/pause": { windowSec: 60, max: 10 },
+  // Retry — re-triggers sync, rate-limit like sync
+  "api/integrations/retry": { windowSec: 60, max: 5 },
+  // Records — paginated read, reasonable limit
+  "api/integrations/records": { windowSec: 60, max: 30 },
+  // Dashboard — polling endpoint, higher limit
+  "api/integrations/dashboard": { windowSec: 60, max: 30 },
+  // Setup — one-time wizard completion, moderate limit
+  "api/integrations/setup": { windowSec: 60, max: 10 },
+  // Webhook — external providers push events, signature is primary auth
+  // 30/min per connector, defense-in-depth (providers can burst)
+  "api/integrations/webhook": { windowSec: 60, max: 30 },
   // SEC-M12: Integration connector detail/config — GET public, POST auth-protected
   "api/integrations": { windowSec: 60, max: 30 },
   // Default per endpoint non specificati

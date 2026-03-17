@@ -30,7 +30,10 @@ import { AuthenticatedBaseConnector } from "./authenticated-base";
 import type { AuthHandlerOptions } from "../auth";
 import {
   parseHubSpotObject,
+  enrichRecordsWithAssociations,
+  buildCompanyNameMap,
   PROPERTIES_BY_TYPE,
+  ASSOCIATIONS_BY_TYPE,
   type HubSpotRecord,
   type HubSpotObjectType,
   type HubSpotListResponse,
@@ -40,14 +43,16 @@ import type {
   ConnectResult,
   FetchResult,
   DataSource,
+  PushOptions,
+  PushResult,
 } from "../types";
 
 // ─── Config ───
 
 const HUBSPOT_API_BASE = "https://api.hubapi.com";
 
-/** HubSpot CRM object types to sync */
-const SYNC_TYPES: HubSpotObjectType[] = ["contact", "company", "deal", "ticket"];
+/** HubSpot CRM object types to sync (order matters: companies first for association enrichment) */
+const SYNC_TYPES: HubSpotObjectType[] = ["company", "contact", "deal", "ticket", "engagement"];
 
 /** Max items per page (HubSpot max is 100 for list, 200 for search) */
 const LIST_PAGE_SIZE = 100;
@@ -209,6 +214,8 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
             "companyName",
             "stage",
             "amount",
+            "engagementType",
+            "associations",
             "createdAt",
             "updatedAt",
           ],
@@ -246,23 +253,37 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
         ? globalLimit - allRecords.length
         : undefined;
 
-      const records = await this.fetchObjectType(type, { limit: perTypeLimit });
-      allRecords.push(...records);
-      this.log(`[HUBSPOT] ${type}: ${records.length} records fetched`);
+      try {
+        const records = await this.fetchObjectType(type, { limit: perTypeLimit });
+        allRecords.push(...records);
+        this.log(`[HUBSPOT] ${type}: ${records.length} records fetched`);
+      } catch (err) {
+        // Per-type errors (e.g. missing scopes for tickets/engagements) should not
+        // kill the entire sync — log and continue with remaining types.
+        const msg = err instanceof Error ? err.message : String(err);
+        this.log(`[HUBSPOT] ${type}: SKIPPED — ${msg}`);
+      }
     }
 
-    this.log(`[HUBSPOT] Total: ${allRecords.length} records`);
+    // Enrich records with association data (e.g. company names on deals/contacts)
+    // Companies are fetched first (SYNC_TYPES order), so we can build the lookup map.
+    const companyNames = buildCompanyNameMap(allRecords);
+    const enrichedRecords = companyNames.size > 0
+      ? enrichRecordsWithAssociations(allRecords, companyNames)
+      : allRecords;
+
+    this.log(`[HUBSPOT] Total: ${enrichedRecords.length} records (${companyNames.size} companies for enrichment)`);
 
     return {
       sourceId: this.source.id,
-      items: allRecords,
+      items: enrichedRecords,
       fetchedAt: new Date().toISOString(),
       metadata: {
         syncTypes: SYNC_TYPES,
         counts: Object.fromEntries(
           SYNC_TYPES.map((t) => [
             t,
-            allRecords.filter((r) => r.objectType === t).length,
+            enrichedRecords.filter((r) => r.objectType === t).length,
           ])
         ),
       },
@@ -286,22 +307,39 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
         ? globalLimit - allRecords.length
         : undefined;
 
-      const records = await this.fetchDeltaByType(type, since, {
-        limit: perTypeLimit,
-      });
-      allRecords.push(...records);
-      this.log(`[HUBSPOT] ${type} (delta): ${records.length} records`);
+      try {
+        const records = await this.fetchDeltaByType(type, since, {
+          limit: perTypeLimit,
+        });
+        allRecords.push(...records);
+        this.log(`[HUBSPOT] ${type} (delta): ${records.length} records`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.log(`[HUBSPOT] ${type} (delta): SKIPPED — ${msg}`);
+      }
     }
 
-    this.log(`[HUBSPOT] Delta total: ${allRecords.length} records`);
+    // Enrich records with association data
+    const companyNames = buildCompanyNameMap(allRecords);
+    const enrichedRecords = companyNames.size > 0
+      ? enrichRecordsWithAssociations(allRecords, companyNames)
+      : allRecords;
+
+    this.log(`[HUBSPOT] Delta total: ${enrichedRecords.length} records`);
 
     return {
       sourceId: this.source.id,
-      items: allRecords,
+      items: enrichedRecords,
       fetchedAt: new Date().toISOString(),
       metadata: {
         since,
         syncTypes: SYNC_TYPES,
+        counts: Object.fromEntries(
+          SYNC_TYPES.map((t) => [
+            t,
+            enrichedRecords.filter((r) => r.objectType === t).length,
+          ])
+        ),
       },
     };
   }
@@ -328,6 +366,13 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
         if (!response.ok) {
           const errorText = await response.text().catch(() => "");
           this.log(`[HUBSPOT] Error listing ${type}: HTTP ${response.status} — ${errorText.slice(0, 200)}`);
+          // If first page fails with 0 records, propagate the error
+          // so it surfaces in the sync log instead of silently returning 0 items.
+          if (records.length === 0) {
+            throw new Error(
+              `HubSpot API error ${response.status} on ${type}: ${errorText.slice(0, 300)}`
+            );
+          }
           break;
         }
 
@@ -348,6 +393,11 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         this.log(`[HUBSPOT] Error fetching ${type} page: ${msg}`);
+        // If this is the first page (no records fetched yet), propagate the
+        // error so it surfaces in the sync log instead of silently returning 0 items.
+        if (records.length === 0) {
+          throw err;
+        }
         break;
       }
     }
@@ -378,7 +428,8 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
       if (records.length >= maxItems) break;
 
       const pageSize = Math.min(SEARCH_PAGE_SIZE, maxItems - records.length);
-      const searchUrl = `${HUBSPOT_API_BASE}/crm/v3/objects/${type}s/search`;
+      const pluralType = this.getPluralType(type);
+      const searchUrl = `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}/search`;
 
       const searchBody = {
         filterGroups: [
@@ -454,6 +505,7 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
         company: 50,
         deal: 30,
         ticket: 20,
+        engagement: 200,
       };
 
       return estimates[type] ?? 50;
@@ -469,6 +521,7 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
     params: { limit?: number; after?: string }
   ): string {
     const properties = PROPERTIES_BY_TYPE[type];
+    const associations = ASSOCIATIONS_BY_TYPE[type];
     const searchParams = new URLSearchParams();
 
     if (params.limit) {
@@ -478,20 +531,265 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
       searchParams.set("after", params.after);
     }
 
-    // HubSpot API v3 uses plural object names in the URL
-    // contacts, companies, deals, tickets
-    const pluralType = type === "company" ? "companies" : `${type}s`;
+    const pluralType = this.getPluralType(type);
 
     // Add properties as comma-separated list
     if (properties.length > 0) {
       searchParams.set("properties", properties.join(","));
     }
 
+    // Add associations to fetch linked objects (e.g. deal -> company -> contacts)
+    if (associations && associations.length > 0) {
+      searchParams.set("associations", associations.join(","));
+    }
+
     return `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}?${searchParams.toString()}`;
+  }
+
+  /**
+   * Get the plural form of a HubSpot object type for API URLs.
+   * HubSpot API v3 uses plural object names: contacts, companies, deals, tickets, engagements.
+   */
+  private getPluralType(type: HubSpotObjectType): string {
+    if (type === "company") return "companies";
+    return `${type}s`;
   }
 
   // BUG 8 FIX: Removed hardcoded rateLimitPause override.
   // The parent AuthenticatedBaseConnector.rateLimitPause() reads source.rateLimit
   // which is set to { requestsPerSecond: 5 } in integration-sources.ts.
   // This gives 200ms pause (1000/5) — same effective behavior but now configurable.
+
+  // ─── PUSH phase: Create/Update records in HubSpot ───
+
+  /**
+   * Push records to HubSpot CRM via v3 Batch API.
+   *
+   * - If a record has an `externalId` (and it matches a HubSpot ID), PATCH (update)
+   * - Otherwise, POST (create)
+   * - Uses HubSpot Batch API for efficiency: POST /crm/v3/objects/{type}/batch/create
+   *   and POST /crm/v3/objects/{type}/batch/update
+   *
+   * Items must have at minimum: `objectType` and `properties` (or a `data` map).
+   */
+  async push(
+    items: HubSpotRecord[],
+    options?: PushOptions
+  ): Promise<PushResult> {
+    const entityType = options?.entityType ?? "contacts";
+    const batchSize = options?.batchSize ?? 100; // HubSpot max is 100 per batch
+    const dryRun = options?.dryRun ?? false;
+
+    this.log(`[HUBSPOT:PUSH] Starting push of ${items.length} items to ${entityType}${dryRun ? " (DRY RUN)" : ""}`);
+
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+    const errors: Array<{ externalId?: string; error: string }> = [];
+    const targetIds: string[] = [];
+
+    // Split items into creates (no externalId) and updates (have externalId)
+    const toCreate: HubSpotRecord[] = [];
+    const toUpdate: HubSpotRecord[] = [];
+
+    for (const item of items) {
+      // If the record came from HubSpot (has a numeric externalId), it's an update
+      if (item.externalId && /^\d+$/.test(item.externalId)) {
+        toUpdate.push(item);
+      } else {
+        toCreate.push(item);
+      }
+    }
+
+    this.log(`[HUBSPOT:PUSH] ${toCreate.length} to create, ${toUpdate.length} to update`);
+
+    if (dryRun) {
+      return {
+        created: toCreate.length,
+        updated: toUpdate.length,
+        failed: 0,
+        errors: [],
+        targetIds: [],
+      };
+    }
+
+    // HubSpot API uses plural type names — use getPluralType if it matches a known type,
+    // otherwise fall back to simple pluralization
+    const knownTypes: HubSpotObjectType[] = ["contact", "company", "deal", "ticket", "engagement"];
+    const singularType = entityType.endsWith("s") ? entityType.slice(0, -1) : entityType;
+    const pluralType = knownTypes.includes(singularType as HubSpotObjectType)
+      ? this.getPluralType(singularType as HubSpotObjectType)
+      : (entityType.endsWith("s") ? entityType : `${entityType}s`);
+
+    // ─── Batch Create ───
+    for (let i = 0; i < toCreate.length; i += batchSize) {
+      const batch = toCreate.slice(i, i + batchSize);
+      const inputs = batch.map((item) => ({
+        properties: this.recordToHubSpotProperties(item),
+      }));
+
+      try {
+        const res = await this.fetchWithRetry(
+          `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}/batch/create`,
+          {
+            method: "POST",
+            body: JSON.stringify({ inputs }),
+          }
+        );
+
+        if (res.ok) {
+          const body = await res.json() as { results?: Array<{ id: string }> };
+          const count = body.results?.length ?? batch.length;
+          created += count;
+          body.results?.forEach((r) => targetIds.push(r.id));
+        } else {
+          const errorText = await res.text().catch(() => "");
+          this.log(`[HUBSPOT:PUSH] Batch create failed: ${res.status} — ${errorText.slice(0, 200)}`);
+          // Fall back to individual creates
+          for (const item of batch) {
+            try {
+              const singleRes = await this.fetchWithRetry(
+                `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}`,
+                {
+                  method: "POST",
+                  body: JSON.stringify({
+                    properties: this.recordToHubSpotProperties(item),
+                  }),
+                }
+              );
+              if (singleRes.ok) {
+                const body = await singleRes.json() as { id: string };
+                created++;
+                targetIds.push(body.id);
+              } else {
+                failed++;
+                const errText = await singleRes.text().catch(() => "");
+                errors.push({ externalId: item.externalId, error: `${singleRes.status}: ${errText.slice(0, 200)}` });
+              }
+            } catch (err) {
+              failed++;
+              errors.push({ externalId: item.externalId, error: err instanceof Error ? err.message : String(err) });
+            }
+            await this.rateLimitPause();
+          }
+        }
+      } catch (err) {
+        failed += batch.length;
+        errors.push({ error: `Batch create error: ${err instanceof Error ? err.message : String(err)}` });
+      }
+
+      if (i + batchSize < toCreate.length) await this.rateLimitPause();
+    }
+
+    // ─── Batch Update ───
+    for (let i = 0; i < toUpdate.length; i += batchSize) {
+      const batch = toUpdate.slice(i, i + batchSize);
+      const inputs = batch.map((item) => ({
+        id: item.externalId,
+        properties: this.recordToHubSpotProperties(item),
+      }));
+
+      try {
+        const res = await this.fetchWithRetry(
+          `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}/batch/update`,
+          {
+            method: "POST",
+            body: JSON.stringify({ inputs }),
+          }
+        );
+
+        if (res.ok) {
+          const body = await res.json() as { results?: Array<{ id: string }> };
+          const count = body.results?.length ?? batch.length;
+          updated += count;
+          body.results?.forEach((r) => targetIds.push(r.id));
+        } else {
+          const errorText = await res.text().catch(() => "");
+          this.log(`[HUBSPOT:PUSH] Batch update failed: ${res.status} — ${errorText.slice(0, 200)}`);
+          // Fall back to individual updates
+          for (const item of batch) {
+            try {
+              const singleRes = await this.fetchWithRetry(
+                `${HUBSPOT_API_BASE}/crm/v3/objects/${pluralType}/${item.externalId}`,
+                {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    properties: this.recordToHubSpotProperties(item),
+                  }),
+                }
+              );
+              if (singleRes.ok) {
+                updated++;
+                targetIds.push(item.externalId);
+              } else {
+                failed++;
+                const errText = await singleRes.text().catch(() => "");
+                errors.push({ externalId: item.externalId, error: `${singleRes.status}: ${errText.slice(0, 200)}` });
+              }
+            } catch (err) {
+              failed++;
+              errors.push({ externalId: item.externalId, error: err instanceof Error ? err.message : String(err) });
+            }
+            await this.rateLimitPause();
+          }
+        }
+      } catch (err) {
+        failed += batch.length;
+        errors.push({ error: `Batch update error: ${err instanceof Error ? err.message : String(err)}` });
+      }
+
+      if (i + batchSize < toUpdate.length) await this.rateLimitPause();
+    }
+
+    this.log(
+      `[HUBSPOT:PUSH] Complete: ${created} created, ${updated} updated, ${failed} failed`
+    );
+
+    return { created, updated, failed, errors, targetIds };
+  }
+
+  /**
+   * Convert a HubSpotRecord (from crm_records) back to HubSpot API properties format.
+   * Maps our normalized field names back to HubSpot property names.
+   */
+  private recordToHubSpotProperties(record: HubSpotRecord): Record<string, string> {
+    const props: Record<string, string> = {};
+    const data = record as unknown as Record<string, unknown>;
+
+    // Use mapped_fields if available (preferred — already mapped to target schema)
+    const mapped = data.mapped_fields as Record<string, unknown> | undefined;
+    if (mapped && Object.keys(mapped).length > 0) {
+      for (const [key, value] of Object.entries(mapped)) {
+        if (value !== null && value !== undefined) {
+          props[key] = String(value);
+        }
+      }
+      return props;
+    }
+
+    // Otherwise, extract from the data object (HubSpot-native fields)
+    const fieldMap: Record<string, string> = {
+      email: "email",
+      displayName: "firstname", // Simplified: HubSpot splits first/last
+      companyName: "company",
+      phone: "phone",
+      website: "website",
+      stage: "dealstage",
+      amount: "amount",
+      description: "description",
+      industry: "industry",
+      city: "city",
+      state: "state",
+      country: "country",
+    };
+
+    for (const [ourField, hsField] of Object.entries(fieldMap)) {
+      const val = data[ourField] ?? (data.data as Record<string, unknown>)?.[ourField];
+      if (val !== null && val !== undefined && val !== "") {
+        props[hsField] = String(val);
+      }
+    }
+
+    return props;
+  }
 }
