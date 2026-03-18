@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "architecture",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.644Z",
+    "last_updated": "2026-03-18T17:20:58.345Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "4 task in corso. 68 completati (ultimi 7gg). 205 completati (totale).",
+  "summary": "29 task aperti. 241 completati (totale). E2E test OAuth flow + wiring connettori in coda.",
   "decisions": {
     "adr_file": "company/architecture/decisions.md",
     "total_adrs": null,
@@ -40,30 +40,8 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "5c0e3a9f",
-      "title": "FASE 1C: Migration 037 schema discovery tables",
-      "priority": "high",
-      "status": "in_progress"
-    },
-    {
-      "id": "ab21e58c",
-      "title": "FASE 1A: UniversalConnector protocol + LegacyAdapter",
-      "priority": "high",
-      "status": "in_progress"
-    },
-    {
-      "id": "a9bcffa3",
-      "title": "FASE 0A: Fix HubSpot 8 bug bloccanti",
-      "priority": "critical",
-      "status": "in_progress"
-    },
-    {
-      "id": "653f5682",
-      "title": "QA: test key rotation con chiavi invalide",
-      "priority": "medium",
-      "status": "in_progress"
-    }
+    "E2E test OAuth flow completo con credenziali reali",
+    "28 altri task open"
   ],
   "blockers": [],
   "notes": "Dipartimento stabile. Focus su cost-awareness e backward compatibility nelle proposte."

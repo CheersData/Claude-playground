@@ -136,7 +136,7 @@ function makeRequest(
   url: string,
   body?: Record<string, unknown>
 ): NextRequest {
-  const init: RequestInit = {
+  const init: Record<string, unknown> = {
     method,
     headers: {
       "Content-Type": "application/json",
@@ -144,7 +144,7 @@ function makeRequest(
     },
   };
   if (body) init.body = JSON.stringify(body);
-  return new NextRequest(new URL(url, "https://controlla.me"), init);
+  return new NextRequest(new URL(url, "https://controlla.me"), init as never);
 }
 
 /**

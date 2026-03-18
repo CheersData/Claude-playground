@@ -1,0 +1,70 @@
+{
+  "id": "ufficio-legale",
+  "name": "Ufficio Legale",
+  "capabilities": [
+    {
+      "id": "legal-analysis",
+      "description": "Run the 4-agent pipeline (Classifier-Analyzer-Investigator-Advisor) on a legal document to identify risks and provide advice",
+      "inputType": "document",
+      "outputType": "analysis",
+      "estimatedDurationMs": 90000,
+      "costEstimate": "~$0.05"
+    },
+    {
+      "id": "corpus-qa",
+      "description": "Answer questions about Italian/EU legislation using the Corpus Agent with RAG over 5600+ legal articles",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 15000,
+      "costEstimate": "~$0.01"
+    },
+    {
+      "id": "prompt-tuning",
+      "description": "Optimize agent prompts for accuracy, token efficiency, and output quality",
+      "inputType": "task",
+      "outputType": "config",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "content-review",
+      "description": "Review marketing or public-facing content for legal accuracy before publication",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "agent-configuration",
+      "description": "Configure agent models, fallback chains, and tier settings in lib/tiers.ts and lib/models.ts",
+      "inputType": "task",
+      "outputType": "config",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "classify-document",
+      "description": "Run just the Classifier agent on a document text to identify type, sub-type, and relevant legal institutes",
+      "parameters": [
+        { "name": "documentText", "type": "string", "required": true, "description": "Extracted text from the document to classify" }
+      ],
+      "returns": "{ type: string, subType: string, institutes: string[], focusAreas: string[] }",
+      "isDirectCallable": false
+    },
+    {
+      "id": "check-pipeline-health",
+      "description": "Verify pipeline health: tier configuration, model availability, fallback chain status",
+      "parameters": [],
+      "returns": "{ tier: string, agents: Array<{ name: string, enabled: boolean, model: string }>, fallbackChains: object }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": ["marketing", "integration"],
+  "status": "active",
+  "schemaVersion": 1
+}

@@ -372,6 +372,48 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
       "codice_sdi", "codice_fiscale",
     ],
   },
+  "universal-rest": {
+    name: "API REST Personalizzata",
+    category: "API Personalizzata",
+    description: "Connetti qualsiasi API REST: configura endpoint, autenticazione e mapping campi automatico.",
+    icon: "Globe",
+    authMode: "api_key",
+    oauthPermissions: [],
+    apiKeyLabel: "API Key o Bearer Token",
+    secretKeyLabel: undefined,
+    apiKeyPlaceholder: "Bearer token o API key...",
+    secretKeyPlaceholder: undefined,
+    helpText: "Inserisci il token di autenticazione dell'API. Poi configura gli endpoint nella sezione entita.",
+    entities: [],
+    targetFields: [
+      "id", "nome", "email", "telefono", "azienda", "indirizzo",
+      "stato", "tipo", "importo", "data_creazione", "data_modifica",
+      "descrizione", "note", "categoria",
+    ],
+  },
+  csv: {
+    name: "CSV / Excel",
+    category: "File Import",
+    description: "Importa dati da file CSV, TSV o Excel con rilevamento automatico dei campi.",
+    icon: "FileSpreadsheet",
+    authMode: "api_key",
+    oauthPermissions: [],
+    apiKeyLabel: "Non richiesta",
+    helpText: "Carica un file CSV o Excel. I campi verranno rilevati automaticamente dalla prima riga (intestazione).",
+    entities: [
+      {
+        id: "csv_records",
+        name: "Record CSV",
+        estimatedRecords: 0,
+        fields: ["(rilevati automaticamente dal file)"],
+      },
+    ],
+    targetFields: [
+      "id", "nome", "cognome", "email", "telefono", "azienda",
+      "indirizzo", "citta", "cap", "stato", "importo", "data",
+      "tipo", "categoria", "note",
+    ],
+  },
 };
 
 // ─── GET: Return connector details ───

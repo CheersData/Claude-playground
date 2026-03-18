@@ -83,7 +83,10 @@ export async function runAgent<T>(
         agentName: agentName.toUpperCase(),
       });
 
-      const parsed = parseAgentJSON<T>(cliResult.text);
+      // Skip JSON parsing when jsonOutput is false (e.g. document-chat returns plain text)
+      const parsed = mergedConfig.jsonOutput !== false
+        ? parseAgentJSON<T>(cliResult.text)
+        : cliResult.text as unknown as T;
 
       // Log cost (0 per subscription, ma tracciamo comunque)
       logAgentCost({
@@ -131,7 +134,11 @@ export async function runAgent<T>(
 
     try {
       const result = await generate(modelKey, prompt, mergedConfig);
-      const parsed = parseAgentJSON<T>(result.text);
+
+      // Skip JSON parsing when jsonOutput is false (e.g. document-chat returns plain text)
+      const parsed = mergedConfig.jsonOutput !== false
+        ? parseAgentJSON<T>(result.text)
+        : result.text as unknown as T;
 
       if (i > 0) {
         console.log(

@@ -24,6 +24,7 @@ import {
   deleteSession,
 } from "@/lib/company/sessions";
 import { broadcastAgentEvent, abortAgent } from "@/lib/agent-broadcast";
+import { killSubAgent } from "@/lib/company/sub-agent-tracker";
 import type { NextRequest } from "next/server";
 
 export async function POST(
@@ -69,6 +70,17 @@ export async function POST(
 
   // ─── Agent soft-kill ───
   if (agentId) {
+    // Check if this is a file-tracked sub-agent (from .claude/sub-agents.json)
+    const isSubAgent = agentId.startsWith("subagent-");
+    let wasKilled = false;
+
+    if (isSubAgent) {
+      // Sub-agents are tracked via file — kill by marking as error in the JSON file
+      const rawId = agentId.replace(/^subagent-/, "");
+      wasKilled = killSubAgent(rawId);
+    }
+
+    // Also try the in-memory AbortController (works for broadcast-based agents)
     const wasAborted = abortAgent(agentId);
 
     // Broadcast "error" status so the UI reflects the kill
@@ -81,7 +93,7 @@ export async function POST(
     });
 
     console.log(
-      `[KILL] Operator: ${operatorName} (sid: ${operatorSid}) soft-stopped agent ${agentId} in PID ${pid}`
+      `[KILL] Operator: ${operatorName} (sid: ${operatorSid}) soft-stopped agent ${agentId} in PID ${pid}${isSubAgent ? " (sub-agent)" : ""}`
     );
 
     return new Response(
@@ -89,9 +101,12 @@ export async function POST(
         ok: true,
         pid,
         agentId,
-        method: "soft-stop",
+        method: isSubAgent ? "sub-agent-kill" : "soft-stop",
         abortControllerTriggered: wasAborted,
-        message: `Agent ${agentId} soft-killed (broadcast sent)`,
+        fileTrackerKilled: wasKilled,
+        message: isSubAgent
+          ? `Sub-agent ${agentId} killed (file tracker updated)`
+          : `Agent ${agentId} soft-killed (broadcast sent)`,
       }),
       {
         status: 200,

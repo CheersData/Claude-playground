@@ -1,0 +1,67 @@
+{
+  "id": "strategy",
+  "name": "Strategy",
+  "capabilities": [
+    {
+      "id": "opportunity-scouting",
+      "description": "Scan market, competitors, and emerging AI technologies to identify business opportunities and new domains",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 1200000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "competitive-intelligence",
+      "description": "Produce competitor snapshot: features, pricing, positioning, recent moves",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 900000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "feature-prioritization",
+      "description": "Score and prioritize feature proposals using RICE framework (Reach, Impact, Confidence, Effort)",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "okr-management",
+      "description": "Define, track, and review quarterly OKR objectives and key results",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "rice-score",
+      "description": "Calculate RICE score for a feature proposal following runbooks/feature-prioritization.md",
+      "parameters": [
+        { "name": "reach", "type": "number", "required": true, "description": "Number of users impacted per quarter" },
+        { "name": "impact", "type": "number", "required": true, "description": "Impact per user (0.25=minimal, 0.5=low, 1=medium, 2=high, 3=massive)" },
+        { "name": "confidence", "type": "number", "required": true, "description": "Confidence percentage (0.0-1.0)" },
+        { "name": "effort", "type": "number", "required": true, "description": "Person-weeks of effort" }
+      ],
+      "returns": "{ riceScore: number, recommendation: string }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "opportunity-brief",
+      "description": "Structure and validate an Opportunity Brief following runbooks/opportunity-brief.md",
+      "parameters": [
+        { "name": "domain", "type": "string", "required": true, "description": "Target domain or vertical (e.g. 'HRTech', 'PropTech')" }
+      ],
+      "returns": "{ brief: object, validationStatus: string }",
+      "isDirectCallable": false
+    }
+  ],
+  "directQueryTargets": ["architecture", "marketing"],
+  "directQuerySources": [],
+  "status": "active",
+  "schemaVersion": 1
+}

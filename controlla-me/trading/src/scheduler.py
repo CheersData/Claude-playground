@@ -23,7 +23,10 @@ CET equivalents (UTC+1 winter / UTC+2 summer):
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import schedule
@@ -36,7 +39,47 @@ from .utils import telegram as tg
 
 logger = structlog.get_logger()
 
+_HEARTBEAT_FILE = Path(__file__).resolve().parent.parent / ".scheduler-heartbeat.json"
+_start_time: datetime | None = None
+_last_pipeline_run: str | None = None
+_last_pipeline_status: str | None = None
+
 _EASTERN = ZoneInfo("America/New_York")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Heartbeat (Process Monitor integration)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _write_heartbeat(current_job: str = "idle") -> None:
+    """Write scheduler heartbeat file for the Process Monitor to read.
+
+    Failure is logged but never crashes the scheduler.
+    """
+    global _last_pipeline_run, _last_pipeline_status
+    try:
+        next_run = schedule.next_run()
+        heartbeat = {
+            "pid": os.getpid(),
+            "startedAt": _start_time.isoformat() if _start_time else None,
+            "lastHeartbeat": datetime.now(timezone.utc).isoformat(),
+            "currentJob": current_job,
+            "lastPipelineRun": _last_pipeline_run,
+            "lastPipelineStatus": _last_pipeline_status,
+            "nextScheduledRun": next_run.isoformat() if next_run else None,
+        }
+        _HEARTBEAT_FILE.write_text(json.dumps(heartbeat, indent=2))
+    except Exception:
+        logger.warning("heartbeat_write_failed", exc_info=True)
+
+
+def _remove_heartbeat() -> None:
+    """Remove heartbeat file on shutdown."""
+    try:
+        _HEARTBEAT_FILE.unlink(missing_ok=True)
+    except Exception:
+        logger.warning("heartbeat_remove_failed", exc_info=True)
 
 
 def _get_et_offset() -> int:
@@ -62,12 +105,17 @@ def _is_weekday() -> bool:
 
 def _run_pipeline() -> None:
     """Sync wrapper: guard against weekends, then run the async pipeline."""
+    global _last_pipeline_run, _last_pipeline_status
     if not _is_weekday():
         logger.info("scheduler_skip", reason="weekend")
         return
     logger.info("scheduler_trigger", job="daily_pipeline")
+    _write_heartbeat("daily_pipeline")
     result = asyncio.run(run_daily_pipeline())
     status = result.get("status", "unknown")
+    _last_pipeline_run = datetime.now(timezone.utc).isoformat()
+    _last_pipeline_status = "ok" if status == "success" else "error"
+    _write_heartbeat("idle")
     logger.info("scheduler_done", status=status)
 
 
@@ -77,9 +125,14 @@ def _run_intraday() -> None:
     No weekday check: multi-market mode (crypto, futures, extended hours).
     Weekend runs keep signals fresh for Monday open.
     """
+    global _last_pipeline_run, _last_pipeline_status
     logger.info("scheduler_trigger", job="intraday_pipeline")
+    _write_heartbeat("intraday_pipeline")
     result = asyncio.run(run_intraday_pipeline())
     status = result.get("status", "unknown")
+    _last_pipeline_run = datetime.now(timezone.utc).isoformat()
+    _last_pipeline_status = "ok" if status == "success" else "error"
+    _write_heartbeat("idle")
     logger.info(
         "scheduler_intraday_done",
         status=status,
@@ -102,7 +155,9 @@ def _run_daily_report() -> None:
 
     from .config import get_settings
     logger.info("scheduler_trigger", job="daily_report")
+    _write_heartbeat("daily_report")
     result = asyncio.run(_report())
+    _write_heartbeat("idle")
     logger.info(
         "scheduler_report_done",
         portfolio_value=result.get("portfolio_value"),
@@ -170,16 +225,22 @@ def _setup_schedule() -> None:
 
 def main() -> None:
     """Start the scheduler loop. Runs until interrupted."""
+    global _start_time
     setup_logging()
+    _start_time = datetime.now(timezone.utc)
     _setup_schedule()
     logger.info("scheduler_start", jobs=len(schedule.jobs))
+    _write_heartbeat("starting")
 
     try:
         while True:
             schedule.run_pending()
+            _write_heartbeat("idle")
             time.sleep(10)  # check every 10 seconds (precise enough for 1-min jobs)
     except KeyboardInterrupt:
         logger.info("scheduler_stop", reason="KeyboardInterrupt")
+    finally:
+        _remove_heartbeat()
 
 
 if __name__ == "__main__":

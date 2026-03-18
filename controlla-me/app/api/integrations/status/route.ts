@@ -29,6 +29,30 @@ const connectors = [
     lastSync: null as string | null,
     popular: true,
   },
+  // ─── Universal REST ───
+  {
+    id: "universal-rest",
+    name: "API REST Personalizzata",
+    category: "custom",
+    status: "not_connected" as const,
+    description: "Connetti qualsiasi API REST: configura endpoint, autenticazione e mapping campi.",
+    icon: "Globe",
+    entityCount: 0,
+    lastSync: null as string | null,
+    popular: false,
+  },
+  // ─── CSV/Excel ───
+  {
+    id: "csv",
+    name: "CSV / Excel",
+    category: "file",
+    status: "not_connected" as const,
+    description: "Importa dati da file CSV, TSV o Excel con rilevamento automatico dei campi.",
+    icon: "FileSpreadsheet",
+    entityCount: 0,
+    lastSync: null as string | null,
+    popular: false,
+  },
   // ─── ERP ───
   {
     id: "sap",

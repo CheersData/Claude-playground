@@ -159,6 +159,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Esegui le migrazioni in ordine su Supabase SQL Editor:
 # 1. supabase/migrations/001_initial.sql       -> Profili, analisi, deep_searches, lawyer_referrals + RLS
 # 2. supabase/migrations/002_usage_tracking.sql -> Funzioni increment + reset mensile
+# 3. supabase/migrations/040_forma_mentis.sql   -> Forma Mentis: 6 tabelle intelligenza aziendale + 4 RPC vector search
 ```
 
 ### Avvio
@@ -722,9 +723,23 @@ deep_searches   -- id, analysis_id, user_question, agent_response, sources (JSON
 lawyer_referrals -- id, analysis_id, user_id, lawyer_id, specialization, region, status
 ```
 
+```sql
+-- Forma Mentis (Migration 040) — Intelligenza aziendale
+company_sessions    -- id, session_id, started_at, ended_at, summary, tasks_completed, decisions_made, embedding (vector 1024)
+department_memory   -- id, department, memory_type (lesson|warning|preference|context), content, importance (1-10), embedding, expires_at
+company_knowledge   -- id, category, title, content, source_session_id, tags[], embedding, verified
+company_goals       -- id, goal_type (okr|kpi|milestone), title, description, target_value, current_value, status (active|at_risk|completed|abandoned), deadline
+daemon_reports      -- id, report_date, daemon_type, summary, metrics (JSONB), alerts[], recommendations[]
+decision_journal    -- id, decision_type, title, context, options_considered[], chosen_option, rationale, outcome, review_date, embedding
+```
+
 Funzioni SQL:
 - `increment_analyses_count(uid)` — Incrementa contatore post-analisi
 - `reset_monthly_analyses()` — Reset mensile (cron o manuale)
+- `match_company_knowledge(query_embedding, match_threshold, match_count)` — Ricerca semantica knowledge base aziendale
+- `match_department_memory(query_embedding, dept, match_threshold, match_count)` — Ricerca memoria per dipartimento
+- `match_company_sessions(query_embedding, match_threshold, match_count)` — Ricerca sessioni simili
+- `match_decisions(query_embedding, match_threshold, match_count)` — Ricerca decisioni passate rilevanti
 
 ---
 
@@ -1360,7 +1375,8 @@ All'avvio di ogni sessione Claude Code su questo progetto, leggi `company/cme.md
 Comportati come **CME** (CEO virtuale):
 
 1. **Check task board**: `npx tsx scripts/company-tasks.ts board`
-2. **Reporta stato** all'utente in 3-5 righe
+1.5. **Forma Mentis context**: Query `company_sessions` per ultime 5 sessioni, `department_memory` per warning attivi, `company_goals` per goal at_risk
+2. **Reporta stato** all'utente in 3-5 righe (con contesto arricchito da Forma Mentis)
 3. **Chiedi**: "Su cosa vuoi che ci concentriamo?"
 4. **Delega** ai dipartimenti — non scrivere codice direttamente senza passare dal dipartimento competente
 5. **CME = ROUTER ONLY** — classifica richieste usando decision trees (`company/protocols/decision-trees/`), delega implementazione ai builder dei dipartimenti
@@ -1512,3 +1528,44 @@ Per task lunghi non bloccanti (build, analisi pesanti, ricerche estese):
 Agent(task="...", run_in_background=True)
 # → Continuo a lavorare, vengo notificato al completamento
 ```
+
+---
+
+## 23. FORMA MENTIS — Architettura di Intelligenza Aziendale
+
+> Il sistema nervoso dell'azienda: memoria, sinapsi, coscienza, riflessione, collaborazione.
+
+### I 5 Layer
+
+| Layer | Nome | Cosa fa | Directory |
+|-------|------|---------|-----------|
+| 1 | MEMORIA | Ricorda cosa è successo nelle sessioni precedenti | `lib/company/memory/` |
+| 2 | SINAPSI | Dipartimenti si scoprono e comunicano direttamente | `lib/company/sinapsi/` |
+| 3 | COSCIENZA | Monitora obiettivi, rileva deviazioni, escala alert | `lib/company/coscienza/` |
+| 4 | RIFLESSIONE | Decision journal, feedback loops, impara dagli errori | `lib/company/riflessione/` |
+| 5 | COLLABORAZIONE | Fan-out multi-dept, dept-as-tool, iteration loops | `lib/company/collaborazione/` |
+
+### Database (Migration 040)
+
+6 tabelle: `company_sessions`, `department_memory`, `company_knowledge`, `company_goals`, `daemon_reports`, `decision_journal`
+4 RPC: `match_company_knowledge`, `match_department_memory`, `match_company_sessions`, `match_decisions`
+
+### Department Cards
+
+Ogni dipartimento pubblica `company/<dept>/department-card.json` con capabilities, skills, e autorizzazioni per query dirette. Il discovery service (`lib/company/sinapsi/department-discovery.ts`) le carica e permette routing automatico.
+
+### Integrazione nel Daemon
+
+Il daemon (`scripts/cme-autorun.ts`) integra:
+- `saveDaemonReport()` — report append-only su Supabase (Layer 3)
+- `checkGoals()` — valuta OKR e crea alert se off-track (Layer 3)
+- `getDecisionsPendingReview()` — segnala decisioni da rivalutare (Layer 4)
+
+### Come CME usa Forma Mentis all'avvio
+
+1. Leggi `company/daemon-report.json` (come prima)
+2. **NUOVO**: Query memoria aziendale per contesto rilevante
+3. Leggi task board
+4. **NUOVO**: Check goals attivi (`company_goals`) per OKR off-track
+5. **NUOVO**: Check decisioni pending review
+6. Reporta al boss con contesto arricchito

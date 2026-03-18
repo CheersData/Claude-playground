@@ -46,10 +46,15 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 035 | `035_hnsw_ef_search.sql` | HNSW ef_search=200 su tutte le 5 funzioni match_* (default pgvector=40 troppo basso per recall). Function-level SET, nessun side effect globale. | — |
 | 036 | `036_consolidate_credential_vault.sql` | Consolida credential vault: drop `integration_credentials` (031, AES-256-GCM client-side) in favore di `credential_vault` (030, pgcrypto RPC server-side). Drop `connector_field_mappings` (030) in favore di `integration_field_mappings` (031). Drop FK `credential_id` da `integration_connections`. Aggiunge colonna `scopes` a `credential_vault`. Aggiorna `cleanup_integration_data()`. | — |
 | 037 | `037_schema_discovery.sql` | Schema Discovery: `discovered_schemas` (cache catalogo JSONB, TTL 7gg), `entity_mapping_configs` (mapping source→target con versioning), `nl_transform_executions` (audit NL→code, TTL 90gg). RLS per-user + service_role. Auto-increment version su update. Cleanup RPC per TTL. | — |
+| 038 | `038_integration_notifications.sql` | Notifiche integrazione | — |
+| 039 | `039_webhook_events_and_sync_retry.sql` | Webhook events e sync retry per integrazioni | — |
+| 040 | `040_forma_mentis.sql` | Forma Mentis (ADR): 6 tabelle (`company_sessions`, `department_memory`, `company_knowledge`, `company_goals`, `daemon_reports`, `decision_journal`) + 4 RPC semantic search (`match_company_knowledge`, `match_department_memory`, `match_company_sessions`, `match_decisions`). HNSW vector(1024) su 4 tabelle. RLS service_role. Layer 1 MEMORIA + Layer 3 COSCIENZA + Layer 4 RIFLESSIONE. | — |
+| 041 | `041_document_chat.sql` | Document Chat: `document_conversations` + `document_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. | — |
+| 042 | `042_deep_search_conversations.sql` | Deep Search conversazionale: `deep_search_conversations` (per clausola) + `deep_search_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. Stesso pattern di 041 applicato alla deep search su clausole. | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 037) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 042) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -91,6 +96,11 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 034 → dipende da 003+004+005+027+033 (hotfix: consolida schema, fix RPC, NULL guard)
 036 → dipende da 030 + 031 (consolida credential_vault, drop integration_credentials + connector_field_mappings)
 037 → dipende da 031 (FK su integration_connections)
+038 → dipende da 031 (integration notifications)
+039 → dipende da 031 (webhook events e sync retry)
+040 → dipende da 003 (pgvector extension) + 013 (FK company_tasks)
+041 → dipende da 001 (FK su analyses, auth.users)
+042 → dipende da 001 (FK su analyses, auth.users). Stesso pattern di 041
 ```
 
 ## Storico rinumerazione

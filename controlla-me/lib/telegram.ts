@@ -132,6 +132,43 @@ export async function notifyDailyReport(report: {
   );
 }
 
+export async function notifyDaemonReport(report: {
+  totalSignals: number;
+  criticalCount: number;
+  highCount: number;
+  topSignals: Array<{ deptId: string; title: string; priority: string }>;
+  board: { open: number; inProgress: number; done: number };
+  goalChecks: number;
+  pendingDecisions: number;
+}): Promise<boolean> {
+  const lines: string[] = [
+    `<b>Daemon Report</b>`,
+    ``,
+    `Signal: <b>${report.totalSignals}</b> (${report.criticalCount} critical, ${report.highCount} high)`,
+    `Board: ${report.board.open} open | ${report.board.inProgress} in-progress | ${report.board.done} done`,
+  ];
+
+  if (report.goalChecks > 0) {
+    lines.push(`Goal checks: ${report.goalChecks}`);
+  }
+  if (report.pendingDecisions > 0) {
+    lines.push(`Decisioni pending review: ${report.pendingDecisions}`);
+  }
+
+  if (report.topSignals.length > 0) {
+    lines.push(``);
+    lines.push(`<b>Top signal:</b>`);
+    for (const s of report.topSignals.slice(0, 3)) {
+      lines.push(`  [${s.priority}] ${s.deptId}: ${s.title}`);
+    }
+  }
+
+  lines.push(``);
+  lines.push(`Apri terminale per agire.`);
+
+  return send(lines.join("\n"));
+}
+
 export async function notifyNewLead(lead: {
   name: string;
   email: string;

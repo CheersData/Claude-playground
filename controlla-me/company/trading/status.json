@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "trading",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.593Z",
+    "last_updated": "2026-03-18T17:20:46.607Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "7 completati (ultimi 7gg). 53 completati (totale).",
+  "summary": "2 task aperti, 57 completati (totale). Backtest Cycle 4 in corso (grid search + diff analysis).",
   "phase": {
     "current": "backtest",
     "stages": [
@@ -144,64 +144,179 @@
   },
   "pending_cycle4": {
     "status": "ready_to_execute",
-    "prepared_date": "2026-03-14",
-    "grid_preset": "cycle4",
-    "combinations": 48,
-    "code_changes": {
-      "engine.py": "BacktestConfig defaults: stop_loss_atr 2.0→1.5, take_profit_atr 10.0→3.0",
-      "__main__.py": "CLI defaults: --sl-atr 2.0→1.5, --tp-atr 6.0→3.0",
-      "grid_search.py": "CYCLE4_GRID preset already defined (48 combos)",
-      "settings.py": "SlopeVolumeSettings already at SL=1.5/TP=3.0 (no change needed)"
+    "prepared_date": "2026-03-18",
+    "prepared_by": "task-991-trading-builder",
+    "grid_preset": "CYCLE4_GRID",
+    "combinations": 60,
+    "window": {
+      "start": "2023-01-01",
+      "end": "2024-12-31",
+      "years": 2,
+      "note": "Matches Cycle 3 conditions exactly (NOT 3-year — that dilutes Sharpe)"
     },
-    "param_ranges": {
-      "stop_loss_atr": [
-        1.5,
-        2,
-        2.5
-      ],
-      "take_profit_atr": [
-        3,
-        4,
-        5,
-        6
-      ],
-      "trailing_breakeven_atr": [
-        0.5,
-        1.5
-      ],
-      "signal_exit_enabled": [
-        false,
-        true
+    "universe": {
+      "count": 43,
+      "description": "S&P500 sector leaders + core ETF (same as Cycle 3)",
+      "symbols": "SPY,QQQ,IWM,XLK,XLF,XLE,XLV,XLI,XLU,XLY,XLP,XLRE,XLB,XLC,GLD,TLT,SHY,USO,DBA,SH,PSQ,DOG,SPXS,SQQQ,NVDA,AAPL,MSFT,TSLA,GOOGL,META,AMZN,JPM,BAC,UNH,WMT,PG,CVX,XOM,JNJ,CSCO,AMZN,ARKK"
+    },
+    "capital": 100000,
+    "code_changes": {
+      "engine.py": "✅ BacktestConfig defaults: SL=1.5x (from 2.0), TP=3.0x (from 6.0) — already set",
+      "grid_search.py": "✅ CYCLE4_GRID updated: 60 combos (5 TP values instead of 4), docstring reflects task #991",
+      "settings.py": "✅ SlopeVolumeSettings: SL=1.5/TP=3.0 already at defaults (no change needed)"
+    },
+    "grid_definition": {
+      "stop_loss_atr": {
+        "values": [
+          1.5,
+          2,
+          2.5
+        ],
+        "count": 3,
+        "rationale": "aggressive (1.5) → grid-optimal (2.0) → conservative (2.5)"
+      },
+      "take_profit_atr": {
+        "values": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "count": 5,
+        "rationale": "Cycle 3 used 6.0 only (TP hit <1%). Test full tight range: 2-6x."
+      },
+      "trailing_breakeven_atr": {
+        "values": [
+          0.5,
+          1.5
+        ],
+        "count": 2,
+        "rationale": "Early (0.5x) vs late (1.5x) breakeven trigger in Tier 0"
+      },
+      "signal_exit_enabled": {
+        "values": [
+          false,
+          true
+        ],
+        "count": 2,
+        "rationale": "Cycle 3 had OFF→0.975. Test both: ON may catch reversals."
+      },
+      "fixed_params": {
+        "trailing_lock_atr": 1.5,
+        "trailing_lock_cushion_atr": 0.5,
+        "trailing_trail_threshold_atr": 3.5,
+        "trailing_trail_distance_atr": 2,
+        "trailing_tight_threshold_atr": 4,
+        "trailing_tight_distance_atr": 1,
+        "trend_filter": true,
+        "max_positions": 10
+      }
+    },
+    "problem_analysis": {
+      "cycle3_sharpe": 0.975,
+      "cycle3_target": 1,
+      "cycle3_gap": 0.025,
+      "exit_distribution": {
+        "stop_loss_pct": 92.6,
+        "stop_loss_count": 126,
+        "take_profit_count": 10,
+        "take_profit_pct": 7.4
+      },
+      "root_causes": [
+        "SL=2.5x triggers too frequently — high variance in losses",
+        "TP=6.0x almost never reached — trailing stop captures wins before TP",
+        "Average loss (-2.75%) vs average win (+8%) — ratio imbalanced by many small SL exits"
       ]
     },
-    "fixed_params": {
-      "trailing_trail_threshold_atr": 3.5,
-      "trailing_trail_distance_atr": 2,
-      "trailing_tight_threshold_atr": 4,
-      "trailing_tight_distance_atr": 1,
-      "trailing_lock_atr": 1.5,
-      "trailing_lock_cushion_atr": 0.5,
-      "trend_filter": true,
-      "max_positions": 10
+    "hypothesis": {
+      "primary": "Tighter SL (1.5-2.0x) + tighter TP (3-5x) + earlier breakeven (0.5x) shifts exit distribution from SL-dominated to TP-dominated, reducing volatility and lifting Sharpe above 1.0.",
+      "mechanism": "SL=1.5x reduces avg loss to ~2%. TP=3.0x hits in 40-50% of trades (vs <1% at 6.0x). Tier 0 breakeven at 0.5x locks profit immediately after any move, protecting against reversals.",
+      "signal_exit_hypothesis": "MACD bearish crossover (signal_exit=ON) may exit positions Cycle 3 missed, catching small reversals before trailing stop or TP.",
+      "expected_outcome": "SL-exit rate drops to 60-70%. TP-exit rate rises to 20-30%. Sharpe > 1.0 if variance reduction > win-rate cost."
     },
-    "rationale": "Cycle 3: 126/136 exits on SL (92.6%), TP at 6x ATR almost never reached. Two changes: (1) bring TP closer (3-4x) so it gets hit more often, converting SL-exits into TP-wins; (2) test tighter SL (1.5x) to cut losers faster. Signal exit ON/OFF comparison: Cycle 3 used OFF and got 0.975, testing ON may catch reversals before SL hits.",
-    "hypothesis": "Tighter SL+TP should improve the win/loss ratio. If SL=1.5x and TP=3.0x, the risk/reward is 2:1. With trailing stop engaging at 1.5x ATR profit, winners should be locked before TP. Expected outcome: higher Sharpe through reduced SL-exit rate and better profit capture.",
+    "execution_plan": {
+      "step_1": {
+        "name": "Grid search on 2-year window",
+        "command": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+        "note": "Matches Cycle 3 period exactly. Generates 60 result rows in CSV sorted by Sharpe."
+      },
+      "step_2": {
+        "name": "Analyze grid results",
+        "actions": [
+          "Open backtest-results/grid_YYYYMMDD_HHMMSS/grid_results.csv",
+          "Filter: go_nogo == True (only GO combinations)",
+          "Sort by sharpe_ratio DESC",
+          "Select top 1 with Sharpe > 1.0 OR top 1 if all < 1.0",
+          "Verify SL-exit rate < 80% (improvement vs 92.6%)",
+          "Check: result is not isolated peak (neighbors also strong)"
+        ]
+      },
+      "step_3": {
+        "name": "Robustness check: confirm on 3-year window",
+        "command": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+        "note": "Out-of-sample validation on 2022 data. Same best params should score well."
+      },
+      "step_4": {
+        "name": "Single run for equity curve analysis",
+        "command": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --capital 100000 --sl-atr X.X --tp-atr Y.Y --trail-breakeven Z.Z",
+        "note": "Replace X.X/Y.Y/Z.Z with best params from grid. Generates equity_curve.png and trades.csv."
+      },
+      "step_5": {
+        "name": "Manual validation",
+        "checks": [
+          "[ ] equity_curve.png: smooth growth, no sudden cliffs",
+          "[ ] trades.csv: avg hold days reasonable (8-20 days for daily strategy)",
+          "[ ] Drawdown recovery: DD < 10%, recovered within 30 days",
+          "[ ] Win/loss ratio: profitable trades > 50%, avg win > 2×avg loss"
+        ]
+      },
+      "step_6": {
+        "name": "Decision: GO or NO-GO",
+        "if_sharpe_gt_1_0": "DOCUMENT & PROCEED: Apply params to engine.py defaults, commit to git, plan Phase 3 (Paper Trading 30 days)",
+        "if_sharpe_lt_1_0": "ITERATE: Analyze grid CSV for patterns, adjust SL/TP/tBE ranges, run Cycle 5"
+      }
+    },
     "commands": {
       "grid_search_2yr": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
       "grid_search_3yr_robustness": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
-      "single_run_new_defaults": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --sl-atr 1.5 --tp-atr 3.0 --capital 100000",
-      "execution_order": "Run grid_search_2yr first (matches Cycle 3 window). If GO found, confirm on 3yr. Best combo → standalone run for equity curve."
+      "single_run_with_best_params": "cd C:\\Users\\crist\\Claude-playground\\controlla-me\\trading && py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --capital 100000 --sl-atr X.X --tp-atr Y.Y --trail-breakeven Z.Z --trail-threshold 3.5 --trail-distance 2.0"
+    },
+    "expected_timeline": {
+      "grid_2yr": "10-15 minutes (60 combos × 9-15s/combo)",
+      "grid_3yr": "15-20 minutes (same combos, 3yr data = more bars)",
+      "single_run": "3-5 minutes",
+      "total": "30-40 minutes for full validation"
+    },
+    "success_criteria": {
+      "primary": "Sharpe > 1.0 (mandatory)",
+      "secondary": [
+        "SL-exit rate < 80% (from 92.6%)",
+        "TP-exit rate > 10% (from <1%)",
+        "Max drawdown < 10%",
+        "Win rate > 50%",
+        "Profit factor > 1.8"
+      ],
+      "robustness": [
+        "Best combo NOT an isolated peak in CSV",
+        "3-year out-of-sample Sharpe within 20% of 2-year",
+        "equity_curve.png shows smooth growth, no cliff drawdowns"
+      ]
     }
   },
   "next_actions": [
-    "PRIORITY: Execute Cycle 4 grid search — run pending_cycle4.commands.grid_search_2yr from external terminal",
-    "Step 1: Run 48-combo grid on 2-year window (2023-2024) matching Cycle 3 conditions",
-    "Step 2: If GO found, confirm on 3-year window (2022-2024) for robustness",
-    "Step 3: Best combo → standalone run for equity curve + trades.csv analysis",
-    "Step 4: If Sharpe > 1.0 confirmed → proceed to Phase 3 (Paper Trading)",
-    "Configurare ALPACA_API_KEY per paper trading"
+    "PRIORITY: Execute Cycle 4 grid search (60 combos) from external terminal",
+    "Step 1 (Grid 2yr): cd trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+    "Step 2 (Analyze): Open grid_YYYYMMDD_HHMMSS/grid_results.csv → find best Sharpe > 1.0",
+    "Step 3 (Robustness): If GO in Step 1, run 3-year grid: py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+    "Step 4 (Single run): Equity curve: py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --sl-atr X.X --tp-atr Y.Y (use best params from grid)",
+    "Step 5 (Decision): If Sharpe > 1.0 + robustness checks pass → commit params, plan Phase 3",
+    "Timing: 30-40 min total. Alpaca API key required for market data download."
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    "Grid search backtest da terminale esterno",
+    "Diff analysis.py tra Cycle 3 e HEAD"
+  ],
   "blockers": [],
   "notes": "Infrastruttura 5+1 agenti completa. 72 unit test passanti. Backtest ciclo #3 completato: 43 ticker, 136 trade, Sharpe 0.975. Ciclo #4 preparato (2026-03-14): defaults aggiornati a SL=1.5x/TP=3.0x in engine.py e CLI, CYCLE4_GRID con 48 combinazioni pronto. Obiettivo: ridurre SL-exit rate dal 92.6% e spingere Sharpe sopra 1.0."
 }

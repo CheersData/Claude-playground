@@ -1024,3 +1024,59 @@ registerSyncHandler(
     entityType: String(record.objectType ?? "record"),
   })
 );
+
+// ── Universal REST Connector (any API) ──
+// Sync handler for user-configured REST APIs. The accessToken is injected
+// as a Bearer Authorization header via the source's auth config.
+registerSyncHandler(
+  "universal-rest",
+  (source, accessToken, log) => {
+    // Inject the vault-provided token into the source auth config.
+    // UniversalRESTConnector extends AuthenticatedBaseConnector which
+    // reads auth from source.auth. We override it with the vault token.
+    const enrichedSource = {
+      ...source,
+      auth: {
+        type: "api-key" as const,
+        header: "Authorization",
+        prefix: "Bearer ",
+        // Signal to AuthenticatedBaseConnector to use this token
+        envVar: "__SYNC_VAULT_TOKEN__",
+      },
+    };
+    // Temporarily set the env var so AuthenticatedBaseConnector can read it
+    const prevVal = process.env.__SYNC_VAULT_TOKEN__;
+    process.env.__SYNC_VAULT_TOKEN__ = accessToken;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { UniversalRESTConnector } = require("./connectors/universal-rest");
+      return new UniversalRESTConnector(enrichedSource, log);
+    } finally {
+      if (prevVal !== undefined) {
+        process.env.__SYNC_VAULT_TOKEN__ = prevVal;
+      } else {
+        delete process.env.__SYNC_VAULT_TOKEN__;
+      }
+    }
+  },
+  (record) => ({
+    externalId: String(record.externalId ?? record.id ?? ""),
+    entityType: String(record.objectType ?? record.entity_type ?? "record"),
+  })
+);
+
+// ── CSV/Excel Connector (file upload) ──
+// CSV doesn't use access tokens — files are provided inline or via URL.
+// We register it so the sync route can orchestrate CSV imports too.
+registerSyncHandler(
+  "csv",
+  (source, _accessToken, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { CSVConnector } = require("./connectors/csv-connector");
+    return new CSVConnector(source, log);
+  },
+  (record) => ({
+    externalId: String(record.externalId ?? record.id ?? `row-${Math.random().toString(36).slice(2, 8)}`),
+    entityType: String(record.objectType ?? record.entityType ?? "csv_record"),
+  })
+);

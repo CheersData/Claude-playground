@@ -1,0 +1,67 @@
+{
+  "id": "finance",
+  "name": "Finance",
+  "capabilities": [
+    {
+      "id": "cost-report",
+      "description": "Generate cost report with breakdown per agent, provider, and trend analysis",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "cost-estimation",
+      "description": "Estimate API costs for a proposed feature based on model pricing from lib/models.ts",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "budget-alert",
+      "description": "Check if current spending exceeds configured thresholds and generate alerts",
+      "inputType": "query",
+      "outputType": "event",
+      "estimatedDurationMs": 10000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "trading-pnl",
+      "description": "Report trading P&L from portfolio_snapshots integrated with API costs",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query", "cron"],
+  "outputModes": ["task-result", "direct-response", "report", "event"],
+  "skills": [
+    {
+      "id": "get-cost-summary",
+      "description": "Query agent_cost_log for cost summary over a given period via GET /api/company/costs",
+      "parameters": [
+        { "name": "days", "type": "number", "required": false, "description": "Number of days to report (default 7)" }
+      ],
+      "returns": "{ totalCost: number, byProvider: Record<string, number>, byAgent: Record<string, number>, dailyTrend: Array<{ date: string, cost: number }> }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "estimate-feature-cost",
+      "description": "Estimate the per-call and monthly cost of adding a new agent or feature based on model pricing",
+      "parameters": [
+        { "name": "modelKey", "type": "string", "required": true, "description": "Model key from lib/models.ts registry" },
+        { "name": "estimatedTokensIn", "type": "number", "required": true, "description": "Estimated input tokens per call" },
+        { "name": "estimatedTokensOut", "type": "number", "required": true, "description": "Estimated output tokens per call" },
+        { "name": "callsPerMonth", "type": "number", "required": true, "description": "Estimated monthly call volume" }
+      ],
+      "returns": "{ costPerCall: number, monthlyCost: number, tier: string }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": ["architecture", "trading", "integration"],
+  "status": "active",
+  "schemaVersion": 1
+}

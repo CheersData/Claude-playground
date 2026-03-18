@@ -128,6 +128,59 @@ export async function updateTask(
   return mapRow(data);
 }
 
+// ─── Reset (Process Monitor) ───
+
+/**
+ * Reset a stuck in_progress task back to open.
+ * Used by the Process Monitor when an operator decides a task is stuck.
+ *
+ * - Sets status to 'open'
+ * - Clears claimed_by (assigned_to)
+ * - Appends "Reset by operator via Process Monitor" to result_summary
+ * - Only resets if the task is currently in_progress (prevents race conditions)
+ */
+export async function resetTask(taskId: string): Promise<Task> {
+  const admin = createAdminClient();
+
+  // Check current status to avoid resetting a task that was just completed
+  const { data: current, error: fetchError } = await admin
+    .from("company_tasks")
+    .select("status, result_summary")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (fetchError || !current) {
+    throw new Error(`[TASKS] Task not found: ${taskId}`);
+  }
+
+  if (current.status !== "in_progress") {
+    throw new Error(
+      `[TASKS] Cannot reset task ${taskId}: status is '${current.status}', expected 'in_progress'`
+    );
+  }
+
+  // Append reset note to existing result_summary
+  const existingResult = (current.result_summary as string) ?? "";
+  const resetNote = "Reset by operator via Process Monitor";
+  const newResult = existingResult
+    ? `${existingResult}\n${resetNote}`
+    : resetNote;
+
+  const { data, error } = await admin
+    .from("company_tasks")
+    .update({
+      status: "open",
+      assigned_to: null,
+      result_summary: newResult,
+    })
+    .eq("id", taskId)
+    .select("*")
+    .single();
+
+  if (error) throw new Error(`[TASKS] Errore resetTask: ${error.message}`);
+  return mapRow(data);
+}
+
 // ─── Query ───
 
 export async function getTask(taskId: string): Promise<Task | null> {

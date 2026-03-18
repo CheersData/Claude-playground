@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "ux-ui",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.720Z",
+    "last_updated": "2026-03-18T17:21:27.090Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "3 task in corso. 43 completati (ultimi 7gg). 78 completati (totale).",
+  "summary": "7 task aperti. 98 completati (totale).",
   "design_system": {
     "palette": {
       "background": "#0a0a0a",
@@ -52,24 +52,7 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "950916bd",
-      "title": "FASE 2: Visual Entity Mapper UI (12 componenti)",
-      "priority": "high",
-      "status": "in_progress"
-    },
-    {
-      "id": "a2ed8c2c",
-      "title": "Collegare wizard a API backend /api/integrations/setup e /api/integrations/dashboard per persistere configurazioni su DB",
-      "priority": "medium",
-      "status": "in_progress"
-    },
-    {
-      "id": "e1678291",
-      "title": "Test E2E per wizard integrazione",
-      "priority": "medium",
-      "status": "in_progress"
-    }
+    "7 task open"
   ],
   "blockers": [],
   "notes": "Beauty Report in docs/BEAUTY-REPORT.md. Animazioni standard: 150-300ms, natural easing. Scoring multidimensionale completato (4 dimensioni). Pallino lampeggiante fixato con Framer Motion."

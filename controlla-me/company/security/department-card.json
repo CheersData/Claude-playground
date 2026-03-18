@@ -1,0 +1,62 @@
+{
+  "id": "security",
+  "name": "Security",
+  "capabilities": [
+    {
+      "id": "security-audit",
+      "description": "Audit API routes for auth, rate limiting, CSRF, and sanitization coverage",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "vulnerability-fix",
+      "description": "Implement a security fix for a reported vulnerability in middleware or API routes",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "auth-review",
+      "description": "Review authentication and authorization setup for a specific route or feature",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "compliance-check",
+      "description": "Check compliance status: DPA agreements, EU AI Act readiness, GDPR requirements",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report", "event"],
+  "skills": [
+    {
+      "id": "audit-route",
+      "description": "Check a specific API route for auth, rate-limit, CSRF, and sanitization middleware",
+      "parameters": [
+        { "name": "routePath", "type": "string", "required": true, "description": "API route path, e.g. /api/analyze" }
+      ],
+      "returns": "{ hasAuth: boolean, hasRateLimit: boolean, hasCsrf: boolean, hasSanitize: boolean, findings: string[] }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "check-headers",
+      "description": "Verify security headers (CSP, HSTS, X-Frame-Options) are correctly configured in next.config.ts",
+      "parameters": [],
+      "returns": "{ headers: Array<{ name: string, present: boolean, value: string }> }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": ["quality-assurance"],
+  "directQuerySources": ["integration"],
+  "status": "active",
+  "schemaVersion": 1
+}

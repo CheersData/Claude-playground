@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "finance",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.654Z",
+    "last_updated": "2026-03-18T17:21:06.038Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task in corso. 5 completati (ultimi 7gg). 20 completati (totale).",
+  "summary": "3 task aperti. 19 completati (totale). Verifica piano Cerebras + documentazione SambaNova in coda.",
   "costs": {
     "last_7d": {
       "total_usd": 1.03,
@@ -52,12 +52,8 @@
   },
   "gaps": [],
   "open_tasks": [
-    {
-      "id": "492fd390",
-      "title": "Daily FIN — cost tracking [CTRL-2026-03-15]",
-      "priority": "low",
-      "status": "in_progress"
-    }
+    "Verifica piano Cerebras e documentazione SambaNova",
+    "2 altri task open"
   ],
   "blockers": [],
   "notes": "Strategia tier system funziona: modelli gratuiti (Cerebras, Groq) coprono 87% delle chiamate. Costo medio per chiamata: $0.002."

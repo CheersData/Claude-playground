@@ -225,6 +225,7 @@ export default function RiskCard({ risk, index, analysisId }: RiskCardProps) {
               clauseContext={`${risk.title}: ${risk.detail}`}
               existingAnalysis={`Base legale: ${risk.legalBasis || "N/A"}. Sentenza: ${risk.courtCase || "N/A"}`}
               analysisId={analysisId}
+              clauseTitle={risk.title}
             />
           )}
         </motion.div>

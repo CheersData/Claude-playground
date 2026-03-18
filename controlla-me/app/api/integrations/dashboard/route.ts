@@ -28,9 +28,12 @@ const CONNECTOR_NAMES: Record<string, string> = {
   hubspot: "HubSpot",
   salesforce: "Salesforce",
   stripe: "Stripe",
+  "fatture-in-cloud": "Fatture in Cloud",
   normattiva: "Normattiva",
   eurlex: "EUR-Lex",
   mailchimp: "Mailchimp",
+  "universal-rest": "API REST Personalizzata",
+  csv: "CSV / Excel",
 };
 
 const ICON_MAP: Record<string, string> = {
@@ -38,9 +41,12 @@ const ICON_MAP: Record<string, string> = {
   salesforce: "Building2",
   hubspot: "Users",
   "google-drive": "HardDrive",
+  "fatture-in-cloud": "FileText",
   mailchimp: "Building2",
   normattiva: "Building2",
   eurlex: "Building2",
+  "universal-rest": "Globe",
+  csv: "FileSpreadsheet",
 };
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -48,9 +54,12 @@ const CATEGORY_MAP: Record<string, string> = {
   salesforce: "CRM",
   hubspot: "CRM / Marketing",
   "google-drive": "Storage",
+  "fatture-in-cloud": "Fatturazione IT",
   mailchimp: "Marketing",
   normattiva: "Legale",
   eurlex: "Legale",
+  "universal-rest": "API Personalizzata",
+  csv: "File Import",
 };
 
 function mapDbStatusToDashboard(
@@ -384,54 +393,54 @@ export async function POST(req: NextRequest) {
         .update({ status: "syncing", updated_at: new Date().toISOString() })
         .eq("id", connection.id);
 
-      // Create a sync log entry
-      const { data: syncLog } = await admin
-        .from("integration_sync_log")
-        .insert({
-          connection_id: connection.id,
-          user_id: userId,
-          status: "running",
-          started_at: new Date().toISOString(),
-          items_fetched: 0,
-          items_processed: 0,
-          items_failed: 0,
-          error_details: { trigger: "dashboard_manual" },
-        })
-        .select("id")
-        .single();
+      // Trigger the real sync pipeline by calling the sync endpoint internally.
+      // The sync endpoint at /api/integrations/[connectorId]/sync handles:
+      //   1. Credential retrieval from vault
+      //   2. Full pipeline: FETCH -> MAP -> PERSIST -> ANALYZE -> INDEX
+      //   3. Sync log creation and completion
+      //
+      // We construct the internal URL and call it. The sync runs in the background
+      // while we return immediately to the dashboard UI (which polls GET /sync for progress).
 
-      // In a real implementation, this would trigger the actual sync via a background job.
-      // For now, mark the sync as completed after a brief delay simulation.
-      // The actual sync logic lives in /api/integrations/[connectorId]/sync.
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const syncUrl = `${appUrl}/api/integrations/${connectorId}/sync`;
 
-      // Update connection back to active (sync will be handled by the sync endpoint)
-      await admin
-        .from("integration_connections")
-        .update({
-          status: "active",
-          last_sync_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", connection.id);
+      // Fire-and-forget: trigger the sync asynchronously.
+      // The POST /sync endpoint handles its own sync_log lifecycle.
+      // We need to forward auth headers so the sync endpoint can authenticate.
+      const cookieHeader = req.headers.get("cookie") ?? "";
+      const csrfToken = req.headers.get("x-csrf-token") ?? "";
 
-      // Complete sync log
-      if (syncLog?.id) {
-        await admin
-          .from("integration_sync_log")
-          .update({
-            status: "success",
-            completed_at: new Date().toISOString(),
-            error_details: { trigger: "dashboard_manual", note: "Quick sync from dashboard" },
-          })
-          .eq("id", syncLog.id);
-      }
+      fetch(syncUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: cookieHeader,
+          "x-csrf-token": csrfToken,
+          Origin: appUrl,
+        },
+        body: JSON.stringify({
+          fetchLimit: 200,
+          skipAnalysis: false,
+        }),
+      }).catch((err) => {
+        console.error(
+          `[Dashboard] Background sync trigger failed for ${connectorId}:`,
+          err instanceof Error ? err.message : String(err)
+        );
+        // Revert status on fire-and-forget failure
+        admin
+          .from("integration_connections")
+          .update({ status: "error", updated_at: new Date().toISOString() })
+          .eq("id", connection.id)
+          .then(() => {});
+      });
 
       return NextResponse.json({
         success: true,
         connectorId,
-        status: "synced",
-        syncLogId: syncLog?.id,
-        message: "Sincronizzazione avviata",
+        status: "syncing",
+        message: "Sincronizzazione avviata. Controlla il progresso nel pannello del connettore.",
       });
     }
 

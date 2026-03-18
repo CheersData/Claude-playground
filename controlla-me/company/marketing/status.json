@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "marketing",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.707Z",
+    "last_updated": "2026-03-18T17:21:19.230Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task in corso. 19 completati (ultimi 7gg). 40 completati (totale).",
+  "summary": "1 task aperto. 37 completati (totale). Configurare GSC e GA4 + submit sitemap in coda.",
   "keyword_research": {
     "primary_clusters": [
       {
@@ -323,12 +323,7 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "f23ed1bf",
-      "title": "Pubblicare primo articolo pillar (clausole illegali lavoro) e configurare GSC+GA4",
-      "priority": "medium",
-      "status": "in_progress"
-    }
+    "Configurare GSC e GA4 da web UI e submit sitemap"
   ],
   "blockers": []
 }

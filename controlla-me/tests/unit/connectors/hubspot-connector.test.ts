@@ -394,7 +394,7 @@ describe("HubSpotConnector", () => {
       expect(result.ok).toBe(true);
       expect(result.census.sampleData).toBeDefined();
       expect(result.census.sampleData).toHaveLength(2);
-      expect(result.census.sampleData![0].email).toBe("sample@test.com");
+      expect((result.census.sampleData![0] as Record<string, unknown>).email).toBe("sample@test.com");
     });
 
     it("succeeds even when sample fetch fails", async () => {

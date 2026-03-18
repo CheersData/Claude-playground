@@ -1,0 +1,72 @@
+{
+  "id": "marketing",
+  "name": "Marketing",
+  "capabilities": [
+    {
+      "id": "market-intelligence",
+      "description": "Monitor search trends, community signals, and user behavior to identify unmet market needs",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 900000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "opportunity-validation",
+      "description": "Validate an Opportunity Brief from Strategy with real market demand signals (keyword volume, community activity, competitor presence)",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "content-production",
+      "description": "Produce SEO-optimized legal guides, social content, and email campaigns",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 1800000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "competitive-monitoring",
+      "description": "Monitor competitors' digital presence: SEO positioning, content strategy, pricing, new features",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "partnership-development",
+      "description": "Identify and develop partnerships with law firms, trade associations, and complementary platforms",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 1200000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "market-signal-report",
+      "description": "Collect and structure market signals following runbooks/market-signal-report.md",
+      "parameters": [
+        { "name": "domain", "type": "string", "required": false, "description": "Specific domain to focus signals on (e.g. 'LegalTech', 'HRTech')" }
+      ],
+      "returns": "{ signals: Array<{ source: string, signal: string, strength: string }>, summary: string }",
+      "isDirectCallable": false
+    },
+    {
+      "id": "validate-opportunity",
+      "description": "Validate an opportunity brief with market demand data (keyword volume, community signals)",
+      "parameters": [
+        { "name": "briefSummary", "type": "string", "required": true, "description": "Summary of the opportunity to validate" }
+      ],
+      "returns": "{ isValid: boolean, demandSignals: string[], competitorActivity: string, recommendation: string }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": ["ufficio-legale"],
+  "directQuerySources": ["strategy"],
+  "status": "active",
+  "schemaVersion": 1
+}

@@ -108,7 +108,7 @@ describe("Integration Wizard — API Key Toggle", () => {
     it("HubSpot form should have API Key field only", () => {
       const config = connectorConfigs.hubspot;
       expect(config.apiKeyLabel).toBe("API Key (Private App Token)");
-      expect(config.secretKeyLabel).toBeUndefined();
+      expect((config as Record<string, unknown>).secretKeyLabel).toBeUndefined();
     });
 
     it("Salesforce form should have API Key and Secret Key fields", () => {
@@ -251,7 +251,7 @@ describe("Integration Wizard — API Key Toggle", () => {
     it("OAuth-only connectors should still work without changes", () => {
       // If a connector has authMode="oauth" and supportsApiKey is not set,
       // it defaults to false, and OAuth is used as before
-      const implicitlyOAuthOnly = {
+      const implicitlyOAuthOnly: { authMode: "oauth"; supportsApiKey?: boolean } = {
         authMode: "oauth" as const,
         // supportsApiKey is undefined, defaults to false
       };

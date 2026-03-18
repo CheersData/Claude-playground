@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "operations",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.664Z",
+    "last_updated": "2026-03-18T17:21:09.947Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task in corso. 34 completati (ultimi 7gg). 104 completati (totale).",
+  "summary": "6 task aperti. 106 completati (totale). Fix WCAG High priority (contrasto, opacity) in coda.",
   "dashboard": {
     "url": "/ops",
     "status": "operational",
@@ -49,12 +49,8 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "15a2cc5f",
-      "title": "Implementare panel IntegrationHealthPanel (P1)",
-      "priority": "medium",
-      "status": "in_progress"
-    }
+    "Fix WCAG High priority componenti console",
+    "5 altri task open"
   ],
   "blockers": [],
   "notes": "Provider attivi: Groq, Gemini, Cerebras, Mistral. Anthropic e OpenAI non usati (crediti esauriti/insufficienti)."

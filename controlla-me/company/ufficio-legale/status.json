@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "ufficio-legale",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.572Z",
+    "last_updated": "2026-03-18T17:21:31.744Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "12 completati (ultimi 7gg). 32 completati (totale).",
+  "summary": "2 task aperti. 33 completati (totale).",
   "pipeline": {
     "agents": [
       "classifier",
@@ -66,7 +66,9 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [],
+  "open_tasks": [
+    "2 task open"
+  ],
   "blockers": [],
   "notes": "Pipeline core funzionante. Investigator usa web_search (solo Anthropic). Scoring multidimensionale COMPLETATO: 4 dimensioni (contractEquity, legalCoherence, practicalCompliance, completeness) in ResultsView, FairnessScore, ChatMessage, FinalEvaluationPanel. Verticale HR: 572 articoli caricati, prompt update pending."
 }

@@ -56,35 +56,88 @@ TPSL_OPTIMIZATION_GRID = {
     "max_positions": [10],
 }
 
-# Cycle 4 grid — targeted optimization based on Cycle 3 findings (task 5f027811)
+# Cycle 4 grid — targeted optimization based on Cycle 3 findings (task #991)
 #
-# Cycle 3 results: Sharpe 0.975, 136 trades, 126/136 exits on SL (92.6%).
-# Root cause: SL=2.5x hits too often, TP=6.0x almost never reached.
-# The trailing stop catches profits, but the high SL-exit rate drags Sharpe down.
+# CONTEXT:
+#   Cycle 3 results: Sharpe 0.975 (target 1.0), 136 trades, 126/136 exits on SL (92.6%).
+#   Window: 2023-2024 (2 years), Universe: 43 tickers (S&P500 sector leaders + ETF).
+#   Root cause: SL=2.5x hits too often, TP=6.0x almost never reached.
 #
-# Strategy: Focus on tighter SL + tighter TP + signal exit ON/OFF comparison.
-# Key change vs TPSL grid: also tests signal_exit=OFF (Cycle 3 used OFF and got 0.975).
-# Trailing params: use grid-optimal from previous search (tBE=1.5, tTH=3.5, tTR=2.0).
+# STRATEGY:
+#   Hypothesis: Tighter SL (1.5-2.0x) reduces avg loss magnitude. Tighter TP (3-5x)
+#   captures more profits before they slip away. Trailing stop kicks in earlier (breakeven
+#   at 0.5x instead of 1.5x), locking wins faster. Signal exit ON/OFF comparison finds
+#   reversals Cycle 3 missed.
 #
-# IMPORTANT: Run on 2-year window (2023-01-01 to 2024-12-31) with 43-ticker universe
-# to match Cycle 3 conditions. The 7-year window dilutes Sharpe below risk-free rate.
+# PARAMETER TUNING:
+#   - SL: [1.5, 2.0, 2.5] — focus on aggressive (1.5) and grid-optimal (2.0-2.5)
+#   - TP: [2.0, 3.0, 4.0, 5.0, 6.0] — full range test (was 3-6, add 2.0)
+#   - tBE: [0.5, 1.5] — early (0.5) vs late (1.5) breakeven trigger
+#   - tTH/tTR/tTD: [3.5, 2.0] fixed (grid-optimal from prior search)
+#   - sigExit: [False, True] — Cycle 3 used OFF; test both
+#   - Trailing: enabled (4-tier system)
 #
-# 48 combinations: SL[1.5,2.0,2.5] x TP[3,4,5,6] x sigExit[ON,OFF] x tBE[0.5,1.5]
+# WINDOW: 2023-01-01 to 2024-12-31 (2 years, NOT 3 — matches Cycle 3)
+# UNIVERSE: 43 tickers (S&P500 sector + ETF, same as Cycle 3)
+# CAPITAL: 100,000
+#
+# COMBINATIONS: 3 (SL) x 5 (TP) x 2 (tBE) x 2 (sigExit) x 1 (fixed) = 60
+# Wait, recalculating: 3 x 5 x 2 x 2 = 60 combinations (updated from 48 in status.json)
+#
+# EXPECTED OUTCOMES:
+#   - SL-exit rate drops below 80% (from 92.6%)
+#   - TP-hit rate increases (from <1%)
+#   - Sharpe rises above 1.0 (from 0.975)
+#   - Robustness check: no isolated peak in results
 CYCLE4_GRID = {
-    "stop_loss_atr": [1.5, 2.0, 2.5],
-    "take_profit_atr": [3.0, 4.0, 5.0, 6.0],
-    # Trailing stop: fix at grid-optimal values from previous runs
-    "trailing_breakeven_atr": [0.5, 1.5],             # Tier 0: test early (0.5) vs late (1.5)
-    "trailing_lock_atr": [1.5],                        # Tier 1: fixed
-    "trailing_lock_cushion_atr": [0.5],                # Tier 1: fixed
-    "trailing_trail_threshold_atr": [3.5],             # Tier 2: fixed at grid-optimal
-    "trailing_trail_distance_atr": [2.0],              # Tier 2: fixed at grid-optimal
-    "trailing_tight_threshold_atr": [4.0],             # Tier 3: fixed
-    "trailing_tight_distance_atr": [1.0],              # Tier 3: fixed
-    # Signal exit: test both ON and OFF (Cycle 3 had OFF with Sharpe 0.975)
-    "signal_exit_enabled": [False, True],
-    "trend_filter": [True],
-    "max_positions": [10],
+    "stop_loss_atr": [1.5, 2.0, 2.5],                  # 3: aggressive → grid-optimal range
+    "take_profit_atr": [2.0, 3.0, 4.0, 5.0, 6.0],      # 5: test full tight range (Cycle 3: 6.0 only)
+    # Trailing stop: use grid-optimal from prior searches
+    "trailing_breakeven_atr": [0.5, 1.5],              # 2: early breakeven (0.5x) vs late (1.5x)
+    "trailing_lock_atr": [1.5],                        # 1: fixed at grid-optimal
+    "trailing_lock_cushion_atr": [0.5],                # 1: fixed
+    "trailing_trail_threshold_atr": [3.5],             # 1: fixed at grid-optimal (catch 80-90% wins)
+    "trailing_trail_distance_atr": [2.0],              # 1: fixed at grid-optimal
+    "trailing_tight_threshold_atr": [4.0],             # 1: fixed
+    "trailing_tight_distance_atr": [1.0],              # 1: fixed
+    # Signal exit: test both (Cycle 3 had OFF → 0.975; test ON)
+    "signal_exit_enabled": [False, True],              # 2: Cycle 3 comparison
+    "trend_filter": [True],                            # 1: fixed ON
+    "max_positions": [10],                             # 1: fixed
+}
+
+# Cycle 4B grid — CORRECTED: uses Cycle 3's exact trailing defaults
+#
+# CONTEXT:
+#   Cycle 4 (60 combos) used trailing_trail_threshold=3.5 and trail_distance=2.0
+#   (from grid-optimal of prior TP/SL search), but Cycle 3's Sharpe 0.975 was
+#   achieved with the CLI defaults: breakeven=1.0, trail_threshold=2.5, trail_distance=1.5.
+#   ALL 60 Cycle 4 combos had Sharpe < 0.4 — the trailing params were the difference.
+#   Signal exit ON was also confirmed worse (best 0.12 vs 0.35 without).
+#
+# FIX:
+#   - Trailing: FIXED at Cycle 3 CLI defaults (BE=1.0, TH=2.5, TR=1.5)
+#   - Signal exit: OFF only (confirmed worse with ON)
+#   - SL: [1.5, 2.0, 2.5] — same range as Cycle 4
+#   - TP: [3.0, 4.0, 5.0, 6.0] — drop 2.0 (too tight, low expectancy)
+#   - Window: 2023-01-01 to 2024-12-31 (2 years, same as Cycle 3)
+#
+# COMBINATIONS: 3 (SL) × 4 (TP) × 1 = 12 (fast, focused)
+CYCLE4B_GRID = {
+    "stop_loss_atr": [1.5, 2.0, 2.5],                  # 3: same range
+    "take_profit_atr": [3.0, 4.0, 5.0, 6.0],           # 4: practical range (drop 2.0)
+    # Trailing stop: FIXED at Cycle 3 CLI defaults (the ones that gave Sharpe 0.975)
+    "trailing_breakeven_atr": [1.0],                    # Cycle 3 default
+    "trailing_lock_atr": [1.5],                         # Cycle 3 default
+    "trailing_lock_cushion_atr": [0.5],                 # Cycle 3 default
+    "trailing_trail_threshold_atr": [2.5],              # Cycle 3 default (was 3.5 in Cycle 4!)
+    "trailing_trail_distance_atr": [1.5],               # Cycle 3 default (was 2.0 in Cycle 4!)
+    "trailing_tight_threshold_atr": [4.0],              # Cycle 3 default
+    "trailing_tight_distance_atr": [1.0],               # Cycle 3 default
+    # Signal exit: OFF only (confirmed worse with ON in Cycle 4)
+    "signal_exit_enabled": [False],
+    "trend_filter": [True],                             # fixed ON
+    "max_positions": [10],                              # fixed
 }
 
 

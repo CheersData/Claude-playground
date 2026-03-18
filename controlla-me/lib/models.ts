@@ -410,8 +410,10 @@ export type AgentName =
   | "investigator"
   | "advisor"
   | "corpus-agent"
+  | "document-chat"
   | "task-executor"
   | "mapper"
+  | "mapping-agent"
   | "integration-setup"
   | "sync-supervisor";
 
@@ -485,6 +487,14 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     temperature: 0,
     notes: "Output finale utente. Serve qualità massima, zero errori.",
   },
+  // ── Document Chat — conversazione multi-turn su documenti analizzati ──
+  "document-chat": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 4096,
+    temperature: 0.3,
+    notes: "Chat conversazionale su analisi. Non serve web_search, serve contesto lungo e risposte fluide. Free tier OK.",
+  },
   // ── Company Tasks — OPUS (dipartimenti + CME) ──
   "task-executor": {
     primary: "claude-opus-4.5",
@@ -515,6 +525,13 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     maxTokens: 1024,
     temperature: 0.2,
     notes: "Commenti real-time durante sync. Risposte brevi, Italiano. Flash per velocità, Groq fallback.",
+  },
+  "mapping-agent": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 2048,
+    temperature: 0.1,
+    notes: "Field mapping via LLM. Classifica campi sorgente → target. Flash per qualità, Groq fallback.",
   },
 };
 

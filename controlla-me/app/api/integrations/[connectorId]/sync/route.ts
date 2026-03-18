@@ -48,6 +48,10 @@ import {
   type SyncEvent,
   type FullSyncResult,
 } from "@/lib/staff/data-connector/sync-dispatcher";
+import {
+  runPipeline,
+  getSourceById,
+} from "@/lib/staff/data-connector";
 import { generateSupervisorComment } from "@/lib/agents/sync-supervisor";
 
 // ─── GET: Poll sync progress ───
@@ -524,7 +528,163 @@ export async function POST(
     admin,
   } = preflight;
 
-  // Build common pipeline options
+  // ── Pipeline Mode (via runPipeline from data-connector/index.ts) ──
+  //
+  // When `usePipeline: true` is sent in the body, the sync delegates to
+  // runPipeline() which uses the CONNECT -> MODEL -> LOAD pipeline from
+  // lib/staff/data-connector/index.ts instead of the sync-dispatcher.
+  //
+  // This is useful for:
+  //   - Connectors not registered in the sync-dispatcher (e.g. universal-rest, csv)
+  //   - Running the full 3-phase pipeline (schema validation, article transformation)
+  //   - CLI-compatible mode that mirrors `npx tsx scripts/data-connector.ts load`
+  //
+  if (body.usePipeline === true) {
+    const pipelineLogs: string[] = [];
+    const pipelineLog = (msg: string) => {
+      pipelineLogs.push(msg);
+      console.log(msg);
+    };
+
+    // Resolve the DataSource from the registry
+    // First try the connectorId directly as a sourceId, then look up by connector type
+    const sourceId = (body.sourceId as string) ?? connectorId;
+    const source = getSourceById(sourceId);
+
+    if (!source) {
+      // Update sync log as failed
+      if (syncLogId) {
+        await admin
+          .from("integration_sync_log")
+          .update({
+            status: "error",
+            completed_at: new Date().toISOString(),
+            error_details: { message: `DataSource non trovata per sourceId '${sourceId}'` },
+          })
+          .eq("id", syncLogId);
+      }
+
+      return NextResponse.json(
+        {
+          error: `DataSource non trovata: '${sourceId}'. ` +
+            `Verifica che il source sia registrato in integration-sources.ts o corpus-sources.ts.`,
+        },
+        { status: 404 }
+      );
+    }
+
+    try {
+      // Merge per-user connection config into the source
+      const enrichedSource = connectionConfig
+        ? { ...source, config: { ...source.config, ...connectionConfig } }
+        : source;
+
+      // Temporarily override the source in the registry is not needed —
+      // runPipeline resolves by sourceId from the registry. We pass the sourceId.
+      const pipelineResult = await runPipeline(
+        enrichedSource.id,
+        {
+          stopAfter: "load",
+          mode: body.deltaMode ? "delta" : "full",
+          dryRun: body.dryRun === true,
+          limit: typeof body.fetchLimit === "number" ? body.fetchLimit : undefined,
+          skipEmbeddings: body.skipEmbeddings === true,
+          deltaSince: typeof body.deltaSince === "string" ? body.deltaSince : undefined,
+        },
+        pipelineLog
+      );
+
+      // Update integration_connections with results
+      const totalItems = pipelineResult.loadResult
+        ? pipelineResult.loadResult.inserted + pipelineResult.loadResult.updated
+        : 0;
+
+      await admin
+        .from("integration_connections")
+        .update({
+          last_sync_at: new Date().toISOString(),
+          last_sync_items: totalItems,
+          status: pipelineResult.stoppedReason ? "error" : "active",
+        })
+        .eq("id", connectionId);
+
+      // Update sync log
+      if (syncLogId) {
+        const syncStatus = pipelineResult.stoppedReason ? "error" : "success";
+        await admin
+          .from("integration_sync_log")
+          .update({
+            status: syncStatus,
+            completed_at: new Date().toISOString(),
+            items_fetched: pipelineResult.connectResult?.census.estimatedItems ?? 0,
+            items_processed: totalItems,
+            items_failed: pipelineResult.loadResult?.errors ?? 0,
+            duration_ms: pipelineResult.durationMs,
+            error_details: pipelineResult.stoppedReason
+              ? { message: pipelineResult.stoppedReason, logs: pipelineLogs.slice(-20) }
+              : null,
+          })
+          .eq("id", syncLogId);
+      }
+
+      return NextResponse.json({
+        success: !pipelineResult.stoppedReason,
+        pipeline: true,
+        sourceId: pipelineResult.sourceId,
+        stoppedAt: pipelineResult.stoppedAt,
+        stoppedReason: pipelineResult.stoppedReason ?? null,
+        connect: pipelineResult.connectResult
+          ? {
+              ok: pipelineResult.connectResult.ok,
+              estimatedItems: pipelineResult.connectResult.census.estimatedItems,
+              message: pipelineResult.connectResult.message,
+            }
+          : null,
+        model: pipelineResult.modelResult
+          ? {
+              ready: pipelineResult.modelResult.ready,
+              message: pipelineResult.modelResult.message,
+            }
+          : null,
+        load: pipelineResult.loadResult
+          ? {
+              inserted: pipelineResult.loadResult.inserted,
+              updated: pipelineResult.loadResult.updated,
+              skipped: pipelineResult.loadResult.skipped,
+              errors: pipelineResult.loadResult.errors,
+            }
+          : null,
+        durationMs: pipelineResult.durationMs,
+        syncLogId,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Errore pipeline sconosciuto";
+
+      // Update sync log as failed
+      if (syncLogId) {
+        await admin
+          .from("integration_sync_log")
+          .update({
+            status: "error",
+            completed_at: new Date().toISOString(),
+            error_details: { message, logs: pipelineLogs.slice(-20) },
+          })
+          .eq("id", syncLogId);
+      }
+
+      return NextResponse.json(
+        {
+          success: false,
+          pipeline: true,
+          error: message,
+          syncLogId,
+        },
+        { status: 502 }
+      );
+    }
+  }
+
+  // Build common pipeline options (sync-dispatcher mode)
   const pipelineOptions = {
     fetchLimit: typeof body.fetchLimit === "number" ? body.fetchLimit : 200,
     skipAnalysis: body.skipAnalysis === true,

@@ -488,6 +488,39 @@ function registerDefaults(): void {
     return new FattureRecordModel();
   });
 
+  // ── Universal REST Connector (any API) ──
+
+  registerGenericConnector("universal-rest", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { UniversalRESTConnector } = require("./connectors/universal-rest");
+    return new UniversalRESTConnector(source, log);
+  });
+
+  // ── CSV/Excel Connector (file upload) ──
+
+  registerGenericConnector("csv", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { CSVConnector } = require("./connectors/csv-connector");
+    return new CSVConnector(source, log);
+  });
+
+  // ── Generic CRM fallback store + model (universal-rest, csv, any new connector) ──
+  // Registered WITHOUT composite key so resolveGenericStore/resolveModel
+  // falls back to these when no connector-specific store/model exists.
+  // Example: "crm-records:universal-rest" not found → falls back to "crm-records".
+
+  registerGenericStore("crm-records", (source, log) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GenericCRMStore } = require("./stores/generic-crm-store");
+    return new GenericCRMStore(source.connector, log);
+  });
+
+  registerModel("crm-records", (_source) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GenericCRMRecordModel } = require("./models/generic-crm-record-model");
+    return new GenericCRMRecordModel();
+  });
+
   // Alias: medical-articles usa lo stesso model/store di legal-articles
   // (stessa tabella legal_articles, filtrata per vertical='medical')
   registerModel("medical-articles", (_source) => {

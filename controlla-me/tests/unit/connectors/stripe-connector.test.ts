@@ -257,8 +257,8 @@ describe("StripeConnector", () => {
 
       const result = await connector.fetchAll();
 
-      expect(result.metadata.counts.customer).toBe(1);
-      expect(result.metadata.counts.subscription).toBe(0);
+      expect((result.metadata.counts as Record<string, unknown>).customer).toBe(1);
+      expect((result.metadata.counts as Record<string, unknown>).subscription).toBe(0);
     });
 
     it("handles SDK errors gracefully", async () => {

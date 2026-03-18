@@ -1,0 +1,64 @@
+{
+  "id": "ux-ui",
+  "name": "UX/UI",
+  "capabilities": [
+    {
+      "id": "ui-implementation",
+      "description": "Implement UI changes: new components, restyling, responsive fixes, following the design system",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "accessibility-audit",
+      "description": "Audit pages for WCAG 2.1 AA compliance: focus visible, aria-labels, contrast, touch targets",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "design-system-maintenance",
+      "description": "Maintain and extend the design system: tokens, components, patterns, documentation",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "beauty-report",
+      "description": "Generate a Beauty Report scoring UI consistency, polish, and alignment with design system",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "check-accessibility",
+      "description": "Run accessibility checks on a specific page or component following runbooks/accessibility-audit.md",
+      "parameters": [
+        { "name": "target", "type": "string", "required": true, "description": "Page path (e.g. '/corpus') or component file name" }
+      ],
+      "returns": "{ violations: Array<{ rule: string, element: string, severity: string }>, score: number }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "design-token-lookup",
+      "description": "Look up a design token value (color, spacing, typography) from the design system",
+      "parameters": [
+        { "name": "tokenName", "type": "string", "required": true, "description": "Token name (e.g. 'accent', 'background', 'font-sans')" }
+      ],
+      "returns": "{ token: string, value: string, usage: string }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": [],
+  "status": "active",
+  "schemaVersion": 1
+}

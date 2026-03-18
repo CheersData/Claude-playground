@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Calendar, ArrowRight, Scale, Gavel, TrendingUp, CheckSquare } from "lucide-react";
 import FairnessScore from "./FairnessScore";
 import RiskCard from "./RiskCard";
-import DeepSearchChat from "./DeepSearchChat";
+import DocumentChat from "./DocumentChat";
 import LawyerCTA from "./LawyerCTA";
 import type { AdvisorResult, MultiDimensionalScore } from "@/lib/types";
 
@@ -301,7 +301,7 @@ export default function ResultsView({
         </motion.div>
       )}
 
-      {/* General Deep Search */}
+      {/* Document Chat — conversazione multi-turn */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -313,13 +313,14 @@ export default function ResultsView({
           border: "1px solid var(--card-border)",
         }}
       >
-        <h3 className="text-[var(--text-2xs)] font-bold tracking-[var(--tracking-caps)] uppercase text-[var(--foreground-tertiary)] mb-4">
-          Hai altre domande su questo documento?
-        </h3>
-        <DeepSearchChat
-          clauseContext={result.summary}
-          existingAnalysis={JSON.stringify(result.risks)}
-          analysisId={analysisId}
+        <DocumentChat
+          analysisId={analysisId || ""}
+          analysisData={{
+            summary: result.summary,
+            risks: result.risks,
+            fairnessScore: result.fairnessScore,
+            fileName,
+          }}
         />
       </motion.div>
 

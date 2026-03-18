@@ -1,0 +1,65 @@
+{
+  "id": "protocols",
+  "name": "Protocols",
+  "capabilities": [
+    {
+      "id": "request-routing",
+      "description": "Classify a request using decision trees and determine which departments to consult and what approval level is needed",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 5000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "approval-workflow",
+      "description": "Manage the full approval workflow: proposal, consultation, synthesis, approval, execution tracking",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "decision-audit",
+      "description": "Audit past decisions for protocol compliance: were decision trees followed, were the right departments consulted",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "protocol-onboarding",
+      "description": "Define contracts and decision trees for a new department or request type",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "route-request",
+      "description": "Classify a request through the decision tree and return routing: departments, approval level, consultation list",
+      "parameters": [
+        { "name": "requestType", "type": "string", "required": true, "description": "Type of request (e.g. 'feature-request', 'trading-operations', 'infrastructure')" },
+        { "name": "description", "type": "string", "required": true, "description": "Brief description of the request to classify" }
+      ],
+      "returns": "{ departments: string[], approvalLevel: string, consultList: string[], reasoning: string }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "check-protocol-compliance",
+      "description": "Verify that a specific task or decision followed the correct protocol",
+      "parameters": [
+        { "name": "taskId", "type": "string", "required": true, "description": "Task ID to verify compliance for" }
+      ],
+      "returns": "{ compliant: boolean, violations: string[], recommendation: string }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": [],
+  "status": "active",
+  "schemaVersion": 1
+}

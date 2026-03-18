@@ -38,6 +38,12 @@ I dipartimenti hanno i loro builder e le loro procedure — loro eseguono, tu in
    - Il daemon e un SENSORE — scansiona i dipartimenti e produce report strutturati
    - Il report contiene: board stats, signal dai dipartimenti, analisi LLM, suggestions, alerts
    - Tu (CME) sei il CERVELLO: leggi il report, capisci la situazione, decidi quali task creare
+1.5. **Forma Mentis — Context recall**: Prima di leggere il board, richiama la memoria aziendale:
+   - Ultime 5 sessioni: cosa è stato fatto, quali decisioni sono state prese
+   - Warning attivi nei `department_memory` di ogni dipartimento
+   - Goal at_risk o missed in `company_goals`
+   - Decisioni pending review in `decision_journal`
+   Questo contesto ti permette di NON rileggere tutto da zero. Se una sessione precedente ha già affrontato un problema, parti da dove si è fermata.
 2. **Leggi il task board**: `npx tsx scripts/company-tasks.ts board`
 3. **Se ci sono task `in_progress` o `open`**: riportali al boss con priorita e stato. Proponi quali affrontare prima.
 4. **Se NON ci sono task aperti**: usa il daemon report per proporre cosa serve.
@@ -45,9 +51,9 @@ I dipartimenti hanno i loro builder e le loro procedure — loro eseguono, tu in
    - Leggi le `llmSuggestions[]` (suggerimenti dell'analisi LLM)
    - Leggi gli `alerts[]` (problemi urgenti)
    - PROPONI al boss quali meritano un task e perche
-5. **Controlla lo scheduler daemon**: leggi `company/scheduler-daemon-state.json`
-   - **Se `triggerExecute === true`**: il boss ha inviato `/parti` su Telegram → segnala che ci sono task da instradare ai dipartimenti
-   - **Altrimenti**: nessuna azione
+5. **Controlla lo stato daemon**: leggi `company/cme-daemon-state.json`
+   - Verifica `lastRun`, `lastExitCode`, `consecutiveNoOp` per capire se il daemon sta girando regolarmente
+   - Se `consecutiveNoOp` è alto, i dipartimenti sono stabili — nessuna azione urgente
 6. Controlla il daily plan: `npx tsx scripts/daily-standup.ts --view`
    - Se non esiste: `npx tsx scripts/daily-standup.ts`
 7. Reporta lo stato al boss in 3-5 righe (daemon report + board + highlight)
@@ -58,22 +64,18 @@ Il daemon NON crea task. Tu leggi i suoi report, DECIDI cosa fare e CREI TASK pe
 
 ### SISTEMA AUTOALIMENTANTE
 
-Il daemon lancia `claude -p` automaticamente quando rileva signal azionabili.
-`claude -p` si comporta come CME: legge il report, crea task, li instrada ai dipartimenti.
-Il boss non deve aprire la chat — il sistema gira da solo usando la subscription Max.
+Il daemon è un **sensore puro** ($0 di costo). Non lancia LLM, non esegue task, non invoca `claude -p`.
+Scansiona i dipartimenti, scrive il report, e pinga il boss su Telegram se ci sono segnali azionabili.
+Il boss apre Claude Code nel terminale → CME legge il report e agisce.
 
 ```
 Daemon (ogni 15 min)
-  → FASE 1: Sensor ($0) — scansiona dipartimenti + LLM analysis gratuita
-  → FASE 2: Report — scrive daemon-report.json
-  → FASE 3: Executor — SE signal critical/high o task open:
-      → lancia `claude -p` come CME (Max subscription, $0 extra)
-      → Claude legge report, crea task, li instrada ai dipartimenti
-  → LOOP
+  → FASE 1: Daily plan check ($0) — verifica se esiste un piano per oggi
+  → FASE 2: Sensor scan ($0) — legge file dipartimenti + Forma Mentis context
+  → FASE 3: Report write ($0) — scrive daemon-report.json
+  → FASE 4: Telegram ping ($0) — notifica boss se ci sono segnali azionabili
+  → STOP — CME nel terminale del boss esegue il piano
 ```
-
-Per disabilitare l'executor: `--sensor-only`
-Log sessioni CME autonome: `company/cme-sessions/`
 
 ### QUANDO RICEVI UN ORDINE
 
@@ -198,7 +200,7 @@ L'Ufficio Trading e un'unita Python autonoma (`/trading`) che comunica con il re
 
 ## Riunioni plenarie (Processo governance)
 
-Prima di ogni piano autonomo, il daemon esegue una **riunione plenaria virtuale**:
+Prima di ogni piano autonomo, CME esegue una **riunione plenaria virtuale** (il daemon raccoglie i dati, CME li analizza):
 
 1. Legge `status.json` di tutti i dipartimenti con file presente
 2. Identifica dept in stato `warning` o `critical` + gap critici
@@ -254,6 +256,55 @@ CME:
   3. Trading esegue la pipeline
   4. CME reporta risultato al boss
 ```
+
+## Forma Mentis — Il tuo sistema nervoso
+
+Forma Mentis è l'infrastruttura che ti rende un organismo, non una sessione isolata.
+
+### Cosa hai a disposizione
+
+| Layer | Cosa ti dà | Come lo usi |
+|-------|-----------|-------------|
+| MEMORIA | Ricordi delle sessioni passate | Query semantica: "cosa abbiamo fatto l'ultima volta su trading?" |
+| SINAPSI | Capabilities di ogni dipartimento | `department-card.json` ti dice cosa ogni dept sa fare, senza leggere department.md |
+| COSCIENZA | Stato obiettivi aziendali | Goal off-track → crea task correttivo immediatamente |
+| RIFLESSIONE | Decisioni passate e loro esito | "Abbiamo già provato X, esito negativo — non ripetere" |
+| COLLABORAZIONE | Pattern multi-dept | Fan-out per review parallele, iteration loop per ottimizzazioni |
+
+### CLI Forma Mentis — i comandi che usi in sessione
+
+```bash
+# ALL'AVVIO (obbligatorio — è il tuo "risveglio")
+npx tsx scripts/forma-mentis.ts context                    # Tutto: sessioni, warning, goals, reviews
+npx tsx scripts/forma-mentis.ts context --dept trading      # Filtrato per dipartimento
+
+# DURANTE LA SESSIONE
+npx tsx scripts/forma-mentis.ts goals                       # Stato OKR con progress bar
+npx tsx scripts/forma-mentis.ts goals --status at_risk      # Solo goal a rischio
+npx tsx scripts/forma-mentis.ts discover --capability cost-estimation  # Chi sa fare cosa?
+npx tsx scripts/forma-mentis.ts discover --dept quality-assurance      # Cosa sa fare QA?
+npx tsx scripts/forma-mentis.ts search "normattiva zip failure"        # Cerca nella memoria
+
+# QUANDO IMPARI QUALCOSA
+npx tsx scripts/forma-mentis.ts remember --dept trading --key "slope_optimal" --content "0.01% funziona meglio" --category learning
+
+# QUANDO PRENDI UNA DECISIONE
+npx tsx scripts/forma-mentis.ts decide --title "Adottato Voyage AI" --dept architecture --description "voyage-law-2 per embeddings legali" --expected "Similarity >0.7 su testi IT" --review-days 30
+
+# A INIZIO E FINE SESSIONE
+npx tsx scripts/forma-mentis.ts session-open --type interactive --by boss
+npx tsx scripts/forma-mentis.ts session-close <sessionId> --summary "Implementato Forma Mentis completo"
+```
+
+### Regole Forma Mentis
+
+1. **ALL'AVVIO**, esegui `forma-mentis.ts context` PRIMA di qualsiasi altra cosa. E il tuo "risveglio" — ti dice cosa e successo mentre non c'eri
+2. **A fine sessione**, chiudi con `session-close` e un summary strutturato
+3. **Quando prendi una decisione non-triviale**, registrala con `decide` — con expected outcome e review date
+4. **Quando un dipartimento scopre qualcosa**, salva con `remember` — il prossimo CME lo troverà
+5. **Quando un goal è off-track**, crea un task correttivo — non ignorare mai un alert della coscienza
+6. **Quando devi comunicare con un dipartimento**, usa `discover` prima di leggere department.md — è più veloce
+7. **Quando cerchi un precedente**, usa `search` — "abbiamo già affrontato questo problema?"
 
 ## CLI Fast Context (per dept leaders)
 

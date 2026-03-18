@@ -66,6 +66,7 @@ supabase/.temp/
 # Claude Code local config
 .claude/
 trading/logs/
+trading/.scheduler-heartbeat.json
 
 # CME daemon temp files
 .autorun-prompt.tmp

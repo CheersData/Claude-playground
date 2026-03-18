@@ -2,42 +2,6 @@
   "lastAlerts": {},
   "auditTrail": [
     {
-      "timestamp": "2026-03-15T12:54:24.634Z",
-      "check": "blocked",
-      "result": "ok",
-      "message": "Nessun task bloccato"
-    },
-    {
-      "timestamp": "2026-03-15T12:54:24.759Z",
-      "check": "sync",
-      "result": "ok",
-      "message": "Nessun errore sync"
-    },
-    {
-      "timestamp": "2026-03-15T13:10:14.894Z",
-      "check": "costs",
-      "result": "ok",
-      "message": "Nessun costo oggi"
-    },
-    {
-      "timestamp": "2026-03-15T13:10:15.003Z",
-      "check": "blocked",
-      "result": "ok",
-      "message": "Nessun task bloccato"
-    },
-    {
-      "timestamp": "2026-03-15T13:10:15.110Z",
-      "check": "sync",
-      "result": "ok",
-      "message": "Nessun errore sync"
-    },
-    {
-      "timestamp": "2026-03-15T13:26:02.118Z",
-      "check": "costs",
-      "result": "ok",
-      "message": "Nessun costo oggi"
-    },
-    {
       "timestamp": "2026-03-15T13:26:02.229Z",
       "check": "blocked",
       "result": "ok",
@@ -297,6 +261,42 @@
     },
     {
       "timestamp": "2026-03-15T16:46:03.268Z",
+      "check": "sync",
+      "result": "ok",
+      "message": "Nessun errore sync"
+    },
+    {
+      "timestamp": "2026-03-18T17:37:36.371Z",
+      "check": "costs",
+      "result": "ok",
+      "message": "Nessun costo oggi"
+    },
+    {
+      "timestamp": "2026-03-18T17:37:36.457Z",
+      "check": "blocked",
+      "result": "ok",
+      "message": "Nessun task bloccato"
+    },
+    {
+      "timestamp": "2026-03-18T17:37:36.558Z",
+      "check": "sync",
+      "result": "ok",
+      "message": "Nessun errore sync"
+    },
+    {
+      "timestamp": "2026-03-18T17:38:02.807Z",
+      "check": "costs",
+      "result": "ok",
+      "message": "Nessun costo oggi"
+    },
+    {
+      "timestamp": "2026-03-18T17:38:02.895Z",
+      "check": "blocked",
+      "result": "ok",
+      "message": "Nessun task bloccato"
+    },
+    {
+      "timestamp": "2026-03-18T17:38:02.985Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"

@@ -28,7 +28,7 @@ export const STRIPE_SOURCES: DataSource[] = [
       // Uses STRIPE_SECRET_KEY from env (same key used by app runtime)
       // Works with both sk_test_ (test mode) and sk_live_ (live mode) keys
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 500, // Rough estimate for demo
     schedule: {
       deltaInterval: "daily",
@@ -54,7 +54,7 @@ export const HUBSPOT_SOURCES: DataSource[] = [
       //   2. OAuth2 PKCE (production): configure auth strategy below
       // HubSpot free developer sandbox provides full CRM API access
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 200, // Rough estimate for demo sandbox
     schedule: {
       deltaInterval: "daily",
@@ -94,7 +94,7 @@ export const GOOGLE_DRIVE_SOURCES: DataSource[] = [
       // Exports text content from Google Docs/Sheets/Slides (set to false to skip)
       exportTextContent: true,
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 1000, // Rough estimate for demo
     schedule: {
       deltaInterval: "daily",
@@ -130,7 +130,7 @@ export const SALESFORCE_SOURCES: DataSource[] = [
       // Salesforce Developer Edition is free: developer.salesforce.com/signup
       // 15,000 API calls/day on free edition
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 500, // Rough estimate for demo org
     schedule: {
       deltaInterval: "daily",
@@ -170,7 +170,7 @@ export const FATTURE_SOURCES: DataSource[] = [
       // Sync types: issued invoices, received invoices, clients
       syncTypes: ["issued_invoice", "received_invoice", "client"],
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 1000,
     schedule: {
       deltaInterval: "daily",

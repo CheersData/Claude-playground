@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "data-engineering",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.603Z",
+    "last_updated": "2026-03-18T17:20:54.444Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "3 task in corso. 60 completati (ultimi 7gg). 116 completati (totale).",
+  "summary": "4 task aperti. 110 completati (totale). Migration SQL per hnsw.ef_search + NULL embeddings in coda.",
   "corpus": {
     "articles_total": 5600,
     "articles_estimated": true,
@@ -76,24 +76,8 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "eec6cb75",
-      "title": "FASE 1B: Schema Discovery Engine (7 file)",
-      "priority": "high",
-      "status": "in_progress"
-    },
-    {
-      "id": "f695bc4a",
-      "title": "Integrare MappingEngine nei connettori MVP",
-      "priority": "medium",
-      "status": "in_progress"
-    },
-    {
-      "id": "d5c6aceb",
-      "title": "Aggiungere unit test per HubSpot connector",
-      "priority": "medium",
-      "status": "in_progress"
-    }
+    "Migration SQL hnsw.ef_search=200 + NULL embeddings fix",
+    "3 altri task open"
   ],
   "blockers": [],
   "notes": "Pipeline CONNECT→MODEL→LOAD funzionante per Normattiva (AKN) e EUR-Lex (HTML). Codice Civile caricato via HuggingFace (4271 art.) + ricaricato via Normattiva con gerarchie complete. GDPR caricato via EUR-Lex. Embedding Voyage AI (voyage-law-2, 1024d) su HNSW pgvector."

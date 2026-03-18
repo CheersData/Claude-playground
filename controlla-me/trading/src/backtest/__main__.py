@@ -88,9 +88,9 @@ def parse_args() -> argparse.Namespace:
         help="Custom output directory for results",
     )
     grid_parser.add_argument(
-        "--grid-preset", type=str, choices=["default", "tpsl", "cycle4"],
+        "--grid-preset", type=str, choices=["default", "tpsl", "cycle4", "cycle4b"],
         default="default",
-        help="Grid preset: 'default' (original 64-combo), 'tpsl' (96-combo TP/SL + trailing), or 'cycle4' (48-combo targeted SL/TP + signal exit, for 2-year window)",
+        help="Grid preset: 'default' (original 64-combo), 'tpsl' (96-combo TP/SL + trailing), 'cycle4' (60-combo — BAD trailing params), or 'cycle4b' (12-combo — Cycle 3 trailing defaults, signal exit OFF)",
     )
 
     return parser.parse_args()
@@ -522,6 +522,9 @@ def cmd_grid(args: argparse.Namespace) -> None:
     elif args.grid_preset == "cycle4":
         from .grid_search import CYCLE4_GRID
         selected_grid = CYCLE4_GRID
+    elif args.grid_preset == "cycle4b":
+        from .grid_search import CYCLE4B_GRID
+        selected_grid = CYCLE4B_GRID
 
     run_grid_search(
         symbols=symbols,

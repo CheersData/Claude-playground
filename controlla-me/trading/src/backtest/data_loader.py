@@ -79,14 +79,29 @@ class DataLoader:
                 end=str(end),
                 timeframe=timeframe,
             )
+            has_alpaca = bool(self._api_key and self._secret_key)
+
             if timeframe == "1Hour":
                 downloaded = self._download_batch_yfinance(to_download, start, end, timeframe)
             elif timeframe == "15Min":
-                downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=15)
+                if has_alpaca:
+                    downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=15)
+                else:
+                    logger.warning("alpaca_keys_missing", fallback="yfinance", timeframe=timeframe)
+                    downloaded = self._download_batch_yfinance(to_download, start, end, timeframe)
             elif timeframe == "5Min":
-                downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=5)
+                if has_alpaca:
+                    downloaded = self._download_batch_alpaca_intraday(to_download, start, end, minutes=5)
+                else:
+                    logger.warning("alpaca_keys_missing", fallback="yfinance", timeframe=timeframe)
+                    downloaded = self._download_batch_yfinance(to_download, start, end, timeframe)
             else:
-                downloaded = self._download_batch_alpaca(to_download, start, end)
+                # Daily bars: try Alpaca first, fall back to yfinance if no keys
+                if has_alpaca:
+                    downloaded = self._download_batch_alpaca(to_download, start, end)
+                else:
+                    logger.warning("alpaca_keys_missing", fallback="yfinance", timeframe=timeframe)
+                    downloaded = self._download_batch_yfinance(to_download, start, end, timeframe)
 
             for symbol, df in downloaded.items():
                 self._save_to_cache(symbol, start, end, timeframe, df)
@@ -325,18 +340,20 @@ class DataLoader:
         return result
 
     # ------------------------------------------------------------------
-    # yfinance download (hourly bars — up to 730 days)
+    # yfinance download (all timeframes — fallback when Alpaca keys missing)
     # ------------------------------------------------------------------
 
     def _download_batch_yfinance(
         self, symbols: list[str], start: date, end: date, timeframe: str = "1Hour"
     ) -> dict[str, pd.DataFrame]:
         """
-        Download hourly bars from yfinance for multiple symbols.
+        Download bars from yfinance for multiple symbols.
 
-        yfinance supports up to 730 days of hourly data for free.
-        We download in chunks if the range exceeds 59 days (yfinance
-        limit per single request for intraday data).
+        Supports daily, hourly, 15min, and 5min timeframes.
+        yfinance supports up to 730 days of hourly data and unlimited daily data.
+        We download in chunks if the range exceeds API limits per request.
+        Used as primary source for hourly data and as fallback when Alpaca keys
+        are not configured.
         """
         try:
             import yfinance as yf
@@ -347,10 +364,21 @@ class DataLoader:
         result: dict[str, pd.DataFrame] = {}
 
         # yfinance interval mapping
-        interval = "1h" if timeframe == "1Hour" else "1d"
+        yf_interval_map = {
+            "1Hour": "1h",
+            "15Min": "15m",
+            "5Min": "5m",
+            "1Min": "1m",
+        }
+        interval = yf_interval_map.get(timeframe, "1d")
 
-        # yfinance limits intraday requests to ~59 days per chunk
-        max_chunk_days = 59 if interval == "1h" else 365 * 5
+        # yfinance limits intraday requests to ~59 days per chunk (7 days for <1h)
+        if interval in ("1m", "5m", "15m"):
+            max_chunk_days = 7 if interval == "1m" else 59
+        elif interval == "1h":
+            max_chunk_days = 59
+        else:
+            max_chunk_days = 365 * 5
 
         for symbol in symbols:
             logger.info("downloading_yfinance", symbol=symbol, interval=interval)

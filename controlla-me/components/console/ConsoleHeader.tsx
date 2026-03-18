@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Activity } from "lucide-react";
 
 interface ConsoleHeaderProps {
   status: "idle" | "processing" | "done" | "error" | "clarification";
@@ -11,6 +12,7 @@ interface ConsoleHeaderProps {
   onPowerToggle?: () => void;
   onShellToggle?: () => void;
   onCompanyToggle?: () => void;
+  onTerminalToggle?: () => void;
   onPrint?: () => void;
 }
 
@@ -22,7 +24,7 @@ const statusDotColor: Record<ConsoleHeaderProps["status"], string> = {
   clarification: "bg-amber-500",
 };
 
-export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onPrint }: ConsoleHeaderProps) {
+export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onTerminalToggle, onPrint }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -98,6 +100,16 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
             aria-label="Apri pannello comandi Shell"
           >
             Shell
+          </button>
+        )}
+        {onTerminalToggle && (
+          <button
+            onClick={onTerminalToggle}
+            className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors print:hidden hidden lg:inline flex-shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-label="Apri pannello Terminal — processi attivi"
+          >
+            <Activity className="w-3.5 h-3.5 inline-block mr-1" />
+            Terminal
           </button>
         )}
         {onPowerToggle && (

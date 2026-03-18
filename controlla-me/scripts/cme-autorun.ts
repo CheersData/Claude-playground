@@ -1,32 +1,46 @@
 /**
- * cme-autorun.ts — Daemon SENSOR + EXECUTOR per CME
+ * cme-autorun.ts — Daemon PURE SENSOR per CME
  *
- * Il daemon scansiona i dipartimenti, produce un report, e ESEGUE task via LLM gratuiti.
+ * Il daemon è un SENSORE PURO: scansiona file, scrive un report, pinga Telegram, e BASTA.
+ * CME nel terminale del boss fa il resto. ZERO chiamate LLM.
  *
  * Flusso:
- *   FASE 1: Sensor ($0) → scansiona dipartimenti, produce signal
- *   FASE 2: Report → scrive daemon-report.json strutturato
- *   FASE 3: Executor → esegue task open via LLM gratuiti (Gemini/Groq/Cerebras/Mistral)
- *           Fallback: scrive ping in clipboard se LLM non disponibili.
- *
- * Executor: usa callLLM() da lib/llm.ts con catena fallback su provider gratuiti.
- * NON usa claude -p (rotto dal 9 marzo 2026 — ENOENT / crediti insufficienti).
- * Vedi: task 8565f0eb, company/architecture/designs/daemon-idle-plenary.md
+ *   FASE 1: Daily plan check ($0)
+ *   FASE 2: Sensor scan ($0) — file reads only
+ *   FASE 2.5: Forma Mentis context ($0) — Supabase reads only
+ *   FASE 3: Report write ($0) — daemon-report.json
+ *   FASE 4: Telegram ping ($0) — notify boss if critical/high signals
+ *   STOP — CME nel terminale del boss esegue
  *
  * Usage:
- *   npx tsx scripts/cme-autorun.ts              # Sessione singola (sensor + executor)
+ *   npx tsx scripts/cme-autorun.ts              # Sessione singola (sensor + report + telegram)
  *   npx tsx scripts/cme-autorun.ts --watch       # Loop ogni INTERVAL minuti
- *   npx tsx scripts/cme-autorun.ts --dry-run     # Mostra prompt senza eseguire
+ *   npx tsx scripts/cme-autorun.ts --dry-run     # Mostra signal senza scrivere report
  *   npx tsx scripts/cme-autorun.ts --interval 30 # Intervallo watch in minuti (default: 15)
  *   npx tsx scripts/cme-autorun.ts --scan        # Solo vision scan (mostra signal)
- *   npx tsx scripts/cme-autorun.ts --sensor-only  # Solo sensor, no executor (debug)
  */
 
 import { spawnSync } from "child_process";
 import * as fs from "fs";
 import { resolve } from "path";
-import { callLLM, parseJSON } from "../lib/llm";
+// Telegram notification for daemon ping
+import { isTelegramConfigured, notifyDaemonReport } from "../lib/telegram";
 import { fileRegisterSession, fileUnregisterSession } from "../lib/company/sessions";
+
+// Forma Mentis integration (Layer 3 + Layer 4)
+import { saveDaemonReport as persistDaemonReport, getRecentReports, getDaemonReportDiff } from "../lib/company/coscienza/daemon-reports";
+import { checkGoals } from "../lib/company/coscienza/goal-monitor";
+import { getDecisionsPendingReview, recordDecision } from "../lib/company/riflessione/decision-journal";
+
+// Forma Mentis Layer 1: Memory
+import { indexCompanyKnowledge } from "../lib/company/memory/company-knowledge";
+import { getDepartmentMemories, expireDepartmentMemories } from "../lib/company/memory/department-memory";
+import { loadFormaMentisContext } from "../lib/company/memory/daemon-context-loader";
+
+// Forma Mentis Layer 5: COLLABORAZIONE
+import { createFanOut, isFanOutComplete, aggregateFanOutResults } from "../lib/company/collaborazione/fan-out";
+import { registerDaemonExecutors } from "../lib/company/collaborazione/register-daemon-executors";
+import { invokeDepartmentSkill } from "../lib/company/collaborazione/dept-as-tool";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -36,11 +50,7 @@ const LOG_DIR = resolve(COMPANY_DIR, "autorun-logs");
 const LOCK_FILE = resolve(LOG_DIR, ".autorun.lock");
 const DAEMON_STATE_FILE = resolve(COMPANY_DIR, "cme-daemon-state.json");
 const DEFAULT_INTERVAL_MIN = 15;
-const MAX_PROMPT_DEPT_CHARS = 600; // max chars per department vision context
 const REPORT_FILE = resolve(COMPANY_DIR, "daemon-report.json"); // Ultimo report strutturato per CME
-const CME_SESSION_LOG_DIR = resolve(COMPANY_DIR, "cme-sessions"); // Log sessioni CME autonome
-const MAX_CME_SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minuti max per sessione claude -p
-const MIN_SIGNALS_TO_TRIGGER = 1; // Minimo signal critical/high per triggerare CME
 
 // ─── Vision Scanner Types ───────────────────────────────────────────────────
 
@@ -63,6 +73,10 @@ interface DaemonReport {
   llmAnalysis: string | null;
   llmSuggestions: Array<{ title: string; dept: string; priority: string; description: string }>;
   alerts: string[];
+  /** Forma Mentis Layer 3: goal check results from this cycle */
+  goalChecks: Array<{ goalId: string; goalTitle: string; department: string; metric: string; previousValue: number; currentValue: number; targetValue: number; progressRatio: number; status: string; previousStatus: string; actionTaken: string | null }>;
+  /** Forma Mentis Layer 4: count of decisions pending review */
+  pendingDecisionReviews: number;
 }
 
 // Patterns that indicate a task requires physical human action
@@ -92,12 +106,8 @@ interface DaemonState {
   totalRuns: number;
   updatedAt: string | null;
   updatedBy: string;
-  /** Rate limit backoff: non triggerare CME prima di questo timestamp ISO */
-  rateLimitUntil?: string | null;
-  /** Contatore sessioni consecutive senza azioni utili → cooldown progressivo */
-  consecutiveNoOp?: number;
-  /** Timestamp ISO dell'ultima plenaria automatica (max 1 al giorno) */
-  lastPlenaryAt?: string | null;
+  /** G5: Daemon heartbeat — written at key points in the cycle for liveness detection */
+  lastHeartbeat?: string | null;
 }
 
 function readDaemonState(): DaemonState {
@@ -122,6 +132,11 @@ function writeDaemonState(patch: Partial<DaemonState>): void {
   const current = readDaemonState();
   const updated = { ...current, ...patch, updatedAt: new Date().toISOString() };
   fs.writeFileSync(DAEMON_STATE_FILE, JSON.stringify(updated, null, 2) + "\n", "utf-8");
+}
+
+/** G5: Write a heartbeat timestamp to daemon state for liveness detection by Process Monitor. */
+function writeDaemonHeartbeat(): void {
+  writeDaemonState({ lastHeartbeat: new Date().toISOString() });
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -188,66 +203,8 @@ function readOpenTasks(): string {
   return result.stdout || "Nessun task open.";
 }
 
-function readInProgressTasks(): string {
-  const result = spawnSync("npx", ["tsx", "scripts/company-tasks.ts", "list", "--status", "in_progress"], {
-    cwd: ROOT,
-    encoding: "utf-8",
-    timeout: 30_000,
-    shell: true,
-    windowsHide: true,
-  });
-  return result.stdout || "Nessun task in progress.";
-}
-
-// ─── Department Visions ─────────────────────────────────────────────────────
-
-interface DeptVisionData {
-  name: string;
-  vision: string;
-  mission: string;
-  priorities: string[];
-}
-
-function readDepartmentVisions(): DeptVisionData[] {
-  // Read directly from departments.ts registry (compiled at runtime)
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { DEPARTMENTS, DEPT_ORDER } = require("../lib/company/departments");
-    return DEPT_ORDER.map((id: string) => {
-      const d = DEPARTMENTS[id];
-      return {
-        name: d.label,
-        vision: (d.vision || "").slice(0, MAX_PROMPT_DEPT_CHARS),
-        mission: (d.mission || "").slice(0, MAX_PROMPT_DEPT_CHARS),
-        priorities: (d.priorities || []).slice(0, 3),
-      };
-    });
-  } catch {
-    // Fallback: leggi i department.md direttamente
-    const depts = [
-      "ufficio-legale", "trading", "data-engineering", "quality-assurance",
-      "architecture", "finance", "operations", "security",
-      "strategy", "marketing", "ux-ui",
-    ];
-    return depts.map((id) => {
-      const mdPath = resolve(COMPANY_DIR, id, "department.md");
-      try {
-        const content = fs.readFileSync(mdPath, "utf-8").slice(0, MAX_PROMPT_DEPT_CHARS * 2);
-        // Estrai vision/mission dal markdown
-        const visionMatch = content.match(/## Visione.*?\n\n([\s\S]*?)(?=\n## |\n---|\n$)/i);
-        const missionMatch = content.match(/## Missione.*?\n\n([\s\S]*?)(?=\n## |\n---|\n$)/i);
-        return {
-          name: id,
-          vision: visionMatch?.[1]?.trim().slice(0, MAX_PROMPT_DEPT_CHARS) ?? "",
-          mission: missionMatch?.[1]?.trim().slice(0, MAX_PROMPT_DEPT_CHARS) ?? "",
-          priorities: [],
-        };
-      } catch {
-        return { name: id, vision: "", mission: "", priorities: [] };
-      }
-    });
-  }
-}
+// readInProgressTasks RIMOSSO — usato solo dal vecchio LLM prompt builder
+// readDepartmentVisions RIMOSSO — usato solo dal vecchio LLM prompt builder
 
 // ─── Daily Plan ─────────────────────────────────────────────────────────────
 
@@ -322,136 +279,270 @@ Eseguire i task open dalla board. Priorità: critical > high > medium > low.
   return true;
 }
 
-// ─── Poimandres Vision ──────────────────────────────────────────────────────
+// readPoimandresVision RIMOSSO — usato solo dal vecchio LLM prompt builder
 
-function readPoimandresVision(): string {
-  // La vision Poimandres e nel DB (company_vision table)
-  // Fallback: leggi dal file se salvato localmente
+// AnalysisResult RIMOSSO — il daemon è un sensore puro, zero LLM calls
+
+// ─── Forma Mentis Context Loader ─────────────────────────────────────────────
+
+/**
+ * Load last N daemon reports from Supabase to avoid re-analyzing known issues.
+ * Returns a summary of recent signals and their status.
+ */
+async function loadRecentDaemonReports(limit = 3): Promise<{
+  reports: Awaited<ReturnType<typeof getRecentReports>>;
+  knownSignalIds: Set<string>;
+}> {
   try {
-    const stateFile = resolve(COMPANY_DIR, "vision.json");
-    if (fs.existsSync(stateFile)) {
-      const data = JSON.parse(fs.readFileSync(stateFile, "utf-8"));
-      return `Vision: ${data.vision}\nMission: ${data.mission}`;
+    const reports = await getRecentReports(limit);
+    const knownSignalIds = new Set<string>();
+
+    for (const report of reports) {
+      for (const signal of report.signals) {
+        knownSignalIds.add(signal.sourceId);
+      }
     }
-  } catch { /* ignore */ }
-  return "Vision Poimandres: Diventare la prima e piu potente AGI.";
-}
 
-// ─── Prompt Builder (ZERO COSTI — analisi e pianificazione, NO esecuzione codice) ──
-
-function buildAnalysisPrompt(): string {
-  const board = readBoard();
-  const openTasks = readOpenTasks();
-  const inProgressTasks = readInProgressTasks();
-  const deptVisions = readDepartmentVisions();
-  const dailyPlan = readDailyPlan();
-  const poimandresVision = readPoimandresVision();
-
-  const deptContext = deptVisions
-    .map((d) => {
-      const prios = d.priorities.length > 0
-        ? d.priorities.map((p, i) => `  P${i}: ${p}`).join("\n")
-        : "  (nessuna priorita definita)";
-      return `### ${d.name}\nVision: ${d.vision}\nMission: ${d.mission}\nPriorita:\n${prios}`;
-    })
-    .join("\n\n");
-
-  const planSection = dailyPlan
-    ? `\n## DAILY PLAN (oggi)\n${dailyPlan.slice(0, 1500)}`
-    : "";
-
-  return `Sei il sensore automatico di Poimandres / Controlla.me.
-Il tuo compito è ANALIZZARE lo stato dell'azienda e produrre un REPORT per CME (il CEO virtuale).
-Tu NON crei task. Tu osservi, analizzi, e segnali. CME decide cosa fare.
-
-## VISION
-${poimandresVision}
-
-## DIPARTIMENTI
-${deptContext}
-
-## BOARD
-${board.slice(0, 2000)}
-
-## TASK OPEN
-${openTasks.slice(0, 2000)}
-
-## TASK IN PROGRESS
-${inProgressTasks.slice(0, 1000)}
-${planSection}
-
-## ISTRUZIONI
-
-Produci un report per CME. Rispondi SOLO in JSON puro (inizia con { e finisci con }).
-
-Formato:
-{
-  "analysis": "Analisi dello stato aziendale: cosa funziona, cosa no, dove intervenire (max 300 parole)",
-  "suggestions": [
-    {
-      "title": "Cosa andrebbe fatto (max 80 char)",
-      "dept": "dipartimento suggerito",
-      "priority": "critical|high|medium|low",
-      "description": "Perché è importante e cosa comporta (max 200 char)"
-    }
-  ],
-  "alerts": ["Problemi urgenti che CME deve vedere subito"],
-  "deptHealth": {
-    "nome-dept": "green|yellow|red — motivazione breve"
+    log(`[FORMA-MENTIS] Loaded ${reports.length} recent reports, ${knownSignalIds.size} known signal IDs`);
+    return { reports, knownSignalIds };
+  } catch (err) {
+    console.error("[DAEMON] Failed to load recent reports:", err);
+    return { reports: [], knownSignalIds: new Set() };
   }
 }
 
-REGOLE:
-- Questo è un REPORT, non una lista di ordini. CME valuterà se e come agire
-- Sii specifico e concreto nelle osservazioni, non generico
-- Segnala pattern: dipartimenti fermi, task bloccati da giorni, aree senza copertura
-- alerts[] solo per cose urgenti (produzione rotta, sicurezza, perdita dati)
-- Dept validi: ufficio-legale, trading, data-engineering, quality-assurance, architecture, finance, operations, security, strategy, marketing, ux-ui
-- Priorita: critical solo per emergenze, high per cose importanti, medium per miglioramenti, low per nice-to-have
-`;
-}
+// loadAllDepartmentMemories RIMOSSO — usato solo dal vecchio LLM prompt builder
 
-// ─── Execute Free LLM Session (ZERO COSTI) ──────────────────────────────────
-
-interface AnalysisResult {
-  analysis: string;
-  suggestions: Array<{
-    title: string;
-    dept: string;
-    priority: string;
-    description: string;
-  }>;
-  alerts: string[];
-  deptHealth: Record<string, string>;
-}
-
-async function _executeFreeSession(prompt: string): Promise<{ output: string; analysis: AnalysisResult | null; exitCode: number }> {
-  log("Lancio analisi via LLM gratuiti (ZERO COSTI)...");
+/**
+ * Expire old department memories and log the count.
+ */
+async function expireAllDepartmentMemories(): Promise<void> {
+  const DEPARTMENTS = [
+    "ufficio-legale", "trading", "data-engineering", "quality-assurance",
+    "architecture", "finance", "operations", "security",
+    "strategy", "marketing", "ux-ui", "protocols", "acceleration",
+  ];
 
   try {
-    const response = await callLLM(prompt, {
-      callerName: "cme-daemon",
-      maxTokens: 4096,
-      temperature: 0.3,
-      jsonOutput: true,
+    const results = await Promise.all(
+      DEPARTMENTS.map((dept) => expireDepartmentMemories(dept))
+    );
+    const totalExpired = results.reduce((sum, n) => sum + n, 0);
+    if (totalExpired > 0) {
+      log(`[FORMA-MENTIS] Expired ${totalExpired} stale department memories`);
+    }
+  } catch (err) {
+    console.error("[DAEMON] Memory expiration failed:", err);
+  }
+}
+
+// saveAnalysisInsights RIMOSSO — il daemon è un sensore puro, zero LLM calls
+// New critical signals are still saved as company knowledge in saveCycleSummary()
+
+/**
+ * Load per-department memories keyed by dept ID.
+ * Returns a Map<string, string> for quick access during signal enrichment.
+ */
+async function loadDeptMemoryMap(): Promise<Map<string, string>> {
+  const DEPARTMENTS = [
+    "ufficio-legale", "trading", "data-engineering", "quality-assurance",
+    "architecture", "finance", "operations", "security",
+    "strategy", "marketing", "ux-ui", "protocols", "acceleration",
+  ];
+
+  const memoryMap = new Map<string, string>();
+
+  try {
+    const promises = DEPARTMENTS.map(async (dept) => {
+      const memories = await getDepartmentMemories(dept, {
+        categories: ["warning", "learning", "context", "fact"],
+        limit: 5,
+      });
+      if (memories.length === 0) return { dept, text: "" };
+      const text = memories
+        .map((m) => `[${m.category}] ${m.key}: ${m.content}`)
+        .join("\n");
+      return { dept, text };
     });
 
-    log(`LLM response ricevuta: ${response.length} chars`);
-
-    let analysis: AnalysisResult | null = null;
-    try {
-      analysis = parseJSON<AnalysisResult>(response);
-    } catch (e) {
-      log(`Parsing JSON fallito: ${e instanceof Error ? e.message : String(e)}`);
+    const results = await Promise.all(promises);
+    for (const { dept, text } of results) {
+      if (text) memoryMap.set(dept, text);
     }
 
-    return { output: response, analysis, exitCode: 0 };
+    log(`[FORMA-MENTIS] Loaded per-dept memory map: ${memoryMap.size} departments with active memories`);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`ERRORE LLM gratuito: ${msg}`);
-    return { output: msg, analysis: null, exitCode: 1 };
+    console.error("[DAEMON] Failed to load dept memory map:", err);
+  }
+
+  return memoryMap;
+}
+
+/**
+ * Enrich signals with relevant department memory context.
+ * Appends memory context to signal descriptions for departments that have active memories.
+ * This gives the LLM analysis richer context per-department without a separate query.
+ */
+function enrichSignalsWithDeptMemory(
+  signals: ActionableItem[],
+  deptMemoryMap: Map<string, string>,
+): void {
+  let enrichedCount = 0;
+
+  for (const signal of signals) {
+    const deptMemory = deptMemoryMap.get(signal.deptId);
+    if (!deptMemory) continue;
+
+    // Don't append if description is already very long
+    if (signal.description.length > 400) continue;
+
+    // Check if memory is relevant to this signal (simple keyword overlap)
+    const signalWords = new Set(
+      signal.title.toLowerCase().split(/\s+/).filter((w) => w.length > 3)
+    );
+    const memoryLines = deptMemory.split("\n");
+    const relevantLines = memoryLines.filter((line) => {
+      const lineWords = line.toLowerCase().split(/\s+/);
+      return lineWords.some((w) => signalWords.has(w));
+    });
+
+    if (relevantLines.length > 0) {
+      signal.description += ` [Dept memory: ${relevantLines.slice(0, 2).join("; ").slice(0, 200)}]`;
+      enrichedCount++;
+    }
+  }
+
+  if (enrichedCount > 0) {
+    log(`[FORMA-MENTIS] Enriched ${enrichedCount} signals with department memory context`);
   }
 }
+
+/**
+ * Detect multi-department signals and create fan-out tasks.
+ * A signal is "multi-dept" if the same issue type appears across 2+ departments.
+ * Now includes department memory context in the fan-out shared context.
+ */
+async function handleMultiDeptSignals(
+  signals: ActionableItem[],
+  deptMemoryMap?: Map<string, string>,
+): Promise<void> {
+  // Group signals by title pattern (first 40 chars normalized)
+  const signalGroups = new Map<string, ActionableItem[]>();
+  for (const signal of signals) {
+    if (signal.requiresHuman) continue;
+    if (signal.priority !== "critical" && signal.priority !== "high") continue;
+
+    const normalizedTitle = signal.title.slice(0, 40).toLowerCase().replace(/\s+/g, " ");
+    const group = signalGroups.get(normalizedTitle) || [];
+    group.push(signal);
+    signalGroups.set(normalizedTitle, group);
+  }
+
+  // Fan-out for signals that span 2+ departments
+  for (const [, group] of Array.from(signalGroups.entries())) {
+    const uniqueDepts = Array.from(new Set(group.map((s) => s.deptId)));
+    if (uniqueDepts.length < 2) continue;
+
+    const representativeSignal = group[0];
+
+    // Collect department memory context for all involved departments
+    const deptMemoryContext: Record<string, string> = {};
+    if (deptMemoryMap) {
+      for (const dept of uniqueDepts) {
+        const mem = deptMemoryMap.get(dept);
+        if (mem) deptMemoryContext[dept] = mem.slice(0, 300);
+      }
+    }
+
+    try {
+      const departments = uniqueDepts as Parameters<typeof createFanOut>[0]["departments"];
+      const { parentTaskId, subtaskIds } = await createFanOut({
+        departments,
+        templateTitle: `Cross-dept: ${representativeSignal.title.slice(0, 60)}`,
+        templateDesc: `This issue was detected across ${uniqueDepts.length} departments (${uniqueDepts.join(", ")}). ` +
+          `Description: ${representativeSignal.description.slice(0, 300)}. ` +
+          `Each department should evaluate impact and propose resolution.`,
+        priority: representativeSignal.priority === "critical" ? "critical" : "high",
+        createdBy: "cme-daemon",
+        routing: representativeSignal.routing,
+        sharedContext: Object.keys(deptMemoryContext).length > 0
+          ? { departmentMemories: deptMemoryContext, signalCount: group.length }
+          : undefined,
+      });
+      log(`[FORMA-MENTIS] Fan-out created for cross-dept signal: parent=${parentTaskId}, depts=${Object.keys(subtaskIds).join(",")}`);
+    } catch (err) {
+      console.error("[DAEMON] Fan-out creation failed:", err);
+    }
+  }
+}
+
+/**
+ * Save a daemon cycle summary as company knowledge.
+ * This creates a persistent record of what happened in each daemon cycle,
+ * including signal counts, analysis results, and key findings.
+ * Enables cross-cycle pattern detection over time.
+ */
+async function saveCycleSummary(
+  report: DaemonReport,
+  cycleNumber: number,
+  deptMemoryMap: Map<string, string>,
+): Promise<void> {
+  try {
+    // Only save if we have meaningful data
+    const criticalHighCount = report.signals.filter(
+      (s) => s.priority === "critical" || s.priority === "high"
+    ).length;
+
+    // Skip saving for uneventful cycles (no high-priority signals)
+    if (criticalHighCount === 0) return;
+
+    // Build a concise summary of this cycle
+    const summaryParts: string[] = [
+      `Cycle ${cycleNumber}: ${report.signals.length} signals (${criticalHighCount} critical/high).`,
+      `Board: ${report.board.open} open, ${report.board.inProgress} in-progress, ${report.board.done} done.`,
+    ];
+
+    // Note departments with active memories
+    if (deptMemoryMap.size > 0) {
+      summaryParts.push(`Depts with active memory: ${Array.from(deptMemoryMap.keys()).join(", ")}`);
+    }
+
+    // Top signal departments
+    const deptSignalCounts = new Map<string, number>();
+    for (const s of report.signals) {
+      deptSignalCounts.set(s.deptId, (deptSignalCounts.get(s.deptId) || 0) + 1);
+    }
+    const topDepts = Array.from(deptSignalCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([dept, count]) => `${dept}(${count})`)
+      .join(", ");
+    summaryParts.push(`Top signal depts: ${topDepts}`);
+
+    await indexCompanyKnowledge({
+      category: "pattern",
+      title: `Daemon cycle ${cycleNumber} summary`,
+      content: summaryParts.join(" "),
+      departments: Array.from(deptSignalCounts.keys()),
+      metadata: {
+        cycleNumber,
+        signalCount: report.signals.length,
+        criticalHighCount,
+        alertCount: report.alerts.length,
+        boardOpen: report.board.open,
+        boardDone: report.board.done,
+        timestamp: report.timestamp,
+        source: "daemon-cycle-summary",
+      },
+    });
+
+    log(`[FORMA-MENTIS] Cycle ${cycleNumber} summary saved as company knowledge`);
+  } catch (err) {
+    console.error("[DAEMON] Failed to save cycle summary:", err);
+  }
+}
+
+// buildAnalysisPrompt RIMOSSO — il daemon è un sensore puro, zero LLM calls
 
 /**
  * Scrive il report strutturato per CME.
@@ -732,440 +823,121 @@ function scanDepartmentStatus(): ActionableItem[] {
 
 // autoGenerateTasks RIMOSSO — il daemon non crea task, produce solo report per CME
 
-// ─── CME Executor (Free LLM — $0.00) ────────────────────────────────────────
-//
-// HISTORY: Prima del 2026-03-09, il daemon usava `claude -p` (spawnSync) per
-// eseguire task autonomamente. Questo approccio falliva sistematicamente:
-//   1. ENOENT — `claude` non nel PATH del processo daemon
-//   2. Credit balance too low — ambiente demo senza crediti API Anthropic
-//
-// FIX (2026-03-14): L'executor usa callLLM() da lib/llm.ts con catena fallback
-// su provider gratuiti (Gemini Flash → Groq → Cerebras → Mistral). Stessa
-// infrastruttura del sensor phase, che funziona da sempre. Zero costi.
-//
-// La vecchia funzione _executeCMESession (claude -p) è stata RIMOSSA.
-// executeCMESessionFree() la sostituisce completamente.
-// buildCMEPrompt() rimane disponibile se si vuole ripristinare claude -p in futuro.
+// ─── Fan-In: Aggregate completed fan-outs ────────────────────────────────────
 
 /**
- * Conta i task open che NON sono human_required.
- * Legge la lista task e filtra via HUMAN_REQUIRED_PATTERNS.
+ * Queries company_tasks for open [FAN-OUT] parent tasks and aggregates
+ * results for any that have all subtasks completed.
+ * Called every daemon cycle to close out finished fan-outs.
  */
-function countAutomatableTasks(): number {
-  const openTasksText = readOpenTasks();
-  // Ogni task nel list output ha formato: "ID | title | dept | status | desc"
-  // Splitta per riga e filtra righe che contengono dati task (non headers/separators)
-  const lines = openTasksText.split("\n").filter((l) => l.includes("|") && !l.includes("---"));
-  let automatable = 0;
-  for (const line of lines) {
-    const isHuman = HUMAN_REQUIRED_PATTERNS.some((p) => p.test(line));
-    if (!isHuman) automatable++;
-  }
-  return automatable;
-}
-
-function shouldTriggerCME(report: DaemonReport): { trigger: boolean; reason: string; actionableCount: number } {
-  // F2: Rate limit backoff — se siamo in cooldown, non triggerare
-  const state = readDaemonState();
-  if (state.rateLimitUntil) {
-    const until = new Date(state.rateLimitUntil).getTime();
-    if (Date.now() < until) {
-      const remainMin = Math.ceil((until - Date.now()) / 60000);
-      return { trigger: false, reason: `Rate limit backoff attivo (${remainMin}min rimanenti)`, actionableCount: 0 };
-    }
-    // Reset: siamo oltre il backoff
-    writeDaemonState({ rateLimitUntil: null });
-  }
-
-  // F1: Cooldown progressivo — se N sessioni consecutive senza azioni, backoff
-  // Nota: nel modello ping (daemon scrive clipboard, boss incolla) il counter
-  // saliva troppo perché le sessioni "no-op" sono la norma. Threshold alzato
-  // a 20 e skip max 3 cicli per evitare di bloccare il daemon per giorni.
-  const consecutiveNoOp = state.consecutiveNoOp ?? 0;
-  if (consecutiveNoOp >= 20) {
-    // Dopo 20 sessioni vuote, triggera solo ogni N cicli (max 3 skip)
-    const skipCycles = Math.min(Math.floor((consecutiveNoOp - 18) / 2), 3);
-    const cycleNum = state.totalRuns % (skipCycles + 1);
-    if (cycleNum !== 0) {
-      return { trigger: false, reason: `Cooldown progressivo (${consecutiveNoOp} sessioni no-op, skip ciclo ${cycleNum}/${skipCycles + 1})`, actionableCount: 0 };
-    }
-  }
-
-  // Conta TUTTI i signal azionabili (non solo critical/high)
-  const actionableCritHigh = report.signals.filter(
-    (s) => !s.requiresHuman && (s.priority === "critical" || s.priority === "high")
-  );
-  const actionableMedium = report.signals.filter(
-    (s) => !s.requiresHuman && s.priority === "medium"
-  );
-  const totalActionable = actionableCritHigh.length + actionableMedium.length;
-
-  // Trigger anche se ci sono alert dal LLM
-  const hasAlerts = report.alerts.length > 0;
-
-  // Trigger su task open automatizzabili
-  const automatableTasks = countAutomatableTasks();
-  const hasAutomatableTasks = automatableTasks > 0;
-
-  // Trigger su suggerimenti LLM
-  const hasSuggestions = report.llmSuggestions.length > 0;
-
-  if (actionableCritHigh.length >= MIN_SIGNALS_TO_TRIGGER) {
-    return { trigger: true, reason: `${actionableCritHigh.length} signal critical/high azionabili + ${actionableMedium.length} medium`, actionableCount: totalActionable };
-  }
-  if (hasAlerts) {
-    return { trigger: true, reason: `${report.alerts.length} alert urgenti`, actionableCount: report.alerts.length };
-  }
-  if (hasAutomatableTasks) {
-    return { trigger: true, reason: `${automatableTasks} task open automatizzabili (${report.board.open} totali)`, actionableCount: automatableTasks };
-  }
-  if (hasSuggestions) {
-    return { trigger: true, reason: `${report.llmSuggestions.length} suggerimenti LLM da valutare`, actionableCount: report.llmSuggestions.length };
-  }
-  // Trigger anche su signal medium se ce ne sono abbastanza (almeno 3)
-  if (actionableMedium.length >= 3) {
-    return { trigger: true, reason: `${actionableMedium.length} signal medium azionabili (nessun critical/high)`, actionableCount: actionableMedium.length };
-  }
-
-  // Nessun trigger — loghiamo perché (utile per debug)
-  if (report.board.open > 0 && !hasAutomatableTasks) {
-    return { trigger: false, reason: `${report.board.open} task open ma TUTTI human_required — skip`, actionableCount: 0 };
-  }
-
-  return { trigger: false, reason: "Nessun signal azionabile", actionableCount: 0 };
-}
-
-/**
- * Costruisce il prompt per claude -p. Claude -p diventa CME:
- * legge CLAUDE.md, il report del daemon, crea task mirati, li esegue.
- *
- * PRINCIPIO: claude -p deve avere abbastanza contesto per agire autonomamente.
- * Non filtrare troppo — dare visibilità completa e lasciare che CME decida.
- */
-function buildCMEPrompt(report: DaemonReport): string {
-  // Signal azionabili (non human_required) — TUTTI, non solo critical/high
-  const actionableSignals = report.signals
-    .filter((s) => !s.requiresHuman)
-    .sort((a, b) => {
-      const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-      return (order[a.priority] ?? 3) - (order[b.priority] ?? 3);
-    })
-    .slice(0, 20);
-
-  // Signal che richiedono il boss — per contesto (CME può preparare il terreno)
-  const humanSignals = report.signals
-    .filter((s) => s.requiresHuman && (s.priority === "critical" || s.priority === "high"))
-    .slice(0, 5);
-
-  const actionableList = actionableSignals
-    .map((s) => `- [${s.priority}] ${s.deptId}: ${s.title}\n  ${s.description.slice(0, 200)}\n  routing: ${s.routing}`)
-    .join("\n");
-
-  const humanList = humanSignals
-    .map((s) => `- [${s.priority}] ${s.deptId}: ${s.title} (⚠️ richiede boss)`)
-    .join("\n");
-
-  const suggestionList = report.llmSuggestions
-    .slice(0, 5)
-    .map((s) => `- [${s.priority}] ${s.dept}: ${s.title} — ${s.description}`)
-    .join("\n");
-
-  const alertList = report.alerts.map((a) => `- ${a}`).join("\n");
-
-  // Leggi i task aperti per includerli nel prompt
-  const openTasksText = readOpenTasks().slice(0, 3000);
-  const inProgressText = readInProgressTasks().slice(0, 2000);
-
-  return `Sei CME, il CEO virtuale di Controlla.me.
-
-## IL TUO COMPITO
-
-Il daemon ha scansionato i dipartimenti e prodotto un report con ${report.signals.length} signal.
-Di questi, ${actionableSignals.length} sono AZIONABILI da te (non richiedono intervento umano).
-Tu DEVI analizzarli e agire: crea task, eseguili, chiudili.
-
-## PRIMA DI TUTTO
-
-1. Leggi CLAUDE.md per capire il progetto e le convenzioni
-2. Leggi company/cme.md per il tuo ruolo e le regole
-3. Usa \`npx tsx scripts/dept-context.ts <dept>\` per avere il contesto rapido di un dipartimento
-
-## STATO BOARD
-- Totale: ${report.board.total} | Open: ${report.board.open} | In Progress: ${report.board.inProgress} | Done: ${report.board.done}
-
-## TASK APERTI (da eseguire subito)
-${openTasksText || "(nessuno)"}
-
-## TASK IN PROGRESS
-${inProgressText || "(nessuno)"}
-
-## SIGNAL AZIONABILI (puoi agire su questi)
-${actionableList || "(nessuno — i signal azionabili sono esauriti)"}
-
-## SIGNAL CHE RICHIEDONO IL BOSS (solo contesto)
-${humanList || "(nessuno)"}
-
-## SUGGERIMENTI LLM
-${suggestionList || "(nessuno — LLM analysis non disponibile)"}
-
-## ALERT
-${alertList || "(nessuno)"}
-
-## ANALISI LLM
-${report.llmAnalysis?.slice(0, 800) || "(non disponibile — provider gratuiti esauriti, agisci sui signal grezzi)"}
-
-## COME LAVORARE
-
-### Se ci sono task OPEN o IN_PROGRESS:
-1. Eseguili SUBITO — sono già approvati
-2. Per ogni task: \`npx tsx scripts/company-tasks.ts exec <id>\` → leggi il delegation brief → implementa
-3. Quando completi: \`npx tsx scripts/company-tasks.ts done <id> --summary "..."\`
-
-### Se NON ci sono task ma ci sono signal azionabili:
-1. Scegli i TOP 3 signal più impattanti
-2. Per ognuno crea un task:
-   \`npx tsx scripts/company-tasks.ts create --title "..." --dept <dept> --priority <p> --by cme --routing "<routing>" --desc "Cosa fare e perché"\`
-3. Eseguilo: \`npx tsx scripts/company-tasks.ts exec <id>\`
-4. Implementa il lavoro seguendo il department.md e i runbook
-5. Chiudi: \`npx tsx scripts/company-tasks.ts done <id> --summary "..." --no-next\`
-
-### Cosa puoi fare (esempi):
-- Scrivere/aggiornare codice (app/, lib/, trading/, scripts/)
-- Scrivere test (vitest, playwright)
-- Aggiornare configurazioni e documentazione
-- Fixare bug rilevati dai signal
-- Aggiornare status.json dei dipartimenti
-- Creare contenuti marketing/SEO
-- Migliorare prompt degli agenti AI
-
-### Cosa NON puoi fare (richiede il boss):
-- Deploy in produzione
-- Firmare DPA/contratti
-- Go-live trading
-- Configurare servizi esterni (GSC, GA4, Stripe dashboard)
-
-## REGOLE (NON NEGOZIABILI)
-
-1. OGNI modifica a file in app/, lib/, trading/src/, scripts/ DEVE avere un task formale
-2. Max 3 task per sessione — meglio 3 fatti bene che 10 a metà
-3. Logga cosa hai fatto alla fine della sessione (riassunto)
-4. Se un task fallisce, segnalalo nel summary e vai avanti al prossimo
-5. NON restare inattivo — se hai signal azionabili, DEVI creare almeno 1 task e completarlo
-`;
-}
-
-/**
- * Esegue una sessione CME autonoma via LLM gratuiti (ZERO COSTI).
- *
- * Analizza lo stato aziendale e propone azioni concrete (task da creare).
- * Usa callLLM() con catena fallback: Gemini Flash → Groq → Cerebras → Mistral.
- *
- * Sostituisce la vecchia _executeCMESession che usava `claude -p` (rotto dal 2026-03-09).
- */
-async function executeCMESessionFree(report: DaemonReport): Promise<{
-  success: boolean;
-  output: string;
-  durationMs: number;
-  tasksCreated: number;
-}> {
-  const startTime = Date.now();
-
-  log("[EXECUTOR-LLM] Lancio sessione CME via LLM gratuiti ($0.00)...");
-
-  // Prompt compatto ottimizzato per provider gratuiti (context window più piccolo)
-  const actionableSignals = report.signals
-    .filter((s) => !s.requiresHuman)
-    .sort((a, b) => {
-      const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-      return (order[a.priority] ?? 3) - (order[b.priority] ?? 3);
-    })
-    .slice(0, 10);
-
-  const signalList = actionableSignals
-    .map((s) => `- [${s.priority}] ${s.deptId}: ${s.title} | ${s.description.slice(0, 150)}`)
-    .join("\n");
-
-  const openTasksText = readOpenTasks().slice(0, 2000);
-
-  const prompt = `Sei CME, il CEO virtuale di Controlla.me (app analisi legale AI).
-
-## STATO BOARD
-- Open: ${report.board.open} | In Progress: ${report.board.inProgress} | Done: ${report.board.done}
-
-## TASK APERTI
-${openTasksText || "(nessuno)"}
-
-## SIGNAL AZIONABILI (${actionableSignals.length} totali)
-${signalList || "(nessuno)"}
-
-## ISTRUZIONI
-
-Analizza lo stato e proponi azioni concrete. Rispondi SOLO in JSON puro (inizia con { e finisci con }).
-
-{
-  "analysis": "Stato aziendale in 2-3 frasi",
-  "actions": [
-    {
-      "type": "create_task",
-      "title": "Titolo task conciso (max 80 chars)",
-      "dept": "dipartimento",
-      "priority": "critical|high|medium|low",
-      "description": "Cosa fare e perche (max 200 chars)"
-    }
-  ],
-  "summary": "Riassunto di cosa hai deciso (max 200 parole)"
-}
-
-REGOLE:
-- Max 3 azioni per sessione
-- Solo azioni concrete e realizzabili da un agente AI
-- Non creare task per cose che richiedono intervento umano (DPA, deploy, go-live)
-- Dipartimenti validi: ufficio-legale, trading, data-engineering, quality-assurance, architecture, finance, operations, security, strategy, marketing, ux-ui
-- Se non ci sono azioni utili, actions = [] e spiega perche in summary`;
-
+async function aggregateCompletedFanOuts(): Promise<void> {
   try {
-    const response = await callLLM(prompt, {
-      callerName: "cme-executor",
-      maxTokens: 2048,
-      temperature: 0.3,
-      jsonOutput: true,
-    });
+    const { createAdminClient } = await import("../lib/supabase/admin");
+    const admin = createAdminClient();
 
-    const durationMs = Date.now() - startTime;
-    log(`[EXECUTOR-LLM] Risposta: ${response.length} chars in ${(durationMs / 1000).toFixed(1)}s`);
+    // Find open fan-out parent tasks
+    const { data: fanOutTasks, error } = await admin
+      .from("company_tasks")
+      .select("id, title")
+      .like("title", "[FAN-OUT]%")
+      .in("status", ["open", "in_progress"])
+      .order("created_at", { ascending: false })
+      .limit(20);
 
-    // Parsa risposta JSON
-    let parsed: {
-      analysis?: string;
-      actions?: Array<{
-        type: string;
-        title?: string;
-        dept?: string;
-        priority?: string;
-        description?: string;
-      }>;
-      summary?: string;
-    };
-
-    try {
-      parsed = parseJSON(response);
-    } catch (parseErr) {
-      log(`[EXECUTOR-LLM] JSON parse fallito: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
-      logCMESession(report, prompt, response, durationMs, false, 0);
-      return { success: false, output: response, durationMs, tasksCreated: 0 };
+    if (error) {
+      log(`[FAN-IN] Query error: ${error.message}`);
+      return;
     }
 
-    // Esegui azioni: crea task sulla board
-    let tasksCreated = 0;
-    const actions = parsed.actions || [];
+    if (!fanOutTasks || fanOutTasks.length === 0) {
+      return; // No open fan-outs to check
+    }
 
-    for (const action of actions.slice(0, 3)) {
-      if (action.type === "create_task" && action.title && action.dept) {
-        try {
-          const createResult = spawnSync("npx", [
-            "tsx", "scripts/company-tasks.ts", "create",
-            "--title", action.title.slice(0, 80),
-            "--dept", action.dept,
-            "--priority", action.priority || "medium",
-            "--by", "cme-daemon-executor",
-            "--desc", action.description || action.title,
-          ], {
-            cwd: ROOT, encoding: "utf-8", timeout: 15000, shell: true, windowsHide: true,
-          });
-          if (createResult.status === 0) {
-            tasksCreated++;
-            log(`[EXECUTOR-LLM] Task creato: [${action.priority}] ${action.dept} — ${action.title}`);
-          } else {
-            log(`[EXECUTOR-LLM] Task creation failed: ${createResult.stderr?.slice(0, 100)}`);
-          }
-        } catch (err) {
-          log(`[EXECUTOR-LLM] Task creation error: ${err instanceof Error ? err.message : String(err)}`);
+    let aggregatedCount = 0;
+    for (const task of fanOutTasks) {
+      try {
+        const complete = await isFanOutComplete(task.id);
+        if (complete) {
+          await aggregateFanOutResults(task.id);
+          aggregatedCount++;
+          log(`[FAN-IN] Aggregated fan-out: ${task.id} (${task.title})`);
         }
+      } catch (err) {
+        // Non-fatal per-task: log and continue
+        log(`[FAN-IN] Error checking fan-out ${task.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
-    const output = [
-      `Analysis: ${parsed.analysis || "N/A"}`,
-      `Actions: ${actions.length} proposti, ${tasksCreated} task creati`,
-      `Summary: ${parsed.summary || "N/A"}`,
-    ].join("\n");
-
-    logCMESession(report, prompt, response, durationMs, true, tasksCreated);
-    log(`[EXECUTOR-LLM] Sessione completata: ${tasksCreated} task creati in ${(durationMs / 1000).toFixed(0)}s`);
-    return { success: true, output, durationMs, tasksCreated };
-
+    if (aggregatedCount > 0) {
+      log(`[FAN-IN] Aggregated ${aggregatedCount}/${fanOutTasks.length} completed fan-outs`);
+    }
   } catch (err) {
-    const durationMs = Date.now() - startTime;
-    const msg = err instanceof Error ? err.message : String(err);
-    const errorCat = categorizeExecutorError(msg);
-    log(`[EXECUTOR-LLM] ${errorCat.label}: ${msg.slice(0, 200)}`);
-    logCMESession(report, prompt, `ERROR [${errorCat.code}]: ${msg}`, durationMs, false, 0);
-    return { success: false, output: `${errorCat.label}: ${msg}`, durationMs, tasksCreated: 0 };
+    log(`[FAN-IN] Error: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
+// CME Executor RIMOSSO — il daemon è un sensore puro.
+// CME nel terminale del boss fa l'esecuzione.
+
+
 /**
- * Categorizza errori dell'executor per logging e diagnostica migliore.
+ * Determines if there are actionable signals worth pinging the boss about.
+ * Simple check: are there critical or high priority signals?
  */
-function categorizeExecutorError(msg: string): { code: string; label: string; retryable: boolean } {
-  const lower = msg.toLowerCase();
-  if (lower.includes("enoent")) {
-    return { code: "ENOENT", label: "Comando non trovato nel PATH", retryable: false };
-  }
-  if (lower.includes("credit") || lower.includes("balance") || lower.includes("quota")) {
-    return { code: "CREDITS", label: "Crediti/quota esauriti", retryable: false };
-  }
-  if (lower.includes("rate_limit") || lower.includes("429") || lower.includes("too many")) {
-    return { code: "RATE_LIMIT", label: "Rate limit raggiunto", retryable: true };
-  }
-  if (lower.includes("timeout") || lower.includes("etimedout")) {
-    return { code: "TIMEOUT", label: "Timeout connessione", retryable: true };
-  }
-  if (lower.includes("network") || lower.includes("econnrefused") || lower.includes("fetch failed")) {
-    return { code: "NETWORK", label: "Errore di rete", retryable: true };
-  }
-  if (lower.includes("tutti i provider")) {
-    return { code: "ALL_PROVIDERS_FAILED", label: "Tutti i provider gratuiti hanno fallito", retryable: false };
-  }
-  return { code: "UNKNOWN", label: "Errore executor", retryable: false };
+function hasActionableSignals(signals: ActionableItem[]): { hasCriticalHigh: boolean; criticalCount: number; highCount: number } {
+  const critical = signals.filter(s => s.priority === "critical");
+  const high = signals.filter(s => s.priority === "high");
+  return {
+    hasCriticalHigh: critical.length > 0 || high.length > 0,
+    criticalCount: critical.length,
+    highCount: high.length,
+  };
 }
 
 /**
- * Log sessione CME su file per archivio.
+ * Send Telegram notification with daemon report summary.
+ * Only sends if there are critical/high signals.
  */
-function logCMESession(
-  report: DaemonReport,
-  prompt: string,
-  output: string,
-  durationMs: number,
-  success: boolean,
-  tasksExecuted: number
-): void {
-  ensureDir(CME_SESSION_LOG_DIR);
-  const now = new Date();
-  const sessionFile = `${now.toISOString().slice(0, 16).replace(/[T:]/g, "-")}.md`;
-  const sessionLog = `# CME Session — ${now.toLocaleString("it-IT")}
+async function sendTelegramPing(report: DaemonReport): Promise<boolean> {
+  if (!isTelegramConfigured()) {
+    log("[TELEGRAM] Non configurato (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID mancanti). Skip.");
+    return false;
+  }
 
-- **Engine**: Free LLM (callLLM via lib/llm.ts)
-- **Durata**: ${(durationMs / 1000).toFixed(0)}s
-- **Successo**: ${success}
-- **Task eseguiti**: ${tasksExecuted}
-- **Signal totali**: ${report.signals.length} (${report.signals.filter(s => !s.requiresHuman).length} azionabili)
-- **Board**: open=${report.board.open} inProgress=${report.board.inProgress} done=${report.board.done}
+  const criticalSignals = report.signals.filter(s => s.priority === "critical");
+  const highSignals = report.signals.filter(s => s.priority === "high");
 
-## Prompt
+  if (criticalSignals.length === 0 && highSignals.length === 0) {
+    log("[TELEGRAM] Nessun signal critical/high. Skip notifica.");
+    return false;
+  }
 
-\`\`\`
-${prompt.slice(0, 5000)}
-\`\`\`
+  // Build top signals list (critical first, then high)
+  const topSignals = [...criticalSignals, ...highSignals]
+    .slice(0, 3)
+    .map(s => ({ deptId: s.deptId, title: s.title, priority: s.priority }));
 
-## Output
+  try {
+    const sent = await notifyDaemonReport({
+      totalSignals: report.signals.length,
+      criticalCount: criticalSignals.length,
+      highCount: highSignals.length,
+      topSignals,
+      board: report.board,
+      goalChecks: report.goalChecks.length,
+      pendingDecisions: report.pendingDecisionReviews,
+    });
 
-\`\`\`
-${output.slice(0, 50_000)}
-\`\`\`
-`;
-  fs.writeFileSync(resolve(CME_SESSION_LOG_DIR, sessionFile), sessionLog, "utf-8");
+    if (sent) {
+      log(`[TELEGRAM] Notifica inviata: ${criticalSignals.length} critical, ${highSignals.length} high.`);
+    } else {
+      log("[TELEGRAM] Invio fallito (API Telegram ha risposto ok=false).");
+    }
+    return sent;
+  } catch (err) {
+    log(`[TELEGRAM] Errore invio: ${err instanceof Error ? err.message : String(err)}`);
+    return false;
+  }
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -1180,20 +952,22 @@ async function main() {
     ? parseInt(args[intervalIdx + 1], 10)
     : DEFAULT_INTERVAL_MIN;
 
-  log("=== CME Autorun ===");
+  log("=== CME Autorun (PURE SENSOR) ===");
 
   if (dryRun) {
-    log("Modo dry-run: mostro il prompt senza eseguire.\n");
-    const prompt = buildAnalysisPrompt();
-    console.log("─── PROMPT (FREE LLM — $0.00) ────────────────────");
-    console.log(prompt);
-    console.log("──────────────────────────────────────────────────");
-    console.log(`\nLunghezza prompt: ${prompt.length} chars`);
-    console.log("Costo stimato: $0.00 (provider gratuiti)");
+    log("Modo dry-run: mostro signal senza scrivere report.\n");
+    const items = scanDepartmentStatus();
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    items.sort((a, b) => (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2));
+    console.log(`\nSignal totali: ${items.length}`);
+    for (const item of items.slice(0, 20)) {
+      console.log(`  [${item.priority}] ${item.deptId} | ${item.title}`);
+    }
+    console.log("\nCosto: $0.00 (pure sensor, zero LLM)");
     return;
   }
 
-  // Scan-only mode: mostra signal dai dipartimenti (no task creation)
+  // Scan-only mode: mostra signal dai dipartimenti (no report write)
   if (args.includes("--scan")) {
     log("Modo scan: mostro signal dai dipartimenti.\n");
     const items = scanDepartmentStatus();
@@ -1250,22 +1024,132 @@ async function main() {
     const startTime = Date.now();
 
     try {
-      // FASE 1: Daily plan
+      // Register daemon skill executors at startup (read-only department status readers)
+      try {
+        registerDaemonExecutors();
+      } catch (err) {
+        log(`[DAEMON] Executor registration warning: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // ─── FASE 1: Daily plan ────────────────────────────────────────────
       ensureDailyPlanExists();
 
-      // FASE 2: Vision scanner — scansiona status.json, produce SIGNAL (no task creation)
+      // G5: Heartbeat at start of sensor scan
+      writeDaemonHeartbeat();
+
+      // ─── FASE 2: Vision scanner — scansiona status.json, produce SIGNAL ─
       const signals = scanDepartmentStatus();
       const uniqueDepts = new Set(signals.map((i) => i.deptId)).size;
-      log(`[VISION] ${signals.length} signal da ${uniqueDepts} dipartimenti.`);
+      log(`[FASE 2] ${signals.length} signal da ${uniqueDepts} dipartimenti.`);
 
-      // FASE 3: SKIP LLM — il daemon non spreca chiamate API.
-      // I segnali vanno direttamente nel ping per la sessione Claude Code attiva.
-      const durationMs = Date.now() - startTime;
-      const analysis: { analysis: string | null; suggestions: string[]; alerts: string[] } = {
-        analysis: null, suggestions: [], alerts: [],
+      // ─── FASE 2.5: Forma Mentis context (Supabase reads only) ──────────
+      let formaMentisContext = {
+        context: { timestamp: new Date().toISOString(), recentSessions: [], departmentMemories: [], activeGoals: [], pendingDecisions: 0, recentReports: [], departmentStatuses: "" },
+        memoryBlock: "",
+        goalBlock: "",
+        statusBlock: "",
       };
-      const exitCode = 0;
-      log(`[SENSOR-ONLY] Skip LLM — ${signals.length} signal pronti per ping.`);
+
+      writeDaemonHeartbeat();
+
+      try {
+        formaMentisContext = await loadFormaMentisContext();
+      } catch (err) {
+        log(`[FORMA-MENTIS] Context loading failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // Layer 5: Try dept-as-tool for status summary (richer than direct file read)
+      try {
+        const skillResult = await invokeDepartmentSkill('operations', 'get-status-summary');
+        if (skillResult.success && skillResult.result) {
+          const resultObj = skillResult.result as { summary?: string };
+          if (resultObj.summary) {
+            formaMentisContext.statusBlock = resultObj.summary;
+            log(`[DEPT-AS-TOOL] Status summary loaded via operations:get-status-summary (${skillResult.durationMs}ms)`);
+          }
+        }
+      } catch (err) {
+        log(`[DEPT-AS-TOOL] Fallback to direct file read for status: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // Load additional context (report history + diff)
+      const recentReportsData = await loadRecentDaemonReports(3);
+
+      // Compute report diff if we have previous reports
+      let reportDiffSummary = "";
+      if (recentReportsData.reports.length >= 2) {
+        try {
+          const diff = getDaemonReportDiff(
+            recentReportsData.reports[0],
+            recentReportsData.reports[1],
+          );
+          if (diff.hasChanges) {
+            const parts: string[] = [];
+            if (diff.boardDelta.total !== 0) parts.push(`Board: ${diff.boardDelta.total > 0 ? "+" : ""}${diff.boardDelta.total} tasks`);
+            if (diff.newSignals.length > 0) parts.push(`${diff.newSignals.length} nuovi signal`);
+            if (diff.resolvedSignals.length > 0) parts.push(`${diff.resolvedSignals.length} signal risolti`);
+            if (diff.goalTransitions.length > 0) {
+              parts.push(`Goal transitions: ${diff.goalTransitions.map(t => `${t.goalTitle}: ${t.from}->${t.to}`).join(", ")}`);
+            }
+            reportDiffSummary = parts.join(". ");
+            log(`[FORMA-MENTIS] Report diff: ${reportDiffSummary}`);
+          }
+        } catch (err) {
+          console.error("[DAEMON] Report diff failed:", err);
+        }
+      }
+
+      // Expire stale department memories (fire-and-forget, non-blocking)
+      expireAllDepartmentMemories().catch(() => {});
+
+      // Per-Department Memory Loading + Signal Enrichment
+      let deptMemoryMap = new Map<string, string>();
+      try {
+        deptMemoryMap = await loadDeptMemoryMap();
+        if (deptMemoryMap.size > 0) {
+          enrichSignalsWithDeptMemory(signals, deptMemoryMap);
+        }
+      } catch (err) {
+        log(`[FORMA-MENTIS] Dept memory loading failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // Forma Mentis Layer 3: Check goals
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let goalCheckResults: any[] = [];
+      try {
+        goalCheckResults = await checkGoals();
+        if (goalCheckResults.length > 0) {
+          log(`[DAEMON] Goal checks: ${goalCheckResults.length} goals evaluated`);
+        }
+      } catch (err) {
+        console.error('[DAEMON] Goal check failed:', err);
+      }
+
+      // Forma Mentis Layer 4: Check pending decision reviews
+      let pendingDecisionReviewCount = 0;
+      try {
+        const pendingReviews = await getDecisionsPendingReview();
+        pendingDecisionReviewCount = pendingReviews.length;
+        if (pendingReviews.length > 0) {
+          log(`[DAEMON] ${pendingReviews.length} decisions pending review`);
+          // Add to signals so they appear in the report
+          for (const review of pendingReviews.slice(0, 5)) {
+            signals.push({
+              deptId: review.department,
+              sourceId: `decision-review-${review.id}`,
+              title: `Decision review due: ${review.title.slice(0, 60)}`,
+              description: `Decision "${review.title}" is past its review date. Expected outcome: ${(review.expectedOutcome || '').slice(0, 100)}`,
+              priority: "medium",
+              routing: "feature-request:medium",
+              requiresHuman: false,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[DAEMON] Decision review check failed:', err);
+      }
+
+      const durationMs = Date.now() - startTime;
 
       // Parse board stats dal board output
       const boardOutput = readBoard();
@@ -1279,263 +1163,119 @@ async function main() {
       if (ipMatch) boardStats.inProgress = parseInt(ipMatch[1]);
       if (doneMatch) boardStats.done = parseInt(doneMatch[1]);
 
-      // SCRIVI REPORT STRUTTURATO per CME
+      // ─── FASE 3: Write report ($0) ─────────────────────────────────────
       const report: DaemonReport = {
         timestamp: new Date().toISOString(),
         durationMs,
         board: boardStats,
         signals,
-        llmAnalysis: analysis?.analysis || null,
-        llmSuggestions: analysis?.suggestions || [],
-        alerts: analysis?.alerts || [],
+        llmAnalysis: null,         // Pure sensor: no LLM analysis
+        llmSuggestions: [],        // Pure sensor: no LLM suggestions
+        alerts: [],                // Pure sensor: no LLM alerts
+        goalChecks: goalCheckResults,
+        pendingDecisionReviews: pendingDecisionReviewCount,
       };
       writeDaemonReport(report);
 
-      // Log session sensor (testo per archivio umano)
-      log(`[SENSOR] Completato in ${(durationMs / 1000).toFixed(0)}s — exit ${exitCode} — $0.00`);
-      const sensorOutput = `Costo: $0.00\nSignal: ${signals.length}\nSuggestions: ${report.llmSuggestions.length}\nAlerts: ${report.alerts.length}\nBoard: open=${boardStats.open} inProgress=${boardStats.inProgress} done=${boardStats.done}`;
-      logSession(
-        sensorOutput,
-        exitCode,
-        durationMs
-      );
-
-      // FASE 3.5: Idle detection → auto-plenary (zero LLM cost)
-      // Se il board ha pochi task eseguibili, genera nuovi task da plenaria automatica
-      const IDLE_THRESHOLD = 3;
-      const feasibleOpen = countAutomatableTasks();
-      if (feasibleOpen < IDLE_THRESHOLD) {
-        const daemonState = readDaemonState();
-        const lastPlenary = daemonState.lastPlenaryAt ? new Date(daemonState.lastPlenaryAt).getTime() : 0;
-        const oneDayMs = 24 * 60 * 60 * 1000;
-        const plenaryDue = Date.now() - lastPlenary > oneDayMs;
-
-        if (plenaryDue) {
-          log(`[PLENARY] Board quasi vuoto (${feasibleOpen} task eseguibili < ${IDLE_THRESHOLD}). Avvio plenaria automatica...`);
-
-          // Step 1: Aggiorna tutti i status.json dai dati reali del board
-          try {
-            const updateResult = spawnSync("npx", ["tsx", "scripts/auto-update-dept-status.ts"], {
-              cwd: ROOT, encoding: "utf-8", timeout: 30000, shell: true, windowsHide: true,
-            });
-            if (updateResult.status === 0) {
-              log(`[PLENARY] Status dipartimenti aggiornati.`);
-            } else {
-              log(`[PLENARY] Warning: auto-update-dept-status fallito: ${updateResult.stderr?.slice(0, 200)}`);
-            }
-          } catch (e) {
-            log(`[PLENARY] Warning: auto-update-dept-status errore: ${e}`);
-          }
-
-          // Step 2: Genera task dalla plenaria
-          try {
-            const plenaryResult = spawnSync("npx", ["tsx", "scripts/auto-plenary.ts"], {
-              cwd: ROOT, encoding: "utf-8", timeout: 60000, shell: true, windowsHide: true,
-            });
-            if (plenaryResult.status === 0 && plenaryResult.stdout) {
-              // auto-plenary.ts emette JSON con i task proposti su stdout
-              try {
-                const proposed = JSON.parse(plenaryResult.stdout.trim());
-                const tasks = Array.isArray(proposed) ? proposed : proposed.tasks || [];
-                let created = 0;
-                for (const task of tasks.slice(0, 15)) {
-                  const createResult = spawnSync("npx", [
-                    "tsx", "scripts/company-tasks.ts", "create",
-                    "--title", task.title || "Auto-plenary task",
-                    "--dept", task.dept || "architecture",
-                    "--priority", task.priority || "medium",
-                    "--by", "cme-plenary",
-                    "--desc", task.desc || task.title || "Generated by auto-plenary",
-                    "--routing-exempt", "--routing-reason", "auto-generated from plenary",
-                  ], {
-                    cwd: ROOT, encoding: "utf-8", timeout: 15000, shell: true, windowsHide: true,
-                  });
-                  if (createResult.status === 0) created++;
-                }
-                log(`[PLENARY] ${created}/${tasks.length} task creati dalla plenaria.`);
-              } catch (_parseErr) {
-                log(`[PLENARY] Warning: output plenaria non parsabile: ${plenaryResult.stdout.slice(0, 200)}`);
-              }
-            } else {
-              log(`[PLENARY] Warning: auto-plenary fallito: ${plenaryResult.stderr?.slice(0, 200)}`);
-            }
-          } catch (e) {
-            log(`[PLENARY] Warning: auto-plenary errore: ${e}`);
-          }
-
-          writeDaemonState({ lastPlenaryAt: new Date().toISOString() });
-        } else {
-          log(`[PLENARY] Skip: ultima plenaria meno di 24h fa.`);
-        }
-      }
-
-      // FASE 4: PING — scrive riassunto in clipboard + file per sessione Claude Code attiva.
-      // NIENTE claude -p. NIENTE LLM. Il boss incolla il ping nella chat.
-      const sensorOnly = process.argv.includes("--sensor-only");
-      const { trigger, reason, actionableCount } = shouldTriggerCME(report);
-
-      if (trigger && !sensorOnly) {
-        log(`[EXECUTOR] Trigger CME: ${reason}`);
-
-        // Costruisci ping message compatto
-        const criticalHigh = signals.filter(s => !s.requiresHuman && (s.priority === "critical" || s.priority === "high"));
-        const medium = signals.filter(s => !s.requiresHuman && s.priority === "medium");
-        const pingLines: string[] = [
-          `DAEMON PING — ${new Date().toLocaleString("it-IT")}`,
-          `Board: ${boardStats.open} open | ${boardStats.inProgress} in-progress | ${boardStats.done} done`,
-          `Signal: ${criticalHigh.length} critical/high + ${medium.length} medium`,
-          "",
-        ];
-
-        if (criticalHigh.length > 0) {
-          pingLines.push("PRIORITÀ:");
-          for (const s of criticalHigh.slice(0, 5)) {
-            pingLines.push(`  [${s.deptId}] ${s.title}`);
-          }
-          pingLines.push("");
-        }
-
-        if (medium.length > 0) {
-          pingLines.push(`MEDIUM (top ${Math.min(medium.length, 8)}):`);
-          for (const s of medium.slice(0, 8)) {
-            pingLines.push(`  [${s.deptId}] ${s.title}`);
-          }
-          pingLines.push("");
-        }
-
-        pingLines.push("Incolla in Claude Code → CME agisce.");
-        const pingText = pingLines.join("\n");
-
-        // Scrivi ping su file
-        const pingFile = resolve(ROOT, "company", "daemon-ping.txt");
-        fs.writeFileSync(pingFile, pingText, "utf-8");
-
-        // Copia in clipboard (Windows: clip, macOS: pbcopy, Linux: xclip)
-        try {
-          const clipCmd = process.platform === "win32" ? "clip" : process.platform === "darwin" ? "pbcopy" : "xclip";
-          spawnSync(clipCmd, [], {
-            input: pingText, encoding: "utf-8", timeout: 5000, windowsHide: true,
-          });
-          log(`[PING] ✅ Copiato in clipboard — Ctrl+V nella chat Claude Code.`);
-        } catch {
-          log(`[PING] Clipboard non disponibile — leggi company/daemon-ping.txt`);
-        }
-
-        // Stampa nel terminale daemon
-        console.log("\n" + "=".repeat(60));
-        console.log(pingText);
-        console.log("=".repeat(60) + "\n");
-
-        // consecutiveNoOp gestito in FASE 5 (executor)
-      } else if (sensorOnly) {
-        log(`[EXECUTOR] Skip (--sensor-only). Signal azionabili: ${actionableCount}`);
-      } else {
-        log(`[EXECUTOR] Skip: ${reason}`);
-        // consecutiveNoOp gestito in FASE 5 (executor)
-      }
-
-      // FASE 5: EXECUTOR — catena di fallback per esecuzione task
-      //
-      // Strategia a 3 livelli:
-      //   1. task-runner-api.ts → esegue task open esistenti via runAgent() (free tier)
-      //   2. executeCMESessionFree() → analizza signal e CREA nuovi task via callLLM() (free tier)
-      //   3. Ping fallback → scrive in clipboard/file (il boss incolla manualmente)
-      //
-      // Se il livello 1 fallisce (es. nessun task open, o errore npx),
-      // il livello 2 tenta di creare task dai signal.
-      // Se anche il livello 2 fallisce (es. tutti i provider gratuiti down),
-      // il ping della FASE 4 è già stato scritto come ultima risorsa.
-      //
-      // ZERO costi in tutti i livelli. Niente claude -p.
-
-      if (trigger && !sensorOnly) {
-        let executorSuccess = false;
-        let totalTasksExecuted = 0;
-
-        // Livello 1: task-runner-api (esegue task open esistenti)
-        const automatableTasks = countAutomatableTasks();
-        if (automatableTasks > 0) {
-          log(`[EXECUTOR-L1] ${automatableTasks} task open automatizzabili. Lancio task-runner-api...`);
-          try {
-            const execResult = spawnSync("npx", [
-              "tsx", "scripts/task-runner-api.ts", "--all",
-            ], {
-              cwd: ROOT,
-              encoding: "utf-8",
-              timeout: 5 * 60 * 1000, // 5 minuti max
-              shell: true,
-              windowsHide: true,
-              env: { ...process.env },
-            });
-
-            const execOutput = (execResult.stdout || "") + (execResult.stderr || "");
-            if (execResult.status === 0) {
-              const completedMatch = execOutput.match(/(\d+) completati/);
-              const tasksCompleted = completedMatch ? parseInt(completedMatch[1]) : 0;
-              log(`[EXECUTOR-L1] task-runner-api: ${tasksCompleted} task completati.`);
-              if (tasksCompleted > 0) {
-                executorSuccess = true;
-                totalTasksExecuted += tasksCompleted;
-              }
-            } else {
-              const errorCat = categorizeExecutorError(execOutput);
-              log(`[EXECUTOR-L1] task-runner-api fallito [${errorCat.code}] (exit ${execResult.status}): ${execOutput.slice(0, 200)}`);
-            }
-          } catch (execErr) {
-            const msg = execErr instanceof Error ? execErr.message : String(execErr);
-            const errorCat = categorizeExecutorError(msg);
-            log(`[EXECUTOR-L1] Errore lancio [${errorCat.code}]: ${msg.slice(0, 150)}`);
-          }
-        } else {
-          log(`[EXECUTOR-L1] Nessun task open automatizzabile.`);
-        }
-
-        // Livello 2: executeCMESessionFree (crea nuovi task da signal via LLM gratuiti)
-        // Attivato se: L1 non ha eseguito task E ci sono signal azionabili
-        if (!executorSuccess && actionableCount > 0) {
-          log(`[EXECUTOR-L2] L1 non ha eseguito task. Lancio analisi CME via LLM gratuiti...`);
-          try {
-            const cmeResult = await executeCMESessionFree(report);
-            if (cmeResult.success && cmeResult.tasksCreated > 0) {
-              executorSuccess = true;
-              totalTasksExecuted += cmeResult.tasksCreated;
-              log(`[EXECUTOR-L2] ${cmeResult.tasksCreated} task creati da signal.`);
-            } else if (cmeResult.success) {
-              log(`[EXECUTOR-L2] Analisi completata ma nessun task creato.`);
-            } else {
-              log(`[EXECUTOR-L2] Fallito: ${cmeResult.output.slice(0, 200)}`);
-            }
-          } catch (cmeErr) {
-            log(`[EXECUTOR-L2] Errore: ${cmeErr instanceof Error ? cmeErr.message : String(cmeErr)}`);
-          }
-        }
-
-        // Aggiorna stato daemon
-        if (executorSuccess) {
-          writeDaemonState({
-            lastTasksExecuted: totalTasksExecuted,
-            consecutiveNoOp: 0,
-          });
-          log(`[EXECUTOR] Successo: ${totalTasksExecuted} task totali (L1+L2).`);
-        } else {
-          // L1 e L2 falliti. Il ping della FASE 4 è già stato scritto come fallback.
-          log(`[EXECUTOR] L1+L2 falliti. Ping disponibile in company/daemon-ping.txt.`);
-          writeDaemonState({
-            consecutiveNoOp: (readDaemonState().consecutiveNoOp ?? 0) + 1,
-          });
-        }
-      } else if (!sensorOnly) {
-        // Nessun trigger — incrementa no-op counter
-        writeDaemonState({
-          consecutiveNoOp: (readDaemonState().consecutiveNoOp ?? 0) + 1,
+      // Persist report to Supabase (append-only)
+      try {
+        const elapsed = Date.now() - startTime;
+        await persistDaemonReport({
+          board: { total: boardStats.total, open: boardStats.open, inProgress: boardStats.inProgress, done: boardStats.done },
+          signals: signals.map(s => ({
+            deptId: s.deptId,
+            sourceId: s.sourceId,
+            title: s.title,
+            description: s.description,
+            priority: s.priority === "critical" ? "high" as const : s.priority as "high" | "medium" | "low",
+            routing: s.routing,
+            requiresHuman: s.requiresHuman,
+          })),
+          llmAnalysis: null,
+          llmSuggestions: [],
+          alerts: [],
+          goalChecks: goalCheckResults,
+          durationMs: elapsed,
+          cycleNumber: state.totalRuns,
+          metadata: {
+            formaMentisVersion: 3,
+            pureSensor: true,
+            memoryContextLoaded: !!formaMentisContext.memoryBlock,
+            previousReportsLoaded: recentReportsData.reports.length,
+            reportDiffAvailable: !!reportDiffSummary,
+          },
         });
+      } catch (err) {
+        console.error('[DAEMON] Failed to persist report to Supabase:', err);
       }
+
+      // ─── Forma Mentis: Post-Scan Persistence ──────────────────────────
+
+      // Layer 5: Fan-out for multi-department signals (with dept memory context)
+      try {
+        await handleMultiDeptSignals(signals, deptMemoryMap);
+      } catch (err) {
+        console.error('[DAEMON] Multi-dept fan-out failed (non-blocking):', err);
+      }
+
+      // Layer 5: Fan-in — aggregate results from completed fan-outs
+      try {
+        await aggregateCompletedFanOuts();
+      } catch (err) {
+        console.error('[DAEMON] Fan-in aggregation failed (non-blocking):', err);
+      }
+
+      // Layer 1: Save daemon cycle summary as company knowledge
+      try {
+        await saveCycleSummary(report, state.totalRuns, deptMemoryMap);
+      } catch (err) {
+        console.error('[DAEMON] Cycle summary persistence failed (non-blocking):', err);
+      }
+
+      // Layer 4: Record decisions for critical signals
+      try {
+        const criticalSignals = signals.filter(s => s.priority === 'critical' || s.priority === 'high');
+        for (const signal of criticalSignals.slice(0, 3)) {
+          await recordDecision({
+            title: `Daemon signal: ${signal.title}`,
+            description: signal.description,
+            department: signal.deptId,
+            decisionType: 'operational',
+            decidedBy: 'daemon',
+            expectedOutcome: signal.requiresHuman
+              ? 'Boss reviews and acts within 24h'
+              : 'CME processes in next interactive session',
+            expectedBenefit: `Resolve ${signal.priority} signal in ${signal.deptId}`,
+            tags: ['daemon', 'auto-signal', signal.priority],
+            metadata: {
+              signalRouting: signal.routing,
+              requiresHuman: signal.requiresHuman,
+              sourceId: signal.sourceId,
+            },
+          });
+        }
+        if (criticalSignals.length > 0) {
+          log(`[FORMA-MENTIS] Recorded ${Math.min(criticalSignals.length, 3)} decisions for critical signals`);
+        }
+      } catch (err) {
+        console.error('[DAEMON] Decision recording failed (non-blocking):', err);
+      }
+
+      // Log session sensor (testo per archivio umano)
+      log(`[SENSOR] Completato in ${(durationMs / 1000).toFixed(0)}s — $0.00 (pure sensor, zero LLM)`);
+      const sensorOutput = `Costo: $0.00 (pure sensor)\nSignal: ${signals.length}\nBoard: open=${boardStats.open} inProgress=${boardStats.inProgress} done=${boardStats.done}\nGoals: ${goalCheckResults.length}\nPending decisions: ${pendingDecisionReviewCount}\nForma Mentis: memories=${!!formaMentisContext.memoryBlock} reports=${recentReportsData.reports.length} diff=${!!reportDiffSummary}`;
+      logSession(sensorOutput, 0, durationMs);
+
+      // ─── FASE 4: Telegram ping ($0) ────────────────────────────────────
+      // Notify boss via Telegram if there are critical/high signals
+      writeDaemonHeartbeat();
+      await sendTelegramPing(report);
 
       // Log rotation
       const rotated = rotateAutorunLogs(LOG_DIR);
       if (rotated > 0) log(`Log rotation: ${rotated} file eliminati.`);
 
-      // Alerting
+      // Ops alerting (costs, blocked tasks, sync failures)
       try {
         const alertResult = spawnSync('npx', ['tsx', 'scripts/ops-alerting.ts', 'check'], {
           cwd: ROOT, encoding: 'utf-8', timeout: 30000, shell: true, windowsHide: true,
@@ -1545,20 +1285,18 @@ async function main() {
         log(`[ALERTING] Check failed: ${e}`);
       }
 
-      // Aggiorna stato daemon (preserva lastTasksExecuted se Phase 5 l'ha già aggiornato)
+      // ─── STOP — Aggiorna stato daemon e basta ──────────────────────────
       const totalDuration = Date.now() - startTime;
-      const finalState = readDaemonState();
       writeDaemonState({
         lastRun: new Date().toISOString(),
         lastDurationMs: totalDuration,
-        lastExitCode: exitCode,
-        // lastTasksExecuted è già aggiornato da Phase 5 se ha eseguito task
-        lastTasksExecuted: finalState.lastTasksExecuted,
+        lastExitCode: 0,
         totalRuns: state.totalRuns + 1,
-        updatedBy: "cme-autorun-autoalimentante",
+        updatedBy: "cme-autorun-pure-sensor",
       });
 
-      log(`[DONE] ${signals.length} signal, ${report.llmSuggestions.length} suggestions, ${report.alerts.length} alerts. CME triggered: ${trigger && !sensorOnly}`);
+      const { criticalCount, highCount } = hasActionableSignals(signals);
+      log(`[DONE] ${signals.length} signal (${criticalCount} critical, ${highCount} high). Telegram: ${isTelegramConfigured() ? "configured" : "not configured"}. STOP.`);
     } finally {
       releaseLock();
       // Unregister daemon session from active session tracker
@@ -1569,7 +1307,7 @@ async function main() {
   if (watchMode) {
     const state = readDaemonState();
     const effectiveInterval = state.intervalMinutes || intervalMin;
-    log(`Watch mode [FREE $0.00/ciclo]: sessione ogni ${effectiveInterval} minuti. Ctrl+C per uscire.`);
+    log(`Watch mode [PURE SENSOR $0.00/ciclo]: sessione ogni ${effectiveInterval} minuti. Ctrl+C per uscire.`);
     log(`Daemon enabled: ${state.enabled}`);
     await runOnce();
 

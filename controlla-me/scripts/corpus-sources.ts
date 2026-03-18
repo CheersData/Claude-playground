@@ -468,7 +468,7 @@ export const NORMATTIVA_SOURCES: CorpusSource[] = [
       normattivaDataGU: "19731016",    // G.U. n. 268 del 16 ottobre 1973
       preferredFormat: "akn",
     },
-    lifecycle: "planned",   // Necessario per TC27 — art. 76 (limiti pignoramento immobiliare). Cross-ref con tax-sources.ts
+    lifecycle: "api-tested",   // codiceRedazionale verificato in tax-sources.ts (073U0602) — Necessario per TC27 art. 76. Cross-ref con tax-sources.ts
   },
 ];
 

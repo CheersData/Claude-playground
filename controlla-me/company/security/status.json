@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "security",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.666Z",
+    "last_updated": "2026-03-18T17:21:02.344Z",
     "updated_by": "auto-update-dept-status"
   },
-  "health": "ok",
-  "summary": "1 task in corso. 22 completati (ultimi 7gg). 71 completati (totale).",
+  "health": "warning",
+  "summary": "3 task aperti, 1 blocked. 65 completati (totale). DPA Anthropic in review (L3). EU AI Act consulente blocked (attesa boss).",
   "findings": {
     "critical": 0,
     "high": 0,
@@ -48,13 +48,12 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "68009293",
-      "title": "Boss invia email a top 3 consulenti",
-      "priority": "medium",
-      "status": "in_progress"
-    }
+    "DPA Anthropic (review L3)",
+    "EU AI Act consulente (blocked)",
+    "1 altro task open"
   ],
-  "blockers": [],
+  "blockers": [
+    "Boss invia email a top 3 consulenti EU AI Act"
+  ],
   "notes": "Ultimo audit completo: 2026-03-02. Prossimo audit raccomandato entro 2 settimane."
 }

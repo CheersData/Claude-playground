@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "quality-assurance",
     "schema_version": "1.0",
-    "last_updated": "2026-03-15T16:34:18.617Z",
+    "last_updated": "2026-03-18T17:20:50.457Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "6 task in corso. 29 completati (ultimi 7gg). 118 completati (totale).",
+  "summary": "7 task aperti (1 in review). 115 completati (totale). E2E test connettori in attesa wiring Architecture.",
   "coverage": {
     "overall_pct": 72,
     "target_pct": 80,
@@ -102,42 +102,8 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "0ee73cca",
-      "title": "Daily QA — test suite + typecheck [CTRL-2026-03-15]",
-      "priority": "high",
-      "status": "in_progress"
-    },
-    {
-      "id": "b48e11ec",
-      "title": "Fix Block A (CPC) e Block D (Immobiliare) per alzare media sopra 70",
-      "priority": "medium",
-      "status": "in_progress"
-    },
-    {
-      "id": "0e8c86c6",
-      "title": "Creare test suite QA che usa queste fixture per validare la pipeline agenti sul verticale HR",
-      "priority": "medium",
-      "status": "in_progress"
-    },
-    {
-      "id": "fc62bb78",
-      "title": "Implementare P1 unit test connettori esistenti",
-      "priority": "medium",
-      "status": "in_progress"
-    },
-    {
-      "id": "45434451",
-      "title": "Fix 10 failing tests (tiers cost estimation, agent error propagation, openai-compat rate-limit), fix TSC missing module ",
-      "priority": "medium",
-      "status": "in_progress"
-    },
-    {
-      "id": "6d14644e",
-      "title": "Test lib/models.ts + lib/vector-store.ts (P0 gap)",
-      "priority": "high",
-      "status": "in_progress"
-    }
+    "E2E test connettori Google Drive + HubSpot (review)",
+    "6 task open"
   ],
   "blockers": [],
   "notes": "397 test passanti su 19 file (era 365 su 17). Nuovi test: vector-search-route.test.ts (15 test: auth/CSRF/rate-limit/vectorDB/type filter/error handling) e corpus-ask-route.test.ts (17 test: auth opzionale/validation/providers/error handling). Coverage stimata ~72% — avviciniamo il target 80%. Gap E2E resta (Playwright non CI). Gap residuo: /api/deep-search route non testata."

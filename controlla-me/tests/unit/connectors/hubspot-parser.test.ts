@@ -86,7 +86,7 @@ describe("parseHubSpotObject", () => {
 
     it("handles missing properties gracefully", () => {
       const obj = makeApiObject("1");
-      (obj as Record<string, unknown>).properties = undefined;
+      (obj as unknown as Record<string, unknown>).properties = undefined;
       const result = parseHubSpotObject("contact", obj);
 
       expect(result.displayName).toBeNull();

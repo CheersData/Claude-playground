@@ -1,0 +1,65 @@
+{
+  "id": "architecture",
+  "name": "Architecture",
+  "capabilities": [
+    {
+      "id": "solution-evaluation",
+      "description": "Evaluate a proposed technical solution for feasibility, cost, and cross-department impact",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "cost-estimation",
+      "description": "Estimate API costs and infrastructure impact of a proposed feature or change",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "adr-authoring",
+      "description": "Write or update an Architecture Decision Record for a non-trivial technical decision",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "technical-review",
+      "description": "Review a PR or code change for architectural consistency, backward compatibility, and scalability",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 180000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "evaluate-solution",
+      "description": "Evaluate a technical proposal following runbooks/evaluate-solution.md: feasibility, cost, impact, alternatives",
+      "parameters": [
+        { "name": "proposal", "type": "string", "required": true, "description": "Description of the proposed solution or feature" },
+        { "name": "affectedDepts", "type": "string", "required": false, "description": "Comma-separated list of departments impacted" }
+      ],
+      "returns": "{ feasibility: string, costEstimate: string, impact: string, recommendation: string }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "check-breaking-changes",
+      "description": "Check if a proposed change introduces breaking changes to existing interfaces",
+      "parameters": [
+        { "name": "files", "type": "string", "required": true, "description": "Comma-separated list of files to check" }
+      ],
+      "returns": "{ breakingChanges: boolean, details: string[] }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": ["quality-assurance", "finance"],
+  "directQuerySources": ["strategy", "acceleration"],
+  "status": "active",
+  "schemaVersion": 1
+}

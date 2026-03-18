@@ -97,7 +97,7 @@ beforeEach(() => {
   process.env.FATTURE_CLIENT_ID = "fatture-client-id-789";
   process.env.SALESFORCE_CLIENT_ID = "sf-client-id-000";
   process.env.NEXT_PUBLIC_APP_URL = "https://app.controlla.me";
-  process.env.NODE_ENV = "production";
+  (process.env as Record<string, string | undefined>).NODE_ENV = "production";
 });
 
 afterEach(() => {
@@ -294,7 +294,7 @@ describe("State cookie", () => {
   });
 
   it("sets Secure flag in production", async () => {
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
 
     const response = await GET(makeRequest("hubspot"), makeParams("hubspot"));
 

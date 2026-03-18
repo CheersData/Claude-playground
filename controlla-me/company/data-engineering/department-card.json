@@ -1,0 +1,62 @@
+{
+  "id": "data-engineering",
+  "name": "Data Engineering",
+  "capabilities": [
+    {
+      "id": "corpus-sync",
+      "description": "Run the CONNECT-MODEL-LOAD pipeline for a legislative source to sync articles into the corpus",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "corpus-status",
+      "description": "Report the current status of all corpus sources (articles count, last sync, errors)",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 10000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "source-addition",
+      "description": "Add a new legislative source to the corpus pipeline following add-new-source runbook",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 1800000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "delta-update",
+      "description": "Run incremental update for existing sources to pick up new or modified articles",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "cron"],
+  "outputModes": ["task-result", "report"],
+  "skills": [
+    {
+      "id": "data-connector-status",
+      "description": "Run npx tsx scripts/data-connector.ts status to get sync status of all sources",
+      "parameters": [],
+      "returns": "{ sources: Array<{ name: string, lastSync: string, articles: number, status: string }> }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "data-connector-update",
+      "description": "Run npx tsx scripts/data-connector.ts update <source> to sync a specific source",
+      "parameters": [
+        { "name": "source", "type": "string", "required": true, "description": "Source identifier from corpus-sources.ts" }
+      ],
+      "returns": "{ fetched: number, parsed: number, loaded: number, errors: number }",
+      "isDirectCallable": false
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": [],
+  "status": "active",
+  "schemaVersion": 1
+}

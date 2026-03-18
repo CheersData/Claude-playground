@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useReducer } from "react";
 import { motion } from "framer-motion";
 import nextDynamic from "next/dynamic";
 
@@ -16,6 +16,7 @@ const CorpusTreePanel = nextDynamic(() => import("@/components/console/CorpusTre
 const PowerPanel = nextDynamic(() => import("@/components/console/PowerPanel"), { ssr: false });
 const CompanyPanel = nextDynamic(() => import("@/components/console/CompanyPanel"), { ssr: false });
 const ShellPanel = nextDynamic(() => import("@/components/legaloffice/ShellPanel"), { ssr: false });
+const TerminalPanel = nextDynamic(() => import("@/components/console/TerminalPanel").then(m => ({ default: m.TerminalPanel })), { ssr: false });
 import type {
   ConsoleAgentPhase,
   ConsolePhaseStatus,
@@ -79,17 +80,92 @@ interface QuestionPrepOutput {
   keywords: string[];
 }
 
-/** Shape of an article as returned by corpus-search SSE output */
-interface CorpusSearchArticle {
-  reference: string;
-  source: string;
-  title?: string;
-}
-
 interface CollectedContext {
   institutes: string[];
   articles: Array<{ reference: string; source: string; title?: string }>;
   targetArticles: string | null;
+}
+
+// ── Pipeline reducer: single state + single dispatch per SSE event ──
+// Consolidates agentStatuses, activeEvent, collectedContext, leaderDecision
+// so that each SSE event triggers exactly ONE React render cycle.
+
+interface PipelineState {
+  agentStatuses: Map<ConsoleAgentPhase, AgentStatus>;
+  activeEvent: ActiveEvent | null;
+  collectedContext: CollectedContext;
+  leaderDecision: LeaderDecision | null;
+}
+
+const INITIAL_PIPELINE_STATE: PipelineState = {
+  agentStatuses: new Map(),
+  activeEvent: null,
+  collectedContext: { institutes: [], articles: [], targetArticles: null },
+  leaderDecision: null,
+};
+
+type PipelineAction =
+  | { type: "AGENT_EVENT"; phase: ConsoleAgentPhase; agentStatus: AgentStatus; decision?: LeaderDecision }
+  | { type: "CLEAR_ACTIVE_EVENT" }
+  | { type: "RESET" };
+
+function pipelineReducer(state: PipelineState, action: PipelineAction): PipelineState {
+  switch (action.type) {
+    case "AGENT_EVENT": {
+      const { phase, agentStatus, decision } = action;
+
+      // 1. Update agent statuses map
+      const nextStatuses = new Map(state.agentStatuses);
+      nextStatuses.set(phase, agentStatus);
+
+      // 2. Build active event
+      const nextActiveEvent: ActiveEvent = {
+        phase,
+        status: agentStatus.status as ConsolePhaseStatus,
+        summary: agentStatus.summary,
+        timing: agentStatus.timing,
+        output: agentStatus.output,
+      };
+
+      // 3. Accumulate collected context (only on "done")
+      let nextContext = state.collectedContext;
+      if (agentStatus.status === "done" && agentStatus.output) {
+        if (phase === "question-prep") {
+          const output = agentStatus.output;
+          nextContext = {
+            ...nextContext,
+            institutes: (output.suggestedInstitutes as string[] | undefined) ?? nextContext.institutes,
+            targetArticles: (output.targetArticles as string | null | undefined) ?? nextContext.targetArticles,
+          };
+        }
+        if (phase === "corpus-search") {
+          const articles = agentStatus.output.articles as Array<{ reference: string; source: string; title?: string }> | undefined;
+          if (articles?.length) {
+            nextContext = {
+              ...nextContext,
+              articles: articles.map((a) => ({ reference: a.reference, source: a.source, title: a.title })),
+            };
+          }
+        }
+      }
+
+      // 4. Update leader decision
+      const nextLeaderDecision = decision ?? state.leaderDecision;
+
+      return {
+        agentStatuses: nextStatuses,
+        activeEvent: nextActiveEvent,
+        collectedContext: nextContext,
+        leaderDecision: nextLeaderDecision,
+      };
+    }
+    case "CLEAR_ACTIVE_EVENT":
+      return { ...state, activeEvent: null };
+    case "RESET":
+      return { ...INITIAL_PIPELINE_STATE, agentStatuses: new Map() };
+    default:
+      return state;
+  }
 }
 
 interface AuthUser {
@@ -141,20 +217,14 @@ export default function ConsolePageClient() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authMessage, setAuthMessage] = useState<string>(AUTH_PROMPT);
 
-  // ── Pipeline state ──
+  // ── Pipeline state (single reducer = single render per SSE event) ──
   const [status, setStatus] = useState<PageStatus>("idle");
-  const [leaderDecision, setLeaderDecision] = useState<LeaderDecision | null>(null);
-  const [agentStatuses, setAgentStatuses] = useState<
-    Map<ConsoleAgentPhase, AgentStatus>
-  >(new Map());
-  const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
-  const [collectedContext, setCollectedContext] = useState<CollectedContext>({
-    institutes: [],
-    articles: [],
-    targetArticles: null,
-  });
-  // Ref keeps context in sync for use inside processEvent (avoids stale closure)
+  const [pipeline, dispatchPipeline] = useReducer(pipelineReducer, INITIAL_PIPELINE_STATE);
+  const { agentStatuses, activeEvent, collectedContext, leaderDecision } = pipeline;
+  // Ref keeps context in sync for use inside AgentOutput context prop (avoids stale closure)
   const contextRef = useRef<CollectedContext>({ institutes: [], articles: [], targetArticles: null });
+  // Keep contextRef in sync with reducer state
+  useEffect(() => { contextRef.current = collectedContext; }, [collectedContext]);
   const [clarificationQ, setClarificationQ] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -170,6 +240,7 @@ export default function ConsolePageClient() {
   const [powerOpen, setPowerOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
   const [shellOpen, setShellOpen] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(false);
 
   // ── Session persistence ──
   useEffect(() => {
@@ -202,17 +273,6 @@ export default function ConsolePageClient() {
       }
     }
   }, []);
-
-  const updateAgent = useCallback(
-    (phase: ConsoleAgentPhase, update: AgentStatus) => {
-      setAgentStatuses((prev) => {
-        const next = new Map(prev);
-        next.set(phase, update);
-        return next;
-      });
-    },
-    []
-  );
 
   // ── Auth handler ──
   const handleAuth = useCallback(async (input: string) => {
@@ -264,11 +324,7 @@ export default function ConsolePageClient() {
       retryParamsRef.current = { message, file };
 
       setStatus("processing");
-      setLeaderDecision(null);
-      setAgentStatuses(new Map());
-      setActiveEvent(null);
-      setCollectedContext({ institutes: [], articles: [], targetArticles: null });
-      contextRef.current = { institutes: [], articles: [], targetArticles: null };
+      dispatchPipeline({ type: "RESET" });
       setClarificationQ(null);
       setError(null);
 
@@ -421,68 +477,38 @@ export default function ConsolePageClient() {
     }
   }, [handleSubmit]);
 
+  // Track status in a ref so processEvent can read the latest value
+  // without needing status in its dependency array (avoids stale closure).
+  const statusRef = useRef<PageStatus>(status);
+  useEffect(() => { statusRef.current = status; }, [status]);
+
   const processEvent = useCallback((eventType: string, data: SSEEventData) => {
     switch (eventType) {
       case "agent": {
         const agentData = data as SSEAgentData;
-        const phase = agentData.phase;
-        updateAgent(phase, {
-          status: agentData.status,
-          summary: agentData.summary,
-          timing: agentData.timing,
-          output: agentData.output,
+        // Single dispatch → single React render for all pipeline state changes
+        dispatchPipeline({
+          type: "AGENT_EVENT",
+          phase: agentData.phase,
+          agentStatus: {
+            status: agentData.status,
+            summary: agentData.summary,
+            timing: agentData.timing,
+            output: agentData.output,
+          },
+          decision: agentData.phase === "leader" ? agentData.decision : undefined,
         });
-
-        setActiveEvent({
-          phase,
-          status: agentData.status,
-          summary: agentData.summary,
-          timing: agentData.timing,
-          output: agentData.output,
-        });
-
-        // Accumulate context using ref (sync) + state (render)
-        if (agentData.status === "done") {
-          if (phase === "question-prep" && agentData.output) {
-            const output = agentData.output;
-            const updated = {
-              ...contextRef.current,
-              institutes: (output.suggestedInstitutes as string[] | undefined) ?? contextRef.current.institutes,
-              targetArticles: (output.targetArticles as string | null | undefined) ?? contextRef.current.targetArticles,
-            };
-            contextRef.current = updated;
-            setCollectedContext(updated);
-          }
-
-          if (phase === "corpus-search" && agentData.output) {
-            const articles = agentData.output.articles as CorpusSearchArticle[] | undefined;
-            if (articles?.length) {
-              const arts = articles.map((a: CorpusSearchArticle) => ({
-                reference: a.reference,
-                source: a.source,
-                title: a.title,
-              }));
-              const updated = { ...contextRef.current, articles: arts };
-              contextRef.current = updated;
-              setCollectedContext(updated);
-            }
-          }
-        }
-
-        if (phase === "leader" && agentData.decision) {
-          setLeaderDecision(agentData.decision);
-        }
         break;
       }
       case "clarification": {
         const clarData = data as SSEClarificationData;
         setClarificationQ(clarData.question);
-        setActiveEvent(null);
+        dispatchPipeline({ type: "CLEAR_ACTIVE_EVENT" });
         setStatus("clarification");
         break;
       }
       case "complete":
-        if (status !== "clarification") {
+        if (statusRef.current !== "clarification") {
           setStatus("done");
         }
         break;
@@ -495,7 +521,6 @@ export default function ConsolePageClient() {
         break;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isProcessing = status === "processing";
@@ -520,6 +545,7 @@ export default function ConsolePageClient() {
         onCorpusToggle={isAuthenticated ? () => { setCorpusOpen((v) => !v); setCompanyOpen(false); } : undefined}
         onPowerToggle={isAuthenticated ? () => setPowerOpen((v) => !v) : undefined}
         onShellToggle={() => setShellOpen((v) => !v)}
+        onTerminalToggle={() => setTerminalOpen((v) => !v)}
         onCompanyToggle={isAuthenticated ? () => { setCompanyOpen((v) => !v); setCorpusOpen(false); } : undefined}
         onPrint={() => window.print()}
       />
@@ -697,6 +723,38 @@ export default function ConsolePageClient() {
 
       <PowerPanel open={powerOpen} onClose={() => setPowerOpen(false)} />
       <ShellPanel open={shellOpen} onClose={() => setShellOpen(false)} />
+      {terminalOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setTerminalOpen(false)}
+          />
+          <motion.aside
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+            className="relative w-[520px] max-w-[92vw] h-full bg-[var(--background)] flex flex-col shadow-2xl border-l border-[var(--border)]"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+              <span className="text-xs font-semibold text-[var(--foreground)]">Terminal</span>
+              <button
+                onClick={() => setTerminalOpen(false)}
+                className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors"
+                aria-label="Chiudi Terminal"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <TerminalPanel />
+            </div>
+          </motion.aside>
+        </div>
+      )}
     </StudioShell>
   );
 }

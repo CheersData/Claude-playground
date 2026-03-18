@@ -16,8 +16,14 @@ import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import {
   getUnifiedSessions,
   toDTOWithAgents,
+  readHeartbeat,
 } from "@/lib/company/sessions";
 import { getActiveAgentEvents } from "@/lib/agent-broadcast";
+import {
+  getActiveSubAgents,
+  getZombieSubAgents,
+  toAgentEvents,
+} from "@/lib/company/sub-agent-tracker";
 import type { AgentDTO } from "@/lib/company/sessions";
 import type { AgentEvent } from "@/lib/agent-broadcast";
 import type { NextRequest } from "next/server";
@@ -57,6 +63,31 @@ export async function GET(req: Request) {
       ...(ev.sessionId !== undefined ? { sessionId: ev.sessionId } : {}),
     }));
 
+    // ─── Sub-agent tracking (file-based, from .claude/sub-agents.json) ───
+    // Sub-agents are Claude Code Agent tool invocations tracked via CLI.
+    // They appear as agents under the interactive (heartbeat) session.
+    const subAgents = getActiveSubAgents();
+    const zombieSubAgents = getZombieSubAgents();
+
+    if (subAgents.length > 0) {
+      // Find the heartbeat session PID to use as parentPid for sub-agents
+      const heartbeat = readHeartbeat();
+      const heartbeatPid = heartbeat?.pid;
+
+      // Convert sub-agents to AgentDTO format and append to agent list
+      const subAgentEvents = toAgentEvents(subAgents, heartbeatPid);
+      for (const ev of subAgentEvents) {
+        agentDTOs.push({
+          id: ev.id,
+          department: ev.department,
+          task: ev.task,
+          status: ev.status,
+          timestamp: ev.timestamp,
+          ...(ev.parentPid !== undefined ? { parentPid: ev.parentPid } : {}),
+        });
+      }
+    }
+
     const activeCount = sessions.filter((s) => s.status === "active").length;
     const closingCount = sessions.filter((s) => s.status === "closing").length;
 
@@ -72,6 +103,7 @@ export async function GET(req: Request) {
         total: sessions.length,
         orphanCount,
         totalAgents,
+        zombieSubAgents: zombieSubAgents.length,
         sessions: sessionDTOs,
       }),
       {

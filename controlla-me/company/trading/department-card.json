@@ -1,0 +1,80 @@
+{
+  "id": "trading",
+  "name": "Ufficio Trading",
+  "capabilities": [
+    {
+      "id": "trading-pipeline",
+      "description": "Run the daily 5-agent trading pipeline: scan, signal, risk, execute, monitor",
+      "inputType": "cron",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "backtest-execution",
+      "description": "Run a backtest with configurable parameters (timeframe, universe, SL/TP) using trading/src/backtest/engine.py",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "risk-monitoring",
+      "description": "Monitor active positions for risk limits (max daily loss, max weekly loss, position sizing, kill switch)",
+      "inputType": "cron",
+      "outputType": "event",
+      "estimatedDurationMs": 10000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "portfolio-report",
+      "description": "Generate P&L report with positions, equity curve, Sharpe ratio, win rate, and risk events",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "strategy-calibration",
+      "description": "Grid search and calibrate strategy parameters (SL/TP/threshold/lookback) to optimize Sharpe ratio",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 3600000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "cron"],
+  "outputModes": ["task-result", "report", "event"],
+  "skills": [
+    {
+      "id": "run-backtest",
+      "description": "Run a backtest: cd trading && python -m src.backtest.engine with configurable parameters",
+      "parameters": [
+        { "name": "startDate", "type": "string", "required": false, "description": "Backtest start date (YYYY-MM-DD, default 2019-01-01)" },
+        { "name": "endDate", "type": "string", "required": false, "description": "Backtest end date (YYYY-MM-DD, default today)" },
+        { "name": "slAtr", "type": "number", "required": false, "description": "Stop loss in ATR multiples (default 2.5)" },
+        { "name": "tpAtr", "type": "number", "required": false, "description": "Take profit in ATR multiples (default 6.0)" }
+      ],
+      "returns": "{ sharpe: number, maxDrawdown: number, winRate: number, profitFactor: number, totalTrades: number, cagr: number }",
+      "isDirectCallable": false
+    },
+    {
+      "id": "get-portfolio-status",
+      "description": "Run python trading/report.py to get current portfolio status and P&L",
+      "parameters": [],
+      "returns": "{ portfolioValue: number, dailyPnl: number, weeklyPnl: number, openPositions: number, killSwitchActive: boolean }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "check-kill-switch",
+      "description": "Check if the kill switch is active and why",
+      "parameters": [],
+      "returns": "{ active: boolean, reason: string, activatedAt: string }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": ["finance"],
+  "directQuerySources": [],
+  "status": "active",
+  "schemaVersion": 1
+}

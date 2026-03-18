@@ -254,7 +254,7 @@ beforeEach(() => {
   process.env.SALESFORCE_CLIENT_ID = "sf-cid";
   process.env.SALESFORCE_CLIENT_SECRET = "sf-secret";
   process.env.NEXT_PUBLIC_APP_URL = "https://app.controlla.me";
-  process.env.NODE_ENV = "production";
+  (process.env as Record<string, string | undefined>).NODE_ENV = "production";
 
   // Setup vault mocks with in-memory store behavior
   mockPgcryptoVault.storeCredential.mockImplementation(

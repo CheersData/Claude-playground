@@ -179,6 +179,14 @@ export interface DataModelSpec {
   migrationSQL?: string;
 }
 
+export interface TransformRule {
+  sourceField: string;
+  targetColumn: string;
+  transform: string;
+  mappedBy?: "rule" | "similarity" | "llm" | "user" | "manual";
+  confidence?: number;
+}
+
 export interface ModelResult {
   ready: boolean;
   spec: DataModelSpec;

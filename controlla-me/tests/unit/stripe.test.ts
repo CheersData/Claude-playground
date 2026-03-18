@@ -53,18 +53,19 @@ describe("lib/stripe", () => {
     });
 
     it("passes typescript: true to Stripe constructor", () => {
-      const callArgs = MockStripeConstructor.mock.calls[0]!;
-      expect(callArgs[1].typescript).toBe(true);
+      const callArgs = MockStripeConstructor.mock.calls[0] as unknown[];
+      expect((callArgs[1] as Record<string, unknown>).typescript).toBe(true);
     });
 
     it("passes a valid apiVersion string to Stripe constructor", () => {
-      const callArgs = MockStripeConstructor.mock.calls[0]!;
-      expect(typeof callArgs[1].apiVersion).toBe("string");
-      expect(callArgs[1].apiVersion.length).toBeGreaterThan(0);
+      const callArgs = MockStripeConstructor.mock.calls[0] as unknown[];
+      const opts = callArgs[1] as Record<string, unknown>;
+      expect(typeof opts.apiVersion).toBe("string");
+      expect((opts.apiVersion as string).length).toBeGreaterThan(0);
     });
 
     it("uses the STRIPE_SECRET_KEY from process.env", () => {
-      const callArgs = MockStripeConstructor.mock.calls[0]!;
+      const callArgs = MockStripeConstructor.mock.calls[0] as unknown[];
       expect(callArgs[0]).toBe("sk_test_fake");
     });
   });
