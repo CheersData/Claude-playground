@@ -500,6 +500,95 @@ export function killPid(pid: number): boolean {
   }
 }
 
+// ─── Self-Timeout (Zombie Prevention) ───
+
+/** Default max age for spawned scripts: 10 minutes */
+const DEFAULT_SELF_TIMEOUT_MS = 10 * 60 * 1000;
+
+/**
+ * Enable self-termination after maxMs of inactivity.
+ * Call at the top of any script that might become a zombie.
+ * The timer is .unref()'d so it won't keep the event loop alive on its own.
+ *
+ * Usage:
+ *   import { enableSelfTimeout } from "@/lib/company/self-preservation";
+ *   enableSelfTimeout(); // 10 min default
+ *   enableSelfTimeout(5 * 60 * 1000); // 5 min custom
+ */
+export function enableSelfTimeout(maxMs: number = DEFAULT_SELF_TIMEOUT_MS): void {
+  const timer = setTimeout(() => {
+    const label = formatUptime(maxMs);
+    console.error(`[SELF-TIMEOUT] Process ${process.pid} exceeded ${label} limit. Auto-exiting.`);
+    process.exit(1);
+  }, maxMs);
+  timer.unref(); // Don't keep process alive just for the timeout
+}
+
+// ─── Zombie Reaper (for daemon) ───
+
+/** Threshold for zombie detection: processes older than this are candidates for kill */
+const ZOMBIE_AGE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+
+export interface ZombieReaperResult {
+  scanned: number;
+  killed: number;
+  failed: number;
+  details: Array<{ pid: number; category: string; ageMs: number; killed: boolean }>;
+}
+
+/**
+ * Scan for and kill zombie node processes.
+ * Only kills processes that are:
+ *   1. Killable (not sacred, not protected)
+ *   2. Older than the age threshold
+ *
+ * Returns a summary of what was scanned and killed.
+ * Safe to call from the daemon — sacred PID protection is built-in.
+ */
+export function reapZombies(ageThresholdMs: number = ZOMBIE_AGE_THRESHOLD_MS): ZombieReaperResult {
+  const result: ZombieReaperResult = { scanned: 0, killed: 0, failed: 0, details: [] };
+
+  let processes: OSProcess[];
+  try {
+    processes = discoverOSNodeProcesses();
+  } catch {
+    return result;
+  }
+
+  result.scanned = processes.length;
+  const now = Date.now();
+
+  for (const proc of processes) {
+    if (!proc.killable) continue;
+
+    // Calculate age from creation date (Windows: wmic CreationDate, Unix: no creationDate → skip)
+    let ageMs = 0;
+    if (proc.creationDate && proc.creationDate.length >= 14) {
+      const created = parseWmicDate(proc.creationDate);
+      if (created.getTime() > 0) {
+        ageMs = now - created.getTime();
+      }
+    } else if (!proc.creationDate) {
+      // Unix fallback: no creation date available from ps, skip age-based kill
+      continue;
+    }
+
+    // Skip young processes
+    if (ageMs < ageThresholdMs) continue;
+
+    // Kill it
+    const killed = killPid(proc.pid);
+    if (killed) {
+      result.killed++;
+    } else {
+      result.failed++;
+    }
+    result.details.push({ pid: proc.pid, category: proc.category, ageMs, killed });
+  }
+
+  return result;
+}
+
 /**
  * Format bytes to human-readable string.
  */

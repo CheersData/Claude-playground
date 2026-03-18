@@ -387,7 +387,8 @@ export function getTierInfo(): TierInfo {
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor", "mapper",
+    "analyzer", "investigator", "advisor", "document-chat",
+    "task-executor", "mapper", "mapping-agent",
     "integration-setup", "sync-supervisor",
   ];
 
@@ -430,7 +431,8 @@ export function getTierInfoForSession(
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor", "mapper",
+    "analyzer", "investigator", "advisor", "document-chat",
+    "task-executor", "mapper", "mapping-agent",
     "integration-setup", "sync-supervisor",
   ];
 

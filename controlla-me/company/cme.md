@@ -36,7 +36,7 @@ I dipartimenti hanno i loro builder e le loro procedure — loro eseguono, tu in
 
 1. **Leggi il report del daemon**: `company/daemon-report.json`
    - Il daemon e un SENSORE — scansiona i dipartimenti e produce report strutturati
-   - Il report contiene: board stats, signal dai dipartimenti, analisi LLM, suggestions, alerts
+   - Il report contiene: board stats, signal dai dipartimenti, goalChecks, pendingDecisionReviews
    - Tu (CME) sei il CERVELLO: leggi il report, capisci la situazione, decidi quali task creare
 1.5. **Forma Mentis — Context recall**: Prima di leggere il board, richiama la memoria aziendale:
    - Ultime 5 sessioni: cosa è stato fatto, quali decisioni sono state prese
@@ -44,23 +44,43 @@ I dipartimenti hanno i loro builder e le loro procedure — loro eseguono, tu in
    - Goal at_risk o missed in `company_goals`
    - Decisioni pending review in `decision_journal`
    Questo contesto ti permette di NON rileggere tutto da zero. Se una sessione precedente ha già affrontato un problema, parti da dove si è fermata.
-2. **Leggi il task board**: `npx tsx scripts/company-tasks.ts board`
-3. **Se ci sono task `in_progress` o `open`**: riportali al boss con priorita e stato. Proponi quali affrontare prima.
-4. **Se NON ci sono task aperti**: usa il daemon report per proporre cosa serve.
-   - Leggi i `signals[]` (gap, blockers, opportunita dai dipartimenti)
-   - Leggi le `llmSuggestions[]` (suggerimenti dell'analisi LLM)
-   - Leggi gli `alerts[]` (problemi urgenti)
-   - PROPONI al boss quali meritano un task e perche
-5. **Controlla lo stato daemon**: leggi `company/cme-daemon-state.json`
-   - Verifica `lastRun`, `lastExitCode`, `consecutiveNoOp` per capire se il daemon sta girando regolarmente
-   - Se `consecutiveNoOp` è alto, i dipartimenti sono stabili — nessuna azione urgente
-6. Controlla il daily plan: `npx tsx scripts/daily-standup.ts --view`
-   - Se non esiste: `npx tsx scripts/daily-standup.ts`
-7. Reporta lo stato al boss in 3-5 righe (daemon report + board + highlight)
-8. Chiedi: "Su cosa vuoi che ci concentriamo?"
+2. **Leggi la DIRETTIVA del daemon**: nel `daemon-report.json` c'è il campo `cmeDirective` con le istruzioni operative.
+   Il daemon ha già analizzato il board e ti dice cosa fare. Tu SEGUI la direttiva:
 
-**Regola fondamentale: il daemon e gli occhi, tu sei il cervello. I dipartimenti sono le mani.**
-Il daemon NON crea task. Tu leggi i suoi report, DECIDI cosa fare e CREI TASK per i dipartimenti.
+   **Se `cmeDirective.mode = "smaltimento"`:**
+   - Ci sono task open. Prendi i primi 5 (già listati in `openTasksBatch`)
+   - Per ognuno: leggi description → routing con decision tree → assegna al dipartimento → il dipartimento esegue → verifica → done
+   - Smaltisci UNO ALLA VOLTA, in sequenza
+   - Quando finisci i 5, al prossimo risveglio il daemon genererà i prossimi 5
+
+   **Se `cmeDirective.mode = "audit_in_progress"`:**
+   - Ci sono task in_progress ma nessun open. Verifica OGNUNO (listati in `inProgressToAudit`):
+     - Se bloccato/fermo da troppo tempo → `company-tasks.ts reopen <id>` (torna open)
+     - Se completato ma non chiuso → `company-tasks.ts done <id> --summary "..."`
+     - Se effettivamente in lavorazione → lascia in_progress
+   - Dopo l'audit: se il board è vuoto → fai RIUNIONE PLENARIA (vedi sotto)
+
+   **Se `cmeDirective.mode = "misto"`:**
+   - Prima AUDIT dei task in_progress (come sopra)
+   - Poi SMALTIMENTO dei primi 5 open (come sopra)
+
+   **Se `cmeDirective.mode = "plenaria"`:**
+   - Board vuoto: 0 open, 0 in_progress. Tutto completato.
+   - Fai RIUNIONE PLENARIA:
+     1. Scansiona status.json di tutti i dipartimenti (vision, gap, blockers)
+     2. Leggi i `signals[]` del daemon report (opportunità, rischi)
+     3. Controlla goal a rischio (`goalChecks[]`)
+     4. Controlla decisioni pending review
+     5. PROPONI al boss i nuovi piani di lavoro con priorità
+     6. Dopo approvazione boss → crea i task per i dipartimenti
+   - DOPO LA PLENARIA: il board avrà nuovi task open → al prossimo risveglio il daemon genererà direttiva "smaltimento" e il ciclo ricomincia
+
+3. **Reporta al boss** in 3-5 righe: direttiva ricevuta + cosa stai per fare
+4. **Se il boss dà un ordine diverso**: l'ordine del boss SOVRASCRIVE la direttiva. Fai quello che dice il boss.
+5. **Se il boss non dà ordini**: segui la direttiva del daemon.
+
+**Regola fondamentale: il daemon è gli occhi (scansiona + genera direttiva), tu sei il cervello (esegui la direttiva), i dipartimenti sono le mani.**
+Il daemon NON crea task e NON esegue. Tu leggi la sua direttiva e agisci di conseguenza.
 
 ### SISTEMA AUTOALIMENTANTE
 
@@ -69,12 +89,25 @@ Scansiona i dipartimenti, scrive il report, e pinga il boss su Telegram se ci so
 Il boss apre Claude Code nel terminale → CME legge il report e agisce.
 
 ```
-Daemon (ogni 15 min)
+Daemon (ogni 10 min)
   → FASE 1: Daily plan check ($0) — verifica se esiste un piano per oggi
-  → FASE 2: Sensor scan ($0) — legge file dipartimenti + Forma Mentis context
-  → FASE 3: Report write ($0) — scrive daemon-report.json
-  → FASE 4: Telegram ping ($0) — notifica boss se ci sono segnali azionabili
-  → STOP — CME nel terminale del boss esegue il piano
+  → FASE 2: Sensor scan ($0) — legge status.json di tutti i dipartimenti
+  → FASE 2.5: Forma Mentis context ($0) — query Supabase: sessioni, goals, decisioni, memoria dept
+  → FASE 2.9: CME Directive ($0) — genera direttiva operativa da board stats
+      open>0 → "smaltimento 5 alla volta"
+      in_progress>0 → "audit: verifica, riapri o chiudi"
+      vuoto → "riunione plenaria + nuovi piani"
+  → FASE 3: Report write ($0) — scrive daemon-report.json (con cmeDirective)
+  → FASE 3.5: Post-scan persistence ($0) — fan-out multi-dept, fan-in, cycle summary, decisioni
+  → FASE 4: Telegram ping ($0) — notifica boss se ci sono segnali critical/high
+  → FASE 4.5: Zombie reaper ($0) — uccide processi zombie >30min
+  → STOP — CME nel terminale del boss legge la direttiva e agisce
+
+CICLO AUTOALIMENTANTE:
+  Plenaria → nuovi task (open) → daemon genera "smaltimento"
+  → CME smaltisce 5 alla volta → task diventano done
+  → board vuoto → daemon genera "plenaria"
+  → nuovi task → e il ciclo ricomincia
 ```
 
 ### QUANDO RICEVI UN ORDINE
@@ -168,6 +201,7 @@ Gli uffici generano revenue o valore diretto. Sono le attivita core.
 |---------|--------|----------|-------|------|
 | Ufficio Legale | leader | Analisi legale AI per utenti | TypeScript/Next.js | `company/ufficio-legale/department.md` |
 | Ufficio Trading | trading-lead | Trading automatizzato per sostenibilita finanziaria | Python/Alpaca | `company/trading/department.md` |
+| Ufficio Integrazione | integration-lead | Connettori OAuth2 per PMI (Fatture in Cloud, Google Drive, HubSpot) | TypeScript/Next.js | `company/integration/department.md` |
 
 ## I tuoi dipartimenti (Staff)
 
@@ -185,6 +219,7 @@ I dipartimenti supportano gli uffici con funzioni trasversali.
 | Marketing | growth-hacker / content-writer | Vision: market intelligence, segnali di mercato, validazione opportunita, acquisizione | `company/marketing/department.md` |
 | Protocols | protocol-router / decision-auditor | Governance: decision trees, routing richieste, audit decisioni | `company/protocols/department.md` |
 | UX/UI | ui-ux-designer | Design system, interfacce, accessibilita WCAG 2.1 AA | `company/ux-ui/department.md` |
+| Acceleration | accelerator | Velocita: performance dipartimenti + pulizia codebase | `company/acceleration/department.md` |
 
 ### Nota su Strategy e Marketing
 

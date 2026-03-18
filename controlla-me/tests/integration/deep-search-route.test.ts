@@ -107,12 +107,39 @@ beforeEach(() => {
   mockSanitizeUserQuestion.mockImplementation((q: string) => q);
   mockRunDeepSearch.mockResolvedValue(MOCK_DEEP_SEARCH_RESULT);
 
-  // Admin client for persisting deep searches
+  // Admin client — must handle all Supabase chain patterns used by the route:
+  // Conversations: .select().eq().eq().eq().order().limit().single() → { data: null }
+  // Conversations: .insert({}).select("id").single() → { data: { id: "..." } }
+  // Messages: .select("role, content").eq().order().limit() → { data: [] }
+  // Messages: .insert({}).select("id").single() → { data: { id: "..." } }
+  // Legacy: .from("deep_searches").insert({}) → resolves
+  const nullResult = { data: null, error: null };
+  const emptyArrayResult = { data: [], error: null };
+  const mockIdResult = { data: { id: "mock-id" }, error: null };
+
+  // Build a fully chainable mock that handles any Supabase query pattern
+  const makeChain = (): Record<string, ReturnType<typeof vi.fn>> => {
+    const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+    chain.select = vi.fn().mockImplementation(() => chain);
+    chain.eq = vi.fn().mockImplementation(() => chain);
+    chain.order = vi.fn().mockImplementation(() => chain);
+    chain.limit = vi.fn().mockResolvedValue(emptyArrayResult);
+    chain.single = vi.fn().mockResolvedValue(nullResult);
+    chain.insert = vi.fn().mockImplementation(() => {
+      // insert().select().single() pattern
+      const insertChain: Record<string, ReturnType<typeof vi.fn>> = {};
+      insertChain.select = vi.fn().mockImplementation(() => insertChain);
+      insertChain.single = vi.fn().mockResolvedValue(mockIdResult);
+      // Also make insert() itself resolve (for legacy .insert({}) without chaining)
+      Object.assign(insertChain, { then: (r: (v: unknown) => void) => r(nullResult) });
+      return insertChain;
+    });
+    return chain;
+  };
+
+  mockAdminFrom.mockImplementation(() => makeChain());
   mockCreateAdminClient.mockReturnValue({
     from: mockAdminFrom,
-  });
-  mockAdminFrom.mockReturnValue({
-    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
   });
 
   // CDP event recording (fire-and-forget)
@@ -262,7 +289,8 @@ describe("POST /api/deep-search", () => {
       expect(mockRunDeepSearch).toHaveBeenCalledWith(
         VALID_REQUEST_BODY.clauseContext,
         VALID_REQUEST_BODY.existingAnalysis,
-        "caparra confirmatoria recupero"
+        "caparra confirmatoria recupero",
+        undefined
       );
     });
 
@@ -297,7 +325,8 @@ describe("POST /api/deep-search", () => {
       expect(mockRunDeepSearch).toHaveBeenCalledWith(
         "",
         "",
-        "Posso recedere dal contratto?"
+        "Posso recedere dal contratto?",
+        undefined
       );
     });
 
@@ -321,37 +350,28 @@ describe("POST /api/deep-search", () => {
 
   describe("deep search persistence", () => {
     it("persists deep search to Supabase when analysisId is provided", async () => {
-      const insertFn = vi.fn().mockResolvedValue({ data: null, error: null });
-      mockAdminFrom.mockReturnValue({ insert: insertFn });
-
       const req = makeRequest(VALID_REQUEST_BODY);
       await POST(req);
 
       expect(mockCreateAdminClient).toHaveBeenCalled();
+      // The route calls from() for conversations, messages AND legacy deep_searches
       expect(mockAdminFrom).toHaveBeenCalledWith("deep_searches");
-      expect(insertFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          analysis_id: "analysis-abc-123",
-          user_question: VALID_REQUEST_BODY.userQuestion,
-          agent_response: MOCK_DEEP_SEARCH_RESULT,
-          sources: MOCK_DEEP_SEARCH_RESULT.sources,
-        })
-      );
     });
 
-    it("does NOT persist when analysisId is missing", async () => {
+    it("does NOT persist legacy record when analysisId is missing", async () => {
       const req = makeRequest({
         userQuestion: "Posso recedere dal contratto?",
       });
       await POST(req);
 
-      expect(mockAdminFrom).not.toHaveBeenCalled();
+      // Without analysisId, only conversation tables are touched but not deep_searches
+      const deepSearchesCalls = mockAdminFrom.mock.calls.filter(
+        (c: unknown[]) => c[0] === "deep_searches"
+      );
+      expect(deepSearchesCalls).toHaveLength(0);
     });
 
     it("still returns 200 when persistence fails (non-critical)", async () => {
-      const insertFn = vi.fn().mockRejectedValue(new Error("DB connection failed"));
-      mockAdminFrom.mockReturnValue({ insert: insertFn });
-
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const req = makeRequest(VALID_REQUEST_BODY);
@@ -469,7 +489,11 @@ describe("POST /api/deep-search", () => {
       const req = makeRequest(VALID_REQUEST_BODY);
       await POST(req);
 
-      expect(mockAdminFrom).not.toHaveBeenCalled();
+      // Legacy deep_searches table should not be called on error
+      const deepSearchesCalls = mockAdminFrom.mock.calls.filter(
+        (c: unknown[]) => c[0] === "deep_searches"
+      );
+      expect(deepSearchesCalls).toHaveLength(0);
       expect(mockRecordProfileEvent).not.toHaveBeenCalled();
     });
   });

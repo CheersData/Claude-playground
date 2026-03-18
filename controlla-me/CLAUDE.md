@@ -63,8 +63,8 @@ L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.t
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
 | AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.42.x |
-| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 6.x |
-| AI Registry | lib/models.ts — ~40 modelli, 7 provider | — |
+| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, SambaNova) | 6.x |
+| AI Registry | lib/models.ts — ~42 modelli, 7 provider | — |
 | Tier System | lib/tiers.ts — 3 tier, catene N-fallback | — |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
 | Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
@@ -130,11 +130,11 @@ MISTRAL_API_KEY=...
 # Groq (opzionale, free tier: Llama 4, 1000 req/giorno)
 GROQ_API_KEY=gsk_...
 
-# Cerebras (opzionale, free tier: 1M token/giorno)
+# Cerebras (opzionale, free tier: 24M tok/giorno, 30 RPM)
 CEREBRAS_API_KEY=csk-...
 
-# DeepSeek (opzionale — ⚠️ server in Cina, non usare per dati sensibili)
-DEEPSEEK_API_KEY=...
+# SambaNova (opzionale, free tier: 200K tok/giorno, no CC)
+SAMBANOVA_API_KEY=...
 
 # Console (obbligatorio in produzione)
 CONSOLE_JWT_SECRET=...           # min 32 chars — se assente usa fallback hardcoded pubblico (RISCHIO SICUREZZA)
@@ -280,6 +280,16 @@ controlla-me/
 │   │       │   └── legal-corpus-store.ts   # Adattatore per ingestArticles()
 │   │       └── validators/
 │   │           └── article-validator.ts    # Validazione articoli
+│   ├── company/
+│   │   ├── self-preservation.ts  # Zombie reaper + enableSelfTimeout() + sacred PID protection
+│   │   ├── process-monitor.ts    # Aggregatore unificato processi (sessions, tasks, trading, syncs)
+│   │   ├── sessions.ts           # Session tracker (2-layer + file + heartbeat)
+│   │   ├── sub-agent-tracker.ts  # File-based sub-agent tracker
+│   │   ├── memory/               # Layer 1: Memoria sessioni
+│   │   ├── sinapsi/              # Layer 2: Discovery dipartimenti
+│   │   ├── coscienza/            # Layer 3: Monitoraggio obiettivi
+│   │   ├── riflessione/          # Layer 4: Decision journal
+│   │   └── collaborazione/       # Layer 5: Fan-out multi-dept
 │   ├── extract-text.ts           # Estrazione PDF/DOCX/TXT
 │   ├── analysis-cache.ts         # Cache analisi su filesystem
 │   ├── stripe.ts                 # Config Stripe + piani
@@ -305,6 +315,11 @@ controlla-me/
 │       └── admin.ts              # Client admin (webhook)
 │
 ├── scripts/
+│   ├── cme-autorun.ts             # Daemon sensore puro ($0/ciclo): scan, report, directive, zombie reaper
+│   ├── company-tasks.ts           # CLI task board: create, claim, done, board, list, exec
+│   ├── forma-mentis.ts            # CLI memoria aziendale: context, goals, discover, remember, decide
+│   ├── daily-standup.ts           # Piano giornaliero
+│   ├── dept-context.ts            # Context retrieval veloce per dipartimenti
 │   ├── data-connector.ts          # CLI: connect, model, load, status, update
 │   ├── corpus-sources.ts          # 14 fonti con ConnectorConfig + lifecycle
 │   ├── tax-sources.ts             # 11 fonti verticale Tax/Commercialista
@@ -329,10 +344,26 @@ controlla-me/
 │   │   └── utils/                 # db.py (CRUD Supabase), logging.py
 │   └── tests/
 │
-└── company/trading/               # Org structure trading
-    ├── department.md              # Identità ufficio + vincoli architetturali
-    ├── agents/                    # 5 identity cards + trading-lead
-    └── runbooks/                  # pipeline, risk, backtest, go-live
+├── company/                       # Virtual company structure
+│   ├── cme.md                    # CEO prompt (router only)
+│   ├── daemon-report.json        # Output daemon: segnali, board stats, cmeDirective
+│   ├── cme-daemon-state.json     # Stato runtime daemon (heartbeat, cicli, intervallo)
+│   ├── <dept>/department.md      # Identità dipartimento
+│   ├── <dept>/status.json        # Stato corrente dipartimento
+│   ├── <dept>/agents/*.md        # Identity card agenti
+│   └── <dept>/runbooks/*.md      # Procedure operative
+│
+└── trading/                       # Ufficio Trading (Python, stesso localhost)
+    ├── pyproject.toml             # Python 3.11+, alpaca-py, pandas, ta
+    ├── src/
+    │   ├── config/settings.py     # Pydantic settings (26 parametri)
+    │   ├── connectors/alpaca_client.py  # Alpaca trading + market data
+    │   ├── models/                # signals.py, orders.py, portfolio.py
+    │   ├── agents/base.py         # BaseAgent ABC
+    │   ├── strategies/            # (futuro)
+    │   ├── backtest/              # (Fase 2)
+    │   └── utils/                 # db.py (CRUD Supabase), logging.py
+    └── tests/
 ```
 
 ---
@@ -394,14 +425,14 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 Configurazione centralizzata in `lib/tiers.ts`. Ogni agente ha una **catena ordinata di N modelli**. Il tier (Intern/Associate/Partner) determina il punto di partenza nella catena. Su errore 429 o provider non disponibile, il sistema scende automaticamente al modello successivo.
 
 ```
-Tier Partner:   Sonnet 4.5 → Gemini Pro → Mistral Large → Groq Llama → Cerebras
-Tier Associate: Gemini Pro → Mistral Large → Groq Llama → Cerebras
-Tier Intern:    Mistral Large → Groq Llama → Cerebras
+Tier Partner:   Sonnet 4.5 → Gemini Pro → Groq Llama → Cerebras → SambaNova → Mistral
+Tier Associate: Gemini Pro → Groq Llama → Cerebras → SambaNova → Mistral
+Tier Intern:    Groq Llama → Cerebras → SambaNova → Mistral
 ```
 
 | Tier | Descrizione | Modelli tipici | Costo stimato |
 |------|-------------|---------------|---------------|
-| **Intern** | Modelli gratuiti | Cerebras, Groq, Mistral free | ~gratis |
+| **Intern** | Modelli gratuiti | Cerebras, Groq, SambaNova, Mistral free | ~gratis |
 | **Associate** | Modelli intermedi | Gemini Flash/Pro, Haiku | ~$0.01 |
 | **Partner** | Modelli top-tier | Sonnet, GPT-5 | ~$0.05 |
 
@@ -431,8 +462,10 @@ Anthropic e Gemini hanno SDK nativi dedicati. Gli altri 5 usano `lib/ai-sdk/open
 | OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-5.1, 5.2, 4.1, 4o, Codex Mini, OSS 20B/120B | $5 crediti |
 | Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo, Ministral, Magistral S/M | Tutti, 2 RPM |
 | Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B, GPT-OSS, Kimi K2 | 1000 req/giorno |
-| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B, Qwen3 235B, GPT-OSS 120B | 1M tok/giorno |
-| DeepSeek | `lib/ai-sdk/openai-compat.ts` | V3, R1 | 5M tok (30gg) |
+| Cerebras | `lib/ai-sdk/openai-compat.ts` | GPT-OSS 120B, Llama 3.1 8B | 24M tok/giorno, 30 RPM |
+| SambaNova | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, Llama 4 Maverick, DeepSeek-R1 70B | 200K tok/giorno |
+
+> **DeepSeek RIMOSSO** (SEC-001): server in Cina, non coperto da accordo di adeguatezza EU. Provider eliminato dal codebase.
 
 Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts` che risolve la catena di fallback dal tier corrente. Per cambiare catena o tier: modificare `AGENT_CHAINS` / `TIER_START` in `lib/tiers.ts`.
 
@@ -1554,18 +1587,65 @@ Agent(task="...", run_in_background=True)
 
 Ogni dipartimento pubblica `company/<dept>/department-card.json` con capabilities, skills, e autorizzazioni per query dirette. Il discovery service (`lib/company/sinapsi/department-discovery.ts`) le carica e permette routing automatico.
 
-### Integrazione nel Daemon
+### Daemon — Sensore Puro ($0/ciclo)
 
-Il daemon (`scripts/cme-autorun.ts`) integra:
+Il daemon (`scripts/cme-autorun.ts`) è un sensore che scansiona l'azienda, scrive un report strutturato e genera una direttiva operativa per CME. **Zero chiamate LLM, zero costi API.**
+
+```bash
+npx tsx scripts/cme-autorun.ts           # Singola esecuzione
+npx tsx scripts/cme-autorun.ts --watch   # Loop continuo (ogni 10 min, configurabile da /ops)
+```
+
+**Le 7 fasi di ogni ciclo:**
+
+| Fase | Cosa fa | Costo |
+|------|---------|-------|
+| **1. Daily Plan** | Controlla se esiste `company/daily-plans/oggi.md` | $0 |
+| **2. Vision Scan** | Legge TUTTI i `status.json` dei dipartimenti → `signals[]` | $0 |
+| **2.5. Forma Mentis** | Query Supabase: sessioni recenti, warning, goals, decisioni | $0 |
+| **2.9. CME Directive** | Genera direttiva operativa da board stats (vedi sotto) | $0 |
+| **3. Report Write** | Scrive `daemon-report.json` + append su `daemon_reports` Supabase | $0 |
+| **4. Telegram Ping** | Se segnali critical/high → notifica al boss | $0 |
+| **4.5. Zombie Reaper** | Scansiona processi, uccide quelli killable >30 min | $0 |
+
+**Integrazione Forma Mentis:**
 - `saveDaemonReport()` — report append-only su Supabase (Layer 3)
 - `checkGoals()` — valuta OKR e crea alert se off-track (Layer 3)
 - `getDecisionsPendingReview()` — segnala decisioni da rivalutare (Layer 4)
 
+### CME Directive — Brief Operativo Automatico
+
+Il daemon genera una `cmeDirective` nel report basata sullo stato del board:
+
+| Board state | Modo | CME fa |
+|---|---|---|
+| open>0, in_progress>0 | `misto` | Prima audit in_progress (riapri bloccati, chiudi finiti), poi smaltisce 5 open |
+| open>0, in_progress=0 | `smaltimento` | Prende 5 open per priorità, routing + esecuzione sequenziale |
+| open=0, in_progress>0 | `audit_in_progress` | Verifica ogni in_progress: bloccato→reopen, fatto→done |
+| open=0, in_progress=0 | `plenaria` | Riunione plenaria → nuovi piani → nuovi task |
+
+**Ciclo autoalimentante:**
+```
+Plenaria → nuovi task (open) → daemon genera "smaltimento"
+→ CME smaltisce 5 alla volta → task diventano done
+→ board vuoto → daemon genera "plenaria"
+→ nuovi task → e il ciclo ricomincia
+```
+
+### Zombie Reaper e Self-Timeout
+
+**Due livelli di protezione anti-zombie** (`lib/company/self-preservation.ts`):
+
+1. **Preventivo: `enableSelfTimeout(ms)`** — ogni script importa questa utility e si auto-termina dopo un timeout configurabile. Usato in: `company-tasks.ts` (5min), `data-connector.ts` (10min), `dept-context.ts` (3min), `forma-mentis.ts` (5min), `daily-standup.ts` (5min), `model-census-agent.ts` (5min)
+
+2. **Reattivo: `reapZombies()`** — FASE 4.5 del daemon, ogni 10 minuti scansiona tutti i processi node.exe, uccide quelli killable (daemon, task-runner, worker, unknown) attivi da >30 minuti. Processi sacri (VS Code, Claude Code, Next.js dev) mai toccati.
+
 ### Come CME usa Forma Mentis all'avvio
 
-1. Leggi `company/daemon-report.json` (come prima)
-2. **NUOVO**: Query memoria aziendale per contesto rilevante
+1. Leggi `company/daemon-report.json` → segnali + `cmeDirective`
+2. Query memoria aziendale per contesto rilevante
 3. Leggi task board
-4. **NUOVO**: Check goals attivi (`company_goals`) per OKR off-track
-5. **NUOVO**: Check decisioni pending review
-6. Reporta al boss con contesto arricchito
+4. Check goals attivi (`company_goals`) per OKR off-track
+5. Check decisioni pending review
+6. Segui la `cmeDirective` (smaltimento / audit / plenaria / misto)
+7. Reporta al boss con contesto arricchito

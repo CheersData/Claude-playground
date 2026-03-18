@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    pool: "threads", // forks pool crashes on Windows with large mock files
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.test.ts"],
     testTimeout: 10_000,

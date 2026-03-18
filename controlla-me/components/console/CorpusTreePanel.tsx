@@ -416,7 +416,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
         {/* Search */}
         <div className="flex-1 min-w-[140px] relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--foreground-tertiary)]" aria-hidden="true" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
           <input
             type="text"
             value={searchQuery}
@@ -429,12 +429,12 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
             }}
             placeholder="Ricerca semantica..."
             aria-label="Ricerca semantica nel corpus legislativo"
-            className="w-full pl-9 pr-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] focus:outline-none focus:ring-1 focus:ring-[#A78BFA]/40 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-xs text-[var(--foreground)] placeholder:text-[var(--fg-muted)] focus:outline-none focus:ring-1 focus:ring-[#A78BFA]/60 transition-all"
           />
         </div>
 
         {/* Stats */}
-        <span className="text-[11px] text-[var(--foreground-tertiary)] shrink-0 hidden sm:inline">
+        <span className="text-[11px] text-[var(--foreground-secondary)] shrink-0 hidden sm:inline">
           <PanelCount value={totalArticles} /> articoli &middot; {sources.length} fonti
         </span>
       </div>
@@ -512,7 +512,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
 
             {/* Empty state: no source selected */}
             {!selectedSource && !treeLoading && sources.length > 0 && (
-              <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-tertiary)]">
+              <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-secondary)]">
                 Seleziona una fonte per iniziare
               </div>
             )}
@@ -544,7 +544,7 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
             )}
 
             {!selectedInstitute && !loadingInstitutes && institutes.length > 0 && (
-              <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-tertiary)]">
+              <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-secondary)]">
                 Seleziona un istituto per iniziare
               </div>
             )}
@@ -569,7 +569,7 @@ function SourceColumn({
   return (
     <nav className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0" aria-label="Fonti legislative">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)] font-medium">
           Fonti
         </span>
       </div>
@@ -584,7 +584,7 @@ function SourceColumn({
           <>
             {itSources.length > 0 && (
               <div>
-                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)]">
+                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)]">
                   Italia
                 </p>
                 {itSources.map((s) => (
@@ -594,7 +594,7 @@ function SourceColumn({
             )}
             {euSources.length > 0 && (
               <div>
-                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)]">
+                <p className="px-4 pt-3 pb-1.5 text-[9px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)]">
                   Unione Europea
                 </p>
                 {euSources.map((s) => (
@@ -620,13 +620,13 @@ function SourceItem({ source, selected, onSelect }: {
       aria-label={`${source.source_name} — ${source.article_count} articoli`}
       className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
         selected
-          ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
+          ? "bg-[#A78BFA]/20 text-[#6D28D9] font-medium"
           : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
       }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selected ? "bg-[#A78BFA]" : "bg-[var(--border)]"}`} aria-hidden="true" />
       <span className="truncate flex-1">{source.source_name}</span>
-      <span className="text-[10px] text-[var(--foreground-tertiary)] tabular-nums shrink-0">
+      <span className="text-[10px] text-[var(--foreground-secondary)] tabular-nums shrink-0">
         {source.article_count}
       </span>
     </button>
@@ -646,7 +646,7 @@ function HierarchyColumn({
   return (
     <div className="w-[calc(100vw-2px)] md:w-[220px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium truncate block">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)] font-medium truncate block">
           {column.label}
         </span>
       </div>
@@ -665,21 +665,21 @@ function HierarchyColumn({
               aria-expanded={hasContent ? isSelected : undefined}
               className={`w-full text-left px-4 py-2 flex items-center gap-2 text-xs transition-colors group focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                 isSelected
-                  ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
+                  ? "bg-[#A78BFA]/20 text-[#6D28D9] font-medium"
                   : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
               }`}
             >
               <span className="truncate flex-1">{node.label}</span>
               {total > 0 && (
                 <span className={`text-[10px] tabular-nums shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--foreground-tertiary)]"
+                  isSelected ? "text-[#7C3AED]" : "text-[var(--foreground-secondary)]"
                 }`}>
                   {total}
                 </span>
               )}
               {hasContent && (
                 <ChevronRight className={`w-3 h-3 shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--border)]"
+                  isSelected ? "text-[#8B5CF6]" : "text-[var(--border)]"
                 }`} aria-hidden="true" />
               )}
             </button>
@@ -701,13 +701,13 @@ function HierarchyColumn({
                   aria-label={`Articolo ${art.article_number}${art.article_title ? ` — ${art.article_title}` : ""}${isSelected ? " (selezionato)" : ""}`}
                   className={`w-full text-left px-4 py-1.5 flex items-center gap-1.5 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                     isSelected
-                      ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
+                      ? "bg-[#A78BFA]/20 text-[#6D28D9] font-medium"
                       : "text-[var(--foreground-secondary)] hover:bg-[var(--surface-hover)]"
                   }`}
                 >
                   <span className="shrink-0">Art. {art.article_number}</span>
                   {art.article_title && (
-                    <span className={`truncate ${isSelected ? "text-[#A78BFA]/70" : "text-[var(--foreground-tertiary)]"}`}>
+                    <span className={`truncate ${isSelected ? "text-[#7C3AED]" : "text-[var(--foreground-secondary)]"}`}>
                       {art.article_title}
                     </span>
                   )}
@@ -734,7 +734,7 @@ function InstituteColumn({
   return (
     <nav className="w-[calc(100vw-2px)] md:w-[240px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0" aria-label="Istituti giuridici">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)] font-medium">
           Istituti Giuridici
         </span>
       </div>
@@ -757,18 +757,18 @@ function InstituteColumn({
                 aria-label={`${inst.label} — ${inst.count} articoli${isSelected ? " (selezionato)" : ""}`}
                 className={`w-full text-left px-4 py-2.5 flex items-center gap-2 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                   isSelected
-                    ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
+                    ? "bg-[#A78BFA]/20 text-[#6D28D9] font-medium"
                     : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
                 }`}
               >
                 <span className="truncate flex-1">{inst.label}</span>
                 <span className={`text-[10px] tabular-nums shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--foreground-tertiary)]"
+                  isSelected ? "text-[#7C3AED]" : "text-[var(--foreground-secondary)]"
                 }`}>
                   {inst.count}
                 </span>
                 <ChevronRight className={`w-3 h-3 shrink-0 ${
-                  isSelected ? "text-[#A78BFA]/60" : "text-[var(--border)]"
+                  isSelected ? "text-[#8B5CF6]" : "text-[var(--border)]"
                 }`} aria-hidden="true" />
               </button>
             );
@@ -792,7 +792,7 @@ function InstituteArticlesColumn({
   return (
     <div className="w-[calc(100vw-2px)] md:w-[260px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)] font-medium">
           Articoli ({articles.length})
         </span>
       </div>
@@ -804,7 +804,7 @@ function InstituteArticlesColumn({
             ))}
           </div>
         ) : articles.length === 0 ? (
-          <p className="px-4 py-8 text-xs text-[var(--foreground-tertiary)] text-center">Nessun articolo.</p>
+          <p className="px-4 py-8 text-xs text-[var(--foreground-secondary)] text-center">Nessun articolo.</p>
         ) : (
           articles.map((art) => {
             const isSelected = selectedId === art.id;
@@ -817,17 +817,17 @@ function InstituteArticlesColumn({
                 aria-label={`Articolo ${art.article_number}${art.article_title ? ` — ${art.article_title}` : ""}, ${art.source_name}`}
                 className={`w-full text-left px-4 py-2 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                   isSelected
-                    ? "bg-[#A78BFA]/10 text-[#A78BFA] font-medium"
+                    ? "bg-[#A78BFA]/20 text-[#6D28D9] font-medium"
                     : "text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
                 }`}
               >
                 <span>Art. {art.article_number}</span>
                 {art.article_title && (
-                  <span className={`ml-1.5 ${isSelected ? "text-[#A78BFA]/70" : "text-[var(--foreground-tertiary)]"}`}>
+                  <span className={`ml-1.5 ${isSelected ? "text-[#7C3AED]" : "text-[var(--foreground-secondary)]"}`}>
                     &mdash; {art.article_title}
                   </span>
                 )}
-                <p className={`mt-0.5 text-[10px] ${isSelected ? "text-[#A78BFA]/50" : "text-[var(--foreground-tertiary)]"}`}>
+                <p className={`mt-0.5 text-[10px] ${isSelected ? "text-[#8B5CF6]" : "text-[var(--foreground-secondary)]"}`}>
                   {art.source_name}
                 </p>
               </button>
@@ -853,13 +853,13 @@ function SearchResultsColumn({
   return (
     <div className="w-[calc(100vw-2px)] md:w-[300px] shrink-0 snap-start border-r border-[var(--border-subtle)] flex flex-col min-h-0">
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)] flex items-center justify-between">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)] font-medium">
           {results.length} risultati
         </span>
         <button
           onClick={onClose}
           aria-label="Chiudi risultati ricerca"
-          className="text-[10px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+          className="text-[10px] text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
         >
           Chiudi
         </button>
@@ -872,7 +872,7 @@ function SearchResultsColumn({
             ))}
           </div>
         ) : results.length === 0 ? (
-          <p className="px-4 py-8 text-xs text-[var(--foreground-tertiary)] text-center">Nessun risultato.</p>
+          <p className="px-4 py-8 text-xs text-[var(--foreground-secondary)] text-center">Nessun risultato.</p>
         ) : (
           results.map((r) => {
             const isSelected = selectedId === r.id;
@@ -885,19 +885,19 @@ function SearchResultsColumn({
                 aria-label={`${r.article_reference}${r.article_title ? ` — ${r.article_title}` : ""}, ${r.law_source}`}
                 className={`w-full text-left px-4 py-2.5 border-b border-[var(--border-subtle)] text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${
                   isSelected
-                    ? "bg-[#A78BFA]/10"
+                    ? "bg-[#A78BFA]/20"
                     : "hover:bg-[var(--surface-hover)]"
                 }`}
               >
-                <span className={`font-medium ${isSelected ? "text-[#A78BFA]" : "text-[var(--foreground)]"}`}>
+                <span className={`font-medium ${isSelected ? "text-[#6D28D9]" : "text-[var(--foreground)]"}`}>
                   {r.article_reference}
                 </span>
                 {r.article_title && (
-                  <span className={`ml-1 ${isSelected ? "text-[#A78BFA]/70" : "text-[var(--foreground-secondary)]"}`}>
+                  <span className={`ml-1 ${isSelected ? "text-[#7C3AED]" : "text-[var(--foreground-secondary)]"}`}>
                     &mdash; {r.article_title}
                   </span>
                 )}
-                <p className="text-[10px] text-[var(--foreground-tertiary)] mt-0.5">{r.law_source}</p>
+                <p className="text-[10px] text-[var(--foreground-secondary)] mt-0.5">{r.law_source}</p>
               </button>
             );
           })
@@ -923,7 +923,7 @@ function ArticlePreview({ article, loading }: {
       aria-live="polite"
     >
       <div className="px-6 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--background-secondary)]">
-        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-tertiary)] font-medium">
+        <span className="text-[10px] tracking-[1.5px] uppercase text-[var(--foreground-secondary)] font-medium">
           Anteprima
         </span>
       </div>
@@ -942,7 +942,7 @@ function ArticlePreview({ article, loading }: {
           <div className="max-w-[600px] mx-auto">
             {/* Hierarchy breadcrumb */}
             {(article.source_name || Object.keys(article.hierarchy).length > 0) && (
-              <p className="text-[11px] text-[var(--foreground-tertiary)] mb-5">
+              <p className="text-[11px] text-[var(--foreground-secondary)] mb-5">
                 {[article.source_name, ...Object.values(article.hierarchy)].filter(Boolean).join(" / ")}
               </p>
             )}
@@ -957,7 +957,7 @@ function ArticlePreview({ article, loading }: {
             {article.keywords && article.keywords.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-4">
                 {article.keywords.map((kw) => (
-                  <span key={kw} className="px-2 py-0.5 text-[10px] rounded-md bg-[var(--background-secondary)] text-[var(--foreground-tertiary)]">
+                  <span key={kw} className="px-2 py-0.5 text-[10px] rounded-md bg-[var(--background-secondary)] text-[var(--foreground-secondary)]">
                     {kw.replace(/_/g, " ")}
                   </span>
                 ))}
@@ -978,14 +978,14 @@ function ArticlePreview({ article, loading }: {
             </div>
 
             <div className="border-t border-[var(--border)] mt-10 pt-5 flex items-center justify-between">
-              <span className="text-[11px] text-[var(--foreground-tertiary)]">{article.source_name}</span>
+              <span className="text-[11px] text-[var(--foreground-secondary)]">{article.source_name}</span>
               {article.url && (
                 <a
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Fonte ufficiale per Articolo ${article.article_number} (apre in nuova scheda)`}
-                  className="text-[11px] text-[var(--foreground-tertiary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                  className="text-[11px] text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
                 >
                   Fonte ufficiale &rarr;
                 </a>
@@ -993,7 +993,7 @@ function ArticlePreview({ article, loading }: {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-tertiary)] h-full">
+          <div className="flex-1 flex items-center justify-center text-sm text-[var(--foreground-secondary)] h-full">
             Seleziona un articolo per leggere
           </div>
         )}

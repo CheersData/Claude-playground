@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-03-18T17:37:55.195Z",
-  "durationMs": 1457,
+  "timestamp": "2026-03-18T22:08:32.162Z",
+  "durationMs": 1994,
   "board": {
     "total": 0,
-    "open": 57,
-    "inProgress": 0,
-    "done": 939
+    "open": 51,
+    "inProgress": 4,
+    "done": 941
   },
   "signals": [
     {
@@ -490,5 +490,23 @@
   "llmSuggestions": [],
   "alerts": [],
   "goalChecks": [],
-  "pendingDecisionReviews": 0
+  "pendingDecisionReviews": 0,
+  "cmeDirective": {
+    "mode": "misto",
+    "instructions": "PRIORITÀ 1 — AUDIT: Ci sono 4 task in_progress. Verifica OGNUNO:\n  • Se bloccato/fermo da troppo tempo → rimetti a \"open\" (company-tasks.ts reopen <id>)\n  • Se completato ma non chiuso → chiudi con \"done\" (company-tasks.ts done <id> --summary \"...\")\n  • Se effettivamente in lavorazione → lascia in_progress\n\nPRIORITÀ 2 — SMALTIMENTO: Dopo l'audit, ci sono 51 task open.\n  Prendi i primi 5 per priorità, fai routing con i decision trees, e smaltisci UNO ALLA VOLTA.\n  Per ogni task: routing → crea/assegna al dipartimento → il dipartimento esegue → verifica → done.\n  Quando finisci i 5, il daemon al prossimo ciclo genererà i prossimi 5.",
+    "openTasksBatch": [
+      "[HIGH] Daemon CME directive — brief operativo automatico per CME (operations) — id:33d7e2f7",
+      "[MEDIUM] Sinapsi Active — completare department cards + auto-routing CME + skill executor operativi (protocols) — id:92ce640c",
+      "[HIGH] Reflection/Critic Pattern — attivare Layer 4 + Critic Agent post-Advisor + iteration loop trading (architecture) — id:d5d38223",
+      "[HIGH] Learning & Adaptation Framework — feedback loop + LLM-as-judge + dynamic few-shot (architecture) — id:29aacb49",
+      "[MEDIUM] E2E test OAuth flow completo con credenziali reali (architecture) — id:24c392db"
+    ],
+    "inProgressToAudit": [
+      "[MEDIUM] Creare migration SQL per SET LOCAL hnsw.ef_search=200 nelle RPC functions + verificare NULL embeddings + abbassare thres (data-engineering) — id:b6b6419d",
+      "[MEDIUM] Daily SEC — check variabili e route [CTRL-2026-03-18] (security) — id:2d877630",
+      "[MEDIUM] Daily OPS — health check agenti + pipeline [CTRL-2026-03-18] (operations) — id:b35efb9d",
+      "[HIGH] Daily QA — test suite + typecheck [CTRL-2026-03-18] (quality-assurance) — id:4e3f1bcf"
+    ],
+    "requiresPlenary": false
+  }
 }

@@ -56,7 +56,9 @@ import { MODELS } from "@/lib/models";
 
 const ALL_AGENTS: AgentName[] = [
   "leader", "question-prep", "classifier", "corpus-agent",
-  "analyzer", "investigator", "advisor", "task-executor", "mapper",
+  "analyzer", "investigator", "advisor", "document-chat",
+  "task-executor", "mapper", "mapping-agent",
+  "integration-setup", "sync-supervisor",
 ];
 
 const ALL_TIERS: TierName[] = ["intern", "associate", "partner"];

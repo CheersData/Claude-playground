@@ -38,7 +38,9 @@ const ALL_PROVIDERS: Provider[] = [
 
 const ALL_AGENTS: AgentName[] = [
   "leader", "question-prep", "classifier", "corpus-agent",
-  "analyzer", "investigator", "advisor", "task-executor", "mapper",
+  "analyzer", "investigator", "advisor", "document-chat",
+  "task-executor", "mapper", "mapping-agent",
+  "integration-setup", "sync-supervisor",
 ];
 
 const ALL_MODEL_KEYS = Object.keys(MODELS) as ModelKey[];

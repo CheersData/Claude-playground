@@ -172,36 +172,36 @@ describe("getActiveAgentEvents", () => {
     broadcastAgentEvent({ id: "alive", department: "cme", status: "running" });
     broadcastAgentEvent({ id: "will-die", department: "trading", status: "done" });
 
-    // Advance past done TTL (8s) but not running TTL (120s)
-    vi.advanceTimersByTime(9_000);
+    // Advance past done TTL (30s) but not running TTL (60s)
+    vi.advanceTimersByTime(31_000);
 
     const events = getActiveAgentEvents();
     expect(events).toHaveLength(1);
     expect(events[0].id).toBe("alive");
   });
 
-  it("prunes expired running events after TTL_RUNNING (120s)", () => {
+  it("prunes expired running events after TTL_RUNNING (60s)", () => {
     broadcastAgentEvent({ id: "stale-runner", department: "trading", status: "running" });
 
-    // Advance past running TTL (120s)
-    vi.advanceTimersByTime(121_000);
+    // Advance past running TTL (60s)
+    vi.advanceTimersByTime(61_000);
 
     const events = getActiveAgentEvents();
     expect(events).toHaveLength(0);
   });
 
-  it("prunes expired done events after TTL_DONE (8s)", () => {
+  it("prunes expired done events after TTL_DONE (30s)", () => {
     broadcastAgentEvent({ id: "done-evt", department: "cme", status: "done" });
 
-    vi.advanceTimersByTime(8_500);
+    vi.advanceTimersByTime(30_500);
 
     expect(getActiveAgentEvents()).toHaveLength(0);
   });
 
-  it("prunes expired error events after TTL_DONE (8s)", () => {
+  it("prunes expired error events after TTL_DONE (30s)", () => {
     broadcastAgentEvent({ id: "err-evt", department: "security", status: "error" });
 
-    vi.advanceTimersByTime(8_500);
+    vi.advanceTimersByTime(30_500);
 
     expect(getActiveAgentEvents()).toHaveLength(0);
   });
@@ -209,8 +209,8 @@ describe("getActiveAgentEvents", () => {
   it("keeps running events within TTL", () => {
     broadcastAgentEvent({ id: "fresh", department: "cme", status: "running" });
 
-    // Advance 60s — still within 120s TTL
-    vi.advanceTimersByTime(60_000);
+    // Advance 30s — still within 60s TTL
+    vi.advanceTimersByTime(30_000);
 
     expect(getActiveAgentEvents()).toHaveLength(1);
   });
@@ -359,8 +359,8 @@ describe("cleanup timer", () => {
     // Verify it exists
     expect(getActiveAgentEvents()).toHaveLength(1);
 
-    // Advance past done TTL + cleanup interval (8s + 5s)
-    vi.advanceTimersByTime(14_000);
+    // Advance past done TTL + cleanup interval (30s + 5s)
+    vi.advanceTimersByTime(36_000);
 
     // After cleanup runs, the event should be gone
     expect(getActiveAgentEvents()).toHaveLength(0);
@@ -371,8 +371,8 @@ describe("cleanup timer", () => {
 
     expect(getActiveAgentEvents()).toHaveLength(1);
 
-    // Advance past running TTL + cleanup interval (120s + 5s)
-    vi.advanceTimersByTime(126_000);
+    // Advance past running TTL + cleanup interval (60s + 5s)
+    vi.advanceTimersByTime(66_000);
 
     expect(getActiveAgentEvents()).toHaveLength(0);
   });

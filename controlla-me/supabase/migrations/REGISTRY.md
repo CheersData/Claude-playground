@@ -51,10 +51,11 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 040 | `040_forma_mentis.sql` | Forma Mentis (ADR): 6 tabelle (`company_sessions`, `department_memory`, `company_knowledge`, `company_goals`, `daemon_reports`, `decision_journal`) + 4 RPC semantic search (`match_company_knowledge`, `match_department_memory`, `match_company_sessions`, `match_decisions`). HNSW vector(1024) su 4 tabelle. RLS service_role. Layer 1 MEMORIA + Layer 3 COSCIENZA + Layer 4 RIFLESSIONE. | — |
 | 041 | `041_document_chat.sql` | Document Chat: `document_conversations` + `document_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. | — |
 | 042 | `042_deep_search_conversations.sql` | Deep Search conversazionale: `deep_search_conversations` (per clausola) + `deep_search_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. Stesso pattern di 041 applicato alla deep search su clausole. | — |
+| 043 | `043_lower_thresholds_and_null_audit.sql` | Lower SQL default thresholds on all 9 `match_*` RPC functions to align with TS callers (Voyage AI voyage-law-2 yields ~0.40-0.65 for Italian text). NULL embedding diagnostic per table and per law_source. Confirms `SET hnsw.ef_search = 200` on all RPCs. | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 042) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 043) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -101,6 +102,7 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 040 → dipende da 003 (pgvector extension) + 013 (FK company_tasks)
 041 → dipende da 001 (FK su analyses, auth.users)
 042 → dipende da 001 (FK su analyses, auth.users). Stesso pattern di 041
+043 → dipende da 003+034+035+040 (CREATE OR REPLACE su tutte le match_* RPC functions)
 ```
 
 ## Storico rinumerazione

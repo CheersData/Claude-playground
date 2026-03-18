@@ -25,6 +25,10 @@ import { execSync } from "child_process";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
+// Self-timeout: auto-exit after 3 min to prevent zombie accumulation
+import { enableSelfTimeout } from "../lib/company/self-preservation";
+enableSelfTimeout(3 * 60 * 1000);
+
 const COMPANY_DIR = path.resolve(__dirname, "../company");
 const ROOT = path.resolve(__dirname, "..");
 

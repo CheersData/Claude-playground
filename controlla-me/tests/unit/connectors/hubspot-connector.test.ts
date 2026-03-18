@@ -151,47 +151,50 @@ describe("HubSpotConnector", () => {
     it("estimates count per object type", async () => {
       // Test API
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // Census: contact has more (hasMore=true → estimate 100)
+      // Census: company (hasMore=true → estimate 50)
       fetchMock.mockResolvedValueOnce(
         mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "next_cursor"))
       );
-      // company (no more → 1)
+      // contact (no more → 1)
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")])));
       // deal (no more → 0 results)
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // ticket (no more → 1)
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")])));
+      // engagement (no more → 0)
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // Sample
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
 
       const result = await connector.connect();
 
       expect(result.ok).toBe(true);
-      // contact=100 (has_more estimate) + company=1 + deal=0 + ticket=1 = 102
-      expect(result.census.estimatedItems).toBe(102);
+      // company=50 (has_more estimate) + contact=1 + deal=0 + ticket=1 + engagement=0 = 52
+      expect(result.census.estimatedItems).toBe(52);
     });
   });
 
   // ─── fetchAll() ───
 
   describe("fetchAll", () => {
-    it("fetches all 4 object types", async () => {
-      const contact = makeHubSpotObject("c1", "contact", { email: "a@b.com", firstname: "A" });
+    it("fetches all 5 object types", async () => {
       const company = makeHubSpotObject("co1", "company", { name: "Acme" });
+      const contact = makeHubSpotObject("c1", "contact", { email: "a@b.com", firstname: "A" });
       const deal = makeHubSpotObject("d1", "deal", { dealname: "Big Deal" });
       const ticket = makeHubSpotObject("t1", "ticket", { subject: "Help" });
 
       fetchMock
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([contact])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([company])))
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([contact])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([deal])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([ticket])));
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([ticket])))
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([]))); // engagement
 
       const result = await connector.fetchAll();
 
       expect(result.items).toHaveLength(4);
-      expect(result.items[0].objectType).toBe("contact");
-      expect(result.items[1].objectType).toBe("company");
+      expect(result.items[0].objectType).toBe("company");
+      expect(result.items[1].objectType).toBe("contact");
       expect(result.items[2].objectType).toBe("deal");
       expect(result.items[3].objectType).toBe("ticket");
     });
@@ -232,18 +235,20 @@ describe("HubSpotConnector", () => {
 
     it("includes metadata with counts per type", async () => {
       fetchMock
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("c1", "contact")])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("d1", "deal")])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))                               // company
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("c1", "contact")]))) // contact
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("d1", "deal")])))  // deal
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))                               // ticket
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));                              // engagement
 
       const result = await connector.fetchAll();
 
       expect(result.metadata.counts).toEqual({
-        contact: 1,
         company: 0,
+        contact: 1,
         deal: 1,
         ticket: 0,
+        engagement: 0,
       });
     });
 
@@ -253,12 +258,13 @@ describe("HubSpotConnector", () => {
       fetchMock
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
 
       const result = await connector.fetchAll();
 
-      // Should have logged error but continued
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error listing contact"));
+      // Should have logged error but continued (company is first in SYNC_TYPES)
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error listing company"));
     });
   });
 
@@ -270,20 +276,21 @@ describe("HubSpotConnector", () => {
       const sinceMs = new Date(since).getTime();
 
       fetchMock
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([makeHubSpotObject("c1", "contact")], 1)))
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)));
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))                          // company
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([makeHubSpotObject("c1", "contact")], 1))) // contact
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))                          // deal
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))                          // ticket
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)));                         // engagement
 
       const result = await connector.fetchDelta(since);
 
       expect(result.items).toHaveLength(1);
       expect(result.metadata.since).toBe(since);
 
-      // Verify Search API was called with POST and correct body
+      // Verify Search API was called with POST and correct body (first call is company)
       const firstCall = fetchMock.mock.calls[0];
       const url = firstCall[0] as string;
-      expect(url).toContain("/crm/v3/objects/contacts/search");
+      expect(url).toContain("/crm/v3/objects/companies/search");
       const options = firstCall[1] as RequestInit;
       expect(options.method).toBe("POST");
       const body = JSON.parse(options.body as string);
@@ -341,10 +348,11 @@ describe("HubSpotConnector", () => {
       await connector.fetchAll();
 
       const urls = fetchMock.mock.calls.map((c: unknown[]) => c[0] as string);
-      expect(urls[0]).toContain("/crm/v3/objects/contacts");
-      expect(urls[1]).toContain("/crm/v3/objects/companies");
+      expect(urls[0]).toContain("/crm/v3/objects/companies");
+      expect(urls[1]).toContain("/crm/v3/objects/contacts");
       expect(urls[2]).toContain("/crm/v3/objects/deals");
       expect(urls[3]).toContain("/crm/v3/objects/tickets");
+      expect(urls[4]).toContain("/crm/v3/objects/engagements");
     });
 
     it("includes properties in URL", async () => {
@@ -352,10 +360,11 @@ describe("HubSpotConnector", () => {
 
       await connector.fetchAll();
 
-      const url = fetchMock.mock.calls[0][0] as string;
-      expect(url).toContain("properties=email");
-      expect(url).toContain("firstname");
-      expect(url).toContain("lastname");
+      // First call is company (SYNC_TYPES order), second is contact
+      const contactUrl = fetchMock.mock.calls[1][0] as string;
+      expect(contactUrl).toContain("properties=email");
+      expect(contactUrl).toContain("firstname");
+      expect(contactUrl).toContain("lastname");
     });
 
     it("pluralizes 'company' to 'companies'", async () => {
@@ -363,7 +372,8 @@ describe("HubSpotConnector", () => {
 
       await connector.fetchAll();
 
-      const companyUrl = fetchMock.mock.calls[1][0] as string;
+      // company is first in SYNC_TYPES
+      const companyUrl = fetchMock.mock.calls[0][0] as string;
       expect(companyUrl).toContain("/crm/v3/objects/companies");
       expect(companyUrl).not.toContain("/crm/v3/objects/companys");
     });
@@ -375,8 +385,8 @@ describe("HubSpotConnector", () => {
     it("includes sampleData when sample fetch succeeds", async () => {
       // Test API
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // Census: 4 types
-      for (let i = 0; i < 4; i++) {
+      // Census: 5 types (company, contact, deal, ticket, engagement)
+      for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       // Sample: 2 contacts
@@ -400,8 +410,8 @@ describe("HubSpotConnector", () => {
     it("succeeds even when sample fetch fails", async () => {
       // Test API
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // Census: 4 types
-      for (let i = 0; i < 4; i++) {
+      // Census: 5 types (company, contact, deal, ticket, engagement)
+      for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       // Sample: network error
@@ -416,7 +426,8 @@ describe("HubSpotConnector", () => {
 
     it("reports sampleFields in census", async () => {
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      for (let i = 0; i < 4; i++) {
+      // Census: 5 types
+      for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
@@ -456,15 +467,17 @@ describe("HubSpotConnector", () => {
 
     it("includes properties in search body", async () => {
       fetchMock
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)));
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))  // company
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))  // contact
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))  // deal
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))  // ticket
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0))); // engagement
 
       await connector.fetchDelta("2026-01-01T00:00:00Z");
 
-      const firstCall = fetchMock.mock.calls[0];
-      const body = JSON.parse(firstCall[1].body as string);
+      // Second call is contact (first is company)
+      const contactCall = fetchMock.mock.calls[1];
+      const body = JSON.parse(contactCall[1].body as string);
       expect(body.properties).toEqual(
         expect.arrayContaining(["email", "firstname", "lastname"])
       );
@@ -472,18 +485,19 @@ describe("HubSpotConnector", () => {
 
     it("continues to next type when search API returns error", async () => {
       fetchMock
-        // contacts: error
+        // company: error
         .mockResolvedValueOnce(mockFetchError(500, "Server Error"))
-        // company, deal, ticket: ok
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([makeHubSpotObject("co1", "company")], 1)))
+        // contact, deal, ticket, engagement: ok
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([makeHubSpotObject("c1", "contact")], 1)))
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
         .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
         .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)));
 
       const result = await connector.fetchDelta("2026-01-01T00:00:00Z");
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].objectType).toBe("company");
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Search contact error"));
+      expect(result.items[0].objectType).toBe("contact");
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Search company error"));
     });
 
     it("uses search URL with type+s pluralization", async () => {
@@ -492,11 +506,12 @@ describe("HubSpotConnector", () => {
       await connector.fetchDelta("2026-01-01T00:00:00Z");
 
       const urls = fetchMock.mock.calls.map((c: unknown[]) => c[0] as string);
-      expect(urls[0]).toContain("/crm/v3/objects/contacts/search");
-      // Note: fetchDeltaByType uses `${type}s` — company → companys (not companies)
-      expect(urls[1]).toContain("/crm/v3/objects/companys/search");
+      // Note: getPluralType correctly handles company → companies
+      expect(urls[0]).toContain("/crm/v3/objects/companies/search");
+      expect(urls[1]).toContain("/crm/v3/objects/contacts/search");
       expect(urls[2]).toContain("/crm/v3/objects/deals/search");
       expect(urls[3]).toContain("/crm/v3/objects/tickets/search");
+      expect(urls[4]).toContain("/crm/v3/objects/engagements/search");
     });
   });
 
@@ -519,22 +534,23 @@ describe("HubSpotConnector", () => {
     });
 
     it("logs error but continues on network failure mid-type", async () => {
-      // contacts: fetchWithRetry has maxRetries=3 → 4 total attempts
+      // company: fetchWithRetry has maxRetries=3 → 4 total attempts (all fail)
       fetchMock
         .mockRejectedValueOnce(new Error("ECONNRESET"))
         .mockRejectedValueOnce(new Error("ECONNRESET"))
         .mockRejectedValueOnce(new Error("ECONNRESET"))
         .mockRejectedValueOnce(new Error("ECONNRESET"))
-        // company, deal, ticket: ok
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("co1", "company")])))
+        // contact, deal, ticket, engagement: ok
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("c1", "contact")])))
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
 
       const result = await connector.fetchAll();
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].objectType).toBe("company");
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error fetching contact page"));
+      expect(result.items[0].objectType).toBe("contact");
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error fetching company page"));
     });
 
     it("calculates per-type limit correctly when global limit is reached", async () => {
@@ -677,7 +693,8 @@ describe("HubSpotConnector", () => {
   describe("auth mode in connect message", () => {
     it("shows 'Explicit Token' when accessToken is provided", async () => {
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      for (let i = 0; i < 4; i++) {
+      // Census: 5 types + sample
+      for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
@@ -693,7 +710,8 @@ describe("HubSpotConnector", () => {
       vi.spyOn(noAuthConnector as any, "sleep").mockResolvedValue(undefined);
 
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      for (let i = 0; i < 4; i++) {
+      // Census: 5 types + sample
+      for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
@@ -784,7 +802,7 @@ describe("HubSpotConnector", () => {
 
       const result = await connector.fetchAll();
 
-      expect(result.metadata.syncTypes).toEqual(["contact", "company", "deal", "ticket"]);
+      expect(result.metadata.syncTypes).toEqual(["company", "contact", "deal", "ticket", "engagement"]);
     });
 
     it("includes syncTypes and since in fetchDelta metadata", async () => {
@@ -792,7 +810,7 @@ describe("HubSpotConnector", () => {
 
       const result = await connector.fetchDelta("2026-03-10T00:00:00Z");
 
-      expect(result.metadata.syncTypes).toEqual(["contact", "company", "deal", "ticket"]);
+      expect(result.metadata.syncTypes).toEqual(["company", "contact", "deal", "ticket", "engagement"]);
       expect(result.metadata.since).toBe("2026-03-10T00:00:00Z");
     });
   });
@@ -803,37 +821,41 @@ describe("HubSpotConnector", () => {
     it("returns 0 when census fetch fails for a type", async () => {
       // Test API: ok
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // contact census: network error (retries all fail)
+      // company census: network error (retries all fail)
       fetchMock.mockRejectedValueOnce(new Error("Network timeout"));
       fetchMock.mockRejectedValueOnce(new Error("Network timeout"));
       fetchMock.mockRejectedValueOnce(new Error("Network timeout"));
       fetchMock.mockRejectedValueOnce(new Error("Network timeout"));
-      // company census: ok, no more
+      // contact census: ok, no more
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")])));
       // deal census: ok, no more
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")])));
       // ticket census: ok, no more
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")])));
+      // engagement census: ok, no more
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // Sample
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
 
       const result = await connector.connect();
 
       expect(result.ok).toBe(true);
-      // contact=0 (error) + company=1 + deal=1 + ticket=1 = 3
+      // company=0 (error) + contact=1 + deal=1 + ticket=1 + engagement=0 = 3
       expect(result.census.estimatedItems).toBe(3);
     });
 
     it("returns 0 when census fetch returns HTTP error", async () => {
       // Test API: ok
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // contact census: HTTP 403
+      // company census: HTTP 403
       fetchMock.mockResolvedValueOnce(mockFetchError(403, "Forbidden"));
-      // company census: ok
+      // contact census: ok
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // deal census: ok
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // ticket census: ok
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      // engagement census: ok
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // Sample
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
@@ -841,20 +863,22 @@ describe("HubSpotConnector", () => {
       const result = await connector.connect();
 
       expect(result.ok).toBe(true);
-      // contact=0 (403) + company=0 + deal=0 + ticket=0 = 0
+      // company=0 (403) + contact=0 + deal=0 + ticket=0 + engagement=0 = 0
       expect(result.census.estimatedItems).toBe(0);
     });
 
     it("uses type-specific rough estimates when hasMore is true", async () => {
       // Test API: ok
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // contact: hasMore → 100
-      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "more")));
       // company: hasMore → 50
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "more")));
+      // contact: hasMore → 100
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "more")));
       // deal: hasMore → 30
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "more")));
       // ticket: hasMore → 20
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "more")));
+      // engagement: hasMore → 200
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")], "more")));
       // Sample
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
@@ -862,8 +886,8 @@ describe("HubSpotConnector", () => {
       const result = await connector.connect();
 
       expect(result.ok).toBe(true);
-      // contact=100 + company=50 + deal=30 + ticket=20 = 200
-      expect(result.census.estimatedItems).toBe(200);
+      // company=50 + contact=100 + deal=30 + ticket=20 + engagement=200 = 400
+      expect(result.census.estimatedItems).toBe(400);
     });
   });
 
@@ -881,10 +905,11 @@ describe("HubSpotConnector", () => {
       });
 
       fetchMock
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([contact])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))        // company
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([contact]))) // contact
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))        // deal
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))        // ticket
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));       // engagement
 
       const result = await connector.fetchAll();
 
@@ -950,23 +975,24 @@ describe("HubSpotConnector", () => {
 
   describe("error resilience", () => {
     it("continues to next type when fetchDelta search throws network error", async () => {
-      // contacts: network error (all 4 retries fail)
+      // company: network error (all 4 retries fail)
       fetchMock
         .mockRejectedValueOnce(new Error("ETIMEDOUT"))
         .mockRejectedValueOnce(new Error("ETIMEDOUT"))
         .mockRejectedValueOnce(new Error("ETIMEDOUT"))
         .mockRejectedValueOnce(new Error("ETIMEDOUT"))
-        // company: ok
-        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([makeHubSpotObject("co1", "company")], 1)))
-        // deal, ticket: empty
+        // contact: ok
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([makeHubSpotObject("c1", "contact")], 1)))
+        // deal, ticket, engagement: empty
+        .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
         .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)))
         .mockResolvedValueOnce(mockFetchOk(makeSearchResponse([], 0)));
 
       const result = await connector.fetchDelta("2026-01-01T00:00:00Z");
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].objectType).toBe("company");
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Search contact error"));
+      expect(result.items[0].objectType).toBe("contact");
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Search company error"));
     });
 
     it("handles connect() when test API throws", async () => {
@@ -997,23 +1023,24 @@ describe("HubSpotConnector", () => {
     });
 
     it("stops fetchAll pagination on HTTP error mid-type", async () => {
-      // contacts page 1: ok with cursor
+      // company page 1: ok with cursor
       fetchMock.mockResolvedValueOnce(
-        mockFetchOk(makeListResponse([makeHubSpotObject("c1", "contact")], "next_page"))
+        mockFetchOk(makeListResponse([makeHubSpotObject("co1", "company")], "next_page"))
       );
-      // contacts page 2: server error
+      // company page 2: server error
       fetchMock.mockResolvedValueOnce(mockFetchError(502, "Bad Gateway"));
-      // company, deal, ticket: ok empty
+      // contact, deal, ticket, engagement: ok empty
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
 
       const result = await connector.fetchAll();
 
-      // Should have 1 contact from page 1, then stopped that type on error
+      // Should have 1 company from page 1, then stopped that type on error
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].externalId).toBe("c1");
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error listing contact"));
+      expect(result.items[0].externalId).toBe("co1");
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Error listing company"));
     });
   });
 

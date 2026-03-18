@@ -547,7 +547,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
             {responding && (
               <motion.span
                 className="text-[10px] text-[var(--identity-gold)]"
-                animate={{ opacity: [1, 0.4, 1] }}
+                animate={{ opacity: [1, 0.7, 1] }}
                 transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
               >
                 Claude Code in esecuzione...
@@ -620,7 +620,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                 ))}
               </div>
             ) : (
-              <span className="text-[10px] text-[var(--fg-invisible)]">Nessun task attivo</span>
+              <span className="text-[10px] text-[var(--fg-muted)]">Nessun task attivo</span>
             )}
           </DashboardSection>
 
@@ -829,7 +829,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                   type="button"
                   onClick={removeFile}
                   aria-label={`Rimuovi file allegato: ${file?.name ?? "file"}`}
-                  className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-invisible)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                  className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
                 >
                   <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
@@ -846,7 +846,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                className="p-1.5 text-[var(--fg-muted)] hover:text-[var(--fg-secondary)] transition-colors shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
                 aria-label="Allega file o incolla immagine"
                 title="Allega file (o incolla immagine)"
               >
@@ -938,7 +938,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
               <button
                 onClick={() => setShowDebug(false)}
                 aria-label="Chiudi pannello debug"
-                className="text-[var(--fg-invisible)] hover:text-[var(--fg-secondary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                className="text-[var(--fg-muted)] hover:text-[var(--fg-secondary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
               >
                 <X className="w-3 h-3" aria-hidden="true" />
               </button>
@@ -948,10 +948,10 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                 {responding && (
                   <motion.div
                     className="flex gap-1.5 text-[var(--identity-gold)]"
-                    animate={{ opacity: [1, 0.4, 1] }}
+                    animate={{ opacity: [1, 0.7, 1] }}
                     transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <span className="text-[var(--fg-invisible)] w-10 text-right shrink-0">
+                    <span className="text-[var(--fg-muted)] w-10 text-right shrink-0">
                       {debugLog.length > 0
                         ? `+${((Date.now() - debugLog[0].ts) / 1000).toFixed(0)}s`
                         : "..."}
@@ -967,7 +967,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                   const { color, icon } = debugStyle(entry.type);
                   return (
                     <div key={origIdx} className={`flex gap-1.5 ${color}`}>
-                      <span className="text-[var(--fg-invisible)] w-10 text-right shrink-0">
+                      <span className="text-[var(--fg-muted)] w-10 text-right shrink-0">
                         {elapsed > 0 ? `+${(elapsed / 1000).toFixed(1)}s` : "0.0s"}
                       </span>
                       <span className="w-4 shrink-0 text-center">{icon}</span>
@@ -976,7 +976,7 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                   );
                 })}
                 {debugLog.length === 0 && !responding && (
-                  <span className="text-[var(--fg-invisible)]">Nessun evento.</span>
+                  <span className="text-[var(--fg-muted)]">Nessun evento.</span>
                 )}
             </div>
           </aside>
@@ -1098,7 +1098,7 @@ function StatusBadge({ label, count, color, onClick }: { label: string; count: n
 }
 
 function NoData() {
-  return <span className="text-[10px] text-[var(--fg-invisible)]">Nessun dato</span>;
+  return <span className="text-[10px] text-[var(--fg-muted)]">Nessun dato</span>;
 }
 
 function timeAgo(dateStr: string): string {

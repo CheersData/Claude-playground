@@ -115,11 +115,13 @@ vi.mock("@/lib/credential-vault", () => ({
 // ── Sync dispatcher (for sync route) ────────────────────────────────────────
 
 const mockExecuteSyncForConnector = vi.hoisted(() => vi.fn());
+const mockExecuteFullSync = vi.hoisted(() => vi.fn());
 const mockHasSyncHandler = vi.hoisted(() => vi.fn());
 const mockListSyncHandlers = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/staff/data-connector/sync-dispatcher", () => ({
   executeSyncForConnector: mockExecuteSyncForConnector,
+  executeFullSync: mockExecuteFullSync,
   hasSyncHandler: mockHasSyncHandler,
   listSyncHandlers: mockListSyncHandlers,
 }));
@@ -519,24 +521,16 @@ describe("POST /api/integrations/[connectorId]/sync — trigger sync", () => {
       return makeChainMock({ data: null, error: null });
     });
 
-    // Dispatcher returns 2 items
-    mockExecuteSyncForConnector.mockResolvedValue({
-      itemCount: 2,
-      items: [
-        {
-          external_id: "ext-1",
-          source: "hubspot",
-          entity_type: "contact",
-          data: { id: "ext-1", name: "Alice" },
-          mapped_fields: { first_name: "Alice" },
-        },
-        {
-          external_id: "ext-2",
-          source: "hubspot",
-          entity_type: "deal",
-          data: { id: "ext-2", name: "Deal A" },
-        },
-      ],
+    // executeFullSync returns a FullSyncResult
+    mockExecuteFullSync.mockResolvedValue({
+      itemsFetched: 2,
+      itemsMapped: 1,
+      persist: { stored: 2, failed: 0, errors: [] },
+      analysisResults: [],
+      analysisSkipped: 0,
+      notified: false,
+      durationMs: 150,
+      stageDurations: { fetchMs: 50, mapMs: 30, persistMs: 40, analyzeMs: 0, indexMs: 0 },
     });
 
     const { POST } = await import(
@@ -553,13 +547,15 @@ describe("POST /api/integrations/[connectorId]/sync — trigger sync", () => {
     expect(body.itemCount).toBe(2);
     expect(body.itemsStored).toBe(2);
     expect(body.itemsFailed).toBe(0);
-    expect(body.itemsMapped).toBe(1); // only first item has mapped_fields
+    expect(body.itemsMapped).toBe(1);
     expect(body.durationMs).toBeGreaterThanOrEqual(0);
 
-    // Verify dispatcher was called with correct token
-    expect(mockExecuteSyncForConnector).toHaveBeenCalledWith(
-      "hubspot",
-      "tok-abc-123",
+    // Verify executeFullSync was called with correct arguments
+    expect(mockExecuteFullSync).toHaveBeenCalledWith(
+      expect.anything(),     // admin client
+      MOCK_USER_ID,          // userId
+      "hubspot",             // connectorId
+      "tok-abc-123",         // accessToken
       expect.objectContaining({
         fetchLimit: 200,
       })
@@ -672,10 +668,16 @@ describe("POST /api/integrations/[connectorId]/sync — trigger sync", () => {
       return makeChainMock({ data: null, error: null });
     });
 
-    mockExecuteSyncForConnector.mockResolvedValue({
-      itemCount: 0,
-      items: [],
-      error: "HubSpot API returned 403 Forbidden",
+    mockExecuteFullSync.mockResolvedValue({
+      itemsFetched: 0,
+      itemsMapped: 0,
+      fetchError: "HubSpot API returned 403 Forbidden",
+      persist: { stored: 0, failed: 0, errors: [] },
+      analysisResults: [],
+      analysisSkipped: 0,
+      notified: false,
+      durationMs: 50,
+      stageDurations: { fetchMs: 50, mapMs: 0, persistMs: 0, analyzeMs: 0, indexMs: 0 },
     });
 
     const { POST } = await import(

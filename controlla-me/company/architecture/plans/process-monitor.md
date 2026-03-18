@@ -3,6 +3,12 @@
 > Task #1006 — Real-time observability + systematic per-item kill for all running processes.
 >
 > Design principle: **Human decides, system shows.** No automatic timeouts, no automatic kills.
+>
+> **Status (2026-03-18):** Phases 1-3 **IMPLEMENTED**. Phase 4 **DIVERGED** — instead of removing automatic zombie kill, a 2-tier zombie protection was implemented:
+> - **Preventive:** `enableSelfTimeout()` in `lib/company/self-preservation.ts` — scripts auto-terminate after configurable timeout
+> - **Reactive:** `reapZombies()` FASE 4.5 in daemon — kills stale killable processes >30min
+>
+> See design document at `company/architecture/designs/process-monitor.md` for the implemented architecture.
 
 ---
 

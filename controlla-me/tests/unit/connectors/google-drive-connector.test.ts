@@ -8,6 +8,7 @@ vi.mock("@/lib/staff/data-connector/connectors/authenticated-base", () => ({
 
 // Mock google-drive-parser
 vi.mock("@/lib/staff/data-connector/parsers/google-drive-parser", () => ({
+  DEFAULT_MAX_FILE_SIZE: 1_048_576,
   parseDriveFile: vi.fn().mockImplementation((file: { id: string; name: string; mimeType: string }, textContent?: string | null) => ({
     externalId: file.id,
     objectType: "document",
@@ -29,10 +30,46 @@ vi.mock("@/lib/staff/data-connector/parsers/google-drive-parser", () => ({
     trashed: false,
     rawExtra: {},
   })),
+  parseDriveListResponseFiltered: vi.fn().mockImplementation(
+    (response: { files?: unknown[]; nextPageToken?: string }, _options?: unknown) => ({
+      records: (response.files ?? []).map((f: any) => ({
+        externalId: f.id,
+        objectType: "document",
+        name: f.name,
+        mimeType: f.mimeType,
+        sizeBytes: null,
+        createdAt: "2026-01-01T00:00:00Z",
+        modifiedAt: "2026-01-15T00:00:00Z",
+        parents: [],
+        ownerName: null,
+        ownerEmail: null,
+        shared: false,
+        webViewLink: null,
+        iconLink: null,
+        textContent: null,
+        isGoogleFormat: false,
+        isFolder: false,
+        extension: null,
+        trashed: false,
+        rawExtra: {},
+      })),
+      skippedOversize: 0,
+      nextPageToken: response.nextPageToken,
+    })
+  ),
   isExportableAsText: vi.fn().mockImplementation((mime: string) =>
     mime.startsWith("application/vnd.google-apps.")
   ),
+  isBinaryExtractable: vi.fn().mockReturnValue(false),
   getExportMimeType: vi.fn().mockReturnValue("text/plain"),
+  deduplicateByChecksum: vi.fn().mockImplementation((records: unknown[]) => ({
+    unique: records,
+    duplicates: new Map(),
+  })),
+  buildFolderTree: vi.fn().mockReturnValue(new Map()),
+  enrichWithFolderPaths: vi.fn().mockReturnValue(0),
+  getSubfolderIds: vi.fn().mockReturnValue([]),
+  exceedsMaxSize: vi.fn().mockReturnValue(false),
 }));
 
 import { GoogleDriveConnector } from "@/lib/staff/data-connector/connectors/google-drive";

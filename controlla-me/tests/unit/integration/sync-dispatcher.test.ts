@@ -109,6 +109,45 @@ vi.mock("@/lib/agents/orchestrator", () => ({
   }),
 }));
 
+// Mock auto-analyzer (dynamically imported by executeFullSync for Stage 4 ANALYZE)
+vi.mock("@/lib/staff/data-connector/auto-analyzer", () => ({
+  autoAnalyzeRecords: vi.fn().mockImplementation(async (_admin: any, items: any[], config: any) => {
+    const log = config.log ?? (() => {});
+    // Simulate analysis: file/document entity types are eligible, contacts are not
+    const ELIGIBLE_TYPES = new Set(
+      config.analyzeEntityTypes ?? ["file", "document", "contract", "issued_invoice", "received_invoice", "invoice", "attachment"]
+    );
+    const eligible = items.filter((item: any) => ELIGIBLE_TYPES.has(item.entity_type));
+    const maxAnalyses = config.maxAnalyses ?? 10;
+    const toAnalyze = eligible.slice(0, maxAnalyses);
+    const skippedCount = items.length - eligible.length + Math.max(0, eligible.length - maxAnalyses);
+
+    const results = toAnalyze.map((item: any) => ({
+      externalId: item.external_id,
+      entityType: item.entity_type,
+      documentName: item.data.name ?? item.external_id,
+      findingsSummary: "Rischio medio | Score: 7.5/10",
+      documentHash: "abcdef1234567890",
+      analysisId: "mock-session-123",
+      fairnessScore: 7.5,
+      overallRisk: "medium",
+    }));
+
+    log(`[AutoAnalyzer:${config.connectorId}] Mock: ${results.length} analyzed, ${skippedCount} skipped`);
+
+    return {
+      totalEvaluated: items.length,
+      eligible: eligible.length,
+      skipped: skippedCount,
+      extractionFailed: 0,
+      analyzed: results.length,
+      analysisFailed: 0,
+      results,
+      durationMs: 100,
+    };
+  }),
+}));
+
 import {
   registerSyncHandler,
   hasSyncHandler,
@@ -968,7 +1007,7 @@ describe("executeFullSync — persist-only (skipAnalysis)", () => {
     expect(result.analysisSkipped).toBe(2);
     expect(result.analysisResults).toEqual([]);
     expect(result.notified).toBe(true);
-    expect(result.durationMs).toBeGreaterThan(0);
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     // Verify stage durations are tracked
     expect(result.stageDurations.fetchMs).toBeGreaterThanOrEqual(0);

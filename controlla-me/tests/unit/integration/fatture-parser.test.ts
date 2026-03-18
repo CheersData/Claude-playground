@@ -134,10 +134,11 @@ describe("parseFattureInvoice — issued invoice", () => {
   it("maps invoice amounts correctly", () => {
     const result = parseFattureInvoice(makeInvoice(), "issued");
 
-    expect(result.netAmount).toBe(1000);
-    expect(result.vatAmount).toBe(220);
-    expect(result.grossAmount).toBe(1220);
-    expect(result.amount).toBe(1220); // gross amount
+    // Amounts are now stored in cents (euroToCents)
+    expect(result.netAmount).toBe(100000);
+    expect(result.vatAmount).toBe(22000);
+    expect(result.grossAmount).toBe(122000);
+    expect(result.amount).toBe(122000); // gross amount in cents
   });
 
   it("maps currency from currency.id", () => {
@@ -210,12 +211,14 @@ describe("parseFattureInvoice — issued invoice", () => {
 
   it("maps createdAt from invoice date", () => {
     const result = parseFattureInvoice(makeInvoice(), "issued");
-    expect(result.createdAt).toBe("2026-01-15");
+    // normalizeDate now uses .toISOString() which adds time component
+    expect(result.createdAt).toBe("2026-01-15T00:00:00.000Z");
   });
 
   it("maps updatedAt from updated_at", () => {
     const result = parseFattureInvoice(makeInvoice(), "issued");
-    expect(result.updatedAt).toBe("2026-01-15T14:00:00Z");
+    // normalizeDate now uses .toISOString() which includes milliseconds
+    expect(result.updatedAt).toBe("2026-01-15T14:00:00.000Z");
   });
 
   it("sets client-specific fields to null for invoices", () => {
@@ -475,12 +478,14 @@ describe("parseFattureClient", () => {
 
   it("maps createdAt from created_at", () => {
     const result = parseFattureClient(makeClient());
-    expect(result.createdAt).toBe("2025-06-01T08:00:00Z");
+    // normalizeDate now uses .toISOString() which includes milliseconds
+    expect(result.createdAt).toBe("2025-06-01T08:00:00.000Z");
   });
 
   it("maps updatedAt from updated_at", () => {
     const result = parseFattureClient(makeClient());
-    expect(result.updatedAt).toBe("2026-01-10T12:00:00Z");
+    // normalizeDate now uses .toISOString() which includes milliseconds
+    expect(result.updatedAt).toBe("2026-01-10T12:00:00.000Z");
   });
 
   it("populates rawExtra with client details", () => {

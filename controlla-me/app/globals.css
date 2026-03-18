@@ -124,7 +124,7 @@
   --fg-secondary:  #a6accd; /* corpo testo, descrizioni — WCAG AAA 7.5:1 */
   --fg-muted:      #767c9d; /* placeholder, caption — WCAG AA 4.5:1 */
   --fg-faint:      #506477; /* decorativo, input bg */
-  --fg-invisible:  #5e6382; /* appena visibile, separatori — bumped for readability */
+  --fg-invisible:  #7a80a0; /* appena visibile, separatori — WCAG AA 4.5:1 su #1b1e28 */
 
   /* Semantici — Poimandres palette (Brand Book §2.4) */
   --success:       #5de4c7; /* completato, positivo, keyword */

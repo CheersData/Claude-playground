@@ -10,6 +10,7 @@
  *   FASE 2.5: Forma Mentis context ($0) — Supabase reads only
  *   FASE 3: Report write ($0) — daemon-report.json
  *   FASE 4: Telegram ping ($0) — notify boss if critical/high signals
+ *   FASE 4.5: Zombie reaper ($0) — kills stale killable node processes (>30min)
  *   STOP — CME nel terminale del boss esegue
  *
  * Usage:
@@ -27,13 +28,17 @@ import { resolve } from "path";
 import { isTelegramConfigured, notifyDaemonReport } from "../lib/telegram";
 import { fileRegisterSession, fileUnregisterSession } from "../lib/company/sessions";
 
-// Forma Mentis integration (Layer 3 + Layer 4)
+// Zombie reaper (FASE 4.5) — kills stale killable node processes
+import { reapZombies } from "../lib/company/self-preservation";
+
+// Forma Mentis integration (Layer 3 + Layer 4) — Supabase reads only, ZERO LLM/embedding calls
 import { saveDaemonReport as persistDaemonReport, getRecentReports, getDaemonReportDiff } from "../lib/company/coscienza/daemon-reports";
 import { checkGoals } from "../lib/company/coscienza/goal-monitor";
-import { getDecisionsPendingReview, recordDecision } from "../lib/company/riflessione/decision-journal";
+import { getDecisionsPendingReview } from "../lib/company/riflessione/decision-journal";
 
-// Forma Mentis Layer 1: Memory
-import { indexCompanyKnowledge } from "../lib/company/memory/company-knowledge";
+// Forma Mentis Layer 1: Memory — Supabase reads only
+// NOTE: indexCompanyKnowledge REMOVED — it calls generateEmbedding (Voyage AI API, costs $)
+// NOTE: recordDecision REMOVED — it calls generateEmbedding (Voyage AI API, costs $)
 import { getDepartmentMemories, expireDepartmentMemories } from "../lib/company/memory/department-memory";
 import { loadFormaMentisContext } from "../lib/company/memory/daemon-context-loader";
 
@@ -70,13 +75,32 @@ interface DaemonReport {
   durationMs: number;
   board: { total: number; open: number; inProgress: number; done: number };
   signals: ActionableItem[];
-  llmAnalysis: string | null;
-  llmSuggestions: Array<{ title: string; dept: string; priority: string; description: string }>;
-  alerts: string[];
+  /** @deprecated Pure sensor: always null. Kept for backward compat with CME report reader. */
+  llmAnalysis: null;
+  /** @deprecated Pure sensor: always []. Kept for backward compat with CME report reader. */
+  llmSuggestions: [];
+  /** @deprecated Pure sensor: always []. Kept for backward compat with CME report reader. */
+  alerts: [];
   /** Forma Mentis Layer 3: goal check results from this cycle */
   goalChecks: Array<{ goalId: string; goalTitle: string; department: string; metric: string; previousValue: number; currentValue: number; targetValue: number; progressRatio: number; status: string; previousStatus: string; actionTaken: string | null }>;
   /** Forma Mentis Layer 4: count of decisions pending review */
   pendingDecisionReviews: number;
+  /** Direttiva operativa per CME: cosa fare quando si sveglia */
+  cmeDirective: CmeDirective;
+}
+
+/** Direttiva operativa generata dal daemon per CME */
+interface CmeDirective {
+  /** Modalità operativa: smaltimento task, audit in_progress, o plenaria */
+  mode: "smaltimento" | "audit_in_progress" | "plenaria" | "misto";
+  /** Istruzioni in linguaggio naturale per CME */
+  instructions: string;
+  /** Task open da smaltire (max 5 alla volta) */
+  openTasksBatch: string[];
+  /** Task in_progress da verificare */
+  inProgressToAudit: string[];
+  /** Se true, CME deve fare riunione plenaria dopo aver smaltito */
+  requiresPlenary: boolean;
 }
 
 // Patterns that indicate a task requires physical human action
@@ -203,8 +227,158 @@ function readOpenTasks(): string {
   return result.stdout || "Nessun task open.";
 }
 
-// readInProgressTasks RIMOSSO — usato solo dal vecchio LLM prompt builder
+function readInProgressTasks(): string {
+  const result = spawnSync("npx", ["tsx", "scripts/company-tasks.ts", "list", "--status", "in_progress"], {
+    cwd: ROOT,
+    encoding: "utf-8",
+    timeout: 30_000,
+    shell: true,
+    windowsHide: true,
+  });
+  return result.stdout || "Nessun task in_progress.";
+}
+
 // readDepartmentVisions RIMOSSO — usato solo dal vecchio LLM prompt builder
+
+// ─── CME Directive Generator ────────────────────────────────────────────────
+
+/**
+ * Genera la direttiva operativa per CME basata sullo stato del board.
+ *
+ * Logica:
+ * - IN_PROGRESS > 0 → audit: CME verifica se sono realmente in lavorazione
+ * - OPEN > 0 → smaltimento: CME prende i primi 5 per priorità, li routing e li esegue
+ * - OPEN = 0 e IN_PROGRESS = 0 → plenaria: riunione su vision/gap, nuovi piani
+ * - IN_PROGRESS > 0 e OPEN > 0 → misto: prima audit, poi smaltimento
+ */
+function generateCmeDirective(
+  boardStats: { open: number; inProgress: number; done: number; total: number },
+  openTasksRaw: string,
+  inProgressTasksRaw: string,
+): CmeDirective {
+  // Parse task titoli e ID dal list output
+  // Formato output:
+  //   [status] PRIORITY | Titolo del task
+  //     dept: xxx | by: yyy | id: abcd1234
+  const parseTaskLines = (raw: string): string[] => {
+    const lines: string[] = [];
+    const rawLines = raw.split('\n');
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i].trim();
+      // Match linea titolo: [open] HIGH | Titolo  oppure  [in_progress] MEDIUM | Titolo
+      const titleMatch = line.match(/^\[(?:open|in_progress)\]\s+(\w+)\s*\|\s*(.+)$/);
+      if (titleMatch) {
+        const priority = titleMatch[1];
+        const title = titleMatch[2].trim();
+        // Cerca la riga successiva per dept e id
+        let dept = "?";
+        let id = "?";
+        if (i + 1 < rawLines.length) {
+          const nextLine = rawLines[i + 1].trim();
+          const deptMatch = nextLine.match(/dept:\s*([\w-]+)/);
+          const idMatch = nextLine.match(/id:\s*([a-f0-9]+)/);
+          if (deptMatch) dept = deptMatch[1];
+          if (idMatch) id = idMatch[1];
+        }
+        lines.push(`[${priority}] ${title} (${dept}) — id:${id}`);
+      }
+    }
+    return lines;
+  };
+
+  const openTasks = parseTaskLines(openTasksRaw);
+  const inProgressTasks = parseTaskLines(inProgressTasksRaw);
+
+  const hasOpen = boardStats.open > 0;
+  const hasInProgress = boardStats.inProgress > 0;
+
+  // CASO 1: ci sono task in_progress E open → misto (prima audit, poi smaltimento)
+  if (hasInProgress && hasOpen) {
+    const batch = openTasks.slice(0, 5);
+    return {
+      mode: "misto",
+      instructions: [
+        `PRIORITÀ 1 — AUDIT: Ci sono ${boardStats.inProgress} task in_progress. Verifica OGNUNO:`,
+        `  • Se bloccato/fermo da troppo tempo → rimetti a "open" (company-tasks.ts reopen <id>)`,
+        `  • Se completato ma non chiuso → chiudi con "done" (company-tasks.ts done <id> --summary "...")`,
+        `  • Se effettivamente in lavorazione → lascia in_progress`,
+        ``,
+        `PRIORITÀ 2 — SMALTIMENTO: Dopo l'audit, ci sono ${boardStats.open} task open.`,
+        `  Prendi i primi 5 per priorità, fai routing con i decision trees, e smaltisci UNO ALLA VOLTA.`,
+        `  Per ogni task: routing → crea/assegna al dipartimento → il dipartimento esegue → verifica → done.`,
+        `  Quando finisci i 5, il daemon al prossimo ciclo genererà i prossimi 5.`,
+      ].join('\n'),
+      openTasksBatch: batch,
+      inProgressToAudit: inProgressTasks,
+      requiresPlenary: false,
+    };
+  }
+
+  // CASO 2: ci sono SOLO task in_progress (nessun open) → audit
+  if (hasInProgress && !hasOpen) {
+    return {
+      mode: "audit_in_progress",
+      instructions: [
+        `AUDIT IN_PROGRESS: Ci sono ${boardStats.inProgress} task in_progress e 0 open.`,
+        `Verifica OGNUNO:`,
+        `  • Se bloccato/fermo da troppo tempo → rimetti a "open"`,
+        `  • Se completato ma non chiuso → chiudi con "done"`,
+        `  • Se effettivamente in lavorazione → lascia in_progress`,
+        ``,
+        `Dopo l'audit: se tutti sono chiusi/riaperti e il board è vuoto → fai RIUNIONE PLENARIA.`,
+        `Se alcuni sono riaperti → smaltiscili 5 alla volta con routing.`,
+      ].join('\n'),
+      openTasksBatch: [],
+      inProgressToAudit: inProgressTasks,
+      requiresPlenary: true,
+    };
+  }
+
+  // CASO 3: ci sono task open (nessun in_progress) → smaltimento
+  if (hasOpen && !hasInProgress) {
+    const batch = openTasks.slice(0, 5);
+    return {
+      mode: "smaltimento",
+      instructions: [
+        `SMALTIMENTO: Ci sono ${boardStats.open} task open, 0 in_progress. Board pulito.`,
+        `Prendi i primi 5 per priorità e smaltiscili UNO ALLA VOLTA:`,
+        `  1. Leggi il task (description, dept)`,
+        `  2. Routing con decision tree appropriato`,
+        `  3. Assegna al dipartimento competente`,
+        `  4. Il dipartimento esegue (exec o builder)`,
+        `  5. Verifica risultato → done`,
+        ``,
+        `Quando finisci i 5, il daemon al prossimo ciclo genererà i prossimi 5.`,
+        `Se finisci tutti i task open → fai RIUNIONE PLENARIA.`,
+      ].join('\n'),
+      openTasksBatch: batch,
+      inProgressToAudit: [],
+      requiresPlenary: boardStats.open <= 5,
+    };
+  }
+
+  // CASO 4: nessun task open né in_progress → plenaria
+  return {
+    mode: "plenaria",
+    instructions: [
+      `BOARD VUOTO: 0 open, 0 in_progress. Tutti i task sono completati.`,
+      ``,
+      `AZIONE: Riunione plenaria obbligatoria.`,
+      `  1. Scansiona status.json di tutti i dipartimenti (vision, gap, blockers)`,
+      `  2. Leggi i signal del daemon report (opportunità, rischi)`,
+      `  3. Controlla goal a rischio (Forma Mentis Layer 3)`,
+      `  4. Controlla decisioni pending review (Layer 4)`,
+      `  5. Proponi al boss i nuovi piani di lavoro con priorità`,
+      `  6. Dopo approvazione boss → crea i task per i dipartimenti`,
+      ``,
+      `DOPO LA PLENARIA: il board avrà nuovi task open → al prossimo risveglio,`,
+      `il daemon genererà direttiva "smaltimento" e il ciclo ricomincia.`,
+    ].join('\n'),
+    openTasksBatch: [],
+    inProgressToAudit: [],
+    requiresPlenary: true,
+  };
+}
 
 // ─── Daily Plan ─────────────────────────────────────────────────────────────
 
@@ -222,9 +396,12 @@ function readDailyPlan(): string | null {
 }
 
 /**
- * Genera il piano giornaliero se mancante.
- * Esegue daily-standup.ts direttamente (non dentro la sessione Claude).
- * Anche in demo mode produce un piano parziale basato sui task.
+ * Verifica se il piano giornaliero esiste. Se mancante, genera un piano minimo
+ * basato SOLO su file reads (board + open tasks). ZERO chiamate LLM.
+ *
+ * Nota: daily-standup.ts contiene callLLM() per analisi dipartimentali.
+ * Il daemon NON lo invoca — è responsabilità del boss generare il piano completo
+ * con `npx tsx scripts/daily-standup.ts` in sessione interattiva.
  */
 function ensureDailyPlanExists(): boolean {
   const planPath = todayPlanPath();
@@ -233,29 +410,16 @@ function ensureDailyPlanExists(): boolean {
     return true;
   }
 
-  log("Daily plan mancante — genero automaticamente...");
-  const result = spawnSync("npx", ["tsx", "scripts/daily-standup.ts"], {
-    cwd: ROOT,
-    encoding: "utf-8",
-    timeout: 90_000, // 90s max
-    shell: true,
-    windowsHide: true,
-  });
+  log("Daily plan mancante — genero piano minimo dal board (pure sensor, $0)...");
 
-  if (result.status === 0 || fs.existsSync(planPath)) {
-    log("Daily plan generato con successo.");
-    return true;
-  }
-
-  log(`Daily plan generazione fallita (exit ${result.status}). Creo piano minimo dal board...`);
-
-  // Fallback: crea un piano minimo leggendo direttamente il board
+  // Pure file-read: genera un piano minimo leggendo direttamente il board
   const board = readBoard();
   const openTasks = readOpenTasks();
   const today = new Date().toISOString().slice(0, 10);
   const minimalPlan = `# Daily Plan — ${today}
 
-> Generato automaticamente da CME Daemon (piano minimo — daily-standup.ts non disponibile)
+> Generato automaticamente da CME Daemon (piano minimo — pure sensor, $0)
+> Per il piano completo con analisi AI: \`npx tsx scripts/daily-standup.ts\`
 
 ## Focus Raccomandato
 
@@ -275,7 +439,7 @@ Eseguire i task open dalla board. Priorità: critical > high > medium > low.
 `;
   ensureDir(resolve(COMPANY_DIR, "daily-plans"));
   fs.writeFileSync(planPath, minimalPlan, "utf-8");
-  log("Piano minimo generato dal board.");
+  log("Piano minimo generato dal board ($0).");
   return true;
 }
 
@@ -337,7 +501,8 @@ async function expireAllDepartmentMemories(): Promise<void> {
 }
 
 // saveAnalysisInsights RIMOSSO — il daemon è un sensore puro, zero LLM calls
-// New critical signals are still saved as company knowledge in saveCycleSummary()
+// saveCycleSummary RIMOSSO — usava indexCompanyKnowledge (generateEmbedding = costs $)
+// Critical signals are captured in daemon-report.json and persistDaemonReport (Supabase)
 
 /**
  * Load per-department memories keyed by dept ID.
@@ -476,71 +641,10 @@ async function handleMultiDeptSignals(
   }
 }
 
-/**
- * Save a daemon cycle summary as company knowledge.
- * This creates a persistent record of what happened in each daemon cycle,
- * including signal counts, analysis results, and key findings.
- * Enables cross-cycle pattern detection over time.
- */
-async function saveCycleSummary(
-  report: DaemonReport,
-  cycleNumber: number,
-  deptMemoryMap: Map<string, string>,
-): Promise<void> {
-  try {
-    // Only save if we have meaningful data
-    const criticalHighCount = report.signals.filter(
-      (s) => s.priority === "critical" || s.priority === "high"
-    ).length;
-
-    // Skip saving for uneventful cycles (no high-priority signals)
-    if (criticalHighCount === 0) return;
-
-    // Build a concise summary of this cycle
-    const summaryParts: string[] = [
-      `Cycle ${cycleNumber}: ${report.signals.length} signals (${criticalHighCount} critical/high).`,
-      `Board: ${report.board.open} open, ${report.board.inProgress} in-progress, ${report.board.done} done.`,
-    ];
-
-    // Note departments with active memories
-    if (deptMemoryMap.size > 0) {
-      summaryParts.push(`Depts with active memory: ${Array.from(deptMemoryMap.keys()).join(", ")}`);
-    }
-
-    // Top signal departments
-    const deptSignalCounts = new Map<string, number>();
-    for (const s of report.signals) {
-      deptSignalCounts.set(s.deptId, (deptSignalCounts.get(s.deptId) || 0) + 1);
-    }
-    const topDepts = Array.from(deptSignalCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([dept, count]) => `${dept}(${count})`)
-      .join(", ");
-    summaryParts.push(`Top signal depts: ${topDepts}`);
-
-    await indexCompanyKnowledge({
-      category: "pattern",
-      title: `Daemon cycle ${cycleNumber} summary`,
-      content: summaryParts.join(" "),
-      departments: Array.from(deptSignalCounts.keys()),
-      metadata: {
-        cycleNumber,
-        signalCount: report.signals.length,
-        criticalHighCount,
-        alertCount: report.alerts.length,
-        boardOpen: report.board.open,
-        boardDone: report.board.done,
-        timestamp: report.timestamp,
-        source: "daemon-cycle-summary",
-      },
-    });
-
-    log(`[FORMA-MENTIS] Cycle ${cycleNumber} summary saved as company knowledge`);
-  } catch (err) {
-    console.error("[DAEMON] Failed to save cycle summary:", err);
-  }
-}
+// saveCycleSummary RIMOSSO — usava indexCompanyKnowledge che chiama Voyage AI (generateEmbedding).
+// Il daemon è un sensore puro: $0 di costo. I cycle summary sono già nel daemon-report.json
+// e nel Supabase daemon_reports (persistDaemonReport). Se serve knowledge indexing,
+// CME lo fa in sessione interattiva.
 
 // buildAnalysisPrompt RIMOSSO — il daemon è un sensore puro, zero LLM calls
 
@@ -550,7 +654,7 @@ async function saveCycleSummary(
  */
 function writeDaemonReport(report: DaemonReport): void {
   fs.writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2) + "\n", "utf-8");
-  log(`Report scritto: ${REPORT_FILE} (${report.signals.length} signal, ${report.llmSuggestions.length} suggestions, ${report.alerts.length} alerts)`);
+  log(`Report scritto: ${REPORT_FILE} (${report.signals.length} signal, ${report.goalChecks.length} goals, ${report.pendingDecisionReviews} pending decisions)`);
 }
 
 // ─── Log Session ────────────────────────────────────────────────────────────
@@ -1163,6 +1267,13 @@ async function main() {
       if (ipMatch) boardStats.inProgress = parseInt(ipMatch[1]);
       if (doneMatch) boardStats.done = parseInt(doneMatch[1]);
 
+      // ─── FASE 2.9: Generate CME Directive ($0) ────────────────────────
+      // Leggi task open e in_progress per generare la direttiva operativa
+      const openTasksRaw = boardStats.open > 0 ? readOpenTasks() : "";
+      const inProgressTasksRaw = boardStats.inProgress > 0 ? readInProgressTasks() : "";
+      const cmeDirective = generateCmeDirective(boardStats, openTasksRaw, inProgressTasksRaw);
+      log(`[DIRECTIVE] mode=${cmeDirective.mode} | open_batch=${cmeDirective.openTasksBatch.length} | audit=${cmeDirective.inProgressToAudit.length} | plenary=${cmeDirective.requiresPlenary}`);
+
       // ─── FASE 3: Write report ($0) ─────────────────────────────────────
       const report: DaemonReport = {
         timestamp: new Date().toISOString(),
@@ -1174,6 +1285,7 @@ async function main() {
         alerts: [],                // Pure sensor: no LLM alerts
         goalChecks: goalCheckResults,
         pendingDecisionReviews: pendingDecisionReviewCount,
+        cmeDirective,
       };
       writeDaemonReport(report);
 
@@ -1225,51 +1337,38 @@ async function main() {
         console.error('[DAEMON] Fan-in aggregation failed (non-blocking):', err);
       }
 
-      // Layer 1: Save daemon cycle summary as company knowledge
-      try {
-        await saveCycleSummary(report, state.totalRuns, deptMemoryMap);
-      } catch (err) {
-        console.error('[DAEMON] Cycle summary persistence failed (non-blocking):', err);
-      }
-
-      // Layer 4: Record decisions for critical signals
-      try {
-        const criticalSignals = signals.filter(s => s.priority === 'critical' || s.priority === 'high');
-        for (const signal of criticalSignals.slice(0, 3)) {
-          await recordDecision({
-            title: `Daemon signal: ${signal.title}`,
-            description: signal.description,
-            department: signal.deptId,
-            decisionType: 'operational',
-            decidedBy: 'daemon',
-            expectedOutcome: signal.requiresHuman
-              ? 'Boss reviews and acts within 24h'
-              : 'CME processes in next interactive session',
-            expectedBenefit: `Resolve ${signal.priority} signal in ${signal.deptId}`,
-            tags: ['daemon', 'auto-signal', signal.priority],
-            metadata: {
-              signalRouting: signal.routing,
-              requiresHuman: signal.requiresHuman,
-              sourceId: signal.sourceId,
-            },
-          });
-        }
-        if (criticalSignals.length > 0) {
-          log(`[FORMA-MENTIS] Recorded ${Math.min(criticalSignals.length, 3)} decisions for critical signals`);
-        }
-      } catch (err) {
-        console.error('[DAEMON] Decision recording failed (non-blocking):', err);
-      }
+      // saveCycleSummary RIMOSSO — usava indexCompanyKnowledge (Voyage AI embeddings, costs $)
+      // recordDecision RIMOSSO — usava generateEmbedding (Voyage AI embeddings, costs $)
+      // Entrambi i dati sono già catturati nel daemon-report.json e in persistDaemonReport (Supabase).
+      // CME in sessione interattiva può creare decisions e knowledge se necessario.
 
       // Log session sensor (testo per archivio umano)
       log(`[SENSOR] Completato in ${(durationMs / 1000).toFixed(0)}s — $0.00 (pure sensor, zero LLM)`);
-      const sensorOutput = `Costo: $0.00 (pure sensor)\nSignal: ${signals.length}\nBoard: open=${boardStats.open} inProgress=${boardStats.inProgress} done=${boardStats.done}\nGoals: ${goalCheckResults.length}\nPending decisions: ${pendingDecisionReviewCount}\nForma Mentis: memories=${!!formaMentisContext.memoryBlock} reports=${recentReportsData.reports.length} diff=${!!reportDiffSummary}`;
+      const sensorOutput = `Costo: $0.00 (pure sensor)\nSignal: ${signals.length}\nBoard: open=${boardStats.open} inProgress=${boardStats.inProgress} done=${boardStats.done}\nDirective: ${cmeDirective.mode}\nGoals: ${goalCheckResults.length}\nPending decisions: ${pendingDecisionReviewCount}\nForma Mentis: memories=${!!formaMentisContext.memoryBlock} reports=${recentReportsData.reports.length} diff=${!!reportDiffSummary}`;
       logSession(sensorOutput, 0, durationMs);
 
       // ─── FASE 4: Telegram ping ($0) ────────────────────────────────────
       // Notify boss via Telegram if there are critical/high signals
       writeDaemonHeartbeat();
       await sendTelegramPing(report);
+
+      // ─── FASE 4.5: Zombie reaper ($0) ──────────────────────────────
+      // Scan and kill stale node processes (killable only, 30min threshold)
+      try {
+        const reaperResult = reapZombies();
+        if (reaperResult.killed > 0) {
+          log(`[ZOMBIE-REAPER] Killed ${reaperResult.killed}/${reaperResult.scanned} zombie processes`);
+          for (const d of reaperResult.details) {
+            if (d.killed) {
+              log(`  → PID ${d.pid} [${d.category}] age ${Math.round(d.ageMs / 60000)}min — KILLED`);
+            }
+          }
+        } else if (reaperResult.scanned > 0) {
+          log(`[ZOMBIE-REAPER] Scanned ${reaperResult.scanned} processes, no zombies found.`);
+        }
+      } catch (err) {
+        log(`[ZOMBIE-REAPER] Failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
 
       // Log rotation
       const rotated = rotateAutorunLogs(LOG_DIR);

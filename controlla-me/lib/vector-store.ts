@@ -84,9 +84,10 @@ export function chunkText(
     }
 
     // Avanza con overlap
+    const prevStart = start;
     start = end - CHUNK_OVERLAP;
-    if (start <= (chunks[chunks.length - 1]?.metadata?.charStart as unknown as number)) {
-      start = end; // Previeni loop infinito
+    if (start <= prevStart) {
+      start = end; // Previeni loop infinito su testi corti o overlap > chunk
     }
   }
 
@@ -358,7 +359,8 @@ export async function searchSimilarDocuments(
 ): Promise<SearchResult[]> {
   if (!isVectorDBEnabled()) return [];
 
-  const { threshold = 0.7, limit = 5 } = options;
+  // Lowered from 0.7: Voyage AI voyage-law-2 yields ~0.40-0.65 for Italian text
+  const { threshold = 0.5, limit = 5 } = options;
 
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
@@ -398,7 +400,8 @@ export async function searchLegalKnowledge(
   if (!isVectorDBEnabled()) return [];
 
   // Voyage AI voyage-law-2 yields lower sim for Italian legal text (~0.40-0.65)
-  const { category, threshold = 0.55, limit = 5 } = options;
+  // Lowered from 0.55 to 0.4 — aligned with SQL default in migration 043
+  const { category, threshold = 0.4, limit = 5 } = options;
 
   const embedding = await generateEmbedding(query, "query");
   if (!embedding) return [];
@@ -447,7 +450,8 @@ export async function searchAll(
 ): Promise<{ documents: SearchResult[]; knowledge: SearchResult[] }> {
   if (!isVectorDBEnabled()) return { documents: [], knowledge: [] };
 
-  const { threshold = 0.55, limit = 5 } = options;
+  // Lowered from 0.55 — aligned with per-function defaults
+  const { threshold = 0.4, limit = 5 } = options;
 
   // Esegui entrambe le ricerche in parallelo
   const [documents, knowledge] = await Promise.all([
@@ -474,7 +478,7 @@ export async function buildRAGContext(
   const { maxChars = 3000, categories } = options;
 
   const results = await searchLegalKnowledge(query, {
-    threshold: 0.5,
+    threshold: 0.4,
     limit: 8,
   });
 

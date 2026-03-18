@@ -21,11 +21,17 @@ Implementatore dedicato del dipartimento Operations. Configura infrastruttura, s
 
 ## Key Files
 
-- `scripts/company-scheduler-daemon.ts` — Scheduler con Telegram approval
+- `scripts/cme-autorun.ts` — Daemon sensore puro ($0/ciclo): scan, report, directive, zombie reaper
+- `scripts/company-tasks.ts` — CLI task board: create, claim, done, board, list, exec
 - `scripts/daily-standup.ts` — Piano giornaliero
-- `scripts/lib/company-vision.ts` — Vision/Mission API
+- `scripts/forma-mentis.ts` — CLI memoria aziendale: context, goals, discover, remember, decide
 - `scripts/dept-context.ts` — Context retrieval per leader
+- `lib/company/self-preservation.ts` — Zombie reaper + enableSelfTimeout() + sacred PID protection
+- `lib/company/process-monitor.ts` — Aggregatore unificato processi
+- `company/cme-daemon-state.json` — Stato runtime daemon
+- `company/daemon-report.json` — Output daemon: segnali, board stats, cmeDirective
 - `app/api/console/**/*.ts` — API console
+- `app/api/company/**/*.ts` — API company (processes, sessions, costs, tasks)
 
 ## Principi
 

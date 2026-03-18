@@ -10,12 +10,12 @@
  * - openai:     GPT-5.2, 5.1, 5, 5 Mini/Nano, 4.1, 4.1 Mini/Nano, 4o, 4o Mini, OSS 120B/20B, Codex Mini
  * - mistral:    Large, Medium, Small, Nemo, Ministral 14B/8B/3B, Magistral Small/Medium, Codestral
  * - groq:       Llama 4 Scout, 3.3 70B, 3.1 8B, Qwen 3 32B, GPT-OSS 120B/20B, Kimi K2
- * - cerebras:   GPT-OSS 120B, Qwen 3 235B, Llama 3.1 8B
+ * - cerebras:   GPT-OSS 120B, Llama 3.1 8B
  * - sambanova:  Llama 3.3 70B, Llama 4 Maverick, DeepSeek-R1 70B
  *
  * ⚠️  DeepSeek RIMOSSO (SEC-001): server in Cina, non coperto da accordo di adeguatezza EU.
  *
- * ~41 modelli registrati, 7 provider.
+ * ~42 modelli registrati, 7 provider.
  * Vedi docs/MODEL-CENSUS.md per pricing e confronto completo.
  */
 

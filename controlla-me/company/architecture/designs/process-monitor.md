@@ -124,7 +124,7 @@ It renders:
 | G2 | **No data connector sync visibility.** Active `connector_sync_log` entries (status=running) are not shown in the Process Monitor. A sync running for 20 minutes is invisible. | MEDIUM | Req #1: everything running in one place |
 | G3 | **Polling latency (5s/15s).** The dual-poll architecture creates a 5-15s delay. Not truly "real-time". Session + orphan discovery polls at 15s, process monitor at 5s. | LOW | Req #1: real-time (soft requirement) |
 | G4 | **No elapsed-vs-expected comparison.** The UI shows elapsed time but has no reference for "how long should this take?" making it hard to judge if something is stuck. | LOW | Req #3: distinguish slow from dead |
-| G5 | **Daemon heartbeat is lock-file only.** The daemon writes a lock file at start, but does not update it during operation. A daemon running for 2 hours looks the same as a daemon that crashed after 1 minute (lock file is stale-checked at 30 min). | MEDIUM | Req #3: heartbeat |
+| G5 | ~~**Daemon heartbeat is lock-file only.**~~ **RESOLVED (2026-03-18):** Daemon now writes `lastHeartbeat` to `cme-daemon-state.json` at key points in each cycle. Additionally, FASE 4.5 zombie reaper (`lib/company/self-preservation.ts`) auto-kills stale processes >30min. | ~~MEDIUM~~ RESOLVED | Req #3: heartbeat |
 | G6 | **No crypto pipeline visibility.** The `run_crypto_pipeline()` in `pipeline.py` is tracked by the scheduler heartbeat (`currentJob: "crypto_pipeline"`) but not as a distinct process. | LOW | Req #1: completeness |
 
 ### 3B. What Works Well (Keep As-Is)
@@ -501,18 +501,20 @@ When elapsed > 2x expected:
 
 Everything in Section 2A is implemented and working. The Process Monitor is functional for sessions, sub-agents, tasks, and trading scheduler.
 
-### Phase 1: Sub-Agent Heartbeat Improvement (G1 + G5)
+### Phase 1: Sub-Agent Heartbeat Improvement (G1 + G5) — PARTIALLY DONE
 
 **Scope:** Improve `lastActivity` accuracy for sub-agents and daemon.
 
-| Step | File | Change | Effort |
-|---|---|---|---|
-| 1.1 | `lib/company/process-monitor.ts` | Read `.claude/sub-agents.json` mtime, use as `lastActivity` for sub-agents. Check `isProcessAlive()` on heartbeat PID, add to `meta.hostPidAlive`. | ~20 lines |
-| 1.2 | `scripts/cme-autorun.ts` | Add `writeDaemonState({ lastHeartbeat: ... })` at key points in the cycle. | ~15 lines |
-| 1.3 | `lib/company/process-monitor.ts` | Read `cme-daemon-state.json` `lastHeartbeat` for daemon sessions' `lastActivity`. | ~10 lines |
+| Step | File | Change | Effort | Status |
+|---|---|---|---|---|
+| 1.1 | `lib/company/process-monitor.ts` | Read `.claude/sub-agents.json` mtime, use as `lastActivity` for sub-agents. Check `isProcessAlive()` on heartbeat PID, add to `meta.hostPidAlive`. | ~20 lines | TODO |
+| 1.2 | `scripts/cme-autorun.ts` | Add `writeDaemonState({ lastHeartbeat: ... })` at key points in the cycle. | ~15 lines | **DONE** (2026-03-18) |
+| 1.3 | `lib/company/process-monitor.ts` | Read `cme-daemon-state.json` `lastHeartbeat` for daemon sessions' `lastActivity`. | ~10 lines | TODO |
 
 **Dependencies:** None.
 **Risk:** Low. All changes are read-only additions to existing data.
+
+> **Note (2026-03-18):** G5 is fully resolved. The daemon writes `lastHeartbeat` at 3 key points per cycle. Additionally, FASE 4.5 zombie reaper in `lib/company/self-preservation.ts` provides automatic cleanup of stale processes >30min, which was not part of the original design but was implemented as a complementary safety mechanism.
 
 ### Phase 2: Data Connector Sync Visibility (G2)
 
