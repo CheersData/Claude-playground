@@ -134,6 +134,12 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
   // debugEndRef removed — newest debug entries are at top, no auto-scroll
   const fullTextRef = useRef("");
 
+  // ── Daemon directive auto-injection state ──
+  const [autoDirective, setAutoDirective] = useState<string | null>(null);
+  const lastDirectiveTsRef = useRef<string | null>(
+    typeof window !== "undefined" ? localStorage.getItem("daemon-directive-ts") : null
+  );
+
   // No auto-scroll needed — newest messages and debug entries are always at top
 
   // Clipboard paste handler (images)
@@ -227,6 +233,65 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     const interval = setInterval(() => fetchDashboard(true), 60_000);
     return () => clearInterval(interval);
   }, [open, embedded, fetchDashboard]);
+
+  // ── Daemon directive polling (every 30s) ──
+  // Detects new cmeDirective from daemon-report.json and auto-injects into chat.
+  // This closes the autoalimentante loop: daemon → chat → CME → action → board changes → daemon updates.
+  useEffect(() => {
+    if (!open && !embedded) return;
+
+    const checkDirective = async () => {
+      try {
+        const res = await fetch("/api/company/daemon", { headers: getConsoleAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const reportTs: string | undefined = data.lastReport?.timestamp;
+        const directive = data.cmeDirective;
+        if (!reportTs || !directive) return;
+        // Deduplicate: only inject if this is a NEW report (different timestamp)
+        if (reportTs === lastDirectiveTsRef.current) return;
+        lastDirectiveTsRef.current = reportTs;
+        localStorage.setItem("daemon-directive-ts", reportTs);
+
+        // Format directive as a readable chat message
+        const time = new Date(reportTs).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+        const lines: string[] = [
+          `[DAEMON DIRECTIVE — ${time}]`,
+          `Modo: ${String(directive.mode ?? "unknown").toUpperCase()}`,
+          "",
+          String(directive.instructions ?? ""),
+        ];
+        if (Array.isArray(directive.openTasksBatch) && directive.openTasksBatch.length > 0) {
+          lines.push("", "Task batch:");
+          for (const t of directive.openTasksBatch) lines.push(`  • ${String(t)}`);
+        }
+        if (Array.isArray(directive.inProgressToAudit) && directive.inProgressToAudit.length > 0) {
+          lines.push("", "In-progress da auditare:");
+          for (const t of directive.inProgressToAudit) lines.push(`  • ${String(t)}`);
+        }
+        setAutoDirective(lines.join("\n"));
+      } catch {
+        /* silently ignore — will retry next 30s cycle */
+      }
+    };
+
+    checkDirective(); // Check immediately on mount
+    const iv = setInterval(checkDirective, 30_000);
+    return () => clearInterval(iv);
+  }, [open, embedded]);
+
+  // ── Process pending daemon directive ──
+  // Fires when autoDirective is set AND CME is not currently responding.
+  // Starts a new CME session with the directive as the message.
+  useEffect(() => {
+    if (!autoDirective) return;
+    if (responding) return; // Don't interrupt CME while it's working
+    const msg = autoDirective;
+    setAutoDirective(null);
+    // Start a new session targeting CME with the daemon directive
+    startSession(msg, false, "cme");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoDirective, responding]);
 
   // ── Start a new interactive session ──
   const startSession = async (text: string, isAuto = false, overrideTarget?: TargetKey) => {
@@ -492,6 +557,8 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Cancel any pending daemon directive — user takes control
+    if (autoDirective) setAutoDirective(null);
     sendMessage(input);
   };
 

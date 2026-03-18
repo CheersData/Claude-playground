@@ -1624,8 +1624,25 @@ Il daemon genera una `cmeDirective` nel report basata sullo stato del board:
 | open=0, in_progress>0 | `audit_in_progress` | Verifica ogni in_progress: bloccato→reopen, fatto→done |
 | open=0, in_progress=0 | `plenaria` | Riunione plenaria → nuovi piani → nuovi task |
 
-**Ciclo autoalimentante:**
+### Auto-injection nella chat /ops
+
+La direttiva viene iniettata automaticamente nella chat CME del pannello `/ops`:
+
+1. **`/api/company/daemon` GET** restituisce il campo `cmeDirective` dal `daemon-report.json`
+2. **`CompanyPanel.tsx`** polla l'endpoint ogni 30 secondi
+3. Quando rileva un timestamp nuovo (diverso dall'ultimo in `localStorage`), formatta la direttiva e la inietta come messaggio nella chat
+4. CME riceve il messaggio e esegue la direttiva (routing + smaltimento/audit/plenaria)
+5. Se il boss digita un messaggio, qualsiasi direttiva pendente viene cancellata — l'ordine del boss prevale
+
+**Deduplicazione**: il timestamp del report è salvato in `localStorage("daemon-directive-ts")`. La stessa direttiva non viene mai iniettata due volte. Al prossimo ciclo daemon (10 min), se il board è cambiato, il timestamp sarà diverso e la nuova direttiva verrà iniettata.
+
+**Ciclo autoalimentante (completamente automatico):**
 ```
+Daemon scrive direttiva → Frontend la inietta in chat CME (poll 30s)
+→ CME la riceve e esegue (routing + smaltimento/audit/plenaria)
+→ Task completati → board cambia
+→ Daemon vede nuovo stato → nuova direttiva → e ricomincia
+
 Plenaria → nuovi task (open) → daemon genera "smaltimento"
 → CME smaltisce 5 alla volta → task diventano done
 → board vuoto → daemon genera "plenaria"

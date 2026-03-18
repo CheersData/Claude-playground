@@ -243,14 +243,16 @@ export async function GET(req: NextRequest) {
   const logs = getRecentLogs();
   const health = assessHealth(state);
 
-  // Read last report summary if available
+  // Read last report summary + cmeDirective if available
   let lastReportSignals = 0;
   let lastReportTimestamp: string | null = null;
+  let cmeDirective: Record<string, unknown> | null = null;
   try {
     if (fs.existsSync(REPORT_FILE)) {
       const report = JSON.parse(fs.readFileSync(REPORT_FILE, "utf-8"));
       lastReportSignals = report.signals?.length ?? 0;
       lastReportTimestamp = report.timestamp ?? null;
+      cmeDirective = report.cmeDirective ?? null;
     }
   } catch { /* ignore */ }
 
@@ -263,6 +265,7 @@ export async function GET(req: NextRequest) {
       signals: lastReportSignals,
       timestamp: lastReportTimestamp,
     },
+    cmeDirective,
     executorEngine: {
       type: "free-llm",
       description: "callLLM() via lib/llm.ts (Gemini Flash > Groq > Cerebras > Mistral)",

@@ -85,8 +85,9 @@ Il daemon NON crea task e NON esegue. Tu leggi la sua direttiva e agisci di cons
 ### SISTEMA AUTOALIMENTANTE
 
 Il daemon è un **sensore puro** ($0 di costo). Non lancia LLM, non esegue task, non invoca `claude -p`.
-Scansiona i dipartimenti, scrive il report, e pinga il boss su Telegram se ci sono segnali azionabili.
-Il boss apre Claude Code nel terminale → CME legge il report e agisce.
+Scansiona i dipartimenti, scrive il report con la direttiva, e pinga il boss su Telegram se ci sono segnali azionabili.
+
+**Auto-injection nella chat /ops**: CompanyPanel polla `/api/company/daemon` ogni 30s. Quando rileva una nuova direttiva (timestamp diverso dall'ultimo processato), la inietta automaticamente nella chat CME come messaggio. CME la riceve e la esegue senza bisogno che il boss digiti nulla. Il boss può sovrascrivere in qualsiasi momento digitando un messaggio.
 
 ```
 Daemon (ogni 10 min)
@@ -101,9 +102,14 @@ Daemon (ogni 10 min)
   → FASE 3.5: Post-scan persistence ($0) — fan-out multi-dept, fan-in, cycle summary, decisioni
   → FASE 4: Telegram ping ($0) — notifica boss se ci sono segnali critical/high
   → FASE 4.5: Zombie reaper ($0) — uccide processi zombie >30min
-  → STOP — CME nel terminale del boss legge la direttiva e agisce
+  → Frontend /ops rileva nuova direttiva (poll 30s) → auto-inject nella chat CME
 
-CICLO AUTOALIMENTANTE:
+CICLO AUTOALIMENTANTE (completamente automatico):
+  Daemon scrive direttiva → Frontend la inietta in chat
+  → CME la riceve e esegue (routing + smaltimento/audit/plenaria)
+  → Task completati → board cambia
+  → Daemon vede nuovo stato → nuova direttiva → e ricomincia
+
   Plenaria → nuovi task (open) → daemon genera "smaltimento"
   → CME smaltisce 5 alla volta → task diventano done
   → board vuoto → daemon genera "plenaria"
