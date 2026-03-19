@@ -6,7 +6,7 @@
  * Usa la subscription $100/mese, non le API.
  */
 
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getTaskBoard } from "@/lib/company/tasks";
@@ -40,6 +40,22 @@ const TARGETS: Record<string, { promptFile: string; label: string; model: string
   strategy:           { promptFile: "strategy/department.md",           label: "Strategy TL",          model: "opus" },
   trading:            { promptFile: "trading/department.md",            label: "Trading TL",           model: "opus" },
 };
+
+// ─── Claude binary resolution (cached) ───
+let _claudePath: string | null = null;
+function resolveClaudePath(): string {
+  if (_claudePath) return _claudePath;
+  try {
+    const cmd = process.platform === "win32" ? "where claude" : "which claude";
+    const result = execSync(cmd, { encoding: "utf-8", timeout: 5000 }).trim();
+    // 'where' on Windows may return multiple lines — take the first
+    _claudePath = result.split(/\r?\n/)[0];
+    return _claudePath;
+  } catch {
+    _claudePath = "claude";
+    return _claudePath;
+  }
+}
 
 export async function POST(req: Request) {
   // SEC-M3: Rate limit — 5 per minute (spawns claude -p child process)
@@ -90,7 +106,7 @@ export async function POST(req: Request) {
     const dataContext = buildDataContext(board, costs);
 
     // Short system prompt for CLI arg (avoids Windows cmd length limit)
-    const shortSystemPrompt = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso (max 200 parole). Non inventare numeri.`;
+    const shortSystemPrompt = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri.`;
 
     // Build conversation history section (if resuming)
     let historySection = "";
@@ -125,6 +141,7 @@ export async function POST(req: Request) {
 
     const stream = new ReadableStream({
       start(controller) {
+        let closed = false;
         const encoder = new TextEncoder();
         const send = (event: string, data: unknown) => {
           try {
@@ -145,7 +162,8 @@ export async function POST(req: Request) {
           "--dangerously-skip-permissions",
         ];
 
-        send("debug", { type: "spawn", msg: `claude -p --model ${targetConfig.model} (interactive)`, ts: Date.now() });
+        const claudeBin = resolveClaudePath();
+        send("debug", { type: "spawn", msg: `${claudeBin} -p --model ${targetConfig.model} (interactive)`, ts: Date.now() });
 
         // Remove env vars that would interfere:
         // - CLAUDECODE + CLAUDE_CODE_*: avoid "nested session" error and DLL init crashes
@@ -157,10 +175,10 @@ export async function POST(req: Request) {
           }
         }
 
-        const child = spawn("claude", args, {
+        const child = spawn(claudeBin, args, {
           cwd: projectDir,
           env: childEnv,
-          shell: true,
+          shell: process.platform === "win32",
           stdio: ["pipe", "pipe", "pipe"],
         });
 
@@ -340,7 +358,7 @@ export async function POST(req: Request) {
             send("error", { error: `Claude Code exit ${code}: ${stderrOutput.slice(0, 500)}` });
           }
           send("done", { target, sessionId });
-          controller.close();
+          if (!closed) { closed = true; controller.close(); }
         });
 
         child.on("error", (err) => {
@@ -360,7 +378,7 @@ export async function POST(req: Request) {
           });
           send("debug", { type: "spawn-error", msg: err.message, ts: Date.now() });
           send("error", { error: `Errore spawn: ${err.message}. Claude Code è installato?` });
-          controller.close();
+          if (!closed) { closed = true; controller.close(); }
         });
       },
 
