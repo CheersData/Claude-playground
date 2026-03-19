@@ -60,6 +60,7 @@ import { IntegrationHealthPanel } from "@/components/ops/IntegrationHealthPanel"
 import { ActivityFeed } from "@/components/ops/ActivityFeed";
 import { AgentDots } from "@/components/ops/AgentDots";
 import { TerminalMonitor } from "@/components/ops/TerminalMonitor";
+import { BossTerminal } from "@/components/ops/BossTerminal";
 import SessionIndicator from "@/components/console/SessionIndicator";
 import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
 import { CompanyRoadmap } from "@/components/ops/CompanyRoadmap";
@@ -687,6 +688,10 @@ export default function OpsPageClient() {
             <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
             <span>{data.board.byStatus?.open ?? 0} open</span>
             <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+            <span style={{ color: "var(--fg-secondary)" }}>
+              {data.board.byStatus?.on_hold ?? 0} on hold
+            </span>
+            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
             <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
           </div>
         )}
@@ -954,9 +959,7 @@ export default function OpsPageClient() {
 
         {/* Terminali */}
         {activeTab === "terminals" && (
-          <div className="h-full overflow-hidden">
-            <TerminalMonitor />
-          </div>
+          <TerminaliTab />
         )}
       </div>
 
@@ -1006,6 +1009,128 @@ export default function OpsPageClient() {
           </FullscreenOverlay>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Terminali Tab — sub-tab layout with Process Monitor + CLI ────────────────
+
+function TerminaliTab() {
+  const [terminalSubTab, setTerminalSubTab] = useState<"processes" | "cli">("processes");
+  const [cliExpanded, setCliExpanded] = useState(true);
+
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      {/* Sub-tab bar */}
+      <div
+        className="flex-none flex items-center gap-1 px-3 py-1.5"
+        style={{
+          borderBottom: "1px solid var(--border-dark-subtle)",
+          background: "var(--bg-raised)",
+        }}
+      >
+        <button
+          onClick={() => setTerminalSubTab("processes")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all
+            focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
+          style={{
+            background: terminalSubTab === "processes" ? "var(--bg-overlay)" : "transparent",
+            color: terminalSubTab === "processes" ? "var(--fg-primary)" : "var(--fg-secondary)",
+            borderBottom: terminalSubTab === "processes" ? "2px solid var(--accent)" : "2px solid transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (terminalSubTab !== "processes") e.currentTarget.style.background = "var(--bg-overlay)";
+          }}
+          onMouseLeave={(e) => {
+            if (terminalSubTab !== "processes") e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Users className="w-3 h-3" aria-hidden="true" />
+          Processi
+        </button>
+        <button
+          onClick={() => setTerminalSubTab("cli")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all
+            focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
+          style={{
+            background: terminalSubTab === "cli" ? "var(--bg-overlay)" : "transparent",
+            color: terminalSubTab === "cli" ? "#FF6B35" : "var(--fg-secondary)",
+            borderBottom: terminalSubTab === "cli" ? "2px solid #FF6B35" : "2px solid transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (terminalSubTab !== "cli") e.currentTarget.style.background = "var(--bg-overlay)";
+          }}
+          onMouseLeave={(e) => {
+            if (terminalSubTab !== "cli") e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Terminal className="w-3 h-3" aria-hidden="true" />
+          CLI
+        </button>
+
+        {/* Expand/collapse for CLI when in split mode */}
+        {terminalSubTab === "processes" && (
+          <button
+            onClick={() => setCliExpanded((p) => !p)}
+            className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors
+              focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]"
+            style={{
+              background: cliExpanded ? "rgba(255,107,53,0.1)" : "rgba(255,255,255,0.04)",
+              color: cliExpanded ? "#FF6B35" : "var(--fg-muted)",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = cliExpanded
+                ? "rgba(255,107,53,0.15)"
+                : "rgba(255,255,255,0.08)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = cliExpanded
+                ? "rgba(255,107,53,0.1)"
+                : "rgba(255,255,255,0.04)")
+            }
+            aria-label={cliExpanded ? "Nascondi CLI" : "Mostra CLI"}
+          >
+            <Terminal className="w-2.5 h-2.5" aria-hidden="true" />
+            {cliExpanded ? "Nascondi CLI" : "Mostra CLI"}
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      {terminalSubTab === "processes" ? (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Process monitor */}
+          <div
+            className={`${cliExpanded ? "flex-1" : "flex-1"} min-h-0 overflow-hidden`}
+            style={cliExpanded ? { maxHeight: "60%" } : undefined}
+          >
+            <TerminalMonitor />
+          </div>
+
+          {/* Collapsible CLI panel at bottom */}
+          <AnimatePresence>
+            {cliExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "40%", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex-none overflow-hidden"
+                style={{
+                  borderTop: "2px solid #FF6B35",
+                  minHeight: 0,
+                }}
+              >
+                <BossTerminal />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <BossTerminal />
+        </div>
+      )}
     </div>
   );
 }

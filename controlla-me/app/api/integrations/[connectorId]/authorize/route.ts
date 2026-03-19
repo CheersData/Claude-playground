@@ -1,13 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 
 interface OAuthAuthorizeConfig {
   authorizeUrl: string;
   clientIdEnvVar: string;
   scopes: string[];
   extraParams?: Record<string, string>;
+}
+
+// ─── PKCE (RFC 7636) ───
+// PKCE prevents authorization code interception attacks.
+// The code_verifier is a high-entropy random string stored in an httpOnly cookie.
+// The code_challenge (SHA-256 hash of verifier, base64url-encoded) is sent to the
+// authorization server. At token exchange, the server verifies the original verifier
+// matches the challenge, proving the party exchanging the code is the same one that
+// initiated the flow.
+
+/**
+ * Generate a PKCE code_verifier (32 random bytes, base64url-encoded).
+ * RFC 7636 requires 43-128 characters — 32 bytes base64url = 43 chars.
+ */
+function generateCodeVerifier(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+/**
+ * Compute code_challenge = BASE64URL(SHA256(code_verifier)) using S256 method.
+ */
+function generateCodeChallenge(codeVerifier: string): string {
+  return createHash("sha256").update(codeVerifier).digest("base64url");
 }
 
 const OAUTH_AUTHORIZE_CONFIGS: Record<string, OAuthAuthorizeConfig> = {
@@ -87,6 +110,10 @@ export async function GET(
   // Generate CSRF state
   const state = randomBytes(32).toString("hex");
 
+  // Generate PKCE code_verifier and code_challenge (RFC 7636)
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = generateCodeChallenge(codeVerifier);
+
   // Build authorize URL
   const authorizeUrl = new URL(config.authorizeUrl);
   authorizeUrl.searchParams.set("response_type", "code");
@@ -94,6 +121,12 @@ export async function GET(
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("scope", config.scopes.join(" "));
   authorizeUrl.searchParams.set("state", state);
+
+  // PKCE: send code_challenge with S256 method to the authorization server.
+  // Providers that don't support PKCE will simply ignore these parameters,
+  // so backwards compatibility is preserved.
+  authorizeUrl.searchParams.set("code_challenge", codeChallenge);
+  authorizeUrl.searchParams.set("code_challenge_method", "S256");
 
   // Add provider-specific params
   if (config.extraParams) {
@@ -107,6 +140,16 @@ export async function GET(
 
   // Set state cookie for CSRF validation in callback
   response.cookies.set(`oauth_state_${connectorId}`, state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 600, // 10 minutes
+    path: "/",
+  });
+
+  // PKCE: store code_verifier in httpOnly cookie for retrieval in callback.
+  // Same security properties as the state cookie: httpOnly, secure, sameSite=lax, 10 min TTL.
+  response.cookies.set(`pkce_verifier_${connectorId}`, codeVerifier, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

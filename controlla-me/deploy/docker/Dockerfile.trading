@@ -1,0 +1,56 @@
+# =============================================================================
+# Dockerfile.trading — Python Trading System
+# Optimized for Hetzner CX21 (2 vCPU, 4GB RAM)
+# =============================================================================
+
+FROM python:3.11-slim AS base
+
+# System dependencies for pandas/numpy compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/trading
+
+# Copy project definition and install dependencies
+COPY trading/pyproject.toml ./
+RUN pip install --no-cache-dir -e ".[backtest]"
+
+# ---------------------------------------------------------------------------
+# Production stage
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim AS runner
+
+WORKDIR /app/trading
+
+# Runtime dependencies only (no compiler)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Security: run as non-root user
+RUN groupadd --system --gid 1001 trading && \
+    useradd --system --uid 1001 --gid trading trader
+
+# Copy installed packages from build stage
+COPY --from=base /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=base /usr/local/bin /usr/local/bin
+
+# Copy trading source code
+COPY trading/ ./
+
+# Copy shared .env (mounted at runtime via docker-compose)
+# The .env.production is bind-mounted, not baked into the image
+
+# Create log directory
+RUN mkdir -p /app/trading/logs && chown -R trader:trading /app/trading/logs
+
+# Health check — verify Python can import the trading module
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "from src.config.settings import Settings; print('ok')" || exit 1
+
+USER trader
+
+# Default: run the scheduler (daily + intraday pipelines)
+CMD ["python", "-m", "src.scheduler"]

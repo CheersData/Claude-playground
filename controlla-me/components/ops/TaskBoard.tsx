@@ -26,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
   review: "bg-[rgba(255,107,53,0.15)] text-[var(--accent)]",
   done: "bg-[rgba(93,228,199,0.15)] text-[var(--success)]",
   blocked: "bg-[rgba(229,141,120,0.15)] text-[var(--error)]",
+  on_hold: "bg-[rgba(128,128,128,0.15)] text-[var(--fg-secondary)]",
 };
 
 const PRIORITY_DOTS: Record<string, string> = {
@@ -77,7 +78,7 @@ export function TaskBoard({ board, onSelectTask, onExpand }: TaskBoardProps) {
 
       {/* Status summary — clickable counters */}
       <div className="grid grid-cols-5 gap-3 mb-6">
-        {(["open", "in_progress", "review", "done", "blocked"] as const).map((status) => {
+        {(["open", "in_progress", "review", "done", "blocked", "on_hold"] as const).map((status) => {
           const count = board.byStatus[status] ?? 0;
           const isReview = status === "review" && count > 0;
           const isInProg = status === "in_progress" && count > 0;

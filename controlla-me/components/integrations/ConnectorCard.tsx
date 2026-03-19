@@ -216,9 +216,11 @@ interface ConnectorCardProps {
   isAuthenticated?: boolean;
   /** Called when unauthenticated user clicks "Configura" — triggers login form */
   onRequestLogin?: () => void;
+  /** Called when authenticated user clicks "Configura" — opens agent chat panel */
+  onConfigure?: (connectorType: string, connectorId: string, name: string) => void;
 }
 
-export default function ConnectorCard({ connector, index, isAuthenticated = true, onRequestLogin }: ConnectorCardProps) {
+export default function ConnectorCard({ connector, index, isAuthenticated = true, onRequestLogin, onConfigure }: ConnectorCardProps) {
   const router = useRouter();
   const IconComponent = ICON_MAP[connector.icon] || Plug;
   const statusConfig = STATUS_CONFIG[connector.status];
@@ -496,7 +498,12 @@ export default function ConnectorCard({ connector, index, isAuthenticated = true
             </button>
           </>
         ) : (
-          <span
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onConfigure?.(connector.id, connector.id, connector.name);
+            }}
             className="block w-full rounded-xl py-3 px-6 text-sm font-semibold text-white text-center transition-all group-hover:shadow-lg"
             style={{
               background: "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))",
@@ -504,7 +511,7 @@ export default function ConnectorCard({ connector, index, isAuthenticated = true
             }}
           >
             Configura
-          </span>
+          </button>
         )}
       </div>
     </motion.div>

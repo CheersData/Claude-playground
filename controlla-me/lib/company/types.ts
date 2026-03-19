@@ -15,7 +15,7 @@ export type Department =
   | "marketing"
   | "ux-ui";
 
-export type TaskStatus = "open" | "in_progress" | "review" | "done" | "blocked";
+export type TaskStatus = "open" | "in_progress" | "review" | "done" | "blocked" | "on_hold";
 
 export type TaskPriority = "critical" | "high" | "medium" | "low";
 

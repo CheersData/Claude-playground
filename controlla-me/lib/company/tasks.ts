@@ -229,7 +229,7 @@ export async function getTaskBoard(): Promise<TaskBoard> {
   if (error || !data) {
     return {
       total: 0,
-      byStatus: { open: 0, in_progress: 0, review: 0, done: 0, blocked: 0 },
+      byStatus: { open: 0, in_progress: 0, review: 0, done: 0, blocked: 0, on_hold: 0 },
       byDepartment: {},
       recent: [],
       inProgress: [],
@@ -245,6 +245,7 @@ export async function getTaskBoard(): Promise<TaskBoard> {
     review: 0,
     done: 0,
     blocked: 0,
+    on_hold: 0,
   };
 
   const byDepartment: Record<string, { total: number; open: number; inProgress: number; done: number }> = {};

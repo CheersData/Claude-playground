@@ -1,0 +1,69 @@
+# =============================================================================
+# .dockerignore — Exclude files from Docker build context
+# Keeps the build context small for faster builds on CX21
+# =============================================================================
+
+# Dependencies (installed inside container)
+node_modules
+trading/.venv
+trading/__pycache__
+
+# Build outputs
+.next
+out
+build
+coverage
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (mounted at runtime, not baked in)
+.env*
+deploy/.env.production
+
+# Vercel
+.vercel
+vercel.json
+
+# Testing
+playwright-report/
+playwright-results.json
+tests/
+e2e/
+trading/tests/
+
+# Documentation
+*.md
+!company/**/*.md
+
+# Cache
+.analysis-cache/
+.claude/
+
+# Backtest data
+trading/backtest-results/
+
+# Python cache
+**/__pycache__
+**/*.pyc
+
+# Logs
+trading/logs/
+deploy/logs/
+company/autorun-logs/
+company/gui-daemon-logs/
+
+# Large binary files
+public/videos/*.mp4
+*.pdf
+*.pem
+
+# Sandbox (sibling directory)
+../sandbox/

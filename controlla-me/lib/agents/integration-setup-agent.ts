@@ -31,6 +31,7 @@ import {
   loadUserIntegrationContext,
   formatContextForPrompt,
 } from "./integration-context";
+import { runAgent } from "../ai-sdk/agent-runner";
 
 // ─── Types ───
 
@@ -336,7 +337,11 @@ export async function runSetupAgent(
     contextPrefix +
     formatConversationHistory(conversationHistory, userMessage);
 
-  // ─── First pass: call claude -p ───
+  // ─── First pass: call claude -p (with SDK fallback) ───
+
+  // Try CLI first, then fall back to SDK tier system if CLI is unavailable
+  let cliSucceeded = false;
+  let cliStdout = "";
 
   try {
     const cliResult = spawnClaude(systemPrompt, userPrompt);
@@ -352,44 +357,90 @@ export async function runSetupAgent(
         stderr.includes("rate limit") || stderr.includes("rate_limit");
       const isTimeout = stderr.includes("timed out") || stderr.includes("timeout");
 
-      let errorMessage: string;
-      if (isNotFound) {
-        errorMessage =
-          "Il servizio AI non e disponibile in questo ambiente. " +
-          "Claude CLI non e nel PATH. Per usare l'assistente integrazione, " +
-          "assicurati che il CLI Claude sia installato e accessibile.";
-      } else if (isCredits) {
-        errorMessage =
-          "Crediti subscription esauriti per questa finestra. " +
-          "Riprova piu tardi quando i crediti si rigenerano.";
-      } else if (isRateLimit) {
-        errorMessage =
-          "Limite di velocita raggiunto. Attendi qualche minuto e riprova.";
+      if (isNotFound || isCredits || isRateLimit) {
+        // CLI is unavailable or exhausted — fall back to SDK tier system
+        console.warn(
+          `[INTEGRATION-SETUP] CLI unavailable (${isNotFound ? "ENOENT" : isCredits ? "credits" : "rate-limit"}) → falling back to SDK tier system`
+        );
       } else if (isTimeout) {
-        errorMessage =
-          "La richiesta ha impiegato troppo tempo. Prova con un messaggio piu breve.";
+        // Timeout is a transient issue, still try SDK fallback
+        console.warn(
+          `[INTEGRATION-SETUP] CLI timed out → falling back to SDK tier system`
+        );
       } else {
-        errorMessage = `Errore dal servizio AI (exit code ${cliResult.exitCode}). Riprova tra qualche istante.`;
         console.error(
-          `[INTEGRATION-SETUP] CLI error: exit=${cliResult.exitCode} stderr=${cliResult.stderr.slice(0, 500)}`
+          `[INTEGRATION-SETUP] CLI error: exit=${cliResult.exitCode} stderr=${cliResult.stderr.slice(0, 500)} → falling back to SDK`
         );
       }
 
+      // Fall through to SDK fallback below (cliSucceeded remains false)
+    } else {
+      cliSucceeded = true;
+      cliStdout = cliResult.stdout;
+    }
+  } catch (cliError) {
+    // CLI spawn itself threw — treat as CLI unavailable
+    console.warn(
+      `[INTEGRATION-SETUP] CLI spawn error: ${cliError instanceof Error ? cliError.message : String(cliError)} → falling back to SDK`
+    );
+    // cliSucceeded remains false
+  }
+
+  // ─── SDK fallback: use runAgent tier system when CLI fails ───
+  // This uses the "integration-setup" agent config from lib/models.ts
+  // which has gemini-2.5-flash as primary and groq-llama4-scout as fallback.
+  // These free-tier providers work in demo environments.
+
+  let sdkProvider = "claude-cli";
+
+  if (!cliSucceeded) {
+    try {
+      console.log(
+        `[INTEGRATION-SETUP] Using SDK tier system (integration-setup agent) as fallback`
+      );
+
+      const sdkResult = await runAgent<SetupParsedResponse>(
+        "integration-setup",
+        userPrompt,
+        {
+          systemPrompt,
+          maxTokens: 2048,
+          temperature: 0.3,
+          jsonOutput: true,
+        }
+      );
+
+      cliStdout = JSON.stringify(sdkResult.parsed);
+      cliSucceeded = true;
+      sdkProvider = `sdk-${sdkResult.usedModelKey}`;
+
+      console.log(
+        `[INTEGRATION-SETUP] SDK fallback succeeded: model=${sdkResult.usedModelKey} | ${Date.now() - startTime}ms`
+      );
+    } catch (sdkError) {
+      const sdkErrMsg = sdkError instanceof Error ? sdkError.message : String(sdkError);
+      console.error(`[INTEGRATION-SETUP] SDK fallback also failed: ${sdkErrMsg}`);
+
       return {
-        message: errorMessage,
+        message:
+          "Mi dispiace, il servizio AI non e disponibile in questo momento. " +
+          "Nessun provider e raggiungibile. Riprova tra qualche minuto.",
         action: "error",
         needsUserInput: true,
-        provider: "claude-cli",
+        provider: "none",
         durationMs: Date.now() - startTime,
       };
     }
+  }
 
-    // Parse the response
-    const parsed = parseAgentResponse(cliResult.stdout);
+  // ─── Parse and process the response (from CLI or SDK fallback) ───
+
+  try {
+    const parsed = parseAgentResponse(cliStdout);
 
     console.log(
       `[INTEGRATION-SETUP] action: ${parsed.action ?? "unknown"} | ` +
-        `provider: claude-cli | ${Date.now() - startTime}ms`
+        `provider: ${sdkProvider} | ${Date.now() - startTime}ms`
     );
 
     // Validate and normalize the action field
@@ -424,34 +475,49 @@ export async function runSetupAgent(
             entityContext;
 
           try {
-            const secondResult = spawnClaude(systemPrompt, secondPassPrompt);
+            // Try CLI for second pass first, then SDK fallback
+            let secondPassText = "";
+            let secondPassProvider = sdkProvider;
 
-            if (secondResult.exitCode === 0) {
-              const secondParsed = parseAgentResponse(secondResult.stdout);
-              const durationMs = Date.now() - startTime;
-
-              console.log(
-                `[INTEGRATION-SETUP] Second pass: action=${secondParsed.action ?? "ask_details"} | ` +
-                  `provider: claude-cli | ${durationMs}ms`
+            const secondCliResult = spawnClaude(systemPrompt, secondPassPrompt);
+            if (secondCliResult.exitCode === 0) {
+              secondPassText = secondCliResult.stdout;
+              secondPassProvider = "claude-cli";
+            } else {
+              // SDK fallback for second pass
+              const sdkResult2 = await runAgent<SetupParsedResponse>(
+                "integration-setup",
+                secondPassPrompt,
+                { systemPrompt, maxTokens: 2048, temperature: 0.3, jsonOutput: true }
               );
-
-              return {
-                message:
-                  secondParsed.message ??
-                  parsed.message ??
-                  "Ecco le entita disponibili.",
-                action: "discover_entities",
-                questions: secondParsed.questions ?? parsed.questions,
-                discoveredSchema: secondParsed.discoveredSchema,
-                proposedMapping: secondParsed.proposedMapping,
-                connectorConfig: secondParsed.connectorConfig,
-                needsUserInput: secondParsed.needsUserInput ?? true,
-                discoveredEntities: entities,
-                connectorId: targetConnectorId,
-                provider: "claude-cli",
-                durationMs,
-              };
+              secondPassText = JSON.stringify(sdkResult2.parsed);
+              secondPassProvider = `sdk-${sdkResult2.usedModelKey}`;
             }
+
+            const secondParsed = parseAgentResponse(secondPassText);
+            const durationMs = Date.now() - startTime;
+
+            console.log(
+              `[INTEGRATION-SETUP] Second pass: action=${secondParsed.action ?? "ask_details"} | ` +
+                `provider: ${secondPassProvider} | ${durationMs}ms`
+            );
+
+            return {
+              message:
+                secondParsed.message ??
+                parsed.message ??
+                "Ecco le entita disponibili.",
+              action: "discover_entities",
+              questions: secondParsed.questions ?? parsed.questions,
+              discoveredSchema: secondParsed.discoveredSchema,
+              proposedMapping: secondParsed.proposedMapping,
+              connectorConfig: secondParsed.connectorConfig,
+              needsUserInput: secondParsed.needsUserInput ?? true,
+              discoveredEntities: entities,
+              connectorId: targetConnectorId,
+              provider: secondPassProvider,
+              durationMs,
+            };
           } catch {
             // If second pass fails, return entities with the first-pass message
             console.log(
@@ -473,7 +539,7 @@ export async function runSetupAgent(
           discoveredEntities: entities,
           connectorId: targetConnectorId,
           needsUserInput: true,
-          provider: "claude-cli",
+          provider: sdkProvider,
           durationMs,
         };
       }
@@ -494,14 +560,14 @@ export async function runSetupAgent(
           "Altro (app custom)",
         ],
         needsUserInput: true,
-        provider: "claude-cli",
+        provider: sdkProvider,
         durationMs,
       };
     }
 
     // ─── Standard (non-discovery) actions ───
 
-    const durationMs = Date.now() - startTime;
+    const durationMs2 = Date.now() - startTime;
 
     return {
       message:
@@ -513,8 +579,8 @@ export async function runSetupAgent(
       connectorConfig: parsed.connectorConfig,
       needsUserInput: parsed.needsUserInput ?? true,
       connectorId: parsed.connectorId ?? contextConnectorId,
-      provider: "claude-cli",
-      durationMs,
+      provider: sdkProvider,
+      durationMs: durationMs2,
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -525,7 +591,7 @@ export async function runSetupAgent(
         "Mi dispiace, ho avuto un problema tecnico. Riprova tra qualche istante.",
       action: "error",
       needsUserInput: true,
-      provider: "claude-cli",
+      provider: sdkProvider,
       durationMs: Date.now() - startTime,
     };
   }

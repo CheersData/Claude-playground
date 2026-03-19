@@ -52,7 +52,11 @@ import type {
 const HUBSPOT_API_BASE = "https://api.hubapi.com";
 
 /** HubSpot CRM object types to sync (order matters: companies first for association enrichment) */
-const SYNC_TYPES: HubSpotObjectType[] = ["company", "contact", "deal", "ticket", "engagement"];
+const SYNC_TYPES: HubSpotObjectType[] = [
+  "company", "contact", "deal", "ticket", "engagement",
+  "product", "line_item", "quote", "feedback_submission",
+  "call", "email", "meeting", "note", "task",
+];
 
 /** Max items per page (HubSpot max is 100 for list, 200 for search) */
 const LIST_PAGE_SIZE = 100;
@@ -500,12 +504,21 @@ export class HubSpotConnector extends AuthenticatedBaseConnector<HubSpotRecord> 
       if (!hasMore) return body.results.length;
 
       // Rough estimates for demo purposes
-      const estimates: Record<HubSpotObjectType, number> = {
+      const estimates: Partial<Record<HubSpotObjectType, number>> = {
         contact: 100,
         company: 50,
         deal: 30,
         ticket: 20,
         engagement: 200,
+        product: 20,
+        line_item: 50,
+        quote: 10,
+        feedback_submission: 10,
+        call: 30,
+        email: 50,
+        meeting: 20,
+        note: 50,
+        task: 30,
       };
 
       return estimates[type] ?? 50;

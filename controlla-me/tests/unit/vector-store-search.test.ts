@@ -128,11 +128,11 @@ describe("searchSimilarDocuments", () => {
     expect(results[0].metadata).toEqual({ documentType: "contratto" });
   });
 
-  it("uses default threshold 0.7 and limit 5", async () => {
+  it("uses default threshold 0.5 and limit 5", async () => {
     await searchSimilarDocuments("query");
     expect(mockRpc).toHaveBeenCalledWith("match_document_chunks", {
       query_embedding: expect.any(String),
-      match_threshold: 0.7,
+      match_threshold: 0.5,
       match_count: 5,
     });
   });
@@ -203,12 +203,12 @@ describe("searchLegalKnowledge", () => {
     expect(results[0].similarity).toBe(0.78);
   });
 
-  it("uses default threshold 0.55 and limit 5", async () => {
+  it("uses default threshold 0.4 and limit 5", async () => {
     await searchLegalKnowledge("query");
     expect(mockRpc).toHaveBeenCalledWith("match_legal_knowledge", {
       query_embedding: expect.any(String),
       filter_category: null,
-      match_threshold: 0.55,
+      match_threshold: 0.4,
       match_count: 5,
     });
   });
@@ -218,7 +218,7 @@ describe("searchLegalKnowledge", () => {
     expect(mockRpc).toHaveBeenCalledWith("match_legal_knowledge", {
       query_embedding: expect.any(String),
       filter_category: "court_case",
-      match_threshold: 0.55,
+      match_threshold: 0.4,
       match_count: 5,
     });
   });
@@ -371,15 +371,15 @@ describe("searchAll", () => {
     }));
   });
 
-  it("uses default threshold 0.55 and limit 5", async () => {
+  it("uses default threshold 0.4 and limit 5", async () => {
     mockGenerateEmbedding.mockResolvedValue([0.1]);
     mockRpc.mockResolvedValue({ data: [], error: null });
 
     await searchAll("query");
 
-    // searchSimilarDocuments uses threshold from searchAll (0.55), not its own default (0.7)
+    // searchSimilarDocuments uses threshold from searchAll (0.4), not its own default (0.5)
     expect(mockRpc).toHaveBeenCalledWith("match_document_chunks", expect.objectContaining({
-      match_threshold: 0.55,
+      match_threshold: 0.4,
       match_count: 5,
     }));
   });
@@ -516,12 +516,12 @@ describe("buildRAGContext", () => {
     expect(context).toContain("FINE CONTESTO");
   });
 
-  it("searches with threshold 0.5 and limit 8", async () => {
+  it("searches with threshold 0.4 and limit 8", async () => {
     mockRpc.mockResolvedValue({ data: [], error: null });
     await buildRAGContext("query");
 
     expect(mockRpc).toHaveBeenCalledWith("match_legal_knowledge", expect.objectContaining({
-      match_threshold: 0.5,
+      match_threshold: 0.4,
       match_count: 8,
     }));
   });

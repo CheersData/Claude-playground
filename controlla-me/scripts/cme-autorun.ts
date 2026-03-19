@@ -1419,8 +1419,9 @@ async function main() {
           await runOnce();
         } catch (err) {
           log(`[WATCH] Errore nel ciclo: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+          scheduleNext();
         }
-        scheduleNext();
       }, interval * 60 * 1000);
     };
     scheduleNext();

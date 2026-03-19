@@ -32,10 +32,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  Sparkles,
-  ArrowRight,
   AlertTriangle,
-  Save,
   FileText,
   Pause,
   Play,
@@ -60,6 +57,8 @@ import ErrorState from "@/components/integrations/ErrorStates";
 import { NoSyncHistory, NoRecords } from "@/components/integrations/EmptyStates";
 import { useToast } from "@/components/integrations/Toast";
 import { useIntegrationPanel } from "@/app/integrazione/layout";
+import DataModelExplorer, { type EntityMeta, type EntityFieldMeta } from "@/components/integrations/DataModelExplorer";
+import MappingView from "@/components/integrations/MappingView";
 
 // ─── Types ───
 
@@ -109,6 +108,7 @@ interface ConnectorSyncData {
 const TABS = [
   { id: "setup", label: "Setup" },
   { id: "sync", label: "Sincronizzazione" },
+  { id: "model", label: "Modello Dati" },
   { id: "mapping", label: "Mappatura" },
   { id: "dati", label: "Dati" },
 ] as const;
@@ -195,23 +195,126 @@ function mapApiResponseToConfig(data: ConnectorApiResponse): ConnectorConfig {
 
 // ─── Auto-mapping generator ───
 
+/**
+ * Normalizes a field name for fuzzy comparison.
+ * Strips underscores, spaces, and lowercases so that both
+ * "firstname" and "first_name" become "firstname".
+ */
+function normalizeFieldName(name: string): string {
+  return name.toLowerCase().replace(/[_\s-]/g, "");
+}
+
+/**
+ * Known aliases between entity-discovery field names and TARGET_SCHEMAS field names.
+ * Maps source field (normalized) -> target field name (as-is in target schema).
+ */
+const FIELD_ALIAS_MAP: Record<string, string> = {
+  // HubSpot -> target schema
+  firstname: "first_name",
+  lastname: "last_name",
+  dealname: "deal_name",
+  closedate: "close_date",
+  createdate: "created_at",
+  lastmodifieddate: "updated_at",
+  jobtitle: "job_title",
+  lifecyclestage: "status",
+  numberofemployees: "employee_count",
+  annualrevenue: "annual_revenue",
+  dealstage: "stage",
+  dealtype: "type",
+  hubspotownerid: "owner",
+  associatedcompanyid: "company_name",
+  mobilephone: "phone",
+  // Stripe -> target schema
+  customerid: "customer_id",
+  customeremail: "customer_email",
+  paymentmethod: "payment_method",
+  billinginterval: "billing_interval",
+  startdate: "start_date",
+  enddate: "end_date",
+  // Salesforce -> target schema
+  accountname: "account_name",
+  leadsource: "lead_source",
+  // Fatture in Cloud -> target schema
+  amountnet: "net_amount",
+  amountgross: "gross_amount",
+  vatamount: "vat_amount",
+  vatrate: "vat_rate",
+  vatnumber: "vat_number",
+  taxcode: "tax_code",
+  companyname: "company_name",
+  invoicenumber: "invoice_number",
+  invoicedate: "invoice_date",
+  duedate: "due_date",
+  paymentstatus: "payment_status",
+  // Google Drive -> target schema
+  filename: "file_name",
+  filetype: "file_type",
+  filesize: "file_size",
+  folderpath: "folder_path",
+  modifiedat: "modified_at",
+  sharedwith: "shared_with",
+};
+
 function generateAutoMapping(entities: EntityOption[], targetFields: string[]): EntityMappings[] {
+  // Pre-compute normalized target fields for efficient lookup
+  const targetLookup = targetFields.map((tf) => ({
+    original: tf,
+    normalized: normalizeFieldName(tf),
+  }));
+
   return entities.map((entity) => ({
     entityId: entity.id,
     entityName: entity.name,
     mappings: entity.fields.map((field) => {
-      const fieldLower = field.toLowerCase();
-      const match = targetFields.find(
-        (tf) =>
-          tf.toLowerCase().includes(fieldLower) ||
-          fieldLower.includes(tf.toLowerCase()) ||
-          tf.toLowerCase().replace(/_/g, " ") === fieldLower
+      const fieldNorm = normalizeFieldName(field);
+
+      // 1. Check known alias map first (highest confidence)
+      const aliasTarget = FIELD_ALIAS_MAP[fieldNorm];
+      if (aliasTarget) {
+        const found = targetFields.find((tf) => tf === aliasTarget);
+        if (found) {
+          return {
+            sourceField: field.toLowerCase().replace(/ /g, "_"),
+            targetField: found,
+            confidence: 95 + Math.floor(Math.random() * 5),
+            autoMapped: true,
+          };
+        }
+      }
+
+      // 2. Exact normalized match (e.g., "email" == "email", "phone" == "phone")
+      const exactMatch = targetLookup.find((t) => t.normalized === fieldNorm);
+      if (exactMatch) {
+        return {
+          sourceField: field.toLowerCase().replace(/ /g, "_"),
+          targetField: exactMatch.original,
+          confidence: 90 + Math.floor(Math.random() * 10),
+          autoMapped: true,
+        };
+      }
+
+      // 3. Substring match (one contains the other, after normalization)
+      const substringMatch = targetLookup.find(
+        (t) =>
+          (fieldNorm.length >= 3 && t.normalized.includes(fieldNorm)) ||
+          (t.normalized.length >= 3 && fieldNorm.includes(t.normalized))
       );
+      if (substringMatch) {
+        return {
+          sourceField: field.toLowerCase().replace(/ /g, "_"),
+          targetField: substringMatch.original,
+          confidence: 80 + Math.floor(Math.random() * 15),
+          autoMapped: true,
+        };
+      }
+
+      // 4. No match found
       return {
         sourceField: field.toLowerCase().replace(/ /g, "_"),
-        targetField: match ?? "-- Ignora --",
-        confidence: match ? 80 + Math.floor(Math.random() * 19) : 0,
-        autoMapped: !!match,
+        targetField: "-- Ignora --",
+        confidence: 0,
+        autoMapped: false,
       };
     }),
   }));
@@ -228,12 +331,6 @@ function formatDateTime(iso: string | null): string {
 function formatDateShort(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
-}
-
-function confidenceColor(pct: number): string {
-  if (pct >= 90) return "var(--success)";
-  if (pct >= 70) return "var(--caution)";
-  return "var(--error)";
 }
 
 // ─── Stepper ───
@@ -410,7 +507,7 @@ export default function ConnectorDetailClient() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "sync" || tabParam === "mapping" || tabParam === "dati") return tabParam;
+      if (tabParam === "sync" || tabParam === "model" || tabParam === "mapping" || tabParam === "dati") return tabParam;
     }
     return "setup";
   });
@@ -999,7 +1096,20 @@ export default function ConnectorDetailClient() {
             </motion.div>
           )}
 
-          {/* ═══ TAB 3: MAPPATURA ═══ */}
+          {/* ═══ TAB 3: MODELLO DATI ═══ */}
+          {activeTab === "model" && (
+            <motion.div
+              key="model"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ConnectorDataModelTab config={config} />
+            </motion.div>
+          )}
+
+          {/* ═══ TAB 4: MAPPATURA ═══ */}
           {activeTab === "mapping" && (
             <motion.div
               key="mapping"
@@ -1016,7 +1126,7 @@ export default function ConnectorDetailClient() {
             </motion.div>
           )}
 
-          {/* ═══ TAB 4: DATI (Records Viewer) ═══ */}
+          {/* ═══ TAB 5: DATI (Records Viewer) ═══ */}
           {activeTab === "dati" && (
             <motion.div
               key="dati"
@@ -1669,7 +1779,157 @@ function StatCard({
 }
 
 // ═══════════════════════════════════════════════
-// TAB 3: MAPPING EDITOR (full page version)
+// TAB 3: DATA MODEL EXPLORER
+// ═══════════════════════════════════════════════
+
+/**
+ * Builds rich EntityMeta[] from the ConnectorConfig.entities for the DataModelExplorer.
+ * Enriches the flat field names from the API with type inference and descriptions.
+ */
+function buildEntityMetas(config: ConnectorConfig): EntityMeta[] {
+  // Type inference from field name heuristics
+  function inferFieldType(name: string): EntityFieldMeta["type"] {
+    const n = name.toLowerCase();
+    if (n.includes("data") || n.includes("date") || n.includes("scadenza") || n.includes("rinnovo") || n.includes("vigenza") || n.includes("pubblicazione") || n.includes("modifica") || n.includes("creazione") || n.includes("esecuzione") || n.includes("ultima")) return "date";
+    if (n.includes("importo") || n.includes("valore") || n.includes("budget") || n.includes("prezzo") || n.includes("probabilita") || n.includes("dimensione") || n.includes("quantita") || n.includes("numero") || n.includes("count") || n.includes("record")) return "number";
+    if (n.includes("attivo") || n.includes("stato") || n.includes("abilitato") || n.includes("verificato")) return "boolean";
+    if (n.includes("tipo") || n.includes("fase") || n.includes("stage") || n.includes("lifecycle") || n.includes("pipeline") || n.includes("categoria") || n.includes("metodo")) return "enum";
+    if (n.includes("risultati") || n.includes("fasi") || n.includes("articoli") || n.includes("destinatari") || n.includes("campi")) return "array";
+    if (n.includes("dettagli") || n.includes("config") || n.includes("oggetto")) return "object";
+    return "string";
+  }
+
+  // Description inference from field name
+  function inferDescription(fieldName: string, entityName: string): string | undefined {
+    const n = fieldName.toLowerCase();
+    if (n === "nome") return `Nome ${entityName.toLowerCase()}`;
+    if (n === "email") return "Indirizzo email di contatto";
+    if (n === "telefono") return "Numero di telefono";
+    if (n === "azienda" || n === "ragione sociale") return "Ragione sociale o nome azienda";
+    if (n === "ruolo") return "Ruolo professionale";
+    if (n === "indirizzo") return "Indirizzo fisico";
+    if (n === "importo" || n === "valore") return "Importo monetario in EUR";
+    if (n === "stato") return "Stato corrente del record";
+    if (n === "p.iva" || n === "partita iva") return "Partita IVA italiana";
+    if (n === "codice sdi") return "Codice destinatario SDI per fatturazione elettronica";
+    if (n === "codice fiscale") return "Codice fiscale italiano";
+    if (n.includes("data")) return "Data in formato ISO 8601";
+    if (n === "numero") return `Numero identificativo ${entityName.toLowerCase()}`;
+    if (n === "titolo") return `Titolo ${entityName.toLowerCase()}`;
+    if (n === "tipo") return `Tipologia ${entityName.toLowerCase()}`;
+    if (n === "fonte") return "Fonte normativa di riferimento";
+    if (n === "materia") return "Ambito o materia giuridica";
+    if (n === "corpo" || n === "testo") return "Contenuto testuale completo";
+    if (n === "autore" || n === "proprietario") return "Utente autore/proprietario";
+    return undefined;
+  }
+
+  // Required field heuristics
+  function isRequired(fieldName: string, entityId: string): boolean {
+    const n = fieldName.toLowerCase();
+    // ID, name, and email are typically required
+    if (n === "nome" || n === "email" || n === "numero" || n === "ragione sociale" || n === "titolo") return true;
+    // Entity-specific
+    if (entityId.includes("invoice") || entityId.includes("fattur")) {
+      if (n === "importo" || n === "data" || n === "stato") return true;
+    }
+    if (entityId.includes("contact") || entityId.includes("contatt")) {
+      if (n === "nome" || n === "email") return true;
+    }
+    return false;
+  }
+
+  return config.entities.map((entity) => ({
+    id: entity.id,
+    name: entity.name,
+    recordCount: entity.recordCount ?? 0,
+    description: `${entity.fields.length} campi disponibili per la sincronizzazione`,
+    fields: entity.fields.map((fieldName, idx) => ({
+      id: `${entity.id}_${fieldName.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${idx}`,
+      name: fieldName,
+      type: inferFieldType(fieldName),
+      description: inferDescription(fieldName, entity.name),
+      required: isRequired(fieldName, entity.id),
+      example: undefined,
+    })),
+  }));
+}
+
+function ConnectorDataModelTab({ config }: { config: ConnectorConfig }) {
+  const entityMetas = useMemo(() => buildEntityMetas(config), [config]);
+
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(() => {
+    // Pre-select required fields
+    const initial = new Set<string>();
+    for (const entity of entityMetas) {
+      for (const field of entity.fields) {
+        if (field.required) {
+          initial.add(`${entity.id}.${field.id}`);
+        }
+      }
+    }
+    return initial;
+  });
+
+  const handleToggleField = useCallback(
+    (entityId: string, fieldId: string) => {
+      const key = `${entityId}.${fieldId}`;
+      setSelectedFields((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleToggleEntity = useCallback(
+    (entityId: string) => {
+      const entity = entityMetas.find((e) => e.id === entityId);
+      if (!entity) return;
+
+      setSelectedFields((prev) => {
+        const next = new Set(prev);
+        const entityFieldKeys = entity.fields.map(
+          (f) => `${entityId}.${f.id}`
+        );
+        const allSelected = entityFieldKeys.every((k) => next.has(k));
+
+        if (allSelected) {
+          // Deselect all (except required)
+          for (const k of entityFieldKeys) {
+            const field = entity.fields.find(
+              (f) => `${entityId}.${f.id}` === k
+            );
+            if (!field?.required) {
+              next.delete(k);
+            }
+          }
+        } else {
+          // Select all
+          for (const k of entityFieldKeys) {
+            next.add(k);
+          }
+        }
+        return next;
+      });
+    },
+    [entityMetas]
+  );
+
+  return (
+    <DataModelExplorer
+      entities={entityMetas}
+      selectedFieldIds={selectedFields}
+      onToggleField={handleToggleField}
+      onToggleEntity={handleToggleEntity}
+    />
+  );
+}
+
+// ═══════════════════════════════════════════════
+// TAB 4: MAPPING EDITOR (full page version)
 // ═══════════════════════════════════════════════
 
 function ConnectorMappingTab({
@@ -1681,23 +1941,8 @@ function ConnectorMappingTab({
   entityMappings: EntityMappings[];
   onUpdateMapping: (entityId: string, sourceField: string, targetField: string) => void;
 }) {
-  const [activeEntity, setActiveEntity] = useState(entityMappings[0]?.entityId ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  const currentMapping = entityMappings.find((m) => m.entityId === activeEntity);
-
-  const totalFields = entityMappings.reduce((sum, m) => sum + m.mappings.length, 0);
-  const autoMapped = entityMappings.reduce(
-    (sum, m) => sum + m.mappings.filter((f) => f.autoMapped && f.targetField !== "-- Ignora --").length,
-    0
-  );
-  const avgConfidence = useMemo(() => {
-    const fields = entityMappings.flatMap((m) => m.mappings.filter((f) => f.confidence > 0));
-    if (fields.length === 0) return 0;
-    return Math.round(fields.reduce((sum, f) => sum + f.confidence, 0) / fields.length);
-  }, [entityMappings]);
-
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
@@ -1737,250 +1982,39 @@ function ConnectorMappingTab({
     }
   }, [config.id, entityMappings]);
 
-  // If no mappings yet (entities not selected in wizard)
-  if (entityMappings.length === 0) {
-    return (
-      <div
-        className="rounded-xl p-8 text-center"
-        style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark-subtle)" }}
-      >
-        <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--fg-muted)" }} />
-        <p className="text-sm" style={{ color: "var(--fg-secondary)" }}>
-          Seleziona le entita nel tab Setup per configurare la mappatura dei campi.
-        </p>
-      </div>
-    );
-  }
+  // Convert EntityMappings[] to MappingView's EntityMapping[] format
+  const mappingViewData = useMemo(
+    () =>
+      entityMappings.map((em) => ({
+        entityId: em.entityId,
+        entityName: em.entityName,
+        mappings: em.mappings.map((m) => ({
+          sourceField: m.sourceField,
+          sourceLabel: m.sourceField.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          targetField: m.targetField,
+          confidence: m.confidence,
+          autoMapped: m.autoMapped,
+        })),
+      })),
+    [entityMappings]
+  );
 
   return (
-    <div>
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold" style={{ color: "var(--fg-primary)" }}>
-            Mappatura Campi
-          </h2>
-          <p className="text-sm mt-0.5" style={{ color: "var(--fg-secondary)" }}>
-            {config.name} &rarr; Controlla.me
-          </p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || saved}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02] disabled:opacity-70"
-          style={{
-            background: saved
-              ? "var(--success)"
-              : "linear-gradient(135deg, var(--accent), var(--accent-dark, #E85A24))",
-          }}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Salvataggio...
-            </>
-          ) : saved ? (
-            <>
-              <Check className="w-4 h-4" />
-              Salvato
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              Salva
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Save error banner */}
-      {saveError && (
-        <div
-          className="flex items-center gap-3 p-4 rounded-xl mb-4 text-sm"
-          style={{
-            background: "rgba(229, 141, 120, 0.1)",
-            border: "1px solid rgba(229, 141, 120, 0.3)",
-            color: "var(--error)",
-          }}
-        >
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{saveError}</span>
-        </div>
-      )}
-
-      {/* AI banner */}
-      <div
-        className="flex items-center gap-3 p-4 rounded-xl mb-5 text-sm"
-        style={{
-          background: "rgba(173, 215, 255, 0.1)",
-          border: "1px solid rgba(173, 215, 255, 0.2)",
-          color: "var(--info)",
-        }}
-      >
-        <Sparkles className="w-5 h-5 shrink-0" />
-        <span>
-          {autoMapped}/{totalFields} campi mappati automaticamente dall&apos;AI.
-          Confidenza media: {avgConfidence}%. Verifica i campi evidenziati.
-        </span>
-      </div>
-
-      {/* Entity tabs */}
-      {entityMappings.length > 1 && (
-        <div className="flex gap-0 mb-5 border-b" style={{ borderColor: "var(--border-dark-subtle)" }}>
-          {entityMappings.map((m) => (
-            <button
-              key={m.entityId}
-              onClick={() => setActiveEntity(m.entityId)}
-              className="px-4 py-2.5 text-sm transition-colors relative"
-              style={{
-                color: activeEntity === m.entityId ? "var(--accent)" : "var(--fg-muted)",
-                fontWeight: activeEntity === m.entityId ? 500 : 400,
-              }}
-            >
-              {m.entityName} ({m.mappings.length})
-              {activeEntity === m.entityId && (
-                <motion.div
-                  layoutId="full-mapping-tab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ background: "var(--accent)" }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Two-column mapping table */}
-      {currentMapping && (
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ background: "var(--bg-raised)", border: "1px solid var(--border-dark-subtle)" }}
-        >
-          {/* Column headers */}
-          <div
-            className="grid grid-cols-[1fr_32px_1fr_56px] gap-2 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider"
-            style={{
-              color: "var(--fg-invisible)",
-              background: "var(--bg-overlay)",
-              borderBottom: "1px solid var(--border-dark-subtle)",
-            }}
-          >
-            <span>Campo Sorgente</span>
-            <span />
-            <span>Campo Destinazione</span>
-            <span className="text-right">Conf.</span>
-          </div>
-
-          {/* Mapping rows */}
-          {currentMapping.mappings.map((mapping, idx) => {
-            const isIgnored = mapping.targetField === "-- Ignora --";
-            const confColor = confidenceColor(mapping.confidence);
-
-            return (
-              <div
-                key={mapping.sourceField}
-                className="grid grid-cols-[1fr_32px_1fr_56px] gap-2 items-center px-5 py-3.5"
-                style={{
-                  opacity: isIgnored ? 0.5 : 1,
-                  borderBottom:
-                    idx < currentMapping.mappings.length - 1
-                      ? "1px solid var(--border-dark-subtle)"
-                      : "none",
-                }}
-              >
-                {/* Source field block */}
-                <div
-                  className="rounded-lg px-3 py-2"
-                  style={{
-                    background: "var(--bg-overlay)",
-                    border: "1px solid var(--border-dark-subtle)",
-                  }}
-                >
-                  <div className="text-sm font-mono truncate" style={{ color: "var(--fg-primary)" }}>
-                    {mapping.sourceField}
-                  </div>
-                </div>
-
-                {/* Arrow */}
-                <div className="flex justify-center">
-                  <ArrowRight
-                    className="w-4 h-4"
-                    style={{
-                      color: isIgnored
-                        ? "var(--fg-invisible)"
-                        : mapping.confidence >= 90
-                        ? "var(--success)"
-                        : mapping.confidence >= 70
-                        ? "var(--caution)"
-                        : "var(--error)",
-                    }}
-                  />
-                </div>
-
-                {/* Target dropdown */}
-                <div className="relative">
-                  <select
-                    value={mapping.targetField}
-                    onChange={(e) =>
-                      onUpdateMapping(currentMapping.entityId, mapping.sourceField, e.target.value)
-                    }
-                    className="w-full text-sm px-3 py-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 cursor-pointer appearance-none"
-                    style={{
-                      background: "var(--bg-base)",
-                      color: "var(--fg-primary)",
-                      border: "1px solid var(--border-dark-subtle)",
-                    }}
-                  >
-                    <option value="-- Ignora --">-- Ignora --</option>
-                    <option value="-- Nuovo campo --">-- Nuovo campo --</option>
-                    {config.targetFields.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                  {mapping.autoMapped && mapping.targetField !== "-- Ignora --" && (
-                    <span
-                      className="absolute -top-1.5 right-2 text-[9px] px-1.5 py-0.5 rounded-full font-medium"
-                      style={{ background: "rgba(173, 215, 255, 0.15)", color: "var(--info)" }}
-                    >
-                      AI
-                    </span>
-                  )}
-                </div>
-
-                {/* Confidence + status */}
-                <div className="flex items-center justify-end gap-1">
-                  {mapping.confidence > 0 ? (
-                    <>
-                      <span className="text-xs font-mono" style={{ color: confColor }}>
-                        {mapping.confidence}%
-                      </span>
-                      {mapping.confidence >= 90 ? (
-                        <CheckCircle className="w-3.5 h-3.5" style={{ color: confColor }} />
-                      ) : mapping.confidence >= 70 ? (
-                        <AlertCircle className="w-3.5 h-3.5" style={{ color: confColor }} />
-                      ) : (
-                        <AlertTriangle className="w-3.5 h-3.5" style={{ color: confColor }} />
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-xs" style={{ color: "var(--fg-invisible)" }}>
-                      --
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <MappingView
+      entityMappings={mappingViewData}
+      targetFieldOptions={config.targetFields}
+      connectorName={config.name}
+      onUpdateMapping={onUpdateMapping}
+      onSave={handleSave}
+      saving={saving}
+      saved={saved}
+      saveError={saveError}
+    />
   );
 }
 
 // ═══════════════════════════════════════════════
-// TAB 4: DATA VIEWER (records from crm_records)
+// TAB 5: DATA VIEWER (records from crm_records)
 // ═══════════════════════════════════════════════
 
 interface CrmRecord {
@@ -2205,19 +2239,24 @@ function ConnectorDataTab({
   };
 
   // Get primary display fields for table
-  const primaryFields = useMemo(() => {
+  const { primaryFields, totalFieldCount } = useMemo(() => {
     const fieldCounts: Record<string, number> = {};
     records.forEach((r) => {
       Object.keys(r.data || {}).forEach((k) => {
         fieldCounts[k] = (fieldCounts[k] || 0) + 1;
       });
     });
-    // Pick top 4 most common fields (skip very internal ones)
-    return Object.entries(fieldCounts)
+    const allVisible = Object.entries(fieldCounts)
       .sort((a, b) => b[1] - a[1])
       .map(([k]) => k)
-      .filter((k) => !k.startsWith("hs_") && !k.startsWith("_"))
-      .slice(0, 4);
+      .filter((k) => !k.startsWith("hs_") && !k.startsWith("_"));
+    // Pick top N most common fields.
+    // Previous limit of 4 was too restrictive — users thought only 4 fields were being mapped.
+    // Show up to 6 columns in the compact table; the expanded row shows all fields.
+    return {
+      primaryFields: allVisible.slice(0, 6),
+      totalFieldCount: allVisible.length,
+    };
   }, [records]);
 
   if (loading && records.length === 0) {
@@ -2554,6 +2593,20 @@ function ConnectorDataTab({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Field count hint — show when table truncates columns */}
+      {records.length > 0 && totalFieldCount > primaryFields.length && (
+        <div
+          className="flex items-center gap-2 mt-3 px-4 py-2 rounded-lg text-xs"
+          style={{ background: "var(--bg-overlay)", color: "var(--fg-muted)" }}
+        >
+          <Eye className="w-3.5 h-3.5 shrink-0" />
+          <span>
+            Tabella: {primaryFields.length} di {totalFieldCount} campi.
+            Clicca su un record per visualizzare tutti i campi.
+          </span>
         </div>
       )}
 

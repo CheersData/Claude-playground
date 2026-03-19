@@ -55,7 +55,10 @@ export interface HubSpotSearchResponse {
 
 // ─── Output type ───
 
-export type HubSpotObjectType = "contact" | "company" | "deal" | "ticket" | "engagement";
+export type HubSpotObjectType =
+  | "contact" | "company" | "deal" | "ticket" | "engagement"
+  | "product" | "line_item" | "quote" | "feedback_submission"
+  | "call" | "email" | "meeting" | "note" | "task";
 
 /** Parsed association: links this record to other HubSpot objects */
 export interface HubSpotAssociation {
@@ -153,6 +156,58 @@ export const PROPERTIES_BY_TYPE: Record<HubSpotObjectType, string[]> = {
     "hs_task_subject", "hs_task_status", "hs_task_priority",
     "lastmodifieddate",
   ],
+  product: [
+    "name", "description", "price", "hs_sku", "hs_cost_of_goods_sold",
+    "tax", "hs_recurring_billing_period",
+    "lastmodifieddate",
+  ],
+  line_item: [
+    "name", "quantity", "amount", "price", "discount",
+    "hs_product_id", "hs_line_item_currency_code",
+    "lastmodifieddate",
+  ],
+  quote: [
+    "hs_title", "hs_status", "hs_expiration_date",
+    "hs_quote_amount", "hs_currency",
+    "hs_sender_firstname", "hs_sender_lastname",
+    "lastmodifieddate",
+  ],
+  feedback_submission: [
+    "hs_content", "hs_response_group", "hs_submission_timestamp",
+    "hs_survey_channel", "hs_survey_type",
+    "lastmodifieddate",
+  ],
+  call: [
+    "hs_call_title", "hs_call_body", "hs_call_duration",
+    "hs_call_disposition", "hs_call_direction",
+    "hs_call_from_number", "hs_call_to_number",
+    "hs_timestamp", "hubspot_owner_id",
+    "lastmodifieddate",
+  ],
+  email: [
+    "hs_email_subject", "hs_email_text", "hs_email_status",
+    "hs_email_direction", "hs_email_sender_email",
+    "hs_timestamp", "hubspot_owner_id",
+    "lastmodifieddate",
+  ],
+  meeting: [
+    "hs_meeting_title", "hs_meeting_body",
+    "hs_meeting_start_time", "hs_meeting_end_time",
+    "hs_meeting_location", "hs_meeting_outcome",
+    "hs_timestamp", "hubspot_owner_id",
+    "lastmodifieddate",
+  ],
+  note: [
+    "hs_note_body", "hs_timestamp",
+    "hubspot_owner_id",
+    "lastmodifieddate",
+  ],
+  task: [
+    "hs_task_subject", "hs_task_body", "hs_task_status",
+    "hs_task_priority", "hs_task_type",
+    "hs_timestamp", "hubspot_owner_id",
+    "lastmodifieddate",
+  ],
 };
 
 /**
@@ -166,6 +221,15 @@ export const ASSOCIATIONS_BY_TYPE: Record<HubSpotObjectType, string[]> = {
   deal: ["contacts", "companies"],
   ticket: ["contacts", "companies"],
   engagement: ["contacts", "companies", "deals", "tickets"],
+  product: [],
+  line_item: ["deals"],
+  quote: ["contacts", "companies", "deals"],
+  feedback_submission: ["contacts"],
+  call: ["contacts", "companies", "deals"],
+  email: ["contacts", "companies", "deals"],
+  meeting: ["contacts", "companies", "deals"],
+  note: ["contacts", "companies", "deals"],
+  task: ["contacts", "companies", "deals"],
 };
 
 // ─── Parser ───

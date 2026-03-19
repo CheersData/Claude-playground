@@ -43,7 +43,7 @@ export interface HubSpotSyncMetadata {
   /** Total records upserted in this sync */
   totalRecords: number;
   /** Record count per object type */
-  countsByType: Record<HubSpotObjectType, number>;
+  countsByType: Partial<Record<HubSpotObjectType, number>>;
   /** Validation error count */
   validationErrors: number;
   /** DB error count */
@@ -219,7 +219,7 @@ export class HubSpotStore implements StoreInterface<HubSpotRecord> {
   private async updateSyncMetadata(
     admin: ReturnType<typeof createAdminClient>,
     syncedAt: string,
-    countsByType: Record<HubSpotObjectType, number>,
+    countsByType: Partial<Record<HubSpotObjectType, number>>,
     totalRecords: number
   ): Promise<void> {
     try {
@@ -359,26 +359,18 @@ function toRow(record: HubSpotRecord & { _mapped_fields?: Record<string, unknown
 // ─── Utilities ───
 
 /** Count records per HubSpot object type */
-function countByType(records: HubSpotRecord[]): Record<HubSpotObjectType, number> {
-  const counts: Record<HubSpotObjectType, number> = {
-    contact: 0,
-    company: 0,
-    deal: 0,
-    ticket: 0,
-    engagement: 0,
-  };
+function countByType(records: HubSpotRecord[]): Partial<Record<HubSpotObjectType, number>> {
+  const counts: Partial<Record<HubSpotObjectType, number>> = {};
 
   for (const r of records) {
-    if (r.objectType in counts) {
-      counts[r.objectType]++;
-    }
+    counts[r.objectType] = (counts[r.objectType] ?? 0) + 1;
   }
 
   return counts;
 }
 
 /** Format type counts for logging: "contact:5, company:3, deal:2" */
-function formatTypeCounts(counts: Record<HubSpotObjectType, number>): string {
+function formatTypeCounts(counts: Partial<Record<HubSpotObjectType, number>>): string {
   return Object.entries(counts)
     .filter(([, count]) => count > 0)
     .map(([type, count]) => `${type}:${count}`)

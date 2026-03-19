@@ -45,6 +45,7 @@ import "@/scripts/hr-sources";
 import "@/scripts/tax-sources";
 import "@/scripts/commercial-sources";
 import "@/scripts/medical-corpus-sources";
+import "@/scripts/notarial-sources";
 // import "@/scripts/real-estate-sources";  // futuro
 // import "@/scripts/consumer-sources";      // futuro
 

@@ -396,7 +396,7 @@ function buildDataContext(board: any, costs: any): string {
     lines.push(`Totale: ${board.total}`);
     if (board.byStatus) {
       const s = board.byStatus;
-      lines.push(`Open: ${s.open ?? 0} | In Progress: ${s.in_progress ?? 0} | Review: ${s.review ?? 0} | Done: ${s.done ?? 0} | Blocked: ${s.blocked ?? 0}`);
+      lines.push(`Open: ${s.open ?? 0} | In Progress: ${s.in_progress ?? 0} | Review: ${s.review ?? 0} | Done: ${s.done ?? 0} | Blocked: ${s.blocked ?? 0} | On Hold: ${s.on_hold ?? 0}`);
     }
     if (board.byDepartment) {
       lines.push("\nPer dipartimento:");

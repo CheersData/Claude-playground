@@ -23,8 +23,14 @@ export const STRIPE_SOURCES: DataSource[] = [
     vertical: "business",
     connector: "stripe",
     config: {
-      // Sync types: customer, subscription, invoice, payment_intent
-      syncTypes: ["customer", "subscription", "invoice", "payment_intent"],
+      // Sync types — all Stripe object types available for sync
+      // Core: customer, subscription, invoice, payment_intent
+      // Extended: product, price, charge, refund, dispute, payout, balance_transaction, coupon, checkout_session, payment_method
+      syncTypes: [
+        "customer", "subscription", "invoice", "payment_intent",
+        "product", "price", "charge", "refund", "dispute",
+        "payout", "balance_transaction", "coupon", "checkout_session", "payment_method",
+      ],
       // Uses STRIPE_SECRET_KEY from env (same key used by app runtime)
       // Works with both sk_test_ (test mode) and sk_live_ (live mode) keys
     },
@@ -47,8 +53,14 @@ export const HUBSPOT_SOURCES: DataSource[] = [
     vertical: "business",
     connector: "hubspot",
     config: {
-      // Sync types: company (first for association enrichment), contact, deal, ticket, engagement
-      syncTypes: ["company", "contact", "deal", "ticket", "engagement"],
+      // Sync types — all HubSpot CRM object types available for sync
+      // Core: company (first for association enrichment), contact, deal, ticket, engagement
+      // Extended: product, line_item, quote, feedback_submission, call, email, meeting, note, task
+      syncTypes: [
+        "company", "contact", "deal", "ticket", "engagement",
+        "product", "line_item", "quote", "feedback_submission",
+        "call", "email", "meeting", "note", "task",
+      ],
       // Auth modes:
       //   1. API Key (demo): set HUBSPOT_API_KEY env var (private app access token)
       //   2. OAuth2 PKCE (production): configure auth strategy below
@@ -93,6 +105,13 @@ export const GOOGLE_DRIVE_SOURCES: DataSource[] = [
       // Auth: GOOGLE_API_KEY (read-only, demo) or GOOGLE_SERVICE_ACCOUNT_KEY (server-to-server)
       // Exports text content from Google Docs/Sheets/Slides (set to false to skip)
       exportTextContent: true,
+      // Sync types — all Google Drive entity types available for sync
+      // Core: files, folders, documents, spreadsheets, presentations
+      // Extended: pdfs, images, videos, shared_drives, permissions, comments, revisions
+      syncTypes: [
+        "file", "folder", "document", "spreadsheet", "presentation",
+        "pdf", "image", "video", "shared_drive", "permission", "comment", "revision",
+      ],
     },
     lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 1000, // Rough estimate for demo
@@ -122,8 +141,13 @@ export const SALESFORCE_SOURCES: DataSource[] = [
     vertical: "business",
     connector: "salesforce",
     config: {
-      // Sync types: Account, Contact, Opportunity, Lead, Case
-      syncTypes: ["Account", "Contact", "Opportunity", "Lead", "Case"],
+      // Sync types — all Salesforce CRM object types available for sync
+      // Core: Account, Contact, Opportunity, Lead, Case
+      // Extended: Task, Event, Campaign, Product2, Order, Quote, Contract
+      syncTypes: [
+        "Account", "Contact", "Opportunity", "Lead", "Case",
+        "Task", "Event", "Campaign", "Product2", "Order", "Quote", "Contract",
+      ],
       // Auth modes:
       //   1. Access Token (demo): set SALESFORCE_ACCESS_TOKEN env var
       //   2. OAuth2 PKCE (production): configure auth strategy below
@@ -167,8 +191,15 @@ export const FATTURE_SOURCES: DataSource[] = [
     connector: "fatture-in-cloud",
     config: {
       // companyId is set per-user via integration_connections.config
-      // Sync types: issued invoices, received invoices, clients
-      syncTypes: ["issued_invoice", "received_invoice", "client"],
+      // Sync types — all Fatture in Cloud entity types available for sync
+      // Core: issued_invoice, received_invoice, client
+      // Extended: supplier, product, quote, order, delivery_note, receipt, fiscal_receipt, credit_note, proforma, f24, cashbook, taxes
+      syncTypes: [
+        "issued_invoice", "received_invoice", "client",
+        "supplier", "product", "quote", "order", "delivery_note",
+        "receipt", "fiscal_receipt", "credit_note", "proforma", "f24",
+        "cashbook", "taxes",
+      ],
     },
     lifecycle: "api-tested",  // Connector fully implemented + registered in plugin-registry (2026-03-18)
     estimatedItems: 1000,

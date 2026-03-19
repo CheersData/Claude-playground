@@ -114,8 +114,11 @@ export default function FieldMappingStep({
             <span className="w-12 text-right">Conf.</span>
           </div>
 
-          {/* Mapping rows */}
-          <div className="space-y-0">
+          {/* Mapping rows — scrollable container for many fields */}
+          <div
+            className="space-y-0 overflow-y-auto"
+            style={{ maxHeight: "min(60vh, 520px)" }}
+          >
             {activeMappings.mappings.map((mapping, i) => (
               <div
                 key={mapping.sourceField}
@@ -175,6 +178,16 @@ export default function FieldMappingStep({
               </div>
             ))}
           </div>
+
+          {/* Row count indicator — visible whenever scroll is needed */}
+          {activeMappings.mappings.length > 4 && (
+            <div
+              className="text-xs text-center py-2"
+              style={{ color: "var(--fg-muted)", borderTop: "1px solid var(--border-dark-subtle)" }}
+            >
+              {activeMappings.mappings.length} campi totali &mdash; scorri per vederli tutti
+            </div>
+          )}
         </motion.div>
       )}
 

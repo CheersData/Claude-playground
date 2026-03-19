@@ -168,15 +168,38 @@ export default function IntegrationAgentChat({
       setIsLoading(true);
 
       try {
-        const history = [...messages, userMessage].map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
+        // Map "assistant" role to "agent" for the API (SetupAgentMessage uses "user" | "agent")
+        // Also include structured data from agent messages so the LLM retains context
+        const history = [...messages, userMessage].map((m) => {
+          const mapped: Record<string, unknown> = {
+            role: m.role === "assistant" ? "agent" : m.role,
+            content: m.content,
+          };
+          // Include structured fields from agent messages for formatConversationHistory
+          if (m.role === "assistant") {
+            if (m.action) mapped.action = m.action;
+            if (m.proposedMapping && m.proposedMapping.length > 0) {
+              // Convert back from UI format (source/target) to API format (sourceField/targetField)
+              mapped.proposedMapping = m.proposedMapping.map((p) => ({
+                sourceField: p.source,
+                targetField: p.target,
+                confidence: p.confidence,
+              }));
+            }
+            if (m.connectorConfig) mapped.connectorConfig = m.connectorConfig;
+            if (m.questions && m.questions.length > 0) mapped.questions = m.questions;
+          }
+          return mapped;
+        });
 
         const res = await fetch("/api/integrations/agent/setup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: trimmed, history }),
+          body: JSON.stringify({
+            message: trimmed,
+            history,
+            ...(connectorId ? { connectorId } : {}),
+          }),
         });
 
         if (!res.ok) {
@@ -200,15 +223,37 @@ export default function IntegrationAgentChat({
 
         const data = await res.json();
 
+        // Map API field names to UI field names:
+        // - API returns "discoveredEntities", UI expects "entities"
+        // - API returns proposedMapping as { sourceField, targetField }, UI expects { source, target }
+        const mappedEntities = (data.discoveredEntities || data.entities || []).map(
+          (e: { id: string; name: string; description?: string; category?: string; isCore?: boolean; core?: boolean }) => ({
+            id: e.id,
+            name: e.name,
+            description: e.description,
+            category: e.category,
+            core: e.isCore ?? e.core,
+          })
+        );
+
+        const mappedProposedMapping = (data.proposedMapping || []).map(
+          (m: { sourceField?: string; source?: string; targetField?: string; target?: string; confidence: number }) => ({
+            source: m.sourceField ?? m.source ?? "",
+            target: m.targetField ?? m.target ?? "",
+            // Agent returns confidence as 0.0-1.0, UI expects percentage (0-100)
+            confidence: m.confidence <= 1 ? Math.round(m.confidence * 100) : Math.round(m.confidence),
+          })
+        );
+
         const agentMessage: ChatMessage = {
           role: "assistant",
           content: data.message || "Nessuna risposta dall'agente.",
           questions: data.questions,
-          proposedMapping: data.proposedMapping,
+          proposedMapping: mappedProposedMapping.length > 0 ? mappedProposedMapping : undefined,
           connectorConfig: data.connectorConfig,
           needsUserInput: data.needsUserInput,
           action: data.action,
-          entities: data.entities,
+          entities: mappedEntities.length > 0 ? mappedEntities : undefined,
         };
 
         setMessages((prev) => [...prev, agentMessage]);
@@ -225,7 +270,7 @@ export default function IntegrationAgentChat({
         inputRef.current?.focus();
       }
     },
-    [isLoading, messages]
+    [isLoading, messages, connectorId]
   );
 
   const handleSubmit = (e: React.FormEvent) => {

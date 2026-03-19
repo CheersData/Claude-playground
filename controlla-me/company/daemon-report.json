@@ -1,18 +1,18 @@
 {
-  "timestamp": "2026-03-18T22:08:32.162Z",
-  "durationMs": 1994,
+  "timestamp": "2026-03-19T09:40:47.784Z",
+  "durationMs": 250,
   "board": {
     "total": 0,
-    "open": 51,
-    "inProgress": 4,
-    "done": 941
+    "open": 0,
+    "inProgress": 0,
+    "done": 976
   },
   "signals": [
     {
       "deptId": "acceleration",
       "sourceId": "ACC-1",
       "title": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time",
-      "description": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time [Dept memory: [context] acceleration_current_status: Health: OK. 8 tasks completed. Young department (established Q1). Code quality: 0 dead dependencies, 0 build warnings, ESLint clean, TypeScript strict. Resolved ]",
+      "description": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -21,7 +21,7 @@
       "deptId": "architecture",
       "sourceId": "ARCH-1",
       "title": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-dr",
-      "description": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-driven [Dept memory: [context] architecture_current_status: Health: OK. 205 tasks completed total, 4 in progress. Tech debt: 0 critical, 0 high, 2 medium (multi-vertical pipeline, SSE+Edge), 3 low. Resolved recently: TD-1]",
+      "description": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-driven",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -30,7 +30,7 @@
       "deptId": "architecture",
       "sourceId": "ARCH-2",
       "title": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su No",
-      "description": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su Node.js, monitorare [Dept memory: [learning] architecture_sse_edge_incompatibility: SSE with maxDuration=300 does not work on Vercel Edge Runtime (30s limit). Currently runs on Node.js — OK. Monitor if migrating to Edge.]",
+      "description": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su Node.js, monitorare",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -57,7 +57,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-march_2026-0",
       "title": "Write content: Contratto di lavoro: 7 clausole illegali che il tuo datore n",
-      "description": "Content: \"Contratto di lavoro: 7 clausole illegali che il tuo datore non vuole che tu sappia\". Type: pillar. Keyword: clausole illegali contratto lavoro [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
+      "description": "Content: \"Contratto di lavoro: 7 clausole illegali che il tuo datore non vuole che tu sappia\". Type: pillar. Keyword: clausole illegali contratto lavoro",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -66,7 +66,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-march_2026-1",
       "title": "Write content: Social: LinkedIn carousel '5 clausole che nessuno legge (e c",
-      "description": "Content: \"Social: LinkedIn carousel '5 clausole che nessuno legge (e che costano caro)'\". Type: social. Keyword: clausole illegali contratto [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
+      "description": "Content: \"Social: LinkedIn carousel '5 clausole che nessuno legge (e che costano caro)'\". Type: social. Keyword: clausole illegali contratto",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -93,7 +93,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-march_2026-4",
       "title": "Write content: Social: Instagram story '3 clausole di affitto che potrebber",
-      "description": "Content: \"Social: Instagram story '3 clausole di affitto che potrebbero essere illegali'\". Type: social. Keyword: clausole affitto illegali [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
+      "description": "Content: \"Social: Instagram story '3 clausole di affitto che potrebbero essere illegali'\". Type: social. Keyword: clausole affitto illegali",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -156,7 +156,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-april_2026-5",
       "title": "Write content: Contratti per PMI: le 5 clausole più pericolose nei contratt",
-      "description": "Content: \"Contratti per PMI: le 5 clausole più pericolose nei contratti di fornitura\". Type: pillar. Keyword: clausole pericolose contratti commerciali PMI [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
+      "description": "Content: \"Contratti per PMI: le 5 clausole più pericolose nei contratti di fornitura\". Type: pillar. Keyword: clausole pericolose contratti commerciali PMI",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -174,7 +174,7 @@
       "deptId": "quality-assurance",
       "sourceId": "E1",
       "title": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con",
-      "description": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con browser headless [Dept memory: [context] quality-assurance_current_status: Health: OK. 118 tasks completed, 6 in progress. Coverage: 72% overall (target 80%). 397 TS unit tests passing (19 files, Vitest 4). 34 Python unit tests pas]",
+      "description": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con browser headless",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -183,7 +183,7 @@
       "deptId": "security",
       "sourceId": "SEC-LOW-1",
       "title": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commercia",
-      "description": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI [Dept memory: [warning] security_dpa_not_signed: DPA (Data Processing Agreements) with AI providers not signed: Anthropic, Google, Mistral. Blocks any B2B contract, HR vertical with business clients, and PMI Compli]",
+      "description": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": true
@@ -192,7 +192,7 @@
       "deptId": "security",
       "sourceId": "SEC-LOW-2",
       "title": "Consulente EU AI Act — scadenza agosto 2026",
-      "description": "Consulente EU AI Act — scadenza agosto 2026 [Dept memory: [context] security_current_status: Health: OK (GREEN). 71 tasks completed. Last full audit: 2026-03-02. Findings: 0 critical, 0 high, 9 medium (all resolved), 4 low open. Infrastructure: HTTP headers ]",
+      "description": "Consulente EU AI Act — scadenza agosto 2026",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": true
@@ -291,7 +291,7 @@
       "deptId": "strategy",
       "sourceId": "D-03",
       "title": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE ",
-      "description": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE 270. Tech readiness 95%. Finestra competitiva: 4-5 mesi. Decisione urgente: se GO, avvio questa settimana; se NO-GO, rivalutare in Q3 con dato aggiornato su LangGraph. [Dept memory: [context] strategy_current_status: Health: OK. 30 tasks completed. OKR Q2 defined with 3 objectives, 9 KRs. O1 (production-ready): on_track. O2 (corpus + HR vertical): on_track. O3 (market validation)]",
+      "description": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE 270. Tech readiness 95%. Finestra competitiva: 4-5 mesi. Decisione urgente: se GO, avvio questa settimana; se NO-GO, rivalutare in Q3 con dato aggiornato su LangGraph.",
       "priority": "high",
       "routing": "feature-request:medium",
       "requiresHuman": true
@@ -318,7 +318,7 @@
       "deptId": "strategy",
       "sourceId": "D-06",
       "title": "Approvare deploy in produzione e pubblicazione landing /affitti + content calend",
-      "description": "Approvare deploy in produzione e pubblicazione landing /affitti + content calendar Marketing. La landing è pronta, il CI/CD è verde, la security è verde. L'unico blocco è autorizzazione esplicita. Zero costi aggiuntivi (Vercel free tier sufficiente per traffico iniziale). [Dept memory: [warning] strategy_zero_real_users: Zero real users after Q1. Product not in public production. Cannot validate economic model, identify friction points, or build social proof. Deploy to Vercel is tec]",
+      "description": "Approvare deploy in produzione e pubblicazione landing /affitti + content calendar Marketing. La landing è pronta, il CI/CD è verde, la security è verde. L'unico blocco è autorizzazione esplicita. Zero costi aggiuntivi (Vercel free tier sufficiente per traffico iniziale).",
       "priority": "high",
       "routing": "feature-request:medium",
       "requiresHuman": true
@@ -354,7 +354,7 @@
       "deptId": "strategy",
       "sourceId": "OPP-3",
       "title": "Poimandres — Console Multi-Agente Standalone",
-      "description": "Poimandres — Console Multi-Agente Standalone. Next action: Decisione boss D-03 urgente — finestra si chiude entro luglio 2026. Se GO: DNS poimandres.work, pricing model B2B (freemium vs SaaS), avvio parallelo a controlla.me senza distogliere focus consumer. [Dept memory: [context] strategy_current_status: Health: OK. 30 tasks completed. OKR Q2 defined with 3 objectives, 9 KRs. O1 (production-ready): on_track. O2 (corpus + HR vertical): on_track. O3 (market validation)]",
+      "description": "Poimandres — Console Multi-Agente Standalone. Next action: Decisione boss D-03 urgente — finestra si chiude entro luglio 2026. Se GO: DNS poimandres.work, pricing model B2B (freemium vs SaaS), avvio parallelo a controlla.me senza distogliere focus consumer.",
       "priority": "medium",
       "routing": "feature-request:medium",
       "requiresHuman": false
@@ -363,7 +363,7 @@
       "deptId": "strategy",
       "sourceId": "OPP-4",
       "title": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act",
-      "description": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act. Next action: BLOCCATA da DPA provider AI (D-01/D-02/D-03). Explore in Q2: Marketing redige landing page e articolo SEO '231 PMI'. GO in Q3 se DPA firmati entro aprile. [Dept memory: [context] strategy_current_status: Health: OK. 30 tasks completed. OKR Q2 defined with 3 objectives, 9 KRs. O1 (production-ready): on_track. O2 (corpus + HR vertical): on_track. O3 (market validation)]",
+      "description": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act. Next action: BLOCCATA da DPA provider AI (D-01/D-02/D-03). Explore in Q2: Marketing redige landing page e articolo SEO '231 PMI'. GO in Q3 se DPA firmati entro aprile.",
       "priority": "medium",
       "routing": "feature-request:medium",
       "requiresHuman": true
@@ -372,7 +372,7 @@
       "deptId": "strategy",
       "sourceId": "OPP-5",
       "title": "Verticale Commerciale B2B (contratti commerciali tra imprese)",
-      "description": "Verticale Commerciale B2B (contratti commerciali tra imprese). Next action: Backlog — affrontare dopo HR e Tax. Segnalare a Marketing per keyword research ('contratto fornitura analisi' etc.). [Dept memory: [context] strategy_current_status: Health: OK. 30 tasks completed. OKR Q2 defined with 3 objectives, 9 KRs. O1 (production-ready): on_track. O2 (corpus + HR vertical): on_track. O3 (market validation)]",
+      "description": "Verticale Commerciale B2B (contratti commerciali tra imprese). Next action: Backlog — affrontare dopo HR e Tax. Segnalare a Marketing per keyword research ('contratto fornitura analisi' etc.).",
       "priority": "medium",
       "routing": "feature-request:medium",
       "requiresHuman": false
@@ -381,7 +381,7 @@
       "deptId": "trading",
       "sourceId": "action-trading-0",
       "title": "PRIORITY: Execute Cycle 4 grid search (60 combos) from external terminal",
-      "description": "PRIORITY: Execute Cycle 4 grid search (60 combos) from external terminal [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
+      "description": "PRIORITY: Execute Cycle 4 grid search (60 combos) from external terminal",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -390,7 +390,7 @@
       "deptId": "trading",
       "sourceId": "action-trading-1",
       "title": "Step 1 (Grid 2yr): cd trading && py -m src.backtest grid --start 2023-01-01 --en",
-      "description": "Step 1 (Grid 2yr): cd trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000 [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
+      "description": "Step 1 (Grid 2yr): cd trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -399,7 +399,7 @@
       "deptId": "trading",
       "sourceId": "action-trading-2",
       "title": "Step 2 (Analyze): Open grid_YYYYMMDD_HHMMSS/grid_results.csv → find best Sharpe ",
-      "description": "Step 2 (Analyze): Open grid_YYYYMMDD_HHMMSS/grid_results.csv → find best Sharpe > 1.0 [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
+      "description": "Step 2 (Analyze): Open grid_YYYYMMDD_HHMMSS/grid_results.csv → find best Sharpe > 1.0",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -408,7 +408,7 @@
       "deptId": "trading",
       "sourceId": "action-trading-3",
       "title": "Step 3 (Robustness): If GO in Step 1, run 3-year grid: py -m src.backtest grid -",
-      "description": "Step 3 (Robustness): If GO in Step 1, run 3-year grid: py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000 [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
+      "description": "Step 3 (Robustness): If GO in Step 1, run 3-year grid: py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -426,7 +426,7 @@
       "deptId": "trading",
       "sourceId": "action-trading-5",
       "title": "Step 5 (Decision): If Sharpe > 1.0 + robustness checks pass → commit params, pla",
-      "description": "Step 5 (Decision): If Sharpe > 1.0 + robustness checks pass → commit params, plan Phase 3 [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
+      "description": "Step 5 (Decision): If Sharpe > 1.0 + robustness checks pass → commit params, plan Phase 3",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -453,7 +453,7 @@
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-0",
       "title": "Implement: OCR immagini (tesseract.js rimosso)",
-      "description": "OCR immagini (tesseract.js rimosso) [Dept memory: [context] ufficio-legale_current_status: Health: OK. 32 tasks completed. Pipeline: 7 agents (4 core + 3 support). Tier system active (intern/associate/partner). Corpus: ~5600 articles, 18 sources. Sco]",
+      "description": "OCR immagini (tesseract.js rimosso)",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -462,7 +462,7 @@
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-1",
       "title": "Implement: Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt p",
-      "description": "Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt pending) [Dept memory: [context] ufficio-legale_current_status: Health: OK. 32 tasks completed. Pipeline: 7 agents (4 core + 3 support). Tier system active (intern/associate/partner). Corpus: ~5600 articles, 18 sources. Sco]",
+      "description": "Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt pending)",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -471,7 +471,7 @@
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-2",
       "title": "Implement: Sistema referral avvocati (tabelle DB esistono, no UI)",
-      "description": "Sistema referral avvocati (tabelle DB esistono, no UI) [Dept memory: [context] ufficio-legale_current_status: Health: OK. 32 tasks completed. Pipeline: 7 agents (4 core + 3 support). Tier system active (intern/associate/partner). Corpus: ~5600 articles, 18 sources. Sco]",
+      "description": "Sistema referral avvocati (tabelle DB esistono, no UI)",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -480,7 +480,7 @@
       "deptId": "ux-ui",
       "sourceId": "UX-2",
       "title": "Audit accessibilita WCAG 2.1 AA su console components non eseguito",
-      "description": "Audit accessibilita WCAG 2.1 AA su console components non eseguito [Dept memory: [warning] ux-ui_wcag_audit_pending: Console components not audited for WCAG 2.1 AA accessibility. No accessibility audit has been conducted yet. Gap UX-2 (medium severity).; [context] ux-ui_current_st]",
+      "description": "Audit accessibilita WCAG 2.1 AA su console components non eseguito",
       "priority": "medium",
       "routing": "ui-ux-request:polish",
       "requiresHuman": false
@@ -492,21 +492,10 @@
   "goalChecks": [],
   "pendingDecisionReviews": 0,
   "cmeDirective": {
-    "mode": "misto",
-    "instructions": "PRIORITÀ 1 — AUDIT: Ci sono 4 task in_progress. Verifica OGNUNO:\n  • Se bloccato/fermo da troppo tempo → rimetti a \"open\" (company-tasks.ts reopen <id>)\n  • Se completato ma non chiuso → chiudi con \"done\" (company-tasks.ts done <id> --summary \"...\")\n  • Se effettivamente in lavorazione → lascia in_progress\n\nPRIORITÀ 2 — SMALTIMENTO: Dopo l'audit, ci sono 51 task open.\n  Prendi i primi 5 per priorità, fai routing con i decision trees, e smaltisci UNO ALLA VOLTA.\n  Per ogni task: routing → crea/assegna al dipartimento → il dipartimento esegue → verifica → done.\n  Quando finisci i 5, il daemon al prossimo ciclo genererà i prossimi 5.",
-    "openTasksBatch": [
-      "[HIGH] Daemon CME directive — brief operativo automatico per CME (operations) — id:33d7e2f7",
-      "[MEDIUM] Sinapsi Active — completare department cards + auto-routing CME + skill executor operativi (protocols) — id:92ce640c",
-      "[HIGH] Reflection/Critic Pattern — attivare Layer 4 + Critic Agent post-Advisor + iteration loop trading (architecture) — id:d5d38223",
-      "[HIGH] Learning & Adaptation Framework — feedback loop + LLM-as-judge + dynamic few-shot (architecture) — id:29aacb49",
-      "[MEDIUM] E2E test OAuth flow completo con credenziali reali (architecture) — id:24c392db"
-    ],
-    "inProgressToAudit": [
-      "[MEDIUM] Creare migration SQL per SET LOCAL hnsw.ef_search=200 nelle RPC functions + verificare NULL embeddings + abbassare thres (data-engineering) — id:b6b6419d",
-      "[MEDIUM] Daily SEC — check variabili e route [CTRL-2026-03-18] (security) — id:2d877630",
-      "[MEDIUM] Daily OPS — health check agenti + pipeline [CTRL-2026-03-18] (operations) — id:b35efb9d",
-      "[HIGH] Daily QA — test suite + typecheck [CTRL-2026-03-18] (quality-assurance) — id:4e3f1bcf"
-    ],
-    "requiresPlenary": false
+    "mode": "plenaria",
+    "instructions": "BOARD VUOTO: 0 open, 0 in_progress. Tutti i task sono completati.\n\nAZIONE: Riunione plenaria obbligatoria.\n  1. Scansiona status.json di tutti i dipartimenti (vision, gap, blockers)\n  2. Leggi i signal del daemon report (opportunità, rischi)\n  3. Controlla goal a rischio (Forma Mentis Layer 3)\n  4. Controlla decisioni pending review (Layer 4)\n  5. Proponi al boss i nuovi piani di lavoro con priorità\n  6. Dopo approvazione boss → crea i task per i dipartimenti\n\nDOPO LA PLENARIA: il board avrà nuovi task open → al prossimo risveglio,\nil daemon genererà direttiva \"smaltimento\" e il ciclo ricomincia.",
+    "openTasksBatch": [],
+    "inProgressToAudit": [],
+    "requiresPlenary": true
   }
 }

@@ -15,6 +15,8 @@ import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { discoverEntities } from "@/lib/staff/data-connector/entity-discovery";
+import { TARGET_SCHEMAS } from "@/lib/staff/data-connector/mapping/target-schemas";
 
 // ─── Static Connector Metadata ───
 // Single source of truth for connector wizard configuration.
@@ -92,43 +94,45 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "contacts",
         name: "Contatti",
         estimatedRecords: 12450,
-        fields: ["Nome", "Email", "Telefono", "Azienda", "Ruolo"],
+        fields: ["Nome", "Cognome", "Email", "Telefono", "Cellulare", "Azienda", "Ruolo", "Indirizzo", "Citta", "Provincia", "CAP", "Paese", "Sito web", "Proprietario", "Data creazione", "Ultima modifica"],
       },
       {
         id: "opportunities",
         name: "Opportunita",
         estimatedRecords: 3210,
-        fields: ["Titolo", "Valore", "Fase", "Probabilita"],
+        fields: ["Titolo", "Valore", "Fase", "Probabilita", "Data chiusura", "Tipo", "Pipeline", "Proprietario", "Descrizione", "Contatti associati", "Data creazione", "Ultima modifica"],
       },
       {
         id: "pipeline",
         name: "Pipeline",
         estimatedRecords: 8,
-        fields: ["Nome", "Fasi", "Probabilita default"],
+        fields: ["Nome", "Fasi", "Probabilita default", "Attiva", "Tipo", "Data creazione"],
       },
       {
         id: "activities",
         name: "Attivita",
         estimatedRecords: 8920,
-        fields: ["Tipo", "Data", "Oggetto", "Contatto"],
+        fields: ["Tipo", "Data", "Oggetto", "Contatto", "Descrizione", "Stato", "Priorita", "Proprietario", "Durata", "Data creazione"],
       },
       {
         id: "notes",
         name: "Note",
         estimatedRecords: 2100,
-        fields: ["Testo", "Data", "Autore"],
+        fields: ["Testo", "Data", "Autore", "Contatto associato", "Opportunita associata", "Data creazione"],
       },
       {
         id: "reports",
         name: "Report",
         estimatedRecords: 45,
-        fields: ["Nome", "Tipo", "Ultima esecuzione"],
+        fields: ["Nome", "Tipo", "Ultima esecuzione", "Formato", "Filtri", "Data creazione"],
       },
     ],
     targetFields: [
-      "nome", "cognome", "email", "telefono", "azienda", "ruolo",
-      "indirizzo", "titolo", "valore", "fase", "probabilita",
-      "data_creazione", "data_modifica", "note", "tipo", "oggetto", "stato",
+      "nome", "cognome", "email", "telefono", "cellulare", "azienda", "ruolo",
+      "indirizzo", "citta", "provincia", "cap", "paese", "sito_web",
+      "titolo", "valore", "fase", "probabilita", "pipeline", "proprietario",
+      "data_creazione", "data_modifica", "data_chiusura", "note", "tipo", "oggetto", "stato",
+      "descrizione", "priorita", "durata", "formato", "filtri",
     ],
   },
   hubspot: {
@@ -155,25 +159,41 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "contacts",
         name: "Contatti",
         estimatedRecords: 8200,
-        fields: ["Nome", "Email", "Azienda", "Lifecycle stage"],
+        fields: ["Nome", "Cognome", "Email", "Telefono", "Cellulare", "Azienda", "Qualifica", "Lifecycle stage", "Stato lead", "Proprietario", "Indirizzo", "Citta", "Provincia", "CAP", "Paese", "Sito web", "Data creazione", "Ultima modifica"],
+      },
+      {
+        id: "companies",
+        name: "Aziende",
+        estimatedRecords: 3400,
+        fields: ["Ragione sociale", "Dominio web", "Settore", "Telefono", "Numero dipendenti", "Fatturato annuo", "Citta", "Provincia", "Paese", "Descrizione", "Tipo", "Proprietario", "Data creazione", "Ultima modifica"],
       },
       {
         id: "deals",
         name: "Deal",
         estimatedRecords: 1450,
-        fields: ["Nome", "Valore", "Pipeline", "Stage"],
+        fields: ["Nome trattativa", "Importo", "Fase", "Pipeline", "Data chiusura prevista", "Tipo trattativa", "Proprietario", "Descrizione", "Priorita", "Probabilita chiusura", "Contatti associati", "Data creazione", "Ultima modifica"],
+      },
+      {
+        id: "tickets",
+        name: "Ticket",
+        estimatedRecords: 2100,
+        fields: ["Oggetto", "Contenuto", "Pipeline", "Stato", "Priorita", "Categoria", "Assegnatario", "Canale di origine", "Data chiusura", "Data creazione", "Ultima modifica"],
       },
       {
         id: "campaigns",
         name: "Campagne",
         estimatedRecords: 120,
-        fields: ["Nome", "Tipo", "Budget", "Risultati"],
+        fields: ["Nome", "Tipo", "Budget", "Risultati", "Data inizio", "Data fine", "Stato"],
       },
     ],
     targetFields: [
-      "nome", "cognome", "email", "azienda", "ruolo", "valore",
-      "pipeline", "stage", "budget", "tipo_campagna", "risultati",
-      "lifecycle_stage",
+      "nome", "cognome", "email", "telefono", "cellulare", "azienda", "qualifica", "ruolo",
+      "indirizzo", "citta", "provincia", "cap", "paese", "sito_web", "dominio",
+      "ragione_sociale", "settore", "numero_dipendenti", "fatturato_annuo",
+      "valore", "pipeline", "stage", "fase", "budget", "tipo_campagna", "risultati",
+      "lifecycle_stage", "stato_lead", "proprietario", "priorita",
+      "oggetto", "contenuto", "categoria", "assegnatario", "canale",
+      "data_creazione", "data_modifica", "data_chiusura", "descrizione", "tipo",
     ],
   },
   stripe: {
@@ -194,24 +214,33 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "invoices",
         name: "Fatture",
         estimatedRecords: 3200,
-        fields: ["Numero", "Importo", "Stato", "Cliente", "Data"],
+        fields: ["Numero", "Importo", "Stato", "Cliente", "Data", "Valuta", "Data scadenza", "Descrizione", "Sottotitolo", "Tasse", "Sconto", "Totale", "Email cliente"],
       },
       {
         id: "subscriptions",
         name: "Abbonamenti",
         estimatedRecords: 890,
-        fields: ["Piano", "Stato", "Cliente", "Rinnovo"],
+        fields: ["Piano", "Stato", "Cliente", "Rinnovo", "Data inizio", "Data fine", "Importo", "Intervallo", "Valuta", "Email cliente", "Annullamento programmato"],
       },
       {
         id: "payments",
         name: "Pagamenti",
         estimatedRecords: 12400,
-        fields: ["Importo", "Metodo", "Stato", "Data"],
+        fields: ["Importo", "Metodo", "Stato", "Data", "Valuta", "Cliente", "Email", "Descrizione", "ID fattura", "Commissione", "Importo netto", "Paese carta"],
+      },
+      {
+        id: "customers",
+        name: "Clienti",
+        estimatedRecords: 5600,
+        fields: ["Nome", "Email", "Telefono", "Indirizzo", "Citta", "CAP", "Paese", "Valuta", "Saldo", "Data creazione"],
       },
     ],
     targetFields: [
-      "numero_fattura", "importo", "stato", "cliente", "data",
-      "piano", "rinnovo", "metodo_pagamento", "valuta",
+      "numero_fattura", "importo", "importo_netto", "stato", "cliente", "data",
+      "piano", "rinnovo", "metodo_pagamento", "valuta", "email",
+      "data_scadenza", "data_inizio", "data_fine", "intervallo",
+      "descrizione", "tasse", "sconto", "totale", "commissione",
+      "nome", "telefono", "indirizzo", "citta", "cap", "paese", "saldo",
     ],
   },
   "google-drive": {
@@ -236,18 +265,19 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "files",
         name: "File",
         estimatedRecords: 2500,
-        fields: ["Nome", "Tipo", "Dimensione", "Proprietario", "Data modifica"],
+        fields: ["Nome", "Tipo MIME", "Dimensione", "Proprietario", "Data creazione", "Data modifica", "Cartella padre", "Condiviso", "Link web", "Descrizione", "Con stella", "Nel cestino", "Estensione", "Ultima modifica da"],
       },
       {
         id: "folders",
         name: "Cartelle",
         estimatedRecords: 180,
-        fields: ["Nome", "Percorso", "Proprietario"],
+        fields: ["Nome", "Percorso", "Proprietario", "Data creazione", "Data modifica", "Condivisa", "Link web", "Cartella padre"],
       },
     ],
     targetFields: [
-      "nome_file", "tipo_file", "dimensione", "proprietario",
-      "percorso", "data_modifica", "data_creazione",
+      "nome_file", "tipo_file", "tipo_mime", "dimensione", "proprietario",
+      "percorso", "data_modifica", "data_creazione", "cartella_padre",
+      "condiviso", "link_web", "descrizione", "estensione",
     ],
   },
   normattiva: {
@@ -264,25 +294,25 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "codici",
         name: "Codici",
         estimatedRecords: 3200,
-        fields: ["Titolo", "Numero Articolo", "Corpo", "Fonte", "Data vigenza"],
+        fields: ["Titolo", "Numero Articolo", "Corpo", "Fonte", "Data vigenza", "Tipo atto", "Data pubblicazione", "Stato vigenza", "Note"],
       },
       {
         id: "decreti",
         name: "Decreti Legislativi",
         estimatedRecords: 1850,
-        fields: ["Titolo", "Numero", "Data", "Articoli", "Materia"],
+        fields: ["Titolo", "Numero", "Data", "Articoli", "Materia", "Fonte", "Stato vigenza", "Data pubblicazione GU"],
       },
       {
         id: "leggi",
         name: "Leggi Ordinarie",
         estimatedRecords: 580,
-        fields: ["Titolo", "Numero", "Data", "Articoli", "Materia"],
+        fields: ["Titolo", "Numero", "Data", "Articoli", "Materia", "Fonte", "Stato vigenza", "Data pubblicazione GU"],
       },
     ],
     targetFields: [
       "titolo_atto", "numero_articolo", "corpo_articolo", "fonte",
       "data_vigenza", "materia", "tipo_atto", "numero_atto",
-      "data_pubblicazione",
+      "data_pubblicazione", "stato_vigenza", "data_pubblicazione_gu", "note",
     ],
   },
   eurlex: {
@@ -299,25 +329,26 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "regulations",
         name: "Regolamenti UE",
         estimatedRecords: 920,
-        fields: ["Titolo", "Numero CELEX", "Data", "Articoli", "Materia"],
+        fields: ["Titolo", "Numero CELEX", "Data", "Articoli", "Materia", "Stato", "Lingua", "Data pubblicazione GU UE"],
       },
       {
         id: "directives",
         name: "Direttive UE",
         estimatedRecords: 650,
-        fields: ["Titolo", "Numero CELEX", "Data", "Articoli", "Scadenza recepimento"],
+        fields: ["Titolo", "Numero CELEX", "Data", "Articoli", "Scadenza recepimento", "Materia", "Stato recepimento", "Lingua", "Data pubblicazione GU UE"],
       },
       {
         id: "decisions",
         name: "Decisioni UE",
         estimatedRecords: 340,
-        fields: ["Titolo", "Numero CELEX", "Data", "Destinatari"],
+        fields: ["Titolo", "Numero CELEX", "Data", "Destinatari", "Materia", "Stato", "Lingua", "Data pubblicazione GU UE"],
       },
     ],
     targetFields: [
       "titolo_atto", "numero_celex", "numero_articolo", "corpo_articolo",
       "fonte", "data_pubblicazione", "materia", "tipo_atto_eu",
-      "scadenza_recepimento",
+      "scadenza_recepimento", "stato", "stato_recepimento", "lingua",
+      "data_pubblicazione_gu_ue", "destinatari",
     ],
   },
   "fatture-in-cloud": {
@@ -345,31 +376,34 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         id: "issued_invoices",
         name: "Fatture Emesse",
         estimatedRecords: 4500,
-        fields: ["Numero", "Data", "Cliente", "Importo", "Stato", "Tipo documento"],
+        fields: ["Numero", "Data", "Cliente", "Importo netto", "Importo lordo", "IVA", "Stato", "Tipo documento", "Descrizione", "Note", "Data scadenza", "Metodo pagamento", "Valuta", "Codice SDI"],
       },
       {
         id: "received_invoices",
         name: "Fatture Ricevute",
         estimatedRecords: 2800,
-        fields: ["Numero", "Data", "Fornitore", "Importo", "Stato", "Tipo documento"],
+        fields: ["Numero", "Data", "Fornitore", "Importo netto", "Importo lordo", "IVA", "Stato", "Tipo documento", "Descrizione", "Note", "Data scadenza", "Metodo pagamento", "Valuta", "Codice SDI"],
       },
       {
         id: "clients",
         name: "Clienti",
         estimatedRecords: 1200,
-        fields: ["Ragione sociale", "P.IVA", "Email", "Indirizzo", "Codice SDI"],
+        fields: ["Ragione sociale", "P.IVA", "Codice fiscale", "Email", "PEC", "Telefono", "Indirizzo", "Citta", "CAP", "Provincia", "Paese", "Codice SDI", "Banca", "IBAN", "Note"],
       },
       {
         id: "suppliers",
         name: "Fornitori",
         estimatedRecords: 650,
-        fields: ["Ragione sociale", "P.IVA", "Email", "Indirizzo", "Codice SDI"],
+        fields: ["Ragione sociale", "P.IVA", "Codice fiscale", "Email", "PEC", "Telefono", "Indirizzo", "Citta", "CAP", "Provincia", "Paese", "Codice SDI", "Banca", "IBAN", "Note"],
       },
     ],
     targetFields: [
       "numero_fattura", "data_fattura", "ragione_sociale", "partita_iva",
-      "importo", "stato", "tipo_documento", "email", "indirizzo",
-      "codice_sdi", "codice_fiscale",
+      "codice_fiscale", "importo_netto", "importo_lordo", "iva",
+      "importo", "stato", "tipo_documento", "email", "pec", "telefono",
+      "indirizzo", "citta", "cap", "provincia", "paese",
+      "codice_sdi", "descrizione", "note", "data_scadenza",
+      "metodo_pagamento", "valuta", "banca", "iban",
     ],
   },
   "universal-rest": {
@@ -415,6 +449,100 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
     ],
   },
 };
+
+// ─── Target field enrichment ───
+// Expands the static CONNECTOR_META.targetFields by merging in fields from
+// the comprehensive TARGET_SCHEMAS (target-schemas.ts) that are relevant
+// to this connector's entity types. This ensures the mapping dropdown
+// shows ALL available target fields, not just the 9-17 hardcoded ones.
+
+const ENTITY_TO_SCHEMA: Record<string, string> = {
+  contacts: "contacts",
+  companies: "companies",
+  deals: "deals",
+  opportunities: "opportunities",
+  tickets: "tickets",
+  products: "products",
+  invoices: "invoices",
+  issued_invoices: "invoices",
+  received_invoices: "invoices",
+  subscriptions: "subscriptions",
+  payments: "payments",
+  files: "documents",
+  folders: "documents",
+  documents: "documents",
+  leads: "leads",
+  events: "events",
+  campaigns: "campaigns",
+  contracts: "contracts",
+  quotes: "quotes",
+  orders: "orders",
+  refunds: "refunds",
+  disputes: "disputes",
+  suppliers: "suppliers",
+  clients: "contacts",
+};
+
+function enrichTargetFields(
+  metaTargetFields: string[],
+  metaEntities: ConnectorEntity[]
+): string[] {
+  const allFields = new Set(metaTargetFields);
+
+  // For each entity in this connector, look up its TARGET_SCHEMAS and merge fields
+  for (const entity of metaEntities) {
+    const schemaKey = ENTITY_TO_SCHEMA[entity.id];
+    if (schemaKey && TARGET_SCHEMAS[schemaKey]) {
+      for (const field of TARGET_SCHEMAS[schemaKey]) {
+        allFields.add(field);
+      }
+    }
+  }
+
+  return Array.from(allFields).sort();
+}
+
+// ─── Entity field enrichment ───
+// Merges rich field catalogs from entity-discovery into the static CONNECTOR_META entities.
+// The CONNECTOR_META entities only have 3-6 Italian display labels per entity, while
+// entity-discovery has full technical field catalogs with 15-25+ fields.
+// This resolves the "can't map more than 4 fields" issue.
+
+function mergeEntityFields(
+  metaEntities: ConnectorEntity[],
+  connectorId: string
+): Array<{ id: string; name: string; fields: string[]; recordCount: number; lastUpdated: null }> {
+  // Get the rich field catalog from entity-discovery
+  const discoveredEntities = discoverEntities(connectorId);
+
+  return metaEntities.map((e) => {
+    // Look for a matching discovered entity by ID
+    const discovered = discoveredEntities.find((de) => de.id === e.id);
+
+    // If the entity-discovery catalog has this entity with fields, use those
+    // (extract the `label` from EntityFieldDef for display, or `name` for technical use)
+    if (discovered?.fields && discovered.fields.length > 0) {
+      // Return both technical field names and Italian labels for richer mapping
+      const richFields = discovered.fields.map((f) => f.name);
+      return {
+        id: e.id,
+        name: e.name,
+        fields: richFields,
+        recordCount: e.estimatedRecords,
+        lastUpdated: null,
+      };
+    }
+
+    // Fallback to the original static labels
+    return {
+      id: e.id,
+      name: e.name,
+      fields: e.fields,
+      recordCount: e.estimatedRecords,
+      lastUpdated: null,
+    };
+  });
+}
 
 // ─── GET: Return connector details ───
 
@@ -464,7 +592,7 @@ export async function GET(
     apiKeyPlaceholder: meta.apiKeyPlaceholder ?? null,
     secretKeyPlaceholder: meta.secretKeyPlaceholder ?? null,
     helpText: meta.helpText ?? null,
-    targetFields: meta.targetFields,
+    targetFields: enrichTargetFields(meta.targetFields, meta.entities),
     // Legacy field kept for backward compatibility with sync tab
     authType: meta.authMode === "oauth" ? "oauth2" : "api_key",
     // Dynamic defaults (overridden from DB below if connection exists)
@@ -472,14 +600,12 @@ export async function GET(
     lastSync: null,
     nextSync: null,
     totalRecords: 0,
-    // Entities with wizard metadata (recordCount/lastUpdated merged from DB)
-    entities: meta.entities.map((e) => ({
-      id: e.id,
-      name: e.name,
-      fields: e.fields,
-      recordCount: e.estimatedRecords,
-      lastUpdated: null,
-    })),
+    // Entities with wizard metadata (recordCount/lastUpdated merged from DB).
+    // Merge rich field catalogs from entity-discovery when available.
+    // The CONNECTOR_META.entities[].fields only contains 3-6 Italian display labels
+    // (e.g., ["Nome", "Email", "Azienda"]), while entity-discovery has the full
+    // field catalog with 15-25+ technical field names per entity.
+    entities: mergeEntityFields(meta.entities, connectorId),
     syncHistory: [],
     errors: [],
     mappings: [],

@@ -20,6 +20,7 @@ import {
 import ConnectorCard, { type ConnectorInfo, CATEGORY_LABELS } from "@/components/integrations/ConnectorCard";
 import { ConnectorCardSkeleton } from "@/components/integrations/Skeletons";
 import IntegrationFilters from "@/components/integrations/IntegrationFilters";
+import IntegrationAgentPanel from "@/components/integrations/IntegrationAgentPanel";
 import OnboardingTour from "@/components/integrations/OnboardingTour";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -33,6 +34,9 @@ export default function IntegrazioneClient() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
+
+  // ─── Agent chat panel state ───
+  const [chatConnector, setChatConnector] = useState<{ type: string; id: string; name: string } | null>(null);
 
   // ─── Login form state ───
   const [loginEmail, setLoginEmail] = useState("");
@@ -102,6 +106,11 @@ export default function IntegrazioneClient() {
     setTimeout(() => {
       document.getElementById("login-banner")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 100);
+  }, []);
+
+  /** Called from ConnectorCard when an authenticated user clicks "Configura" — opens agent chat panel */
+  const handleConfigure = useCallback((connectorType: string, connectorId: string, name: string) => {
+    setChatConnector({ type: connectorType, id: connectorId, name });
   }, []);
 
   const isAuthenticated = !authLoading && user !== null;
@@ -558,7 +567,7 @@ export default function IntegrazioneClient() {
             <AnimatePresence mode="popLayout">
               {filteredConnectors.map((connector, i) => (
                 <div key={connector.id} {...(i === 0 ? { "data-tour": "first-connector" } : {})}>
-                  <ConnectorCard connector={connector} index={i} isAuthenticated={isAuthenticated} onRequestLogin={handleRequestLogin} />
+                  <ConnectorCard connector={connector} index={i} isAuthenticated={isAuthenticated} onRequestLogin={handleRequestLogin} onConfigure={isAuthenticated ? handleConfigure : undefined} />
                 </div>
               ))}
             </AnimatePresence>
@@ -598,6 +607,14 @@ export default function IntegrazioneClient() {
       {!loading && !error && filteredConnectors.length > 0 && (
         <OnboardingTour />
       )}
+
+      {/* ─── Agent Chat Panel (slide-in) ─── */}
+      <IntegrationAgentPanel
+        isOpen={chatConnector !== null}
+        onClose={() => setChatConnector(null)}
+        connectorType={chatConnector?.type}
+        connectorId={chatConnector?.id}
+      />
     </div>
   );
 }

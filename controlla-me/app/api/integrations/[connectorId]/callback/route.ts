@@ -6,28 +6,27 @@
  * Flow:
  * 1. OAuth provider redirects here with ?code=AUTHORIZATION_CODE&state=STATE
  * 2. Validate state param against cookie (CSRF protection)
- * 3. Exchange the code for access + refresh tokens
- * 4. Authenticate user via Supabase session
- * 5. Store credentials in BOTH vaults:
- *    a. pgcrypto vault (lib/credential-vault.ts) — used by sync route
- *    b. AES-256-GCM vault (lib/staff/credential-vault) — used by connectors
- * 6. Create/update integration_connections row
- * 7. Log the credential access in integration_credential_audit
- * 8. Redirect back to /integrazione/[connectorId] with success/error status
+ * 3. Validate PKCE code_verifier cookie is present (RFC 7636)
+ * 4. Exchange the code for access + refresh tokens (with code_verifier)
+ * 5. Authenticate user via Supabase session
+ * 6. Store credentials in pgcrypto vault (lib/credential-vault.ts)
+ * 7. Create/update integration_connections row
+ * 8. Log the credential access in integration_credential_audit
+ * 9. Redirect back to /integrazione/[connectorId] with success/error status
  *
  * Security:
  * - State parameter validated against httpOnly cookie (prevents CSRF)
- * - Credentials stored encrypted in vault (pgcrypto + AES-256-GCM)
+ * - PKCE code_verifier sent in token exchange (prevents code interception — RFC 7636)
+ * - Credentials stored encrypted in pgcrypto vault
  * - Rate limited to prevent abuse
  * - No secrets exposed in redirect URL
- * - State cookie cleared on every exit path
+ * - State and PKCE cookies cleared on every exit path
  * - Token expiry computed and stored for automatic refresh scheduling
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { getVaultOrNull } from "@/lib/credential-vault";
-import { getCredentialVault } from "@/lib/staff/credential-vault";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { timingSafeEqual } from "crypto";
@@ -93,8 +92,8 @@ const OAUTH_CONFIGS: Record<string, OAuthProviderConfig> = {
 // ─── Helpers ───
 
 /**
- * Build a redirect response clearing the OAuth state cookie.
- * Used on every exit path (success and error) to prevent state reuse.
+ * Build a redirect response clearing the OAuth state and PKCE cookies.
+ * Used on every exit path (success and error) to prevent state/verifier reuse.
  */
 function redirectWithCleanup(
   baseRedirect: string,
@@ -107,7 +106,13 @@ function redirectWithCleanup(
     redirectUrl.searchParams.set(key, value);
   }
   const response = NextResponse.redirect(redirectUrl);
+  // Clear CSRF state cookie
   response.cookies.set(`oauth_state_${connectorId}`, "", {
+    maxAge: 0,
+    path: "/",
+  });
+  // Clear PKCE code_verifier cookie
+  response.cookies.set(`pkce_verifier_${connectorId}`, "", {
     maxAge: 0,
     path: "/",
   });
@@ -230,6 +235,22 @@ export async function GET(
     });
   }
 
+  // ─── Validate PKCE code_verifier (RFC 7636) ───
+  // The authorize route stores the code_verifier in an httpOnly cookie.
+  // It MUST be present here — if missing, the PKCE chain is broken (cookie expired
+  // or was never set), and we cannot safely exchange the authorization code.
+  const pkceCookieName = `pkce_verifier_${connectorId}`;
+  const codeVerifier = req.cookies.get(pkceCookieName)?.value;
+
+  if (!codeVerifier) {
+    console.error(
+      `[OAuth:${connectorId}] PKCE verification failed — code_verifier cookie missing or expired`
+    );
+    return redirectWithCleanup(baseRedirect, req.url, connectorId, {
+      oauth_error: "pkce_failed",
+    });
+  }
+
   // ─── Validate connector exists in OAuth registry ───
   const oauthConfig = OAUTH_CONFIGS[connectorId];
   if (!oauthConfig) {
@@ -263,12 +284,16 @@ export async function GET(
     const redirectUri = `${appUrl}/api/integrations/${connectorId}/callback`;
 
     // Build token exchange body
+    // PKCE: include code_verifier so the authorization server can verify it
+    // against the code_challenge sent during authorization (RFC 7636 Section 4.5).
+    // Providers that don't support PKCE will ignore this parameter.
     const tokenBody = new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
       client_id: clientId,
       client_secret: clientSecret,
+      code_verifier: codeVerifier,
       ...(oauthConfig.extraTokenParams ?? {}),
     });
 
@@ -378,7 +403,6 @@ export async function GET(
           `[OAuth:${connectorId}] pgcrypto vault store failed:`,
           err instanceof Error ? err.message : String(err)
         );
-        // Non-fatal: continue with AES-256-GCM vault
       }
     } else {
       console.warn(
@@ -386,37 +410,10 @@ export async function GET(
       );
     }
 
-    // ─── Store credentials in AES-256-GCM vault (lib/staff/credential-vault) ───
-    // This vault stores tokenUrl + clientId + clientSecret alongside the tokens,
-    // enabling automatic token refresh by the CredentialVault.checkAndRefreshToken() method.
-    let aesVaultId: string | null = null;
-    try {
-      const aesVault = getCredentialVault();
-      aesVaultId = await aesVault.storeCredential(user.id, connectorId, "oauth2", {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || "",
-        expiresAt,
-        scopes: oauthConfig.scopes,
-        // Store provider config so token refresh works without env vars at refresh time
-        tokenUrl: oauthConfig.tokenUrl,
-        clientId,
-        clientSecret,
-      });
-      console.log(
-        `[OAuth:${connectorId}] AES-256-GCM vault: credentials stored (id=${aesVaultId})`
-      );
-    } catch (err) {
+    // If vault storage failed, we cannot proceed
+    if (!pgcryptoVaultId) {
       console.error(
-        `[OAuth:${connectorId}] AES-256-GCM vault store failed:`,
-        err instanceof Error ? err.message : String(err)
-      );
-      // Non-fatal if pgcrypto vault succeeded
-    }
-
-    // If both vaults failed, we cannot proceed
-    if (!pgcryptoVaultId && !aesVaultId) {
-      console.error(
-        `[OAuth:${connectorId}] CRITICAL: Both vaults failed. Credentials NOT stored.`
+        `[OAuth:${connectorId}] CRITICAL: Vault storage failed. Credentials NOT stored.`
       );
       return redirectWithCleanup(baseRedirect, req.url, connectorId, {
         oauth_error: "vault_unavailable",
@@ -493,23 +490,19 @@ export async function GET(
     }
 
     // ─── Log credential access in audit trail ───
-    // Use the AES vault credential ID if available, otherwise pgcrypto vault ID.
     // The audit log is for GDPR compliance — tracks who stored what and when.
-    const credentialId = aesVaultId ?? pgcryptoVaultId;
-    await logCredentialAudit(credentialId, user.id, "create", connectorId, {
+    await logCredentialAudit(pgcryptoVaultId, user.id, "create", connectorId, {
       connection_id: connectionId,
       has_refresh_token: !!tokenData.refresh_token,
       token_expires_at: expiresAt,
       scopes: oauthConfig.scopes,
-      pgcrypto_vault: pgcryptoVaultId ? "stored" : "skipped",
-      aes_vault: aesVaultId ? "stored" : "skipped",
     });
 
     // ─── Redirect to success ───
     console.log(
       `[OAuth:${connectorId}] Callback complete for user=${user.id}. ` +
         `Connection: ${connectionId ?? "failed"}, ` +
-        `Vaults: pgcrypto=${pgcryptoVaultId ? "ok" : "skip"}, aes=${aesVaultId ? "ok" : "skip"}`
+        `Vault: pgcrypto=${pgcryptoVaultId ? "ok" : "skip"}`
     );
 
     return redirectWithCleanup(baseRedirect, req.url, connectorId, {

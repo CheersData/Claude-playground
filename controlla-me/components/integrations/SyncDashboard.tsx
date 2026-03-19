@@ -534,90 +534,11 @@ function ErrorLog({ errors }: { errors: SyncErrorEntry[] }) {
 
 // ─── Main Component ───
 
-// Demo data for the dashboard preview
-const DEMO_INTEGRATIONS: IntegrationRow[] = [
-  {
-    id: "salesforce",
-    name: "Salesforce",
-    category: "CRM",
-    icon: "Users",
-    status: "synced",
-    lastSync: new Date(Date.now() - 30 * 60_000).toISOString(),
-    nextSync: new Date(Date.now() + 30 * 60_000).toISOString(),
-    recordCount: 12450,
-    entities: [
-      { name: "Contatti", recordCount: 8200 },
-      { name: "Opportunita", recordCount: 3210 },
-      { name: "Pipeline", recordCount: 8 },
-    ],
-  },
-  {
-    id: "hubspot",
-    name: "HubSpot",
-    category: "CRM / Marketing",
-    icon: "Users",
-    status: "error",
-    lastSync: new Date(Date.now() - 120 * 60_000).toISOString(),
-    nextSync: null,
-    recordCount: 4650,
-    entities: [
-      { name: "Contatti", recordCount: 3200 },
-      { name: "Deal", recordCount: 1450 },
-    ],
-    error: "Rate limit exceeded (429). Retry in 5 min.",
-  },
-  {
-    id: "stripe",
-    name: "Stripe",
-    category: "Pagamenti",
-    icon: "CreditCard",
-    status: "paused",
-    lastSync: new Date(Date.now() - 24 * 60 * 60_000).toISOString(),
-    nextSync: null,
-    recordCount: 1890,
-    entities: [
-      { name: "Fatture", recordCount: 1200 },
-      { name: "Abbonamenti", recordCount: 690 },
-    ],
-  },
-  {
-    id: "mailchimp",
-    name: "Mailchimp",
-    category: "Marketing",
-    icon: "Building2",
-    status: "syncing",
-    lastSync: new Date(Date.now() - 10 * 60_000).toISOString(),
-    nextSync: new Date(Date.now() + 50 * 60_000).toISOString(),
-    recordCount: 4650,
-    entities: [
-      { name: "Liste", recordCount: 3200 },
-      { name: "Campagne", recordCount: 1450 },
-    ],
-    progress: 45,
-    progressRecords: 2100,
-    progressTotal: 4650,
-  },
-];
-
-const DEMO_ERRORS: SyncErrorEntry[] = [
-  {
-    timestamp: "14:32",
-    connector: "HubSpot",
-    message: "Rate limit (429)",
-    details:
-      "Request: GET /contacts?limit=100&offset=12400\nResponse: 429 Too Many Requests\nHeaders: X-RateLimit-Remaining: 0\nRetry-After: 300",
-  },
-  {
-    timestamp: "12:15",
-    connector: "HubSpot",
-    message: "Timeout after 30s",
-  },
-];
-
 export default function SyncDashboard() {
   const [integrations, setIntegrations] = useState<IntegrationRow[]>([]);
   const [errors, setErrors] = useState<SyncErrorEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async (isBackgroundPoll = false) => {
@@ -626,18 +547,23 @@ export default function SyncDashboard() {
       const res = await fetch("/api/integrations/dashboard");
       if (res.ok) {
         const json = await res.json();
-        if (json?.integrations) setIntegrations(json.integrations);
-        if (json?.errors) setErrors(json.errors);
+        setIntegrations(json?.integrations ?? []);
+        setErrors(json?.errors ?? []);
+        setFetchError(null);
       } else {
-        // Fallback to demo data
-        setIntegrations(DEMO_INTEGRATIONS);
-        setErrors(DEMO_ERRORS);
+        // API returned an error — show empty state with error message
+        if (!isBackgroundPoll) {
+          setIntegrations([]);
+          setErrors([]);
+          setFetchError(`Errore dal server (${res.status}). Riprova.`);
+        }
       }
     } catch {
-      // Fallback to demo data on first load only
+      // Network error — show error state on first load, ignore during polling
       if (!isBackgroundPoll) {
-        setIntegrations(DEMO_INTEGRATIONS);
-        setErrors(DEMO_ERRORS);
+        setIntegrations([]);
+        setErrors([]);
+        setFetchError("Impossibile raggiungere il server. Verifica la connessione e riprova.");
       }
     } finally {
       if (!isBackgroundPoll) setLoading(false);
@@ -764,6 +690,29 @@ export default function SyncDashboard() {
       <main className="px-6 md:px-10 pb-16 max-w-[1400px] mx-auto">
         {loading ? (
           <SyncDashboardSkeleton />
+        ) : fetchError ? (
+          <div
+            className="rounded-xl p-8 text-center"
+            style={{
+              background: "var(--bg-raised)",
+              border: "1px solid var(--border-dark-subtle)",
+            }}
+          >
+            <AlertTriangle className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--error)" }} />
+            <p className="text-sm mb-4" style={{ color: "var(--fg-secondary)" }}>
+              {fetchError}
+            </p>
+            <button
+              onClick={() => fetchData()}
+              className="inline-flex items-center gap-2 rounded-xl py-2.5 px-5 text-sm font-medium text-white transition-all hover:scale-[1.02]"
+              style={{
+                background: "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))",
+              }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Riprova
+            </button>
+          </div>
         ) : integrations.length === 0 ? (
           <NoConnectors />
         ) : (
