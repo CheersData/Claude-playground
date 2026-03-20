@@ -115,21 +115,22 @@ type TabId =
 interface TabDef {
   id: TabId;
   label: string;
+  shortLabel: string;
   icon: ComponentType<{ className?: string }>;
 }
 
 const TABS: TabDef[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "trading", label: "Trading", icon: TrendingUp },
-  { id: "cme", label: "CME", icon: MessageSquare },
-  { id: "vision", label: "Vision", icon: Telescope },
-  { id: "reports", label: "Reports", icon: FileText },
-  { id: "archive", label: "Archivio", icon: Archive },
-  { id: "daemon", label: "Daemon", icon: Zap },
-  { id: "agents", label: "Agenti", icon: Users },
-  { id: "integrations", label: "Integrazioni", icon: Plug },
-  { id: "testing", label: "QA & Test", icon: Microscope },
-  { id: "terminals", label: "Terminali", icon: Terminal },
+  { id: "dashboard", label: "Dashboard", shortLabel: "Dash", icon: LayoutDashboard },
+  { id: "trading", label: "Trading", shortLabel: "Trade", icon: TrendingUp },
+  { id: "cme", label: "CME", shortLabel: "CME", icon: MessageSquare },
+  { id: "vision", label: "Vision", shortLabel: "Vision", icon: Telescope },
+  { id: "reports", label: "Reports", shortLabel: "Rep.", icon: FileText },
+  { id: "archive", label: "Archivio", shortLabel: "Arch.", icon: Archive },
+  { id: "daemon", label: "Daemon", shortLabel: "Dmn", icon: Zap },
+  { id: "agents", label: "Agenti", shortLabel: "Agenti", icon: Users },
+  { id: "integrations", label: "Integrazioni", shortLabel: "Integ.", icon: Plug },
+  { id: "testing", label: "QA & Test", shortLabel: "QA", icon: Microscope },
+  { id: "terminals", label: "Terminali", shortLabel: "Term.", icon: Terminal },
 ];
 
 // ─── Shared UI ──────────────────────────────────────────────────────────────
@@ -204,6 +205,11 @@ export default function OpsPageClient() {
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [fullscreenPanel, setFullscreenPanel] = useState<string | null>(null);
   const [showSlope, setShowSlope] = useState(false);
+
+  // ── Tab bar scroll state ─────────────────────────────────────────────────
+  const tabBarRef = useRef<HTMLElement>(null);
+  const [tabBarCanScrollLeft, setTabBarCanScrollLeft] = useState(false);
+  const [tabBarCanScrollRight, setTabBarCanScrollRight] = useState(false);
 
   // ── Live sessions from SessionIndicator (for AgentDots bridging) ──────────
   type LiveSessionEntry = {
@@ -281,6 +287,20 @@ export default function OpsPageClient() {
     const iv = setInterval(fetchData, 30_000);
     return () => clearInterval(iv);
   }, [authed, fetchData]);
+
+  // ── Tab bar scroll detection on mount/resize ───────────────────────────────
+  useEffect(() => {
+    const el = tabBarRef.current;
+    if (!el) return;
+    const check = () => {
+      setTabBarCanScrollLeft(el.scrollLeft > 4);
+      setTabBarCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [authed]);
 
   // ── Derived data ───────────────────────────────────────────────────────────
 
@@ -677,30 +697,64 @@ export default function OpsPageClient() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Stats */}
+        {/* Stats — compact on mobile, full on md+ */}
         {data && (
-          <div className="hidden md:flex items-center gap-3 text-xs font-mono"
-            style={{ color: "var(--fg-secondary)" }}
-          >
-            <span style={{ color: "var(--success)" }}>
-              {data.board.byStatus?.done ?? 0} done
-            </span>
-            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
-            <span>{data.board.byStatus?.open ?? 0} open</span>
-            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
-            <span style={{ color: "var(--fg-secondary)" }}>
-              {data.board.byStatus?.on_hold ?? 0} on hold
-            </span>
-            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
-            <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
-          </div>
+          <>
+            {/* Mobile: compact single-line */}
+            <div className="flex md:hidden items-center gap-1.5 text-[10px] font-mono"
+              style={{ color: "var(--fg-secondary)" }}
+            >
+              <span style={{ color: "var(--success)" }}>
+                {data.board.byStatus?.done ?? 0}d
+              </span>
+              <span style={{ color: "var(--fg-invisible)" }}>/</span>
+              <span>{data.board.byStatus?.open ?? 0}o</span>
+              <span style={{ color: "var(--fg-invisible)" }}>/</span>
+              <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
+            </div>
+            {/* Desktop: full labels */}
+            <div className="hidden md:flex items-center gap-3 text-xs font-mono"
+              style={{ color: "var(--fg-secondary)" }}
+            >
+              <span style={{ color: "var(--success)" }}>
+                {data.board.byStatus?.done ?? 0} done
+              </span>
+              <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+              <span>{data.board.byStatus?.open ?? 0} open</span>
+              <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+              <span style={{ color: "var(--fg-secondary)" }}>
+                {data.board.byStatus?.on_hold ?? 0} on hold
+              </span>
+              <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+              <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
+            </div>
+          </>
         )}
 
-        {/* Capacity indicator */}
+        {/* Capacity indicator — full on md+, compact dot on mobile */}
         {data && (
-          <div className="hidden md:block">
-            <CapacityIndicator activeCount={activeAgentCount} maxCapacity={10} />
-          </div>
+          <>
+            <div className="hidden md:block">
+              <CapacityIndicator activeCount={activeAgentCount} maxCapacity={10} />
+            </div>
+            {/* Mobile: compact capacity dot */}
+            <div
+              className="flex md:hidden items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono"
+              style={{
+                background: activeAgentCount > 0 ? "rgba(255,107,53,0.12)" : "rgba(255,255,255,0.04)",
+                color: activeAgentCount > 0 ? "#FF6B35" : "var(--fg-muted)",
+              }}
+              aria-label={`${activeAgentCount} agenti attivi su 10`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${activeAgentCount > 0 ? "animate-pulse" : ""}`}
+                style={{
+                  background: activeAgentCount > 0 ? "#FF6B35" : "var(--fg-muted)",
+                }}
+              />
+              {activeAgentCount}/{10}
+            </div>
+          </>
         )}
 
         {/* Refresh */}
@@ -723,72 +777,101 @@ export default function OpsPageClient() {
       </header>
 
       {/* ── TAB BAR ─────────────────────────────────────────────────── */}
-      <nav
-        className="flex-none flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto scrollbar-none"
-        role="tablist"
-        aria-label="Sezioni Ops Center"
-        style={{
-          height: "40px",
-          borderBottom: "1px solid var(--border-dark-subtle)",
-          background: "var(--bg-raised)",
-        }}
-        onKeyDown={(e) => {
-          // WCAG 2.1.1: Arrow key navigation for tabs
-          const idx = TABS.findIndex((t) => t.id === activeTab);
-          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-            e.preventDefault();
-            const next = TABS[(idx + 1) % TABS.length];
-            setActiveTab(next.id);
-            (e.currentTarget.querySelector(`[data-tab="${next.id}"]`) as HTMLElement)?.focus();
-          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-            e.preventDefault();
-            const prev = TABS[(idx - 1 + TABS.length) % TABS.length];
-            setActiveTab(prev.id);
-            (e.currentTarget.querySelector(`[data-tab="${prev.id}"]`) as HTMLElement)?.focus();
-          } else if (e.key === "Home") {
-            e.preventDefault();
-            setActiveTab(TABS[0].id);
-            (e.currentTarget.querySelector(`[data-tab="${TABS[0].id}"]`) as HTMLElement)?.focus();
-          } else if (e.key === "End") {
-            e.preventDefault();
-            setActiveTab(TABS[TABS.length - 1].id);
-            (e.currentTarget.querySelector(`[data-tab="${TABS[TABS.length - 1].id}"]`) as HTMLElement)?.focus();
-          }
-        }}
-      >
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id;
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={active}
-              aria-controls={`ops-tabpanel-${tab.id}`}
-              id={`ops-tab-${tab.id}`}
-              data-tab={tab.id}
-              tabIndex={active ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                whitespace-nowrap transition-all duration-150 shrink-0 focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
-              style={{
-                background: active ? "var(--bg-overlay)" : "transparent",
-                color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
-                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <div className="flex-none relative" style={{ borderBottom: "1px solid var(--border-dark-subtle)" }}>
+        <nav
+          ref={tabBarRef}
+          className="flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto scrollbar-none snap-x snap-mandatory"
+          role="tablist"
+          aria-label="Sezioni Ops Center"
+          style={{
+            minHeight: "44px",
+            background: "var(--bg-raised)",
+          }}
+          onScroll={() => {
+            const el = tabBarRef.current;
+            if (!el) return;
+            setTabBarCanScrollLeft(el.scrollLeft > 4);
+            setTabBarCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+          }}
+          onKeyDown={(e) => {
+            // WCAG 2.1.1: Arrow key navigation for tabs
+            const idx = TABS.findIndex((t) => t.id === activeTab);
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+              e.preventDefault();
+              const next = TABS[(idx + 1) % TABS.length];
+              setActiveTab(next.id);
+              (e.currentTarget.querySelector(`[data-tab="${next.id}"]`) as HTMLElement)?.focus();
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+              e.preventDefault();
+              const prev = TABS[(idx - 1 + TABS.length) % TABS.length];
+              setActiveTab(prev.id);
+              (e.currentTarget.querySelector(`[data-tab="${prev.id}"]`) as HTMLElement)?.focus();
+            } else if (e.key === "Home") {
+              e.preventDefault();
+              setActiveTab(TABS[0].id);
+              (e.currentTarget.querySelector(`[data-tab="${TABS[0].id}"]`) as HTMLElement)?.focus();
+            } else if (e.key === "End") {
+              e.preventDefault();
+              setActiveTab(TABS[TABS.length - 1].id);
+              (e.currentTarget.querySelector(`[data-tab="${TABS[TABS.length - 1].id}"]`) as HTMLElement)?.focus();
+            }
+          }}
+        >
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`ops-tabpanel-${tab.id}`}
+                id={`ops-tab-${tab.id}`}
+                data-tab={tab.id}
+                tabIndex={active ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 min-h-[44px] min-w-[44px] justify-center
+                  rounded-md text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-150
+                  shrink-0 snap-start scroll-ml-2 focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
+                style={{
+                  background: active ? "var(--bg-overlay)" : "transparent",
+                  color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
+                  borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" aria-hidden="true" />
+                <span className="sm:hidden">{tab.shortLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        {/* Scroll fade indicators */}
+        {tabBarCanScrollLeft && (
+          <div
+            className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none"
+            style={{
+              background: "linear-gradient(to right, var(--bg-raised), transparent)",
+            }}
+            aria-hidden="true"
+          />
+        )}
+        {tabBarCanScrollRight && (
+          <div
+            className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none"
+            style={{
+              background: "linear-gradient(to left, var(--bg-raised), transparent)",
+            }}
+            aria-hidden="true"
+          />
+        )}
+      </div>
 
       {/* ── CONTENT AREA ─────────────────────────────────────────────── */}
       <div
