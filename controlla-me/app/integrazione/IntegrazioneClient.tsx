@@ -20,8 +20,8 @@ import {
 import ConnectorCard, { type ConnectorInfo, CATEGORY_LABELS } from "@/components/integrations/ConnectorCard";
 import { ConnectorCardSkeleton } from "@/components/integrations/Skeletons";
 import IntegrationFilters from "@/components/integrations/IntegrationFilters";
-import IntegrationAgentPanel from "@/components/integrations/IntegrationAgentPanel";
 import OnboardingTour from "@/components/integrations/OnboardingTour";
+import { useIntegrationPanel } from "@/app/integrazione/layout";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -35,8 +35,8 @@ export default function IntegrazioneClient() {
   const [authLoading, setAuthLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // ─── Agent chat panel state ───
-  const [chatConnector, setChatConnector] = useState<{ type: string; id: string; name: string } | null>(null);
+  // ─── Agent chat panel (from layout context) ───
+  const integrationPanel = useIntegrationPanel();
 
   // ─── Login form state ───
   const [loginEmail, setLoginEmail] = useState("");
@@ -108,10 +108,10 @@ export default function IntegrazioneClient() {
     }, 100);
   }, []);
 
-  /** Called from ConnectorCard when an authenticated user clicks "Configura" — opens agent chat panel */
-  const handleConfigure = useCallback((connectorType: string, connectorId: string, name: string) => {
-    setChatConnector({ type: connectorType, id: connectorId, name });
-  }, []);
+  /** Called from ConnectorCard when an authenticated user clicks "Configura" — opens agent chat panel via layout context */
+  const handleConfigure = useCallback((connectorType: string, connectorId: string, _name: string) => {
+    integrationPanel.open(connectorType, connectorId);
+  }, [integrationPanel]);
 
   const isAuthenticated = !authLoading && user !== null;
 
@@ -608,13 +608,6 @@ export default function IntegrazioneClient() {
         <OnboardingTour />
       )}
 
-      {/* ─── Agent Chat Panel (slide-in) ─── */}
-      <IntegrationAgentPanel
-        isOpen={chatConnector !== null}
-        onClose={() => setChatConnector(null)}
-        connectorType={chatConnector?.type}
-        connectorId={chatConnector?.id}
-      />
     </div>
   );
 }
