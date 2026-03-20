@@ -84,7 +84,8 @@ export default function SessionIndicator({ onSessionsUpdate }: SessionIndicatorP
 
   // SEC-004: auth headers from sessionStorage
   const getAuthHeaders = useCallback((): HeadersInit => {
-    const token = typeof window !== "undefined" ? sessionStorage.getItem("lexmea-token") : null;
+    let token: string | null = null;
+    try { token = typeof window !== "undefined" ? sessionStorage.getItem("lexmea-token") : null; } catch { /* private browsing */ }
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 

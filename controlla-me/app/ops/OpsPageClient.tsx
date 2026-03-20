@@ -32,6 +32,8 @@ import {
   Users,
   Plug,
   Terminal,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -60,7 +62,6 @@ import { IntegrationHealthPanel } from "@/components/ops/IntegrationHealthPanel"
 import { ActivityFeed } from "@/components/ops/ActivityFeed";
 import { AgentDots } from "@/components/ops/AgentDots";
 import { TerminalMonitor } from "@/components/ops/TerminalMonitor";
-import { BossTerminal } from "@/components/ops/BossTerminal";
 import SessionIndicator from "@/components/console/SessionIndicator";
 import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
 import { CompanyRoadmap } from "@/components/ops/CompanyRoadmap";
@@ -132,6 +133,126 @@ const TABS: TabDef[] = [
   { id: "terminals", label: "Terminali", icon: Terminal },
 ];
 
+// ─── Tab Bar with scroll indicators ─────────────────────────────────────────
+
+function TabBarWithScrollIndicators({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: TabId;
+  onTabChange: (id: TabId) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      // Use captured `el` (not scrollRef.current) to guarantee cleanup
+      // even if the ref becomes null before unmount
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [updateScrollState]);
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+  };
+
+  return (
+    <div
+      className="flex-none relative"
+      style={{
+        height: "40px",
+        borderBottom: "1px solid var(--border-dark-subtle)",
+        background: "var(--bg-raised)",
+      }}
+    >
+      {/* Left fade + arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-2 transition-opacity"
+          style={{
+            background:
+              "linear-gradient(to right, var(--bg-raised) 60%, transparent)",
+          }}
+          aria-label="Scorri tab a sinistra"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+        </button>
+      )}
+
+      {/* Scrollable tabs */}
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto h-full"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "var(--border-dark) transparent",
+        }}
+      >
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                whitespace-nowrap transition-all duration-150 shrink-0"
+              style={{
+                background: active ? "var(--bg-overlay)" : "transparent",
+                color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
+                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Right fade + arrow */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-2 transition-opacity"
+          style={{
+            background:
+              "linear-gradient(to left, var(--bg-raised) 60%, transparent)",
+          }}
+          aria-label="Scorri tab a destra"
+        >
+          <ChevronRight className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Shared UI ──────────────────────────────────────────────────────────────
 
 function FullscreenOverlay({
@@ -166,16 +287,15 @@ function FullscreenOverlay({
         </span>
         <button
           onClick={onClose}
-          aria-label="Chiudi pannello"
-          className="p-1.5 rounded-md transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+          className="p-1.5 rounded-md transition-colors"
           style={{ color: "var(--fg-secondary)" }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-overlay)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
-          <X className="w-4 h-4" aria-hidden="true" />
+          <X className="w-4 h-4" />
         </button>
       </div>
-      <div className={`flex-1 min-h-0 overflow-y-auto ${noPadding ? "" : "p-6"}`}>
+      <div className={`flex-1 min-h-0 ${noPadding ? "" : "overflow-y-auto p-6"}`}>
         {children}
       </div>
     </motion.div>
@@ -221,8 +341,13 @@ export default function OpsPageClient() {
 
   // ── Auth check ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
-      setAuthed(true);
+    try {
+      if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
+        setAuthed(true);
+      }
+    } catch {
+      // sessionStorage can throw in some mobile private browsing contexts
+      console.warn("[Auth] sessionStorage unavailable");
     }
   }, []);
 
@@ -235,12 +360,12 @@ export default function OpsPageClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input: authInput }),
       });
-      const json = await res.json();
-      if (json.authorized && json.token) {
-        sessionStorage.setItem("lexmea-token", json.token);
+      const json = await res.json().catch(() => null);
+      if (json?.authorized && json?.token) {
+        try { sessionStorage.setItem("lexmea-token", json.token); } catch { /* ignore */ }
         setAuthed(true);
       } else {
-        setAuthError(json.message ?? "Accesso negato");
+        setAuthError(json?.message ?? "Accesso negato");
       }
     } catch {
       setAuthError("Errore di connessione");
@@ -254,14 +379,16 @@ export default function OpsPageClient() {
     try {
       const res = await fetch("/api/company/status", { headers: getConsoleAuthHeaders() });
       if (res.ok) {
-        setData(await res.json());
+        const json = await res.json().catch(() => null);
+        if (json) setData(json);
+        else setFetchError("Risposta non valida dal server");
       } else if (res.status === 401) {
-        sessionStorage.removeItem("lexmea-token");
+        try { sessionStorage.removeItem("lexmea-token"); } catch { /* ignore */ }
         setAuthed(false);
         setData(null);
       } else {
         const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        setFetchError(body.error ?? `Errore ${res.status}`);
+        setFetchError(body?.error ?? `Errore ${res.status}`);
       }
     } catch (err) {
       console.error("Failed to fetch ops data:", err);
@@ -314,21 +441,38 @@ export default function OpsPageClient() {
 
     let eventSource: EventSource | null = null;
     let retryTimeout: ReturnType<typeof setTimeout>;
+    let retryCount = 0;
+    const MAX_SSE_RETRIES = 10;
+    let disposed = false;
 
     const connect = () => {
-      const token = sessionStorage.getItem("lexmea-token");
-      if (!token) {
-        console.warn("[SSE] No token in sessionStorage — skipping connection");
-        // Session may have been cleared; deauth so the user sees the login screen
-        setAuthed(false);
+      if (disposed) return;
+      if (retryCount >= MAX_SSE_RETRIES) {
+        console.warn(`[SSE] Max retries (${MAX_SSE_RETRIES}) reached — SSE disabled`);
         return;
       }
+
+      let token = "";
+      try {
+        token = sessionStorage.getItem("lexmea-token") ?? "";
+      } catch {
+        console.warn("[SSE] sessionStorage unavailable — SSE disabled");
+        return;
+      }
+
       const sseUrl = `/api/company/agents/live?t=${encodeURIComponent(token)}`;
       console.log("[SSE] Connecting to", sseUrl.slice(0, 60) + "...");
-      eventSource = new EventSource(sseUrl);
+
+      try {
+        eventSource = new EventSource(sseUrl);
+      } catch (err) {
+        console.warn("[SSE] EventSource constructor failed:", err);
+        return;
+      }
 
       eventSource.onopen = () => {
         console.log("[SSE] Connected — listening for agent events");
+        retryCount = 0; // Reset on successful connection
       };
 
       eventSource.addEventListener("snapshot", (e) => {
@@ -353,7 +497,7 @@ export default function OpsPageClient() {
             return next;
           });
 
-          // Auto-expire done/error events after 30 seconds (matches server TTL_DONE_MS)
+          // Auto-expire done/error events after 8 seconds
           if (evt.status === "done" || evt.status === "error") {
             setTimeout(() => {
               setLiveAgents((prev) => {
@@ -365,113 +509,61 @@ export default function OpsPageClient() {
                 }
                 return next;
               });
-            }, 30_000);
+            }, 8_000);
           }
         } catch { /* ignore parse errors */ }
       });
 
       eventSource.onerror = (err) => {
-        console.warn("[SSE] Error — reconnecting in 5s", err);
+        retryCount++;
+        // Exponential backoff: 5s, 10s, 20s, 40s... capped at 60s
+        const delay = Math.min(5_000 * Math.pow(2, retryCount - 1), 60_000);
+        console.warn(`[SSE] Error (retry ${retryCount}/${MAX_SSE_RETRIES}) — reconnecting in ${delay / 1000}s`, err);
         eventSource?.close();
-        // Retry after 5 seconds
-        retryTimeout = setTimeout(connect, 5_000);
+        if (!disposed && retryCount < MAX_SSE_RETRIES) {
+          retryTimeout = setTimeout(connect, delay);
+        }
       };
     };
 
     connect();
 
     return () => {
+      disposed = true;
       eventSource?.close();
       clearTimeout(retryTimeout);
     };
   }, [authed]);
 
-  // ── Heartbeat for interactive session visibility ────────────────────────────
-  // While /ops is open and authed, send a heartbeat every 10s to signal
-  // that an interactive Claude Code session is active. This makes the session
-  // visible in SessionIndicator, AgentDots, and CapacityIndicator.
-  useEffect(() => {
-    if (!authed) return;
-
-    const sendHeartbeat = async () => {
-      try {
-        await fetch("/api/company/sessions/heartbeat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getConsoleAuthHeaders(),
-          },
-          body: JSON.stringify({ target: "interactive" }),
-        });
-      } catch {
-        // Silently ignore — heartbeat is best-effort
-      }
-    };
-
-    // Send immediately on mount
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 30_000);
-
-    return () => {
-      clearInterval(interval);
-      // No explicit cleanup needed: heartbeat auto-expires after 30s
-      // (HEARTBEAT_MAX_AGE_MS in sessions.ts). When the page closes,
-      // the heartbeat simply won't be renewed and will be pruned.
-    };
-  }, [authed]);
-
-  // ── Prune stale "running" SSE events (client-side GC) ─────────────────────
-  // If a "running" event hasn't been updated in 60s, it's likely stale
-  // (the "done" broadcast was never sent due to error/crash).
-  // This keeps AgentDots and CapacityIndicator consistent with SessionIndicator.
-  useEffect(() => {
-    const STALE_MS = 60_000;
-    const interval = setInterval(() => {
-      setLiveAgents((prev) => {
-        const now = Date.now();
-        let changed = false;
-        const next = new Map(prev);
-        for (const [key, entry] of next) {
-          if (entry.status === "running" && entry.timestamp && now - entry.timestamp > STALE_MS) {
-            next.delete(key);
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 15_000);
-    return () => clearInterval(interval);
-  }, []);
-
   // ── Agent activity data for AgentDots + CapacityIndicator ─────────────────
-  // SSE events + live sessions merged for a unified view
+  // Merge: task board data + real-time SSE events (SSE takes priority for running)
   const activeAgentsMap = useMemo(() => {
     const map = new Map<string, { department: string; task?: string; status: "running" | "done" | "error" }>();
-    const now = Date.now();
-    const STALE_MS = 60_000;
+    if (!data) return map;
 
-    // SSE events represent actual agent executions — skip stale "running" ones
-    liveAgents.forEach((value, key) => {
-      if (value.status === "running" && value.timestamp && now - value.timestamp > STALE_MS) {
-        return; // stale — likely missed "done" broadcast
+    // Layer 1: Derive from recent tasks (in_progress → running, blocked → error)
+    const tasks = data.board.recent ?? [];
+    for (const t of tasks) {
+      if (t.status === "in_progress") {
+        map.set(`task-${t.id}`, { department: t.department, task: t.title, status: "running" });
+      } else if (t.status === "blocked") {
+        map.set(`task-${t.id}`, { department: t.department, task: t.title, status: "error" });
       }
+    }
+
+    // Layer 2: Overlay real-time SSE events (these are actual agent executions)
+    liveAgents.forEach((value, key) => {
       map.set(key, { department: value.department, task: value.task, status: value.status });
     });
 
-    // Bridge live sessions (from SessionIndicator) into the map
-    // This lights up AgentDots for departments with active Claude sessions.
-    // Interactive sessions (Claude Code terminal) don't have a taskId — bridge
-    // them using their type as the department key so they show up in AgentDots
-    // and CapacityIndicator.
+    // Layer 3: Bridge live sessions (from SessionIndicator) into the map
     for (const s of liveSessions) {
       if (s.status !== "active") continue;
       if (!s.target || s.target === "unknown") continue;
 
       const key = `session-${s.pid}`;
-      // Only add if not already tracked by SSE (avoid duplicates)
       if (map.has(key)) continue;
 
-      // Map interactive sessions to a visible department
       const dept = s.type === "interactive" ? "interactive" : s.target;
       map.set(key, {
         department: dept,
@@ -481,12 +573,12 @@ export default function OpsPageClient() {
     }
 
     return map;
-  }, [liveAgents, liveSessions]);
+  }, [data, liveAgents, liveSessions]);
 
   const activeAgentCount = useMemo(() => {
     let count = 0;
-    // Count all "running" entries from the merged activeAgentsMap
     activeAgentsMap.forEach((v) => {
+      // Count all running entries: both real-time SSE agents and board tasks (in_progress)
       if (v.status === "running") count++;
     });
     return count;
@@ -520,7 +612,6 @@ export default function OpsPageClient() {
       >
         <form
           onSubmit={handleLogin}
-          aria-label="Accesso Operations Center"
           className="rounded-2xl p-8 w-full max-w-sm space-y-5"
           style={{
             background: "var(--bg-raised)",
@@ -530,7 +621,6 @@ export default function OpsPageClient() {
         >
           <div>
             <h2
-              id="ops-login-title"
               className="text-lg font-semibold font-serif"
               style={{ color: "var(--fg-primary)" }}
             >
@@ -540,17 +630,11 @@ export default function OpsPageClient() {
               Inserisci le credenziali per accedere.
             </p>
           </div>
-          <label htmlFor="ops-auth-input" className="sr-only">
-            Credenziali: Nome Cognome, Ruolo
-          </label>
           <input
-            id="ops-auth-input"
             type="text"
             value={authInput}
             onChange={(e) => setAuthInput(e.target.value)}
             placeholder="Nome Cognome, Ruolo"
-            aria-label="Credenziali: Nome Cognome, Ruolo"
-            aria-describedby={authError ? "ops-auth-error" : undefined}
             className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
             style={{
               background: "var(--bg-base)",
@@ -568,13 +652,13 @@ export default function OpsPageClient() {
             autoFocus
           />
           {authError && (
-            <p id="ops-auth-error" className="text-xs" style={{ color: "var(--error)" }} role="alert">{authError}</p>
+            <p className="text-xs" style={{ color: "var(--error)" }}>{authError}</p>
           )}
           <button
             type="submit"
             disabled={!authInput.trim()}
             className="w-full px-4 py-2.5 text-white rounded-lg text-sm font-semibold
-              transition-all disabled:opacity-40 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+              transition-all disabled:opacity-40"
             style={{
               background: "var(--accent)",
               boxShadow: "0 2px 8px rgba(255,107,53,0.25)",
@@ -651,8 +735,7 @@ export default function OpsPageClient() {
                   console.error("[TEST PALLINI] Error:", err);
                 }
               }}
-              aria-label="Test: attiva 5 pallini agente per 4 secondi"
-              className="ml-1 px-1.5 py-0.5 text-[9px] rounded border opacity-40 hover:opacity-100 transition-opacity focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+              className="ml-1 px-1.5 py-0.5 text-[9px] rounded border opacity-40 hover:opacity-100 transition-opacity"
               style={{ borderColor: "var(--border)", color: "var(--fg-secondary)" }}
               title="Test: attiva 5 pallini per 4 secondi"
             >
@@ -688,10 +771,6 @@ export default function OpsPageClient() {
             <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
             <span>{data.board.byStatus?.open ?? 0} open</span>
             <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
-            <span style={{ color: "var(--fg-secondary)" }}>
-              {data.board.byStatus?.on_hold ?? 0} on hold
-            </span>
-            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
             <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
           </div>
         )}
@@ -707,9 +786,8 @@ export default function OpsPageClient() {
         <button
           onClick={fetchData}
           disabled={loading}
-          aria-label={`Aggiorna dati (ultimo aggiornamento: ${timeSince()} fa)`}
           className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs
-            transition-all duration-150 disabled:opacity-40 whitespace-nowrap focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            transition-all duration-150 disabled:opacity-40 whitespace-nowrap"
           style={{
             background: "var(--bg-overlay)",
             color: "var(--fg-secondary)",
@@ -717,86 +795,16 @@ export default function OpsPageClient() {
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border-dark)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-overlay)")}
         >
-          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
+          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
           {timeSince()}
         </button>
       </header>
 
       {/* ── TAB BAR ─────────────────────────────────────────────────── */}
-      <nav
-        className="flex-none flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto scrollbar-none"
-        role="tablist"
-        aria-label="Sezioni Ops Center"
-        style={{
-          height: "40px",
-          borderBottom: "1px solid var(--border-dark-subtle)",
-          background: "var(--bg-raised)",
-        }}
-        onKeyDown={(e) => {
-          // WCAG 2.1.1: Arrow key navigation for tabs
-          const idx = TABS.findIndex((t) => t.id === activeTab);
-          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-            e.preventDefault();
-            const next = TABS[(idx + 1) % TABS.length];
-            setActiveTab(next.id);
-            (e.currentTarget.querySelector(`[data-tab="${next.id}"]`) as HTMLElement)?.focus();
-          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-            e.preventDefault();
-            const prev = TABS[(idx - 1 + TABS.length) % TABS.length];
-            setActiveTab(prev.id);
-            (e.currentTarget.querySelector(`[data-tab="${prev.id}"]`) as HTMLElement)?.focus();
-          } else if (e.key === "Home") {
-            e.preventDefault();
-            setActiveTab(TABS[0].id);
-            (e.currentTarget.querySelector(`[data-tab="${TABS[0].id}"]`) as HTMLElement)?.focus();
-          } else if (e.key === "End") {
-            e.preventDefault();
-            setActiveTab(TABS[TABS.length - 1].id);
-            (e.currentTarget.querySelector(`[data-tab="${TABS[TABS.length - 1].id}"]`) as HTMLElement)?.focus();
-          }
-        }}
-      >
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id;
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={active}
-              aria-controls={`ops-tabpanel-${tab.id}`}
-              id={`ops-tab-${tab.id}`}
-              data-tab={tab.id}
-              tabIndex={active ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                whitespace-nowrap transition-all duration-150 shrink-0 focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
-              style={{
-                background: active ? "var(--bg-overlay)" : "transparent",
-                color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
-                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <TabBarWithScrollIndicators activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* ── CONTENT AREA ─────────────────────────────────────────────── */}
-      <div
-        className="flex-1 min-h-0 overflow-hidden"
-        role="tabpanel"
-        id={`ops-tabpanel-${activeTab}`}
-        aria-labelledby={`ops-tab-${activeTab}`}
-      >
+      <div className="flex-1 min-h-0 overflow-hidden">
         {/* Dashboard */}
         {activeTab === "dashboard" && (
           <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
@@ -888,7 +896,7 @@ export default function OpsPageClient() {
 
         {/* CME Chat */}
         {activeTab === "cme" && (
-          <div className="h-full flex flex-col min-h-0 overflow-hidden">
+          <div className="h-full flex flex-col">
             <CompanyPanel open={true} onClose={() => {}} embedded />
           </div>
         )}
@@ -916,7 +924,7 @@ export default function OpsPageClient() {
 
         {/* Daemon */}
         {activeTab === "daemon" && (
-          <div className="h-full overflow-y-auto p-4 md:p-6">
+          <div className="h-full overflow-y-auto">
             <DaemonControlPanel />
           </div>
         )}
@@ -959,7 +967,9 @@ export default function OpsPageClient() {
 
         {/* Terminali */}
         {activeTab === "terminals" && (
-          <TerminaliTab />
+          <div className="h-full overflow-hidden">
+            <TerminalMonitor />
+          </div>
         )}
       </div>
 
@@ -1009,128 +1019,6 @@ export default function OpsPageClient() {
           </FullscreenOverlay>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Terminali Tab — sub-tab layout with Process Monitor + CLI ────────────────
-
-function TerminaliTab() {
-  const [terminalSubTab, setTerminalSubTab] = useState<"processes" | "cli">("processes");
-  const [cliExpanded, setCliExpanded] = useState(true);
-
-  return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      {/* Sub-tab bar */}
-      <div
-        className="flex-none flex items-center gap-1 px-3 py-1.5"
-        style={{
-          borderBottom: "1px solid var(--border-dark-subtle)",
-          background: "var(--bg-raised)",
-        }}
-      >
-        <button
-          onClick={() => setTerminalSubTab("processes")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all
-            focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
-          style={{
-            background: terminalSubTab === "processes" ? "var(--bg-overlay)" : "transparent",
-            color: terminalSubTab === "processes" ? "var(--fg-primary)" : "var(--fg-secondary)",
-            borderBottom: terminalSubTab === "processes" ? "2px solid var(--accent)" : "2px solid transparent",
-          }}
-          onMouseEnter={(e) => {
-            if (terminalSubTab !== "processes") e.currentTarget.style.background = "var(--bg-overlay)";
-          }}
-          onMouseLeave={(e) => {
-            if (terminalSubTab !== "processes") e.currentTarget.style.background = "transparent";
-          }}
-        >
-          <Users className="w-3 h-3" aria-hidden="true" />
-          Processi
-        </button>
-        <button
-          onClick={() => setTerminalSubTab("cli")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all
-            focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)]"
-          style={{
-            background: terminalSubTab === "cli" ? "var(--bg-overlay)" : "transparent",
-            color: terminalSubTab === "cli" ? "#FF6B35" : "var(--fg-secondary)",
-            borderBottom: terminalSubTab === "cli" ? "2px solid #FF6B35" : "2px solid transparent",
-          }}
-          onMouseEnter={(e) => {
-            if (terminalSubTab !== "cli") e.currentTarget.style.background = "var(--bg-overlay)";
-          }}
-          onMouseLeave={(e) => {
-            if (terminalSubTab !== "cli") e.currentTarget.style.background = "transparent";
-          }}
-        >
-          <Terminal className="w-3 h-3" aria-hidden="true" />
-          CLI
-        </button>
-
-        {/* Expand/collapse for CLI when in split mode */}
-        {terminalSubTab === "processes" && (
-          <button
-            onClick={() => setCliExpanded((p) => !p)}
-            className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors
-              focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]"
-            style={{
-              background: cliExpanded ? "rgba(255,107,53,0.1)" : "rgba(255,255,255,0.04)",
-              color: cliExpanded ? "#FF6B35" : "var(--fg-muted)",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = cliExpanded
-                ? "rgba(255,107,53,0.15)"
-                : "rgba(255,255,255,0.08)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = cliExpanded
-                ? "rgba(255,107,53,0.1)"
-                : "rgba(255,255,255,0.04)")
-            }
-            aria-label={cliExpanded ? "Nascondi CLI" : "Mostra CLI"}
-          >
-            <Terminal className="w-2.5 h-2.5" aria-hidden="true" />
-            {cliExpanded ? "Nascondi CLI" : "Mostra CLI"}
-          </button>
-        )}
-      </div>
-
-      {/* Content */}
-      {terminalSubTab === "processes" ? (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Process monitor */}
-          <div
-            className={`${cliExpanded ? "flex-1" : "flex-1"} min-h-0 overflow-hidden`}
-            style={cliExpanded ? { maxHeight: "60%" } : undefined}
-          >
-            <TerminalMonitor />
-          </div>
-
-          {/* Collapsible CLI panel at bottom */}
-          <AnimatePresence>
-            {cliExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "40%", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex-none overflow-hidden"
-                style={{
-                  borderTop: "2px solid #FF6B35",
-                  minHeight: 0,
-                }}
-              >
-                <BossTerminal />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <BossTerminal />
-        </div>
-      )}
     </div>
   );
 }
