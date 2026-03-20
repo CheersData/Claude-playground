@@ -20,6 +20,7 @@ export type ProcessCategory =
   | "vscode"
   | "claude-code"
   | "nextjs-dev"
+  | "nextjs-subprocess"
   | "daemon"
   | "task-runner"
   | "worker"
@@ -41,6 +42,7 @@ export const CATEGORY_KILLABLE: Record<ProcessCategory, boolean> = {
   vscode: false,
   "claude-code": false,
   "nextjs-dev": false,
+  "nextjs-subprocess": true,
   daemon: true,
   "task-runner": true,
   worker: true,
@@ -53,6 +55,7 @@ export const CATEGORY_PROTECTED: Record<ProcessCategory, boolean> = {
   vscode: true,
   "claude-code": true,
   "nextjs-dev": true,
+  "nextjs-subprocess": false,
   daemon: false,
   "task-runner": false,
   worker: false,
@@ -65,6 +68,7 @@ export const CATEGORY_LABELS: Record<ProcessCategory, string> = {
   vscode: "VS Code",
   "claude-code": "Claude Code",
   "nextjs-dev": "Next.js Dev Server",
+  "nextjs-subprocess": "Next.js API Subprocess (claude spawned by API route)",
   daemon: "CME Daemon",
   "task-runner": "Task Runner (claude -p)",
   worker: "Worker (PostCSS/Turbopack)",
@@ -92,11 +96,12 @@ export function getProcessCategory(commandLine: string): ProcessCategory {
     return "vscode";
   }
 
-  // Claude Code detection
+  // Claude Code detection (includes bare `claude` binary — interactive sessions)
   if (
     cl.includes("claude-code") ||
     cl.includes("claude code") ||
-    cl.includes("cli.js") && cl.includes("claude")
+    (cl.includes("cli.js") && cl.includes("claude")) ||
+    cl.match(/(?:^|\/)claude(\s|$)/)
   ) {
     return "claude-code";
   }
@@ -157,14 +162,23 @@ function walkParentChain(startPid: number): number[] {
     chain.push(currentPid);
 
     try {
-      const output = execSync(
-        `wmic process where "ProcessId=${currentPid}" get ParentProcessId /VALUE`,
-        { encoding: "utf-8", timeout: 5000, windowsHide: true }
-      ).trim();
-
-      const match = output.match(/ParentProcessId=(\d+)/);
-      if (!match) break;
-      currentPid = parseInt(match[1], 10);
+      if (process.platform === "win32") {
+        const output = execSync(
+          `wmic process where "ProcessId=${currentPid}" get ParentProcessId /VALUE`,
+          { encoding: "utf-8", timeout: 5000, windowsHide: true }
+        ).trim();
+        const match = output.match(/ParentProcessId=(\d+)/);
+        if (!match) break;
+        currentPid = parseInt(match[1], 10);
+      } else {
+        const output = execSync(
+          `ps -o ppid= -p ${currentPid}`,
+          { encoding: "utf-8", timeout: 5000 }
+        ).trim();
+        const ppid = parseInt(output, 10);
+        if (isNaN(ppid) || ppid <= 0) break;
+        currentPid = ppid;
+      }
     } catch {
       break;
     }
@@ -430,12 +444,14 @@ function discoverViaTasklist(): OSProcess[] {
 }
 
 /**
- * Unix fallback for process discovery (best-effort, not primary target).
+ * Unix process discovery — finds node AND claude processes.
+ * Uses `ps -eo pid,ppid,rss,etimes,args` (etimes = elapsed seconds, numeric).
  */
 function discoverUnixNodeProcesses(): OSProcess[] {
   try {
+    // etimes gives elapsed time in seconds (numeric, easy to parse)
     const raw = execSync(
-      `ps -eo pid,ppid,rss,etime,args | grep '[n]ode'`,
+      `ps -eo pid,ppid,rss,etimes,args --no-headers | grep -E '[n]ode|[c]laude|[e]sbuild'`,
       { encoding: "utf-8", timeout: 10000 }
     );
 
@@ -449,9 +465,14 @@ function discoverUnixNodeProcesses(): OSProcess[] {
       const pid = parseInt(parts[0], 10);
       const parentPid = parseInt(parts[1], 10);
       const rssKb = parseInt(parts[2], 10);
+      const elapsedSec = parseInt(parts[3], 10);
       const commandLine = parts.slice(4).join(" ");
 
       if (pid <= 0) continue;
+
+      // Reconstruct a synthetic creationDate from elapsed seconds
+      const createdAt = new Date(Date.now() - elapsedSec * 1000);
+      const creationDate = createdAt.toISOString();
 
       const isSacredPid = sacredPids.includes(pid);
       let category: ProcessCategory = pid === process.pid ? "self" : getProcessCategory(commandLine);
@@ -462,7 +483,7 @@ function discoverUnixNodeProcesses(): OSProcess[] {
         pid,
         parentPid,
         commandLine,
-        creationDate: "",
+        creationDate,
         memoryBytes: rssKb * 1024,
         category,
         killable,
@@ -498,6 +519,88 @@ export function killPid(pid: number): boolean {
   } catch {
     return false;
   }
+}
+
+// ─── Next.js Subprocess Detection ───
+
+/**
+ * Find the PID of the running next-server process.
+ * Returns null if not found.
+ */
+function findNextServerPid(): number | null {
+  try {
+    const raw = execSync(
+      `ps -eo pid,args --no-headers | grep 'next-server' | grep -v grep`,
+      { encoding: "utf-8", timeout: 5000 }
+    );
+    for (const line of raw.split("\n").filter((l) => l.trim())) {
+      const pid = parseInt(line.trim().split(/\s+/)[0], 10);
+      if (pid > 0) return pid;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/**
+ * Discover zombie subprocesses spawned by Next.js API routes.
+ * Pattern: `claude` processes whose parent PID is next-server,
+ * running longer than ageThresholdMs.
+ *
+ * These are the most common zombies: API routes spawn `claude -p`
+ * or bare `claude` processes that outlive the HTTP request.
+ */
+export function discoverNextjsZombies(ageThresholdMs: number = ZOMBIE_AGE_THRESHOLD_MS): OSProcess[] {
+  const nextPid = findNextServerPid();
+  if (!nextPid) return [];
+
+  const allProcs = discoverOSNodeProcesses();
+  const sacredPids = getSacredPIDs();
+  const now = Date.now();
+
+  return allProcs.filter((proc) => {
+    if (proc.parentPid !== nextPid) return false;
+    if (sacredPids.includes(proc.pid)) return false;
+
+    // Only target claude subprocesses (bare `claude` command)
+    const cmd = proc.commandLine.trim();
+    if (!cmd.match(/(?:^|\/)claude(\s|$)/)) return false;
+
+    // Check age
+    if (proc.creationDate) {
+      const created = proc.creationDate.includes("T")
+        ? new Date(proc.creationDate)
+        : parseWmicDate(proc.creationDate);
+      if (created.getTime() > 0) {
+        const ageMs = now - created.getTime();
+        return ageMs >= ageThresholdMs;
+      }
+    }
+    return false;
+  }).map((p) => ({ ...p, category: "nextjs-subprocess" as ProcessCategory, killable: true }));
+}
+
+/**
+ * Kill all Next.js zombie subprocesses older than threshold.
+ * Returns summary of actions taken.
+ */
+export function reapNextjsZombies(ageThresholdMs: number = ZOMBIE_AGE_THRESHOLD_MS): ZombieReaperResult {
+  const result: ZombieReaperResult = { scanned: 0, killed: 0, failed: 0, details: [] };
+  const zombies = discoverNextjsZombies(ageThresholdMs);
+  result.scanned = zombies.length;
+
+  const now = Date.now();
+  for (const proc of zombies) {
+    const created = new Date(proc.creationDate);
+    const ageMs = now - created.getTime();
+    const killed = killPid(proc.pid);
+    if (killed) result.killed++;
+    else result.failed++;
+    result.details.push({ pid: proc.pid, category: proc.category, ageMs, killed });
+  }
+
+  return result;
 }
 
 // ─── Self-Timeout (Zombie Prevention) ───
@@ -561,15 +664,21 @@ export function reapZombies(ageThresholdMs: number = ZOMBIE_AGE_THRESHOLD_MS): Z
   for (const proc of processes) {
     if (!proc.killable) continue;
 
-    // Calculate age from creation date (Windows: wmic CreationDate, Unix: no creationDate → skip)
+    // Calculate age from creation date
     let ageMs = 0;
-    if (proc.creationDate && proc.creationDate.length >= 14) {
+    if (proc.creationDate && proc.creationDate.includes("T")) {
+      // ISO 8601 date (from Unix discovery)
+      const created = new Date(proc.creationDate);
+      if (created.getTime() > 0) {
+        ageMs = now - created.getTime();
+      }
+    } else if (proc.creationDate && proc.creationDate.length >= 14) {
+      // wmic CreationDate format (Windows)
       const created = parseWmicDate(proc.creationDate);
       if (created.getTime() > 0) {
         ageMs = now - created.getTime();
       }
     } else if (!proc.creationDate) {
-      // Unix fallback: no creation date available from ps, skip age-based kill
       continue;
     }
 
