@@ -30,6 +30,10 @@ import {
   Zap,
   Microscope,
   Users,
+  Plug,
+  Terminal,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -57,6 +61,8 @@ import { DaemonControlPanel } from "@/components/ops/DaemonControlPanel";
 import { IntegrationHealthPanel } from "@/components/ops/IntegrationHealthPanel";
 import { ActivityFeed } from "@/components/ops/ActivityFeed";
 import { AgentDots } from "@/components/ops/AgentDots";
+import { TerminalMonitor } from "@/components/ops/TerminalMonitor";
+import SessionIndicator from "@/components/console/SessionIndicator";
 import { CapacityIndicator } from "@/components/ops/CapacityIndicator";
 import { CompanyRoadmap } from "@/components/ops/CompanyRoadmap";
 import type { Department, Task } from "@/lib/company/types";
@@ -103,7 +109,9 @@ type TabId =
   | "archive"
   | "daemon"
   | "agents"
-  | "testing";
+  | "integrations"
+  | "testing"
+  | "terminals";
 
 interface TabDef {
   id: TabId;
@@ -120,8 +128,130 @@ const TABS: TabDef[] = [
   { id: "archive", label: "Archivio", icon: Archive },
   { id: "daemon", label: "Daemon", icon: Zap },
   { id: "agents", label: "Agenti", icon: Users },
+  { id: "integrations", label: "Integrazioni", icon: Plug },
   { id: "testing", label: "QA & Test", icon: Microscope },
+  { id: "terminals", label: "Terminali", icon: Terminal },
 ];
+
+// ─── Tab Bar with scroll indicators ─────────────────────────────────────────
+
+function TabBarWithScrollIndicators({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: TabId;
+  onTabChange: (id: TabId) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      // Use captured `el` (not scrollRef.current) to guarantee cleanup
+      // even if the ref becomes null before unmount
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [updateScrollState]);
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+  };
+
+  return (
+    <div
+      className="flex-none relative"
+      style={{
+        height: "40px",
+        borderBottom: "1px solid var(--border-dark-subtle)",
+        background: "var(--bg-raised)",
+      }}
+    >
+      {/* Left fade + arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-2 transition-opacity"
+          style={{
+            background:
+              "linear-gradient(to right, var(--bg-raised) 60%, transparent)",
+          }}
+          aria-label="Scorri tab a sinistra"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+        </button>
+      )}
+
+      {/* Scrollable tabs */}
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto h-full"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "var(--border-dark) transparent",
+        }}
+      >
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                whitespace-nowrap transition-all duration-150 shrink-0"
+              style={{
+                background: active ? "var(--bg-overlay)" : "transparent",
+                color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
+                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Right fade + arrow */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-2 transition-opacity"
+          style={{
+            background:
+              "linear-gradient(to left, var(--bg-raised) 60%, transparent)",
+          }}
+          aria-label="Scorri tab a destra"
+        >
+          <ChevronRight className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 // ─── Shared UI ──────────────────────────────────────────────────────────────
 
@@ -195,10 +325,29 @@ export default function OpsPageClient() {
   const [fullscreenPanel, setFullscreenPanel] = useState<string | null>(null);
   const [showSlope, setShowSlope] = useState(false);
 
+  // ── Live sessions from SessionIndicator (for AgentDots bridging) ──────────
+  type LiveSessionEntry = {
+    pid: number;
+    type: "console" | "task-runner" | "daemon" | "interactive";
+    target: string;
+    taskId?: string;
+    startedAt: string;
+    status: "active" | "closing";
+  };
+  const [liveSessions, setLiveSessions] = useState<LiveSessionEntry[]>([]);
+  const handleSessionsUpdate = useCallback((sessions: LiveSessionEntry[]) => {
+    setLiveSessions(sessions);
+  }, []);
+
   // ── Auth check ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
-      setAuthed(true);
+    try {
+      if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
+        setAuthed(true);
+      }
+    } catch {
+      // sessionStorage can throw in some mobile private browsing contexts
+      console.warn("[Auth] sessionStorage unavailable");
     }
   }, []);
 
@@ -211,12 +360,12 @@ export default function OpsPageClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input: authInput }),
       });
-      const json = await res.json();
-      if (json.authorized && json.token) {
-        sessionStorage.setItem("lexmea-token", json.token);
+      const json = await res.json().catch(() => null);
+      if (json?.authorized && json?.token) {
+        try { sessionStorage.setItem("lexmea-token", json.token); } catch { /* ignore */ }
         setAuthed(true);
       } else {
-        setAuthError(json.message ?? "Accesso negato");
+        setAuthError(json?.message ?? "Accesso negato");
       }
     } catch {
       setAuthError("Errore di connessione");
@@ -230,14 +379,16 @@ export default function OpsPageClient() {
     try {
       const res = await fetch("/api/company/status", { headers: getConsoleAuthHeaders() });
       if (res.ok) {
-        setData(await res.json());
+        const json = await res.json().catch(() => null);
+        if (json) setData(json);
+        else setFetchError("Risposta non valida dal server");
       } else if (res.status === 401) {
-        sessionStorage.removeItem("lexmea-token");
+        try { sessionStorage.removeItem("lexmea-token"); } catch { /* ignore */ }
         setAuthed(false);
         setData(null);
       } else {
         const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        setFetchError(body.error ?? `Errore ${res.status}`);
+        setFetchError(body?.error ?? `Errore ${res.status}`);
       }
     } catch (err) {
       console.error("Failed to fetch ops data:", err);
@@ -290,15 +441,38 @@ export default function OpsPageClient() {
 
     let eventSource: EventSource | null = null;
     let retryTimeout: ReturnType<typeof setTimeout>;
+    let retryCount = 0;
+    const MAX_SSE_RETRIES = 10;
+    let disposed = false;
 
     const connect = () => {
-      const token = sessionStorage.getItem("lexmea-token") ?? "";
+      if (disposed) return;
+      if (retryCount >= MAX_SSE_RETRIES) {
+        console.warn(`[SSE] Max retries (${MAX_SSE_RETRIES}) reached — SSE disabled`);
+        return;
+      }
+
+      let token = "";
+      try {
+        token = sessionStorage.getItem("lexmea-token") ?? "";
+      } catch {
+        console.warn("[SSE] sessionStorage unavailable — SSE disabled");
+        return;
+      }
+
       const sseUrl = `/api/company/agents/live?t=${encodeURIComponent(token)}`;
       console.log("[SSE] Connecting to", sseUrl.slice(0, 60) + "...");
-      eventSource = new EventSource(sseUrl);
+
+      try {
+        eventSource = new EventSource(sseUrl);
+      } catch (err) {
+        console.warn("[SSE] EventSource constructor failed:", err);
+        return;
+      }
 
       eventSource.onopen = () => {
         console.log("[SSE] Connected — listening for agent events");
+        retryCount = 0; // Reset on successful connection
       };
 
       eventSource.addEventListener("snapshot", (e) => {
@@ -341,16 +515,21 @@ export default function OpsPageClient() {
       });
 
       eventSource.onerror = (err) => {
-        console.warn("[SSE] Error — reconnecting in 5s", err);
+        retryCount++;
+        // Exponential backoff: 5s, 10s, 20s, 40s... capped at 60s
+        const delay = Math.min(5_000 * Math.pow(2, retryCount - 1), 60_000);
+        console.warn(`[SSE] Error (retry ${retryCount}/${MAX_SSE_RETRIES}) — reconnecting in ${delay / 1000}s`, err);
         eventSource?.close();
-        // Retry after 5 seconds
-        retryTimeout = setTimeout(connect, 5_000);
+        if (!disposed && retryCount < MAX_SSE_RETRIES) {
+          retryTimeout = setTimeout(connect, delay);
+        }
       };
     };
 
     connect();
 
     return () => {
+      disposed = true;
       eventSource?.close();
       clearTimeout(retryTimeout);
     };
@@ -377,8 +556,24 @@ export default function OpsPageClient() {
       map.set(key, { department: value.department, task: value.task, status: value.status });
     });
 
+    // Layer 3: Bridge live sessions (from SessionIndicator) into the map
+    for (const s of liveSessions) {
+      if (s.status !== "active") continue;
+      if (!s.target || s.target === "unknown") continue;
+
+      const key = `session-${s.pid}`;
+      if (map.has(key)) continue;
+
+      const dept = s.type === "interactive" ? "interactive" : s.target;
+      map.set(key, {
+        department: dept,
+        task: s.taskId || s.type,
+        status: "running",
+      });
+    }
+
     return map;
-  }, [data, liveAgents]);
+  }, [data, liveAgents, liveSessions]);
 
   const activeAgentCount = useMemo(() => {
     let count = 0;
@@ -549,6 +744,9 @@ export default function OpsPageClient() {
           </div>
         )}
 
+        {/* Active sessions */}
+        <SessionIndicator onSessionsUpdate={handleSessionsUpdate} />
+
         {/* Error indicator */}
         {fetchError && (
           <span
@@ -603,41 +801,7 @@ export default function OpsPageClient() {
       </header>
 
       {/* ── TAB BAR ─────────────────────────────────────────────────── */}
-      <nav
-        className="flex-none flex items-center gap-0.5 px-2 md:px-4 overflow-x-auto scrollbar-none"
-        style={{
-          height: "40px",
-          borderBottom: "1px solid var(--border-dark-subtle)",
-          background: "var(--bg-raised)",
-        }}
-      >
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id;
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                whitespace-nowrap transition-all duration-150 shrink-0"
-              style={{
-                background: active ? "var(--bg-overlay)" : "transparent",
-                color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
-                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = "var(--bg-overlay)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <TabBarWithScrollIndicators activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* ── CONTENT AREA ─────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -779,6 +943,13 @@ export default function OpsPageClient() {
           </div>
         )}
 
+        {/* Integrazioni */}
+        {activeTab === "integrations" && (
+          <div className="h-full overflow-y-auto p-4 md:p-6">
+            <IntegrationHealthPanel />
+          </div>
+        )}
+
         {/* QA & Testing */}
         {activeTab === "testing" && (
           <div className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
@@ -791,6 +962,13 @@ export default function OpsPageClient() {
             <SectionCard title="Debug">
               <DebugPanel />
             </SectionCard>
+          </div>
+        )}
+
+        {/* Terminali */}
+        {activeTab === "terminals" && (
+          <div className="h-full overflow-hidden">
+            <TerminalMonitor />
           </div>
         )}
       </div>
