@@ -45,6 +45,17 @@ import {
   Power,
 } from "lucide-react";
 import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
+import dynamic from "next/dynamic";
+import { MessageSquare } from "lucide-react";
+
+const CompanyPanel = dynamic(() => import("@/components/console/CompanyPanel"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="w-6 h-6 text-[#FF6B35] animate-spin" />
+    </div>
+  ),
+});
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -247,6 +258,7 @@ export default function MobileOpsView() {
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [showDoneTasks, setShowDoneTasks] = useState(false);
   const [costExpanded, setCostExpanded] = useState(false);
+  const [showCmeChat, setShowCmeChat] = useState(false);
 
   // ── Server health state ──────────────────────────────────────────────────
   const [serverData, setServerData] = useState<ServerData | null>(null);
@@ -1069,6 +1081,37 @@ export default function MobileOpsView() {
             </div>
           </section>
         )}
+
+        {/* ── CME Chat ─────────────────────────────────────────────── */}
+        <section>
+          <button
+            onClick={() => setShowCmeChat(!showCmeChat)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#252837] border border-[#383b4d] active:scale-[0.98] transition-transform min-h-[48px]"
+            style={{
+              borderColor: showCmeChat ? "rgba(255,107,53,0.4)" : undefined,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <MessageSquare className="w-5 h-5 text-[#FF6B35]" />
+              <span className="text-sm font-semibold text-[#e4f0fb] uppercase tracking-wider">
+                Chat CME
+              </span>
+            </div>
+            {showCmeChat ? (
+              <ChevronUp className="w-5 h-5 text-[#767c9d]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[#767c9d]" />
+            )}
+          </button>
+          {showCmeChat && (
+            <div
+              className="mt-3 rounded-xl bg-[#1b1e28] border border-[#383b4d] overflow-hidden"
+              style={{ height: "70vh", maxHeight: "600px" }}
+            >
+              <CompanyPanel open={true} onClose={() => setShowCmeChat(false)} embedded />
+            </div>
+          )}
+        </section>
 
         {/* ── Quick Actions ────────────────────────────────────────── */}
         <section className="pb-8">
