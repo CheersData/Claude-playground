@@ -188,14 +188,14 @@ function TabBarWithScrollIndicators({
       {canScrollLeft && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-2 transition-opacity"
+          className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-2 min-w-[36px] transition-opacity"
           style={{
             background:
               "linear-gradient(to right, var(--bg-raised) 60%, transparent)",
           }}
           aria-label="Scorri tab a sinistra"
         >
-          <ChevronLeft className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+          <ChevronLeft className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
         </button>
       )}
 
@@ -215,7 +215,7 @@ function TabBarWithScrollIndicators({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 min-h-[44px] min-w-[44px] justify-center
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 min-h-[44px] min-w-[44px] justify-center
                 rounded-md text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-150 shrink-0"
               style={{
                 background: active ? "var(--bg-overlay)" : "transparent",
@@ -241,14 +241,14 @@ function TabBarWithScrollIndicators({
       {canScrollRight && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-2 transition-opacity"
+          className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-2 min-w-[36px] transition-opacity"
           style={{
             background:
               "linear-gradient(to left, var(--bg-raised) 60%, transparent)",
           }}
           aria-label="Scorri tab a destra"
         >
-          <ChevronRight className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+          <ChevronRight className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
         </button>
       )}
     </div>
@@ -614,7 +614,7 @@ export default function OpsPageClient() {
       >
         <form
           onSubmit={handleLogin}
-          className="rounded-2xl p-8 w-full max-w-sm space-y-5"
+          className="rounded-2xl p-6 md:p-8 w-full max-w-sm space-y-5"
           style={{
             background: "var(--bg-raised)",
             border: "1px solid var(--border-dark-subtle)",
@@ -637,7 +637,7 @@ export default function OpsPageClient() {
             value={authInput}
             onChange={(e) => setAuthInput(e.target.value)}
             placeholder="Nome Cognome, Ruolo"
-            className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
+            className="w-full px-4 py-3 rounded-lg text-base outline-none transition-all min-h-[44px]"
             style={{
               background: "var(--bg-base)",
               border: "1px solid var(--border-dark-subtle)",
@@ -660,7 +660,7 @@ export default function OpsPageClient() {
             type="submit"
             disabled={!authInput.trim()}
             className="w-full px-4 py-2.5 text-white rounded-lg text-sm font-semibold
-              transition-all disabled:opacity-40"
+              transition-all disabled:opacity-40 min-h-[44px]"
             style={{
               background: "var(--accent)",
               boxShadow: "0 2px 8px rgba(255,107,53,0.25)",
@@ -682,7 +682,7 @@ export default function OpsPageClient() {
     >
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header
-        className="h-12 flex-none flex items-center gap-3 px-4 md:px-6"
+        className="min-h-[48px] flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 flex-wrap sm:flex-nowrap py-1 sm:py-0"
         style={{
           borderBottom: "1px solid var(--border-dark-subtle)",
           background: "var(--bg-raised)",
@@ -746,13 +746,15 @@ export default function OpsPageClient() {
           </div>
         )}
 
-        {/* Active sessions */}
-        <SessionIndicator onSessionsUpdate={handleSessionsUpdate} />
+        {/* Active sessions — hidden on very small screens to prevent overflow */}
+        <div className="hidden sm:block">
+          <SessionIndicator onSessionsUpdate={handleSessionsUpdate} />
+        </div>
 
         {/* Error indicator */}
         {fetchError && (
           <span
-            className="text-[10px] truncate max-w-[200px]"
+            className="text-[10px] truncate max-w-[120px] sm:max-w-[200px]"
             style={{ color: "var(--error)" }}
           >
             {fetchError}
@@ -766,7 +768,7 @@ export default function OpsPageClient() {
         {data && (
           <>
             {/* Mobile: compact single-line */}
-            <div className="flex md:hidden items-center gap-1.5 text-[10px] font-mono"
+            <div className="flex md:hidden items-center gap-1.5 text-xs font-mono"
               style={{ color: "var(--fg-secondary)" }}
             >
               <span style={{ color: "var(--success)" }}>
@@ -800,7 +802,7 @@ export default function OpsPageClient() {
             </div>
             {/* Mobile: compact capacity dot */}
             <div
-              className="flex md:hidden items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono"
+              className="flex md:hidden items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-mono"
               style={{
                 background: activeAgentCount > 0 ? "rgba(255,107,53,0.12)" : "rgba(255,255,255,0.04)",
                 color: activeAgentCount > 0 ? "#FF6B35" : "var(--fg-muted)",
@@ -822,7 +824,7 @@ export default function OpsPageClient() {
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs
+          className="flex items-center gap-1.5 px-2.5 min-h-[44px] h-auto rounded-lg text-xs
             transition-all duration-150 disabled:opacity-40 whitespace-nowrap"
           style={{
             background: "var(--bg-overlay)",

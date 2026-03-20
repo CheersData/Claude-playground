@@ -520,16 +520,20 @@ export default function MobileOpsView() {
             value={authInput}
             onChange={(e) => setAuthInput(e.target.value)}
             placeholder="Nome Cognome, Ruolo"
-            className="w-full px-4 py-3 rounded-xl text-base outline-none bg-[#1b1e28] border border-[#383b4d] text-[#e4f0fb] placeholder:text-[#767c9d] focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/25 transition-all"
+            className="w-full px-4 py-3 rounded-xl outline-none bg-[#1b1e28] border border-[#383b4d] text-[#e4f0fb] placeholder:text-[#767c9d] focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/25 transition-all min-h-[44px]"
+            style={{ fontSize: "16px" }}
             autoFocus
           />
           {authError && (
-            <p className="text-xs text-[#e58d78]">{authError}</p>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#e58d78]/10 border border-[#e58d78]/20">
+              <XCircle className="w-4 h-4 shrink-0 text-[#e58d78]" />
+              <p className="text-sm text-[#e58d78]">{authError}</p>
+            </div>
           )}
           <button
             type="submit"
             disabled={!authInput.trim()}
-            className="w-full px-4 py-3 text-white rounded-xl text-base font-semibold bg-[#FF6B35] transition-all disabled:opacity-40 active:scale-[0.98]"
+            className="w-full px-4 py-3 text-white rounded-xl text-base font-semibold bg-[#FF6B35] transition-all disabled:opacity-40 active:scale-[0.98] min-h-[44px]"
             style={{ boxShadow: "0 2px 12px rgba(255,107,53,0.3)" }}
           >
             Accedi
@@ -632,7 +636,7 @@ export default function MobileOpsView() {
         </AnimatePresence>
 
         {/* ── Quick Stats Row ──────────────────────────────────────── */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <StatPill
             label="Aperti"
             value={data?.board.byStatus?.open ?? 0}
@@ -660,11 +664,11 @@ export default function MobileOpsView() {
           <SectionHeader icon={Server} title="Server Health" />
           <div className="mt-3 rounded-xl bg-[#252837] border border-[#383b4d] p-4 space-y-4">
             {serverError && (
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#e58d78]/10 border border-[#e58d78]/20">
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#e58d78]/10 border border-[#e58d78]/20 min-h-[44px]">
                 <span className="text-xs text-[#e58d78]">{serverError}</span>
                 <button
                   onClick={fetchServer}
-                  className="text-xs text-[#e58d78] underline ml-2"
+                  className="text-xs text-[#e58d78] underline ml-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   Riprova
                 </button>
@@ -711,7 +715,7 @@ export default function MobileOpsView() {
             {/* Top 3 processes by memory */}
             {serverData && serverData.processes.topByMemory.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-[10px] text-[#767c9d] uppercase tracking-wider">
+                <p className="text-xs text-[#767c9d] uppercase tracking-wider">
                   Top processi (RAM)
                 </p>
                 {serverData.processes.topByMemory.slice(0, 3).map((proc, i) => (
@@ -745,11 +749,11 @@ export default function MobileOpsView() {
           <SectionHeader icon={Zap} title="CME Daemon" />
           <div className="mt-3 rounded-xl bg-[#252837] border border-[#383b4d] p-4 space-y-4">
             {daemonError && (
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#e58d78]/10 border border-[#e58d78]/20">
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#e58d78]/10 border border-[#e58d78]/20 min-h-[44px]">
                 <span className="text-xs text-[#e58d78]">{daemonError}</span>
                 <button
                   onClick={fetchDaemon}
-                  className="text-xs text-[#e58d78] underline ml-2"
+                  className="text-xs text-[#e58d78] underline ml-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   Riprova
                 </button>
@@ -790,7 +794,7 @@ export default function MobileOpsView() {
                           ? "Inattivo"
                           : "---"}
                   </p>
-                  <p className="text-[10px] text-[#767c9d]">
+                  <p className="text-xs text-[#767c9d]">
                     {daemonState?.running
                       ? "Sessione Claude in corso..."
                       : daemonState?.enabled
@@ -833,14 +837,14 @@ export default function MobileOpsView() {
                   <span className="text-xs font-mono text-[#e4f0fb]">
                     {daemonState.lastRun ? formatTimeAgo(daemonState.lastRun) : "---"}
                   </span>
-                  <span className="text-[9px] text-[#767c9d] uppercase">Ultimo run</span>
+                  <span className="text-xs text-[#767c9d] uppercase">Ultimo run</span>
                 </div>
                 <div className="flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg bg-[#1b1e28] border border-[#383b4d]/50">
                   <Activity className="w-3.5 h-3.5 text-[#767c9d]" />
                   <span className="text-xs font-mono text-[#e4f0fb]">
                     {daemonState.totalRuns}
                   </span>
-                  <span className="text-[9px] text-[#767c9d] uppercase">Tot. run</span>
+                  <span className="text-xs text-[#767c9d] uppercase">Tot. run</span>
                 </div>
                 <div className="flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg bg-[#1b1e28] border border-[#383b4d]/50">
                   <span
@@ -867,7 +871,7 @@ export default function MobileOpsView() {
                   >
                     {daemonState.lastExitCode !== null ? `exit ${daemonState.lastExitCode}` : "---"}
                   </span>
-                  <span className="text-[9px] text-[#767c9d] uppercase">Exit</span>
+                  <span className="text-xs text-[#767c9d] uppercase">Exit</span>
                 </div>
               </div>
             )}
@@ -1105,7 +1109,7 @@ function StatPill({ label, value, color }: { label: string; value: string | numb
       <span className="text-lg font-bold font-mono" style={{ color }}>
         {value}
       </span>
-      <span className="text-[10px] text-[#767c9d] uppercase tracking-wider">{label}</span>
+      <span className="text-xs text-[#767c9d] uppercase tracking-wider">{label}</span>
     </div>
   );
 }
@@ -1172,7 +1176,7 @@ function TaskCard({
           </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase"
+              className="px-2 py-0.5 rounded-full text-xs font-medium uppercase"
               style={{
                 background: statusConf.bg,
                 border: `1px solid ${statusConf.border}`,
@@ -1182,7 +1186,7 @@ function TaskCard({
               {statusConf.label}
             </span>
             <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase"
+              className="px-2 py-0.5 rounded-full text-xs font-medium uppercase"
               style={{
                 background: `${priorityColor}10`,
                 border: `1px solid ${priorityColor}25`,
@@ -1191,10 +1195,10 @@ function TaskCard({
             >
               {task.priority}
             </span>
-            <span className="text-[10px] text-[#767c9d]">
+            <span className="text-xs text-[#767c9d]">
               {deptLabel(task.department)}
             </span>
-            <span className="text-[10px] text-[#767c9d]">
+            <span className="text-xs text-[#767c9d]">
               {timeAgo(task.createdAt)}
             </span>
           </div>
@@ -1213,19 +1217,19 @@ function TaskCard({
             <div className="px-4 pb-4 space-y-2 border-t border-[#383b4d] pt-3">
               {task.description && (
                 <div>
-                  <p className="text-[10px] text-[#767c9d] uppercase tracking-wider mb-1">Descrizione</p>
+                  <p className="text-xs text-[#767c9d] uppercase tracking-wider mb-1">Descrizione</p>
                   <p className="text-sm text-[#a6accd] leading-relaxed">{task.description}</p>
                 </div>
               )}
               {task.assignedTo && (
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] text-[#767c9d] uppercase tracking-wider">Assegnato a</p>
+                  <p className="text-xs text-[#767c9d] uppercase tracking-wider">Assegnato a</p>
                   <p className="text-sm text-[#a6accd]">{task.assignedTo}</p>
                 </div>
               )}
               {task.resultSummary && (
                 <div>
-                  <p className="text-[10px] text-[#767c9d] uppercase tracking-wider mb-1">Risultato</p>
+                  <p className="text-xs text-[#767c9d] uppercase tracking-wider mb-1">Risultato</p>
                   <p className="text-sm text-[#a6accd] leading-relaxed">{task.resultSummary}</p>
                 </div>
               )}
@@ -1234,14 +1238,14 @@ function TaskCard({
                   {task.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#303348] text-[#767c9d] border border-[#383b4d]"
+                      className="px-2 py-0.5 rounded-full text-xs font-mono bg-[#303348] text-[#767c9d] border border-[#383b4d]"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
               )}
-              <div className="flex items-center gap-4 text-[10px] text-[#767c9d] pt-1">
+              <div className="flex items-center gap-4 text-xs text-[#767c9d] pt-1">
                 <span>Creato da: {task.createdBy}</span>
                 <span>ID: {task.id.slice(0, 8)}</span>
               </div>
@@ -1328,11 +1332,11 @@ function CircularGauge({
           )}
         </div>
       </div>
-      <span className="text-[10px] text-[#e4f0fb] uppercase tracking-wider font-medium">
+      <span className="text-xs text-[#e4f0fb] uppercase tracking-wider font-medium">
         {label}
       </span>
       {detail && (
-        <span className="text-[9px] text-[#767c9d] font-mono leading-tight text-center">
+        <span className="text-xs text-[#767c9d] font-mono leading-tight text-center">
           {detail}
         </span>
       )}
@@ -1353,7 +1357,7 @@ function DaemonStatusPill({ state }: { state: DaemonState | null }) {
 
   return (
     <span
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider"
       style={{
         background: config.bg,
         border: `1px solid ${config.border}`,
