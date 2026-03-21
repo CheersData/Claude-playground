@@ -34,6 +34,8 @@ import {
   Terminal,
   ChevronLeft,
   ChevronRight,
+  Cpu,
+  MemoryStick,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -317,6 +319,22 @@ export default function OpsPageClient() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // ── System stats (CPU/RAM) ──────────────────────────────────────────────────
+  interface SystemStats { cpu_percent: number; ram_percent: number; ram_used_mb: number; ram_total_mb: number; }
+  const [sysStats, setSysStats] = useState<SystemStats | null>(null);
+  const fetchSysStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/console/system-stats", { headers: getConsoleAuthHeaders() });
+      if (!res.ok) return;
+      setSysStats(await res.json());
+    } catch { /* silent */ }
+  }, []);
+  useEffect(() => {
+    fetchSysStats();
+    const iv = setInterval(fetchSysStats, 5000);
+    return () => clearInterval(iv);
+  }, [fetchSysStats]);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -719,6 +737,46 @@ export default function OpsPageClient() {
           />
           {systemHealth.label}
         </span>
+
+        {/* CPU/RAM widget */}
+        {sysStats && (
+          <div
+            className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg text-xs"
+            style={{ background: "var(--bg-overlay)", border: "1px solid var(--border-dark-subtle)" }}
+            aria-label={`CPU ${sysStats.cpu_percent}%, RAM ${sysStats.ram_percent}%`}
+          >
+            <div className="flex items-center gap-1" title={`CPU: ${sysStats.cpu_percent}%`}>
+              <Cpu className="w-3 h-3" style={{ color: sysStats.cpu_percent >= 85 ? "var(--error)" : sysStats.cpu_percent >= 70 ? "#f59e0b" : "var(--success)" }} />
+              <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-dark)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(sysStats.cpu_percent, 100)}%`,
+                    background: sysStats.cpu_percent >= 85 ? "var(--error)" : sysStats.cpu_percent >= 70 ? "#f59e0b" : "var(--success)",
+                  }}
+                />
+              </div>
+              <span className="tabular-nums text-[10px]" style={{ color: sysStats.cpu_percent >= 85 ? "var(--error)" : sysStats.cpu_percent >= 70 ? "#f59e0b" : "var(--success)" }}>
+                {sysStats.cpu_percent}%
+              </span>
+            </div>
+            <div className="flex items-center gap-1" title={`RAM: ${sysStats.ram_used_mb}/${sysStats.ram_total_mb} MB (${sysStats.ram_percent}%)`}>
+              <MemoryStick className="w-3 h-3" style={{ color: sysStats.ram_percent >= 85 ? "var(--error)" : sysStats.ram_percent >= 70 ? "#f59e0b" : "var(--success)" }} />
+              <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-dark)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(sysStats.ram_percent, 100)}%`,
+                    background: sysStats.ram_percent >= 85 ? "var(--error)" : sysStats.ram_percent >= 70 ? "#f59e0b" : "var(--success)",
+                  }}
+                />
+              </div>
+              <span className="tabular-nums text-[10px]" style={{ color: sysStats.ram_percent >= 85 ? "var(--error)" : sysStats.ram_percent >= 70 ? "#f59e0b" : "var(--success)" }}>
+                {sysStats.ram_percent}%
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Agent activity dots + test button */}
         {data && (
