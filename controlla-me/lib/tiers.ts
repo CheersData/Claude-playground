@@ -162,6 +162,14 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "sambanova-llama3-70b",   // 200K tok/day
     "mistral-small-3",        // 2 RPM (ultimo resort)
   ],
+  // ── Critic — revisore interno pipeline, validazione non creazione ──
+  critic: [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
 };
 
 /**
@@ -182,6 +190,7 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   "mapping-agent":     { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
   "integration-setup": { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
   "sync-supervisor":   { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
+  critic:              { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
 };
 
 // ─── State ───
@@ -339,6 +348,7 @@ export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
   "sync-supervisor":   "sdk",
   // ── Document chat → SDK (Gemini Flash/Groq, conversational) ──
   "document-chat":     "sdk",
+  critic:              "sdk",
 };
 
 /**
@@ -359,6 +369,7 @@ export const CLI_MODEL_MAP: Record<AgentName, string> = {
   investigator:    "sonnet",
   advisor:         "sonnet",
   "task-executor": "opus",
+  critic:              "haiku",
 };
 
 /**
@@ -486,6 +497,7 @@ export function estimateTierCost(): { perQuery: number; label: string } {
     "integration-setup": { input: 1500, output: 800 },
     "sync-supervisor":   { input: 800,  output: 400 },
     "document-chat":     { input: 6000, output: 2000 },
+    critic:              { input: 8000, output: 1000 },
   };
 
   let total = 0;
@@ -524,6 +536,7 @@ export function estimateTierCostForSession(
     "integration-setup": { input: 1500,  output: 800 },
     "sync-supervisor":   { input: 800,   output: 400 },
     "document-chat":     { input: 6000,  output: 2000 },
+    critic:              { input: 8000,  output: 1000 },
   };
 
   let total = 0;

@@ -118,4 +118,6 @@ export interface TaskBoard {
   inProgress: Task[];
   /** ALL tasks awaiting boss approval (status=review) — NOT limited to recent slice */
   reviewPending: Task[];
+  /** Last 15 completed tasks — used by Forma Mentis to prevent CME from re-proposing done work */
+  recentDone: Task[];
 }

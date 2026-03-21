@@ -21,6 +21,8 @@ export interface LeaderInput {
   textLength?: number;
   /** Ultimi N turni della conversazione — usati per session memory */
   history?: ConversationTurn[];
+  /** Forma Mentis company context block — injected by console route */
+  companyContext?: string;
 }
 
 /** Parole troppo vaghe per procedere senza chiarimento */
@@ -110,7 +112,7 @@ export async function runLeaderAgent(
   }
 
   // Ambiguo: chiedi al LLM
-  const { history } = input;
+  const { history, companyContext } = input;
 
   const historyBlock =
     history && history.length > 0
@@ -123,6 +125,7 @@ export async function runLeaderAgent(
       : "";
 
   const prompt = [
+    companyContext ?? "",
     historyBlock,
     `FILE ALLEGATO: ${hasFile ? `Sì (${fileName ?? "file"})` : "No"}`,
     `MESSAGGIO UTENTE:\n${trimmedMessage || "(nessun messaggio)"}`,

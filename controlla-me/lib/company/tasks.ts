@@ -234,6 +234,7 @@ export async function getTaskBoard(): Promise<TaskBoard> {
       recent: [],
       inProgress: [],
       reviewPending: [],
+      recentDone: [],
     };
   }
 
@@ -273,6 +274,11 @@ export async function getTaskBoard(): Promise<TaskBoard> {
   // All tasks awaiting boss approval (review status) — always included, not limited to slice
   const reviewPendingTasks = tasks.filter((t) => t.status === "review");
 
+  // Last 15 completed tasks — prevents CME from re-proposing done work (Forma Mentis)
+  const recentDoneTasks = tasks
+    .filter((t) => t.status === "done")
+    .slice(0, 15);
+
   return {
     total: tasks.length,
     byStatus,
@@ -280,6 +286,7 @@ export async function getTaskBoard(): Promise<TaskBoard> {
     recent: tasks.slice(0, 10),
     inProgress: inProgressTasks,
     reviewPending: reviewPendingTasks,
+    recentDone: recentDoneTasks,
   };
 }
 

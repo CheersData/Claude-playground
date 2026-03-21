@@ -1,0 +1,40 @@
+[Unit]
+Description=Controlla.me CME Daemon — sensor + ping loop
+Documentation=https://github.com/CheersData/controlla-me
+After=network.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/Claude-playground/controlla-me
+ExecStart=/usr/bin/npx tsx scripts/cme-autorun.ts --watch
+Restart=on-failure
+RestartSec=10
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=-/home/deploy/Claude-playground/controlla-me/.env.local
+
+# Logging via journalctl (stdout + stderr)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=controlla-daemon
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/home/deploy/Claude-playground/controlla-me
+PrivateTmp=true
+
+# Graceful shutdown
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

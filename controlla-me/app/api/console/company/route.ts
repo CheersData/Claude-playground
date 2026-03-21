@@ -11,6 +11,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
+import { loadFormaMentisContext } from "@/lib/company/memory/daemon-context-loader";
 import {
   setSession,
   deleteSession,
@@ -97,16 +98,67 @@ export async function POST(req: Request) {
       promptContent = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano.`;
     }
 
-    // Fetch live data for context
-    const [board, costs] = await Promise.all([
+    // Fetch live data + Forma Mentis context in parallel
+    const [board, costs, formaMentis] = await Promise.all([
       getTaskBoard().catch(() => null),
       getTotalSpend(7).catch(() => null),
+      loadFormaMentisContext().catch((e: unknown) => {
+        console.error("[COMPANY-CHAT] Forma Mentis context failed:", e instanceof Error ? e.message : e);
+        return null;
+      }),
     ]);
 
     const dataContext = buildDataContext(board, costs);
 
-    // Short system prompt for CLI arg (avoids Windows cmd length limit)
-    const shortSystemPrompt = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri.`;
+    // Build Forma Mentis block for prompt injection
+    let formaMentisBlock = "";
+    if (formaMentis) {
+      const parts: string[] = [];
+
+      // Daemon report from disk FIRST — always available, richest source
+      if (formaMentis.daemonBlock) parts.push(formaMentis.daemonBlock);
+
+      // Session history — critical for continuity
+      if (formaMentis.sessionBlock) parts.push(formaMentis.sessionBlock);
+
+      // Recently completed tasks — prevents CME from re-proposing done work
+      if (board?.recentDone && board.recentDone.length > 0) {
+        const doneLines = board.recentDone.map(
+          (t: { title: string; department: string; resultSummary?: string | null }) =>
+            `- ${t.title} (${t.department})${t.resultSummary ? `: ${t.resultSummary.slice(0, 80)}` : ""}`
+        );
+        parts.push(`## TASK COMPLETATI DI RECENTE (NON riproporre)\n${doneLines.join("\n")}`);
+      }
+
+      // Department status snapshot
+      if (formaMentis.statusBlock) parts.push(formaMentis.statusBlock);
+
+      // Warnings, learnings, context from department memories
+      if (formaMentis.memoryBlock) parts.push(formaMentis.memoryBlock);
+
+      // Active goals and progress
+      if (formaMentis.goalBlock) parts.push(formaMentis.goalBlock);
+
+      if (parts.length > 0) {
+        formaMentisBlock = [
+          "",
+          "--- CONTESTO AZIENDALE (Forma Mentis) ---",
+          "ISTRUZIONI: Leggi ATTENTAMENTE questo contesto prima di rispondere.",
+          "NON riproporre task già completati. NON ignorare warning attivi.",
+          "Se una sessione precedente ha affrontato un problema, parti da dove si è fermata.",
+          "",
+          ...parts,
+          "",
+          "--- FINE CONTESTO AZIENDALE ---",
+        ].join("\n");
+        console.log(`[COMPANY-CHAT] Forma Mentis context: ${formaMentisBlock.length} chars | sessions: ${formaMentis.context.recentSessions.length} | memories: ${formaMentis.context.departmentMemories.length} | goals: ${formaMentis.context.activeGoals.length} | done tasks: ${board?.recentDone?.length ?? 0} | daemonBlock: ${formaMentis.daemonBlock.length} chars`);
+      }
+    }
+
+    // System prompt — references Forma Mentis context to ensure LLM gives it weight
+    const shortSystemPrompt = formaMentisBlock
+      ? `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri. IMPORTANTE: il messaggio contiene un blocco "CONTESTO AZIENDALE (Forma Mentis)" con sessioni precedenti, task completati, warning e goal. DEVI leggerlo e usarlo per evitare di riproporre lavoro già fatto.`
+      : `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri.`;
 
     // Build conversation history section (if resuming)
     let historySection = "";
@@ -123,16 +175,17 @@ export async function POST(req: Request) {
     }
 
     // Build full context message for first turn
+    // Forma Mentis block comes BEFORE the role prompt so it's read first
     const contextMessage = [
+      formaMentisBlock || null,
       "## IL TUO RUOLO",
       promptContent,
-      "",
       "## DATI AZIENDALI LIVE",
       dataContext,
-      historySection,
+      historySection || null,
       "## DOMANDA",
       message,
-    ].join("\n");
+    ].filter(Boolean).join("\n\n");
 
     // Session ID for follow-up messages
     const sessionId = `cc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -150,6 +203,20 @@ export async function POST(req: Request) {
             // Controller may be closed
           }
         };
+
+        // ── Keepalive ping every 15s ──
+        // Mobile browsers aggressively kill idle SSE connections (especially on screen lock).
+        // Sending periodic pings keeps the TCP connection alive and helps the client detect
+        // a dead connection faster (no data = connection truly lost, not just idle).
+        const keepaliveInterval = setInterval(() => {
+          if (closed) { clearInterval(keepaliveInterval); return; }
+          try {
+            // SSE comment line (:) — ignored by EventSource/SSE parsers but keeps connection alive
+            controller.enqueue(encoder.encode(`: keepalive ${Date.now()}\n\n`));
+          } catch {
+            clearInterval(keepaliveInterval);
+          }
+        }, 15_000);
 
         const args = [
           "-p",
@@ -358,6 +425,7 @@ export async function POST(req: Request) {
             send("error", { error: `Claude Code exit ${code}: ${stderrOutput.slice(0, 500)}` });
           }
           send("done", { target, sessionId });
+          clearInterval(keepaliveInterval);
           if (!closed) { closed = true; controller.close(); }
         });
 
@@ -378,6 +446,7 @@ export async function POST(req: Request) {
           });
           send("debug", { type: "spawn-error", msg: err.message, ts: Date.now() });
           send("error", { error: `Errore spawn: ${err.message}. Claude Code è installato?` });
+          clearInterval(keepaliveInterval);
           if (!closed) { closed = true; controller.close(); }
         });
       },

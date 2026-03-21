@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { X, Send, Square, RefreshCw, AlertCircle, Paperclip } from "lucide-react";
+import { X, Send, Square, RefreshCw, AlertCircle, Paperclip, WifiOff } from "lucide-react";
 import { TaskModal, type TaskItem } from "@/components/ops/TaskModal";
 import { TaskBoardFullscreen } from "@/components/ops/TaskBoardFullscreen";
 import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
@@ -87,6 +87,11 @@ const DEPT_NAMES: Record<string, string> = {
   trading: "Trading",
 };
 
+// ── Reconnect constants ──
+const MAX_RECONNECT_ATTEMPTS = 10;
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30_000;
+
 // ── Pulse dot (Framer Motion) ──
 // Replaces Tailwind animate-pulse with a visible ring + breathing dot.
 
@@ -128,11 +133,23 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
   const [_childPid, setChildPid] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // debugEndRef removed — newest debug entries are at top, no auto-scroll
   const fullTextRef = useRef("");
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  // Track the last user message + target so we can reconnect the same request
+  const lastRequestRef = useRef<{ message: string; target: TargetKey; isAuto: boolean } | null>(null);
+  // Track whether a stream is actively running (not just "responding" state)
+  const streamActiveRef = useRef(false);
+  // Distinguish user-initiated abort from inactivity timeout abort
+  const userAbortRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // ── Daemon directive auto-injection state ──
   const [autoDirective, setAutoDirective] = useState<string | null>(null);
@@ -140,7 +157,26 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     typeof window !== "undefined" ? localStorage.getItem("daemon-directive-ts") : null
   );
 
-  // No auto-scroll needed — newest messages and debug entries are always at top
+  // Smart auto-scroll: only scroll to bottom if user is near the bottom (within 100px)
+  const isNearBottomRef = useRef(true);
+
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const threshold = 100;
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
+
+  const scrollToBottomIfNeeded = useCallback(() => {
+    if (isNearBottomRef.current && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
+
+  // Auto-scroll when messages or streaming content changes
+  useEffect(() => {
+    scrollToBottomIfNeeded();
+  }, [messages, streaming, responding, scrollToBottomIfNeeded]);
 
   // Clipboard paste handler (images)
   useEffect(() => {
@@ -293,10 +329,121 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoDirective, responding]);
 
+  // ── Reconnect helpers ──
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  const attemptReconnect = useCallback((immediate = false) => {
+    const lastReq = lastRequestRef.current;
+    if (!lastReq) return;
+
+    // If already actively streaming, no need to reconnect
+    if (streamActiveRef.current) return;
+
+    const attempt = reconnectAttemptRef.current;
+    if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+      setReconnecting(false);
+      setReconnectAttempt(attempt);
+      return;
+    }
+
+    const delay = immediate
+      ? 0
+      : Math.min(
+          INITIAL_RECONNECT_DELAY_MS * Math.pow(2, attempt),
+          MAX_RECONNECT_DELAY_MS
+        );
+
+    reconnectAttemptRef.current = attempt + 1;
+    setReconnectAttempt(attempt + 1);
+    setReconnecting(true);
+
+    clearReconnectTimer();
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      // Re-start the session but preserve existing messages (isAuto=true avoids re-adding user message)
+      startSession(lastReq.message, true, lastReq.target);
+    }, delay);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearReconnectTimer]); // startSession is intentionally omitted — it's stable via hoisting
+
+  // ── Visibility change + online: reconnect on mobile screen unlock ──
+  useEffect(() => {
+    const handleReconnectTrigger = (reason: string) => {
+      // Only reconnect if we had an active stream that died AND no data was received
+      if (!lastRequestRef.current) return;
+      // If currently actively streaming, no need to reconnect
+      if (streamActiveRef.current) return;
+
+      console.log(`[CompanyPanel] ${reason} — attempting reconnect`);
+
+      // Cancel any in-flight backoff timer (it may have been ticking while screen was off)
+      clearReconnectTimer();
+      // Reset backoff counter — screen wake / network restore is a fresh start
+      reconnectAttemptRef.current = 0;
+      setReconnectAttempt(0);
+      attemptReconnect(true); // immediate
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      // On mobile screen unlock, wait for network to stabilize before attempting reconnect.
+      // Use a longer delay (1.5s) because mobile radios can take time to re-associate.
+      setTimeout(() => {
+        // Double-check we're still visible (user might have locked screen again)
+        if (document.visibilityState !== "visible") return;
+        // Check if we're online before attempting reconnect
+        if (!navigator.onLine) {
+          console.log("[CompanyPanel] Screen unlocked but offline — waiting for online event");
+          return;
+        }
+        handleReconnectTrigger("visibilitychange (screen unlock)");
+      }, 1500);
+    };
+
+    const handleOnline = () => {
+      // Delay slightly to let the connection stabilize
+      setTimeout(() => handleReconnectTrigger("online event (network restored)"), 500);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [attemptReconnect, clearReconnectTimer]);
+
+  // ── Pause reconnect attempts while tab is hidden (don't waste attempts when there's no network) ──
+  useEffect(() => {
+    const handleHidden = () => {
+      if (document.visibilityState === "hidden" && reconnectTimerRef.current) {
+        // Tab went hidden — cancel the pending reconnect timer.
+        // Attempts will resume when the tab becomes visible again.
+        clearReconnectTimer();
+      }
+    };
+    document.addEventListener("visibilitychange", handleHidden);
+    return () => document.removeEventListener("visibilitychange", handleHidden);
+  }, [clearReconnectTimer]);
+
+  // Cleanup reconnect timer on unmount
+  useEffect(() => {
+    return () => {
+      clearReconnectTimer();
+    };
+  }, [clearReconnectTimer]);
+
   // ── Start a new interactive session ──
   const startSession = async (text: string, isAuto = false, overrideTarget?: TargetKey) => {
     // Kill existing session
+    userAbortRef.current = true; // Mark as intentional abort (not inactivity)
     if (abortRef.current) abortRef.current.abort();
+    userAbortRef.current = false; // Reset for the new session
     if (sessionId) {
       fetch("/api/console/company/stop", {
         method: "POST",
@@ -305,6 +452,9 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
       }).catch(() => {});
     }
 
+    // Detect if this is a reconnection attempt (isAuto + reconnecting state)
+    const isReconnect = isAuto && !!lastRequestRef.current && reconnectAttemptRef.current > 0;
+
     if (!isAuto) {
       setMessages((prev) => [...prev, { role: "user", content: text }]);
     }
@@ -312,15 +462,24 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     setSessionId(null);
     setResponding(true);
     setStreaming("");
-    setDebugLog([]);
+    // Preserve debug log on reconnect so the user can see the reconnect history
+    if (!isReconnect) {
+      setDebugLog([]);
+    } else {
+      setDebugLog((prev) => [...prev, { type: "reconnect", msg: `Riconnessione tentativo #${reconnectAttemptRef.current}...`, ts: Date.now() }]);
+    }
     setChildPid(null);
     fullTextRef.current = "";
+    streamActiveRef.current = true;
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     // Use overrideTarget if provided (avoids stale closure when called from setTimeout)
     const effectiveTarget = overrideTarget ?? target;
+
+    // Track the request for potential reconnection
+    lastRequestRef.current = { message: text, target: effectiveTarget, isAuto };
 
     try {
       const headers = getConsoleJsonHeaders();
@@ -349,13 +508,36 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No body");
 
+      // Connection succeeded — reset reconnect state
+      reconnectAttemptRef.current = 0;
+      setReconnectAttempt(0);
+      setReconnecting(false);
+      clearReconnectTimer();
+
       const decoder = new TextDecoder();
       let buffer = "";
+
+      // Inactivity timeout: if no data arrives for 45s (3x server keepalive of 15s),
+      // the connection is dead. Abort and let the reconnect logic handle it.
+      let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+      const INACTIVITY_TIMEOUT_MS = 45_000;
+      const resetInactivityTimer = () => {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          console.log("[CompanyPanel] Inactivity timeout — aborting stream");
+          controller.abort();
+        }, INACTIVITY_TIMEOUT_MS);
+      };
+      resetInactivityTimer();
 
       // This loop runs for the ENTIRE session (multiple turns)
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          if (inactivityTimer) clearTimeout(inactivityTimer);
+          break;
+        }
+        resetInactivityTimer();
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
@@ -446,6 +628,8 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                   setStreaming("");
                   setResponding(false);
                   setSessionId(null);
+                  streamActiveRef.current = false;
+                  lastRequestRef.current = null;
                   break;
               }
             } catch {
@@ -459,31 +643,84 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
       // Stream ended normally
       setSessionId(null);
       setResponding(false);
+      streamActiveRef.current = false;
+      lastRequestRef.current = null;
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        setDebugLog((prev) => [...prev, { type: "exit", msg: "Fermato dall'utente", ts: Date.now() }]);
-        if (fullTextRef.current.trim()) {
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: fullTextRef.current.trim() + "\n\n[Interrotto]" },
-          ]);
+        const wasUserAbort = userAbortRef.current;
+        userAbortRef.current = false;
+
+        if (wasUserAbort) {
+          // User clicked stop — finalize and don't reconnect
+          setDebugLog((prev) => [...prev, { type: "exit", msg: "Fermato dall'utente", ts: Date.now() }]);
+          if (fullTextRef.current.trim()) {
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: fullTextRef.current.trim() + "\n\n[Interrotto]" },
+            ]);
+          }
+          fullTextRef.current = "";
+          setStreaming("");
+          setResponding(false);
+          setSessionId(null);
+          setChildPid(null);
+          streamActiveRef.current = false;
+          lastRequestRef.current = null;
+          return;
         }
-        fullTextRef.current = "";
-        setStreaming("");
-        setResponding(false);
-        setSessionId(null);
-        setChildPid(null);
-        return;
+
+        // Inactivity timeout abort — treat as network error, fall through to reconnect logic
+        console.log("[CompanyPanel] Inactivity timeout — treating as network error");
       }
       const errMsg = err instanceof Error ? err.message : "Errore";
       console.error("[CompanyPanel] startSession error:", errMsg);
-      setDebugLog((prev) => [...prev, { type: "error", msg: `Chat: ${errMsg}`, ts: Date.now() }]);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `Errore di comunicazione: ${errMsg}\n\nControlla che il server sia attivo e riprova.` },
-      ]);
-      setSessionId(null);
+
+      // Auth errors are not retryable
+      const isAuthError = errMsg.includes("Sessione scaduta") || errMsg.includes("401");
+      if (isAuthError) {
+        setDebugLog((prev) => [...prev, { type: "error", msg: `Chat: ${errMsg}`, ts: Date.now() }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Errore di comunicazione: ${errMsg}\n\nControlla che il server sia attivo e riprova.` },
+        ]);
+        setSessionId(null);
+        setResponding(false);
+        streamActiveRef.current = false;
+        lastRequestRef.current = null;
+        return;
+      }
+
+      // Network/stream error — handle based on whether we have partial content
+      const partialContent = fullTextRef.current.trim();
+      setStreaming("");
       setResponding(false);
+      setSessionId(null);
+      streamActiveRef.current = false;
+
+      if (partialContent) {
+        // We received partial response before disconnect.
+        // The server subprocess may still be running or may have finished.
+        // Save what we got and show a gentle notice — don't try to re-send.
+        setDebugLog((prev) => [...prev, { type: "error", msg: `Connessione persa dopo ${partialContent.length} chars ricevuti. Risposta parziale salvata.`, ts: Date.now() }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: partialContent + "\n\n[Connessione interrotta — risposta parziale]" },
+        ]);
+        fullTextRef.current = "";
+        lastRequestRef.current = null; // Don't reconnect — we have partial data
+      } else {
+        // No data received at all — transient network error before any response.
+        // Safe to retry the request with backoff.
+        setDebugLog((prev) => [...prev, { type: "error", msg: `Connessione persa: ${errMsg} — tentativo riconnessione...`, ts: Date.now() }]);
+        fullTextRef.current = "";
+
+        // If the tab is hidden (screen locked), don't start the backoff timer.
+        // The visibilitychange handler will trigger reconnection when the user returns.
+        if (document.visibilityState === "visible") {
+          attemptReconnect();
+        }
+        // If hidden: lastRequestRef.current is still set, so visibilitychange/online will pick it up
+      }
     }
   };
 
@@ -563,6 +800,15 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
   };
 
   const handleStop = async () => {
+    // Stop any pending reconnect
+    clearReconnectTimer();
+    reconnectAttemptRef.current = 0;
+    setReconnectAttempt(0);
+    setReconnecting(false);
+    streamActiveRef.current = false;
+    lastRequestRef.current = null;
+
+    userAbortRef.current = true;
     if (abortRef.current) abortRef.current.abort();
     if (sessionId) {
       try {
@@ -579,6 +825,13 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
 
   const handleTargetChange = (newTarget: TargetKey) => {
     if (newTarget === target || responding) return;
+    // Clear reconnect state on target switch
+    clearReconnectTimer();
+    reconnectAttemptRef.current = 0;
+    setReconnectAttempt(0);
+    setReconnecting(false);
+    lastRequestRef.current = null;
+
     setTarget(newTarget);
     setMessages([]);
     setStreaming("");
@@ -879,99 +1132,25 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
             ))}
           </div>
 
-          {/* Input — at TOP, always visible without scrolling */}
-          <form onSubmit={handleSubmit} className="border-b border-[var(--border-dark-subtle)]">
-            {/* File preview */}
-            {file && (
-              <div className="flex items-center gap-2 px-4 md:px-6 pt-3 pb-1">
-                {filePreview ? (
-                  <Image src={filePreview} alt={file.name} width={40} height={40} unoptimized className="rounded object-cover border border-[var(--border-dark-subtle)]" />
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
-                    <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" aria-hidden="true" />
-                    <span className="text-xs text-[var(--fg-secondary)] max-w-[200px] truncate">{file.name}</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={removeFile}
-                  aria-label={`Rimuovi file allegato: ${file?.name ?? "file"}`}
-                  className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
-                >
-                  <X className="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
-              </div>
-            )}
-            <div className="flex items-center gap-2 px-4 md:px-6 py-3 md:py-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                accept="image/*,.pdf,.docx,.txt,.json,.csv"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 text-[var(--fg-muted)] hover:text-[var(--fg-secondary)] transition-colors shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
-                aria-label="Allega file o incolla immagine"
-                title="Allega file (o incolla immagine)"
-              >
-                <Paperclip className="w-4 h-4" aria-hidden="true" />
-              </button>
-              <input
-                ref={inputRef}
-                type="text"
-                inputMode="text"
-                autoComplete="off"
-                autoCorrect="off"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  responding
-                    ? "Scrivi per interrompere o chiedere altro..."
-                    : `Scrivi a ${TARGETS.find((t) => t.key === target)?.short ?? "CME"}...`
-                }
-                aria-label={`Messaggio per ${TARGETS.find((t) => t.key === target)?.label ?? "CME"}`}
-                className="flex-1 text-sm text-[var(--fg-primary)] placeholder:text-[var(--fg-invisible)] bg-transparent outline-none min-w-0"
-              />
-            {responding && (
-              <button
-                type="button"
-                onClick={handleStop}
-                aria-label="Interrompi risposta in corso"
-                className="flex items-center gap-1.5 px-3 py-2 rounded bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 transition-colors text-xs shrink-0 touch-manipulation focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
-              >
-                <Square className="w-3 h-3 fill-current" aria-hidden="true" />
-                Stop
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={!input.trim() && !file}
-              aria-label="Invia messaggio"
-              className="p-2 -m-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-30 shrink-0 touch-manipulation focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
-            >
-              <Send className="w-5 h-5 md:w-4 md:h-4" aria-hidden="true" />
-            </button>
-            </div>
-          </form>
+          {/* Messages — chronological order, scrollable */}
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleMessagesScroll}
+            className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
+            role="log"
+            aria-label="Messaggi chat"
+            aria-live="polite"
+          >
+              {/* Messages — chronological order (oldest first) */}
+              {messages.map((msg, i) => (
+                <ChatBubble
+                  key={i}
+                  msg={msg}
+                  targetLabel={TARGETS.find((t) => t.key === target)?.label ?? "CME"}
+                />
+              ))}
 
-          {/* Messages — newest first (reverse chronological) */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4" role="log" aria-label="Messaggi chat" aria-live="polite">
-              {/* Waiting indicator — most recent, always on top */}
-              {responding && !streaming && (
-                <div className="flex justify-start" role="status" aria-label="In attesa di risposta">
-                  <div className="bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)] rounded-xl px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <PulseDot color="var(--identity-gold)" size={5} />
-                      <span className="text-[10px] text-[var(--fg-muted)]">Claude Code in esecuzione...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Streaming text — current response, on top */}
+              {/* Streaming text — current response, at bottom */}
               {streaming && (
                 <div className="flex justify-start">
                   <div className="max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed bg-[var(--bg-overlay)] text-[var(--fg-primary)] border border-[var(--border-dark-subtle)]">
@@ -986,14 +1165,161 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                 </div>
               )}
 
-              {/* Messages — reversed: newest first */}
-              {[...messages].reverse().map((msg, i) => (
-                <ChatBubble
-                  key={messages.length - 1 - i}
-                  msg={msg}
-                  targetLabel={TARGETS.find((t) => t.key === target)?.label ?? "CME"}
+              {/* Waiting indicator — at bottom after all messages */}
+              {responding && !streaming && (
+                <div className="flex justify-start" role="status" aria-label="In attesa di risposta">
+                  <div className="bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)] rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <PulseDot color="var(--identity-gold)" size={5} />
+                      <span className="text-[10px] text-[var(--fg-muted)]">Claude Code in esecuzione...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reconnecting indicator */}
+              {reconnecting && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-center"
+                  role="status"
+                  aria-label="Riconnessione in corso"
+                >
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    >
+                      <WifiOff className="w-3.5 h-3.5 text-[var(--identity-gold)]" aria-hidden="true" />
+                    </motion.div>
+                    <span className="text-xs text-[var(--fg-secondary)]">
+                      Riconnessione in corso... ({reconnectAttempt}/{MAX_RECONNECT_ATTEMPTS})
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Max reconnect attempts exhausted */}
+              {!reconnecting && reconnectAttempt >= MAX_RECONNECT_ATTEMPTS && lastRequestRef.current && (
+                <div className="flex justify-center">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.2)]">
+                    <WifiOff className="w-3.5 h-3.5 text-[var(--error)]" aria-hidden="true" />
+                    <span className="text-xs text-[var(--error)]">
+                      Connessione persa.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        reconnectAttemptRef.current = 0;
+                        setReconnectAttempt(0);
+                        attemptReconnect(true); // immediate on manual retry
+                      }}
+                      className="text-xs text-[var(--accent)] hover:underline ml-1 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                    >
+                      Riprova
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input — sticky at BOTTOM, WhatsApp-style */}
+          <div className="sticky bottom-0 border-t border-[var(--border-dark-subtle)] bg-[var(--bg-surface,#0a0a0a)] pb-[env(safe-area-inset-bottom)]">
+            <form onSubmit={handleSubmit}>
+              {/* File preview */}
+              {file && (
+                <div className="flex items-center gap-2 px-4 md:px-6 pt-3 pb-1">
+                  {filePreview ? (
+                    <Image src={filePreview} alt={file.name} width={40} height={40} unoptimized className="rounded object-cover border border-[var(--border-dark-subtle)]" />
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-overlay)] border border-[var(--border-dark-subtle)]">
+                      <Paperclip className="w-3 h-3 text-[var(--fg-secondary)]" aria-hidden="true" />
+                      <span className="text-xs text-[var(--fg-secondary)] max-w-[200px] truncate">{file.name}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={removeFile}
+                    aria-label={`Rimuovi file allegato: ${file?.name ?? "file"}`}
+                    className="p-1 rounded hover:bg-[var(--bg-overlay)] text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+                  >
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+              <div className="flex items-end gap-2 px-4 md:px-6 py-3 md:py-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept="image/*,.pdf,.docx,.txt,.json,.csv"
                 />
-              ))}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 text-[var(--fg-muted)] hover:text-[var(--fg-secondary)] transition-colors shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] mb-0.5"
+                  aria-label="Allega file o incolla immagine"
+                  title="Allega file (o incolla immagine)"
+                >
+                  <Paperclip className="w-4 h-4" aria-hidden="true" />
+                </button>
+                <textarea
+                  ref={inputRef}
+                  rows={1}
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (input.trim() || file) {
+                        handleSubmit(e as unknown as React.FormEvent);
+                      }
+                    }
+                  }}
+                  onFocus={() => {
+                    // iOS Safari keyboard handling: scroll into view after keyboard appears
+                    setTimeout(() => {
+                      inputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    }, 300);
+                  }}
+                  placeholder={
+                    responding
+                      ? "Scrivi per interrompere o chiedere altro..."
+                      : `Scrivi a ${TARGETS.find((t) => t.key === target)?.short ?? "CME"}...`
+                  }
+                  aria-label={`Messaggio per ${TARGETS.find((t) => t.key === target)?.label ?? "CME"}`}
+                  className="flex-1 text-base text-[var(--fg-primary)] placeholder:text-[var(--fg-invisible)] bg-transparent outline-none min-w-0 min-h-[44px] max-h-[50vh] resize-none leading-relaxed py-2"
+                  style={{ fieldSizing: "content" } as React.CSSProperties}
+                />
+              {responding && (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  aria-label="Interrompi risposta in corso"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 transition-colors text-xs shrink-0 touch-manipulation focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] mb-0.5"
+                >
+                  <Square className="w-3 h-3 fill-current" aria-hidden="true" />
+                  Stop
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={!input.trim() && !file}
+                aria-label="Invia messaggio"
+                className="p-2 -m-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors disabled:opacity-30 shrink-0 touch-manipulation focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] mb-0.5"
+              >
+                <Send className="w-5 h-5 md:w-4 md:h-4" aria-hidden="true" />
+              </button>
+              </div>
+            </form>
           </div>
         </div>
 

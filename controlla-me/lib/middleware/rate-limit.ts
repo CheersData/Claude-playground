@@ -122,6 +122,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/user/usage": { windowSec: 60, max: 60 },
   // Console — (SEC-003) match più specifico vince su "api/console"
   "api/console/auth": { windowSec: 60, max: 10 },
+  "api/console/system-stats": { windowSec: 60, max: 60 },
   "api/console/tier": { windowSec: 60, max: 30 },
   // Console company — spawna claude -p, protegge crediti API (SEC-M3/M4/M5)
   "api/console/company/message": { windowSec: 60, max: 10 },

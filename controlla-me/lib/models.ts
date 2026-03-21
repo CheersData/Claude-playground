@@ -415,7 +415,8 @@ export type AgentName =
   | "mapper"
   | "mapping-agent"
   | "integration-setup"
-  | "sync-supervisor";
+  | "sync-supervisor"
+  | "critic";
 
 export interface AgentModelConfig {
   /** Primary model for this agent */
@@ -532,6 +533,13 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     maxTokens: 2048,
     temperature: 0.1,
     notes: "Field mapping via LLM. Classifica campi sorgente → target. Flash per qualità, Groq fallback.",
+  },
+  critic: {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 2048,
+    temperature: 0.2,
+    notes: "Revisore interno pipeline. Validazione, non creazione. Modelli economici sufficienti.",
   },
 };
 

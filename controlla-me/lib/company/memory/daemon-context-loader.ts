@@ -14,6 +14,8 @@
  * ADR: ADR-forma-mentis.md (Integration section)
  */
 
+import { readFileSync } from "fs";
+import { join } from "path";
 import { getRecentSessions } from "./session-recorder";
 import { getDepartmentMemories } from "./department-memory";
 import { getRecentReports } from "../coscienza/daemon-reports";
@@ -32,6 +34,7 @@ export interface FormaMentisContext {
     summary: string;
     duration_ms: number;
     ended_at: string;
+    keyDecisions: string[];
   }>;
   departmentMemories: Array<{
     department: string;
@@ -69,9 +72,11 @@ export interface FormaMentisContext {
  */
 export async function loadFormaMentisContext(): Promise<{
   context: FormaMentisContext;
+  sessionBlock: string; // Recent sessions text for prompt injection
   memoryBlock: string; // Text for prompt injection
   goalBlock: string; // Text for prompt injection
   statusBlock: string; // Text for prompt injection
+  daemonBlock: string; // Daemon report signals + board state from disk
 }> {
   const startTime = Date.now();
   console.log("[FORMA-MENTIS] Loading context...");
@@ -121,9 +126,13 @@ export async function loadFormaMentisContext(): Promise<{
   };
 
   // Build formatted text blocks
+  const sessionBlock = formatSessionBlock(context);
   const memoryBlock = formatMemoryBlock(context);
   const goalBlock = formatGoalBlock(context);
   const statusBlock = departmentStatusText;
+
+  // Load daemon report from disk (always available, $0 cost)
+  const daemonBlock = loadDaemonReportBlock();
 
   const elapsedMs = Date.now() - startTime;
   console.log(
@@ -131,10 +140,11 @@ export async function loadFormaMentisContext(): Promise<{
       `${sessions.length} sessions | ` +
       `${deptMemories.length} memories | ` +
       `${goals.length} goals | ` +
-      `${decisions.length} pending decisions`
+      `${decisions.length} pending decisions | ` +
+      `daemonBlock: ${daemonBlock.length} chars`
   );
 
-  return { context, memoryBlock, goalBlock, statusBlock };
+  return { context, sessionBlock, memoryBlock, goalBlock, statusBlock, daemonBlock };
 }
 
 // ────────────────────────────────────────────────────────────
@@ -151,18 +161,22 @@ async function loadRecentSessionsSummary(): Promise<
     summary: string;
     duration_ms: number;
     ended_at: string;
+    keyDecisions: string[];
   }>
 > {
-  const sessions = await getRecentSessions(undefined, 3);
+  const sessions = await getRecentSessions(undefined, 5);
   return sessions
-    .filter((s) => s.endedAt)
+    .filter((s) => s.endedAt && s.summary)
     .map((s) => ({
       department: s.department ?? "n/a",
       summary:
-        s.summary.slice(0, 120) +
-        (s.summary.length > 120 ? "..." : ""),
+        s.summary.slice(0, 200) +
+        (s.summary.length > 200 ? "..." : ""),
       duration_ms: s.durationMs ?? 0,
       ended_at: s.endedAt!,
+      keyDecisions: (s.keyDecisions ?? [])
+        .slice(0, 3)
+        .map((d) => `${d.decision} (${d.impact})`),
     }));
 }
 
@@ -263,6 +277,41 @@ async function loadAllDepartmentMemories(): Promise<
 // ────────────────────────────────────────────────────────────
 
 /**
+ * Format recent sessions into a text block for prompt injection.
+ * This is the critical block that tells CME what happened in previous sessions,
+ * preventing re-proposal of completed work and providing continuity.
+ */
+function formatSessionBlock(context: FormaMentisContext): string {
+  if (context.recentSessions.length === 0) {
+    return "";
+  }
+
+  const lines = ["## SESSIONI RECENTI (cosa è stato fatto — NON ripetere)"];
+
+  for (const s of context.recentSessions) {
+    const endDate = new Date(s.ended_at);
+    const dateStr = endDate.toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const durationMin = Math.round(s.duration_ms / 60_000);
+    const deptLabel = s.department !== "n/a" ? s.department : "cross-dept";
+    lines.push(`- [${dateStr}] ${deptLabel} (${durationMin}min): ${s.summary}`);
+
+    // Include key decisions if available
+    if (s.keyDecisions.length > 0) {
+      for (const d of s.keyDecisions) {
+        lines.push(`  -> ${d}`);
+      }
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Format department memories into a text block for prompt injection.
  */
 function formatMemoryBlock(context: FormaMentisContext): string {
@@ -343,4 +392,94 @@ function formatGoalBlock(context: FormaMentisContext): string {
   }
 
   return lines.join("\n");
+}
+
+// ────────────────────────────────────────────────────────────
+// Daemon Report from Disk (filesystem fallback — always available)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Load daemon-report.json from disk and format as a text block.
+ * This is the primary source of company context when Supabase tables
+ * are empty or unavailable. The daemon writes this file every ~10 minutes
+ * with signals, board state, and the cmeDirective.
+ *
+ * Cost: $0 (filesystem read only).
+ */
+function loadDaemonReportBlock(): string {
+  try {
+    const reportPath = join(process.cwd(), "company", "daemon-report.json");
+    const raw = readFileSync(reportPath, "utf-8");
+    const report = JSON.parse(raw);
+
+    const lines: string[] = ["## DAEMON REPORT (ultimo scan aziendale)"];
+
+    // Timestamp
+    if (report.timestamp) {
+      const ts = new Date(report.timestamp);
+      lines.push(`Ultimo scan: ${ts.toLocaleDateString("it-IT")} ${ts.toLocaleTimeString("it-IT")}`);
+    }
+
+    // Board state
+    if (report.board) {
+      const b = report.board;
+      lines.push(`\n### Board: ${b.total ?? 0} task totali | Open: ${b.open ?? 0} | In Progress: ${b.inProgress ?? 0} | Done: ${b.done ?? 0}`);
+    }
+
+    // Signals — group by priority for readability
+    if (Array.isArray(report.signals) && report.signals.length > 0) {
+      const highPriority = report.signals.filter(
+        (s: { priority?: string }) => s.priority === "high" || s.priority === "critical"
+      );
+      const mediumPriority = report.signals.filter(
+        (s: { priority?: string }) => s.priority === "medium"
+      );
+
+      if (highPriority.length > 0) {
+        lines.push(`\n### SEGNALI PRIORITA ALTA (${highPriority.length})`);
+        for (const s of highPriority.slice(0, 10)) {
+          const dept = s.deptId ?? "?";
+          const desc = (s.description ?? s.title ?? "").slice(0, 120);
+          const human = s.requiresHuman ? " [RICHIEDE BOSS]" : "";
+          lines.push(`- [${dept}] ${desc}${human}`);
+        }
+      }
+
+      if (mediumPriority.length > 0) {
+        lines.push(`\n### SEGNALI PRIORITA MEDIA (${mediumPriority.length})`);
+        for (const s of mediumPriority.slice(0, 8)) {
+          const dept = s.deptId ?? "?";
+          const desc = (s.description ?? s.title ?? "").slice(0, 120);
+          lines.push(`- [${dept}] ${desc}`);
+        }
+      }
+    }
+
+    // CME Directive
+    if (report.cmeDirective) {
+      const d = report.cmeDirective;
+      lines.push(`\n### CME DIRECTIVE`);
+      lines.push(`Modo: ${d.mode ?? "unknown"}`);
+      if (d.instructions) {
+        lines.push(d.instructions.slice(0, 500));
+      }
+    }
+
+    // Goal checks
+    if (Array.isArray(report.goalChecks) && report.goalChecks.length > 0) {
+      lines.push(`\n### Goal Checks: ${report.goalChecks.length} verifiche`);
+      for (const gc of report.goalChecks.slice(0, 5)) {
+        lines.push(`- ${gc.title ?? gc.goalId ?? "?"}: ${gc.status ?? "?"} (${gc.progress ?? 0}%)`);
+      }
+    }
+
+    console.log(`[FORMA-MENTIS] Daemon report loaded from disk: ${lines.length} lines, ${report.signals?.length ?? 0} signals`);
+    return lines.join("\n");
+  } catch (err) {
+    console.warn(
+      "[FORMA-MENTIS] daemon-report.json not available:",
+      err instanceof Error ? err.message : err
+    );
+    return "";
+  }
 }

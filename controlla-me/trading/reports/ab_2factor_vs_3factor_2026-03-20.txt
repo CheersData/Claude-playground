@@ -1,0 +1,70 @@
+[[32m[1minfo     [0m] [1mloading_data                  [0m [36msymbols[0m=[35m20[0m [36mtimeframe[0m=[35m1Day[0m
+[[32m[1minfo     [0m] [1mdata_loaded                   [0m [36mtimeframe[0m=[35m1Day[0m [36mtotal_symbols[0m=[35m20[0m
+[[32m[1minfo     [0m] [1mdata_ready                    [0m [36msymbols_loaded[0m=[35m20[0m [36mtotal_bars[0m=[35m10040[0m
+[[32m[1minfo     [0m] [1mrunning_2-factor (S+V)        [0m [36macceleration_bars[0m=[35m5[0m [36mmin_acceleration_pct[0m=[35m-999.0[0m [36mpersistence_bars[0m=[35m1[0m
+[[32m[1minfo     [0m] [1mbacktest_start                [0m [36mcapital[0m=[35m100000.0[0m [36mend[0m=[35m'2024-12-31 00:00:00-05:00'[0m [36mstart[0m=[35m'2023-01-03 00:00:00-05:00'[0m [36msymbols[0m=[35m20[0m [36mtimeframe[0m=[35m1Day[0m [36mtotal_bars[0m=[35m502[0m [36mwarmup_bars[0m=[35m60[0m
+[[32m[1minfo     [0m] [1mbacktest_complete             [0m [36mfinal_equity[0m=[35m99258.05[0m [36mkill_switches[0m=[35m0[0m [36mtimeframe[0m=[35m1Day[0m [36mtrades[0m=[35m296[0m
+[[32m[1minfo     [0m] [1mmetrics_calculated            [0m [36mgo[0m=[35mFalse[0m [36mmax_dd[0m=[35m-4.01[0m [36mprofit_factor[0m=[35m0.96[0m [36msharpe[0m=[35m-1.167[0m [36mtimeframe[0m=[35m1Day[0m [36mtrades[0m=[35m296[0m [36mwin_rate[0m=[35m43.9[0m
+[[32m[1minfo     [0m] [1mrunning_3-factor (S+V+A+P)    [0m [36macceleration_bars[0m=[35m5[0m [36mmin_acceleration_pct[0m=[35m0.01[0m [36mpersistence_bars[0m=[35m8[0m
+[[32m[1minfo     [0m] [1mbacktest_start                [0m [36mcapital[0m=[35m100000.0[0m [36mend[0m=[35m'2024-12-31 00:00:00-05:00'[0m [36mstart[0m=[35m'2023-01-03 00:00:00-05:00'[0m [36msymbols[0m=[35m20[0m [36mtimeframe[0m=[35m1Day[0m [36mtotal_bars[0m=[35m502[0m [36mwarmup_bars[0m=[35m60[0m
+[[32m[1minfo     [0m] [1mbacktest_complete             [0m [36mfinal_equity[0m=[35m103034.93[0m [36mkill_switches[0m=[35m0[0m [36mtimeframe[0m=[35m1Day[0m [36mtrades[0m=[35m70[0m
+[[32m[1minfo     [0m] [1mmetrics_calculated            [0m [36mgo[0m=[35mFalse[0m [36mmax_dd[0m=[35m-2.01[0m [36mprofit_factor[0m=[35m1.66[0m [36msharpe[0m=[35m-1.008[0m [36mtimeframe[0m=[35m1Day[0m [36mtrades[0m=[35m70[0m [36mwin_rate[0m=[35m38.6[0m
+
+================================================================================
+  A/B BACKTEST: 2-factor vs 3-factor slope+volume entry logic
+  Period: 2023-01-01 to 2024-12-31 | 20 symbols | $100,000
+  SL=2.5 ATR, TP=3.0 ATR
+================================================================================
+
+  Metric                              2-factor (S+V)    3-factor (S+V+A+P)
+  ------------------------------------------------------------------------
+  Signals Generated                              296                    70
+  Orders Filled                                  542                   125
+  Total Trades                                   296                    70
+  Win Rate (%)                                  43.9                  38.6
+  Sharpe Ratio                                -1.167                -1.008
+  Sortino Ratio                               -1.337                -1.103
+  CAGR (%)                                     -0.37                 +1.51
+  Total Return (%)                             -0.74                 +3.03
+  Max Drawdown (%)                             -4.01                 -2.01
+  Profit Factor                                 0.96                  1.66
+  Avg Win (%)                                  +1.57                 +3.01
+  Avg Loss (%)                                 -1.24                 -1.05
+  Avg Hold Days                                  5.0                   5.1
+  Final Equity ($)                         99,258.05            103,034.93
+  Stop Loss Exits                                 33                    11
+  Take Profit Exits                               17                     4
+  Slope Exits                                    213                    52
+  Adverse Slope Exits                             33                     3
+  Kill Switch Exits                                0                     0
+
+  ------------------------------------------------------------------------
+  persistence_bars                                 1                     8
+  min_acceleration_pct                        -999.0                  0.01
+
+  ------------------------------------------------------------------------
+  GO/NO-GO                                     NO-GO                 NO-GO
+
+  [2-factor (S+V)] NO-GO — Does not meet criteria
+    [PASS] sharpe
+    [PASS] max_drawdown
+    [PASS] win_rate
+    [PASS] profit_factor
+    [PASS] total_trades
+
+  [3-factor (S+V+A+P)] NO-GO — Does not meet criteria
+    [PASS] sharpe
+    [PASS] max_drawdown
+    [PASS] win_rate
+    [PASS] profit_factor
+    [PASS] total_trades
+
+================================================================================
+
+  ANALYSIS:
+  - 2-factor generates +226 more trades (296 vs 70)
+  - Sharpe difference: -0.159 (-1.167 vs -1.008)
+  - Win rate difference: +5.3% (43.9% vs 38.6%)
+
+  CONCLUSION: 3-factor filtering improves quality — keep the extra gates.
+

@@ -1149,6 +1149,7 @@ async function main() {
       // ─── FASE 2.5: Forma Mentis context (Supabase reads only) ──────────
       let formaMentisContext = {
         context: { timestamp: new Date().toISOString(), recentSessions: [], departmentMemories: [], activeGoals: [], pendingDecisions: 0, recentReports: [], departmentStatuses: "" },
+        sessionBlock: "",
         memoryBlock: "",
         goalBlock: "",
         statusBlock: "",

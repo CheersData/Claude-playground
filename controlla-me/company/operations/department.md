@@ -38,8 +38,19 @@ Endpoint: `/ops`
 
 | Agente | Ruolo |
 |--------|-------|
+| ops-monitor | Monitoring e status reporting — dashboard /ops, metriche, alerting business |
+| ops-sysadmin | System administration — server, daemon, processi, tmux, cron, cleanup zombie |
 | sistemista | Dependency audit, performance profiling, infra monitoring, build health |
 | builder | Implementa infrastruttura: daemon, scheduler, scripts automazione, dashboard |
+
+## Routing intra-dipartimento
+
+| Tipo task | Agente | Esempi |
+|-----------|--------|--------|
+| Dashboard / metriche / alerting | ops-monitor | "aggiungi metrica X a /ops", "dashboard KPI", "alert costi soglia" |
+| Server / daemon / processi / infra runtime | ops-sysadmin | "configura tmux", "cleanup zombie", "cron job", "restart daemon" |
+| Dependency / bundle / build health | sistemista | "npm audit", "bundle size analysis", "check .env vars" |
+| Implementazione | builder | qualsiasi task di coding, nuovi componenti dashboard, script automazione |
 
 ## Runbooks
 

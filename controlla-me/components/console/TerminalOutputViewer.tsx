@@ -39,6 +39,7 @@ import {
   Bot,
   Clock,
   Cpu,
+  WifiOff,
 } from "lucide-react";
 import { getConsoleJsonHeaders } from "@/lib/utils/console-client";
 
@@ -89,6 +90,9 @@ interface DashboardAgent {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const MAX_LINES = 500;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30_000;
 
 const TYPE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   console: { label: "Console", color: "#34D399", bg: "rgba(52,211,153,0.12)" },
@@ -164,10 +168,16 @@ export function TerminalOutputViewer({
   const [sending, setSending] = useState(false);
   const [dashboard, setDashboard] = useState<StatusDashboardData | null>(null);
   const [dashboardAgents, setDashboardAgents] = useState<DashboardAgent[]>([]);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
   const outputRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const sessionIdRef = useRef<string | null>(initialSessionId ?? null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const sessionClosedRef = useRef(false);
+  const pidRef = useRef<number | null>(null);
 
   // Auto-scroll to bottom when new lines arrive (if enabled)
   useEffect(() => {
@@ -184,45 +194,56 @@ export function TerminalOutputViewer({
     setAutoScroll(atBottom);
   }, []);
 
-  // Connect to SSE output stream when PID changes
-  useEffect(() => {
-    if (!pid) {
-      setLines([]);
-      setConnected(false);
-      setNoCapture(false);
-      setSessionClosed(false);
-      setDashboard(null);
-      setDashboardAgents([]);
-      eventSourceRef.current?.close();
-      eventSourceRef.current = null;
-      return;
+  // ─── SSE connection with auto-reconnect ─────────────────────────────────
+
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
     }
+  }, []);
 
-    // Close previous connection
-    eventSourceRef.current?.close();
-    setLines([]);
-    setConnected(false);
-    setNoCapture(false);
-    setNoCaptureReason("");
-    setSessionClosed(false);
-    setAutoScroll(true);
-    setDashboard(null);
-    setDashboardAgents([]);
-    sessionIdRef.current = initialSessionId ?? null;
-
+  const connectSSE = useCallback((targetPid: number, isReconnect: boolean) => {
     const token =
       typeof window !== "undefined"
         ? sessionStorage.getItem("lexmea-token")
         : null;
     if (!token) return;
 
-    const url = `/api/company/sessions/${pid}/output?t=${encodeURIComponent(token)}`;
+    // Don't reconnect if session was explicitly closed by the server
+    if (sessionClosedRef.current) return;
+
+    // Close previous connection
+    eventSourceRef.current?.close();
+
+    if (!isReconnect) {
+      // Full reset on new PID
+      setLines([]);
+      setNoCapture(false);
+      setNoCaptureReason("");
+      setSessionClosed(false);
+      setAutoScroll(true);
+      setDashboard(null);
+      setDashboardAgents([]);
+      sessionIdRef.current = initialSessionId ?? null;
+      reconnectAttemptRef.current = 0;
+      sessionClosedRef.current = false;
+    }
+
+    setConnected(false);
+
+    const url = `/api/company/sessions/${targetPid}/output?t=${encodeURIComponent(token)}`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
 
-    es.onopen = () => setConnected(true);
+    es.onopen = () => {
+      setConnected(true);
+      setReconnecting(false);
+      setReconnectAttempt(0);
+      reconnectAttemptRef.current = 0;
+    };
 
-    // Replay event: initial ring buffer dump
+    // Replay event: initial ring buffer dump (works on both first connect and reconnect)
     es.addEventListener("replay", (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -231,6 +252,7 @@ export function TerminalOutputViewer({
           stream: text.startsWith("[STDERR]") ? "stderr" as const : "stdout" as const,
           index: i,
         }));
+        // On reconnect, replace lines with fresh replay to avoid duplicates
         setLines(replayLines.slice(-MAX_LINES));
       } catch {
         // ignore parse errors
@@ -289,10 +311,13 @@ export function TerminalOutputViewer({
       }
     });
 
-    // Session closed event
+    // Session closed event — do NOT reconnect after this
     es.addEventListener("closed", () => {
+      sessionClosedRef.current = true;
       setSessionClosed(true);
       setConnected(false);
+      setReconnecting(false);
+      clearReconnectTimer();
     });
 
     // Session ID event (for sending messages)
@@ -312,12 +337,118 @@ export function TerminalOutputViewer({
 
     es.onerror = () => {
       setConnected(false);
+
+      // Don't reconnect if session was explicitly closed or PID changed
+      if (sessionClosedRef.current || pidRef.current !== targetPid) return;
+
+      // Close the failed EventSource
+      es.close();
+      eventSourceRef.current = null;
+
+      // If tab is hidden (screen locked), don't start backoff timer.
+      // The visibilitychange/online handler will trigger reconnection when the user returns.
+      if (document.visibilityState === "hidden") {
+        setReconnecting(true);
+        return;
+      }
+
+      const attempt = reconnectAttemptRef.current;
+      if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+        setReconnecting(false);
+        return;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s, 30s, ...
+      const delay = Math.min(
+        INITIAL_RECONNECT_DELAY_MS * Math.pow(2, attempt),
+        MAX_RECONNECT_DELAY_MS
+      );
+
+      reconnectAttemptRef.current = attempt + 1;
+      setReconnectAttempt(attempt + 1);
+      setReconnecting(true);
+
+      clearReconnectTimer();
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (pidRef.current === targetPid && !sessionClosedRef.current) {
+          connectSSE(targetPid, true);
+        }
+      }, delay);
     };
+  }, [initialSessionId, clearReconnectTimer]);
+
+  // Connect to SSE output stream when PID changes
+  useEffect(() => {
+    pidRef.current = pid;
+
+    if (!pid) {
+      setLines([]);
+      setConnected(false);
+      setNoCapture(false);
+      setSessionClosed(false);
+      setReconnecting(false);
+      setReconnectAttempt(0);
+      setDashboard(null);
+      setDashboardAgents([]);
+      clearReconnectTimer();
+      reconnectAttemptRef.current = 0;
+      sessionClosedRef.current = false;
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+      return;
+    }
+
+    connectSSE(pid, false);
 
     return () => {
-      es.close();
+      clearReconnectTimer();
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
     };
-  }, [pid, initialSessionId]);
+  }, [pid, connectSSE, clearReconnectTimer]);
+
+  // Reconnect on page visible (mobile screen unlock) + network restore
+  useEffect(() => {
+    const triggerReconnect = (reason: string) => {
+      if (!pidRef.current || sessionClosedRef.current) return;
+
+      // If we're already connected and the EventSource is open, do nothing
+      const es = eventSourceRef.current;
+      if (es && es.readyState === EventSource.OPEN) return;
+
+      console.log(`[TerminalOutput] ${reason} — reconnecting to PID ${pidRef.current}`);
+
+      // Cancel any in-flight backoff timer and reset counter
+      clearReconnectTimer();
+      reconnectAttemptRef.current = 0;
+      setReconnectAttempt(0);
+      connectSSE(pidRef.current, true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        // Tab went hidden — cancel pending reconnect timer to avoid wasting attempts
+        if (reconnectTimerRef.current) {
+          clearReconnectTimer();
+        }
+        return;
+      }
+      // Small delay: on mobile, network may not be ready immediately when screen unlocks
+      setTimeout(() => triggerReconnect("visibilitychange (screen unlock)"), 500);
+    };
+
+    const handleOnline = () => {
+      triggerReconnect("online event (network restored)");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [connectSSE, clearReconnectTimer]);
 
   // Send message to console session
   const handleSend = useCallback(
@@ -431,10 +562,18 @@ export function TerminalOutputViewer({
                 ? "bg-gray-500/15 text-gray-400"
                 : connected
                 ? "bg-emerald-500/15 text-emerald-400"
+                : reconnecting
+                ? "bg-yellow-500/15 text-yellow-400"
                 : "bg-red-500/15 text-red-400"
             }`}
           >
-            {sessionClosed ? "terminata" : connected ? "connesso" : "disconnesso"}
+            {sessionClosed
+              ? "terminata"
+              : connected
+              ? "connesso"
+              : reconnecting
+              ? `riconnessione (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})...`
+              : "disconnesso"}
           </span>
         </div>
 
@@ -781,10 +920,18 @@ export function TerminalOutputViewer({
               ? "bg-gray-500/15 text-gray-400"
               : connected
               ? "bg-emerald-500/15 text-emerald-400"
+              : reconnecting
+              ? "bg-yellow-500/15 text-yellow-400"
               : "bg-red-500/15 text-red-400"
           }`}
         >
-          {sessionClosed ? "terminata" : connected ? "connesso" : "disconnesso"}
+          {sessionClosed
+            ? "terminata"
+            : connected
+            ? "connesso"
+            : reconnecting
+            ? `riconnessione (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})...`
+            : "disconnesso"}
         </span>
 
         {/* Line count */}
@@ -834,6 +981,8 @@ export function TerminalOutputViewer({
               ? "Sessione terminata - nessun output catturato"
               : connected
               ? "In attesa di output..."
+              : reconnecting
+              ? `Riconnessione in corso... (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})`
               : "Connessione al processo..."}
           </p>
         ) : (
@@ -850,6 +999,47 @@ export function TerminalOutputViewer({
             </div>
           ))
         )}
+
+        {/* Reconnection banner */}
+        <AnimatePresence>
+          {reconnecting && !sessionClosed && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="mt-3 flex items-center gap-2 px-3 py-2 rounded-md"
+              style={{
+                background: "rgba(234,179,8,0.08)",
+                border: "1px solid rgba(234,179,8,0.2)",
+              }}
+            >
+              <WifiOff className="w-3.5 h-3.5 text-yellow-400 shrink-0" aria-hidden="true" />
+              <span className="text-[11px] text-yellow-400">
+                Riconnessione in corso... (tentativo {reconnectAttempt}/{MAX_RECONNECT_ATTEMPTS})
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reconnection failed banner */}
+        <AnimatePresence>
+          {!connected && !reconnecting && !sessionClosed && reconnectAttempt >= MAX_RECONNECT_ATTEMPTS && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 flex items-center gap-2 px-3 py-2 rounded-md"
+              style={{
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.2)",
+              }}
+            >
+              <WifiOff className="w-3.5 h-3.5 text-red-400 shrink-0" aria-hidden="true" />
+              <span className="text-[11px] text-red-400">
+                Connessione persa. Ricarica la pagina per riprovare.
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Session closed banner */}
         <AnimatePresence>
