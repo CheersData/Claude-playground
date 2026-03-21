@@ -22,6 +22,13 @@ import {
   HardDrive,
   Building2,
   Plug,
+  FileText,
+  Globe,
+  FileSpreadsheet,
+  BarChart3,
+  Mail,
+  Shield,
+  Briefcase,
 } from "lucide-react";
 import { SyncDashboardSkeleton } from "@/components/integrations/Skeletons";
 import { NoConnectors } from "@/components/integrations/EmptyStates";
@@ -65,6 +72,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   HardDrive,
   Building2,
+  FileText,
+  Globe,
+  FileSpreadsheet,
+  BarChart3,
+  Mail,
+  Shield,
+  Briefcase,
 };
 
 const STATUS_CONFIG: Record<
@@ -540,33 +554,63 @@ export default function SyncDashboard() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount: cancel in-flight requests and stop polling
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (abortRef.current) {
+        abortRef.current.abort();
+        abortRef.current = null;
+      }
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchData = useCallback(async (isBackgroundPoll = false) => {
+    // Abort any in-flight request before starting a new one
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     if (!isBackgroundPoll) setLoading(true);
     try {
-      const res = await fetch("/api/integrations/dashboard");
+      const res = await fetch("/api/integrations/dashboard", {
+        signal: controller.signal,
+      });
+      // Guard against state updates after unmount
+      if (!mountedRef.current) return;
       if (res.ok) {
         const json = await res.json();
         setIntegrations(json?.integrations ?? []);
         setErrors(json?.errors ?? []);
         setFetchError(null);
       } else {
-        // API returned an error — show empty state with error message
         if (!isBackgroundPoll) {
           setIntegrations([]);
           setErrors([]);
           setFetchError(`Errore dal server (${res.status}). Riprova.`);
         }
       }
-    } catch {
-      // Network error — show error state on first load, ignore during polling
+    } catch (err) {
+      // Ignore abort errors — they are expected during cleanup
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (!mountedRef.current) return;
       if (!isBackgroundPoll) {
         setIntegrations([]);
         setErrors([]);
         setFetchError("Impossibile raggiungere il server. Verifica la connessione e riprova.");
       }
     } finally {
-      if (!isBackgroundPoll) setLoading(false);
+      if (mountedRef.current && !isBackgroundPoll) setLoading(false);
     }
   }, []);
 

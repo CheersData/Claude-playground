@@ -1,4 +1,4 @@
-# Release Strategist (Agente Elena) — "La stratega"
+# Release Strategist
 
 ## Ruolo
 

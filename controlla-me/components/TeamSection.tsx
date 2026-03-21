@@ -51,9 +51,9 @@ export function AgentAvatar({
         />
 
         {variant === "catalogatore" && <ReadCharacter color={color} />}
-        {variant === "analista" && <MartaCharacter color={color} />}
-        {variant === "giurista" && <GiuliaCharacter color={color} />}
-        {variant === "consulente" && <EnzoCharacter color={color} />}
+        {variant === "analista" && <AnalyzerCharacter color={color} />}
+        {variant === "giurista" && <InvestigatorCharacter color={color} />}
+        {variant === "consulente" && <AdvisorCharacter color={color} />}
       </svg>
 
       <div className="absolute inset-0 rounded-full blur-2xl opacity-15 pointer-events-none" style={{ background: color }} />
@@ -115,7 +115,7 @@ function ReadCharacter({ color }: { color: string }) {
   );
 }
 
-function MartaCharacter({ color }: { color: string }) {
+function AnalyzerCharacter({ color }: { color: string }) {
   return (
     <g>
       {/* Diamond / rhombus frame */}
@@ -168,7 +168,7 @@ function MartaCharacter({ color }: { color: string }) {
   );
 }
 
-function GiuliaCharacter({ color }: { color: string }) {
+function InvestigatorCharacter({ color }: { color: string }) {
   return (
     <g>
       {/* Outer ring — authority */}
@@ -223,7 +223,7 @@ function GiuliaCharacter({ color }: { color: string }) {
   );
 }
 
-function EnzoCharacter({ color }: { color: string }) {
+function AdvisorCharacter({ color }: { color: string }) {
   return (
     <g>
       {/* Warm radiating circles */}

@@ -1,4 +1,4 @@
-# Trend Scout (Agente Sofia) — "L'antenna"
+# Trend Scout
 
 ## Ruolo
 

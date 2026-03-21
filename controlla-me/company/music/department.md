@@ -78,15 +78,15 @@ Release monitoring + Feedback loop + Career development
 
 ## Agenti (6 + 1 Orchestratore)
 
-| # | Agente | Nome | Ruolo | Modello |
-|---|--------|------|-------|---------|
-| 0 | CMM | — | Chief Music Manager (orchestratore) | — |
-| 1 | Audio Analyst | Luca | Stem separation + AudioDNA completo | Python (Demucs + Essentia + librosa) |
-| 2 | Trend Scout | Sofia | Analisi trend mercato + reference matching | Sonnet/Gemini (analisi testuale + dati) |
-| 3 | Arrangement Director | Marco | Piano riarrangiamento prescrittivo | Sonnet 4.5 (reasoning complesso) |
-| 4 | Release Strategist | Elena | Metadata, pitching, timing release | Gemini Flash (veloce, dati strutturati) |
-| 5 | Quality Reviewer | Dario | Review iterativa post-riarrangiamento | Sonnet 4.5 |
-| 6 | Career Advisor | Rita | Analisi post-release + crescita artista | Sonnet/Gemini |
+| # | Agente | Ruolo | Modello |
+|---|--------|-------|---------|
+| 0 | CMM | Chief Music Manager (orchestratore) | — |
+| 1 | audio-analyst | Stem separation + AudioDNA completo | Python (Demucs + Essentia + librosa) |
+| 2 | trend-scout | Analisi trend mercato + reference matching | Sonnet/Gemini (analisi testuale + dati) |
+| 3 | arrangement-director | Piano riarrangiamento prescrittivo | Sonnet 4.5 (reasoning complesso) |
+| 4 | release-strategist | Metadata, pitching, timing release | Gemini Flash (veloce, dati strutturati) |
+| 5 | quality-reviewer | Review iterativa post-riarrangiamento | Sonnet 4.5 |
+| 6 | career-advisor | Analisi post-release + crescita artista | Sonnet/Gemini |
 
 ## Sinergie con Controlla.me
 

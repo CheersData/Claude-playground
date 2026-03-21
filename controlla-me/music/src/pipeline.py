@@ -1,13 +1,16 @@
 """
 Music analysis pipeline orchestrator.
 
-Coordinates the sequence of agents to produce a complete analysis
-of an audio track: separation, feature extraction, harmonic analysis,
-trend comparison, and final report.
+Coordinates agents to produce a complete AudioDNA analysis:
+ingest -> stem separation -> audio analysis -> save results.
+
+CLI: python -m src.pipeline --input file.mp3 [--skip-stems] [--analysis-id uuid]
 """
 
 from __future__ import annotations
 
+import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -19,32 +22,113 @@ from .utils.logging import setup_logging
 
 logger = structlog.get_logger()
 
+# Status progression
+STATUS_PENDING = "pending"
+STATUS_PROCESSING = "processing"
+STATUS_STEM_SEPARATION = "stem_separation"
+STATUS_ANALYZING = "analyzing"
+STATUS_COMPLETED = "completed"
+STATUS_FAILED = "failed"
+
+
+def _probe_audio(audio_path: Path) -> dict[str, Any]:
+    """Extract duration, sample_rate, channels, codec via ffprobe. Falls back to defaults."""
+    defaults: dict[str, Any] = {
+        "duration_seconds": 0.0, "sample_rate": 44100, "channels": 2, "codec": "unknown",
+    }
+    try:
+        proc = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "a:0",
+             "-show_entries", "stream=duration,sample_rate,channels,codec_name",
+             "-show_entries", "format=duration", "-of", "csv=p=0:s=,",
+             str(audio_path)],
+            capture_output=True, text=True, timeout=30,
+        )
+        if proc.returncode != 0:
+            logger.warning("ffprobe_failed", stderr=proc.stderr[:200])
+            return defaults
+
+        for line in proc.stdout.strip().split("\n"):
+            for part in (p.strip() for p in line.split(",")):
+                if not part or part == "N/A":
+                    continue
+                try:
+                    val = float(part)
+                except ValueError:
+                    if defaults["codec"] == "unknown":
+                        defaults["codec"] = part
+                    continue
+                if val > 8000 and defaults["sample_rate"] == 44100:
+                    defaults["sample_rate"] = int(val)
+                elif 0 < val <= 8 and val == int(val) and defaults["channels"] == 2:
+                    defaults["channels"] = int(val)
+                elif val > 0 and defaults["duration_seconds"] == 0.0 and val < 100000:
+                    defaults["duration_seconds"] = round(val, 3)
+        return defaults
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        logger.warning("ffprobe_unavailable", hint="Install ffmpeg for accurate metadata.")
+        return defaults
+
+
+def ingest_audio(audio_path: Path, settings: Any) -> dict[str, Any]:
+    """Stage 1: Validate audio file and extract metadata via ffprobe.
+
+    Raises FileNotFoundError, ValueError on invalid input.
+    """
+    if not audio_path.is_file():
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
+    file_size_bytes = audio_path.stat().st_size
+    file_size_mb = file_size_bytes / (1024 * 1024)
+
+    if file_size_mb > settings.audio.max_file_size_mb:
+        raise ValueError(f"File too large: {file_size_mb:.1f}MB (max {settings.audio.max_file_size_mb}MB)")
+
+    suffix = audio_path.suffix.lstrip(".").lower()
+    if suffix not in settings.audio.supported_formats:
+        raise ValueError(f"Unsupported format: .{suffix} (supported: {settings.audio.supported_formats})")
+
+    probe = _probe_audio(audio_path)
+    metadata = {
+        "file_path": str(audio_path.resolve()),
+        "file_name": audio_path.name,
+        "format": suffix,
+        "file_size_bytes": file_size_bytes,
+        "file_size_mb": round(file_size_mb, 2),
+        **probe,
+    }
+    logger.info("ingest_complete", file=audio_path.name, fmt=suffix,
+                size_mb=metadata["file_size_mb"], duration_s=probe["duration_seconds"])
+    return metadata
+
 
 async def analyze(
     audio_path: str | Path,
     *,
     artist_name: str | None = None,
     track_name: str | None = None,
-    analysis_type: str = "full",
+    analysis_id: str | None = None,
+    skip_stems: bool = False,
 ) -> dict[str, Any]:
-    """Run the full music analysis pipeline on an audio file.
+    """Run the music analysis pipeline on an audio file.
 
-    Pipeline stages:
-        [1] AUDIO INGEST    — validate file, extract metadata (duration, format, sample rate)
+    Stages:
+        [1] INGEST          — validate file, extract metadata via ffprobe
         [2] STEM SEPARATION — Demucs: vocals, drums, bass, other
-        [3] FEATURE EXTRACT — BPM, key, energy, loudness, spectral features (librosa + essentia)
-        [4] HARMONIC ANALYSIS — chord progression, melody contour, pitch tracking (crepe + basic-pitch)
-        [5] TREND COMPARE   — compare features against genre trends (Tunebat + Hooktheory)
-        [6] REPORT GENERATE — aggregate all outputs into structured analysis report
+        [3] AUDIO ANALYSIS  — AudioAnalyst: BPM, key, energy, spectral, harmony
+        [4] SAVE RESULTS    — persist AudioDNA to music_analyses via MusicDB
+        [5] TREND COMPARE   — (TODO) compare against genre benchmarks
+        [6] LLM DIRECTION   — (TODO) production recommendations via LLM
 
     Args:
-        audio_path: Path to the audio file to analyze.
+        audio_path: Path to the audio file.
         artist_name: Optional artist name for profile enrichment.
-        track_name: Optional track name (defaults to filename).
-        analysis_type: "full" | "quick" (quick skips stem separation).
+        track_name: Optional track name (defaults to filename stem).
+        analysis_id: Update existing record; otherwise creates new.
+        skip_stems: Skip stem separation (faster, less detailed).
 
     Returns:
-        dict with complete analysis results.
+        dict with analysis_id, stages, total_ms.
     """
     settings = get_settings()
     db = MusicDB()
@@ -53,40 +137,23 @@ async def analyze(
     if track_name is None:
         track_name = audio_path.stem
 
-    logger.info(
-        "pipeline_start",
-        audio_path=str(audio_path),
-        artist_name=artist_name,
-        track_name=track_name,
-        analysis_type=analysis_type,
-    )
+    logger.info("pipeline_start", audio_path=str(audio_path), artist=artist_name,
+                track=track_name, skip_stems=skip_stems, analysis_id=analysis_id)
 
-    # Validate input file
-    if not audio_path.exists():
-        raise FileNotFoundError(f"Audio file not found: {audio_path}")
-
-    file_size_mb = audio_path.stat().st_size / (1024 * 1024)
-    if file_size_mb > settings.audio.max_file_size_mb:
-        raise ValueError(
-            f"File too large: {file_size_mb:.1f}MB (max {settings.audio.max_file_size_mb}MB)"
-        )
-
-    suffix = audio_path.suffix.lstrip(".").lower()
-    if suffix not in settings.audio.supported_formats:
-        raise ValueError(
-            f"Unsupported format: .{suffix} (supported: {settings.audio.supported_formats})"
-        )
-
-    # Create analysis record in DB
-    analysis_record = db.insert_analysis({
-        "track_name": track_name,
-        "artist_name": artist_name,
-        "file_path": str(audio_path),
-        "file_size_mb": round(file_size_mb, 2),
-        "analysis_type": analysis_type,
-        "status": "in_progress",
-    })
-    analysis_id = analysis_record.get("id")
+    # --- Create or fetch analysis record ---
+    if analysis_id:
+        if not db.get_analysis(analysis_id):
+            raise ValueError(f"Analysis record not found: {analysis_id}")
+        db.update_analysis(analysis_id, {"status": STATUS_PROCESSING})
+    else:
+        record = db.insert_analysis({
+            "track_name": track_name,
+            "artist_name": artist_name,
+            "file_path": str(audio_path),
+            "analysis_type": "quick" if skip_stems else "full",
+            "status": STATUS_PROCESSING,
+        })
+        analysis_id = record.get("id")
 
     results: dict[str, Any] = {
         "analysis_id": analysis_id,
@@ -94,70 +161,79 @@ async def analyze(
         "artist_name": artist_name,
         "stages": {},
     }
+    t_pipeline = time.monotonic()
 
     try:
-        # --- [1] Audio Ingest ---
-        # TODO: Implement AudioIngestAgent
-        # - Validate audio integrity (not corrupted)
-        # - Extract basic metadata: duration, channels, sample rate, bit depth
-        # - Convert to WAV if needed for downstream processing
-        logger.info("stage_placeholder", stage="audio_ingest", status="not_implemented")
-        results["stages"]["audio_ingest"] = {"status": "pending"}
+        # ---- [1] INGEST ----
+        logger.info("stage_start", stage="ingest", analysis_id=analysis_id)
+        t0 = time.monotonic()
+        metadata = ingest_audio(audio_path, settings)
+        results["stages"]["ingest"] = {
+            "status": "done", "metadata": metadata,
+            "duration_ms": round((time.monotonic() - t0) * 1000),
+        }
+        db.update_analysis(analysis_id, {"file_size_mb": metadata["file_size_mb"]})
 
-        # --- [2] Stem Separation ---
-        if analysis_type == "full":
-            # TODO: Implement StemSeparatorAgent
-            # - Run Demucs (htdemucs_ft model) on the audio
-            # - Output: vocals.wav, drums.wav, bass.wav, other.wav
-            # - Save stems to settings.audio.stem_output_dir / track_name /
-            logger.info("stage_placeholder", stage="stem_separation", status="not_implemented")
-            results["stages"]["stem_separation"] = {"status": "pending"}
-        else:
+        # ---- [2] STEM SEPARATION ----
+        stems_dir: str | None = None
+
+        if skip_stems:
+            logger.info("stage_skip", stage="stem_separation", reason="--skip-stems")
             results["stages"]["stem_separation"] = {"status": "skipped"}
+        else:
+            logger.info("stage_start", stage="stem_separation", analysis_id=analysis_id)
+            db.update_analysis(analysis_id, {"status": STATUS_STEM_SEPARATION})
+            t0 = time.monotonic()
 
-        # --- [3] Feature Extraction ---
-        # TODO: Implement FeatureExtractorAgent
-        # - BPM detection (librosa.beat.beat_track)
-        # - Key detection (essentia KeyExtractor)
-        # - Energy / loudness (RMS, LUFS)
-        # - Spectral features: centroid, bandwidth, rolloff, contrast
-        # - Onset detection for rhythmic analysis
-        logger.info("stage_placeholder", stage="feature_extraction", status="not_implemented")
-        results["stages"]["feature_extraction"] = {"status": "pending"}
+            from .agents.stem_separator import StemSeparator
 
-        # --- [4] Harmonic Analysis ---
-        # TODO: Implement HarmonicAnalyzerAgent
-        # - Chord progression detection (madmom ChordRecognition or basic-pitch)
-        # - Melody contour extraction (crepe pitch tracking on vocals stem)
-        # - Song structure segmentation (verse, chorus, bridge)
-        logger.info("stage_placeholder", stage="harmonic_analysis", status="not_implemented")
-        results["stages"]["harmonic_analysis"] = {"status": "pending"}
+            separator = StemSeparator(
+                model=settings.audio.demucs_model,
+                output_dir=settings.audio.stem_output_dir,
+            )
+            stem_result = await separator.separate(input_path=str(audio_path))
+            stems_dir = str(Path(stem_result.vocals_path).parent)
 
-        # --- [5] Trend Comparison ---
-        # TODO: Implement TrendCompareAgent
-        # - Query Tunebat for genre benchmarks (avg BPM, key distribution)
-        # - Query Hooktheory for common chord progressions in genre
-        # - Compare track features against genre trends
-        # - Generate similarity/uniqueness scores
-        logger.info("stage_placeholder", stage="trend_compare", status="not_implemented")
-        results["stages"]["trend_compare"] = {"status": "pending"}
+            results["stages"]["stem_separation"] = {
+                "status": "done", "stems_dir": stems_dir,
+                "model_used": stem_result.model_used,
+                "processing_time_s": stem_result.processing_time_seconds,
+                "duration_ms": round((time.monotonic() - t0) * 1000),
+            }
+            logger.info("stage_complete", stage="stem_separation",
+                        stems_dir=stems_dir, time_s=stem_result.processing_time_seconds)
 
-        # --- [6] Report Generation ---
-        # TODO: Implement ReportGeneratorAgent
-        # - Aggregate all stage outputs
-        # - Generate production recommendations
-        # - Create artist profile update if artist_name provided
-        logger.info("stage_placeholder", stage="report_generate", status="not_implemented")
-        results["stages"]["report_generate"] = {"status": "pending"}
+        # ---- [3] AUDIO ANALYSIS ----
+        logger.info("stage_start", stage="audio_analysis", analysis_id=analysis_id)
+        db.update_analysis(analysis_id, {"status": STATUS_ANALYZING})
+        t0 = time.monotonic()
 
-        # Update analysis status
-        if analysis_id:
-            db.update_analysis(analysis_id, {
-                "status": "complete",
-                "results": results,
-            })
+        from .agents.audio_analyst import AudioAnalyst
 
-        # Update artist profile if provided
+        analyst = AudioAnalyst()
+        audio_dna: dict[str, Any] = await analyst.analyze(
+            audio_path=str(audio_path),
+            stems_dir=stems_dir,
+        )
+
+        results["stages"]["audio_analysis"] = {
+            "status": "done", "audio_dna": audio_dna,
+            "duration_ms": round((time.monotonic() - t0) * 1000),
+        }
+        logger.info("stage_complete", stage="audio_analysis",
+                     bpm=audio_dna.get("bpm"), key=audio_dna.get("key"))
+
+        # ---- [4] SAVE RESULTS ----
+        db.update_analysis(analysis_id, {
+            "status": STATUS_COMPLETED,
+            "results": {
+                "metadata": metadata,
+                "audio_dna": audio_dna,
+                "stems_dir": stems_dir,
+            },
+        })
+        results["stages"]["save_results"] = {"status": "done"}
+
         if artist_name:
             db.upsert_artist_profile({
                 "artist_name": artist_name,
@@ -165,50 +241,82 @@ async def analyze(
                 "total_analyses": 1,  # TODO: increment via RPC
             })
 
+        # ---- [5] TREND COMPARE (TODO) ----
+        # Compare audio_dna features against genre benchmarks (Tunebat + Hooktheory).
+        results["stages"]["trend_compare"] = {"status": "not_implemented"}
+
+        # ---- [6] LLM DIRECTION (TODO) ----
+        # Feed audio_dna + trends to LLM for arrangement/mix recommendations.
+        results["stages"]["llm_direction"] = {"status": "not_implemented"}
+
     except Exception as e:
-        logger.error("pipeline_error", error=str(e), analysis_id=analysis_id)
+        logger.error("pipeline_error", error=str(e), error_type=type(e).__name__,
+                      analysis_id=analysis_id)
         if analysis_id:
             db.update_analysis(analysis_id, {
-                "status": "failed",
-                "error": str(e),
+                "status": STATUS_FAILED,
+                "error_message": f"[{type(e).__name__}] {e}",
             })
         raise
 
-    logger.info("pipeline_complete", analysis_id=analysis_id, track_name=track_name)
+    total_ms = round((time.monotonic() - t_pipeline) * 1000)
+    results["total_ms"] = total_ms
+    logger.info("pipeline_complete", analysis_id=analysis_id, track=track_name,
+                total_ms=total_ms,
+                done=[k for k, v in results["stages"].items() if v.get("status") == "done"])
     return results
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
 def main() -> None:
-    """CLI entry point for running the music analysis pipeline."""
+    """CLI entry point for the music analysis pipeline."""
+    import argparse
     import asyncio
-    import sys
 
     settings = get_settings()
     setup_logging(settings.log_level)
 
-    if len(sys.argv) < 2:
-        print("Usage: python -m src.pipeline <audio_file> [--artist NAME] [--type full|quick]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Music analysis pipeline")
+    parser.add_argument("--input", required=True, help="Path to input audio file")
+    parser.add_argument("--artist", default=None, help="Artist name")
+    parser.add_argument("--track", default=None, help="Track name (default: filename stem)")
+    parser.add_argument("--skip-stems", action="store_true", help="Skip stem separation")
+    parser.add_argument("--analysis-id", default=None, help="Existing analysis ID to update")
 
-    audio_file = sys.argv[1]
-    artist = None
-    analysis_type = "full"
+    args = parser.parse_args()
 
-    # Simple arg parsing
-    args = sys.argv[2:]
-    i = 0
-    while i < len(args):
-        if args[i] == "--artist" and i + 1 < len(args):
-            artist = args[i + 1]
-            i += 2
-        elif args[i] == "--type" and i + 1 < len(args):
-            analysis_type = args[i + 1]
-            i += 2
-        else:
-            i += 1
+    try:
+        result = asyncio.run(analyze(
+            audio_path=args.input, artist_name=args.artist,
+            track_name=args.track, analysis_id=args.analysis_id,
+            skip_stems=args.skip_stems,
+        ))
 
-    result = asyncio.run(analyze(audio_file, artist_name=artist, analysis_type=analysis_type))
-    print(f"Analysis complete: {result.get('analysis_id')}")
+        stages = result.get("stages", {})
+        done = [k for k, v in stages.items() if v.get("status") == "done"]
+        skipped = [k for k, v in stages.items() if v.get("status") == "skipped"]
+        dna = stages.get("audio_analysis", {}).get("audio_dna", {})
+
+        print(f"\n{'='*50}")
+        print(f"  Analysis: {result.get('analysis_id')}")
+        print(f"  Track:    {result.get('track_name')}")
+        print(f"  Time:     {result.get('total_ms')}ms")
+        print(f"  Done:     {', '.join(done)}")
+        if skipped:
+            print(f"  Skipped:  {', '.join(skipped)}")
+        if dna:
+            print(f"  BPM={dna.get('bpm','?')}  Key={dna.get('key','?')}  Energy={dna.get('energy','?')}")
+        print(f"{'='*50}\n")
+
+    except (FileNotFoundError, ValueError) as e:
+        logger.error("input_error", error=str(e))
+        raise SystemExit(1)
+    except Exception as e:
+        logger.error("pipeline_failed", error=str(e), error_type=type(e).__name__)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

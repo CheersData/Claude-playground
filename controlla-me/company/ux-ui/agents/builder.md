@@ -44,7 +44,7 @@ Implementatore dedicato del dipartimento UX/UI. Scrive componenti React, modific
 ```
 Background:  #0a0a0a (dark), #FAFAFA (light)
 Accent:      #FF6B35 (arancione primario)
-Agenti:      Leo #4ECDC4, Marta #FF6B6B, Giulia #A78BFA, Enzo #FFC832
+Agenti:      Classifier #4ECDC4, Analyzer #FF6B6B, Investigator #A78BFA, Advisor #FFC832
 ```
 
 ## Checklist pre-consegna

@@ -13,7 +13,7 @@
  * Design: Poimandres dark theme, framer-motion step transitions.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import EntitySelect, { type EntityOption } from "./wizard/EntitySelect";
@@ -109,6 +109,58 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
   // Step 5: Activate
   const [activateStatus, setActivateStatus] = useState<"idle" | "activating" | "success" | "error">("idle");
   const [activateError, setActivateError] = useState<string | null>(null);
+
+  // ─── Handle OAuth callback ───
+  // When the user returns from the OAuth provider redirect, the URL contains
+  // query params (setup=complete or oauth_error). We detect these on mount
+  // and update the wizard state accordingly.
+  useEffect(() => {
+    if (!open) return;
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("setup") === "complete") {
+      // OAuth was successful — mark auth step as verified and advance
+      setVerifyStatus("success");
+      setVerifyMessage("Account autorizzato con successo");
+      // Jump to auth step if not already past it, then auto-advance
+      if (currentStep <= 1) {
+        setCurrentStep(1);
+        setTimeout(() => {
+          setDirection(1);
+          setCurrentStep(2);
+        }, 800);
+      }
+    }
+
+    if (params.get("oauth_error")) {
+      const errorCode = params.get("oauth_error");
+      const errorDesc = params.get("oauth_error_desc");
+
+      const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+        not_authenticated: "Devi accedere prima di collegare un servizio.",
+        invalid_state: "La sessione di autorizzazione è scaduta o non valida. Riprova.",
+        token_exchange_failed: "Scambio token fallito. Riprova o contatta il supporto.",
+        server_config: "OAuth non disponibile per questo connettore. Usa l'autenticazione via API Key.",
+        expired_state: "Sessione scaduta. Riprova.",
+        invalid_code: "Codice di autorizzazione scaduto. Riprova.",
+        vault_unavailable: "Errore nel salvataggio credenziali. Riprova.",
+        no_access_token: "Il provider non ha restituito un token. Riprova.",
+      };
+
+      const message = OAUTH_ERROR_MESSAGES[errorCode ?? ""] || errorDesc || `Errore OAuth: ${errorCode}`;
+      setVerifyStatus("error");
+      setVerifyMessage(message);
+      // Ensure we're on the auth step so the user can see the error
+      if (currentStep < 1) {
+        setCurrentStep(1);
+      }
+    }
+
+    // Clean OAuth params from URL to avoid re-processing on re-render
+    if (params.has("setup") || params.has("oauth_error")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Navigation helpers ───
 

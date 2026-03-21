@@ -1,4 +1,4 @@
-# Audio Analyst (Agente Luca) — "L'orecchio"
+# Audio Analyst
 
 ## Ruolo
 

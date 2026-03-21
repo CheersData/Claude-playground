@@ -425,7 +425,7 @@ function ChatMessageComponent({ message, onDeepSearch, onArticleClick }: ChatMes
   }
 
   // Agent message
-  const agent = message.agent || "enzo";
+  const agent = message.agent || "advisor";
   const meta = AGENT_META[agent];
 
   return (

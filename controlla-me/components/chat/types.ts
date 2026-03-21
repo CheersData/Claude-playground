@@ -10,16 +10,16 @@ import type {
 
 export type MessageRole = "user" | "assistant" | "system";
 
-export type AgentId = "leo" | "marta" | "giulia" | "enzo" | "corpus" | "prep";
+export type AgentId = "classifier" | "analyzer" | "investigator" | "advisor" | "corpus" | "prep";
 
 export const AGENT_META: Record<
   AgentId,
   { name: string; label: string; color: string; phase?: AgentPhase }
 > = {
-  leo: { name: "Leo", label: "Catalogatore", color: "#4ECDC4", phase: "classifier" },
-  marta: { name: "Marta", label: "Analista", color: "#FF6B6B", phase: "analyzer" },
-  giulia: { name: "Giulia", label: "Giurista", color: "#A78BFA", phase: "investigator" },
-  enzo: { name: "Enzo", label: "Consulente", color: "#FFC832", phase: "advisor" },
+  classifier: { name: "Classifier", label: "Catalogatore", color: "#4ECDC4", phase: "classifier" },
+  analyzer: { name: "Analyzer", label: "Analista", color: "#FF6B6B", phase: "analyzer" },
+  investigator: { name: "Investigator", label: "Giurista", color: "#A78BFA", phase: "investigator" },
+  advisor: { name: "Advisor", label: "Consulente", color: "#FFC832", phase: "advisor" },
   corpus: { name: "Corpus", label: "Esperto normativo", color: "#A78BFA" },
   prep: { name: "Prep", label: "Riformulatore", color: "#9B9B9B" },
 };

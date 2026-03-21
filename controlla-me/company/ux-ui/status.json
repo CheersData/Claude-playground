@@ -12,10 +12,10 @@
       "background": "#0a0a0a",
       "accent": "#FF6B35",
       "agent_colors": {
-        "leo": "#4ECDC4",
-        "marta": "#FF6B6B",
-        "giulia": "#A78BFA",
-        "enzo": "#FFC832"
+        "classifier": "#4ECDC4",
+        "analyzer": "#FF6B6B",
+        "investigator": "#A78BFA",
+        "advisor": "#FFC832"
       }
     },
     "typography": {

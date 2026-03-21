@@ -139,7 +139,7 @@ Utente arriva su controlla.me
   |
   v
 [2] Output in streaming sotto l'input
-    — Messaggi agente per agente (Leo, Marta, Giulia, Enzo)
+    — Messaggi agente per agente (Classifier, Analyzer, Investigator, Advisor)
     — Progressive rendering dei risultati
     — Inline: score, rischi, azioni, CTA avvocato
   |
@@ -197,13 +197,13 @@ Paradigma UI: 1 (chat)
 |         |                                                         |
 | [+ New] |  [user] Analizza: contratto-affitto.pdf                 |
 |         |                                                         |
-| Storico |  [Leo] Classificatore                                   |
+| Storico |  [Classifier] Catalogatore                              |
 | -----   |  Tipo: Contratto di locazione abitativa                 |
 | > Conv 1|  Sotto-tipo: Locazione 4+4                              |
 |   Conv 2|  Istituti: locazione, deposito cauzionale, recesso      |
 |         |  Tags: [Immobiliare] [Abitativo] [L. 431/1998]          |
 |         |                                                         |
-|         |  [Marta] Analista                   [spinner]           |
+|         |  [Analyzer] Analista                [spinner]           |
 |         |  Analisi rischi in corso...                              |
 |         |                                                         |
 |         |                                                         |
@@ -230,10 +230,10 @@ Paradigma UI: 1 (chat)
 |         |                                                         |
 | [+ New] |  [user] Analizza: contratto-affitto.pdf                 |
 |         |                                                         |
-| Storico |  [Leo] Classificazione completata                       |
+| Storico |  [Classifier] Classificazione completata                |
 | -----   |  Tipo: Locazione 4+4 | 3 istituti | 2 leggi            |
 | > Conv 1|                                                         |
-|   Conv 2|  [Marta] 3 rischi trovati                               |
+|   Conv 2|  [Analyzer] 3 rischi trovati                             |
 |         |  +----------------------------------------------------+ |
 |         |  | [ALTA] Clausola penale eccessiva                    | |
 |         |  | L'importo della penale (3 mensilita) per ritardo... | |
@@ -243,10 +243,10 @@ Paradigma UI: 1 (chat)
 |         |  | ...                                                 | |
 |         |  +----------------------------------------------------+ |
 |         |                                                         |
-|         |  [Giulia] Ricerca normativa completata                  |
+|         |  [Investigator] Ricerca normativa completata             |
 |         |  2 fonti verificate, 1 orientamento giurisprudenziale   |
 |         |                                                         |
-|         |  [Enzo] Valutazione finale                              |
+|         |  [Advisor] Valutazione finale                            |
 |         |  +----------------------------------------------------+ |
 |         |  |  Score: 5.8/10    [Equita 5] [Coerenza 7]          | |
 |         |  |                   [Prassi 6]  [Completezza 5]       | |
@@ -310,11 +310,11 @@ Paradigma UI: 1 (chat)
 |                                  |
 | [user] Analizza: contratto...    |
 |                                  |
-| [Leo] Classificazione            |
+| [Classifier] Classificazione     |
 | Tipo: Locazione 4+4              |
 | [Immobiliare] [L. 431/1998]     |
 |                                  |
-| [Marta] [spinner]                |
+| [Analyzer] [spinner]             |
 | Analisi rischi in corso...       |
 |                                  |
 |                                  |

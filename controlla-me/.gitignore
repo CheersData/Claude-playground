@@ -45,6 +45,9 @@ next-env.d.ts
 # analysis cache (local agent results)
 .analysis-cache/
 
+# music uploads (local audio files)
+.music-uploads/
+
 # Windows reserved device names (Turbopack crash)
 nul
 
@@ -61,6 +64,9 @@ scripts/*-articles.json
 trading/backtest-results/*/
 trading/backtest-results/grid_*/
 !trading/backtest-results/SUMMARY.md
+
+# Trading local SQLite DB
+trading/data/*.db
 
 # Supabase temp
 supabase/.temp/

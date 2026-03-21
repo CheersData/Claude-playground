@@ -187,6 +187,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/integrations/webhook": { windowSec: 60, max: 30 },
   // SEC-M12: Integration connector detail/config — GET public, POST auth-protected
   "api/integrations": { windowSec: 60, max: 30 },
+  // Music upload — 10 uploads per hour per user
+  "api/music/upload": { windowSec: 3600, max: 10 },
   // Ops CLI exec — spawns processes, strict limit (10/min exec, 5/min kill)
   "api/ops/exec": { windowSec: 60, max: 10 },
   // Default per endpoint non specificati

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ExternalLink,
@@ -21,22 +22,46 @@ import ConnectorCard, { type ConnectorInfo, CATEGORY_LABELS } from "@/components
 import { ConnectorCardSkeleton } from "@/components/integrations/Skeletons";
 import IntegrationFilters from "@/components/integrations/IntegrationFilters";
 import OnboardingTour from "@/components/integrations/OnboardingTour";
-import { useIntegrationPanel } from "@/app/integrazione/layout";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
+// ─── Session storage keys for filter persistence across navigation ───
+const FILTER_STORAGE_KEY = "integrazione-filters";
+
+function loadPersistedFilters(): { search: string; category: string } {
+  try {
+    const raw = sessionStorage.getItem(FILTER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        search: typeof parsed.search === "string" ? parsed.search : "",
+        category: typeof parsed.category === "string" ? parsed.category : "all",
+      };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return { search: "", category: "all" };
+}
+
+function persistFilters(search: string, category: string) {
+  try {
+    sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ search, category }));
+  } catch {
+    // Ignore storage errors (e.g. private browsing)
+  }
+}
+
 export default function IntegrazioneClient() {
+  const router = useRouter();
   const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState(() => loadPersistedFilters().search);
+  const [activeCategory, setActiveCategory] = useState(() => loadPersistedFilters().category);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
-
-  // ─── Agent chat panel (from layout context) ───
-  const integrationPanel = useIntegrationPanel();
 
   // ─── Login form state ───
   const [loginEmail, setLoginEmail] = useState("");
@@ -59,6 +84,11 @@ export default function IntegrazioneClient() {
     }
     checkAuth();
   }, []);
+
+  // ─── Persist filters to sessionStorage on change ───
+  useEffect(() => {
+    persistFilters(searchQuery, activeCategory);
+  }, [searchQuery, activeCategory]);
 
   const handleMagicLink = useCallback(async () => {
     if (!loginEmail.trim()) return;
@@ -108,10 +138,10 @@ export default function IntegrazioneClient() {
     }, 100);
   }, []);
 
-  /** Called from ConnectorCard when an authenticated user clicks "Configura" — opens agent chat panel via layout context */
-  const handleConfigure = useCallback((connectorType: string, connectorId: string, _name: string) => {
-    integrationPanel.open(connectorType, connectorId);
-  }, [integrationPanel]);
+  /** Called from ConnectorCard when an authenticated user clicks "Configura" — navigates to setup wizard */
+  const handleConfigure = useCallback((_connectorType: string, connectorId: string, _name: string) => {
+    router.push(`/integrazione/${connectorId}`);
+  }, [router]);
 
   const isAuthenticated = !authLoading && user !== null;
 

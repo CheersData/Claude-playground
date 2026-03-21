@@ -56,7 +56,7 @@ Landing Page (da capo)
 - Pipeline 4 agenti con streaming SSE — il backend è solido
 - Design system coerente (palette, tipografia, animazioni)
 - Workspace layout con sidebar pipeline + centro risultati + pannello corpus
-- Agenti con personalità (Leo, Marta, Giulia, Enzo) — differenziazione visiva
+- Agenti con ruoli funzionali (Classifier, Analyzer, Investigator, Advisor) — differenziazione visiva
 - Score circolare (FairnessScore) — immediato e visivo
 - Context prompt — l'idea di guidare l'analisi con una nota utente
 
@@ -162,19 +162,19 @@ VISTA 2: WORKSPACE (dopo prima azione)
 │           │                                      │               │
 │  Pipeline │   TU                                 │  (pannello    │
 │           │   ┌──────────────────────────────┐   │   articoli    │
-│  ✓ Leo    │   │ 📄 Contratto_affitto.pdf     │   │   chiuso per  │
-│    Tipo   │   │    "Verifica le clausole"    │   │   default)    │
-│           │   └──────────────────────────────┘   │               │
-│  ● Marta  │                                      │               │
-│    Analisi│   LEO (Classificatore)               │               │
-│           │   ┌──────────────────────────────┐   │               │
-│  ○ Giulia │   │ Ho classificato il documento:│   │               │
-│    Ricerca│   │ • Tipo: Locazione 4+4        │   │               │
-│           │   │ • Parti: Locatore/Conduttore │   │               │
-│  ○ Enzo   │   │ • Leggi: L.431/98, CC 1571  │   │               │
+│  ✓ Catalogatore │   │ 📄 Contratto_affitto.pdf     │   │   chiuso per  │
+│    Tipo         │   │    "Verifica le clausole"    │   │   default)    │
+│                 │   └──────────────────────────────┘   │               │
+│  ● Analista     │                                      │               │
+│    Analisi      │   CATALOGATORE                       │               │
+│                 │   ┌──────────────────────────────┐   │               │
+│  ○ Giurista     │   │ Ho classificato il documento:│   │               │
+│    Ricerca      │   │ • Tipo: Locazione 4+4        │   │               │
+│                 │   │ • Parti: Locatore/Conduttore │   │               │
+│  ○ Consulente   │   │ • Leggi: L.431/98, CC 1571  │   │               │
 │    Consig.│   └──────────────────────────────┘   │               │
 │           │                                      │               │
-│  ───────  │   MARTA (Analista) ●                 │               │
+│  ───────  │   ANALISTA ●                         │               │
 │  Tier:    │   ┌──────────────────────────────┐   │               │
 │  Associate│   │ ▋ Sto analizzando le clausole│   │               │
 │           │   │   del contratto...            │   │               │
@@ -201,14 +201,14 @@ MESSAGGIO 1 — Utente
   📄 Contratto_affitto.pdf
   "Verifica le clausole vessatorie"
 
-MESSAGGIO 2 — Leo (teal, ~12s)
+MESSAGGIO 2 — Catalogatore (teal, ~12s)
   "Ho classificato il documento:"
   • Tipo: Locazione abitativa 4+4
   • Parti: Locatore / Conduttore
   • Leggi rilevanti: L. 431/98, CC art. 1571-1614
   • Focus: clausole vessatorie, deposito cauzionale
 
-MESSAGGIO 3 — Marta (corallo, ~25s, streaming)
+MESSAGGIO 3 — Analista (corallo, ~25s, streaming)
   "Ho trovato 3 clausole problematiche:"
 
   ⚠️ ALTO — Clausola penale sproporzionata (Art. 7)
@@ -224,13 +224,13 @@ MESSAGGIO 3 — Marta (corallo, ~25s, streaming)
   ⚡ BASSO — Clausola di rinnovo tacito (Art. 12)
   ...
 
-MESSAGGIO 4 — Giulia (viola, ~30s, streaming)
+MESSAGGIO 4 — Giurista (viola, ~30s, streaming)
   "Ho verificato le norme citate:"
   • Art. 1384 CC: la penale può essere ridotta dal giudice ✓
   • L. 392/78 art. 11: deposito max 3 mensilità ✓
   • Orientamento Cass. 2019/12345: penale > 3x = vessatoria
 
-MESSAGGIO 5 — Enzo (oro, ~18s, streaming)
+MESSAGGIO 5 — Consulente (oro, ~18s, streaming)
   ┌─────────────────────────────────────────┐
   │  VALUTAZIONE FINALE        Score: 5/10  │
   │  ○○○○○●●●●●                             │
@@ -292,10 +292,10 @@ Il pannello corpus/articoli attuale funziona bene. Si apre quando l'utente clicc
 ┌─────────────┐
 │ PIPELINE     │
 │              │
-│ ✓ Leo       │  ← click = scrolla al messaggio di Leo
-│ ● Marta     │  ← pulsante = fase in corso
-│ ○ Giulia    │  ← grigio = in attesa
-│ ○ Enzo      │
+│ ✓ Catalogatore │  ← click = scrolla al messaggio del Catalogatore
+│ ● Analista     │  ← pulsante = fase in corso
+│ ○ Giurista     │  ← grigio = in attesa
+│ ○ Consulente   │
 │              │
 │ ─────────── │
 │ Tier:        │
@@ -371,11 +371,11 @@ Vantaggi: SEO intatta, contenuti marketing preservati, utente non costretto a sc
 | TestimonialsSection | `/about` — testimonianze |
 | UploadZone | **Home/Workspace** — input con drag-drop integrato |
 | AnalysisProgress | **Workspace** — sostituito dai messaggi progressivi + sidebar pipeline |
-| ResultsView | **Workspace** — messaggio Enzo (valutazione finale) |
-| RiskCard | **Workspace** — inline nel messaggio di Marta (con "Approfondisci →") |
+| ResultsView | **Workspace** — messaggio Consulente (valutazione finale) |
+| RiskCard | **Workspace** — inline nel messaggio dell'Analista (con "Approfondisci →") |
 | DeepSearchChat | **Workspace** — follow-up nell'input principale |
-| FairnessScore | **Workspace** — card nel messaggio Enzo |
-| LawyerCTA | **Workspace** — suggerimento nel messaggio Enzo |
+| FairnessScore | **Workspace** — card nel messaggio Consulente |
+| LawyerCTA | **Workspace** — suggerimento nel messaggio Consulente |
 | PaywallBanner | **Workspace** — messaggio di sistema inline |
 | Dashboard (/dashboard) | **Sidebar** — storico analisi |
 | Corpus (/corpus) | **Rimane** ma accessibile anche da chat |
@@ -387,7 +387,7 @@ Vantaggi: SEO intatta, contenuti marketing preservati, utente non costretto a sc
 
 ### Come funziona
 
-Dopo che l'analisi è completa (messaggio Enzo), l'input resta attivo. L'utente può:
+Dopo che l'analisi è completa (messaggio Consulente), l'input resta attivo. L'utente può:
 
 1. **Domanda su un rischio specifico** → deep search (endpoint esistente `/api/deep-search`)
 2. **Domanda generica sul diritto** → corpus agent (endpoint esistente `/api/corpus/ask`)
@@ -447,7 +447,7 @@ Nuovo endpoint: `POST /api/chat` (o estensione di `/api/deep-search`)
 ```
 ┌──────────────────────┐
 │ ← controlla.me  [☰]  │
-│ ● Marta · 2/4       │  ← barra progresso mini
+│ ● Analista · 2/4    │  ← barra progresso mini
 ├──────────────────────┤
 │                      │
 │ TU                   │
@@ -455,14 +455,14 @@ Nuovo endpoint: `POST /api/chat` (o estensione di `/api/deep-search`)
 │ │📄 Contratto.pdf  │ │
 │ └──────────────────┘ │
 │                      │
-│ LEO                  │
+│ CATALOGATORE         │
 │ ┌──────────────────┐ │
 │ │Tipo: Locazione   │ │
 │ │Parti: 2          │ │
 │ │Leggi: L.431/98   │ │
 │ └──────────────────┘ │
 │                      │
-│ MARTA ●              │
+│ ANALISTA ●           │
 │ ┌──────────────────┐ │
 │ │▋ Analizzo le     │ │
 │ │clausole...       │ │
@@ -483,7 +483,7 @@ Nuovo endpoint: `POST /api/chat` (o estensione di `/api/deep-search`)
 │ ✓ Completata · 4/4   │
 ├──────────────────────┤
 │                      │
-│ ENZO                 │
+│ CONSULENTE           │
 │ ┌──────────────────┐ │
 │ │ Score: 5/10      │ │
 │ │ ○○○○○●●●●●      │ │
@@ -520,7 +520,7 @@ Nuovo endpoint: `POST /api/chat` (o estensione di `/api/deep-search`)
 | `ChatMessage.tsx` | Singolo messaggio (utente o agente) | Medio |
 | `ChatInput.tsx` | Input unificato (testo + file + invio) | Medio |
 | `AgentMessage.tsx` | Messaggio agente con avatar, colore, streaming | Medio |
-| `ScoreCard.tsx` | Card score compatta (inline nel messaggio Enzo) | Basso |
+| `ScoreCard.tsx` | Card score compatta (inline nel messaggio Consulente) | Basso |
 | `RiskInline.tsx` | Rischio inline con "Approfondisci →" | Basso |
 | `PipelineMini.tsx` | Sidebar/topbar pipeline semplificata | Basso |
 | `AnalysisHistory.tsx` | Sidebar storico (sostituisce /dashboard) | Medio |
@@ -543,7 +543,7 @@ Nuovo endpoint: `POST /api/chat` (o estensione di `/api/deep-search`)
 | `TestimonialsSection.tsx` | → `/about` |
 | `CTASection.tsx` | → `/about` |
 | `AnalysisProgress.tsx` | → Sostituito da messaggi progressivi |
-| `ResultsView.tsx` | → Sostituito da messaggi Enzo |
+| `ResultsView.tsx` | → Sostituito da messaggi Consulente |
 
 ### Componenti invariati
 
@@ -584,10 +584,10 @@ Nuovo endpoint: `POST /api/chat` (o estensione di `/api/deep-search`)
 ### Fase 2 — Integrazione Backend (2-3 task, ~1 giorno)
 
 5. **Adattare SSE handler** — Mappare eventi SSE a messaggi:
-   - `event: progress (classifier, done)` → `AgentMessage` di Leo
-   - `event: progress (analyzer, done)` → `AgentMessage` di Marta (con RiskInline)
-   - `event: progress (investigator, done)` → `AgentMessage` di Giulia
-   - `event: complete` → `AgentMessage` di Enzo (con ScoreCard)
+   - `event: progress (classifier, done)` → `AgentMessage` del Catalogatore
+   - `event: progress (analyzer, done)` → `AgentMessage` dell'Analista (con RiskInline)
+   - `event: progress (investigator, done)` → `AgentMessage` del Giurista
+   - `event: complete` → `AgentMessage` del Consulente (con ScoreCard)
 
 6. **Creare router follow-up** — `POST /api/chat`:
    - Input: `{ message, sessionId }`

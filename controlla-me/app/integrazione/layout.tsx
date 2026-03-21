@@ -19,9 +19,11 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot } from "lucide-react";
 import IntegrationAgentPanel from "@/components/integrations/IntegrationAgentPanel";
+import { ToastProvider } from "@/components/integrations/Toast";
 
 // ─── Context ───
 
@@ -50,9 +52,13 @@ export default function IntegrazioneLayout({
 }: {
   children: ReactNode;
 }) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [connectorType, setConnectorType] = useState<string | undefined>();
   const [connectorId, setConnectorId] = useState<string | undefined>();
+
+  // Hide the floating button on connector detail pages (they have their own panel trigger)
+  const isDetailPage = pathname !== "/integrazione" && pathname !== "/integrazione/dashboard";
 
   const open = useCallback((type?: string, id?: string) => {
     if (type) setConnectorType(type);
@@ -73,11 +79,12 @@ export default function IntegrazioneLayout({
     <IntegrationPanelContext.Provider
       value={{ isOpen, open, close, setConnector }}
     >
+      <ToastProvider>
       {children}
 
-      {/* ─── Floating chat button ─── */}
+      {/* ─── Floating chat button (hidden on detail pages to avoid duplication) ─── */}
       <AnimatePresence>
-        {!isOpen && (
+        {!isOpen && !isDetailPage && (
           <motion.div
             className="fixed bottom-6 right-6 z-50"
             initial={{ scale: 0, opacity: 0 }}
@@ -133,6 +140,7 @@ export default function IntegrazioneLayout({
         connectorType={connectorType}
         connectorId={connectorId}
       />
+      </ToastProvider>
     </IntegrationPanelContext.Provider>
   );
 }

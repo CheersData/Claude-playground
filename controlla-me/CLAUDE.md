@@ -667,10 +667,10 @@ return new Response(
 --accent: #FF6B35            /* arancione primario */
 
 /* Colori agenti */
-Leo (Catalogatore):  #4ECDC4  /* teal */
-Marta (Analista):    #FF6B6B  /* corallo */
-Giulia (Giurista):   #A78BFA  /* viola */
-Enzo (Consulente):   #FFC832  /* oro */
+Classifier (Catalogatore):  #4ECDC4  /* teal */
+Analyzer (Analista):        #FF6B6B  /* corallo */
+Investigator (Giurista):    #A78BFA  /* viola */
+Advisor (Consulente):       #FFC832  /* oro */
 
 /* Font */
 --font-sans: 'DM Sans'           /* testo, UI */

@@ -349,10 +349,10 @@ Hai contratti, preventivi e documenti sparsi nel CRM? Collegando Salesforce a Co
 
 Quando un commerciale allega un contratto a una Opportunity, i 4 agenti AI di Controlla.me lo analizzano automaticamente:
 
-- **Leo (Catalogatore)** classifica il tipo di contratto
-- **Marta (Analista)** individua clausole rischiose
-- **Giulia (Giurista)** verifica la conformita legale
-- **Enzo (Consulente)** ti da il verdetto in linguaggio semplice
+- **Catalogatore** classifica il tipo di contratto
+- **Analista** individua clausole rischiose
+- **Giurista** verifica la conformita legale
+- **Consulente** ti da il verdetto in linguaggio semplice
 
 Il risultato appare nella dashboard e, opzionalmente, come nota nella Opportunity Salesforce.
 

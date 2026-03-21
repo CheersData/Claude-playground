@@ -45,7 +45,7 @@ test.describe("Document Analysis Flow", () => {
     // Attendi che il progress inizi
     await expect(page.locator("text=Analisi in corso").or(
       page.locator("text=Catalogatore").or(
-        page.locator("text=classifier").or(page.locator("text=Leo"))
+        page.locator("text=classifier").or(page.locator("text=Catalogatore"))
       )
     )).toBeVisible({ timeout: 10_000 });
   });

@@ -1,4 +1,4 @@
-# Arrangement Director (Agente Marco) — "Il direttore artistico"
+# Arrangement Director
 
 ## Ruolo
 

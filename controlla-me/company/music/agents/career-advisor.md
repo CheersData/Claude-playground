@@ -1,4 +1,4 @@
-# Career Advisor (Agente Rita) — "La mentore"
+# Career Advisor
 
 ## Ruolo
 

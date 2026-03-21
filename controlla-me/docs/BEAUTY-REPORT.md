@@ -96,10 +96,10 @@ Tema: Light (#FAFAFA background, #1A1A2E text, #FF6B35 accent)
 | Muted | gray-300 | Decorativo, dividers |
 | Accent | #FF6B35 | CTA, evidenza |
 | Accent gradient | #E8451A | Fine gradiente bottoni |
-| Leo | #4ECDC4 | Agente classificatore |
-| Marta | #FF6B6B | Agente analista |
-| Giulia | #A78BFA | Agente giurista |
-| Enzo | #FFC832 | Agente consigliere |
+| Classifier | #4ECDC4 | Agente classificatore |
+| Analyzer | #FF6B6B | Agente analista |
+| Investigator | #A78BFA | Agente giurista |
+| Advisor | #FFC832 | Agente consigliere |
 
 **Tipografia:**
 | Livello | Font | Size | Weight |

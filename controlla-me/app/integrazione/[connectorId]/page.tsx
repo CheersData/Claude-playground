@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ConnectorDetailClient from "./ConnectorDetailClient";
-import { ToastProvider } from "@/components/integrations/Toast";
 
 // ─── Static connector name map ───
 
@@ -24,6 +23,8 @@ const CONNECTOR_NAMES: Record<string, string> = {
   eurlex: "EUR-Lex",
   personio: "Personio",
   bamboohr: "BambooHR",
+  "universal-rest": "API REST Personalizzata",
+  csv: "CSV / Excel",
 };
 
 const VALID_CONNECTOR_IDS = new Set(Object.keys(CONNECTOR_NAMES));
@@ -53,9 +54,5 @@ export default async function ConnectorDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  return (
-    <ToastProvider>
-      <ConnectorDetailClient />
-    </ToastProvider>
-  );
+  return <ConnectorDetailClient />;
 }
