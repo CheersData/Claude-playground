@@ -67,6 +67,7 @@ AS $$
     1 - (la.embedding <=> query_embedding) AS similarity
   FROM public.legal_articles la
   WHERE la.is_in_force = true
+    AND la.embedding IS NOT NULL
     AND 1 - (la.embedding <=> query_embedding) > match_threshold
     AND (filter_law_source IS NULL OR la.law_source = filter_law_source)
     AND (filter_institutes IS NULL OR la.related_institutes && filter_institutes)

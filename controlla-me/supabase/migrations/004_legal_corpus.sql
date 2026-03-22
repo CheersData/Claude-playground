@@ -27,8 +27,8 @@ create table public.legal_articles (
   -- { "chapter": "Capo III - Diritti dell'interessato",
   --   "section": "Sezione 2 - Informazione e accesso ai dati personali" }
 
-  -- Embedding per ricerca semantica (1536 = OpenAI ada-002, 1024 = Voyage, ecc.)
-  embedding vector(1536),
+  -- Embedding per ricerca semantica (1024 = Voyage AI voyage-law-2)
+  embedding vector(1024),
 
   -- Metadati
   url text,                           -- link alla fonte originale (normattiva/eurlex)

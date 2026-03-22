@@ -10,12 +10,12 @@
  * - openai:     GPT-5.2, 5.1, 5, 5 Mini/Nano, 4.1, 4.1 Mini/Nano, 4o, 4o Mini, OSS 120B/20B, Codex Mini
  * - mistral:    Large, Medium, Small, Nemo, Ministral 14B/8B/3B, Magistral Small/Medium, Codestral
  * - groq:       Llama 4 Scout, 3.3 70B, 3.1 8B, Qwen 3 32B, GPT-OSS 120B/20B, Kimi K2
- * - cerebras:   GPT-OSS 120B, Qwen 3 235B, Llama 3.1 8B
+ * - cerebras:   GPT-OSS 120B, Llama 3.1 8B
  * - sambanova:  Llama 3.3 70B, Llama 4 Maverick, DeepSeek-R1 70B
  *
  * ⚠️  DeepSeek RIMOSSO (SEC-001): server in Cina, non coperto da accordo di adeguatezza EU.
  *
- * ~41 modelli registrati, 7 provider.
+ * ~42 modelli registrati, 7 provider.
  * Vedi docs/MODEL-CENSUS.md per pricing e confronto completo.
  */
 
@@ -410,8 +410,13 @@ export type AgentName =
   | "investigator"
   | "advisor"
   | "corpus-agent"
+  | "document-chat"
   | "task-executor"
-  | "mapper";
+  | "mapper"
+  | "mapping-agent"
+  | "integration-setup"
+  | "sync-supervisor"
+  | "critic";
 
 export interface AgentModelConfig {
   /** Primary model for this agent */
@@ -483,6 +488,14 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     temperature: 0,
     notes: "Output finale utente. Serve qualità massima, zero errori.",
   },
+  // ── Document Chat — conversazione multi-turn su documenti analizzati ──
+  "document-chat": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 4096,
+    temperature: 0.3,
+    notes: "Chat conversazionale su analisi. Non serve web_search, serve contesto lungo e risposte fluide. Free tier OK.",
+  },
   // ── Company Tasks — OPUS (dipartimenti + CME) ──
   "task-executor": {
     primary: "claude-opus-4.5",
@@ -498,6 +511,35 @@ export const AGENT_MODELS: Record<AgentName, AgentModelConfig> = {
     maxTokens: 2048,
     temperature: 0,
     notes: "Mapping campi: task di classificazione semplice. Tier Intern (Groq/Cerebras, ~gratis). ADR: adr-ai-mapping-hybrid.md",
+  },
+  // ── Integration Agents — Setup conversazionale + Sync monitoring ──
+  "integration-setup": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 2048,
+    temperature: 0.3,
+    notes: "Setup wizard conversazionale. Lightweight, economico. Flash per qualità, Groq fallback.",
+  },
+  "sync-supervisor": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 1024,
+    temperature: 0.2,
+    notes: "Commenti real-time durante sync. Risposte brevi, Italiano. Flash per velocità, Groq fallback.",
+  },
+  "mapping-agent": {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 2048,
+    temperature: 0.1,
+    notes: "Field mapping via LLM. Classifica campi sorgente → target. Flash per qualità, Groq fallback.",
+  },
+  critic: {
+    primary: "gemini-2.5-flash",
+    fallback: "groq-llama4-scout",
+    maxTokens: 2048,
+    temperature: 0.2,
+    notes: "Revisore interno pipeline. Validazione, non creazione. Modelli economici sufficienti.",
   },
 };
 

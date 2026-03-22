@@ -17,7 +17,7 @@
  * Fallback: se CLI fallisce, agent-runner.ts cade alla catena SDK normale.
  */
 
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import type { GenerateResult } from "./types";
 
 // ─── Types ───
@@ -58,6 +58,23 @@ function buildCleanEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
+// ─── Claude binary resolution (cached) ───
+
+let _claudePath: string | null = null;
+function resolveClaudePath(): string {
+  if (_claudePath) return _claudePath;
+  try {
+    const cmd = process.platform === "win32" ? "where claude" : "which claude";
+    const result = execSync(cmd, { encoding: "utf-8", timeout: 5000 }).trim();
+    // 'where' on Windows may return multiple lines — take the first
+    _claudePath = result.split(/\r?\n/)[0];
+    return _claudePath;
+  } catch {
+    _claudePath = "claude";
+    return _claudePath;
+  }
+}
+
 // ─── Core ───
 
 /**
@@ -87,7 +104,6 @@ export async function runViaCLI(
   ];
 
   if (systemPrompt) {
-    // System prompt via flag (evita problemi di escaping in stdin)
     args.push("--system-prompt", systemPrompt);
   }
 
@@ -97,15 +113,16 @@ export async function runViaCLI(
   }
 
   const start = Date.now();
+  const claudeBin = resolveClaudePath();
   console.log(
-    `[CLI-RUNNER] -> ${agentName} | model: ${model} | prompt: ~${prompt.length} chars`
+    `[CLI-RUNNER] -> ${agentName} | model: ${model} | prompt: ~${prompt.length} chars | bin: ${claudeBin}`
   );
 
   return new Promise<CLIRunnerResult>((resolve, reject) => {
-    const child = spawn("claude", args, {
+    const child = spawn(claudeBin, args, {
       cwd: process.cwd(),
       env: buildCleanEnv(),
-      shell: true,
+      shell: process.platform === "win32",
       stdio: ["pipe", "pipe", "pipe"],
     });
 

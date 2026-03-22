@@ -1,0 +1,74 @@
+{
+  "id": "music",
+  "name": "Ufficio Musica",
+  "capabilities": [
+    {
+      "id": "audio-analysis",
+      "description": "Analisi completa brano: stem separation, struttura, armonia, melodia, voce, arrangiamento",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 180000,
+      "costEstimate": "~gratis (open-source) + ~$0.01-0.05 LLM"
+    },
+    {
+      "id": "trend-comparison",
+      "description": "Confronto brano con trend di mercato attuali (chart, playlist, micro-generi)",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~gratis (API free tier)"
+    },
+    {
+      "id": "arrangement-direction",
+      "description": "Piano di riarrangiamento prescrittivo e azionabile per trasformare demo in hit",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~$0.05 (LLM tier system)"
+    },
+    {
+      "id": "release-strategy",
+      "description": "Strategia di release: metadata, timing, playlist pitching, distribuzione",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~$0.01 (LLM tier system)"
+    },
+    {
+      "id": "iterative-review",
+      "description": "Review A/B tra versione originale e riarrangiata con quality score",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~$0.05 (LLM tier system)"
+    }
+  ],
+  "inputModes": ["task"],
+  "outputModes": ["task-result", "report"],
+  "skills": [
+    {
+      "id": "analyze-track",
+      "description": "Analisi completa di un brano audio (upload -> AudioDNA -> trend -> suggerimenti)",
+      "parameters": [
+        {
+          "name": "audioFile",
+          "type": "string",
+          "required": true,
+          "description": "Path al file audio (WAV/MP3/FLAC)"
+        },
+        {
+          "name": "targetGenre",
+          "type": "string",
+          "required": false,
+          "description": "Genere target per confronto trend"
+        }
+      ],
+      "returns": "AudioDNA + TrendReport + ArrangementPlan JSON",
+      "isDirectCallable": false
+    }
+  ],
+  "directQueryTargets": ["ufficio-legale"],
+  "directQuerySources": [],
+  "status": "planned",
+  "schemaVersion": 1
+}

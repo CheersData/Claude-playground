@@ -5,8 +5,8 @@ import "./globals.css";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export const metadata: Metadata = {
@@ -29,6 +29,13 @@ export default function RootLayout({
   return (
     <html lang="it">
       <head>
+        {/* Google Search Console verification — set NEXT_PUBLIC_GSC_VERIFICATION in .env.local */}
+        {process.env.NEXT_PUBLIC_GSC_VERIFICATION && (
+          <meta
+            name="google-site-verification"
+            content={process.env.NEXT_PUBLIC_GSC_VERIFICATION}
+          />
+        )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

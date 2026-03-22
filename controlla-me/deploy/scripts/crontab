@@ -1,0 +1,17 @@
+# =============================================================================
+# Crontab — replaces Vercel Crons (vercel.json)
+# Runs inside the Alpine cron container
+# =============================================================================
+#
+# Original Vercel cron:
+#   { "path": "/api/platform/cron/data-connector", "schedule": "0 6 * * 0" }
+#
+# We call the Next.js container directly via Docker network
+# CRON_SECRET must match the env variable in .env.production
+#
+
+# Data connector sync — every Sunday at 06:00 UTC
+0 6 * * 0 wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://controlla-nextjs:3000/api/platform/cron/data-connector > /dev/null 2>&1
+
+# Health check log — every 5 minutes (optional, for monitoring)
+*/5 * * * * wget -qO- http://controlla-nextjs:3000/ > /dev/null 2>&1

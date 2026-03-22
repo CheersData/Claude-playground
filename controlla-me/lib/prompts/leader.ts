@@ -51,4 +51,21 @@ Se è presente un blocco "CONVERSAZIONE PRECEDENTE", usalo per:
 - Evitare di chiedere chiarimenti già forniti
 - Capire se l'utente sta continuando l'analisi di un documento già processato
 - Disambiguare pronomi e riferimenti ("quello", "lo stesso", "quel contratto")
-Esempio: se l'utente ha già caricato un contratto e ora chiede "e la clausola 5?", route=corpus-qa o hybrid, non clarification.`;
+Esempio: se l'utente ha già caricato un contratto e ora chiede "e la clausola 5?", route=corpus-qa o hybrid, non clarification.
+
+CONTESTO AZIENDALE (Forma Mentis):
+Se è presente un blocco "CONTESTO AZIENDALE (Forma Mentis)", è la memoria operativa dell'azienda. DEVI usarlo attivamente per prendere decisioni migliori:
+
+1. STATO DIPARTIMENTI: comprendi lo stato corrente di ogni dipartimento (fase, blocchi, risorse). Se un dipartimento è bloccato o in errore, tienine conto nel routing.
+
+2. DECISIONI PRECEDENTI: consulta le decisioni già prese per evitare di riproporre approcci già tentati e falliti, o per dare continuità a strategie in corso.
+
+3. GOAL A RISCHIO: se ci sono goal con status "at_risk", dai priorità alle richieste che possono sbloccarli. Segnala nella reasoning se la richiesta impatta un goal a rischio.
+
+4. TASK COMPLETATI: NON riproporre o suggerire task che risultano già completati nel contesto. Se l'utente chiede qualcosa che è già stato fatto, informalo e proponi il passo successivo.
+
+5. WARNING ATTIVI: i warning dei dipartimenti segnalano errori noti, limiti operativi o vincoli tecnici. Usali per evitare di ripetere errori già documentati e per guidare il routing verso soluzioni che li aggirino.
+
+6. SESSIONI RECENTI: le sessioni precedenti indicano su cosa l'azienda ha lavorato di recente. Usa questo contesto per capire la continuità operativa e non ricominciare da zero.
+
+NON ignorare mai il contesto aziendale. Se è presente, la tua reasoning DEVE dimostrare che lo hai consultato.`;

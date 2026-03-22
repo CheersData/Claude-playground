@@ -25,14 +25,26 @@ export interface AgentEvent {
   status: "running" | "done" | "error";
   /** Epoch ms */
   timestamp: number;
+
+  // ─── ADR-005 new fields ───
+
+  /** PID of the terminal/session that owns this agent.
+   *  Allows the UI to group agent events under their parent terminal. */
+  parentPid?: number;
+
+  /** sessionId (Layer 1) of the owning terminal session.
+   *  Same as parentPid but used when the terminal is managed by the sessions Map. */
+  sessionId?: string;
 }
 
 /* ── Constants ──────────────────────────────────────────────────────── */
 
 /** How long a "done"/"error" event stays visible before being pruned (ms) */
-const TTL_DONE_MS = 8_000;
-/** How long a "running" event stays without update before being pruned (ms) */
-const TTL_RUNNING_MS = 120_000;
+const TTL_DONE_MS = 30_000;
+/** How long a "running" event stays without update before being pruned (ms).
+ * Reduced from 120s to 60s — individual pipeline phases take max ~30s.
+ * Any "running" event older than 60s is likely stale (missed "done" broadcast). */
+const TTL_RUNNING_MS = 60_000;
 /** Cleanup interval */
 const CLEANUP_INTERVAL_MS = 5_000;
 
@@ -129,10 +141,65 @@ export function getActiveAgentEvents(): AgentEvent[] {
   return result;
 }
 
+/**
+ * Get all active agent events for a specific parentPid.
+ * Used by the sessions route to build the agents array per terminal.
+ */
+export function getAgentsByParentPid(pid: number): AgentEvent[] {
+  return getActiveAgentEvents().filter((ev) => ev.parentPid === pid);
+}
+
+/* ── AbortController map (ADR-005: soft agent kill) ─────────────────── */
+
+const globalForAbort = globalThis as unknown as {
+  __agentAbortControllers?: Map<string, AbortController>;
+};
+
+if (!globalForAbort.__agentAbortControllers) {
+  globalForAbort.__agentAbortControllers = new Map<string, AbortController>();
+}
+
+const abortControllers = globalForAbort.__agentAbortControllers;
+
+/**
+ * Register an AbortController for an agent.
+ * The agent should check `signal.aborted` periodically.
+ * Returns the AbortSignal.
+ */
+export function registerAgentAbort(agentId: string): AbortSignal {
+  const controller = new AbortController();
+  abortControllers.set(agentId, controller);
+  return controller.signal;
+}
+
+/**
+ * Soft-kill an agent by aborting its registered AbortController.
+ * Also broadcasts an "error" event to update the UI.
+ * Returns true if the agent had a controller, false if not registered.
+ */
+export function abortAgent(agentId: string): boolean {
+  const controller = abortControllers.get(agentId);
+  if (controller) {
+    controller.abort();
+    abortControllers.delete(agentId);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Unregister an AbortController for an agent (called on normal completion).
+ */
+export function unregisterAgentAbort(agentId: string): void {
+  abortControllers.delete(agentId);
+}
+
 /* ── Mapping helpers ────────────────────────────────────────────────── */
 
 /** Map console agent phases to department names for AgentDots */
 const PHASE_TO_DEPT: Record<string, string> = {
+  // Analysis pipeline (user-facing)
+  "analyze-pipeline": "ufficio-legale",
   // Console pipeline (existing)
   leader: "cme",
   classifier: "ufficio-legale",
@@ -146,6 +213,9 @@ const PHASE_TO_DEPT: Record<string, string> = {
   // Legal office Q&A
   "legal-leader": "ufficio-legale",
   "legal-orchestrator": "ufficio-legale",
+  // Medical / Studia.me
+  "medical-question-prep": "ufficio-legale",
+  "medical-corpus-agent": "ufficio-legale",
   // QA & stress testing
   "qa-test-run": "quality-assurance",
   "qa-evaluation": "quality-assurance",
@@ -167,11 +237,12 @@ const PHASE_TO_DEPT: Record<string, string> = {
 /**
  * Helper to broadcast a console agent phase event.
  * Maps phase names to departments for AgentDots compatibility.
+ * Accepts optional parentPid and sessionId for terminal-agent grouping (ADR-005).
  */
 export function broadcastConsoleAgent(
   phase: string,
   status: "running" | "done" | "error",
-  extra?: { task?: string }
+  extra?: { task?: string; parentPid?: number; sessionId?: string }
 ) {
   const department = PHASE_TO_DEPT[phase] ?? "operations";
   broadcastAgentEvent({
@@ -179,6 +250,8 @@ export function broadcastConsoleAgent(
     department,
     task: extra?.task ?? phase,
     status,
+    parentPid: extra?.parentPid,
+    sessionId: extra?.sessionId,
   });
 }
 

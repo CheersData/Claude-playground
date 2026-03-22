@@ -685,18 +685,18 @@ export function TradingSlopePanel() {
         <p className="text-xs text-white/30">Nessun titolo monitorato nelle ultime 48h.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-white/5">
-          <table className="w-full text-xs">
+          <table className="w-full text-[10px] md:text-xs">
             <thead>
               <tr className="border-b border-white/10 text-white/30">
                 <th className="py-2 px-3 text-left font-normal">Titolo</th>
                 <th className="hidden md:table-cell py-2 px-3 text-right font-normal">Qty</th>
-                <th className="py-2 px-3 text-right font-normal">Acquisto</th>
-                <th className="py-2 px-3 text-right font-normal">Vendita</th>
+                <th className="hidden md:table-cell py-2 px-3 text-right font-normal">Acquisto</th>
+                <th className="hidden md:table-cell py-2 px-3 text-right font-normal">Vendita</th>
                 <th className="py-2 px-3 text-right font-normal">Ultimo</th>
                 <th className="py-2 px-3 text-right font-normal">P&L</th>
                 <th className="py-2 px-3 text-center font-normal">Trend</th>
                 <th className="py-2 px-3 text-left font-normal">Segnale</th>
-                <th className="py-2 px-3 text-left font-normal">Perché</th>
+                <th className="hidden md:table-cell py-2 px-3 text-left font-normal">Perché</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -728,13 +728,13 @@ export function TradingSlopePanel() {
                       {row.qty !== null ? row.qty : "—"}
                     </td>
 
-                    {/* Acquisto */}
-                    <td className="py-3 px-3 text-right font-mono text-white/70">
+                    {/* Acquisto — nascosta su mobile */}
+                    <td className="hidden md:table-cell py-3 px-3 text-right font-mono text-white/70">
                       {row.buyPrice !== null ? fmt$abs(row.buyPrice) : "—"}
                     </td>
 
-                    {/* Vendita */}
-                    <td className="py-3 px-3 text-right font-mono text-white/70">
+                    {/* Vendita — nascosta su mobile */}
+                    <td className="hidden md:table-cell py-3 px-3 text-right font-mono text-white/70">
                       {row.sellPrice !== null ? fmt$abs(row.sellPrice) : "—"}
                     </td>
 
@@ -843,8 +843,8 @@ export function TradingSlopePanel() {
                       </div>
                     </td>
 
-                    {/* Perché */}
-                    <td className="py-3 px-3 max-w-xs text-white/55">
+                    {/* Perché — nascosta su mobile */}
+                    <td className="hidden md:table-cell py-3 px-3 max-w-xs text-white/55">
                       {row.rationale}
                     </td>
                   </tr>

@@ -2,7 +2,7 @@
  * Vault Middleware — Helper for using the credential vault in API routes.
  *
  * Provides:
- * 1. requireVault() — returns vault instance or 503 if VAULT_ENCRYPTION_KEY is missing
+ * 1. requireVault() — returns vault instance or 503 if VAULT_ENCRYPTION_KEY is missing or migration 030 not applied
  * 2. withVaultAuth() — combines requireAuth + requireVault for routes that need both
  *
  * Usage in API route:
@@ -20,7 +20,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import type { AuthenticatedUser } from "@/lib/middleware/auth";
-import { getVault, type SupabaseCredentialVault } from "@/lib/credential-vault";
+import { getVault, checkVaultHealth, type SupabaseCredentialVault } from "@/lib/credential-vault";
 
 // ─── Types ───
 
@@ -36,12 +36,31 @@ export interface VaultAuthContext {
 // ─── Public API ───
 
 /**
- * Returns the vault instance, or a 503 response if VAULT_ENCRYPTION_KEY is not configured.
- * Fail-closed: if the encryption key is missing, the endpoint is unavailable.
+ * Returns the vault instance, or a 503 response if VAULT_ENCRYPTION_KEY is not configured
+ * or if the vault_store RPC function doesn't exist (migration 030 not applied).
+ * Fail-closed: if the vault is unavailable, the endpoint returns 503.
  */
-export function requireVault(): VaultContext | NextResponse {
+export async function requireVault(): Promise<VaultContext | NextResponse> {
   try {
     const vault = getVault();
+
+    // Verify that the DB infrastructure exists (cached after first check)
+    const health = await checkVaultHealth();
+    if (!health.ok) {
+      console.error(
+        "[VAULT-MIDDLEWARE] Vault DB non disponibile:",
+        health.error
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Infrastruttura credential vault non configurata. " +
+            "Eseguire migration 030_integration_tables.sql su Supabase.",
+        },
+        { status: 503 }
+      );
+    }
+
     return { vault };
   } catch (err) {
     console.error(
@@ -74,8 +93,8 @@ export async function withVaultAuth(
     return authResult;
   }
 
-  // 2. Check vault availability
-  const vaultResult = requireVault();
+  // 2. Check vault availability (including DB health)
+  const vaultResult = await requireVault();
   if (vaultResult instanceof NextResponse) {
     return vaultResult;
   }

@@ -34,6 +34,8 @@ import {
   Terminal,
   ChevronLeft,
   ChevronRight,
+  Cpu,
+  MemoryStick,
 } from "lucide-react";
 import { getConsoleAuthHeaders } from "@/lib/utils/console-client";
 
@@ -116,21 +118,22 @@ type TabId =
 interface TabDef {
   id: TabId;
   label: string;
+  shortLabel: string;
   icon: ComponentType<{ className?: string }>;
 }
 
 const TABS: TabDef[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "trading", label: "Trading", icon: TrendingUp },
-  { id: "cme", label: "CME", icon: MessageSquare },
-  { id: "vision", label: "Vision", icon: Telescope },
-  { id: "reports", label: "Reports", icon: FileText },
-  { id: "archive", label: "Archivio", icon: Archive },
-  { id: "daemon", label: "Daemon", icon: Zap },
-  { id: "agents", label: "Agenti", icon: Users },
-  { id: "integrations", label: "Integrazioni", icon: Plug },
-  { id: "testing", label: "QA & Test", icon: Microscope },
-  { id: "terminals", label: "Terminali", icon: Terminal },
+  { id: "dashboard", label: "Dashboard", shortLabel: "Dash", icon: LayoutDashboard },
+  { id: "trading", label: "Trading", shortLabel: "Trade", icon: TrendingUp },
+  { id: "cme", label: "CME", shortLabel: "CME", icon: MessageSquare },
+  { id: "vision", label: "Vision", shortLabel: "Vision", icon: Telescope },
+  { id: "reports", label: "Reports", shortLabel: "Rep.", icon: FileText },
+  { id: "archive", label: "Archivio", shortLabel: "Arch.", icon: Archive },
+  { id: "daemon", label: "Daemon", shortLabel: "Dmn", icon: Zap },
+  { id: "agents", label: "Agenti", shortLabel: "Agenti", icon: Users },
+  { id: "integrations", label: "Integrazioni", shortLabel: "Integ.", icon: Plug },
+  { id: "testing", label: "QA & Test", shortLabel: "QA", icon: Microscope },
+  { id: "terminals", label: "Terminali", shortLabel: "Term.", icon: Terminal },
 ];
 
 // ─── Tab Bar with scroll indicators ─────────────────────────────────────────
@@ -178,7 +181,7 @@ function TabBarWithScrollIndicators({
     <div
       className="flex-none relative"
       style={{
-        height: "40px",
+        minHeight: "44px",
         borderBottom: "1px solid var(--border-dark-subtle)",
         background: "var(--bg-raised)",
       }}
@@ -187,14 +190,14 @@ function TabBarWithScrollIndicators({
       {canScrollLeft && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-2 transition-opacity"
+          className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-2 min-w-[36px] transition-opacity"
           style={{
             background:
               "linear-gradient(to right, var(--bg-raised) 60%, transparent)",
           }}
           aria-label="Scorri tab a sinistra"
         >
-          <ChevronLeft className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+          <ChevronLeft className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
         </button>
       )}
 
@@ -214,8 +217,8 @@ function TabBarWithScrollIndicators({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                whitespace-nowrap transition-all duration-150 shrink-0"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 min-h-[44px] min-w-[44px] justify-center
+                rounded-md text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-150 shrink-0"
               style={{
                 background: active ? "var(--bg-overlay)" : "transparent",
                 color: active ? "var(--fg-primary)" : "var(--fg-secondary)",
@@ -228,7 +231,8 @@ function TabBarWithScrollIndicators({
                 if (!active) e.currentTarget.style.background = "transparent";
               }}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="sm:hidden">{tab.shortLabel}</span>
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );
@@ -239,14 +243,14 @@ function TabBarWithScrollIndicators({
       {canScrollRight && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-2 transition-opacity"
+          className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-2 min-w-[36px] transition-opacity"
           style={{
             background:
               "linear-gradient(to left, var(--bg-raised) 60%, transparent)",
           }}
           aria-label="Scorri tab a destra"
         >
-          <ChevronRight className="w-3.5 h-3.5" style={{ color: "var(--fg-secondary)" }} />
+          <ChevronRight className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
         </button>
       )}
     </div>
@@ -315,6 +319,22 @@ export default function OpsPageClient() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // ── System stats (CPU/RAM) ──────────────────────────────────────────────────
+  interface SystemStats { cpu_percent: number; ram_percent: number; ram_used_mb: number; ram_total_mb: number; }
+  const [sysStats, setSysStats] = useState<SystemStats | null>(null);
+  const fetchSysStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/console/system-stats", { headers: getConsoleAuthHeaders() });
+      if (!res.ok) return;
+      setSysStats(await res.json());
+    } catch { /* silent */ }
+  }, []);
+  useEffect(() => {
+    fetchSysStats();
+    const iv = setInterval(fetchSysStats, 5000);
+    return () => clearInterval(iv);
+  }, [fetchSysStats]);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -612,7 +632,7 @@ export default function OpsPageClient() {
       >
         <form
           onSubmit={handleLogin}
-          className="rounded-2xl p-8 w-full max-w-sm space-y-5"
+          className="rounded-2xl p-6 md:p-8 w-full max-w-sm space-y-5"
           style={{
             background: "var(--bg-raised)",
             border: "1px solid var(--border-dark-subtle)",
@@ -635,7 +655,7 @@ export default function OpsPageClient() {
             value={authInput}
             onChange={(e) => setAuthInput(e.target.value)}
             placeholder="Nome Cognome, Ruolo"
-            className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
+            className="w-full px-4 py-3 rounded-lg text-base outline-none transition-all min-h-[44px]"
             style={{
               background: "var(--bg-base)",
               border: "1px solid var(--border-dark-subtle)",
@@ -658,7 +678,7 @@ export default function OpsPageClient() {
             type="submit"
             disabled={!authInput.trim()}
             className="w-full px-4 py-2.5 text-white rounded-lg text-sm font-semibold
-              transition-all disabled:opacity-40"
+              transition-all disabled:opacity-40 min-h-[44px]"
             style={{
               background: "var(--accent)",
               boxShadow: "0 2px 8px rgba(255,107,53,0.25)",
@@ -680,7 +700,7 @@ export default function OpsPageClient() {
     >
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header
-        className="h-12 flex-none flex items-center gap-3 px-4 md:px-6"
+        className="min-h-[48px] flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 flex-wrap sm:flex-nowrap py-1 sm:py-0"
         style={{
           borderBottom: "1px solid var(--border-dark-subtle)",
           background: "var(--bg-raised)",
@@ -718,6 +738,46 @@ export default function OpsPageClient() {
           {systemHealth.label}
         </span>
 
+        {/* CPU/RAM widget */}
+        {sysStats && (
+          <div
+            className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg text-xs"
+            style={{ background: "var(--bg-overlay)", border: "1px solid var(--border-dark-subtle)" }}
+            aria-label={`CPU ${sysStats.cpu_percent}%, RAM ${sysStats.ram_percent}%`}
+          >
+            <div className="flex items-center gap-1" title={`CPU: ${sysStats.cpu_percent}%`}>
+              <Cpu className="w-3 h-3" style={{ color: sysStats.cpu_percent >= 85 ? "var(--error)" : sysStats.cpu_percent >= 70 ? "#f59e0b" : "var(--success)" }} />
+              <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-dark)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(sysStats.cpu_percent, 100)}%`,
+                    background: sysStats.cpu_percent >= 85 ? "var(--error)" : sysStats.cpu_percent >= 70 ? "#f59e0b" : "var(--success)",
+                  }}
+                />
+              </div>
+              <span className="tabular-nums text-[10px]" style={{ color: sysStats.cpu_percent >= 85 ? "var(--error)" : sysStats.cpu_percent >= 70 ? "#f59e0b" : "var(--success)" }}>
+                {sysStats.cpu_percent}%
+              </span>
+            </div>
+            <div className="flex items-center gap-1" title={`RAM: ${sysStats.ram_used_mb}/${sysStats.ram_total_mb} MB (${sysStats.ram_percent}%)`}>
+              <MemoryStick className="w-3 h-3" style={{ color: sysStats.ram_percent >= 85 ? "var(--error)" : sysStats.ram_percent >= 70 ? "#f59e0b" : "var(--success)" }} />
+              <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-dark)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(sysStats.ram_percent, 100)}%`,
+                    background: sysStats.ram_percent >= 85 ? "var(--error)" : sysStats.ram_percent >= 70 ? "#f59e0b" : "var(--success)",
+                  }}
+                />
+              </div>
+              <span className="tabular-nums text-[10px]" style={{ color: sysStats.ram_percent >= 85 ? "var(--error)" : sysStats.ram_percent >= 70 ? "#f59e0b" : "var(--success)" }}>
+                {sysStats.ram_percent}%
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Agent activity dots + test button */}
         {data && (
           <div className="flex items-center gap-1">
@@ -744,13 +804,15 @@ export default function OpsPageClient() {
           </div>
         )}
 
-        {/* Active sessions */}
-        <SessionIndicator onSessionsUpdate={handleSessionsUpdate} />
+        {/* Active sessions — hidden on very small screens to prevent overflow */}
+        <div className="hidden sm:block">
+          <SessionIndicator onSessionsUpdate={handleSessionsUpdate} />
+        </div>
 
         {/* Error indicator */}
         {fetchError && (
           <span
-            className="text-[10px] truncate max-w-[200px]"
+            className="text-[10px] truncate max-w-[120px] sm:max-w-[200px]"
             style={{ color: "var(--error)" }}
           >
             {fetchError}
@@ -760,33 +822,67 @@ export default function OpsPageClient() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Stats */}
+        {/* Stats — compact on mobile, full on md+ */}
         {data && (
-          <div className="hidden md:flex items-center gap-3 text-xs font-mono"
-            style={{ color: "var(--fg-secondary)" }}
-          >
-            <span style={{ color: "var(--success)" }}>
-              {data.board.byStatus?.done ?? 0} done
-            </span>
-            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
-            <span>{data.board.byStatus?.open ?? 0} open</span>
-            <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
-            <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
-          </div>
+          <>
+            {/* Mobile: compact single-line */}
+            <div className="flex md:hidden items-center gap-1.5 text-xs font-mono"
+              style={{ color: "var(--fg-secondary)" }}
+            >
+              <span style={{ color: "var(--success)" }}>
+                {data.board.byStatus?.done ?? 0}d
+              </span>
+              <span style={{ color: "var(--fg-invisible)" }}>/</span>
+              <span>{data.board.byStatus?.open ?? 0}o</span>
+              <span style={{ color: "var(--fg-invisible)" }}>/</span>
+              <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
+            </div>
+            {/* Desktop: full labels */}
+            <div className="hidden md:flex items-center gap-3 text-xs font-mono"
+              style={{ color: "var(--fg-secondary)" }}
+            >
+              <span style={{ color: "var(--success)" }}>
+                {data.board.byStatus?.done ?? 0} done
+              </span>
+              <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+              <span>{data.board.byStatus?.open ?? 0} open</span>
+              <span style={{ color: "var(--fg-invisible)" }}>&middot;</span>
+              <span>${(data.costs?.total ?? 0).toFixed(2)}</span>
+            </div>
+          </>
         )}
 
-        {/* Capacity indicator */}
+        {/* Capacity indicator — full on md+, compact dot on mobile */}
         {data && (
-          <div className="hidden md:block">
-            <CapacityIndicator activeCount={activeAgentCount} maxCapacity={10} />
-          </div>
+          <>
+            <div className="hidden md:block">
+              <CapacityIndicator activeCount={activeAgentCount} maxCapacity={10} />
+            </div>
+            {/* Mobile: compact capacity dot */}
+            <div
+              className="flex md:hidden items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-mono"
+              style={{
+                background: activeAgentCount > 0 ? "rgba(255,107,53,0.12)" : "rgba(255,255,255,0.04)",
+                color: activeAgentCount > 0 ? "#FF6B35" : "var(--fg-muted)",
+              }}
+              aria-label={`${activeAgentCount} agenti attivi su 10`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${activeAgentCount > 0 ? "animate-pulse" : ""}`}
+                style={{
+                  background: activeAgentCount > 0 ? "#FF6B35" : "var(--fg-muted)",
+                }}
+              />
+              {activeAgentCount}/{10}
+            </div>
+          </>
         )}
 
         {/* Refresh */}
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs
+          className="flex items-center gap-1.5 px-2.5 min-h-[44px] h-auto rounded-lg text-xs
             transition-all duration-150 disabled:opacity-40 whitespace-nowrap"
           style={{
             background: "var(--bg-overlay)",

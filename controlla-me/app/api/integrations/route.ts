@@ -28,8 +28,11 @@ const CONNECTOR_NAMES: Record<string, string> = {
   hubspot: "HubSpot",
   salesforce: "Salesforce",
   stripe: "Stripe",
+  "fatture-in-cloud": "Fatture in Cloud",
   normattiva: "Normattiva",
   eurlex: "EUR-Lex",
+  "universal-rest": "API REST Personalizzata",
+  csv: "CSV / Excel",
 };
 
 // ─── GET: List user's connections with status ───

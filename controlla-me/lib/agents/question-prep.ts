@@ -303,7 +303,7 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   // Se il modello ha settato needsProceduralLaw=true per domande civili, CORREGGI a false.
   // Forza true SOLO per contesto esplicitamente penale.
   const isPenale = /(?:processo penale|imputat[oa]|pubblico ministero|p\.m\.|udienza preliminare|dibattimento penale|reato|condanna penale)/i.test(q);
-  const isCivile = /(?:primo grado|impugn|appello|sentenza|giudice.*decis|cassazione|ricorso|ultrapetizion|extrapetizion|decreto ingiuntiv|pignoramento|esecuzion.*forzat|mediazion|sfratto|arbitrat|competenz.*territorial)/i.test(q);
+  const isCivile = /(?:primo grado|impugn|appello|sentenza|giudice.*decis|cassazione|ricorso|ultrapetizion|extrapetizion|decreto ingiuntiv|pignoramento|esecuzion.*forzat|mediazion|sfratto|arbitrat|competenz.*territorial|foro competent|contumacia|litispendenza|preclusioni|deposito.*document|udienza|notifica|citazione|comparsa|memoria|c\.p\.c|rito.*ordinari|riforma.*cartabia|171.*ter|opposizion.*tardiv|rimession.*termin)/i.test(q);
   if (isPenale && !isCivile) {
     result.needsProceduralLaw = true;
   } else if (isCivile || !isPenale) {
@@ -355,10 +355,12 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   ensureInstitute(/sfratt|convalida.*sfratt|licenz.*finita locazione/i, ["sfratto"]);
   ensureInstitute(/provvediment.*cautelar|sequestro.*giudiziari|sequestro.*conservativ/i, ["provvedimenti_cautelari"]);
   ensureInstitute(/competenz.*(?:territorial|per materia|per valore)|foro competent/i, ["competenza"]);
-  ensureInstitute(/appello|impugnazion|ricorso.*cassazione/i, ["impugnazioni"]);
+  ensureInstitute(/appello|impugnazion|ricorso.*cassazione/i, ["impugnazioni", "ricorso_cassazione"]);
+  // Condanna a pagare più del dovuto = ultra petita (anche senza usare il termine)
+  ensureInstitute(/condannat.*(?:pagare|importo).*(?:più|maggior|superior)|giudice.*(?:concesso|dato).*(?:più|troppo)/i, ["ultrapetizione", "extrapetizione"]);
   ensureInstitute(/mediazion.*(?:obbligatori|civile)|tentativo.*conciliazione/i, ["mediazione"]);
-  ensureInstitute(/ultrapetizion|extrapetizion|corrispondenza.*chiesto.*pronunciat/i, ["corrispondenza_chiesto_pronunciato"]);
-  ensureInstitute(/deposito.*document|riform.*cartabia|art.*171/i, ["deposito_atti"]);
+  ensureInstitute(/ultrapetizion|extrapetizion|corrispondenza.*chiesto.*pronunciat/i, ["ultrapetizione", "extrapetizione"]);
+  ensureInstitute(/deposito.*document|riform.*cartabia|art.*171/i, ["preclusioni_istruttorie", "deposito_documenti"]);
 
   // Prelazione agraria
   ensureInstitute(/prelazion.*agrar|coltivator.*dirett|riscatto.*agrar|confinant.*agrar/i, ["prelazione_agraria"]);
@@ -393,7 +395,7 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   ensureInstitute(/pignoramento.*(?:prima casa|abitazion|immobil)|(?:prima casa|abitazion).*pignoramento/i, ["esecuzione_immobiliare", "pignoramento"]);
 
   // Ultra petita / extra petita (violazione art. 112 c.p.c.)
-  ensureInstitute(/ultrapetizion|extrapetizion/i, ["corrispondenza_chiesto_pronunciato", "nullità_sentenza"]);
+  ensureInstitute(/ultrapetizion|extrapetizion/i, ["ultrapetizione", "extrapetizione", "ricorso_cassazione"]);
 
   // Violazione obblighi familiari / mantenimento figli (civile + penale)
   ensureInstitute(/(?:violazion|inadempiment).*(?:obbligh.*familiar|manteniment|assisten.*familiar)/i, ["obblighi_familiari", "mantenimento"]);
@@ -450,8 +452,17 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
 
   // 11. Enrich legalQuery for mediazione assenza (helps find D.Lgs. 28/2010)
   // NO article numbers — "art. 8" is too generic and matches wrong sources in reference boost
-  if (/mediazion.*(?:non.*present|assent|assenz|mancata)/i.test(combined) && !/sanzione.*mediazion|conseguenz.*mancata/i.test(result.legalQuery)) {
-    result.legalQuery += " conseguenze mancata partecipazione mediazione obbligatoria sanzione pecuniaria argomento prova giudice";
+  // Broader pattern: catches "non si è presentata", "assenza alla mediazione", "controparte mediazione"
+  if (
+    (/mediazion.*(?:non.*present|assent|assenz|mancata|non.*compar)/i.test(combined) ||
+     /(?:non.*present|assent|assenz|mancata.*partecipazion).*mediazion/i.test(combined) ||
+     /controparte.*mediazion|mediazion.*controparte/i.test(combined))
+    && !/sanzione.*mediazion|conseguenz.*mancata/i.test(result.legalQuery)
+  ) {
+    result.legalQuery += " conseguenze mancata partecipazione mediazione obbligatoria sanzione pecuniaria contributo unificato argomento prova sfavorevole giudice D.Lgs. 28/2010";
+    if (!result.scopeNotes) {
+      result.scopeNotes = "Art. 8 co. 4-bis D.Lgs. 28/2010: due conseguenze dell'assenza ingiustificata alla mediazione: (1) sanzione pecuniaria pari al contributo unificato, (2) argomento di prova sfavorevole.";
+    }
   }
 
   // 12. Enrich legalQuery for asta/abusi edilizi
@@ -461,8 +472,18 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   }
 
   // 13. Enrich legalQuery for pignoramento prima casa
-  if (/pignoramento.*(?:prima casa|abitazion|immobil)/i.test(combined) && !/esecuzion.*immobiliar|creditore.*privat/i.test(result.legalQuery)) {
-    result.legalQuery += " esecuzione immobiliare pignoramento prima casa creditore privato Agenzia Entrate Riscossione impignorabilità";
+  // Broader pattern: catches "possono pignorare la casa", "debito privato casa", "prima casa pignorata"
+  if (
+    (/pignoramento.*(?:prima casa|abitazion|immobil|casa)/i.test(combined) ||
+     /(?:prima casa|abitazion|casa.*dove.*vivo).*(?:pignoramento|pignorare|prendere)/i.test(combined) ||
+     /(?:debito|creditore|debitore).*(?:prima casa|casa|immobil).*(?:pignora|prend|esecuzion)/i.test(combined) ||
+     /(?:possono|possano).*pignorare.*(?:casa|immobil|abitazion)/i.test(combined))
+    && !/esecuzion.*immobiliar|creditore.*privat/i.test(result.legalQuery)
+  ) {
+    result.legalQuery += " esecuzione immobiliare pignoramento prima casa creditore privato Agenzia Entrate Riscossione impignorabilità DPR 602/1973";
+    if (!result.scopeNotes) {
+      result.scopeNotes = "ATTENZIONE: la tutela della prima casa da pignoramento vale SOLO per crediti fiscali (Agenzia Entrate Riscossione, art. 76 DPR 602/1973). I creditori PRIVATI possono pignorare la prima casa senza limiti (art. 555 ss. c.p.c.). Se DPR 602/1973 non è nel corpus, segnalare la distinzione comunque.";
+    }
   }
 
   // 14. Enrich legalQuery for mantenimento figli (civile + penale)
@@ -473,6 +494,52 @@ function postProcessPrep(question: string, result: QuestionPrepResult): Question
   // 15. Enrich legalQuery for prova testimoniale / prestito verbale
   if (/prova.*testimonial|testimonianz|prestit.*verbal/i.test(combined) && !/limit.*prova|2721/i.test(result.legalQuery)) {
     result.legalQuery += " limiti prova testimoniale contratti valore superiore ammissibilità";
+  }
+
+  // 16. Enrich legalQuery for ultra/extra petita (helps find Art. 112 + 360 c.p.c.)
+  // Broader pattern: catches "giudice ha deciso su questione non sollevata" (extrapetita),
+  // "condannato a pagare di più" (ultrapetita), "ha dato più di quanto chiesto"
+  if (
+    (/ultrapetizion|extrapetizion/i.test(combined) ||
+     /giudice.*(?:decis|conced|condannat|pronunciat|dato).*(?:più|quest|non.*solle|super|maggio|oltr)/i.test(combined) ||
+     /(?:decis|pronunciat|condannat).*(?:questione.*non.*solle|più.*(?:chiesto|domand))/i.test(combined) ||
+     /(?:sentenza|giudic).*(?:ultra|extra)/i.test(combined))
+    && !/principio.*corrispondenz|art.*112.*c\.p\.c/i.test(result.legalQuery)
+  ) {
+    result.legalQuery += " principio corrispondenza chiesto pronunciato vizio sentenza impugnazione ultrapetizione extrapetizione art 112 c.p.c.";
+    if (!result.mechanismQuery) {
+      result.mechanismQuery = "impugnazione sentenza viziata motivi cassazione nullità processuale art 360 n.4 c.p.c. appello art 342 c.p.c.";
+    }
+    // Force scopeNotes to remind corpus-agent about the distinction
+    if (!result.scopeNotes) {
+      result.scopeNotes = "Ultra petita = giudice concede PIU di quanto chiesto (vizio quantitativo). Extra petita = giudice decide su questione MAI sollevata (vizio qualitativo). Art. 112 c.p.c. Rimedio: appello o Cassazione art. 360 n.4.";
+    }
+  }
+
+  // 17. Enrich legalQuery for Cartabia reform (helps find art. 171-ter c.p.c.)
+  // Broader pattern: catches "depositare un documento", "termine per deposito", "deposito in udienza",
+  // "quando posso depositare", "documento nuovo in udienza", and also matches without "termine/quando"
+  // if the topic is clearly about deposito documenti/memorie in a processual context
+  if (
+    ((/(?:deposit(?:are|o).*document|document.*(?:nuov|in udienza)|preclusioni.*istruttori|memorie.*udienza)/i.test(combined) && /(?:termine|quando|entro|posso|scadenz)/i.test(combined)) ||
+     /(?:deposit(?:are|o).*document|document.*nuov).*(?:udienza|processo|causa|giudice)/i.test(combined) ||
+     /(?:udienza|processo).*(?:deposit(?:are|o)|produrre).*(?:document|memori|atto)/i.test(combined))
+    && !/cartabia|171.*ter|149.*2022/i.test(result.legalQuery)
+  ) {
+    result.legalQuery += " riforma Cartabia D.Lgs. 149/2022 preclusioni istruttorie nuovi termini deposito art 171-ter c.p.c.";
+    if (!result.scopeNotes) {
+      result.scopeNotes = "ATTENZIONE RIFORMA CARTABIA: Art. 171-ter c.p.c. (D.Lgs. 149/2022, in vigore dal 28/02/2023) sostituisce il vecchio Art. 183. Se il corpus contiene solo Art. 183, il testo è PRE-RIFORMA e va segnalato esplicitamente nella risposta.";
+    }
+  }
+
+  // 18. Enrich for opposizione tardiva decreto ingiuntivo
+  if (/(?:decreto ingiuntiv|ingiunzion).*(?:tardiv|ritardo|non.*accort|non.*sapu)/i.test(combined) && !/opposizion.*tardiv|650/i.test(result.legalQuery)) {
+    result.legalQuery += " opposizione tardiva rimessione in termini caso fortuito forza maggiore irregolarità notifica";
+  }
+
+  // 19. Enrich for prelazione agraria (helps distinguish coltivatore diretto from proprietario)
+  if (/prelazion.*agrar|confinant.*(?:terreno|fondo)/i.test(combined) && !/coltivator.*dirett/i.test(result.legalQuery)) {
+    result.legalQuery += " coltivatore diretto requisito personale coltivazione non semplice proprietà";
   }
 
   return result;

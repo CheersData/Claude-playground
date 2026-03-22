@@ -1,0 +1,25 @@
+# robots.txt — controlla.me + poimandres.work
+# Generated for SEO content publishing
+
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/*
+Allow: /corpus
+Allow: /pricing
+Allow: /integrazione
+
+# Disallow private/internal routes
+Disallow: /api/
+Disallow: /console
+Disallow: /ops
+Disallow: /dashboard
+Disallow: /legaloffice
+Disallow: /_next/
+
+# Disallow internal poimandres app routes (served via rewrite, not direct access)
+Disallow: /poimandres
+
+# Sitemaps
+Sitemap: https://controlla.me/sitemap.xml
+Sitemap: https://poimandres.work/sitemap.xml

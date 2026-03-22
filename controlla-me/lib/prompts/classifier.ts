@@ -40,6 +40,11 @@ REGOLE CRITICHE:
   * Vendita: "vendita_a_corpo", "vendita_a_misura", "vendita_su_pianta"
   * Appalto: "appalto_privato", "appalto_pubblico", "subappalto"
   * Società: "costituzione_srl", "cessione_quote", "patto_parasociale"
+  * Atto notarile: "compravendita_immobiliare", "successione_legittima", "successione_testamentaria",
+                   "donazione_diretta", "donazione_indiretta", "donazione_remuneratoria",
+                   "testamento_olografo", "testamento_pubblico", "testamento_segreto",
+                   "costituzione_societa", "procura_notarile", "procura_generale", "procura_speciale",
+                   "atto_di_divisione", "convenzione_matrimoniale", "fondo_patrimoniale"
   * Lavoro: "subordinato_tempo_indeterminato", "subordinato_tempo_determinato", "part_time",
              "apprendistato", "collaborazione_coordinata", "co_co_co",
              "lavoro_autonomo", "lavoro_autonomo_occasionale",
@@ -104,12 +109,38 @@ REGOLE CRITICHE:
   * "distacco" / "comando" (lavoratore) → distacco_lavoratore
   * "appalto genuino" / "interposizione illecita" → appalto_genuino
   * "certificazione contratto" / "commissione certificazione" → certificazione_contratto
+  -- ISTITUTI NOTARILI (Successioni, Donazioni, Atti Immobiliari) --
+  * "successione" / "eredità" / "de cuius" / "erede" → successione (+ legittima o testamentaria)
+  * "quota legittima" / "legittimario" / "riserva" / "art. 536 c.c." → quota_legittima
+  * "collazione" / "conferimento" / "art. 737 c.c." → collazione
+  * "rappresentazione" / "art. 467 c.c." → rappresentazione
+  * "sostituzione" / "sostituzione ordinaria" / "art. 688 c.c." → sostituzione
+  * "donazione" / "atto di liberalità" / "art. 769 c.c." → donazione
+  * "revoca donazione" / "revocazione" / "art. 800 c.c." → revoca_donazione
+  * "indegnità" / "indegno a succedere" / "art. 463 c.c." → indegnita
+  * "accettazione eredità" / "accettazione con beneficio d'inventario" → accettazione_eredita
+  * "rinuncia all'eredità" / "rinuncia eredità" / "art. 519 c.c." → rinuncia_eredita
+  * "legato" / "legatario" / "art. 649 c.c." → legato
+  * "trust" / "trustee" / "settlor" / "beneficiary" → trust
+  * "patto successorio" / "art. 458 c.c." → patto_successorio
+  * "testamento" / "disposizione testamentaria" / "ultima volontà" → testamento
+  * "procura" / "mandato con rappresentanza" / "procura notarile" → procura_notarile
+  * "visura catastale" / "catasto" / "dati catastali" → visura_catastale
+  * "APE" / "attestato prestazione energetica" / "certificazione energetica" → ape
+  * "conformità urbanistica" / "conformità edilizia" / "sanatoria" → conformita_urbanistica
+  * "imposta di registro" / "imposta di successione" / "imposta di donazione" → imposte_atto_notarile
+  * "comunione ereditaria" / "divisione ereditaria" → comunione_ereditaria
 
 - legalFocusAreas: indica le aree di diritto rilevanti per guidare l'analisi.
   Esempio: ["diritto_immobiliare", "diritto_urbanistico"] per un contratto immobiliare.
   Per contratti di lavoro: ["diritto_del_lavoro", "previdenza_sociale", "sicurezza_sul_lavoro", "diritto_sindacale"]
   Per contratti atipici/flessibili: ["diritto_del_lavoro", "contratti_flessibili", "tutela_lavoratore_parasubordinato"]
   Per contratti dirigenziali: ["diritto_del_lavoro", "dirigenza", "patto_non_concorrenza"]
+  Per atti notarili/successioni: ["diritto_successorio", "diritto_delle_donazioni", "diritto_notarile"]
+  Per compravendite immobiliari: ["diritto_immobiliare", "diritto_urbanistico", "diritto_catastale", "diritto_tributario"]
+  Per testamenti: ["diritto_successorio", "diritto_testamentario", "diritto_delle_persone"]
+  Per costituzione società: ["diritto_societario", "diritto_commerciale", "diritto_notarile"]
+  Per procure: ["diritto_civile", "diritto_notarile", "rappresentanza"]
 
 - applicableLaws: includi articoli specifici c.c. e leggi speciali. Sii preciso.
 - Campi incerti = null. Non inventare dati assenti.`;

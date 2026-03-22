@@ -149,7 +149,7 @@ Ogni sistema multi-agente o multi-funzione riceve colori identita distinti. Patt
 
 | Verticale | Agenti | Colori assegnati |
 |-----------|--------|-----------------|
-| Legal | Leo, Marta, Giulia, Enzo | Teal, Coral, Violet, Gold |
+| Legal | Classifier, Analyzer, Investigator, Advisor | Teal, Coral, Violet, Gold |
 | Trading | Scanner, Signal, Risk, Executor, Monitor | Teal, Gold, Rose, Coral, Cyan |
 | Ops Center | Task, Cost, Health, Pipeline | Teal, Gold, Cyan, Violet |
 

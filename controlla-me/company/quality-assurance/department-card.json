@@ -1,0 +1,78 @@
+{
+  "id": "quality-assurance",
+  "name": "Quality Assurance",
+  "capabilities": [
+    {
+      "id": "run-test-suite",
+      "description": "Run full Vitest + Playwright test suite and report pass/fail results",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "validate-component",
+      "description": "Type-check and lint a specific file or directory",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 15000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "testbook-validation",
+      "description": "Run testbook to validate agent output quality on real test cases",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~$0.05"
+    },
+    {
+      "id": "regression-testing",
+      "description": "Run regression tests after a fix to ensure no new breakages",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query"],
+  "outputModes": ["task-result", "direct-response", "report"],
+  "skills": [
+    {
+      "id": "run-tests",
+      "description": "Run npx vitest run and return pass/fail summary",
+      "parameters": [
+        { "name": "filter", "type": "string", "required": false, "description": "Test file filter pattern" }
+      ],
+      "returns": "{ passed: number, failed: number, skipped: number, duration: number }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "type-check",
+      "description": "Run npx tsc --noEmit and return error count",
+      "parameters": [],
+      "returns": "{ errors: number, warnings: number }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "lint-check",
+      "description": "Run npm run lint and return error/warning count",
+      "parameters": [],
+      "returns": "{ errors: number, warnings: number }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "run-testbook",
+      "description": "Run npx tsx scripts/testbook.ts to validate agent output on test cases",
+      "parameters": [
+        { "name": "agent", "type": "string", "required": false, "description": "Specific agent to test (classifier, analyzer, etc.)" }
+      ],
+      "returns": "{ totalCases: number, passed: number, accuracy: number }",
+      "isDirectCallable": false
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": ["architecture", "security", "acceleration"],
+  "status": "active",
+  "schemaVersion": 1
+}

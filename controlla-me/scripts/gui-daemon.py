@@ -5,10 +5,11 @@ Scrive messaggi nella sessione Claude Code attiva ogni N minuti.
 Toggle on/off con hotkey F9. Il boss lo attiva quando non lavora.
 
 Usage:
-  python scripts/gui-daemon.py                          # Default: ogni 10 min
+  python scripts/gui-daemon.py                          # Default: ogni 10 min, directive da daemon-report.json
   python scripts/gui-daemon.py --interval 5             # Ogni 5 min
-  python scripts/gui-daemon.py --message "custom"       # Messaggio custom
+  python scripts/gui-daemon.py --message "custom"       # Messaggio custom (override directive)
   python scripts/gui-daemon.py --once                    # Esegui una volta e esci
+  python scripts/gui-daemon.py --no-dedup                # Skip deduplicazione timestamp (test)
   python scripts/gui-daemon.py --target "controlla-me"  # Cerca SOLO finestre con questo nel titolo
   python scripts/gui-daemon.py --list-windows            # Mostra finestre candidate (debug)
 
@@ -37,6 +38,7 @@ from pynput import keyboard
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE_FILE = os.path.join(ROOT, "company", "gui-daemon-state.json")
+DAEMON_REPORT_FILE = os.path.join(ROOT, "company", "daemon-report.json")
 LOG_DIR = os.path.join(ROOT, "company", "gui-daemon-logs")
 
 # Processi browser validi — Claude Code gira nel browser, SOLO qui si incolla
@@ -52,20 +54,6 @@ BLOCKED_PROCESSES = {
 }
 
 DEFAULT_INTERVAL_MIN = 10
-DEFAULT_MESSAGE = """daemon ping. Esegui questa sequenza:
-
-1. Leggi `company/daemon-report.json` (signal da tutti i dipartimenti)
-2. Leggi tutti i `company/*/status.json` dei dipartimenti
-3. Controlla il board: `npx tsx scripts/company-tasks.ts board`
-4. Genera un PIANO DI LAVORO unificato che includa:
-   - Stato di ogni dipartimento (1 riga ciascuno)
-   - Signal azionabili dal daemon report raggruppati per priorità
-   - Decisioni pendenti del boss (D-01, D-02, ecc.)
-   - 3-5 task concreti che puoi eseguire autonomamente ORA (non human_required)
-   - Blockers che richiedono azione del boss
-5. Se ci sono task open NON human_required sul board → eseguili
-6. Se non ce ne sono → crea 1-3 task dai signal più importanti e eseguili
-7. Reporta al boss il piano + cosa hai fatto in formato conciso"""
 
 # Tempo di attesa dopo aver trovato la finestra, prima di scrivere (secondi)
 SETTLE_TIME = 5.0
@@ -84,7 +72,9 @@ class DaemonState:
         self.should_exit = False    # Ctrl+F10 exit
         self.last_run: str | None = None
         self.total_runs = 0
+        self.last_directive_ts: str | None = None  # Deduplicazione direttiva daemon
         self.lock = threading.Lock()
+        self._load_last_directive_ts()
 
     def toggle(self):
         with self.lock:
@@ -102,6 +92,16 @@ class DaemonState:
             self.should_exit = True
             log("[EXIT] Daemon in chiusura (Ctrl+F10)")
 
+    def _load_last_directive_ts(self):
+        """Carica lastDirectiveTs dal file di stato (persistenza tra restart)"""
+        try:
+            if os.path.exists(STATE_FILE):
+                with open(STATE_FILE, "r") as f:
+                    data = json.load(f)
+                    self.last_directive_ts = data.get("lastDirectiveTs")
+        except Exception:
+            pass
+
 state = DaemonState()
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
@@ -116,6 +116,7 @@ def save_state():
         "active": state.active,
         "lastRun": state.last_run,
         "totalRuns": state.total_runs,
+        "lastDirectiveTs": state.last_directive_ts,
         "updatedAt": datetime.datetime.now().isoformat(),
     }
     try:
@@ -141,6 +142,84 @@ def save_log(message: str, success: bool):
             f.write(content)
     except Exception:
         pass
+
+# ─── Directive Loading ─────────────────────────────────────────────────────
+
+def format_directive(report_ts: str, directive: dict) -> str:
+    """
+    Formatta la direttiva daemon come messaggio testuale.
+    Stessa logica di CompanyPanel.tsx per coerenza web ↔ terminal.
+    """
+    try:
+        dt = datetime.datetime.fromisoformat(report_ts.replace("Z", "+00:00"))
+        time_str = dt.strftime("%H:%M")
+    except Exception:
+        time_str = "??:??"
+
+    mode = str(directive.get("mode", "unknown")).upper()
+    instructions = str(directive.get("instructions", ""))
+
+    lines = [
+        f"[DAEMON DIRECTIVE — {time_str}]",
+        f"Modo: {mode}",
+        "",
+        instructions,
+    ]
+
+    open_batch = directive.get("openTasksBatch", [])
+    if isinstance(open_batch, list) and len(open_batch) > 0:
+        lines.append("")
+        lines.append("Task batch:")
+        for t in open_batch:
+            lines.append(f"  • {t}")
+
+    in_progress = directive.get("inProgressToAudit", [])
+    if isinstance(in_progress, list) and len(in_progress) > 0:
+        lines.append("")
+        lines.append("In-progress da auditare:")
+        for t in in_progress:
+            lines.append(f"  • {t}")
+
+    return "\n".join(lines)
+
+
+def load_directive(skip_dedup: bool = False) -> str | None:
+    """
+    Legge daemon-report.json, estrae cmeDirective, formatta il messaggio.
+    Ritorna None se:
+      - Il file non esiste o non è leggibile
+      - Non c'è cmeDirective
+      - Il timestamp è lo stesso dell'ultima iniezione (dedup, salvo --no-dedup)
+    """
+    if not os.path.exists(DAEMON_REPORT_FILE):
+        log("[DIRECTIVE] daemon-report.json non trovato — skip")
+        return None
+
+    try:
+        with open(DAEMON_REPORT_FILE, "r", encoding="utf-8") as f:
+            report = json.load(f)
+    except Exception as e:
+        log(f"[DIRECTIVE] Errore lettura daemon-report.json: {e}")
+        return None
+
+    report_ts = report.get("timestamp")
+    directive = report.get("cmeDirective")
+
+    if not report_ts or not directive:
+        log("[DIRECTIVE] Nessuna cmeDirective nel report — skip")
+        return None
+
+    # Deduplicazione: stessa direttiva già iniettata?
+    if not skip_dedup and report_ts == state.last_directive_ts:
+        log(f"[DIRECTIVE] Timestamp invariato ({report_ts}) — skip (dedup)")
+        return None
+
+    # Nuova direttiva — formatta e aggiorna timestamp
+    msg = format_directive(report_ts, directive)
+    state.last_directive_ts = report_ts
+    log(f"[DIRECTIVE] Nuova direttiva caricata (modo: {directive.get('mode', '?')}, ts: {report_ts})")
+    return msg
+
 
 # ─── Window Management ──────────────────────────────────────────────────────
 
@@ -366,12 +445,20 @@ def setup_hotkeys():
 
 # ─── Main Loop ───────────────────────────────────────────────────────────────
 
-def run_daemon(interval_min: int, message: str, once: bool = False):
-    """Loop principale del daemon"""
+def run_daemon(interval_min: int, message_override: str | None, once: bool = False, no_dedup: bool = False):
+    """Loop principale del daemon.
+
+    Se message_override è impostato (--message), usa quello come messaggio statico.
+    Altrimenti carica la direttiva da daemon-report.json (data-driven).
+    """
+    mode_label = "STATIC (--message)" if message_override else "DATA-DRIVEN (daemon-report.json)"
 
     log("=" * 60)
     log("  GUI Daemon per Claude Code")
     log(f"  Intervallo: ogni {interval_min} minuti")
+    log(f"  Modalità: {mode_label}")
+    if no_dedup:
+        log("  Dedup: DISABILITATA (--no-dedup)")
     log("")
     log("  COMANDI:")
     log("  ------------------------------------------------")
@@ -384,18 +471,27 @@ def run_daemon(interval_min: int, message: str, once: bool = False):
     # Setup hotkeys
     listener = setup_hotkeys()
 
-    # Prima esecuzione
-    log(f"[RUN] Esecuzione #{state.total_runs + 1}")
-    success = send_message(message)
-    state.total_runs += 1
-    state.last_run = datetime.datetime.now().isoformat()
-    save_state()
-    save_log(message, success)
-
-    if success:
-        log("[OK] Messaggio inviato con successo")
+    # Prima esecuzione — determina messaggio
+    if message_override:
+        msg = message_override
     else:
-        log("[FAIL] Invio messaggio fallito")
+        msg = load_directive(skip_dedup=no_dedup)
+
+    if msg:
+        log(f"[RUN] Esecuzione #{state.total_runs + 1}")
+        success = send_message(msg)
+        state.total_runs += 1
+        state.last_run = datetime.datetime.now().isoformat()
+        save_state()
+        save_log(msg, success)
+
+        if success:
+            log("[OK] Messaggio inviato con successo")
+        else:
+            log("[FAIL] Invio messaggio fallito")
+    else:
+        log("[SKIP] Nessuna nuova direttiva da iniettare")
+        save_state()
 
     if once:
         log("[DONE] Modo --once: esco dopo la prima esecuzione")
@@ -433,18 +529,26 @@ def run_daemon(interval_min: int, message: str, once: bool = False):
             if not state.active:
                 continue
 
-        # Esegui
-        log(f"[RUN] Esecuzione #{state.total_runs + 1}")
-        success = send_message(message)
-        state.total_runs += 1
-        state.last_run = datetime.datetime.now().isoformat()
-        save_state()
-        save_log(message, success)
-
-        if success:
-            log("[OK] Messaggio inviato")
+        # Determina messaggio per questo ciclo
+        if message_override:
+            msg = message_override
         else:
-            log("[FAIL] Invio fallito")
+            msg = load_directive(skip_dedup=no_dedup)
+
+        if msg:
+            log(f"[RUN] Esecuzione #{state.total_runs + 1}")
+            success = send_message(msg)
+            state.total_runs += 1
+            state.last_run = datetime.datetime.now().isoformat()
+            save_state()
+            save_log(msg, success)
+
+            if success:
+                log("[OK] Messaggio inviato")
+            else:
+                log("[FAIL] Invio fallito")
+        else:
+            log("[SKIP] Nessuna nuova direttiva — ciclo saltato")
 
         log(f"[WAIT] Prossima esecuzione tra {interval_min} minuti...")
 
@@ -459,10 +563,12 @@ def main():
     parser = argparse.ArgumentParser(description="GUI Daemon per Claude Code")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_MIN,
                         help=f"Intervallo in minuti (default: {DEFAULT_INTERVAL_MIN})")
-    parser.add_argument("--message", type=str, default=DEFAULT_MESSAGE,
-                        help="Messaggio da inviare")
+    parser.add_argument("--message", type=str, default=None,
+                        help="Messaggio statico (override direttiva daemon)")
     parser.add_argument("--once", action="store_true",
                         help="Esegui una volta e esci")
+    parser.add_argument("--no-dedup", action="store_true",
+                        help="Disabilita deduplicazione timestamp (inietta sempre, per test)")
     parser.add_argument("--target", type=str, default=None,
                         help="Substring del TITOLO finestra (non URL). Es. 'LexMea', 'Claude', 'controlla-me'. Usa --list-all-windows per vedere i titoli.")
     parser.add_argument("--list-windows", action="store_true",
@@ -492,7 +598,7 @@ def main():
         log(f"[CONFIG] Target finestra: '{TARGET_WINDOW}'")
 
     try:
-        run_daemon(args.interval, args.message, args.once)
+        run_daemon(args.interval, args.message, args.once, args.no_dedup)
     except KeyboardInterrupt:
         log("\n[EXIT] Interrotto da Ctrl+C")
         save_state()

@@ -57,14 +57,14 @@ L'app usa correttamente il sistema multi-provider via `lib/ai-sdk/agent-runner.t
 |---------|-----------|----------|
 | Framework | Next.js (App Router) | 16.1.6 |
 | UI | React | 19.2.3 |
-| Linguaggio | TypeScript (strict) | 5 |
+| Linguaggio | TypeScript (strict) | 5.9.x |
 | CSS | Tailwind CSS 4 + PostCSS | 4 |
 | Animazioni | Framer Motion | 12.34.2 |
 | Icone | Lucide React | 0.575.0 |
 | AI/LLM | @anthropic-ai/sdk | 0.77.0 |
-| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.x |
-| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, DeepSeek) | 6.x |
-| AI Registry | lib/models.ts — ~40 modelli, 7 provider | — |
+| AI/LLM | @google/genai (Gemini 2.5 Flash/Pro) | 1.42.x |
+| AI/LLM | openai (OpenAI, Mistral, Groq, Cerebras, SambaNova) | 6.x |
+| AI Registry | lib/models.ts — ~42 modelli, 7 provider | — |
 | Tier System | lib/tiers.ts — 3 tier, catene N-fallback | — |
 | Embeddings | Voyage AI (voyage-law-2) | API HTTP |
 | Vector DB | Supabase pgvector (HNSW) | via PostgreSQL |
@@ -130,11 +130,11 @@ MISTRAL_API_KEY=...
 # Groq (opzionale, free tier: Llama 4, 1000 req/giorno)
 GROQ_API_KEY=gsk_...
 
-# Cerebras (opzionale, free tier: 1M token/giorno)
+# Cerebras (opzionale, free tier: 24M tok/giorno, 30 RPM)
 CEREBRAS_API_KEY=csk-...
 
-# DeepSeek (opzionale — ⚠️ server in Cina, non usare per dati sensibili)
-DEEPSEEK_API_KEY=...
+# SambaNova (opzionale, free tier: 200K tok/giorno, no CC)
+SAMBANOVA_API_KEY=...
 
 # Console (obbligatorio in produzione)
 CONSOLE_JWT_SECRET=...           # min 32 chars — se assente usa fallback hardcoded pubblico (RISCHIO SICUREZZA)
@@ -159,6 +159,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Esegui le migrazioni in ordine su Supabase SQL Editor:
 # 1. supabase/migrations/001_initial.sql       -> Profili, analisi, deep_searches, lawyer_referrals + RLS
 # 2. supabase/migrations/002_usage_tracking.sql -> Funzioni increment + reset mensile
+# 3. supabase/migrations/040_forma_mentis.sql   -> Forma Mentis: 6 tabelle intelligenza aziendale + 4 RPC vector search
 ```
 
 ### Avvio
@@ -191,6 +192,10 @@ controlla-me/
 │   ├── analysis/[id]/page.tsx     # Dettaglio analisi
 │   ├── corpus/page.tsx            # Navigazione corpus legislativo + Q&A
 │   ├── corpus/article/[id]/page.tsx # Dettaglio articolo legislativo
+│   ├── integrazione/page.tsx      # Dashboard connettori integrazione PMI
+│   ├── integrazione/IntegrazioneClient.tsx  # Client component dashboard
+│   ├── integrazione/[connectorId]/page.tsx  # Dettaglio connettore
+│   ├── integrazione/[connectorId]/ConnectorDetailClient.tsx  # Client component dettaglio
 │   └── api/
 │       ├── analyze/route.ts       # CORE - SSE streaming analisi
 │       ├── upload/route.ts        # Estrazione testo da file
@@ -227,6 +232,13 @@ controlla-me/
 │   ├── PaywallBanner.tsx         # Banner limite utilizzo
 │   ├── CTASection.tsx            # Call-to-action
 │   ├── Footer.tsx                # Footer
+│   ├── integrations/             # Componenti Ufficio Integrazione
+│   │   ├── ConnectorCard.tsx     # Card connettore con stato sync
+│   │   ├── IntegrationFilters.tsx # Filtri per categoria/stato
+│   │   ├── SetupWizard.tsx       # Wizard OAuth setup (4 step)
+│   │   ├── SyncDashboard.tsx     # Dashboard sync real-time
+│   │   ├── SyncHistory.tsx       # Storico sincronizzazioni
+│   │   └── wizard/               # Step wizard (AuthStep, FieldMappingStep, EntitySelect, FrequencyStep, ReviewStep)
 │   └── console/                  # Componenti console
 │       ├── StudioShell.tsx       # Layout console
 │       ├── ConsoleHeader.tsx     # Header + Power button
@@ -268,6 +280,16 @@ controlla-me/
 │   │       │   └── legal-corpus-store.ts   # Adattatore per ingestArticles()
 │   │       └── validators/
 │   │           └── article-validator.ts    # Validazione articoli
+│   ├── company/
+│   │   ├── self-preservation.ts  # Zombie reaper + enableSelfTimeout() + sacred PID protection
+│   │   ├── process-monitor.ts    # Aggregatore unificato processi (sessions, tasks, trading, syncs)
+│   │   ├── sessions.ts           # Session tracker (2-layer + file + heartbeat)
+│   │   ├── sub-agent-tracker.ts  # File-based sub-agent tracker
+│   │   ├── memory/               # Layer 1: Memoria sessioni
+│   │   ├── sinapsi/              # Layer 2: Discovery dipartimenti
+│   │   ├── coscienza/            # Layer 3: Monitoraggio obiettivi
+│   │   ├── riflessione/          # Layer 4: Decision journal
+│   │   └── collaborazione/       # Layer 5: Fan-out multi-dept
 │   ├── extract-text.ts           # Estrazione PDF/DOCX/TXT
 │   ├── analysis-cache.ts         # Cache analisi su filesystem
 │   ├── stripe.ts                 # Config Stripe + piani
@@ -293,13 +315,20 @@ controlla-me/
 │       └── admin.ts              # Client admin (webhook)
 │
 ├── scripts/
+│   ├── cme-autorun.ts             # Daemon sensore puro ($0/ciclo): scan, report, directive, zombie reaper
+│   ├── company-tasks.ts           # CLI task board: create, claim, done, board, list, exec
+│   ├── forma-mentis.ts            # CLI memoria aziendale: context, goals, discover, remember, decide
+│   ├── daily-standup.ts           # Piano giornaliero
+│   ├── dept-context.ts            # Context retrieval veloce per dipartimenti
 │   ├── data-connector.ts          # CLI: connect, model, load, status, update
 │   ├── corpus-sources.ts          # 14 fonti con ConnectorConfig + lifecycle
+│   ├── tax-sources.ts             # 11 fonti verticale Tax/Commercialista
+│   ├── integration-sources.ts     # Fonti business connector (Stripe, HubSpot, GDrive, Salesforce)
 │   ├── model-census-agent.ts      # CLI: verifica modelli provider (npx tsx scripts/model-census-agent.ts)
 │   ├── seed-corpus.ts             # Seed legacy (HuggingFace)
 │   └── check-data.ts              # QA dati corpus
 │
-├── supabase/migrations/           # SQL per setup DB (001-019)
+├── supabase/migrations/           # SQL per setup DB (001-033)
 ├── public/videos/                 # Video generati AI
 ├── .analysis-cache/               # Cache analisi (gitignored)
 │
@@ -315,10 +344,26 @@ controlla-me/
 │   │   └── utils/                 # db.py (CRUD Supabase), logging.py
 │   └── tests/
 │
-└── company/trading/               # Org structure trading
-    ├── department.md              # Identità ufficio + vincoli architetturali
-    ├── agents/                    # 5 identity cards + trading-lead
-    └── runbooks/                  # pipeline, risk, backtest, go-live
+├── company/                       # Virtual company structure
+│   ├── cme.md                    # CEO prompt (router only)
+│   ├── daemon-report.json        # Output daemon: segnali, board stats, cmeDirective
+│   ├── cme-daemon-state.json     # Stato runtime daemon (heartbeat, cicli, intervallo)
+│   ├── <dept>/department.md      # Identità dipartimento
+│   ├── <dept>/status.json        # Stato corrente dipartimento
+│   ├── <dept>/agents/*.md        # Identity card agenti
+│   └── <dept>/runbooks/*.md      # Procedure operative
+│
+└── trading/                       # Ufficio Trading (Python, stesso localhost)
+    ├── pyproject.toml             # Python 3.11+, alpaca-py, pandas, ta
+    ├── src/
+    │   ├── config/settings.py     # Pydantic settings (26 parametri)
+    │   ├── connectors/alpaca_client.py  # Alpaca trading + market data
+    │   ├── models/                # signals.py, orders.py, portfolio.py
+    │   ├── agents/base.py         # BaseAgent ABC
+    │   ├── strategies/            # (futuro)
+    │   ├── backtest/              # (Fase 2)
+    │   └── utils/                 # db.py (CRUD Supabase), logging.py
+    └── tests/
 ```
 
 ---
@@ -380,14 +425,14 @@ Punto chiave: **cerchiamo con il linguaggio legale, ma rispondiamo alla domanda 
 Configurazione centralizzata in `lib/tiers.ts`. Ogni agente ha una **catena ordinata di N modelli**. Il tier (Intern/Associate/Partner) determina il punto di partenza nella catena. Su errore 429 o provider non disponibile, il sistema scende automaticamente al modello successivo.
 
 ```
-Tier Partner:   Sonnet 4.5 → Gemini Pro → Mistral Large → Groq Llama → Cerebras
-Tier Associate: Gemini Pro → Mistral Large → Groq Llama → Cerebras
-Tier Intern:    Mistral Large → Groq Llama → Cerebras
+Tier Partner:   Sonnet 4.5 → Gemini Pro → Groq Llama → Cerebras → SambaNova → Mistral
+Tier Associate: Gemini Pro → Groq Llama → Cerebras → SambaNova → Mistral
+Tier Intern:    Groq Llama → Cerebras → SambaNova → Mistral
 ```
 
 | Tier | Descrizione | Modelli tipici | Costo stimato |
 |------|-------------|---------------|---------------|
-| **Intern** | Modelli gratuiti | Cerebras, Groq, Mistral free | ~gratis |
+| **Intern** | Modelli gratuiti | Cerebras, Groq, SambaNova, Mistral free | ~gratis |
 | **Associate** | Modelli intermedi | Gemini Flash/Pro, Haiku | ~$0.01 |
 | **Partner** | Modelli top-tier | Sonnet, GPT-5 | ~$0.05 |
 
@@ -417,8 +462,10 @@ Anthropic e Gemini hanno SDK nativi dedicati. Gli altri 5 usano `lib/ai-sdk/open
 | OpenAI | `lib/ai-sdk/openai-compat.ts` | GPT-5.1, 5.2, 4.1, 4o, Codex Mini, OSS 20B/120B | $5 crediti |
 | Mistral | `lib/ai-sdk/openai-compat.ts` | Large, Small, Nemo, Ministral, Magistral S/M | Tutti, 2 RPM |
 | Groq | `lib/ai-sdk/openai-compat.ts` | Llama 4 Scout, 3.3 70B, 3.1 8B, GPT-OSS, Kimi K2 | 1000 req/giorno |
-| Cerebras | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, 3.1 8B, Qwen3 235B, GPT-OSS 120B | 1M tok/giorno |
-| DeepSeek | `lib/ai-sdk/openai-compat.ts` | V3, R1 | 5M tok (30gg) |
+| Cerebras | `lib/ai-sdk/openai-compat.ts` | GPT-OSS 120B, Llama 3.1 8B | 24M tok/giorno, 30 RPM |
+| SambaNova | `lib/ai-sdk/openai-compat.ts` | Llama 3.3 70B, Llama 4 Maverick, DeepSeek-R1 70B | 200K tok/giorno |
+
+> **DeepSeek RIMOSSO** (SEC-001): server in Cina, non coperto da accordo di adeguatezza EU. Provider eliminato dal codebase.
 
 Gli agenti usano `runAgent(agentName, prompt)` da `lib/ai-sdk/agent-runner.ts` che risolve la catena di fallback dal tier corrente. Per cambiare catena o tier: modificare `AGENT_CHAINS` / `TIER_START` in `lib/tiers.ts`.
 
@@ -620,10 +667,10 @@ return new Response(
 --accent: #FF6B35            /* arancione primario */
 
 /* Colori agenti */
-Leo (Catalogatore):  #4ECDC4  /* teal */
-Marta (Analista):    #FF6B6B  /* corallo */
-Giulia (Giurista):   #A78BFA  /* viola */
-Enzo (Consulente):   #FFC832  /* oro */
+Classifier (Catalogatore):  #4ECDC4  /* teal */
+Analyzer (Analista):        #FF6B6B  /* corallo */
+Investigator (Giurista):    #A78BFA  /* viola */
+Advisor (Consulente):       #FFC832  /* oro */
 
 /* Font */
 --font-sans: 'DM Sans'           /* testo, UI */
@@ -709,9 +756,23 @@ deep_searches   -- id, analysis_id, user_question, agent_response, sources (JSON
 lawyer_referrals -- id, analysis_id, user_id, lawyer_id, specialization, region, status
 ```
 
+```sql
+-- Forma Mentis (Migration 040) — Intelligenza aziendale
+company_sessions    -- id, session_id, started_at, ended_at, summary, tasks_completed, decisions_made, embedding (vector 1024)
+department_memory   -- id, department, memory_type (lesson|warning|preference|context), content, importance (1-10), embedding, expires_at
+company_knowledge   -- id, category, title, content, source_session_id, tags[], embedding, verified
+company_goals       -- id, goal_type (okr|kpi|milestone), title, description, target_value, current_value, status (active|at_risk|completed|abandoned), deadline
+daemon_reports      -- id, report_date, daemon_type, summary, metrics (JSONB), alerts[], recommendations[]
+decision_journal    -- id, decision_type, title, context, options_considered[], chosen_option, rationale, outcome, review_date, embedding
+```
+
 Funzioni SQL:
 - `increment_analyses_count(uid)` — Incrementa contatore post-analisi
 - `reset_monthly_analyses()` — Reset mensile (cron o manuale)
+- `match_company_knowledge(query_embedding, match_threshold, match_count)` — Ricerca semantica knowledge base aziendale
+- `match_department_memory(query_embedding, dept, match_threshold, match_count)` — Ricerca memoria per dipartimento
+- `match_company_sessions(query_embedding, match_threshold, match_count)` — Ricerca sessioni simili
+- `match_decisions(query_embedding, match_threshold, match_count)` — Ricerca decisioni passate rilevanti
 
 ---
 
@@ -1143,6 +1204,106 @@ company/trading/
 
 ---
 
+## 16B. UFFICIO INTEGRAZIONE (Connettori OAuth2 per PMI)
+
+### Missione
+
+Integrazione dati business per PMI italiane: connettori OAuth2 verso piattaforme esterne (fatturazione, CRM, document management), pipeline CONNECT-AUTH-MAP-SYNC, analisi legale automatica sui documenti importati.
+
+### Vincolo architetturale
+
+- **Riuso framework data-connector**: tutti i connettori estendono `AuthenticatedBaseConnector` (da `lib/staff/data-connector/connectors/base.ts`)
+- **Zero breaking changes**: i connettori legislativi esistenti (Normattiva, EUR-Lex) non vengono toccati
+- **Credential vault**: credenziali OAuth2 per-utente criptate con AES-256-GCM tramite `lib/credential-vault.ts`
+- **Tenant isolation**: ogni PMI ha le sue credenziali, i suoi dati. RLS Supabase su tabelle `integration_*`
+- **Pipeline agenti riusata al 100%**: analisi legale usa la stessa pipeline 4 agenti dell'Ufficio Legale
+
+### Stack
+
+TypeScript/Next.js (App Router), OAuth2 per-utente, AES-256-GCM credential vault, mapping ibrido (regole + Levenshtein + LLM).
+
+### Pipeline
+
+```
+[1] CONNECT — OAuth2 flow per-utente → token criptato nel vault
+[2] AUTH — Validazione e refresh token automatico
+[3] MAP — Normalizzazione campi (regole → Levenshtein → LLM → learning)
+[4] SYNC — Estrazione, analisi 4 agenti AI, notifica, indicizzazione vector DB
+```
+
+### Connettori MVP (Fase 1)
+
+| Connettore | RICE Score | Categoria | API | Stato |
+|-----------|------------|-----------|-----|-------|
+| Fatture in Cloud | 216.0 | Fatturazione IT | REST | Pianificato |
+| Google Drive | 168.0 | Document Mgmt | REST | Pianificato |
+| HubSpot | 126.0 | CRM | REST | Pianificato |
+
+### Schema Database (Migration 030-032)
+
+```sql
+integration_credentials    -- AES-256-GCM encrypted OAuth2/API key storage
+integration_connections    -- Connector config + sync status (unique per user+type)
+integration_sync_log       -- Sync history (TTL 90gg)
+integration_field_mappings -- Cached mappings rule/similarity/llm/user (TTL 30gg)
+integration_credential_audit -- GDPR audit trail (TTL 2 anni)
+```
+
+RLS per-user + service_role. Unique partial index su `integration_connections(user_id, connector_type)` per connessioni attive.
+
+### Variabili d'ambiente
+
+```env
+# Credential Vault (obbligatorio per integrazione)
+# pgcrypto vault: genera con node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+VAULT_ENCRYPTION_KEY=...        # min 32 chars, usato da lib/credential-vault.ts (pgcrypto)
+
+# Fatture in Cloud (MVP)
+FATTURE_CLIENT_ID=...
+FATTURE_CLIENT_SECRET=...
+
+# Google Drive (MVP)
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+
+# HubSpot (MVP)
+HUBSPOT_CLIENT_ID=...
+HUBSPOT_CLIENT_SECRET=...
+```
+
+### Company structure
+
+```
+company/integration/
+├── department.md                  # Identita ufficio
+├── status.json                    # Stato corrente (fase, connettori, metriche)
+├── agents/
+│   ├── integration-lead.md        # Coordinatore ufficio
+│   ├── connector-builder.md       # Costruisce connettori OAuth2
+│   └── mapping-engine.md          # AI mapping ibrido
+└── runbooks/
+    ├── add-connector.md           # Procedura nuovo connettore
+    ├── credential-management.md   # OAuth2 flow, storage, refresh, revoca
+    └── mapping-troubleshoot.md    # Debug mapping 4 livelli
+```
+
+### Fasi di deployment
+
+| Fase | Stato |
+|------|-------|
+| 0. Infrastruttura | **IN CORSO** — Credential vault, AuthenticatedBaseConnector, schema DB, OAuth2 flow generico |
+| 1A. Fatture in Cloud | Pianificato |
+| 1B. Google Drive | Pianificato |
+| 1C. HubSpot | Pianificato |
+| Beta chiusa | Pianificato — 10-20 PMI |
+
+### UI
+
+- `/integrazione` — Dashboard connettori con filtri, stato sync, setup wizard
+- `/integrazione/[connectorId]` — Dettaglio connettore: config, sync history, field mapping
+
+---
+
 ## 17. FEATURE INCOMPLETE (Ufficio Legale / App)
 
 1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
@@ -1215,7 +1376,7 @@ company/trading/
 
 - ~~`tesseract.js` in `dependencies` ma mai importato~~  — **RISOLTO**: rimosso da `dependencies` il 2026-03-01 (TD-2).
 - ~~`openai` versione installata (^6.x) non corrisponde a quanto documentato in CLAUDE.md (5.x)~~ — **RISOLTO**: CLAUDE.md aggiornato a 6.x. Breaking changes v5→v6 verificati: nessun impatto sul nostro uso (solo `chat.completions.create`).
-- `@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.
+- ~~`@google/genai` versione installata (1.42.0) superiore a quanto documentato (1.x). Il SDK Gemini ha avuto breaking changes tra versioni — verificare compatibilità con `lib/gemini.ts`.~~ **RISOLTO 2026-03-14**: CLAUDE.md aggiornato a 1.42.x.
 - `@upstash/ratelimit` + `@upstash/redis` usati in `lib/middleware/rate-limit.ts` ma `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` non erano documentate in `.env.local.example` (ora aggiunte).
 
 ### Rischi architetturali (non urgenti)
@@ -1247,7 +1408,8 @@ All'avvio di ogni sessione Claude Code su questo progetto, leggi `company/cme.md
 Comportati come **CME** (CEO virtuale):
 
 1. **Check task board**: `npx tsx scripts/company-tasks.ts board`
-2. **Reporta stato** all'utente in 3-5 righe
+1.5. **Forma Mentis context**: Query `company_sessions` per ultime 5 sessioni, `department_memory` per warning attivi, `company_goals` per goal at_risk
+2. **Reporta stato** all'utente in 3-5 righe (con contesto arricchito da Forma Mentis)
 3. **Chiedi**: "Su cosa vuoi che ci concentriamo?"
 4. **Delega** ai dipartimenti — non scrivere codice direttamente senza passare dal dipartimento competente
 5. **CME = ROUTER ONLY** — classifica richieste usando decision trees (`company/protocols/decision-trees/`), delega implementazione ai builder dei dipartimenti
@@ -1303,6 +1465,7 @@ Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 |---------|----------|-------|------|
 | Ufficio Legale | 7 agenti AI analisi legale | TypeScript/Next.js | `company/ufficio-legale/` |
 | Ufficio Trading | 5 agenti swing trading | Python/Alpaca | `company/trading/` |
+| Ufficio Integrazione | 3 agenti connettori OAuth2 per PMI (Fatture in Cloud, Google Drive, HubSpot) | TypeScript/Next.js | `company/integration/` |
 
 ### Dipartimenti (Staff)
 
@@ -1398,3 +1561,108 @@ Per task lunghi non bloccanti (build, analisi pesanti, ricerche estese):
 Agent(task="...", run_in_background=True)
 # → Continuo a lavorare, vengo notificato al completamento
 ```
+
+---
+
+## 23. FORMA MENTIS — Architettura di Intelligenza Aziendale
+
+> Il sistema nervoso dell'azienda: memoria, sinapsi, coscienza, riflessione, collaborazione.
+
+### I 5 Layer
+
+| Layer | Nome | Cosa fa | Directory |
+|-------|------|---------|-----------|
+| 1 | MEMORIA | Ricorda cosa è successo nelle sessioni precedenti | `lib/company/memory/` |
+| 2 | SINAPSI | Dipartimenti si scoprono e comunicano direttamente | `lib/company/sinapsi/` |
+| 3 | COSCIENZA | Monitora obiettivi, rileva deviazioni, escala alert | `lib/company/coscienza/` |
+| 4 | RIFLESSIONE | Decision journal, feedback loops, impara dagli errori | `lib/company/riflessione/` |
+| 5 | COLLABORAZIONE | Fan-out multi-dept, dept-as-tool, iteration loops | `lib/company/collaborazione/` |
+
+### Database (Migration 040)
+
+6 tabelle: `company_sessions`, `department_memory`, `company_knowledge`, `company_goals`, `daemon_reports`, `decision_journal`
+4 RPC: `match_company_knowledge`, `match_department_memory`, `match_company_sessions`, `match_decisions`
+
+### Department Cards
+
+Ogni dipartimento pubblica `company/<dept>/department-card.json` con capabilities, skills, e autorizzazioni per query dirette. Il discovery service (`lib/company/sinapsi/department-discovery.ts`) le carica e permette routing automatico.
+
+### Daemon — Sensore Puro ($0/ciclo)
+
+Il daemon (`scripts/cme-autorun.ts`) è un sensore che scansiona l'azienda, scrive un report strutturato e genera una direttiva operativa per CME. **Zero chiamate LLM, zero costi API.**
+
+```bash
+npx tsx scripts/cme-autorun.ts           # Singola esecuzione
+npx tsx scripts/cme-autorun.ts --watch   # Loop continuo (ogni 10 min, configurabile da /ops)
+```
+
+**Le 7 fasi di ogni ciclo:**
+
+| Fase | Cosa fa | Costo |
+|------|---------|-------|
+| **1. Daily Plan** | Controlla se esiste `company/daily-plans/oggi.md` | $0 |
+| **2. Vision Scan** | Legge TUTTI i `status.json` dei dipartimenti → `signals[]` | $0 |
+| **2.5. Forma Mentis** | Query Supabase: sessioni recenti, warning, goals, decisioni | $0 |
+| **2.9. CME Directive** | Genera direttiva operativa da board stats (vedi sotto) | $0 |
+| **3. Report Write** | Scrive `daemon-report.json` + append su `daemon_reports` Supabase | $0 |
+| **4. Telegram Ping** | Se segnali critical/high → notifica al boss | $0 |
+| **4.5. Zombie Reaper** | Scansiona processi, uccide quelli killable >30 min | $0 |
+
+**Integrazione Forma Mentis:**
+- `saveDaemonReport()` — report append-only su Supabase (Layer 3)
+- `checkGoals()` — valuta OKR e crea alert se off-track (Layer 3)
+- `getDecisionsPendingReview()` — segnala decisioni da rivalutare (Layer 4)
+
+### CME Directive — Brief Operativo Automatico
+
+Il daemon genera una `cmeDirective` nel report basata sullo stato del board:
+
+| Board state | Modo | CME fa |
+|---|---|---|
+| open>0, in_progress>0 | `misto` | Prima audit in_progress (riapri bloccati, chiudi finiti), poi smaltisce 5 open |
+| open>0, in_progress=0 | `smaltimento` | Prende 5 open per priorità, routing + esecuzione sequenziale |
+| open=0, in_progress>0 | `audit_in_progress` | Verifica ogni in_progress: bloccato→reopen, fatto→done |
+| open=0, in_progress=0 | `plenaria` | Riunione plenaria → nuovi piani → nuovi task |
+
+### Auto-injection nella chat /ops
+
+La direttiva viene iniettata automaticamente nella chat CME del pannello `/ops`:
+
+1. **`/api/company/daemon` GET** restituisce il campo `cmeDirective` dal `daemon-report.json`
+2. **`CompanyPanel.tsx`** polla l'endpoint ogni 30 secondi
+3. Quando rileva un timestamp nuovo (diverso dall'ultimo in `localStorage`), formatta la direttiva e la inietta come messaggio nella chat
+4. CME riceve il messaggio e esegue la direttiva (routing + smaltimento/audit/plenaria)
+5. Se il boss digita un messaggio, qualsiasi direttiva pendente viene cancellata — l'ordine del boss prevale
+
+**Deduplicazione**: il timestamp del report è salvato in `localStorage("daemon-directive-ts")`. La stessa direttiva non viene mai iniettata due volte. Al prossimo ciclo daemon (10 min), se il board è cambiato, il timestamp sarà diverso e la nuova direttiva verrà iniettata.
+
+**Ciclo autoalimentante (completamente automatico):**
+```
+Daemon scrive direttiva → Frontend la inietta in chat CME (poll 30s)
+→ CME la riceve e esegue (routing + smaltimento/audit/plenaria)
+→ Task completati → board cambia
+→ Daemon vede nuovo stato → nuova direttiva → e ricomincia
+
+Plenaria → nuovi task (open) → daemon genera "smaltimento"
+→ CME smaltisce 5 alla volta → task diventano done
+→ board vuoto → daemon genera "plenaria"
+→ nuovi task → e il ciclo ricomincia
+```
+
+### Zombie Reaper e Self-Timeout
+
+**Due livelli di protezione anti-zombie** (`lib/company/self-preservation.ts`):
+
+1. **Preventivo: `enableSelfTimeout(ms)`** — ogni script importa questa utility e si auto-termina dopo un timeout configurabile. Usato in: `company-tasks.ts` (5min), `data-connector.ts` (10min), `dept-context.ts` (3min), `forma-mentis.ts` (5min), `daily-standup.ts` (5min), `model-census-agent.ts` (5min)
+
+2. **Reattivo: `reapZombies()`** — FASE 4.5 del daemon, ogni 10 minuti scansiona tutti i processi node.exe, uccide quelli killable (daemon, task-runner, worker, unknown) attivi da >30 minuti. Processi sacri (VS Code, Claude Code, Next.js dev) mai toccati.
+
+### Come CME usa Forma Mentis all'avvio
+
+1. Leggi `company/daemon-report.json` → segnali + `cmeDirective`
+2. Query memoria aziendale per contesto rilevante
+3. Leggi task board
+4. Check goals attivi (`company_goals`) per OKR off-track
+5. Check decisioni pending review
+6. Segui la `cmeDirective` (smaltimento / audit / plenaria / misto)
+7. Reporta al boss con contesto arricchito

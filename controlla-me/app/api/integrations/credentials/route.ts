@@ -196,13 +196,22 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    console.error(
-      "[API:integrations/credentials] POST error:",
-      err instanceof Error ? err.message : String(err)
-    );
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[API:integrations/credentials] POST error:", errMsg);
+
+    // Detect missing migration (vault_store RPC not found)
+    const isMigrationMissing =
+      errMsg.includes("PGRST202") ||
+      errMsg.includes("vault_store") ||
+      errMsg.includes("Could not find the function");
+
     return NextResponse.json(
-      { error: "Errore nel salvataggio della credenziale" },
-      { status: 500 }
+      {
+        error: isMigrationMissing
+          ? "Database non configurato per il credential vault. Eseguire migration 030_integration_tables.sql su Supabase SQL Editor."
+          : "Errore nel salvataggio della credenziale",
+      },
+      { status: isMigrationMissing ? 503 : 500 }
     );
   }
 }

@@ -2,11 +2,20 @@
 
 ## Status
 
-Proposed
+Accepted (Implemented)
 
 ## Date
 
-2026-03-10
+2026-03-10 (proposed) / 2026-03-14 (accepted, implementation verified)
+
+## Implementation
+
+Two vault implementations exist, covering different auth patterns:
+
+1. **pgcrypto-based vault** (`lib/credential-vault.ts`): Uses Supabase RPC functions `vault_store`, `vault_retrieve`, `vault_refresh` with `pgp_sym_encrypt`/`pgp_sym_decrypt`. Key: `VAULT_ENCRYPTION_KEY`. Migration: `030_integration_tables.sql`.
+2. **AES-256-GCM vault** (`lib/staff/credential-vault/`): Application-layer encryption via Node.js `crypto` module. Key: `VAULT_MASTER_KEY`. Migration: `031_integration_office_tables.sql`.
+
+Tests: `tests/unit/integration/credential-vault.test.ts`, `credential-vault-new.test.ts`, `credential-vault-crypto.test.ts`.
 
 ## Context
 

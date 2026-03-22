@@ -1,0 +1,92 @@
+{
+  "id": "integration",
+  "name": "Ufficio Integrazione",
+  "capabilities": [
+    {
+      "id": "oauth2-connector-setup",
+      "description": "Setup OAuth2 authorization flow for business connectors (HubSpot, Google Drive, Salesforce, Fatture in Cloud)",
+      "inputType": "task",
+      "outputType": "connection",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "credential-vault-management",
+      "description": "Store, retrieve, refresh, and revoke encrypted credentials using dual vault (pgcrypto + AES-256-GCM)",
+      "inputType": "query",
+      "outputType": "credential",
+      "estimatedDurationMs": 5000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "field-mapping",
+      "description": "4-level hybrid field mapping: rules → Levenshtein similarity → LLM → user override. Caches mappings for reuse",
+      "inputType": "task",
+      "outputType": "mapping",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~$0.001"
+    },
+    {
+      "id": "sync-orchestration",
+      "description": "Full sync pipeline: FETCH → MAP → PERSIST → ANALYZE → INDEX with SSE streaming and supervisor AI commentary",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~$0.01"
+    },
+    {
+      "id": "universal-rest-connector",
+      "description": "Connect to any REST API with OpenAPI spec or inline entity config. CSV/TSV/Excel upload also supported",
+      "inputType": "task",
+      "outputType": "data",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "query", "cron"],
+  "outputModes": ["task-result", "report", "event", "sse-stream"],
+  "skills": [
+    {
+      "id": "authenticate-connector",
+      "description": "Initiate OAuth2 flow and store credentials in vault",
+      "parameters": [
+        { "name": "connectorId", "type": "string", "required": true, "description": "Connector type (hubspot, google-drive, salesforce, fatture-in-cloud)" }
+      ],
+      "returns": "{ connectionId: string, status: string }",
+      "isDirectCallable": false
+    },
+    {
+      "id": "test-credential",
+      "description": "Verify stored credentials are still valid by making a test API call",
+      "parameters": [
+        { "name": "connectorId", "type": "string", "required": true }
+      ],
+      "returns": "{ valid: boolean, error?: string }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "map-fields",
+      "description": "Run hybrid field mapping on source data to map to target schema",
+      "parameters": [
+        { "name": "sourceFields", "type": "string[]", "required": true },
+        { "name": "targetFields", "type": "string[]", "required": true }
+      ],
+      "returns": "FieldMapping[]",
+      "isDirectCallable": true
+    },
+    {
+      "id": "sync-data",
+      "description": "Execute full sync pipeline for a connected integration",
+      "parameters": [
+        { "name": "connectorId", "type": "string", "required": true },
+        { "name": "mode", "type": "string", "required": false, "description": "full | incremental" }
+      ],
+      "returns": "{ recordsFetched: number, recordsMapped: number, analysesTriggered: number }",
+      "isDirectCallable": false
+    }
+  ],
+  "directQueryTargets": ["security", "finance", "ufficio-legale"],
+  "directQuerySources": ["architecture"],
+  "status": "active",
+  "schemaVersion": 1
+}

@@ -83,7 +83,7 @@ if (onlyArg) {
 
 // ─── Evaluation prompt ──────────────────────────────────────────────────────
 
-const evalSystemPrompt = `Sei un giudice esperto di diritto italiano. Valuta la qualità della risposta di un agente AI a una domanda giuridica.
+const evalSystemPrompt = `Sei un giudice esperto di diritto italiano. Valuta la qualita della risposta di un agente AI a una domanda giuridica.
 
 IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON puro. NON usare backtick, code fence, markdown.
 La tua risposta deve iniziare con { e finire con }.
@@ -99,12 +99,33 @@ Formato richiesto:
 }
 
 Criteri di valutazione:
-- PREP (0-30): preparazione della query e identificazione corretta del tema giuridico
-- SEARCH (0-30): recupero di articoli e norme pertinenti
-- QUALITY (0-40): accuratezza, completezza, assenza di invenzioni
-- Se l'agente inventa sentenze o articoli non esistenti: quality <= 10
-- Se la risposta è vuota o off-topic: total <= 20
-- Se è una domanda trappola e l'agente non cade nella trappola: +5 bonus su quality (max 40)`;
+
+PREP (0-30): preparazione della query e identificazione corretta del tema giuridico.
+- 25-30: identifica perfettamente l'istituto giuridico e formula una query precisa
+- 15-24: identifica il tema generale ma manca precisione tecnica
+- 0-14: non identifica il tema o confonde gli istituti giuridici
+
+SEARCH (0-30): recupero di articoli e norme pertinenti.
+- 25-30: trova gli articoli di legge esatti indicati nello scope/riferimenti
+- 15-24: trova articoli genericamente pertinenti ma non quelli specifici
+- 0-14: non trova nulla di rilevante o trova norme sbagliate
+
+QUALITY (0-40): accuratezza, completezza, assenza di invenzioni o errori interpretativi.
+- 35-40: risposta corretta, ben argomentata, cita le fonti giuste
+- 25-34: risposta sostanzialmente corretta con imprecisioni minori
+- 15-24: risposta parzialmente corretta ma con errori significativi
+- 0-14: risposta sbagliata, inventata, o fuorviante
+
+Penalizzazioni OBBLIGATORIE:
+- Se l'agente inventa sentenze, articoli o numeri di legge non esistenti: quality <= 10
+- Se la risposta e vuota o completamente off-topic: total <= 20
+- Se l'agente cita una norma ABROGATA o SUPERATA senza segnalarlo (es. vecchio art. 183 c.p.c. invece di art. 171-ter post riforma Cartabia): quality <= 15
+- Se l'agente confonde due istituti giuridici diversi (es. ultrapetizione con extrapetizione): quality <= 20
+- Se l'agente da un consiglio generico senza citare alcuna norma specifica: quality <= 20
+
+Bonus:
+- Se e una domanda trappola (TIPO TRAPPOLA indicato) e l'agente non cade nella trappola: +5 su quality (max 40)
+- Se e una domanda trappola e l'agente CI CADE (applica la norma sbagliata o superata): quality <= 10`;
 
 // ─── Parse eval JSON ────────────────────────────────────────────────────────
 
@@ -160,24 +181,28 @@ async function main() {
       agentAnswer = corpusResult.answer ?? "(nessuna risposta)";
 
       // Step 2: Evaluate using tier-fallback (free models)
-      const evalUserPrompt = `DOMANDA: ${tc.question}
+      const trapWarning = tc.trapType
+        ? `\nATTENZIONE TRAPPOLA (tipo: ${tc.trapType}): Se l'agente applica una norma abrogata/superata o confonde istituti, la quality deve essere <= 10. Se invece l'agente riconosce correttamente la trappola e segnala la norma corrente, bonus +5 su quality.`
+        : "";
 
-RISPOSTA ATTESA (riferimento corretto):
+      const evalUserPrompt = `DOMANDA ORIGINALE: ${tc.question}
+
+RISPOSTA ATTESA (il riferimento normativo corretto che l'agente dovrebbe dare):
 ${tc.expected}
 
-RISPOSTA DELL'AGENTE:
+RISPOSTA DELL'AGENTE DA VALUTARE:
 ${agentAnswer}
 
-SCOPE / RIFERIMENTI NORMATIVI: ${tc.scope}
-ISTITUTI GIURIDICI: ${tc.institutes.join(", ")}
-TIPO TRAPPOLA: ${tc.trapType ?? "nessuna"}
+RIFERIMENTI NORMATIVI CORRETTI (scope): ${tc.scope}
+ISTITUTI GIURIDICI ATTESI: ${tc.institutes.join(", ")}
+TIPO TRAPPOLA: ${tc.trapType ?? "nessuna"}${trapWarning}
 
-CRITERI SPECIFICI:
+CRITERI SPECIFICI PER QUESTA DOMANDA:
 - PREP: ${tc.scoringHints.prep}
 - SEARCH: ${tc.scoringHints.search}
 - QUALITY: ${tc.scoringHints.quality}
 
-Valuta la risposta dell'agente rispetto alla risposta attesa.`;
+Confronta la RISPOSTA DELL'AGENTE con la RISPOSTA ATTESA e assegna i punteggi. Verifica che l'agente citi le norme corrette indicate nello scope. Se l'agente cita norme diverse, valuta se sono comunque pertinenti o se sono sbagliate.`;
 
       try {
         const agentResult = await sessionTierStore.run(

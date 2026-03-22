@@ -17,6 +17,10 @@ import * as fs from "fs";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
+// Self-timeout: auto-exit after 5 min to prevent zombie accumulation
+import { enableSelfTimeout } from "../lib/company/self-preservation";
+enableSelfTimeout(5 * 60 * 1000);
+
 import { getOpenTasks, getTaskBoard } from "../lib/company/tasks";
 import { upsertDepartmentAnalysis } from "../lib/company/department-analyses";
 import type { Task, Department } from "../lib/company/types";

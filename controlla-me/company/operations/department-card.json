@@ -1,0 +1,60 @@
+{
+  "id": "operations",
+  "name": "Operations",
+  "capabilities": [
+    {
+      "id": "status-report",
+      "description": "Generate a company-wide status report: task board, agent health, pipeline status, costs",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "dashboard-monitoring",
+      "description": "Provide real-time monitoring data from /ops dashboard (task board, cost summary, agent health)",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 10000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "alerting",
+      "description": "Send Telegram alerts when critical thresholds are breached (test failures, cost spikes, sync failures)",
+      "inputType": "event",
+      "outputType": "event",
+      "estimatedDurationMs": 5000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "infra-health-check",
+      "description": "Run infrastructure health checks: dependency audit, build verification, cron job status",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 60000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "direct-query", "cron"],
+  "outputModes": ["task-result", "direct-response", "report", "event"],
+  "skills": [
+    {
+      "id": "get-task-board",
+      "description": "Run npx tsx scripts/company-tasks.ts board to get current task board state",
+      "parameters": [],
+      "returns": "{ total: number, byStatus: Record<string, number>, byDepartment: Record<string, object>, recent: Task[] }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "get-pipeline-status",
+      "description": "Check data connector sync status and cron job health",
+      "parameters": [],
+      "returns": "{ sources: Array<{ name: string, status: string, lastSync: string }>, cronHealth: string }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": [],
+  "directQuerySources": [],
+  "status": "active",
+  "schemaVersion": 1
+}

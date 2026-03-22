@@ -4,6 +4,66 @@
 
 import { Page, Route } from "@playwright/test";
 
+// ─── Integration connectors static catalog (mirrors /api/integrations/status) ──
+
+export const MOCK_CONNECTORS = [
+  {
+    id: "salesforce",
+    name: "Salesforce",
+    category: "crm",
+    status: "not_connected",
+    description: "Sincronizza account, contatti, opportunita e pipeline di vendita.",
+    icon: "Building2",
+    entityCount: 0,
+    lastSync: null,
+    popular: true,
+  },
+  {
+    id: "hubspot",
+    name: "HubSpot",
+    category: "crm",
+    status: "not_connected",
+    description: "Contatti, aziende, deal, ticket e campagne marketing.",
+    icon: "Users",
+    entityCount: 0,
+    lastSync: null,
+    popular: true,
+  },
+  {
+    id: "stripe",
+    name: "Stripe",
+    category: "payment",
+    status: "not_connected",
+    description: "Pagamenti, fatture, abbonamenti e portale clienti.",
+    icon: "CreditCard",
+    entityCount: 0,
+    lastSync: null,
+    popular: true,
+  },
+  {
+    id: "google-drive",
+    name: "Google Drive",
+    category: "storage",
+    status: "not_connected",
+    description: "Importa file, documenti e fogli di calcolo dal tuo Drive.",
+    icon: "HardDrive",
+    entityCount: 0,
+    lastSync: null,
+    popular: false,
+  },
+  {
+    id: "sap",
+    name: "SAP",
+    category: "erp",
+    status: "coming_soon",
+    description: "Gestionale completo ERP.",
+    icon: "BarChart3",
+    entityCount: 0,
+    lastSync: null,
+    popular: false,
+  },
+];
+
 // ─── Mock SSE ─────────────────────────────────────────────────────────────────
 
 /**
@@ -208,4 +268,114 @@ export async function mockConsoleEndpoints(page: Page) {
       });
     }
   });
+}
+
+// ─── Integration Endpoints ──────────────────────────────────────────────────────
+
+/**
+ * Mock dell'endpoint GET /api/integrations/status (connector catalog).
+ */
+export async function mockIntegrationStatusEndpoint(page: Page) {
+  await page.route("**/api/integrations/status", async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connectors: MOCK_CONNECTORS }),
+    });
+  });
+}
+
+/**
+ * Mock dell'endpoint GET /api/integrations/[connectorId] (connector detail).
+ */
+export async function mockConnectorDetailEndpoint(page: Page) {
+  await page.route("**/api/integrations/*/authorize", async (route: Route) => {
+    // OAuth authorize — just respond 200 (in tests we won't follow the redirect)
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ redirect: "https://accounts.google.com/o/oauth2/auth" }),
+    });
+  });
+}
+
+/**
+ * Mock dell'endpoint POST /api/integrations/credentials (API key verification).
+ */
+export async function mockCredentialsEndpoint(
+  page: Page,
+  options?: { success?: boolean }
+) {
+  const success = options?.success ?? true;
+  await page.route("**/api/integrations/credentials", async (route: Route) => {
+    if (route.request().method() === "POST") {
+      if (success) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: "cred-mock-123",
+            connectorSource: "stripe",
+            credentialType: "api_key",
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 401,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Chiave API non valida. Verifica e riprova." }),
+        });
+      }
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ credentials: [], count: 0 }),
+      });
+    }
+  });
+}
+
+/**
+ * Mock dell'endpoint POST /api/integrations/setup (wizard completion).
+ */
+export async function mockSetupEndpoint(
+  page: Page,
+  options?: { success?: boolean }
+) {
+  const success = options?.success ?? true;
+  await page.route("**/api/integrations/setup", async (route: Route) => {
+    if (success) {
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          connectionId: "conn-mock-456",
+          connectorId: "stripe",
+          connectorName: "Stripe",
+          selectedEntities: ["invoices", "payments"],
+          frequency: "daily",
+          mappingsCount: 8,
+          message: "Stripe configurato con successo",
+        }),
+      });
+    } else {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Errore nella creazione della connessione" }),
+      });
+    }
+  });
+}
+
+/**
+ * Setup completo mock per tutti gli endpoint integrazione.
+ */
+export async function mockAllIntegrationEndpoints(page: Page) {
+  await mockIntegrationStatusEndpoint(page);
+  await mockCredentialsEndpoint(page);
+  await mockSetupEndpoint(page);
+  await mockConnectorDetailEndpoint(page);
 }

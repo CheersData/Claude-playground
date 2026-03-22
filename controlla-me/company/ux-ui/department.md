@@ -34,10 +34,10 @@ Vedi `docs/BEAUTY-REPORT.md` sezione "Design System estratto" per palette, tipog
 | Surface | #FFFFFF | Card, container |
 | Foreground | #1A1A2E | Testo primario |
 | Accent | #FF6B35 | CTA, evidenza |
-| Leo | #4ECDC4 | Agente classificatore |
-| Marta | #FF6B6B | Agente analista |
-| Giulia | #A78BFA | Agente giurista |
-| Enzo | #FFC832 | Agente consigliere |
+| Classifier | #4ECDC4 | Agente classificatore |
+| Analyzer | #FF6B6B | Agente analista |
+| Investigator | #A78BFA | Agente giurista |
+| Advisor | #FFC832 | Agente consigliere |
 
 ### Tipografia
 

@@ -32,7 +32,23 @@ Vedi `decisions.md` per il log completo delle decisioni prese.
 
 ## Agenti
 
+| Agente | Ruolo |
+|--------|-------|
+| architect (Chief) | Coordinatore cross-dominio, arbitro tra design e infra, supervisione complessiva |
+| architect-design | Design architetturale — API design, pattern applicativi, integrazioni, ADR |
+| architect-infra | Infrastruttura — database design, migration, deployment, performance, caching |
+| builder | Implementazione — coding, refactoring, test |
+
 _L'agente ui-ux-designer e stato spostato nel nuovo dipartimento UX/UI (company/ux-ui/)._
+
+## Routing intra-dipartimento
+
+| Tipo task | Agente | Esempi |
+|-----------|--------|--------|
+| Design / pattern / API / ADR | architect-design | "come strutturare l'API X", "review pattern Y", "contratto I/O tra moduli" |
+| DB / migration / deploy / performance | architect-infra | "nuova migration", "ottimizza query Z", "config Vercel", "indice pgvector" |
+| Cross-dominio / conflitto design-infra | architect (Chief) | "nuova feature tocca schema + API", "arbitraggio tra due proposte" |
+| Implementazione | builder | qualsiasi task di coding, refactoring, creazione moduli |
 
 ## Runbooks
 

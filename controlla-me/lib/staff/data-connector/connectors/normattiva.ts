@@ -206,7 +206,8 @@ export class NormattivaConnector extends BaseConnector<ParsedArticle> {
     } else if (directAkn) {
       // Strategia 3: caricaAKN diretto (per leggi con ZIP asincroni vuoti)
       this.log(`[NORMATTIVA] Download via caricaAKN diretto...`);
-      articles = await this.fetchViaDirectAkn(hardcodedCodice ?? codiceRed);
+      // Priorità: codiceRedazionale scoperto da API (accurato) > hardcoded nel config (stima)
+      articles = await this.fetchViaDirectAkn(codiceRed ?? hardcodedCodice ?? "");
     } else {
       // Strategia 2: Ricerca asincrona
       this.log(`[NORMATTIVA] Download via ricerca asincrona...`);

@@ -1,12 +1,15 @@
 {
   "enabled": true,
   "intervalMinutes": 10,
-  "lastRun": "2026-03-09T21:32:30.726Z",
-  "lastDurationMs": 32949,
-  "lastExitCode": 1,
-  "lastTasksExecuted": 0,
-  "totalRuns": 51,
-  "updatedAt": "2026-03-09T21:32:30.726Z",
-  "updatedBy": "cme-autorun-autoalimentante",
-  "consecutiveNoOp": 6
+  "lastRun": "2026-03-19T09:40:52.036Z",
+  "lastDurationMs": 9227,
+  "lastExitCode": 0,
+  "lastTasksExecuted": 1,
+  "totalRuns": 131,
+  "updatedAt": "2026-03-20T16:15:43.065Z",
+  "updatedBy": "cme-autorun-pure-sensor",
+  "consecutiveNoOp": 2,
+  "rateLimitUntil": null,
+  "lastPlenaryAt": "2026-03-15T16:34:29.058Z",
+  "lastHeartbeat": "2026-03-20T16:15:43.065Z"
 }

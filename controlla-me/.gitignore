@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
+!deploy/.env.production.example
 
 # vercel
 .vercel
@@ -43,11 +45,15 @@ next-env.d.ts
 # analysis cache (local agent results)
 .analysis-cache/
 
+# music uploads (local audio files)
+.music-uploads/
+
 # Windows reserved device names (Turbopack crash)
 nul
 
-# Playwright reports
+# Playwright reports and results
 playwright-report/
+playwright-results.json
 
 # Test run results (ephemeral)
 scripts/testbook-results-*.json
@@ -59,14 +65,26 @@ trading/backtest-results/*/
 trading/backtest-results/grid_*/
 !trading/backtest-results/SUMMARY.md
 
+# Trading local SQLite DB
+trading/data/*.db
+
 # Supabase temp
 supabase/.temp/
 
 # Claude Code local config
 .claude/
 trading/logs/
+trading/.scheduler-heartbeat.json
 
 # CME daemon temp files
 .autorun-prompt.tmp
 company/autorun-logs/
 company/gui-daemon-logs/
+
+# Active session tracker (runtime state)
+company/.active-sessions.json
+
+# Deploy runtime files
+deploy/.env.production
+deploy/logs/
+deploy/backups/

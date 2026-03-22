@@ -1,0 +1,62 @@
+{
+  "id": "acceleration",
+  "name": "Acceleration",
+  "capabilities": [
+    {
+      "id": "performance-profiling",
+      "description": "Profile API endpoints, build times, and component render performance to identify bottlenecks",
+      "inputType": "task",
+      "outputType": "report",
+      "estimatedDurationMs": 120000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "codebase-cleanup",
+      "description": "Identify and remove dead code, unused imports, stale dependencies, and redundant patterns",
+      "inputType": "task",
+      "outputType": "task-result",
+      "estimatedDurationMs": 300000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "tech-debt-reduction",
+      "description": "Prioritize and fix tech debt items from CLAUDE.md Section 19 and codebase audit",
+      "inputType": "task",
+      "outputType": "task-result",
+      "estimatedDurationMs": 600000,
+      "costEstimate": "~gratis"
+    },
+    {
+      "id": "department-metrics",
+      "description": "Measure department delivery speed: task completion rate, avg resolution time, blocker frequency",
+      "inputType": "query",
+      "outputType": "report",
+      "estimatedDurationMs": 30000,
+      "costEstimate": "~gratis"
+    }
+  ],
+  "inputModes": ["task", "query"],
+  "outputModes": ["task-result", "report"],
+  "skills": [
+    {
+      "id": "profile-build",
+      "description": "Run next build and report compilation time, bundle size, and type check duration",
+      "parameters": [],
+      "returns": "{ buildTime: number, typeCheckTime: number, warnings: number }",
+      "isDirectCallable": true
+    },
+    {
+      "id": "find-dead-code",
+      "description": "Scan for unused exports, unreferenced files, and stale imports",
+      "parameters": [
+        { "name": "path", "type": "string", "required": false, "description": "Directory to scan (default: entire codebase)" }
+      ],
+      "returns": "{ unusedExports: string[], unreferencedFiles: string[], staleImports: string[] }",
+      "isDirectCallable": true
+    }
+  ],
+  "directQueryTargets": ["architecture", "quality-assurance"],
+  "directQuerySources": ["operations"],
+  "status": "active",
+  "schemaVersion": 1
+}

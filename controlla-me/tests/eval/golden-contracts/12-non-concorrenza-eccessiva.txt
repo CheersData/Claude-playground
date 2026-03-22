@@ -1,0 +1,104 @@
+PATTO DI NON CONCORRENZA POST-CONTRATTUALE
+(ai sensi dell'art. 2125 del Codice Civile)
+
+Tra
+
+la Societa' ALPHA DIGITAL SOLUTIONS S.P.A. (di seguito "Societa"), con sede in Milano,
+Piazza Gae Aulenti 12, C.F./P.IVA 01234567890, in persona dell'Amministratore Delegato
+Dott. Massimo Conti,
+
+e
+
+la Dott.ssa Valentina Rossi (di seguito "Dipendente"), nata a Torino il 18/06/1990,
+C.F. RSSVNT90H58L219Q, dipendente a tempo indeterminato con qualifica di impiegata,
+III livello CCNL Commercio, mansione di Account Manager Junior, RAL EUR 26.000,00,
+
+PREMESSO CHE
+
+- la Dipendente, nell'esercizio delle sue funzioni, ha accesso a informazioni riservate
+  relative ai clienti e alle strategie commerciali della Societa';
+- la Societa' intende tutelare il proprio patrimonio di conoscenze e relazioni commerciali;
+
+SI CONVIENE QUANTO SEGUE
+
+Art. 1 — OBBLIGO DI NON CONCORRENZA
+
+La Dipendente si impegna, per un periodo di 5 (cinque) anni dalla cessazione del rapporto
+di lavoro, a qualsiasi titolo essa avvenga (dimissioni, licenziamento, risoluzione consensuale,
+scadenza del termine, pensionamento), a non svolgere, direttamente o indirettamente, in
+forma autonoma, subordinata, parasubordinata, occasionale o associativa, alcuna attivita'
+che possa essere in qualsiasi modo considerata in concorrenza con quella della Societa'.
+
+Art. 2 — AMBITO OGGETTIVO
+
+L'obbligo di non concorrenza si estende a tutte le attivita' nei seguenti settori:
+a) Consulenza informatica e digitale;
+b) Sviluppo software e applicazioni;
+c) Marketing digitale e social media management;
+d) E-commerce e piattaforme online;
+e) Servizi cloud e infrastrutture IT;
+f) Data analytics e business intelligence;
+g) Cybersecurity;
+h) Intelligenza artificiale e machine learning;
+i) Qualsiasi altro settore in cui la Societa' operi o intenda operare al momento della
+   cessazione del rapporto.
+
+Art. 3 — AMBITO TERRITORIALE
+
+Il divieto di concorrenza si estende a:
+- l'intero territorio della Repubblica Italiana;
+- tutti i Paesi dell'Unione Europea;
+- la Confederazione Svizzera;
+- il Regno Unito;
+- gli Stati Uniti d'America.
+
+Art. 4 — ATTIVITA' SPECIFICAMENTE VIETATE
+
+A titolo esemplificativo e non esaustivo, la Dipendente non potra':
+a) avviare o partecipare in qualsiasi forma a imprese concorrenti;
+b) assumere incarichi, anche a titolo gratuito o di cortesia, presso soggetti concorrenti;
+c) fornire consulenze o prestazioni professionali a soggetti concorrenti;
+d) sollecitare dipendenti, clienti, fornitori o partner della Societa';
+e) detenere partecipazioni, anche di minoranza, in societa' concorrenti;
+f) svolgere attivita' di insegnamento o formazione in materie attinenti al settore di
+   attivita' della Societa';
+g) pubblicare articoli, libri o contenuti online relativi a tecnologie o metodologie
+   sviluppate durante il rapporto con la Societa'.
+
+Art. 5 — CORRISPETTIVO
+
+A fronte dell'obbligo di non concorrenza di 5 anni, la Societa' corrisponde alla Dipendente
+un corrispettivo una tantum lordo pari a EUR 1.000,00 (mille/00), da corrispondersi in 12
+rate mensili di EUR 83,33 ciascuna, a partire dal mese successivo alla cessazione del rapporto.
+
+Le parti danno atto che tale corrispettivo e' stato liberamente e consapevolmente negoziato
+e accettato dalla Dipendente come adeguato e proporzionato all'obbligo assunto.
+
+Art. 6 — PENALE
+
+In caso di violazione, anche parziale, del presente patto, la Dipendente sara' tenuta a
+corrispondere alla Societa', a titolo di penale, una somma pari a EUR 200.000,00
+(duecentomila/00), oltre alla restituzione integrale del corrispettivo percepito.
+
+La penale e' dovuta per ogni singola violazione accertata, senza necessita' di prova del
+danno. E' fatto salvo il diritto della Societa' al risarcimento del danno ulteriore.
+
+Art. 7 — RECESSO UNILATERALE
+
+La Societa' si riserva la facolta' insindacabile di recedere dal presente patto in qualsiasi
+momento, anche in costanza di rapporto di lavoro, con comunicazione scritta alla Dipendente.
+In caso di recesso della Societa', nessun corrispettivo sara' dovuto alla Dipendente per il
+periodo residuo.
+
+La Dipendente non ha facolta' di recedere dal presente patto.
+
+Art. 8 — FORO COMPETENTE
+
+Per qualsiasi controversia relativa al presente patto e' competente in via esclusiva il
+Tribunale di Milano, Sezione Lavoro.
+
+Milano, 5 marzo 2026
+
+La Societa'                                La Dipendente
+Dott. Massimo Conti                        Dott.ssa Valentina Rossi
+_____________________                      _____________________

@@ -6,12 +6,20 @@
  * Usa la subscription $100/mese, non le API.
  */
 
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getTaskBoard } from "@/lib/company/tasks";
 import { getTotalSpend } from "@/lib/company/cost-logger";
-import { setSession, deleteSession } from "@/lib/company/sessions";
+import { loadFormaMentisContext } from "@/lib/company/memory/daemon-context-loader";
+import {
+  setSession,
+  deleteSession,
+  registerSession,
+  unregisterSession,
+  clearOutputRing,
+  appendOutputLine,
+} from "@/lib/company/sessions";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
@@ -33,6 +41,22 @@ const TARGETS: Record<string, { promptFile: string; label: string; model: string
   strategy:           { promptFile: "strategy/department.md",           label: "Strategy TL",          model: "opus" },
   trading:            { promptFile: "trading/department.md",            label: "Trading TL",           model: "opus" },
 };
+
+// ─── Claude binary resolution (cached) ───
+let _claudePath: string | null = null;
+function resolveClaudePath(): string {
+  if (_claudePath) return _claudePath;
+  try {
+    const cmd = process.platform === "win32" ? "where claude" : "which claude";
+    const result = execSync(cmd, { encoding: "utf-8", timeout: 5000 }).trim();
+    // 'where' on Windows may return multiple lines — take the first
+    _claudePath = result.split(/\r?\n/)[0];
+    return _claudePath;
+  } catch {
+    _claudePath = "claude";
+    return _claudePath;
+  }
+}
 
 export async function POST(req: Request) {
   // SEC-M3: Rate limit — 5 per minute (spawns claude -p child process)
@@ -74,16 +98,67 @@ export async function POST(req: Request) {
       promptContent = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano.`;
     }
 
-    // Fetch live data for context
-    const [board, costs] = await Promise.all([
+    // Fetch live data + Forma Mentis context in parallel
+    const [board, costs, formaMentis] = await Promise.all([
       getTaskBoard().catch(() => null),
       getTotalSpend(7).catch(() => null),
+      loadFormaMentisContext().catch((e: unknown) => {
+        console.error("[COMPANY-CHAT] Forma Mentis context failed:", e instanceof Error ? e.message : e);
+        return null;
+      }),
     ]);
 
     const dataContext = buildDataContext(board, costs);
 
-    // Short system prompt for CLI arg (avoids Windows cmd length limit)
-    const shortSystemPrompt = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso (max 200 parole). Non inventare numeri.`;
+    // Build Forma Mentis block for prompt injection
+    let formaMentisBlock = "";
+    if (formaMentis) {
+      const parts: string[] = [];
+
+      // Daemon report from disk FIRST — always available, richest source
+      if (formaMentis.daemonBlock) parts.push(formaMentis.daemonBlock);
+
+      // Session history — critical for continuity
+      if (formaMentis.sessionBlock) parts.push(formaMentis.sessionBlock);
+
+      // Recently completed tasks — prevents CME from re-proposing done work
+      if (board?.recentDone && board.recentDone.length > 0) {
+        const doneLines = board.recentDone.map(
+          (t: { title: string; department: string; resultSummary?: string | null }) =>
+            `- ${t.title} (${t.department})${t.resultSummary ? `: ${t.resultSummary.slice(0, 80)}` : ""}`
+        );
+        parts.push(`## TASK COMPLETATI DI RECENTE (NON riproporre)\n${doneLines.join("\n")}`);
+      }
+
+      // Department status snapshot
+      if (formaMentis.statusBlock) parts.push(formaMentis.statusBlock);
+
+      // Warnings, learnings, context from department memories
+      if (formaMentis.memoryBlock) parts.push(formaMentis.memoryBlock);
+
+      // Active goals and progress
+      if (formaMentis.goalBlock) parts.push(formaMentis.goalBlock);
+
+      if (parts.length > 0) {
+        formaMentisBlock = [
+          "",
+          "--- CONTESTO AZIENDALE (Forma Mentis) ---",
+          "ISTRUZIONI: Leggi ATTENTAMENTE questo contesto prima di rispondere.",
+          "NON riproporre task già completati. NON ignorare warning attivi.",
+          "Se una sessione precedente ha affrontato un problema, parti da dove si è fermata.",
+          "",
+          ...parts,
+          "",
+          "--- FINE CONTESTO AZIENDALE ---",
+        ].join("\n");
+        console.log(`[COMPANY-CHAT] Forma Mentis context: ${formaMentisBlock.length} chars | sessions: ${formaMentis.context.recentSessions.length} | memories: ${formaMentis.context.departmentMemories.length} | goals: ${formaMentis.context.activeGoals.length} | done tasks: ${board?.recentDone?.length ?? 0} | daemonBlock: ${formaMentis.daemonBlock.length} chars`);
+      }
+    }
+
+    // System prompt — references Forma Mentis context to ensure LLM gives it weight
+    const shortSystemPrompt = formaMentisBlock
+      ? `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri. IMPORTANTE: il messaggio contiene un blocco "CONTESTO AZIENDALE (Forma Mentis)" con sessioni precedenti, task completati, warning e goal. DEVI leggerlo e usarlo per evitare di riproporre lavoro già fatto.`
+      : `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri.`;
 
     // Build conversation history section (if resuming)
     let historySection = "";
@@ -100,16 +175,17 @@ export async function POST(req: Request) {
     }
 
     // Build full context message for first turn
+    // Forma Mentis block comes BEFORE the role prompt so it's read first
     const contextMessage = [
+      formaMentisBlock || null,
       "## IL TUO RUOLO",
       promptContent,
-      "",
       "## DATI AZIENDALI LIVE",
       dataContext,
-      historySection,
+      historySection || null,
       "## DOMANDA",
       message,
-    ].join("\n");
+    ].filter(Boolean).join("\n\n");
 
     // Session ID for follow-up messages
     const sessionId = `cc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -118,6 +194,7 @@ export async function POST(req: Request) {
 
     const stream = new ReadableStream({
       start(controller) {
+        let closed = false;
         const encoder = new TextEncoder();
         const send = (event: string, data: unknown) => {
           try {
@@ -126,6 +203,20 @@ export async function POST(req: Request) {
             // Controller may be closed
           }
         };
+
+        // ── Keepalive ping every 15s ──
+        // Mobile browsers aggressively kill idle SSE connections (especially on screen lock).
+        // Sending periodic pings keeps the TCP connection alive and helps the client detect
+        // a dead connection faster (no data = connection truly lost, not just idle).
+        const keepaliveInterval = setInterval(() => {
+          if (closed) { clearInterval(keepaliveInterval); return; }
+          try {
+            // SSE comment line (:) — ignored by EventSource/SSE parsers but keeps connection alive
+            controller.enqueue(encoder.encode(`: keepalive ${Date.now()}\n\n`));
+          } catch {
+            clearInterval(keepaliveInterval);
+          }
+        }, 15_000);
 
         const args = [
           "-p",
@@ -138,15 +229,8 @@ export async function POST(req: Request) {
           "--dangerously-skip-permissions",
         ];
 
-        send("debug", { type: "spawn", msg: `claude -p --model ${targetConfig.model} (interactive)`, ts: Date.now() });
-
-        // Broadcast agent activity to Ops dashboard
-        broadcastAgentEvent({
-          id: `company-${target}`,
-          department: target === "cme" ? "cme" : target,
-          task: `${targetConfig.label} chat`,
-          status: "running",
-        });
+        const claudeBin = resolveClaudePath();
+        send("debug", { type: "spawn", msg: `${claudeBin} -p --model ${targetConfig.model} (interactive)`, ts: Date.now() });
 
         // Remove env vars that would interfere:
         // - CLAUDECODE + CLAUDE_CODE_*: avoid "nested session" error and DLL init crashes
@@ -158,20 +242,46 @@ export async function POST(req: Request) {
           }
         }
 
-        const child = spawn("claude", args, {
+        const child = spawn(claudeBin, args, {
           cwd: projectDir,
           env: childEnv,
-          shell: true,
+          shell: process.platform === "win32",
           stdio: ["pipe", "pipe", "pipe"],
         });
 
-        send("debug", { type: "pid", msg: `PID: ${child.pid}`, ts: Date.now() });
+        const terminalPid = child.pid;
+
+        send("debug", { type: "pid", msg: `PID: ${terminalPid}`, ts: Date.now() });
 
         // Emit session ID so frontend can send follow-up messages
         send("session", { sessionId });
 
         // Store session for follow-up messages
         setSession(sessionId, { child, target });
+
+        // Register in the tracked session registry (Layer 2) — ADR-005: include new fields
+        if (terminalPid) {
+          registerSession({
+            pid: terminalPid,
+            type: "console",
+            target,
+            startedAt: new Date(),
+            status: "active",
+            currentTask: `${targetConfig.label} chat`,
+            department: target,
+            sessionId,
+          });
+        }
+
+        // Broadcast agent activity to Ops dashboard — ADR-005: include parentPid + sessionId
+        broadcastAgentEvent({
+          id: `company-${target}`,
+          department: target === "cme" ? "cme" : target,
+          task: `${targetConfig.label} chat`,
+          status: "running",
+          parentPid: terminalPid,
+          sessionId,
+        });
 
         // Send first message in stream-json format (DON'T close stdin!)
         const firstMsg = JSON.stringify({
@@ -195,6 +305,12 @@ export async function POST(req: Request) {
 
           for (const line of lines) {
             if (!line.trim()) continue;
+
+            // ADR-005: Tee raw line into ring buffer for output SSE endpoint
+            if (terminalPid) {
+              appendOutputLine(terminalPid, `[STDOUT] ${line}`);
+            }
+
             try {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const event: any = JSON.parse(line);
@@ -274,18 +390,29 @@ export async function POST(req: Request) {
           const text = chunk.toString().trim();
           if (text) {
             stderrOutput += text + "\n";
+            // ADR-005: Tee stderr into ring buffer
+            if (terminalPid) {
+              appendOutputLine(terminalPid, `[STDERR] ${text}`);
+            }
             send("debug", { type: "stderr", msg: text.slice(0, 300), ts: Date.now() });
           }
         });
 
         child.on("close", (code) => {
           deleteSession(sessionId);
-          // Broadcast completion to Ops dashboard
+          if (terminalPid) {
+            unregisterSession(terminalPid);
+            // ADR-005: Clear ring buffer on session close
+            clearOutputRing(terminalPid);
+          }
+          // Broadcast completion to Ops dashboard — ADR-005: include parentPid + sessionId
           broadcastAgentEvent({
             id: `company-${target}`,
             department: target === "cme" ? "cme" : target,
             task: `${targetConfig.label} chat`,
             status: code === 0 ? "done" : "error",
+            parentPid: terminalPid,
+            sessionId,
           });
           send("debug", { type: "exit", msg: `Codice uscita: ${code}`, ts: Date.now() });
           if (code !== 0) {
@@ -298,26 +425,36 @@ export async function POST(req: Request) {
             send("error", { error: `Claude Code exit ${code}: ${stderrOutput.slice(0, 500)}` });
           }
           send("done", { target, sessionId });
-          controller.close();
+          clearInterval(keepaliveInterval);
+          if (!closed) { closed = true; controller.close(); }
         });
 
         child.on("error", (err) => {
           deleteSession(sessionId);
+          if (terminalPid) {
+            unregisterSession(terminalPid);
+            // ADR-005: Clear ring buffer on error
+            clearOutputRing(terminalPid);
+          }
           broadcastAgentEvent({
             id: `company-${target}`,
             department: target === "cme" ? "cme" : target,
             task: `${targetConfig.label} errore`,
             status: "error",
+            parentPid: terminalPid,
+            sessionId,
           });
           send("debug", { type: "spawn-error", msg: err.message, ts: Date.now() });
           send("error", { error: `Errore spawn: ${err.message}. Claude Code è installato?` });
-          controller.close();
+          clearInterval(keepaliveInterval);
+          if (!closed) { closed = true; controller.close(); }
         });
       },
 
       cancel() {
         // Client disconnected — clean up child process
         deleteSession(sessionId);
+        // Note: child.on("close") handler will unregister from tracker
       },
     });
 
@@ -346,7 +483,7 @@ function buildDataContext(board: any, costs: any): string {
     lines.push(`Totale: ${board.total}`);
     if (board.byStatus) {
       const s = board.byStatus;
-      lines.push(`Open: ${s.open ?? 0} | In Progress: ${s.in_progress ?? 0} | Review: ${s.review ?? 0} | Done: ${s.done ?? 0} | Blocked: ${s.blocked ?? 0}`);
+      lines.push(`Open: ${s.open ?? 0} | In Progress: ${s.in_progress ?? 0} | Review: ${s.review ?? 0} | Done: ${s.done ?? 0} | Blocked: ${s.blocked ?? 0} | On Hold: ${s.on_hold ?? 0}`);
     }
     if (board.byDepartment) {
       lines.push("\nPer dipartimento:");

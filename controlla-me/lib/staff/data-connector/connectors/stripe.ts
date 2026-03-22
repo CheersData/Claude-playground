@@ -20,7 +20,11 @@ import type {
 } from "../types";
 
 /** Stripe object types we sync */
-const SYNC_TYPES = ["customer", "subscription", "invoice", "payment_intent"] as const;
+const SYNC_TYPES = [
+  "customer", "subscription", "invoice", "payment_intent",
+  "product", "price", "charge", "refund", "dispute",
+  "payout", "balance_transaction", "coupon", "checkout_session", "payment_method",
+] as const;
 type SyncType = (typeof SYNC_TYPES)[number];
 
 /** Max items per list() call (Stripe default max is 100) */
@@ -230,7 +234,7 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
       switch (type) {
         case "customer": {
           const result = await stripe.customers.list({ limit: 1 });
-          return result.has_more ? 100 : result.data.length; // rough estimate
+          return result.has_more ? 100 : result.data.length;
         }
         case "subscription": {
           const result = await stripe.subscriptions.list({ limit: 1 });
@@ -243,6 +247,46 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
         case "payment_intent": {
           const result = await stripe.paymentIntents.list({ limit: 1 });
           return result.has_more ? 150 : result.data.length;
+        }
+        case "product": {
+          const result = await stripe.products.list({ limit: 1 });
+          return result.has_more ? 50 : result.data.length;
+        }
+        case "price": {
+          const result = await stripe.prices.list({ limit: 1 });
+          return result.has_more ? 100 : result.data.length;
+        }
+        case "charge": {
+          const result = await stripe.charges.list({ limit: 1 });
+          return result.has_more ? 200 : result.data.length;
+        }
+        case "refund": {
+          const result = await stripe.refunds.list({ limit: 1 });
+          return result.has_more ? 20 : result.data.length;
+        }
+        case "dispute": {
+          const result = await stripe.disputes.list({ limit: 1 });
+          return result.has_more ? 10 : result.data.length;
+        }
+        case "payout": {
+          const result = await stripe.payouts.list({ limit: 1 });
+          return result.has_more ? 30 : result.data.length;
+        }
+        case "balance_transaction": {
+          const result = await stripe.balanceTransactions.list({ limit: 1 });
+          return result.has_more ? 500 : result.data.length;
+        }
+        case "coupon": {
+          const result = await stripe.coupons.list({ limit: 1 });
+          return result.has_more ? 10 : result.data.length;
+        }
+        case "checkout_session": {
+          const result = await stripe.checkout.sessions.list({ limit: 1 });
+          return result.has_more ? 100 : result.data.length;
+        }
+        case "payment_method": {
+          // payment_methods.list requires a customer param or type — estimate only
+          return 0;
         }
         default:
           return 0;
@@ -304,6 +348,7 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
   /**
    * List a single page of Stripe objects by type.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async listPage(
     stripe: Stripe,
     type: SyncType,
@@ -312,8 +357,8 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
       starting_after?: string;
       created?: { gte: number };
     }
-  ): Promise<Stripe.ApiList<Stripe.Customer | Stripe.Subscription | Stripe.Invoice | Stripe.PaymentIntent>> {
-    const listParams: Stripe.CustomerListParams = {
+  ): Promise<Stripe.ApiList<any>> {
+    const listParams = {
       limit: params.limit,
       ...(params.starting_after ? { starting_after: params.starting_after } : {}),
       ...(params.created ? { created: params.created } : {}),
@@ -328,6 +373,27 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
         return stripe.invoices.list(listParams as Stripe.InvoiceListParams);
       case "payment_intent":
         return stripe.paymentIntents.list(listParams as Stripe.PaymentIntentListParams);
+      case "product":
+        return stripe.products.list(listParams as Stripe.ProductListParams);
+      case "price":
+        return stripe.prices.list(listParams as Stripe.PriceListParams);
+      case "charge":
+        return stripe.charges.list(listParams as Stripe.ChargeListParams);
+      case "refund":
+        return stripe.refunds.list(listParams as Stripe.RefundListParams);
+      case "dispute":
+        return stripe.disputes.list(listParams as Stripe.DisputeListParams);
+      case "payout":
+        return stripe.payouts.list(listParams as Stripe.PayoutListParams);
+      case "balance_transaction":
+        return stripe.balanceTransactions.list(listParams as Stripe.BalanceTransactionListParams);
+      case "coupon":
+        return stripe.coupons.list(listParams as Stripe.CouponListParams);
+      case "checkout_session":
+        return stripe.checkout.sessions.list(listParams as Stripe.Checkout.SessionListParams);
+      case "payment_method":
+        // payment_methods requires type or customer — skip in bulk fetch
+        return { data: [], has_more: false, object: "list", url: "" } as unknown as Stripe.ApiList<Stripe.PaymentMethod>;
       default:
         throw new Error(`Unknown Stripe object type: ${type}`);
     }

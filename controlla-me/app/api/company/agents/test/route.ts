@@ -8,13 +8,23 @@
 
 import { NextRequest } from "next/server";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { broadcastAgentEvent } from "@/lib/agent-broadcast";
 
 export async function POST(req: NextRequest) {
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = requireConsoleAuth(req);
   if (!auth) {
     return Response.json({ error: "Non autorizzato" }, { status: 401 });
   }
+
+  // Rate limit
+  const rl = await checkRateLimit(req);
+  if (rl) return rl;
 
   const departments = [
     "cme",

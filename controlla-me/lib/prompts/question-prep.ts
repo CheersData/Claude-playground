@@ -111,6 +111,14 @@ ISTITUTI DISPONIBILI NEL CORPUS (usa ESATTAMENTE questi nomi):
 - circonvenzione_incapace (Art. 643 c.p.)
 - falsità_ideologica, uso_atto_falso (Artt. 476-493 c.p.)
 - peculato, malversazione (reati contro la PA)
+- ultrapetizione, extrapetizione (Art. 112 c.p.c. — principio di corrispondenza)
+- ricorso_cassazione, motivi_impugnazione (Art. 360 c.p.c.)
+- decreto_ingiuntivo, opposizione_tardiva (Art. 633-656 c.p.c.)
+- pignoramento_stipendio, pignoramento_immobiliare (Art. 545-555 c.p.c.)
+- mediazione_obbligatoria (D.Lgs. 28/2010)
+- preclusioni_istruttorie, deposito_documenti (Art. 171-ter c.p.c. post Cartabia)
+- prelazione_agraria, coltivatore_diretto (L. 590/1965, L. 817/1971)
+- acquisto_immobile_da_costruire (D.Lgs. 122/2005)
 
 REGOLE:
 - legalQuery: frase con i termini giuridici del TEMA. Il corpus legislativo userebbe questi termini.
@@ -132,7 +140,11 @@ ATTENZIONE — ERRORI COMUNI DA EVITARE:
 - "doppia firma" o "approvazione specifica per iscritto" → clausole_vessatorie
 - "rinnovo automatico locazione" → rinnovo_locazione + L. 431/1998
 - PIGNORAMENTO PRIMA CASA — "pignorare la casa", "prima casa pignorata", "possono prendermi la casa" → DISTINGUERE SEMPRE il tipo di creditore nella legalQuery. Creditore privato (Art. 555 ss. c.p.c., nessun divieto assoluto) vs Agenzia Entrate Riscossione/crediti fiscali (Art. 76 DPR 602/73, limiti specifici). Se la domanda non specifica chi è il creditore, scopeNotes DEVE segnalare: "La risposta cambia radicalmente se il creditore è privato (nessun divieto) o l'Agenzia Entrate Riscossione (limiti ex DPR 602/73)."
-- ULTRA/EXTRA PETITA — "giudice ha dato più del dovuto", "condannato a pagare più di quanto chiesto", "giudice ha deciso su questione non sollevata" → Art. 112 c.p.c. (principio di corrispondenza tra chiesto e pronunciato). targetArticles: "Art. 112 c.p.c., Art. 360 n.4 c.p.c.". NON cercare nel c.c. — è un problema PROCESSUALE, non sostanziale.
+- ULTRA/EXTRA PETITA — "giudice ha dato più del dovuto", "condannato a pagare più di quanto chiesto", "giudice ha deciso su questione non sollevata" → Art. 112 c.p.c. (principio di corrispondenza tra chiesto e pronunciato). targetArticles: "Art. 112 c.p.c., Art. 360 n.4 c.p.c.". NON cercare nel c.c. — è un problema PROCESSUALE, non sostanziale. Se la questione non è stata sollevata dalle parti = EXTRAPETIZIONE (il giudice decide su domanda DIVERSA, non sulla stessa ma in misura maggiore). DISTINGUERE sempre ultra da extra nella legalQuery.
+- RIFORMA CARTABIA (D.Lgs. 149/2022) — "termini deposito documenti", "deposito in udienza", "preclusioni istruttorie", "memorie udienza" → INCLUDERE SEMPRE nella legalQuery: "riforma Cartabia art. 171-ter c.p.c.". Il vecchio art. 183 c.p.c. NON si applica più dal 28/02/2023. scopeNotes DEVE segnalare: "Il c.p.c. nel corpus potrebbe contenere la versione pre-riforma Cartabia. Verificare se art. 171-ter è presente."
+- MEDIAZIONE OBBLIGATORIA — "mediazione", "non si è presentato alla mediazione", "assenza mediazione" → legalQuery: "mediazione obbligatoria sanzione assenza argomento prova art 8 D.Lgs. 28/2010". targetArticles: "Art. 8 co. 4-bis D.Lgs. 28/2010". NON confondere con "conciliazione" o "arbitrato".
+- OPPOSIZIONE DECRETO INGIUNTIVO — "decreto ingiuntivo", "non me ne sono accorto", "opposizione tardiva" → legalQuery: "opposizione tardiva decreto ingiuntivo rimessione termini art 650 c.p.c.". targetArticles: "Art. 650 c.p.c., Art. 647 c.p.c.".
+- RICORSO CASSAZIONE — "ricorso per Cassazione", "motivi cassazione", "impugnazione in Cassazione" → legalQuery: "motivi ricorso Cassazione art 360 c.p.c. cinque motivi". targetArticles: "Art. 360 c.p.c.". La query deve includere "n.5 motivazione riformato 2012".
 - NULLO vs ANNULLABILE — "il contratto è nullo?", "posso annullare?" → INCLUDERE SEMPRE entrambi gli istituti: nullità (Art. 1418 c.c.) + annullabilità (Art. 1425 c.c.). La distinzione è critica: presupposti, legittimazione e termini sono completamente diversi.
 - PRESTITO VERBALE / MUTUO — "prestito tra amici", "mi deve soldi", "prestito senza contratto" → cercare SIA nel mutuo (Art. 1813 c.c.) che nei limiti alla prova testimoniale (Art. 2721 c.c. — soglia valore). mechanismQuery OBBLIGATORIO: "prova testimoniale limiti valore mutuo art 2721 2722 2726".
 - MORTE INQUILINO / SUCCESSIONE LOCAZIONE — "inquilino morto", "convivente rimasto nell'appartamento" → L. 392/1978 art. 6 (successione nel contratto di locazione abitativa), NON art. 1614 c.c. (generico). La legge speciale prevale sul codice civile.
@@ -234,6 +246,28 @@ ESEMPIO DOMANDA SISTEMATICA:
   → targetArticles: "Art. 640, 643, 646 c.p."
   → questionType: "systematic"
   → needsCaseLaw: true
+
+ESEMPI CPC/PROCESSUALE:
+
+- "il giudice ha deciso su una questione non sollevata dalle parti"
+  → legalQuery: "vizio sentenza extrapetizione questione non sollevata parti principio dispositivo art 112 c.p.c."
+  → mechanismQuery: "impugnazione sentenza cassazione motivi art 360 n.4 c.p.c. nullità vizi procedurali"
+  → suggestedInstitutes: ["ultrapetizione", "extrapetizione", "ricorso_cassazione", "motivi_impugnazione"]
+  → targetArticles: "Art. 112 c.p.c., Art. 360 n.4 c.p.c."
+  → needsCaseLaw: true
+
+- "voglio depositare un documento nuovo in udienza, qual è il termine?"
+  → legalQuery: "deposito documenti nuovi udienza termine preclusione art 171-ter c.p.c. riforma Cartabia 2023"
+  → mechanismQuery: "preclusioni istruttorie termini deposito memorie rito ordinario post riforma Cartabia D.Lgs. 149/2022"
+  → suggestedInstitutes: ["preclusioni_istruttorie", "deposito_documenti"]
+  → targetArticles: "Art. 171-ter c.p.c."
+  → scopeNotes: "Verificare se il corpus contiene c.p.c. aggiornato alla riforma Cartabia (vigente dal 28/02/2023). Se art. 183 senza art. 171-ter, il testo è pre-riforma."
+
+- "la controparte non si è presentata alla mediazione obbligatoria"
+  → legalQuery: "assenza ingiustificata mediazione obbligatoria sanzione pecuniaria argomento prova art 8 comma 4-bis D.Lgs. 28/2010"
+  → mechanismQuery: null
+  → suggestedInstitutes: ["mediazione_obbligatoria"]
+  → targetArticles: "Art. 8 co. 4-bis D.Lgs. 28/2010"
 
 Se la domanda è già in linguaggio giuridico, restituiscila arricchita con sinonimi e termini correlati.
 Non inventare terminologia. Usa solo termini realmente presenti nel diritto italiano.

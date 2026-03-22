@@ -131,6 +131,11 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Broadcast pipeline start to Ops dashboard
+        broadcastConsoleAgent("analyze-pipeline", "running", {
+          task: `Analisi documento: ${fileName}`,
+        });
+
         // Run the 4-agent orchestrator with SSE callbacks
         const result = await runOrchestrator(
           documentText,
@@ -158,6 +163,11 @@ export async function POST(req: NextRequest) {
           resumeSessionId,
           userContext
         );
+
+        // Broadcast pipeline completion to Ops dashboard
+        broadcastConsoleAgent("analyze-pipeline", "done", {
+          task: `Analisi completata: ${fileName}`,
+        });
 
         // Send the complete event now that result is fully populated
         send("complete", {
@@ -235,6 +245,11 @@ export async function POST(req: NextRequest) {
         const message =
           error instanceof Error ? error.message : "Errore sconosciuto";
         send("error", { message });
+
+        // Broadcast pipeline error to Ops dashboard
+        broadcastConsoleAgent("analyze-pipeline", "error", {
+          task: `Analisi fallita: ${message.slice(0, 80)}`,
+        });
 
         // Mark analysis as failed in DB
         if (analysisDbId) {

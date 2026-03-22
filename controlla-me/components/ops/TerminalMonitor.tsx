@@ -49,7 +49,7 @@ export function TerminalMonitor() {
     <div className="h-full flex flex-col md:flex-row min-h-0">
       {/* Left panel: terminal list */}
       <div
-        className="w-full md:w-80 lg:w-96 flex-none flex flex-col min-h-0 md:max-h-full overflow-hidden"
+        className="w-full md:w-80 lg:w-96 flex-none flex flex-col min-h-0 max-h-[200px] md:max-h-full overflow-y-auto md:overflow-hidden"
         style={{ borderRight: "1px solid var(--border-dark-subtle)" }}
       >
         <TerminalPanel

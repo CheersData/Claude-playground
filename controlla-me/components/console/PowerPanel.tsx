@@ -366,7 +366,7 @@ function TierIcon({ tier, active }: { tier: TierName; active: boolean }) {
   const size = "w-5 h-5";
   const color = active
     ? tier === "intern" ? "text-emerald-500" : tier === "associate" ? "text-blue-500" : "text-amber-500"
-    : "text-[var(--foreground-tertiary)]";
+    : "text-[var(--foreground-secondary)]";
 
   if (tier === "intern") return <GraduationCap className={`${size} ${color}`} aria-hidden="true" />;
   if (tier === "associate") return <Briefcase className={`${size} ${color}`} aria-hidden="true" />;
@@ -464,13 +464,16 @@ function AgentRow({ agent, info, index, onToggle }: {
             className="overflow-hidden"
           >
             <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-[var(--border-subtle)]">
-              <p className="text-[10px] text-[var(--foreground-secondary)] mb-3">Catena di fallback:</p>
+              <p className="text-[10px] text-[var(--foreground-secondary)] mb-3" id={`chain-label-${agent}`}>Catena di fallback:</p>
+              <div role="list" aria-labelledby={`chain-label-${agent}`}>
               {info.chain.map((entry, i) => {
                 const isActive = i === info.activeIndex;
                 const isPast = i < info.activeIndex;
                 return (
                   <div
                     key={entry.key}
+                    role="listitem"
+                    aria-label={`Posizione ${i + 1}: ${entry.displayName} (${entry.provider})${isActive ? " — modello attivo" : ""}${!entry.available ? " — non disponibile" : ""}`}
                     className={`flex items-center gap-2 py-1 px-2 rounded-lg text-xs ${
                       isActive ? "bg-[var(--border-subtle)]" : ""
                     } ${isPast ? "opacity-50" : ""}`}
@@ -503,6 +506,7 @@ function AgentRow({ agent, info, index, onToggle }: {
                   </div>
                 );
               })}
+              </div>
             </div>
           </motion.div>
         )}

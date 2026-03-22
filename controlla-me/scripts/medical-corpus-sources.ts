@@ -33,7 +33,7 @@ export const MEDICAL_SOURCES: CorpusSource[] = [
     connector: {
       preferredFormat: "json",
     },
-    lifecycle: "planned",
+    lifecycle: "loaded",   // 47 articoli caricati 2026-03-08 via NCBI Bookshelf API
     vertical: "medical",
   },
   {
@@ -52,7 +52,7 @@ export const MEDICAL_SOURCES: CorpusSource[] = [
     connector: {
       preferredFormat: "json",
     },
-    lifecycle: "planned",
+    lifecycle: "api-tested",   // API verified 2026-03-08, loading in progress
     vertical: "medical",
   },
   {

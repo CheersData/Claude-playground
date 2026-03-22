@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { Activity, Cpu, MemoryStick } from "lucide-react";
 
 interface ConsoleHeaderProps {
   status: "idle" | "processing" | "done" | "error" | "clarification";
@@ -11,6 +12,7 @@ interface ConsoleHeaderProps {
   onPowerToggle?: () => void;
   onShellToggle?: () => void;
   onCompanyToggle?: () => void;
+  onTerminalToggle?: () => void;
   onPrint?: () => void;
 }
 
@@ -22,8 +24,49 @@ const statusDotColor: Record<ConsoleHeaderProps["status"], string> = {
   clarification: "bg-amber-500",
 };
 
-export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onPrint }: ConsoleHeaderProps) {
+interface SystemStats {
+  cpu_percent: number;
+  ram_percent: number;
+  ram_used_mb: number;
+  ram_total_mb: number;
+}
+
+function statColor(pct: number): string {
+  if (pct >= 85) return "text-red-500";
+  if (pct >= 70) return "text-amber-500";
+  return "text-emerald-500";
+}
+
+function barColor(pct: number): string {
+  if (pct >= 85) return "bg-red-500";
+  if (pct >= 70) return "bg-amber-500";
+  return "bg-emerald-500";
+}
+
+export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onTerminalToggle, onPrint }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
+  const [stats, setStats] = useState<SystemStats | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem("lexmea-token");
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+      const res = await fetch("/api/console/system-stats", { headers });
+      if (!res.ok) return;
+      const json = await res.json();
+      setStats(json);
+    } catch {
+      // silent — dashboard non critica
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   useEffect(() => {
     const update = () => {
@@ -100,6 +143,16 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
             Shell
           </button>
         )}
+        {onTerminalToggle && (
+          <button
+            onClick={onTerminalToggle}
+            className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors print:hidden hidden lg:inline flex-shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-label="Apri pannello Terminal — processi attivi"
+          >
+            <Activity className="w-3.5 h-3.5 inline-block mr-1" />
+            Terminal
+          </button>
+        )}
         {onPowerToggle && (
           <button
             onClick={onPowerToggle}
@@ -130,6 +183,26 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
         >
           Ops
         </a>
+        {/* CPU/RAM widget */}
+        {stats && (
+          <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded border border-[var(--border)] flex-shrink-0" aria-label={`CPU ${stats.cpu_percent}%, RAM ${stats.ram_percent}%`}>
+            <div className="flex items-center gap-1" title={`CPU: ${stats.cpu_percent}%`}>
+              <Cpu className={`w-3 h-3 ${statColor(stats.cpu_percent)}`} />
+              <div className="w-8 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-500 ${barColor(stats.cpu_percent)}`} style={{ width: `${Math.min(stats.cpu_percent, 100)}%` }} />
+              </div>
+              <span className={`tabular-nums text-[10px] ${statColor(stats.cpu_percent)}`}>{stats.cpu_percent}%</span>
+            </div>
+            <div className="flex items-center gap-1" title={`RAM: ${stats.ram_used_mb}/${stats.ram_total_mb} MB (${stats.ram_percent}%)`}>
+              <MemoryStick className={`w-3 h-3 ${statColor(stats.ram_percent)}`} />
+              <div className="w-8 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-500 ${barColor(stats.ram_percent)}`} style={{ width: `${Math.min(stats.ram_percent, 100)}%` }} />
+              </div>
+              <span className={`tabular-nums text-[10px] ${statColor(stats.ram_percent)}`}>{stats.ram_percent}%</span>
+            </div>
+          </div>
+        )}
+
         {userName && (
           <span className="text-[var(--foreground-secondary)] hidden md:inline min-w-0 truncate max-w-[120px]">{userName}</span>
         )}

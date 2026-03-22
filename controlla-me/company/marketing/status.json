@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "marketing",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.206Z",
+    "last_updated": "2026-03-18T17:21:19.230Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task aperti. 14 completati (ultimi 7gg). 22 completati (totale).",
+  "summary": "1 task aperto. 37 completati (totale). Configurare GSC e GA4 + submit sitemap in coda.",
   "keyword_research": {
     "primary_clusters": [
       {
@@ -111,8 +111,8 @@
         "type": "pillar",
         "target_keyword": "clausole illegali contratto lavoro",
         "volume_target": "2.300/mese (aggregato cluster contratto lavoro illegale)",
-        "cta": "Hai un contratto di lavoro? Caricalo ora — Leo, Marta, Giulia ed Enzo lo analizzano in 90 secondi. Gratis.",
-        "notes": "Articolo lungo (1.800-2.200 parole). Struttura: intro empatica (chi non ha firmato senza leggere?), 7 clausole con esempi reali, box 'Cosa dice la legge' per ogni clausola (cita D.Lgs. 81/2008, Codice Civile), CTA finale con upload. Corpus disponibile: Codice Civile, Codice del Consumo. Gap: Statuto Lavoratori non ancora nel corpus — usare riferimenti al Codice Civile e alla giurisprudenza citata da Giulia.",
+        "cta": "Hai un contratto di lavoro? Caricalo ora — Catalogatore, Analista, Giurista e Consulente lo analizzano in 90 secondi. Gratis.",
+        "notes": "Articolo lungo (1.800-2.200 parole). Struttura: intro empatica (chi non ha firmato senza leggere?), 7 clausole con esempi reali, box 'Cosa dice la legge' per ogni clausola (cita D.Lgs. 81/2008, Codice Civile), CTA finale con upload. Corpus disponibile: Codice Civile, Codice del Consumo. Gap: Statuto Lavoratori non ancora nel corpus — usare riferimenti al Codice Civile e alla giurisprudenza citata dal Giurista.",
         "status": "planned"
       },
       {
@@ -323,12 +323,7 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "c4cb8f9b",
-      "title": "Attivare piano al deploy: creare contenuti SEO, configurare GSC e GA4",
-      "priority": "medium",
-      "status": "open"
-    }
+    "Configurare GSC e GA4 da web UI e submit sitemap"
   ],
   "blockers": []
 }

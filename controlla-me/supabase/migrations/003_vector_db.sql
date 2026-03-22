@@ -149,7 +149,8 @@ as $$
     dc.metadata,
     1 - (dc.embedding <=> query_embedding) as similarity
   from public.document_chunks dc
-  where 1 - (dc.embedding <=> query_embedding) > match_threshold
+  where dc.embedding is not null
+    and 1 - (dc.embedding <=> query_embedding) > match_threshold
   order by dc.embedding <=> query_embedding
   limit match_count;
 $$;
@@ -181,7 +182,8 @@ as $$
     lk.times_seen,
     1 - (lk.embedding <=> query_embedding) as similarity
   from public.legal_knowledge lk
-  where 1 - (lk.embedding <=> query_embedding) > match_threshold
+  where lk.embedding is not null
+    and 1 - (lk.embedding <=> query_embedding) > match_threshold
     and (filter_category is null or lk.category = filter_category)
   order by lk.embedding <=> query_embedding
   limit match_count;
@@ -218,6 +220,7 @@ as $$
     1 - (la.embedding <=> query_embedding) as similarity
   from public.legal_articles la
   where la.is_in_force = true
+    and la.embedding is not null
     and 1 - (la.embedding <=> query_embedding) > match_threshold
     and (filter_law_source is null or la.law_source = filter_law_source)
     and (filter_institutes is null or la.related_institutes && filter_institutes)

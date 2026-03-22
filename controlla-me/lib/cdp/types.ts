@@ -127,6 +127,7 @@ export interface CustomerProfile {
 export type ProfileEventType =
   | "analysis_completed"
   | "deep_search_performed"
+  | "document_chat_message"
   | "corpus_query"
   | "lawyer_referral_requested"
   | "plan_changed"

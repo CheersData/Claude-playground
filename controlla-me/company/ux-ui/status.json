@@ -2,20 +2,20 @@
   "_meta": {
     "dept": "ux-ui",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.210Z",
+    "last_updated": "2026-03-18T17:21:27.090Z",
     "updated_by": "auto-update-dept-status"
   },
-  "health": "warning",
-  "summary": "5 task aperti. 37 completati (ultimi 7gg). 37 completati (totale).",
+  "health": "ok",
+  "summary": "7 task aperti. 98 completati (totale).",
   "design_system": {
     "palette": {
       "background": "#0a0a0a",
       "accent": "#FF6B35",
       "agent_colors": {
-        "leo": "#4ECDC4",
-        "marta": "#FF6B6B",
-        "giulia": "#A78BFA",
-        "enzo": "#FFC832"
+        "classifier": "#4ECDC4",
+        "analyzer": "#FF6B6B",
+        "investigator": "#A78BFA",
+        "advisor": "#FFC832"
       }
     },
     "typography": {
@@ -52,36 +52,7 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "fc4cb9c9",
-      "title": "Applicare brand book al redesign Ops Center (task P3)",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "63217463",
-      "title": "Armonizzare componenti secondari (TaskBoardFullscreen, DepartmentList, CMEChatPanel, TradingDashboard, ecc.)",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "fe905345",
-      "title": "Applicare Brand Book universale a Ops Center dopo customer journey analysis",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "87c18643",
-      "title": "Redesign Ops Center basato su Brand Book v3 + Customer Journey",
-      "priority": "medium",
-      "status": "open"
-    },
-    {
-      "id": "4cd4aaf0",
-      "title": "Redesign completo Gherardi Pro: UX professionale",
-      "priority": "high",
-      "status": "open"
-    }
+    "7 task open"
   ],
   "blockers": [],
   "notes": "Beauty Report in docs/BEAUTY-REPORT.md. Animazioni standard: 150-300ms, natural easing. Scoring multidimensionale completato (4 dimensioni). Pallino lampeggiante fixato con Framer Motion."

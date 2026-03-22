@@ -42,7 +42,12 @@ const API_BASE = "https://api-v2.fattureincloud.it";
 const PAGE_SIZE = 50;
 
 /** Fatture in Cloud entity types we sync */
-const SYNC_TYPES = ["issued_invoice", "received_invoice", "client"] as const;
+const SYNC_TYPES = [
+  "issued_invoice", "received_invoice", "client",
+  "supplier", "product", "quote", "order", "delivery_note",
+  "receipt", "fiscal_receipt", "credit_note", "proforma", "f24",
+  "cashbook", "taxes",
+] as const;
 type SyncType = (typeof SYNC_TYPES)[number];
 
 // ─── API response types ───

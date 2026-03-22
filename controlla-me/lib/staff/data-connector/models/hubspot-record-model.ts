@@ -5,6 +5,8 @@
  * The HubSpot connector stores raw properties in `data` JSONB and normalized
  * key fields in `mapped_fields` JSONB.
  *
+ * Supports 5 object types: contact, company, deal, ticket, engagement.
+ *
  * Same table as Stripe — differentiated by `connector_source = 'hubspot'`.
  */
 
@@ -39,7 +41,7 @@ export class HubSpotRecordModel implements ModelInterface {
       {
         name: "object_type",
         type: "text NOT NULL",
-        purpose: `Object type: ${objectTypes.length > 0 ? objectTypes.join(", ") : "contact, company, deal, ticket"}`,
+        purpose: `Object type: ${objectTypes.length > 0 ? objectTypes.join(", ") : "contact, company, deal, ticket, engagement"}`,
         exists: false,
       },
       {
@@ -208,7 +210,7 @@ export function validateHubSpotRecord(record: HubSpotRecord): {
   }
 
   // Validate objectType is one of the known types
-  const validTypes = ["contact", "company", "deal", "ticket"];
+  const validTypes = ["contact", "company", "deal", "ticket", "engagement"];
   if (record.objectType && !validTypes.includes(record.objectType)) {
     errors.push(`Unknown objectType: ${record.objectType}`);
   }

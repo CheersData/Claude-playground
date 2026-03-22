@@ -1,0 +1,133 @@
+# =============================================================================
+# docker-compose.yml — controlla.me production stack
+# Target: Hetzner CX21 (2 vCPU, 4GB RAM, 40GB SSD)
+# =============================================================================
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose logs -f nextjs     # Follow Next.js logs
+#   docker compose restart trading    # Restart trading only
+#   docker compose down               # Stop all services
+#
+# Zero-downtime deploy:
+#   ./deploy/scripts/deploy.sh        # Pull, build, rolling restart
+#
+
+services:
+  # ---------------------------------------------------------------------------
+  # Next.js Application (controlla.me + poimandres.work)
+  # ---------------------------------------------------------------------------
+  nextjs:
+    build:
+      context: ../
+      dockerfile: deploy/docker/Dockerfile
+    container_name: controlla-nextjs
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    volumes:
+      # Persistent analysis cache (survives container restart)
+      - analysis-cache:/app/.analysis-cache
+      # Company data (task board, status files, daemon state)
+      - company-data:/app/company
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2560M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Python Trading System (scheduler: daily + intraday pipelines)
+  # ---------------------------------------------------------------------------
+  trading:
+    build:
+      context: ../
+      dockerfile: deploy/docker/Dockerfile.trading
+    container_name: controlla-trading
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - TRADING_MODE=${TRADING_MODE:-paper}
+      - TRADING_ENABLED=${TRADING_ENABLED:-true}
+    volumes:
+      # Trading logs
+      - trading-logs:/app/trading/logs
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1024M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "from src.config.settings import Settings; print('ok')"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # Trading depends on having env configured — does NOT depend on nextjs
+    # They communicate via Supabase, not local networking
+
+  # ---------------------------------------------------------------------------
+  # Cron Jobs (replaces Vercel Crons)
+  # Runs scheduled tasks that were previously handled by vercel.json crons
+  # ---------------------------------------------------------------------------
+  cron:
+    image: alpine:3.19
+    container_name: controlla-cron
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scripts/crontab:/etc/crontabs/root:ro
+    entrypoint: crond
+    command: ["-f", "-d", "8"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+# =============================================================================
+# Named volumes — persist across container restarts and rebuilds
+# =============================================================================
+volumes:
+  analysis-cache:
+    driver: local
+  company-data:
+    driver: local
+  trading-logs:
+    driver: local

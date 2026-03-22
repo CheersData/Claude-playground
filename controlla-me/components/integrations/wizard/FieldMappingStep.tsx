@@ -114,8 +114,11 @@ export default function FieldMappingStep({
             <span className="w-12 text-right">Conf.</span>
           </div>
 
-          {/* Mapping rows */}
-          <div className="space-y-0">
+          {/* Mapping rows — scrollable container for many fields */}
+          <div
+            className="space-y-0 overflow-y-auto"
+            style={{ maxHeight: "min(60vh, 520px)" }}
+          >
             {activeMappings.mappings.map((mapping, i) => (
               <div
                 key={mapping.sourceField}
@@ -145,7 +148,7 @@ export default function FieldMappingStep({
                   onChange={(e) =>
                     onUpdateMapping(activeMappings.entityId, mapping.sourceField, e.target.value)
                   }
-                  className="flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-all focus:ring-2 cursor-pointer appearance-none"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 cursor-pointer appearance-none"
                   style={{
                     background: "var(--bg-base)",
                     border: "1px solid var(--border-dark-subtle)",
@@ -175,6 +178,16 @@ export default function FieldMappingStep({
               </div>
             ))}
           </div>
+
+          {/* Row count indicator — visible whenever scroll is needed */}
+          {activeMappings.mappings.length > 4 && (
+            <div
+              className="text-xs text-center py-2"
+              style={{ color: "var(--fg-muted)", borderTop: "1px solid var(--border-dark-subtle)" }}
+            >
+              {activeMappings.mappings.length} campi totali &mdash; scorri per vederli tutti
+            </div>
+          )}
         </motion.div>
       )}
 

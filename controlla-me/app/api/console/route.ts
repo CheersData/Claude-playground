@@ -17,6 +17,7 @@ import { getActiveModel, getCurrentTier, isAgentEnabled, sessionTierStore, type 
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { loadFormaMentisContext } from "@/lib/company/memory/daemon-context-loader";
 import type { AgentName } from "@/lib/models";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus, ConversationTurn } from "@/lib/types";
 import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
@@ -62,6 +63,12 @@ export async function POST(req: NextRequest) {
         }
       };
 
+      // ADR-005: Attach parentPid and sessionId to all broadcastConsoleAgent calls.
+      // The console route runs the pipeline in-process (not via claude -p child),
+      // so parentPid is the Next.js server PID and sessionId comes from the token sid.
+      const terminalPid = process.pid;
+      const terminalSessionId = sessionCtx.sid;
+
       const sendAgent = (
         phase: ConsoleAgentPhase,
         status: ConsolePhaseStatus,
@@ -69,9 +76,12 @@ export async function POST(req: NextRequest) {
       ) => {
         send("agent", { phase, status, ...extra });
         // Broadcast to /api/company/agents/live for Ops dashboard
+        // ADR-005: include parentPid + sessionId so agents are grouped under this terminal
         const mappedStatus = status === "skipped" ? "done" : status as "running" | "done" | "error";
         broadcastConsoleAgent(phase, mappedStatus, {
           task: extra?.summary as string ?? phase,
+          parentPid: terminalPid,
+          sessionId: terminalSessionId,
         });
       };
 
@@ -119,6 +129,43 @@ export async function POST(req: NextRequest) {
           documentText = sanitizeDocumentText(rawText);
         }
 
+        // ── FORMA MENTIS CONTEXT (async, non-blocking) ──
+        let formaMentisBlock = "";
+        try {
+          const fmStart = Date.now();
+          const { context: fmContext, sessionBlock, memoryBlock, goalBlock, statusBlock, daemonBlock } = await loadFormaMentisContext();
+
+          // Compose a single context block from all Forma Mentis layers
+          const parts: string[] = [];
+          if (daemonBlock) parts.push(daemonBlock);
+          if (sessionBlock) parts.push(sessionBlock);
+          if (statusBlock) parts.push(statusBlock);
+          if (memoryBlock) parts.push(memoryBlock);
+          if (goalBlock) parts.push(goalBlock);
+
+          if (parts.length > 0) {
+            formaMentisBlock = `\n\n--- CONTESTO AZIENDALE (Forma Mentis) ---\n${parts.join("\n")}\n--- FINE CONTESTO AZIENDALE ---\n`;
+          }
+
+          const fmMs = Date.now() - fmStart;
+          const atRiskGoals = fmContext.activeGoals.filter((g) => g.status === "at_risk").length;
+          const warningCount = fmContext.departmentMemories.filter((m) => m.category === "warning").length;
+          console.log(
+            `[CONSOLE] Forma Mentis context loaded in ${fmMs}ms | ` +
+            `${fmContext.recentSessions.length} sessions | ` +
+            `${fmContext.departmentMemories.length} memories (${warningCount} warnings) | ` +
+            `${fmContext.activeGoals.length} goals (${atRiskGoals} at_risk) | ` +
+            `${fmContext.pendingDecisions} pending decisions | ` +
+            `${formaMentisBlock.length} chars total`
+          );
+        } catch (err) {
+          console.error(
+            "[CONSOLE] Forma Mentis context failed (continuing without):",
+            err instanceof Error ? err.message : err
+          );
+          // Graceful fallback: continue without company context
+        }
+
         // ── LEADER ──
         sendAgent("leader", "running", { modelInfo: getModelInfo("leader") });
         const leaderStart = Date.now();
@@ -129,6 +176,7 @@ export async function POST(req: NextRequest) {
           fileName,
           textLength: documentText.length,
           history: history.length > 0 ? history : undefined,
+          companyContext: formaMentisBlock || undefined,
         });
 
         const leaderMs = Date.now() - leaderStart;
@@ -140,12 +188,13 @@ export async function POST(req: NextRequest) {
             route: decision.route,
             reasoning: decision.reasoning,
             question: decision.question,
+            hasCompanyContext: formaMentisBlock.length > 0,
           },
           decision,
         });
 
         console.log(
-          `[CONSOLE] Leader: ${decision.route} | ${decision.reasoning} | ${leaderMs}ms`
+          `[CONSOLE] Leader: ${decision.route} | ${decision.reasoning} | ${leaderMs}ms | companyCtx: ${formaMentisBlock.length > 0 ? "yes" : "no"}`
         );
 
         // ── ROUTE: clarification ──

@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "dept": "music",
+    "schema_version": "1.0",
+    "last_updated": "2026-03-20T12:00:00Z",
+    "updated_by": "cme"
+  },
+  "health": "ok",
+  "summary": "Ufficio Musica appena creato. Fase 0 non ancora avviata. Report Strategy e Architecture completati, boss ha approvato.",
+  "phase": {
+    "current": "setup",
+    "stages": ["setup", "fondamenta", "core_mvp", "release_growth", "monetizzazione"],
+    "setup": "in_progress",
+    "fondamenta": "pending",
+    "core_mvp": "pending",
+    "release_growth": "pending",
+    "monetizzazione": "pending"
+  },
+  "runtime": {
+    "mode": "planning",
+    "enabled": false,
+    "last_execution": null,
+    "metrics": {}
+  },
+  "risk": {
+    "demucs_gpu": "MVP su CPU (~3min/brano), GPU quando volume lo richiede",
+    "tunebat_api": "Pricing non pubblico, fallback su Hooktheory + analisi locale",
+    "llm_quality": "Suggerimenti LLM da validare con artisti reali"
+  },
+  "agents": {
+    "audio-analyst": "planned",
+    "trend-scout": "planned",
+    "arrangement-director": "planned",
+    "release-strategist": "planned",
+    "quality-reviewer": "planned",
+    "career-advisor": "planned"
+  },
+  "next_actions": [
+    "Creare schema DB migration (music_analyses, music_artist_profiles, music_trend_cache)",
+    "Setup music/pyproject.toml con dipendenze Python",
+    "Implementare pipeline base: upload -> Demucs stem separation"
+  ],
+  "open_tasks": [],
+  "blockers": [],
+  "notes": "Approvazione boss ricevuta 2026-03-20. Marketing aveva dato NO-GO, boss ha overridato: vuole dipartimento artistico."
+}

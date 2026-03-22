@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ResultsView from "@/components/ResultsView";
+import DocumentChat from "@/components/DocumentChat";
 import type { Analysis } from "@/lib/types";
 
 interface AnalysisPageClientProps {
@@ -31,12 +32,32 @@ export default function AnalysisPageClient({
       </div>
 
       {analysis.advice ? (
-        <ResultsView
-          result={analysis.advice}
-          fileName={analysis.file_name}
-          analysisId={analysis.id}
-          onReset={() => (window.location.href = "/")}
-        />
+        <>
+          <ResultsView
+            result={analysis.advice}
+            fileName={analysis.file_name}
+            analysisId={analysis.id}
+            onReset={() => (window.location.href = "/")}
+          />
+
+          {/* Chat con memoria sul documento analizzato */}
+          <div className="max-w-[720px] mx-auto px-6 pb-16 mt-8">
+            <DocumentChat
+              analysisId={analysis.id}
+              analysisData={{
+                summary: analysis.advice.summary,
+                risks: analysis.advice.risks?.map((r) => ({
+                  title: r.title,
+                  detail: r.detail,
+                  severity: r.severity,
+                  legalBasis: r.legalBasis,
+                })),
+                fairnessScore: analysis.advice.fairnessScore,
+                fileName: analysis.file_name,
+              }}
+            />
+          </div>
+        </>
       ) : (
         <div className="max-w-[720px] mx-auto px-6 py-16 text-center">
           <p className="text-foreground-secondary">

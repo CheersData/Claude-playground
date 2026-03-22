@@ -41,10 +41,21 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 030 | `030_integration_tables.sql` | Integration framework DB: `credential_vault` (pgcrypto encrypted credentials + RPC vault_store/vault_retrieve/vault_refresh), `connector_field_mappings` (AI mapping cache rule+LLM, TTL 30gg), `crm_records` (raw + mapped business data). RLS per-user su vault e CRM, service_role su mappings. ADR-integration-framework. | — |
 | 031 | `031_integration_office_tables.sql` | Integration Office DB: `integration_credentials` (AES-256-GCM encrypted OAuth2/API key storage), `integration_connections` (connector config + sync status), `integration_sync_log` (sync history, TTL 90gg), `integration_field_mappings` (cached mappings rule/similarity/llm/user, TTL 30gg), `integration_credential_audit` (GDPR audit trail, TTL 2 anni). RLS per-user + service_role. 3 RPC cleanup functions. | — |
 | 032 | `032_integration_unique_index.sql` | Unique partial index su `integration_connections(user_id, connector_type)` per connessioni attive (WHERE status != 'disconnected'). Previene duplicati su upsert. | — |
+| 033 | `033_domain_support.sql` | (FIXED) Usa `vertical` coerentemente con migration 027 (era `domain`). Aggiornate le funzioni `match_legal_articles`, `get_articles_by_source`, `get_articles_by_institute` con filtro `filter_vertical` e NULL embedding guard. | — |
+| 034 | `034_fix_vector_search.sql` | HOTFIX: (1) Fix embedding vector(1536)->vector(1024) se colonna sbagliata, (2) consolida domain/vertical su `vertical` sola, (3) NULL embedding guard su tutte le RPC, (4) diagnostica articoli senza embedding. | — |
+| 035 | `035_hnsw_ef_search.sql` | HNSW ef_search=200 su tutte le 5 funzioni match_* (default pgvector=40 troppo basso per recall). Function-level SET, nessun side effect globale. | — |
+| 036 | `036_consolidate_credential_vault.sql` | Consolida credential vault: drop `integration_credentials` (031, AES-256-GCM client-side) in favore di `credential_vault` (030, pgcrypto RPC server-side). Drop `connector_field_mappings` (030) in favore di `integration_field_mappings` (031). Drop FK `credential_id` da `integration_connections`. Aggiunge colonna `scopes` a `credential_vault`. Aggiorna `cleanup_integration_data()`. | — |
+| 037 | `037_schema_discovery.sql` | Schema Discovery: `discovered_schemas` (cache catalogo JSONB, TTL 7gg), `entity_mapping_configs` (mapping source→target con versioning), `nl_transform_executions` (audit NL→code, TTL 90gg). RLS per-user + service_role. Auto-increment version su update. Cleanup RPC per TTL. | — |
+| 038 | `038_integration_notifications.sql` | Notifiche integrazione | — |
+| 039 | `039_webhook_events_and_sync_retry.sql` | Webhook events e sync retry per integrazioni | — |
+| 040 | `040_forma_mentis.sql` | Forma Mentis (ADR): 6 tabelle (`company_sessions`, `department_memory`, `company_knowledge`, `company_goals`, `daemon_reports`, `decision_journal`) + 4 RPC semantic search (`match_company_knowledge`, `match_department_memory`, `match_company_sessions`, `match_decisions`). HNSW vector(1024) su 4 tabelle. RLS service_role. Layer 1 MEMORIA + Layer 3 COSCIENZA + Layer 4 RIFLESSIONE. | — |
+| 041 | `041_document_chat.sql` | Document Chat: `document_conversations` + `document_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. | — |
+| 042 | `042_deep_search_conversations.sql` | Deep Search conversazionale: `deep_search_conversations` (per clausola) + `deep_search_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. Stesso pattern di 041 applicato alla deep search su clausole. | — |
+| 043 | `043_lower_thresholds_and_null_audit.sql` | Lower SQL default thresholds on all 9 `match_*` RPC functions to align with TS callers (Voyage AI voyage-law-2 yields ~0.40-0.65 for Italian text). NULL embedding diagnostic per table and per law_source. Confirms `SET hnsw.ef_search = 200` on all RPCs. | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 032) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 043) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -82,6 +93,16 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 030 → indipendente (pgcrypto extension, 3 nuove tabelle, nessuna FK a tabelle app esistenti)
 031 → indipendente (5 nuove tabelle Integration Office, FK solo a auth.users)
 032 → dipende da 031 (indice su integration_connections)
+033 → dipende da 027 (usa vertical, non domain)
+034 → dipende da 003+004+005+027+033 (hotfix: consolida schema, fix RPC, NULL guard)
+036 → dipende da 030 + 031 (consolida credential_vault, drop integration_credentials + connector_field_mappings)
+037 → dipende da 031 (FK su integration_connections)
+038 → dipende da 031 (integration notifications)
+039 → dipende da 031 (webhook events e sync retry)
+040 → dipende da 003 (pgvector extension) + 013 (FK company_tasks)
+041 → dipende da 001 (FK su analyses, auth.users)
+042 → dipende da 001 (FK su analyses, auth.users). Stesso pattern di 041
+043 → dipende da 003+034+035+040 (CREATE OR REPLACE su tutte le match_* RPC functions)
 ```
 
 ## Storico rinumerazione
@@ -89,3 +110,7 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 I file 003–010 sono stati rinumerati il 2026-03-01 (TD-3 architecture review) perche
 esistevano doppioni con lo stesso numero prefisso. La sequenza originale era:
 `003, 003, 004, 004, 005, 005, 006, 006, 007, 007, 008, 009, 010`.
+
+Il 2026-03-14 `004_domain_support.sql` (aggiunto il 2026-03-11) collideva con
+`004_legal_corpus.sql` (gia in registro). Rinominato a `033_domain_support.sql`
+(task 870b03f4, Architecture dept).

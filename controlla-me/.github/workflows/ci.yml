@@ -31,8 +31,16 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Tests
-        run: npx vitest run
+      - name: Tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
       - name: Build
         run: npm run build
@@ -50,3 +58,69 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+      - name: Parse Playwright results
+        id: pw-results
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: |
+          node <<'SCRIPT'
+          const fs = require('fs');
+          const resultsPath = 'playwright-results.json';
+          const outputFile = process.env.GITHUB_OUTPUT;
+
+          if (!fs.existsSync(resultsPath)) {
+            fs.appendFileSync(outputFile, 'summary=No Playwright results found (JSON report missing).\n');
+            fs.appendFileSync(outputFile, 'status=unknown\n');
+            process.exit(0);
+          }
+
+          const data = JSON.parse(fs.readFileSync(resultsPath, 'utf-8'));
+          const suites = data.suites || [];
+          let passed = 0, failed = 0, skipped = 0, flaky = 0;
+
+          function countSpecs(suite) {
+            for (const spec of (suite.specs || [])) {
+              for (const test of (spec.tests || [])) {
+                const s = test.status;
+                if (s === 'expected') passed++;
+                else if (s === 'unexpected') failed++;
+                else if (s === 'skipped') skipped++;
+                else if (s === 'flaky') flaky++;
+              }
+            }
+            for (const child of (suite.suites || [])) countSpecs(child);
+          }
+          suites.forEach(countSpecs);
+
+          const total = passed + failed + skipped + flaky;
+          const status = failed > 0 ? 'failure' : 'success';
+
+          // Build summary as multi-line GH output using heredoc delimiter
+          let summary = '';
+          summary += (failed > 0 ? ':red_circle:' : ':green_circle:');
+          summary += ' **Playwright E2E: ' + (failed > 0 ? 'FAILED' : 'PASSED') + '**\n\n';
+          summary += '| Status | Count |\n';
+          summary += '|--------|-------|\n';
+          summary += '| Passed | ' + passed + ' |\n';
+          summary += '| Failed | ' + failed + ' |\n';
+          if (flaky > 0) summary += '| Flaky | ' + flaky + ' |\n';
+          if (skipped > 0) summary += '| Skipped | ' + skipped + ' |\n';
+          summary += '| **Total** | **' + total + '** |\n';
+
+          fs.appendFileSync(outputFile, 'status=' + status + '\n');
+          fs.appendFileSync(outputFile, 'summary<<PWEOF\n' + summary + 'PWEOF\n');
+          SCRIPT
+
+      - name: Comment PR with Playwright results
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: playwright-results
+          message: |
+            ## Playwright E2E Report
+
+            ${{ steps.pw-results.outputs.summary }}
+
+            :link: **[View full report & download artifact](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})**
+
+            <sub>Commit: ${{ github.event.pull_request.head.sha }} | Run #${{ github.run_number }}</sub>

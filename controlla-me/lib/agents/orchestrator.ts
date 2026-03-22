@@ -21,6 +21,7 @@ import {
 import { isVectorDBEnabled } from "../embeddings";
 import { isAgentEnabled } from "../tiers";
 import { onPipelineComplete } from "../company/hooks";
+import { broadcastConsoleAgent } from "../agent-broadcast";
 import type {
   ClassificationResult,
   AnalysisResult,
@@ -135,6 +136,8 @@ export async function runOrchestrator(
   let legalContext = "";
   let ragContext = "";
 
+  broadcastConsoleAgent("retrieval", "running", { task: "Retrieval: contesto normativo per Analyzer" });
+
   try {
     // Retrieve from the legal corpus (actual law articles)
     const legalResult = await retrieveLegalContext({
@@ -172,11 +175,18 @@ export async function runOrchestrator(
         );
       }
     }
+
+    const contextChars = (legalContext?.length ?? 0) + (ragContext?.length ?? 0);
+    broadcastConsoleAgent("retrieval", "done", {
+      task: `Retrieval: ${contextChars} chars contesto normativo`,
+    });
   } catch (error) {
     // Knowledge retrieval failure is non-fatal
+    const errMsg = error instanceof Error ? error.message : "Unknown";
     console.error(
-      `[ORCHESTRATOR] Errore retrieval contesto: ${error instanceof Error ? error.message : "Unknown"}`
+      `[ORCHESTRATOR] Errore retrieval contesto: ${errMsg}`
     );
+    broadcastConsoleAgent("retrieval", "error", { task: `Retrieval fallito: ${errMsg}` });
   }
 
   // Step 2: Analyzer (now receives legal context from vector DB)
@@ -215,6 +225,7 @@ export async function runOrchestrator(
   // Step 2.5: Retrieve additional legal context for problematic clauses
   // Now that we have the analysis, we can do semantic search with clause texts
   let investigatorLegalContext = legalContext;
+  broadcastConsoleAgent("retrieval", "running", { task: "Retrieval: contesto clausole per Investigator" });
   try {
     if (isVectorDBEnabled() && result.analysis?.clauses?.length > 0) {
       const problematicTexts = result.analysis.clauses
@@ -232,8 +243,12 @@ export async function runOrchestrator(
         investigatorLegalContext = formatLegalContextForPrompt(clauseContext);
       }
     }
+    broadcastConsoleAgent("retrieval", "done", {
+      task: `Retrieval: contesto clausole pronto (${investigatorLegalContext.length} chars)`,
+    });
   } catch {
     // Non-fatal
+    broadcastConsoleAgent("retrieval", "error", { task: "Retrieval clausole fallito (non bloccante)" });
   }
 
   // Step 3: Investigator (now receives legal context + RAG context)
@@ -318,6 +333,7 @@ export async function runOrchestrator(
     result.investigation &&
     result.advice
   ) {
+    broadcastConsoleAgent("retrieval", "running", { task: "Auto-index: salvataggio conoscenza nel vector DB" });
     autoIndexAnalysis(
       sessionId,
       documentText,
@@ -325,11 +341,15 @@ export async function runOrchestrator(
       result.analysis,
       result.investigation,
       result.advice
-    ).catch((err) =>
-      console.error(
-        `[ORCHESTRATOR] Errore auto-indexing: ${err instanceof Error ? err.message : "Unknown"}`
-      )
-    );
+    )
+      .then(() => {
+        broadcastConsoleAgent("retrieval", "done", { task: "Auto-index completato" });
+      })
+      .catch((err) => {
+        const errMsg = err instanceof Error ? err.message : "Unknown";
+        console.error(`[ORCHESTRATOR] Errore auto-indexing: ${errMsg}`);
+        broadcastConsoleAgent("retrieval", "error", { task: `Auto-index fallito: ${errMsg}` });
+      });
   }
 
   return result;

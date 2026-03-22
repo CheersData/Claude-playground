@@ -64,6 +64,16 @@ export abstract class AuthenticatedBaseConnector<
     options?: RequestInit,
     maxRetries = 3
   ): Promise<Response> {
+    // If caller already provided an Authorization header (e.g. explicit token
+    // from the credential vault), skip the auth handler entirely and delegate
+    // to BaseConnector.fetchWithRetry(). This avoids the dual-auth conflict
+    // where the auth handler tries to read env vars that don't exist when
+    // credentials come from the per-user vault.
+    const callerHeaders = new Headers(options?.headers ?? {});
+    if (callerHeaders.has("authorization")) {
+      return super.fetchWithRetry(url, options, maxRetries);
+    }
+
     // Auto-authenticate se non ancora fatto
     if (!this.authHandler.isValid()) {
       try {

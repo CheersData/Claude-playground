@@ -489,7 +489,7 @@ export function OverviewSummaryPanel() {
           onChange={(e) => setNotes(e.target.value)}
           onBlur={saveNotes}
           placeholder={"Scrivi qui priorità, decisioni, note per la sessione...\n\nEs:\n• Chiamare avvocato per DPA\n• Review backtest results\n• Decidere verticale Q2"}
-          className="flex-1 min-h-[160px] bg-[var(--bg-base)] border border-[var(--border-dark)] rounded-md p-3 text-xs text-[var(--fg-secondary)] placeholder:text-[var(--fg-muted)] resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] transition-colors font-mono leading-relaxed"
+          className="flex-1 min-h-[80px] md:min-h-[160px] bg-[var(--bg-base)] border border-[var(--border-dark)] rounded-md p-3 text-xs text-[var(--fg-secondary)] placeholder:text-[var(--fg-muted)] resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)] transition-colors font-mono leading-relaxed"
         />
         <div className="flex items-center justify-between mt-2">
           <span className="text-xs text-[var(--fg-invisible)]">

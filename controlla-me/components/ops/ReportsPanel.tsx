@@ -351,8 +351,7 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2 }}
-      className="bg-[var(--bg-raised)] border border-[var(--border-dark-subtle)] rounded-xl overflow-y-auto"
-      style={{ minHeight: "600px" }}
+      className="bg-[var(--bg-raised)] border border-[var(--border-dark-subtle)] rounded-xl overflow-hidden flex-1 flex flex-col min-h-0"
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-dark-subtle)] bg-[var(--bg-overlay)]/40">
@@ -379,7 +378,7 @@ export function ReportsPanel({ onBack }: ReportsPanelProps) {
         </div>
       </div>
 
-      <div className="flex" style={{ height: "calc(600px - 49px)" }}>
+      <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
         <div className="w-56 shrink-0 border-r border-[var(--border-dark-subtle)] overflow-y-auto">
           {loadingList ? (

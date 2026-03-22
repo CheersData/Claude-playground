@@ -3,7 +3,12 @@
 **ADR**: 015
 **Data**: 2026-03-08
 **Owner**: Architecture
-**Stato**: proposed
+**Stato**: SUPERSEDED (2026-03-18)
+
+> **NOTA**: Questo design è stato **superato** dal sistema CME Directive implementato il 2026-03-18.
+> Il daemon NON esegue più task né genera plenarie. È un **sensore puro** ($0/ciclo) che scrive una `cmeDirective` nel `daemon-report.json`.
+> CME nel terminale legge la direttiva e agisce (smaltimento 5 alla volta / audit in_progress / plenaria).
+> Vedi: `company/cme.md` (sezione avvio CME) e `scripts/cme-autorun.ts` (funzione `generateCmeDirective()`).
 
 ---
 

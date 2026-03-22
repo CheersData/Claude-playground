@@ -267,7 +267,7 @@ async function loadSource(source: LawSource) {
           embedding: JSON.stringify(embeddings[k]),
           source_url: `https://www.normattiva.it/uri-res/N2Ls?${source.urn}~art${art.articleNumber}`,
           is_in_force: true,
-          domain: "legal",
+          vertical: "legal",
           updated_at: new Date().toISOString(),
           source_id: source.id,
           source_name: source.name,

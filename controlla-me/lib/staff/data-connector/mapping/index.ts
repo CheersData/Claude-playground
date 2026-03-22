@@ -360,6 +360,7 @@ export class MappingEngine {
       google_drive: "documents",
       "google-drive": "documents",
       fatture_in_cloud: "invoices",
+      "fatture-in-cloud": "invoices",
       quickbooks: "invoices",
       zendesk: "tickets",
       freshdesk: "tickets",
@@ -462,4 +463,5 @@ export { STRIPE_RULES } from "./rules/stripe-rules";
 export { HUBSPOT_RULES } from "./rules/hubspot-rules";
 export { SALESFORCE_RULES } from "./rules/salesforce-rules";
 export { GOOGLE_DRIVE_RULES } from "./rules/google-drive-rules";
+export { FATTURE_IN_CLOUD_RULES } from "./rules/fatture-in-cloud-rules";
 export type { FieldMappingRule } from "./rules/stripe-rules";

@@ -39,7 +39,13 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:loop
 npx tsx scripts/cme-autorun.ts --watch --interval 5
+echo.
+echo [%date% %time%] Daemon terminato con codice %errorlevel%. Riavvio tra 10 secondi...
+echo Premi Ctrl+C per uscire definitivamente.
+timeout /t 10 /nobreak >nul
+goto loop
 
 REM === Se il daemon termina, ripristina standby ===
 echo.

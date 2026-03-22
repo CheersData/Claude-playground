@@ -13,7 +13,7 @@
  * Design: Poimandres dark theme, framer-motion step transitions.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import EntitySelect, { type EntityOption } from "./wizard/EntitySelect";
@@ -30,6 +30,7 @@ interface ConnectorWizardConfig {
   category: string;
   icon: LucideIcon;
   authMode: AuthMode;
+  supportsApiKey?: boolean; // If true, user can choose between OAuth and API key
   oauthPermissions?: { label: string }[];
   apiKeyLabel?: string;
   secretKeyLabel?: string;
@@ -107,6 +108,59 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
 
   // Step 5: Activate
   const [activateStatus, setActivateStatus] = useState<"idle" | "activating" | "success" | "error">("idle");
+  const [activateError, setActivateError] = useState<string | null>(null);
+
+  // ─── Handle OAuth callback ───
+  // When the user returns from the OAuth provider redirect, the URL contains
+  // query params (setup=complete or oauth_error). We detect these on mount
+  // and update the wizard state accordingly.
+  useEffect(() => {
+    if (!open) return;
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("setup") === "complete") {
+      // OAuth was successful — mark auth step as verified and advance
+      setVerifyStatus("success");
+      setVerifyMessage("Account autorizzato con successo");
+      // Jump to auth step if not already past it, then auto-advance
+      if (currentStep <= 1) {
+        setCurrentStep(1);
+        setTimeout(() => {
+          setDirection(1);
+          setCurrentStep(2);
+        }, 800);
+      }
+    }
+
+    if (params.get("oauth_error")) {
+      const errorCode = params.get("oauth_error");
+      const errorDesc = params.get("oauth_error_desc");
+
+      const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+        not_authenticated: "Devi accedere prima di collegare un servizio.",
+        invalid_state: "La sessione di autorizzazione è scaduta o non valida. Riprova.",
+        token_exchange_failed: "Scambio token fallito. Riprova o contatta il supporto.",
+        server_config: "OAuth non disponibile per questo connettore. Usa l'autenticazione via API Key.",
+        expired_state: "Sessione scaduta. Riprova.",
+        invalid_code: "Codice di autorizzazione scaduto. Riprova.",
+        vault_unavailable: "Errore nel salvataggio credenziali. Riprova.",
+        no_access_token: "Il provider non ha restituito un token. Riprova.",
+      };
+
+      const message = OAUTH_ERROR_MESSAGES[errorCode ?? ""] || errorDesc || `Errore OAuth: ${errorCode}`;
+      setVerifyStatus("error");
+      setVerifyMessage(message);
+      // Ensure we're on the auth step so the user can see the error
+      if (currentStep < 1) {
+        setCurrentStep(1);
+      }
+    }
+
+    // Clean OAuth params from URL to avoid re-processing on re-render
+    if (params.has("setup") || params.has("oauth_error")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Navigation helpers ───
 
@@ -217,36 +271,26 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
 
   const handleActivate = useCallback(async () => {
     setActivateStatus("activating");
+    setActivateError(null);
     try {
-      // Create connection
-      const connRes = await fetch("/api/integrations", {
+      // Use unified setup endpoint — creates connection + saves mappings + triggers sync
+      const res = await fetch("/api/integrations/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           connectorId: connector.id,
           connectorName: connector.name,
-          frequency,
           selectedEntities,
+          frequency,
+          mappings: entityMappings,
+          triggerSync: true,
         }),
       });
 
-      if (!connRes.ok && connRes.status !== 409) {
-        throw new Error("Errore nella creazione della connessione");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Errore nella configurazione");
       }
-
-      // Save mappings
-      if (entityMappings.length > 0) {
-        await fetch(`/api/integrations/${connector.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mappings: entityMappings }),
-        });
-      }
-
-      // Trigger sync
-      await fetch(`/api/integrations/${connector.id}/sync`, {
-        method: "POST",
-      });
 
       setActivateStatus("success");
 
@@ -262,8 +306,11 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
       setTimeout(() => {
         onComplete(result);
       }, 1200);
-    } catch {
+    } catch (err) {
       setActivateStatus("error");
+      setActivateError(
+        err instanceof Error ? err.message : "Errore durante l'attivazione. Riprova."
+      );
     }
   }, [connector.id, connector.name, selectedEntities, apiKey, secretKey, entityMappings, frequency, onComplete]);
 
@@ -304,16 +351,16 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
           style={{ background: "rgba(0, 0, 0, 0.7)", backdropFilter: "blur(4px)" }}
         >
-          {/* Modal */}
+          {/* Modal — full-screen on mobile, centered modal on desktop */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-[680px] max-h-[90vh] overflow-y-auto rounded-2xl"
+            className="relative w-full sm:max-w-[680px] h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
             style={{
               background: "var(--bg-base)",
               border: "1px solid var(--border-dark)",
@@ -322,42 +369,59 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
           >
             {/* Header */}
             <div
-              className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
+              className="sticky top-0 z-10 px-6 py-4"
               style={{
                 background: "var(--bg-base)",
                 borderBottom: "1px solid var(--border-dark-subtle)",
               }}
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex items-center justify-center w-8 h-8 rounded-lg"
-                  style={{ background: "var(--bg-overlay)" }}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex items-center justify-center w-8 h-8 rounded-lg"
+                    style={{ background: "var(--bg-overlay)" }}
+                  >
+                    <connector.icon className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold" style={{ color: "var(--fg-primary)" }}>
+                      Configura {connector.name}
+                    </h2>
+                    <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
+                      {connector.category}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg transition-colors hover-bg-overlay"
+                  style={{ color: "var(--fg-muted)" }}
+                  aria-label="Chiudi wizard"
                 >
-                  <connector.icon className="w-4 h-4" style={{ color: "var(--fg-secondary)" }} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: "var(--fg-primary)" }}>
-                    Configura {connector.name}
-                  </h2>
-                  <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
-                    {connector.category}
-                  </p>
-                </div>
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg transition-colors"
-                style={{ color: "var(--fg-muted)" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+
+              {/* Security reassurance badge */}
+              <div
+                className="flex items-center gap-2 mt-3 rounded-lg px-3 py-2"
+                style={{
+                  background: "rgba(93, 228, 199, 0.06)",
+                  border: "1px solid rgba(93, 228, 199, 0.12)",
                 }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
-                aria-label="Chiudi wizard"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--success)", flexShrink: 0 }}>
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span className="text-[11px] font-medium" style={{ color: "var(--success)" }}>
+                  Connessione sicura e criptata
+                </span>
+                <span className="text-[11px] mx-1" style={{ color: "var(--fg-invisible)" }}>|</span>
+                <span className="text-[11px]" style={{ color: "var(--fg-muted)" }}>
+                  AES-256-GCM &middot; I tuoi dati restano tuoi
+                </span>
+              </div>
             </div>
 
             {/* Step indicator */}
@@ -439,6 +503,7 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
                     <AuthStep
                       connectorName={connector.name}
                       authMode={connector.authMode}
+                      supportsApiKey={connector.supportsApiKey}
                       oauthPermissions={connector.oauthPermissions}
                       apiKeyLabel={connector.apiKeyLabel}
                       secretKeyLabel={connector.secretKeyLabel}
@@ -478,6 +543,7 @@ export default function SetupWizard({ connector, open, onClose, onComplete }: Se
                       ignoredFieldsCount={mappingStats.ignored}
                       frequency={frequency}
                       activateStatus={activateStatus}
+                      activateError={activateError}
                       onActivate={handleActivate}
                       onGoToStep={goToStep}
                     />

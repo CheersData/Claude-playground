@@ -112,6 +112,14 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
     "sambanova-llama3-70b",   // 200K tok/day
     "mistral-large-3",        // 2 RPM (ultimo resort)
   ],
+  // ── Document Chat — conversazione multi-turn su documenti ──
+  "document-chat": [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
   // ── Company Tasks (dipartimenti + CME) — Opus con fallback ──
   "task-executor": [
     "claude-opus-4.5",        // partner
@@ -125,6 +133,38 @@ export const AGENT_CHAINS: Record<AgentName, ModelKey[]> = {
   mapper: [
     "claude-haiku-4.5",       // partner
     "gemini-2.5-flash",       // associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
+  // ── Mapping Agent — field mapping via LLM, lightweight ──
+  "mapping-agent": [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
+  // ── Integration Setup Agent — conversational, lightweight ──
+  "integration-setup": [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
+  // ── Sync Supervisor — real-time commentary, lightweight ──
+  "sync-supervisor": [
+    "gemini-2.5-flash",       // partner + associate
+    "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
+    "cerebras-gpt-oss-120b",  // 24M tok/day
+    "sambanova-llama3-70b",   // 200K tok/day
+    "mistral-small-3",        // 2 RPM (ultimo resort)
+  ],
+  // ── Critic — revisore interno pipeline, validazione non creazione ──
+  critic: [
+    "gemini-2.5-flash",       // partner + associate
     "groq-llama4-scout",      // intern — 500K tok/day, 30 RPM
     "cerebras-gpt-oss-120b",  // 24M tok/day
     "sambanova-llama3-70b",   // 200K tok/day
@@ -144,8 +184,13 @@ export const TIER_START: Record<AgentName, Record<TierName, number>> = {
   analyzer:       { partner: 0, associate: 1, intern: 2 },
   investigator:   { partner: 0, associate: 1, intern: 1 },  // intern = associate per investigator (solo Anthropic)
   advisor:        { partner: 0, associate: 1, intern: 2 },
-  "task-executor": { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
-  mapper:           { partner: 0, associate: 1, intern: 2 },  // Haiku → Flash → Groq (ADR-2)
+  "document-chat":     { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
+  "task-executor":     { partner: 0, associate: 1, intern: 2 },  // Opus → Sonnet → Haiku
+  mapper:              { partner: 0, associate: 1, intern: 2 },  // Haiku → Flash → Groq (ADR-2)
+  "mapping-agent":     { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
+  "integration-setup": { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
+  "sync-supervisor":   { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
+  critic:              { partner: 0, associate: 0, intern: 1 },  // Flash → Groq → Cerebras
 };
 
 // ─── State ───
@@ -291,12 +336,19 @@ export const AGENT_EXECUTION_MODE: Record<AgentName, ExecutionMode> = {
   "question-prep": "sdk",
   classifier:      "sdk",
   mapper:          "sdk",   // Mapping = classificazione semplice, Groq/Cerebras via SDK (ADR-2)
+  "mapping-agent": "sdk",  // Field mapping LLM, lightweight
   // ── Heavy agents → CLI (subscription, zero costi) ──
   "corpus-agent":  "sdk",
   analyzer:        "cli",
   investigator:    "cli",
   advisor:         "cli",
   "task-executor": "cli",
+  // ── Integration agents → SDK (lightweight, Gemini Flash/Groq) ──
+  "integration-setup": "sdk",
+  "sync-supervisor":   "sdk",
+  // ── Document chat → SDK (Gemini Flash/Groq, conversational) ──
+  "document-chat":     "sdk",
+  critic:              "sdk",
 };
 
 /**
@@ -307,12 +359,17 @@ export const CLI_MODEL_MAP: Record<AgentName, string> = {
   leader:          "haiku",
   "question-prep": "haiku",
   classifier:      "haiku",
-  mapper:          "haiku",    // Mapping = task semplice, haiku sufficiente (ADR-2)
+  mapper:              "haiku",    // Mapping = task semplice, haiku sufficiente (ADR-2)
+  "mapping-agent":     "haiku",   // Fallback CLI, non usato (SDK mode)
+  "integration-setup": "haiku",   // Fallback CLI, non usato (SDK mode)
+  "sync-supervisor":   "haiku",   // Fallback CLI, non usato (SDK mode)
+  "document-chat":     "haiku",   // Fallback CLI, non usato (SDK mode)
   "corpus-agent":  "sonnet",
   analyzer:        "sonnet",
   investigator:    "sonnet",
   advisor:         "sonnet",
   "task-executor": "opus",
+  critic:              "haiku",
 };
 
 /**
@@ -341,7 +398,9 @@ export function getTierInfo(): TierInfo {
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor", "mapper",
+    "analyzer", "investigator", "advisor", "document-chat",
+    "task-executor", "mapper", "mapping-agent",
+    "integration-setup", "sync-supervisor",
   ];
 
   for (const agent of allAgents) {
@@ -383,7 +442,9 @@ export function getTierInfoForSession(
   const agents = {} as TierInfo["agents"];
   const allAgents: AgentName[] = [
     "leader", "question-prep", "classifier", "corpus-agent",
-    "analyzer", "investigator", "advisor", "task-executor", "mapper",
+    "analyzer", "investigator", "advisor", "document-chat",
+    "task-executor", "mapper", "mapping-agent",
+    "integration-setup", "sync-supervisor",
   ];
 
   for (const agent of allAgents) {
@@ -423,15 +484,20 @@ export function getTierInfoForSession(
  */
 export function estimateTierCost(): { perQuery: number; label: string } {
   const TYPICAL_TOKENS: Record<AgentName, { input: number; output: number }> = {
-    leader:         { input: 800,  output: 200 },
-    "question-prep": { input: 1000, output: 400 },
-    classifier:     { input: 5000, output: 1200 },
-    "corpus-agent": { input: 8000, output: 2000 },
-    analyzer:       { input: 10000, output: 4000 },
-    investigator:   { input: 6000, output: 3000 },
-    advisor:          { input: 8000, output: 2000 },
-    "task-executor":  { input: 2000, output: 1500 },
-    mapper:           { input: 1500, output: 800 },
+    leader:              { input: 800,  output: 200 },
+    "question-prep":     { input: 1000, output: 400 },
+    classifier:          { input: 5000, output: 1200 },
+    "corpus-agent":      { input: 8000, output: 2000 },
+    analyzer:            { input: 10000, output: 4000 },
+    investigator:        { input: 6000, output: 3000 },
+    advisor:             { input: 8000, output: 2000 },
+    "task-executor":     { input: 2000, output: 1500 },
+    mapper:              { input: 1500, output: 800 },
+    "mapping-agent":     { input: 1500, output: 800 },
+    "integration-setup": { input: 1500, output: 800 },
+    "sync-supervisor":   { input: 800,  output: 400 },
+    "document-chat":     { input: 6000, output: 2000 },
+    critic:              { input: 8000, output: 1000 },
   };
 
   let total = 0;
@@ -457,15 +523,20 @@ export function estimateTierCostForSession(
   disabled: Set<AgentName>
 ): { perQuery: number; label: string } {
   const TYPICAL_TOKENS: Record<AgentName, { input: number; output: number }> = {
-    leader:          { input: 800,   output: 200 },
-    "question-prep": { input: 1000,  output: 400 },
-    classifier:      { input: 5000,  output: 1200 },
-    "corpus-agent":  { input: 8000,  output: 2000 },
-    analyzer:        { input: 10000, output: 4000 },
-    investigator:    { input: 6000,  output: 3000 },
-    advisor:          { input: 8000,  output: 2000 },
-    "task-executor":  { input: 2000,  output: 1500 },
-    mapper:           { input: 1500,  output: 800 },
+    leader:              { input: 800,   output: 200 },
+    "question-prep":     { input: 1000,  output: 400 },
+    classifier:          { input: 5000,  output: 1200 },
+    "corpus-agent":      { input: 8000,  output: 2000 },
+    analyzer:            { input: 10000, output: 4000 },
+    investigator:        { input: 6000,  output: 3000 },
+    advisor:             { input: 8000,  output: 2000 },
+    "task-executor":     { input: 2000,  output: 1500 },
+    mapper:              { input: 1500,  output: 800 },
+    "mapping-agent":     { input: 1500,  output: 800 },
+    "integration-setup": { input: 1500,  output: 800 },
+    "sync-supervisor":   { input: 800,   output: 400 },
+    "document-chat":     { input: 6000,  output: 2000 },
+    critic:              { input: 8000,  output: 1000 },
   };
 
   let total = 0;

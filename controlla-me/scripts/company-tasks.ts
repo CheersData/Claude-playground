@@ -18,6 +18,10 @@ import * as fs from "fs";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
+// Self-timeout: auto-exit after 5 min to prevent zombie accumulation
+import { enableSelfTimeout } from "../lib/company/self-preservation";
+enableSelfTimeout(5 * 60 * 1000);
+
 import {
   createTask,
   claimTask,
@@ -79,7 +83,7 @@ async function main() {
       console.log("╚══════════════════════════════════════════════╝\n");
       console.log(`Total tasks: ${board.total}`);
       console.log(
-        `  Open: ${board.byStatus.open} | In Progress: ${board.byStatus.in_progress} | Review: ${board.byStatus.review} | Done: ${board.byStatus.done} | Blocked: ${board.byStatus.blocked}`
+        `  Open: ${board.byStatus.open} | In Progress: ${board.byStatus.in_progress} | Review: ${board.byStatus.review} | Done: ${board.byStatus.done} | Blocked: ${board.byStatus.blocked} | On Hold: ${board.byStatus.on_hold}`
       );
       // Outcome counter from benefit_status
       {

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Loader2, type LucideIcon } from "lucide-react";
+import { Check, Loader2, AlertCircle, type LucideIcon } from "lucide-react";
 import type { SyncFrequency } from "./FrequencyStep";
 import type { EntityOption } from "./EntitySelect";
 
@@ -18,6 +18,7 @@ interface ReviewStepProps {
   ignoredFieldsCount: number;
   frequency: SyncFrequency;
   activateStatus: "idle" | "activating" | "success" | "error";
+  activateError?: string | null;
   onActivate: () => void;
   onGoToStep: (step: number) => void;
 }
@@ -45,6 +46,7 @@ export default function ReviewStep({
   ignoredFieldsCount,
   frequency,
   activateStatus,
+  activateError,
   onActivate,
   onGoToStep,
 }: ReviewStepProps) {
@@ -210,6 +212,20 @@ export default function ReviewStep({
         )}
         {activateStatus === "error" && "Riprova attivazione"}
       </motion.button>
+
+      {/* Error message */}
+      {activateStatus === "error" && activateError && (
+        <div
+          className="flex items-start gap-2 mt-3 px-4 py-3 rounded-xl text-sm"
+          style={{
+            background: "rgba(229, 141, 120, 0.1)",
+            border: "1px solid rgba(229, 141, 120, 0.2)",
+          }}
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--error)" }} />
+          <span style={{ color: "var(--error)" }}>{activateError}</span>
+        </div>
+      )}
     </div>
   );
 }

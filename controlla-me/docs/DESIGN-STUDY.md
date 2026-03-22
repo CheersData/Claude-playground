@@ -409,10 +409,10 @@ Accent muted:                 rgba(255,107,53, 0.08)  (subtle backgrounds)
 ### Agent Colors (Semantic Palette)
 
 ```
-Leo (Classifier):     #4ECDC4  (teal)     — scanning, categorizing
-Marta (Analyzer):     #FF6B6B  (corallo)  — risk detection, warnings
-Giulia (Investigator):#A78BFA  (viola)    — research, investigation
-Enzo (Advisor):       #FFC832  (oro)      — golden advice, final word
+Classifier:     #4ECDC4  (teal)     — scanning, categorizing
+Analyzer:       #FF6B6B  (corallo)  — risk detection, warnings
+Investigator:   #A78BFA  (viola)    — research, investigation
+Advisor:        #FFC832  (oro)      — golden advice, final word
 ```
 
 These colors should maintain a 4.5:1 contrast ratio against their respective backgrounds. On dark backgrounds, these colors work well as-is. On light backgrounds, consider darkening them by 15-20% for text use (but keep the bright versions for badges, icons, and accents).

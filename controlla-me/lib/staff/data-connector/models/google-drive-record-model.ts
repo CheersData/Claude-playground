@@ -4,6 +4,13 @@
  * Describes the generic `crm_records` schema from 030_integration_tables.sql.
  * The Google Drive connector stores all data in `data` JSONB and normalized key
  * fields in `mapped_fields` JSONB.
+ *
+ * Enhanced fields (MVP 1B):
+ *   - md5_checksum: version tracking for change detection
+ *   - text_content: extracted text from Workspace exports or binary files (PDF/DOCX)
+ *   - folder_path: resolved folder path from recursive traversal
+ *   - text_extracted_from_binary: flag for PDF/DOCX extracted text
+ *   - last_modified_by_email: audit trail for file changes
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -50,14 +57,14 @@ export class GoogleDriveRecordModel implements ModelInterface {
         name: "data",
         type: "jsonb NOT NULL",
         purpose:
-          "Raw data from Google Drive: full DriveRecord with all fields (name, mimeType, owners, sharing, etc.)",
+          "Raw metadata from Google Drive: full DriveRecord fields (name, mimeType, owners, sharing, checksum, folder path, etc.) — text content excluded to avoid bloat",
         exists: false,
       },
       {
         name: "mapped_fields",
         type: "jsonb DEFAULT '{}'",
         purpose:
-          "Normalized key fields for quick access: name, mime_type, size_bytes, owner_email, shared, is_folder, etc.",
+          "Normalized key fields for quick access: name, mime_type, size_bytes, owner_email, shared, is_folder, md5_checksum (version tracking), text_content (extracted text), folder_path, last_modified_by_email, etc.",
         exists: false,
       },
       {
@@ -121,9 +128,9 @@ export class GoogleDriveRecordModel implements ModelInterface {
           transform: "json_serialize (full record as JSONB, excluding text content to avoid bloat)",
         },
         {
-          sourceField: "(key fields: name, mime_type, owner_email, shared, is_folder, ...)",
+          sourceField: "(key fields: name, mime_type, owner_email, shared, is_folder, md5_checksum, text_content, folder_path, last_modified_by_email, ...)",
           targetColumn: "mapped_fields",
-          transform: "json_serialize (normalized subset for quick access)",
+          transform: "json_serialize (normalized subset for quick access + text content for search + checksum for version tracking)",
         },
       ],
     };
@@ -217,6 +224,13 @@ export function validateDriveRecord(record: DriveRecord): {
   // Validate sizeBytes is a reasonable number when present
   if (record.sizeBytes !== null && (isNaN(record.sizeBytes) || record.sizeBytes < 0)) {
     errors.push(`Invalid sizeBytes: ${record.sizeBytes}`);
+  }
+
+  // Validate md5Checksum format when present (32-char hex string)
+  if (record.md5Checksum !== null && record.md5Checksum !== undefined) {
+    if (typeof record.md5Checksum !== "string" || !/^[a-fA-F0-9]{32}$/.test(record.md5Checksum)) {
+      errors.push(`Invalid md5Checksum format: ${record.md5Checksum}`);
+    }
   }
 
   return {

@@ -34,7 +34,9 @@ export interface SalesforceQueryResponse {
 
 // ─── Output type ───
 
-export type SalesforceObjectType = "Account" | "Contact" | "Opportunity" | "Lead" | "Case";
+export type SalesforceObjectType =
+  | "Account" | "Contact" | "Opportunity" | "Lead" | "Case"
+  | "Task" | "Event" | "Campaign" | "Product2" | "Order" | "Quote" | "Contract";
 
 export interface SalesforceRecord {
   /** Salesforce record ID (18-char alphanumeric, e.g. "001xx000003DGbYAAW") */
@@ -117,6 +119,43 @@ export const FIELDS_BY_TYPE: Record<SalesforceObjectType, string[]> = {
   Case: [
     "Id", "Subject", "Description", "Status", "Priority",
     "Origin", "AccountId",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Task: [
+    "Id", "Subject", "Description", "Status", "Priority",
+    "ActivityDate", "WhoId", "WhatId", "OwnerId",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Event: [
+    "Id", "Subject", "Description", "StartDateTime", "EndDateTime",
+    "Location", "IsAllDayEvent", "WhoId", "WhatId", "OwnerId",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Campaign: [
+    "Id", "Name", "Type", "Status", "StartDate", "EndDate",
+    "BudgetedCost", "ActualCost", "ExpectedRevenue",
+    "NumberSent", "NumberOfResponses", "Description",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Product2: [
+    "Id", "Name", "Description", "ProductCode", "IsActive",
+    "Family",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Order: [
+    "Id", "OrderNumber", "Status", "TotalAmount",
+    "EffectiveDate", "AccountId", "Description",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Quote: [
+    "Id", "Name", "Status", "TotalPrice", "GrandTotal",
+    "ExpirationDate", "OpportunityId", "AccountId",
+    "Description",
+    "CreatedDate", "LastModifiedDate",
+  ],
+  Contract: [
+    "Id", "ContractNumber", "Status", "StartDate", "EndDate",
+    "ContractTerm", "AccountId", "OwnerId", "Description",
     "CreatedDate", "LastModifiedDate",
   ],
 };

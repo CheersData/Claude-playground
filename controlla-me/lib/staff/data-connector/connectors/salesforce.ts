@@ -35,7 +35,10 @@ import type {
 const API_VERSION = "v62.0";
 
 /** Salesforce CRM object types to sync */
-const SYNC_TYPES: SalesforceObjectType[] = ["Account", "Contact", "Opportunity", "Lead", "Case"];
+const SYNC_TYPES: SalesforceObjectType[] = [
+  "Account", "Contact", "Opportunity", "Lead", "Case",
+  "Task", "Event", "Campaign", "Product2", "Order", "Quote", "Contract",
+];
 
 /** Max items per SOQL query page (Salesforce default is 2000) */
 const QUERY_PAGE_SIZE = 2000;

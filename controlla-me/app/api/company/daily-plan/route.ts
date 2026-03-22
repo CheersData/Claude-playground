@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { checkCsrf } from "@/lib/middleware/csrf";
 import { spawnSync } from "child_process";
 import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 
@@ -18,6 +19,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  // CSRF protection
+  const csrfError = checkCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = requireConsoleAuth(req);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

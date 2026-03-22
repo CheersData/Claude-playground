@@ -57,9 +57,13 @@ export class OAuth2PKCEHandler implements AuthHandler {
       );
     }
 
-    this.accessToken = creds.accessToken ?? null;
-    this.refreshToken = creds.refreshToken ?? null;
-    this.expiresAt = creds.expiresAt ? parseInt(creds.expiresAt, 10) : 0;
+    // Support both camelCase (legacy) and snake_case (callback route stores snake_case)
+    this.accessToken = creds.access_token ?? creds.accessToken ?? null;
+    this.refreshToken = creds.refresh_token ?? creds.refreshToken ?? null;
+    // expires_in is stored as seconds string by callback; expiresAt is stored as ms timestamp
+    const expiresIn = creds.expires_in ? parseInt(creds.expires_in, 10) : 0;
+    const expiresAt = creds.expiresAt ? parseInt(creds.expiresAt, 10) : 0;
+    this.expiresAt = expiresAt > 0 ? expiresAt : (expiresIn > 0 ? Date.now() + expiresIn * 1000 : 0);
   }
 
   isValid(): boolean {
@@ -106,12 +110,17 @@ export class OAuth2PKCEHandler implements AuthHandler {
         ? Date.now() + data.expires_in * 1000
         : Date.now() + 3600_000; // default 1h
 
-      // Persisti nel vault
+      // Persisti nel vault (both snake_case for callback compat and camelCase for legacy)
       if (this.vault && this.userId) {
         await this.vault.refreshCredential(
           this.userId,
           this.config.config.credentialVaultKey,
           {
+            access_token: this.accessToken,
+            refresh_token: this.refreshToken,
+            token_type: "Bearer",
+            expires_in: String(Math.floor((this.expiresAt - Date.now()) / 1000)),
+            // Legacy keys for backward compatibility
             accessToken: this.accessToken,
             refreshToken: this.refreshToken,
             expiresAt: String(this.expiresAt),

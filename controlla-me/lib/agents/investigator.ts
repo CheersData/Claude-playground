@@ -41,10 +41,10 @@ async function selfRetrieveForClauses(
       const [knowledgeResults, articleResults] = await Promise.all([
         searchLegalKnowledge(query, {
           limit: maxResultsPerClause,
-          threshold: 0.60,
+          threshold: 0.50,
         }).catch((err) => { console.error("[Investigator] searchLegalKnowledge failed:", err); return []; }),
         searchArticles(query, {
-          threshold: 0.55,
+          threshold: 0.45,
           limit: maxResultsPerClause,
         }).catch((err) => { console.error("[Investigator] searchArticles failed:", err); return []; }),
       ]);
@@ -241,12 +241,26 @@ export async function runInvestigator(
 
 /**
  * Run investigator for a specific deep search question.
+ *
+ * @param conversationHistory - Previous messages in the conversation (optional).
+ *   When provided, the LLM receives the full conversation context so it can
+ *   answer follow-up questions without the user repeating themselves.
  */
 export async function runDeepSearch(
   clauseContext: string,
   existingAnalysis: string,
-  userQuestion: string
+  userQuestion: string,
+  conversationHistory?: Array<{ role: string; content: string }>
 ): Promise<{ response: string; sources: Array<{ url: string; title: string; excerpt: string }> }> {
+  // Build conversation-aware prompt
+  let historyBlock = "";
+  if (conversationHistory && conversationHistory.length > 0) {
+    const formatted = conversationHistory
+      .map((m) => `[${m.role === "user" ? "UTENTE" : "ASSISTENTE"}]: ${m.content}`)
+      .join("\n\n");
+    historyBlock = `\n## CONVERSAZIONE PRECEDENTE\n${formatted}\n`;
+  }
+
   const messages: Anthropic.Messages.MessageParam[] = [
     {
       role: "user",
@@ -255,11 +269,11 @@ ${clauseContext}
 
 ## ANALISI GIÀ EFFETTUATA
 ${existingAnalysis}
-
+${historyBlock}
 ## DOMANDA DELL'UTENTE
 ${userQuestion}
 
-Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente. Rispondi con un JSON:
+Cerca norme e sentenze specifiche per rispondere alla domanda dell'utente.${conversationHistory?.length ? " Tieni conto della conversazione precedente per dare risposte coerenti e non ripetitive." : ""} Rispondi con un JSON:
 {
   "response": "La tua risposta dettagliata in italiano semplice",
   "sources": [{ "url": "...", "title": "...", "excerpt": "..." }]

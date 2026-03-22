@@ -82,8 +82,13 @@ const nextConfig: NextConfig = {
 
   /**
    * Rewrites per dominio poimandres.work:
-   * - poimandres.work/        → /console  (Console Studio)
-   * - poimandres.work/api/*   → /api/*    (API invariate)
+   *
+   * SEO content publishing:
+   * - poimandres.work/                → /poimandres         (Landing page)
+   * - poimandres.work/blog            → /poimandres/blog    (Blog index)
+   * - poimandres.work/blog/:slug      → /poimandres/blog/:slug (Article detail)
+   * - poimandres.work/console         → /console            (Console Studio — accesso diretto)
+   * - poimandres.work/api/*           → /api/*              (API invariate)
    *
    * Per attivare: aggiungere "poimandres.work" come custom domain
    * nel dashboard Vercel (Settings → Domains).
@@ -91,15 +96,47 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
+        // poimandres.work — Landing page SEO
         {
-          // Root di poimandres.work → pagina /console
           source: "/",
+          destination: "/poimandres",
+          has: [{ type: "host", value: "poimandres.work" }],
+        },
+        {
+          source: "/",
+          destination: "/poimandres",
+          has: [{ type: "host", value: "www.poimandres.work" }],
+        },
+        // poimandres.work/blog — Blog index
+        {
+          source: "/blog",
+          destination: "/poimandres/blog",
+          has: [{ type: "host", value: "poimandres.work" }],
+        },
+        {
+          source: "/blog",
+          destination: "/poimandres/blog",
+          has: [{ type: "host", value: "www.poimandres.work" }],
+        },
+        // poimandres.work/blog/:slug — Article detail
+        {
+          source: "/blog/:slug",
+          destination: "/poimandres/blog/:slug",
+          has: [{ type: "host", value: "poimandres.work" }],
+        },
+        {
+          source: "/blog/:slug",
+          destination: "/poimandres/blog/:slug",
+          has: [{ type: "host", value: "www.poimandres.work" }],
+        },
+        // poimandres.work/console — Console Studio (accesso diretto)
+        {
+          source: "/console",
           destination: "/console",
           has: [{ type: "host", value: "poimandres.work" }],
         },
         {
-          // www.poimandres.work → pagina /console
-          source: "/",
+          source: "/console",
           destination: "/console",
           has: [{ type: "host", value: "www.poimandres.work" }],
         },

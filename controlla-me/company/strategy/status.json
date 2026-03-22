@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "strategy",
     "schema_version": "1.0",
-    "last_updated": "2026-03-08T22:11:42.204Z",
+    "last_updated": "2026-03-18T17:21:14.653Z",
     "updated_by": "auto-update-dept-status"
   },
   "health": "ok",
-  "summary": "1 task aperti. 11 completati (ultimi 7gg). 20 completati (totale).",
+  "summary": "1 task aperto (review). 26 completati (totale). Decisione consulente EU AI Act in review (L3).",
   "okr_q2": {
     "o1": {
       "title": "Rendere il prodotto production-ready",
@@ -350,12 +350,7 @@
     }
   ],
   "open_tasks": [
-    {
-      "id": "83240ed3",
-      "title": "Implementare tre modalita output per persona nel frontend",
-      "priority": "medium",
-      "status": "open"
-    }
+    "Decisione consulente EU AI Act (review L3)"
   ],
   "blockers": []
 }

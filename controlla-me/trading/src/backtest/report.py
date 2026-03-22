@@ -58,6 +58,9 @@ def generate_report(
     # 4. Console summary
     _print_summary(result, metrics)
 
+    # 5. Persist to local SQLite (backtest.db)
+    _persist_to_sqlite(result, metrics)
+
     logger.info("report_generated", output_dir=str(output_dir))
     return output_dir
 
@@ -327,3 +330,59 @@ def _print_summary(result, metrics) -> None:
     print()
     print(f"  VERDICT: {go['verdict']}")
     print("=" * 70 + "\n")
+
+
+def _persist_to_sqlite(result, metrics) -> None:
+    """Persist backtest run and trades to local SQLite database.
+
+    This runs silently — errors are logged but never interrupt the report flow.
+    """
+    try:
+        from ..utils.db_local import LocalDB
+
+        local_db = LocalDB()
+
+        # Build config dict from BacktestConfig
+        config_dict = {
+            "start": str(result.config.start),
+            "end": str(result.config.end),
+            "initial_capital": result.config.initial_capital,
+            "slippage_bps": result.config.slippage_bps,
+            "max_positions": result.config.max_positions,
+            "max_position_pct": result.config.max_position_pct,
+            "strategy": getattr(result.config, "strategy", "trend_following"),
+            "timeframe": getattr(result.config, "timeframe", "1Day"),
+            "stop_loss_atr": getattr(result.config, "stop_loss_atr", 2.0),
+            "take_profit_atr": getattr(result.config, "take_profit_atr", 6.0),
+            "signal_threshold": getattr(result.config, "signal_threshold", 0.3),
+            "trend_filter": getattr(result.config, "trend_filter", True),
+        }
+
+        # Build metrics dict
+        metrics_dict = {
+            "total_return_pct": metrics.total_return_pct,
+            "cagr_pct": metrics.cagr_pct,
+            "sharpe_ratio": metrics.sharpe_ratio,
+            "sortino_ratio": metrics.sortino_ratio,
+            "max_drawdown_pct": metrics.max_drawdown_pct,
+            "annualized_volatility_pct": metrics.annualized_volatility_pct,
+            "total_trades": metrics.total_trades,
+            "win_rate_pct": metrics.win_rate_pct,
+            "profit_factor": metrics.profit_factor,
+            "avg_win_pct": metrics.avg_win_pct,
+            "avg_loss_pct": metrics.avg_loss_pct,
+            "avg_hold_days": metrics.avg_hold_days,
+        }
+
+        go_nogo = metrics.go_nogo
+
+        # Insert run
+        run_id = local_db.insert_backtest_run(config_dict, metrics_dict, go_nogo)
+
+        # Insert trades
+        trades_dicts = [t.model_dump() for t in result.trades]
+        local_db.insert_backtest_trades(run_id, trades_dicts)
+
+        logger.info("backtest_persisted_to_sqlite", run_id=run_id, trades=len(trades_dicts))
+    except Exception as e:
+        logger.warning("sqlite_persist_failed", error=str(e))

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, isAuthError } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,6 +28,30 @@ const connectors = [
     entityCount: 0,
     lastSync: null as string | null,
     popular: true,
+  },
+  // ─── Universal REST ───
+  {
+    id: "universal-rest",
+    name: "API REST Personalizzata",
+    category: "custom",
+    status: "not_connected" as const,
+    description: "Connetti qualsiasi API REST: configura endpoint, autenticazione e mapping campi.",
+    icon: "Globe",
+    entityCount: 0,
+    lastSync: null as string | null,
+    popular: false,
+  },
+  // ─── CSV/Excel ───
+  {
+    id: "csv",
+    name: "CSV / Excel",
+    category: "file",
+    status: "not_connected" as const,
+    description: "Importa dati da file CSV, TSV o Excel con rilevamento automatico dei campi.",
+    icon: "FileSpreadsheet",
+    entityCount: 0,
+    lastSync: null as string | null,
+    popular: false,
   },
   // ─── ERP ───
   {
@@ -71,6 +96,18 @@ const connectors = [
     status: "not_connected" as const,
     description: "Pagamenti, fatture, abbonamenti e portale clienti.",
     icon: "CreditCard",
+    entityCount: 0,
+    lastSync: null as string | null,
+    popular: true,
+  },
+  // ─── Fatturazione IT ───
+  {
+    id: "fatture-in-cloud",
+    name: "Fatture in Cloud",
+    category: "fatturazione",
+    status: "not_connected" as const,
+    description: "Fatture attive e passive, clienti, fornitori e corrispettivi.",
+    icon: "FileText",
     entityCount: 0,
     lastSync: null as string | null,
     popular: true,
@@ -164,27 +201,28 @@ function mapDbStatus(
 }
 
 export async function GET(request: NextRequest) {
-  // SEC-M12: rate-limit marketplace browsing (IP-based)
+  // SEC-M12: rate-limit
   const rateLimitError = await checkRateLimit(request);
   if (rateLimitError) return rateLimitError;
+
+  // Auth is OPTIONAL — catalog is public, per-user status is merged if authenticated
+  const authResult = await requireAuth();
+  const userId = !isAuthError(authResult) ? authResult.user.id : null;
 
   // Start with a deep copy of static connectors
   const result = connectors.map((c) => ({ ...c }));
 
-  // If user is authenticated, merge connection status from DB
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  // Merge connection status from DB only for authenticated user
+  if (userId) {
+    try {
+      const supabase = await createClient();
 
-    if (user) {
       const { data: connections, error } = await supabase
         .from("integration_connections")
         .select(
           "connector_type, status, last_sync_at, last_sync_items"
         )
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .neq("status", "disconnected");
 
       if (!error && connections) {
@@ -202,9 +240,9 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    } catch {
+      // If DB query fails, return static defaults silently
     }
-  } catch {
-    // If auth fails (no session, cookie issues), return static defaults silently
   }
 
   return NextResponse.json({ connectors: result });

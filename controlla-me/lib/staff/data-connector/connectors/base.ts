@@ -115,6 +115,5 @@ export abstract class BaseConnector<T = unknown>
   }
 }
 
-// ─── Re-export AuthenticatedBaseConnector per comodita di import ───
-// I consumer possono importare da "connectors/base" oppure da "connectors/authenticated-base"
-export { AuthenticatedBaseConnector } from "./authenticated-base";
+// AuthenticatedBaseConnector: importare direttamente da "./authenticated-base"
+// Re-export RIMOSSO per evitare import circolare (base ↔ authenticated-base)

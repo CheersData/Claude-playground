@@ -108,6 +108,34 @@ export interface ConnectorInterface<T = unknown> {
   fetchAll(options?: { limit?: number }): Promise<FetchResult<T>>;
   /** Fetch solo dati modificati da una certa data */
   fetchDelta(since: string, options?: { limit?: number }): Promise<FetchResult<T>>;
+  /** Push records al sistema target (opzionale — solo connettori bidirezionali) */
+  push?(items: T[], options?: PushOptions): Promise<PushResult>;
+}
+
+// ─── Push Interface (Hub → Target) ───
+
+export interface PushOptions {
+  /** Tipo entità target (es. "contacts", "companies") */
+  entityType?: string;
+  /** Se true, aggiorna record esistenti (match su externalId), altrimenti crea nuovi */
+  upsert?: boolean;
+  /** Dry run — valida senza inviare */
+  dryRun?: boolean;
+  /** Batch size per l'invio (default: connector-specific) */
+  batchSize?: number;
+}
+
+export interface PushResult {
+  /** Record creati con successo */
+  created: number;
+  /** Record aggiornati (upsert match) */
+  updated: number;
+  /** Record falliti */
+  failed: number;
+  /** Dettaglio errori per record falliti */
+  errors: Array<{ externalId?: string; error: string }>;
+  /** ID dei record creati/aggiornati nel sistema target */
+  targetIds?: string[];
 }
 
 export interface FetchResult<T = unknown> {
@@ -149,6 +177,14 @@ export interface DataModelSpec {
     confidence?: number;
   }>;
   migrationSQL?: string;
+}
+
+export interface TransformRule {
+  sourceField: string;
+  targetColumn: string;
+  transform: string;
+  mappedBy?: "rule" | "similarity" | "llm" | "user" | "manual";
+  confidence?: number;
 }
 
 export interface ModelResult {

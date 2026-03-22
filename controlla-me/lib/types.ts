@@ -230,3 +230,23 @@ export interface LawyerReferral {
   status: "pending" | "contacted" | "converted";
   created_at: string;
 }
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+export type FeedbackCategory = "helpful" | "too_harsh" | "too_lenient" | "missing_risks" | "inaccurate";
+
+// ─── Critic Agent ─────────────────────────────────────────────────────────────
+
+export interface CriticIssue {
+  type: "consistency" | "calibration" | "missing_context" | "overreaction";
+  description: string;
+  suggestion: string;
+}
+
+export interface CriticResult {
+  approved: boolean;
+  issues: CriticIssue[];
+  adjustedFairnessScore: number | null;
+  adjustedNeedsLawyer: boolean | null;
+  reasoning: string;
+}

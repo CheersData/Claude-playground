@@ -23,6 +23,10 @@ import * as path from "path";
 // Carica env dal .env.local
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
+// Self-timeout: auto-exit after 10 min to prevent zombie accumulation
+import { enableSelfTimeout } from "../lib/company/self-preservation";
+enableSelfTimeout(10 * 60 * 1000);
+
 import {
   runPipeline,
   connectSource,
@@ -41,6 +45,7 @@ import "@/scripts/hr-sources";
 import "@/scripts/tax-sources";
 import "@/scripts/commercial-sources";
 import "@/scripts/medical-corpus-sources";
+import "@/scripts/notarial-sources";
 // import "@/scripts/real-estate-sources";  // futuro
 // import "@/scripts/consumer-sources";      // futuro
 

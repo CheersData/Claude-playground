@@ -2,12 +2,13 @@
   "department": "integration",
   "type": "ufficio",
   "health": "green",
-  "phase": "building",
-  "focus": "Phase 0 infrastructure — credential vault, AuthenticatedBaseConnector, schema DB, OAuth2 flow generico",
+  "phase": "phase-0-complete",
+  "focus": "All 7 connectors implemented and registered. Gap: credential configuration (env vars) and production testing with real API keys.",
   "connectors": {
-    "planned": ["fatture-in-cloud", "google-drive", "hubspot"],
+    "implemented": ["stripe", "hubspot", "google-drive", "salesforce", "fatture-in-cloud", "universal-rest", "csv"],
     "active": [],
-    "total_planned": 10
+    "total_implemented": 7,
+    "note": "All connectors registered in plugin-registry.ts. Sync dispatcher (1083 lines) operational. Blocking on env var configuration for each provider."
   },
   "metrics": {
     "sync_success_rate": null,
@@ -15,6 +16,8 @@
     "pmi_connected": 0,
     "docs_auto_analyzed_month": 0
   },
-  "blockers": [],
-  "last_updated": "2026-03-10T00:00:00Z"
+  "blockers": [
+    "Credential configuration: API keys / OAuth2 client IDs not yet configured for any connector"
+  ],
+  "last_updated": "2026-03-18T00:00:00Z"
 }

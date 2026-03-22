@@ -19,10 +19,10 @@ import type { AgentPhase, AdvisorResult, Clause } from "@/lib/types";
 
 // Phase → Agent mapping
 const PHASE_AGENT: Record<AgentPhase, AgentId> = {
-  classifier: "leo",
-  analyzer: "marta",
-  investigator: "giulia",
-  advisor: "enzo",
+  classifier: "classifier",
+  analyzer: "analyzer",
+  investigator: "investigator",
+  advisor: "advisor",
 };
 
 let msgCounter = 0;
@@ -213,7 +213,7 @@ export default function LegalChat() {
                     addMessage({
                       id: newId(),
                       role: "assistant",
-                      agent: "enzo",
+                      agent: "advisor",
                       content: advice.summary || "",
                       timestamp: new Date(),
                       phase: "advisor",
@@ -339,7 +339,7 @@ export default function LegalChat() {
       addMessage({
         id: thinkId,
         role: "assistant",
-        agent: "giulia",
+        agent: "investigator",
         content: "",
         timestamp: new Date(),
         phaseStatus: "running",

@@ -262,6 +262,64 @@ export class SupabaseCredentialVault implements CredentialVault {
   }
 }
 
+// ─── Health Check ───
+
+/**
+ * Verifies that the vault_store RPC function exists in Supabase.
+ * This detects whether migration 030 has been applied.
+ *
+ * Caches the result: only checks once per process lifetime.
+ * On failure, logs the exact migration that needs to be run.
+ */
+let _healthChecked = false;
+let _healthOk = false;
+
+async function checkVaultHealth(): Promise<{ ok: boolean; error?: string }> {
+  if (_healthChecked) {
+    return _healthOk
+      ? { ok: true }
+      : { ok: false, error: "Migration 030 non applicata (cached)" };
+  }
+
+  try {
+    const admin = createAdminClient();
+
+    // Probe the vault_store function with a dummy call that will fail on FK
+    // but succeed in finding the function. We use a UUID that won't exist.
+    const { error } = await admin.rpc("vault_store", {
+      p_user_id: "00000000-0000-0000-0000-000000000000",
+      p_connector_source: "__health_check__",
+      p_credential_type: "api_key",
+      p_data: "{}",
+      p_encryption_key: "health_check_key_that_is_at_least_32_chars",
+      p_metadata: {},
+      p_expires_at: null,
+    });
+
+    if (error?.code === "PGRST202") {
+      // Function not found — migration 030 not applied
+      _healthChecked = true;
+      _healthOk = false;
+      const msg =
+        "[CREDENTIAL VAULT] La funzione vault_store non esiste in Supabase. " +
+        "Eseguire migration 030_integration_tables.sql sul Supabase SQL Editor. " +
+        "Senza questa migration, il salvataggio credenziali non funziona.";
+      console.error(msg);
+      return { ok: false, error: msg };
+    }
+
+    // Any other error (FK violation, etc.) means the function EXISTS — that's OK
+    _healthChecked = true;
+    _healthOk = true;
+    return { ok: true };
+  } catch (err) {
+    // Network or other error — don't cache, might be transient
+    const msg = `[CREDENTIAL VAULT] Health check fallito: ${err instanceof Error ? err.message : String(err)}`;
+    console.error(msg);
+    return { ok: false, error: msg };
+  }
+}
+
 // ─── Singleton ───
 
 let _instance: SupabaseCredentialVault | null = null;
@@ -293,3 +351,12 @@ export function getVaultOrNull(): SupabaseCredentialVault | null {
     return null;
   }
 }
+
+/**
+ * Checks if the vault infrastructure (DB tables + RPC functions) is available.
+ * Returns { ok: true } if vault_store RPC exists, or { ok: false, error } if not.
+ *
+ * Call this before operations to provide actionable error messages
+ * (e.g. "run migration 030") instead of cryptic RPC errors.
+ */
+export { checkVaultHealth };

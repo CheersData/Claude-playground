@@ -21,6 +21,7 @@ const VERTICAL_DATA_TYPE: Record<string, DataType> = {
   legal: "legal-articles",
   medical: "medical-articles",
   hr: "hr-articles",
+  notarial: "legal-articles",      // stesso stack, filtrato per vertical
   "real-estate": "legal-articles", // stesso stack, filtrato per vertical
   consumer: "legal-articles",       // stesso stack, filtrato per vertical
 };

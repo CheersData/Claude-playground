@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -22,7 +22,16 @@ import {
   HardDrive,
   Building2,
   Plug,
+  FileText,
+  Globe,
+  FileSpreadsheet,
+  BarChart3,
+  Mail,
+  Shield,
+  Briefcase,
 } from "lucide-react";
+import { SyncDashboardSkeleton } from "@/components/integrations/Skeletons";
+import { NoConnectors } from "@/components/integrations/EmptyStates";
 
 // ─── Types ───
 
@@ -63,6 +72,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   HardDrive,
   Building2,
+  FileText,
+  Globe,
+  FileSpreadsheet,
+  BarChart3,
+  Mail,
+  Shield,
+  Briefcase,
 };
 
 const STATUS_CONFIG: Record<
@@ -177,16 +193,10 @@ function IntegrationCard({
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl p-6 mb-3 transition-colors"
+      className="rounded-xl p-6 mb-3 transition-colors hover-border-dark"
       style={{
         background: "var(--bg-raised)",
         border: "1px solid var(--border-dark-subtle)",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-dark)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-dark-subtle)";
       }}
     >
       {/* Header row */}
@@ -212,14 +222,8 @@ function IntegrationCard({
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors hover-bg-overlay"
             style={{ color: "var(--fg-muted)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
             aria-label="Menu azioni"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -432,15 +436,9 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors"
+      className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors hover-bg-hover"
       style={{
         color: danger ? "var(--error)" : "var(--fg-secondary)",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "transparent";
       }}
     >
       <Icon className="w-4 h-4" />
@@ -550,118 +548,117 @@ function ErrorLog({ errors }: { errors: SyncErrorEntry[] }) {
 
 // ─── Main Component ───
 
-// Demo data for the dashboard preview
-const DEMO_INTEGRATIONS: IntegrationRow[] = [
-  {
-    id: "salesforce",
-    name: "Salesforce",
-    category: "CRM",
-    icon: "Users",
-    status: "synced",
-    lastSync: new Date(Date.now() - 30 * 60_000).toISOString(),
-    nextSync: new Date(Date.now() + 30 * 60_000).toISOString(),
-    recordCount: 12450,
-    entities: [
-      { name: "Contatti", recordCount: 8200 },
-      { name: "Opportunita", recordCount: 3210 },
-      { name: "Pipeline", recordCount: 8 },
-    ],
-  },
-  {
-    id: "hubspot",
-    name: "HubSpot",
-    category: "CRM / Marketing",
-    icon: "Users",
-    status: "error",
-    lastSync: new Date(Date.now() - 120 * 60_000).toISOString(),
-    nextSync: null,
-    recordCount: 4650,
-    entities: [
-      { name: "Contatti", recordCount: 3200 },
-      { name: "Deal", recordCount: 1450 },
-    ],
-    error: "Rate limit exceeded (429). Retry in 5 min.",
-  },
-  {
-    id: "stripe",
-    name: "Stripe",
-    category: "Pagamenti",
-    icon: "CreditCard",
-    status: "paused",
-    lastSync: new Date(Date.now() - 24 * 60 * 60_000).toISOString(),
-    nextSync: null,
-    recordCount: 1890,
-    entities: [
-      { name: "Fatture", recordCount: 1200 },
-      { name: "Abbonamenti", recordCount: 690 },
-    ],
-  },
-  {
-    id: "mailchimp",
-    name: "Mailchimp",
-    category: "Marketing",
-    icon: "Building2",
-    status: "syncing",
-    lastSync: new Date(Date.now() - 10 * 60_000).toISOString(),
-    nextSync: new Date(Date.now() + 50 * 60_000).toISOString(),
-    recordCount: 4650,
-    entities: [
-      { name: "Liste", recordCount: 3200 },
-      { name: "Campagne", recordCount: 1450 },
-    ],
-    progress: 45,
-    progressRecords: 2100,
-    progressTotal: 4650,
-  },
-];
-
-const DEMO_ERRORS: SyncErrorEntry[] = [
-  {
-    timestamp: "14:32",
-    connector: "HubSpot",
-    message: "Rate limit (429)",
-    details:
-      "Request: GET /contacts?limit=100&offset=12400\nResponse: 429 Too Many Requests\nHeaders: X-RateLimit-Remaining: 0\nRetry-After: 300",
-  },
-  {
-    timestamp: "12:15",
-    connector: "HubSpot",
-    message: "Timeout after 30s",
-  },
-];
-
 export default function SyncDashboard() {
   const [integrations, setIntegrations] = useState<IntegrationRow[]>([]);
   const [errors, setErrors] = useState<SyncErrorEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  // Cleanup on unmount: cancel in-flight requests and stop polling
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (abortRef.current) {
+        abortRef.current.abort();
+        abortRef.current = null;
+      }
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, []);
+
+  const fetchData = useCallback(async (isBackgroundPoll = false) => {
+    // Abort any in-flight request before starting a new one
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    if (!isBackgroundPoll) setLoading(true);
     try {
-      const res = await fetch("/api/integrations/dashboard");
+      const res = await fetch("/api/integrations/dashboard", {
+        signal: controller.signal,
+      });
+      // Guard against state updates after unmount
+      if (!mountedRef.current) return;
       if (res.ok) {
         const json = await res.json();
-        if (json?.integrations) setIntegrations(json.integrations);
-        if (json?.errors) setErrors(json.errors);
+        setIntegrations(json?.integrations ?? []);
+        setErrors(json?.errors ?? []);
+        setFetchError(null);
       } else {
-        // Fallback to demo data
-        setIntegrations(DEMO_INTEGRATIONS);
-        setErrors(DEMO_ERRORS);
+        if (!isBackgroundPoll) {
+          setIntegrations([]);
+          setErrors([]);
+          setFetchError(`Errore dal server (${res.status}). Riprova.`);
+        }
       }
-    } catch {
-      // Fallback to demo data
-      setIntegrations(DEMO_INTEGRATIONS);
-      setErrors(DEMO_ERRORS);
+    } catch (err) {
+      // Ignore abort errors — they are expected during cleanup
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (!mountedRef.current) return;
+      if (!isBackgroundPoll) {
+        setIntegrations([]);
+        setErrors([]);
+        setFetchError("Impossibile raggiungere il server. Verifica la connessione e riprova.");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current && !isBackgroundPoll) setLoading(false);
     }
   }, []);
 
+  // Initial fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Real-time polling: 3s when any integration is syncing, 30s otherwise
+  const hasSyncing = integrations.some((i) => i.status === "syncing");
+
+  useEffect(() => {
+    const interval = hasSyncing ? 3000 : 30000;
+
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+    }
+    pollRef.current = setInterval(() => fetchData(true), interval);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [hasSyncing, fetchData]);
+
+  const dashboardAction = useCallback(
+    async (connectorId: string, action: "sync" | "pause" | "resume" | "disconnect") => {
+      try {
+        const res = await fetch("/api/integrations/dashboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, connectorId }),
+        });
+        if (res.ok) {
+          // Refresh data from server after action
+          fetchData();
+        }
+      } catch (err) {
+        console.error(`[SyncDashboard] ${action} failed for ${connectorId}:`, err);
+      }
+    },
+    [fetchData]
+  );
+
   const handleSync = useCallback((id: string) => {
+    // Optimistic UI update
     setIntegrations((prev) =>
       prev.map((i) =>
         i.id === id
@@ -669,13 +666,15 @@ export default function SyncDashboard() {
           : i
       )
     );
-  }, []);
+    dashboardAction(id, "sync");
+  }, [dashboardAction]);
 
   const handlePause = useCallback((id: string) => {
     setIntegrations((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status: "paused" as SyncStatus, nextSync: null } : i))
     );
-  }, []);
+    dashboardAction(id, "pause");
+  }, [dashboardAction]);
 
   const handleResume = useCallback((id: string) => {
     setIntegrations((prev) =>
@@ -685,7 +684,8 @@ export default function SyncDashboard() {
           : i
       )
     );
-  }, []);
+    dashboardAction(id, "resume");
+  }, [dashboardAction]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-base)", color: "var(--fg-primary)" }}>
@@ -733,12 +733,53 @@ export default function SyncDashboard() {
       {/* Content */}
       <main className="px-6 md:px-10 pb-16 max-w-[1400px] mx-auto">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--fg-muted)" }} />
+          <SyncDashboardSkeleton />
+        ) : fetchError ? (
+          <div
+            className="rounded-xl p-8 text-center"
+            style={{
+              background: "var(--bg-raised)",
+              border: "1px solid var(--border-dark-subtle)",
+            }}
+          >
+            <AlertTriangle className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--error)" }} />
+            <p className="text-sm mb-4" style={{ color: "var(--fg-secondary)" }}>
+              {fetchError}
+            </p>
+            <button
+              onClick={() => fetchData()}
+              className="inline-flex items-center gap-2 rounded-xl py-2.5 px-5 text-sm font-medium text-white transition-all hover:scale-[1.02]"
+              style={{
+                background: "linear-gradient(to right, var(--accent), var(--accent-dark, #E85A24))",
+              }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Riprova
+            </button>
           </div>
+        ) : integrations.length === 0 ? (
+          <NoConnectors />
         ) : (
           <>
             <StatsBar integrations={integrations} />
+
+            {/* Syncing indicator */}
+            {hasSyncing && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-lg text-sm"
+                style={{
+                  background: "rgba(137, 221, 255, 0.06)",
+                  border: "1px solid rgba(137, 221, 255, 0.15)",
+                }}
+              >
+                <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: "var(--info-bright)" }} />
+                <span style={{ color: "var(--info-bright)" }}>
+                  Sincronizzazione in corso — aggiornamento automatico ogni 3 secondi
+                </span>
+              </motion.div>
+            )}
 
             {/* Integration list */}
             <div>
@@ -752,18 +793,6 @@ export default function SyncDashboard() {
                 />
               ))}
             </div>
-
-            {integrations.length === 0 && (
-              <div className="text-center py-20">
-                <Plug className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--fg-muted)" }} />
-                <p className="text-lg font-medium" style={{ color: "var(--fg-secondary)" }}>
-                  Nessuna integrazione attiva
-                </p>
-                <p className="text-sm mt-1" style={{ color: "var(--fg-muted)" }}>
-                  Configura il tuo primo connettore per iniziare
-                </p>
-              </div>
-            )}
 
             {/* Error log */}
             <ErrorLog errors={errors} />
