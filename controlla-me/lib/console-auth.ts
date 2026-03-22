@@ -34,6 +34,23 @@ export function authenticateUser(
 }
 
 /**
+ * Cerca un utente autorizzato solo per nome e cognome (case-insensitive, trim).
+ * Utile quando l'utente non specifica il ruolo.
+ */
+export function findUserByName(
+  nome: string,
+  cognome: string
+): AuthorizedUser | null {
+  return (
+    AUTHORIZED_USERS.find(
+      (u) =>
+        u.nome.toLowerCase() === nome.trim().toLowerCase() &&
+        u.cognome.toLowerCase() === cognome.trim().toLowerCase()
+    ) ?? null
+  );
+}
+
+/**
  * Parsing best-effort di input utente in nome/cognome/ruolo.
  * Formati supportati:
  * - "Nome Cognome, Ruolo"
@@ -91,6 +108,15 @@ export function parseAuthInput(input: string): {
       cognome: words.slice(1, -1).join(" "),
       ruolo: words[words.length - 1],
     };
+  }
+
+  // 2 parole: potrebbe essere "Nome Cognome" senza ruolo
+  // Cerca match per nome+cognome e auto-risolvi il ruolo se univoco
+  if (words.length === 2) {
+    const candidate = findUserByName(words[0], words[1]);
+    if (candidate) {
+      return { nome: candidate.nome, cognome: candidate.cognome, ruolo: candidate.ruolo };
+    }
   }
 
   // SEC-002: nessun partial match — richiede struttura completa per evitare bypass
