@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateUser, parseAuthInput } from "@/lib/console-auth";
+import { authenticateUser, parseAuthInput, findUserByName } from "@/lib/console-auth";
 import { generateToken } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
@@ -66,6 +66,16 @@ export async function POST(req: NextRequest) {
     payload: { ruolo: parsed.ruolo, nome: parsed.nome },
     result: "failure",
   });
+
+  // Messaggio specifico se l'identità (nome+cognome) è nota ma il ruolo non corrisponde
+  const knownUser = findUserByName(parsed.nome, parsed.cognome);
+  if (knownUser) {
+    return NextResponse.json({
+      authorized: false,
+      message: `Identità verificata per ${parsed.nome} ${parsed.cognome}, ma il ruolo "${parsed.ruolo}" non corrisponde.\nRiprovi con il ruolo corretto oppure inserisca solo: ${parsed.nome} ${parsed.cognome}`,
+    });
+  }
+
   return NextResponse.json({
     authorized: false,
     message: `Accesso non autorizzato per ${parsed.ruolo} ${parsed.nome} ${parsed.cognome}.\nQuesta console è riservata agli utenti autorizzati.`,
