@@ -33,7 +33,7 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  // Costruisce set di origini consentite: app URL + ALLOWED_ORIGINS
+  // Costruisce set di origini consentite: app URL + hardcoded + ALLOWED_ORIGINS
   const allowedOrigins = new Set<string>();
   try {
     allowedOrigins.add(new URL(appUrl).origin);
@@ -41,7 +41,13 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
     // URL non valida, ignorata
   }
 
-  // ALLOWED_ORIGINS: es. "https://www.poimandres.work,https://poimandres.work"
+  // Origini di produzione hardcoded (non dipendono da env vars)
+  allowedOrigins.add("https://www.poimandres.work");
+  allowedOrigins.add("https://poimandres.work");
+  allowedOrigins.add("https://controlla.me");
+  allowedOrigins.add("https://www.controlla.me");
+
+  // ALLOWED_ORIGINS: origini aggiuntive da env var (comma-separated)
   const extra = process.env.ALLOWED_ORIGINS ?? "";
   for (const raw of extra.split(",")) {
     const trimmed = raw.trim();
