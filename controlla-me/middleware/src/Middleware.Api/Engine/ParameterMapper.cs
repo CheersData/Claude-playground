@@ -137,7 +137,7 @@ public class ParameterMapper
         });
     }
 
-    internal static object? ApplyTransform(object? value, string transform)
+    public static object? ApplyTransform(object? value, string transform)
     {
         if (value is null) return null;
 
@@ -148,7 +148,7 @@ public class ParameterMapper
             "trim" => value.ToString()?.Trim(),
             "to_string" => value.ToString(),
             "to_number" => double.TryParse(value.ToString(), CultureInfo.InvariantCulture, out var n) ? n : value,
-            "to_cents" => double.TryParse(value.ToString(), CultureInfo.InvariantCulture, out var d) ? (long)(d * 100) : value,
+            "to_cents" => double.TryParse(value.ToString(), CultureInfo.InvariantCulture, out var d) ? (long)Math.Round(d * 100) : value,
             "format_date_iso" => DateTimeOffset.TryParse(value.ToString(), out var dt) ? dt.ToString("o") : value,
             _ => value
         };
