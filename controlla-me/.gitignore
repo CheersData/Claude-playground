@@ -93,6 +93,14 @@ deploy/backups/
 .venv/
 music/.venv/
 
+# Python compiled files
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Music logs (runtime)
+music/logs/
+
 # Middleware C# build artifacts
 middleware/dotnet/
 middleware/dotnet-sdk.tar.gz
