@@ -240,7 +240,7 @@ async function loadAllDepartmentMemories(): Promise<
     "acceleration",
   ];
 
-  const results: Array<{
+  const _results: Array<{
     department: string;
     category: string;
     key: string;

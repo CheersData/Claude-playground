@@ -1,9 +1,15 @@
 /**
- * Department Registry — Metadati statici per gli 11 dipartimenti della virtual company.
- * Nessuna chiamata DB, nessun async. Importabile ovunque a costo zero.
+ * Department Registry — Metadati statici + dinamici per i dipartimenti della virtual company.
+ *
+ * I dipartimenti storici (~15) sono hardcoded nel DEPARTMENTS Record.
+ * Dipartimenti creati a runtime dai creator vengono caricati dal DB (company_departments).
+ *
+ * Sync: DEPARTMENTS, getDepartmentMeta(), DEPT_ORDER — solo dati statici, costo zero.
+ * Async: loadDepartments() — merge statici + DB, per contesti che necessitano la lista completa.
  */
 
 import type { Department } from "./types";
+import { KNOWN_DEPARTMENTS } from "./types";
 
 export interface AgentRef {
   id: string;
@@ -29,9 +35,18 @@ export interface DepartmentMeta {
   runbooks: RunbookRef[];
   kpis: string[];
   departmentFilePath: string; // "company/{dept}/department.md"
+  /** true = dipartimento protetto (hardcoded o boss-owned), non cancellabile da creator */
+  protected?: boolean;
+  /** UUID del creator (null per dipartimenti storici) */
+  createdBy?: string | null;
 }
 
-export const DEPARTMENTS: Record<Department, DepartmentMeta> = {
+/**
+ * Static registry: tutti i dipartimenti hardcoded.
+ * Tipo Record<string, DepartmentMeta> anziché Record<Department, DepartmentMeta>
+ * perché Department è ora string e TypeScript richiederebbe un'entry per ogni stringa possibile.
+ */
+export const DEPARTMENTS: Record<string, DepartmentMeta> = {
   "ufficio-legale": {
     id: "ufficio-legale",
     label: "Ufficio Legale",
@@ -247,7 +262,7 @@ export const DEPARTMENTS: Record<Department, DepartmentMeta> = {
     emoji: "🛡️",
     type: "staff",
     mission:
-      "Proteggere Controlla.me e i suoi utenti. App legale = dati sensibili. Audit periodici, zero vulnerabilità critiche aperte, RLS su tutti i dati utente.",
+      "Proteggere Poimandres e i suoi utenti. Piattaforma AI = dati sensibili. Audit periodici, zero vulnerabilità critiche aperte, RLS su tutti i dati utente.",
     vision:
       "Compliance automatizzata: audit security schedulati, DPA firmati con tutti i provider AI, EU AI Act readiness. Security scanning integrato nella CI/CD.",
     priorities: [
@@ -277,7 +292,7 @@ export const DEPARTMENTS: Record<Department, DepartmentMeta> = {
     mission:
       "Scansiona continuamente mercato, competitor e tecnologie AI emergenti per identificare opportunità di business, nuovi domini e nuovi agenti. Risponde a: \"Dove dovremmo andare che nessun altro ancora vede?\"",
     vision:
-      "Controlla.me come piattaforma madre con almeno 2 verticali attivi. Pipeline opportunità strutturata che genera almeno 1 nuovo dominio validato per trimestre.",
+      "Poimandres come piattaforma madre con almeno 2 verticali attivi. Pipeline opportunità strutturata che genera almeno 1 nuovo dominio validato per trimestre.",
     priorities: [
       "Opportunity Brief verticale HR — valutare domanda HRTech Italia, competitor, effort",
       "OKR Q2 2026 — definire obiettivi misurabili per il trimestre",
@@ -356,22 +371,220 @@ export const DEPARTMENTS: Record<Department, DepartmentMeta> = {
     ],
     departmentFilePath: "company/ux-ui/department.md",
   },
+
+  "protocols": {
+    id: "protocols",
+    label: "Protocols",
+    emoji: "📋",
+    type: "staff",
+    mission:
+      "Governance aziendale: decision trees, routing richieste, audit decisioni, prompt optimization. Garantisce che ogni decisione segua il processo corretto.",
+    vision:
+      "Processo decisionale completamente tracciabile. Ogni decisione non-triviale ha un audit trail, un livello di approvazione e un owner chiaro.",
+    priorities: [
+      "Decision tree coverage — coprire tutti i flussi decisionali critici",
+      "Routing automation — ridurre intervento manuale nel routing task",
+      "Audit trail — tracciabilità completa delle decisioni",
+    ],
+    agents: [],
+    runbooks: [
+      { id: "validate-task-gate", label: "Validate Task Gate", filePath: "company/protocols/runbooks/validate-task-gate.md" },
+    ],
+    kpis: [
+      "Routing coverage > 90%",
+      "Decision audit completeness 100%",
+    ],
+    departmentFilePath: "company/protocols/department.md",
+  },
+
+  "acceleration": {
+    id: "acceleration",
+    label: "Acceleration",
+    emoji: "🚀",
+    type: "staff",
+    mission:
+      "Velocità: performance dipartimenti e pulizia codebase. Identifica bottleneck, propone semplificazioni, misura velocity.",
+    vision:
+      "Ogni dipartimento opera al massimo della velocità possibile. Zero tech debt critico. Build time < 30s.",
+    priorities: [
+      "Build performance — ridurre tempi di build e startup",
+      "Tech debt cleanup — eliminare debiti tecnici bloccanti",
+      "Velocity tracking — metriche di velocità per dipartimento",
+    ],
+    agents: [],
+    runbooks: [],
+    kpis: [
+      "Build time < 60s",
+      "Zero tech debt critico",
+    ],
+    departmentFilePath: "company/acceleration/department.md",
+  },
+
+  "integration": {
+    id: "integration",
+    label: "Ufficio Integrazione",
+    emoji: "🔗",
+    type: "revenue",
+    mission:
+      "Integrazione dati business per PMI italiane: connettori OAuth2 verso piattaforme esterne, pipeline CONNECT-AUTH-MAP-SYNC, analisi legale automatica sui documenti importati.",
+    vision:
+      "Hub di integrazione per PMI italiane con almeno 3 connettori attivi. Pipeline automatizzata con zero intervento manuale post-setup.",
+    priorities: [
+      "Fatture in Cloud connector — primo connettore MVP",
+      "Google Drive connector — document management",
+      "HubSpot connector — CRM",
+    ],
+    agents: [
+      { id: "integration-lead",    label: "Integration Lead",    filePath: "company/integration/agents/integration-lead.md" },
+      { id: "connector-builder",   label: "Connector Builder",   filePath: "company/integration/agents/connector-builder.md" },
+      { id: "mapping-engine",      label: "Mapping Engine",      filePath: "company/integration/agents/mapping-engine.md" },
+    ],
+    runbooks: [
+      { id: "add-connector",            label: "Add Connector",           filePath: "company/integration/runbooks/add-connector.md" },
+      { id: "credential-management",    label: "Credential Management",   filePath: "company/integration/runbooks/credential-management.md" },
+      { id: "mapping-troubleshoot",     label: "Mapping Troubleshoot",    filePath: "company/integration/runbooks/mapping-troubleshoot.md" },
+    ],
+    kpis: [
+      "Connettori attivi >= 3",
+      "Sync success rate > 95%",
+      "Mapping accuracy > 90%",
+    ],
+    departmentFilePath: "company/integration/department.md",
+  },
+
+  "music": {
+    id: "music",
+    label: "Ufficio Musica",
+    emoji: "🎵",
+    type: "revenue",
+    mission:
+      "Label virtuale AI-powered: analisi audio, trend scouting, direzione artistica per artisti emergenti. Il tuo A&R personale, powered by AI.",
+    vision:
+      "Pipeline completa dall'upload del demo al piano di release. 7 agenti AI che guidano l'artista verso il successo commerciale.",
+    priorities: [
+      "Pipeline integration — collegare tutti gli agenti nell'orchestratore",
+      "Trend data — integrare API Tunebat/Hooktheory",
+      "Monetizzazione — piani Artist/Pro/Label",
+    ],
+    agents: [
+      { id: "music-lead",             label: "Chief Music Manager",   filePath: "company/music/agents/music-lead.md" },
+      { id: "audio-analyst",          label: "Audio Analyst",         filePath: "company/music/agents/audio-analyst.md" },
+      { id: "trend-scout",            label: "Trend Scout",           filePath: "company/music/agents/trend-scout.md" },
+      { id: "arrangement-director",   label: "Arrangement Director",  filePath: "company/music/agents/arrangement-director.md" },
+      { id: "quality-reviewer",       label: "Quality Reviewer",      filePath: "company/music/agents/quality-reviewer.md" },
+      { id: "release-strategist",     label: "Release Strategist",    filePath: "company/music/agents/release-strategist.md" },
+      { id: "career-advisor",         label: "Career Advisor",        filePath: "company/music/agents/career-advisor.md" },
+    ],
+    runbooks: [
+      { id: "music-pipeline", label: "Music Pipeline", filePath: "company/music/runbooks/music-pipeline.md" },
+      { id: "setup-python",   label: "Setup Python",   filePath: "company/music/runbooks/setup-python.md" },
+    ],
+    kpis: [
+      "Pipeline < 5 min per analisi",
+      "AudioDNA accuracy > 90%",
+      "User satisfaction > 4.0/5",
+    ],
+    departmentFilePath: "company/music/department.md",
+  },
 };
 
+/**
+ * Lookup sincrono per dipartimento (solo registry statico).
+ * Per includere anche i dipartimenti dal DB, usare getDepartmentMetaAsync().
+ */
 export function getDepartmentMeta(dept: Department): DepartmentMeta | null {
   return DEPARTMENTS[dept] ?? null;
 }
 
-export const DEPT_ORDER: Department[] = [
-  "ufficio-legale",
-  "trading",
-  "data-engineering",
-  "quality-assurance",
-  "architecture",
-  "ux-ui",
-  "security",
-  "finance",
-  "operations",
-  "strategy",
-  "marketing",
-];
+/**
+ * Lookup asincrono per dipartimento — cerca prima nel registry statico, poi nel DB.
+ */
+export async function getDepartmentMetaAsync(dept: Department): Promise<DepartmentMeta | null> {
+  const staticMeta = DEPARTMENTS[dept];
+  if (staticMeta) return staticMeta;
+
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("company_departments")
+      .select("*")
+      .eq("name", dept)
+      .limit(1)
+      .single();
+
+    if (!data) return null;
+
+    return mapDbRowToDepartmentMeta(data);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Carica TUTTI i dipartimenti: merge di statici (DEPARTMENTS) + dinamici (DB).
+ * I dipartimenti statici hanno precedenza (override) su quelli nel DB con lo stesso nome.
+ */
+export async function loadDepartments(): Promise<DepartmentMeta[]> {
+  // Parti dai dipartimenti statici
+  const result = new Map<string, DepartmentMeta>();
+  for (const [id, meta] of Object.entries(DEPARTMENTS)) {
+    result.set(id, meta);
+  }
+
+  // Aggiungi dipartimenti dal DB (solo quelli non già presenti nel registry statico)
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("company_departments")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      for (const row of data) {
+        if (!result.has(row.name)) {
+          result.set(row.name, mapDbRowToDepartmentMeta(row));
+        }
+      }
+    }
+  } catch {
+    // Se il DB non è raggiungibile, restituiamo solo i dipartimenti statici
+  }
+
+  return Array.from(result.values());
+}
+
+/** Mappa una riga DB (company_departments) in DepartmentMeta */
+function mapDbRowToDepartmentMeta(row: Record<string, unknown>): DepartmentMeta {
+  const config = (row.config as Record<string, unknown>) ?? {};
+  const agents = (row.agents as Array<Record<string, string>>) ?? [];
+  const runbooks = (row.runbooks as Array<Record<string, string>>) ?? [];
+
+  return {
+    id: row.name as string,
+    label: (row.display_name as string) ?? (row.name as string),
+    emoji: (config.emoji as string) ?? "📁",
+    type: (config.type as "revenue" | "staff") ?? "staff",
+    mission: (row.mission as string) ?? "",
+    vision: (config.vision as string) ?? "",
+    priorities: (config.priorities as string[]) ?? [],
+    agents: agents.map((a) => ({
+      id: a.id ?? "",
+      label: a.label ?? "",
+      filePath: a.filePath ?? "",
+    })),
+    runbooks: runbooks.map((r) => ({
+      id: r.id ?? "",
+      label: r.label ?? "",
+      filePath: r.filePath ?? "",
+    })),
+    kpis: (config.kpis as string[]) ?? [],
+    departmentFilePath: `company/${row.name}/department.md`,
+    protected: (row.protected as boolean) ?? false,
+    createdBy: (row.created_by as string) ?? null,
+  };
+}
+
+/** Ordine statico per la UI — include tutti i dipartimenti noti */
+export const DEPT_ORDER: Department[] = [...KNOWN_DEPARTMENTS];

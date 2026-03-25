@@ -393,7 +393,7 @@ function WizardStepper({ currentStep }: { currentStep: number }) {
 
 export default function ConnectorDetailClient() {
   const { connectorId } = useParams<{ connectorId: string }>();
-  const router = useRouter();
+  const _router = useRouter();
   const toast = useToast();
   const { setConnector } = useIntegrationPanel();
 
@@ -549,7 +549,6 @@ export default function ConnectorDetailClient() {
   useEffect(() => {
     if (!config || selectedEntityData.length === 0) return;
     const newMappings = generateAutoMapping(selectedEntityData, config.targetFields);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEntityMappings((prev) => {
       if (JSON.stringify(prev) === JSON.stringify(newMappings)) return prev;
       return newMappings;
@@ -1217,7 +1216,6 @@ function ConnectorSyncTab({
         paused: "paused",
       };
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSyncData({
         status: statusMap[data.status] || "disconnected",
         lastSync: data.lastSync || null,
@@ -1315,7 +1313,6 @@ function ConnectorSyncTab({
       const decoder = new TextDecoder();
       let buffer = "";
 
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;

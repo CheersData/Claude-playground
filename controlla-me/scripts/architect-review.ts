@@ -23,7 +23,7 @@ import { getOpenTasks, updateTask } from "../lib/company/tasks";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Sei l'architetto tecnico senior di Controlla.me.
+const SYSTEM_PROMPT = `Sei l'architetto tecnico senior di Poimandres.
 Il CEO ti chiede un parere su un task da approvare. Sii diretto, pratico, senza fronzoli.
 
 Rispondi con JSON puro. Nessun testo extra. Inizia con { e finisci con }.

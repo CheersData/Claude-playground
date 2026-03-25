@@ -139,6 +139,7 @@ export function BossTerminal() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("boss-terminal-history");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- initial hydration from localStorage
       if (saved) setHistory(JSON.parse(saved));
     } catch {
       // ignore
@@ -170,6 +171,7 @@ export function BossTerminal() {
 
   // Reset selected index when filter changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derived state reset on input change
     setSelectedAutocomplete(0);
   }, [input]);
 
@@ -731,6 +733,7 @@ export function BossTerminal() {
                 borderBottom: "none",
                 boxShadow: "0 -8px 24px rgba(0,0,0,0.5)",
               }}
+              id="boss-terminal-autocomplete"
               role="listbox"
               aria-label="Comandi disponibili"
             >
@@ -817,11 +820,13 @@ export function BossTerminal() {
                 ? "In esecuzione... (Ctrl+C per interrompere)"
                 : "Digita un comando..."
             }
-            className="flex-1 bg-transparent text-[11px] font-mono outline-none
+            className="flex-1 bg-transparent text-base md:text-[11px] font-mono outline-none
               placeholder-[#444] disabled:opacity-50"
             style={{ color: "#e2e8f0" }}
+            role="combobox"
             aria-label="Comando CLI"
             aria-autocomplete="list"
+            aria-controls="boss-terminal-autocomplete"
             aria-expanded={showAutocomplete}
             autoComplete="off"
             spellCheck={false}

@@ -1,0 +1,189 @@
+{
+  "slug": "fatture-in-cloud-create-invoice",
+  "name": "Crea Fattura su Fatture in Cloud",
+  "version": "1.0.0",
+  "enabled": true,
+  "endpoint": {
+    "path": "/api/middleware/fatture/invoices",
+    "method": "POST",
+    "description": "Riceve dati fattura e li crea su Fatture in Cloud",
+    "tags": ["fatturazione", "fatture-in-cloud"]
+  },
+  "auth": {
+    "type": "bearer",
+    "source": "env",
+    "env_var": "FATTURE_IN_CLOUD_TOKEN"
+  },
+  "input": {
+    "content_type": "application/json",
+    "fields": {
+      "cliente_nome": {
+        "type": "string",
+        "required": true,
+        "min_length": 2,
+        "max_length": 200,
+        "description": "Nome o ragione sociale del cliente"
+      },
+      "cliente_piva": {
+        "type": "string",
+        "required": false,
+        "regex": "^[0-9]{11}$",
+        "description": "Partita IVA (11 cifre)"
+      },
+      "cliente_cf": {
+        "type": "string",
+        "required": false,
+        "regex": "^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$",
+        "description": "Codice fiscale"
+      },
+      "importo": {
+        "type": "number",
+        "required": true,
+        "min": 0.01,
+        "max": 999999.99,
+        "description": "Importo netto in EUR"
+      },
+      "aliquota_iva": {
+        "type": "number",
+        "required": false,
+        "enum": [0, 4, 5, 10, 22],
+        "default": 22,
+        "description": "Aliquota IVA %"
+      },
+      "descrizione": {
+        "type": "string",
+        "required": true,
+        "min_length": 5,
+        "max_length": 1000,
+        "description": "Descrizione prodotto/servizio"
+      },
+      "metodo_pagamento": {
+        "type": "string",
+        "required": false,
+        "enum": ["bonifico", "contanti", "carta", "riba"],
+        "default": "bonifico",
+        "description": "Metodo di pagamento"
+      },
+      "data_emissione": {
+        "type": "string",
+        "format": "date",
+        "required": false,
+        "default_expr": "today()",
+        "description": "Data emissione (default: oggi)"
+      }
+    },
+    "validators": [
+      {
+        "type": "at_least_one",
+        "fields": ["cliente_piva", "cliente_cf"],
+        "message": "Almeno uno tra P.IVA e Codice Fiscale e obbligatorio"
+      }
+    ]
+  },
+  "target": {
+    "base_url": "https://api-v2.fattureincloud.it",
+    "path": "/c/{company_id}/issued_documents",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer {auth.access_token}"
+    },
+    "path_params": {
+      "company_id": {
+        "source": "env",
+        "key": "FATTURE_COMPANY_ID"
+      }
+    },
+    "timeout_ms": 15000,
+    "retry": {
+      "max_attempts": 3,
+      "backoff_ms": [1000, 3000, 5000],
+      "retry_on_status": [429, 500, 502, 503]
+    }
+  },
+  "mapping": {
+    "request_body": {
+      "data": {
+        "type": {
+          "source": "static",
+          "value": "invoice"
+        },
+        "entity": {
+          "name": {
+            "source": "input",
+            "field": "cliente_nome"
+          },
+          "vat_number": {
+            "source": "input",
+            "field": "cliente_piva"
+          },
+          "tax_code": {
+            "source": "input",
+            "field": "cliente_cf"
+          }
+        },
+        "date": {
+          "source": "input",
+          "field": "data_emissione",
+          "transform": "format_date_iso"
+        },
+        "items_list": [
+          {
+            "product_id": {
+              "source": "static",
+              "value": null
+            },
+            "code": {
+              "source": "static",
+              "value": ""
+            },
+            "name": {
+              "source": "input",
+              "field": "descrizione"
+            },
+            "net_price": {
+              "source": "input",
+              "field": "importo"
+            },
+            "vat": {
+              "source": "conditional",
+              "conditions": [
+                { "if": { "field": "aliquota_iva", "eq": 0 }, "then": { "id": 0 } },
+                { "if": { "field": "aliquota_iva", "eq": 4 }, "then": { "id": 4 } },
+                { "if": { "field": "aliquota_iva", "eq": 5 }, "then": { "id": 5 } },
+                { "if": { "field": "aliquota_iva", "eq": 10 }, "then": { "id": 10 } }
+              ],
+              "default": { "id": 22 }
+            },
+            "qty": {
+              "source": "static",
+              "value": 1
+            }
+          }
+        ],
+        "payment_method": {
+          "source": "conditional",
+          "conditions": [
+            { "if": { "field": "metodo_pagamento", "eq": "bonifico" }, "then": { "id": 1 } },
+            { "if": { "field": "metodo_pagamento", "eq": "contanti" }, "then": { "id": 2 } },
+            { "if": { "field": "metodo_pagamento", "eq": "carta" }, "then": { "id": 3 } },
+            { "if": { "field": "metodo_pagamento", "eq": "riba" }, "then": { "id": 4 } }
+          ],
+          "default": { "id": 1 }
+        }
+      }
+    }
+  },
+  "response": {
+    "success_status": [200, 201],
+    "extract": {
+      "document_id": "$.data.id",
+      "numero": "$.data.number",
+      "url_pdf": "$.data.url"
+    },
+    "error_extract": {
+      "message": "$.error.message",
+      "code": "$.error.code"
+    }
+  }
+}

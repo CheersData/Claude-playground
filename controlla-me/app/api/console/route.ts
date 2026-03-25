@@ -21,6 +21,7 @@ import { loadFormaMentisContext } from "@/lib/company/memory/daemon-context-load
 import type { AgentName } from "@/lib/models";
 import type { ConsoleAgentPhase, ConsolePhaseStatus, AgentPhase, PhaseStatus, ConversationTurn } from "@/lib/types";
 import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
+import { createSSEStream, SSE_HEADERS } from "@/lib/sse-stream-factory";
 
 export const maxDuration = 300;
 
@@ -49,19 +50,10 @@ export async function POST(req: NextRequest) {
     sid: tokenPayload.sid,
   };
 
-  const encoder = new TextEncoder();
+  const { stream, send, close: closeStream } = createSSEStream({ request: req });
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (event: string, data: unknown) => {
-        try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
-        } catch {
-          // Controller may be closed
-        }
-      };
+  // Run the pipeline asynchronously
+  (async () => {
 
       // ADR-005: Attach parentPid and sessionId to all broadcastConsoleAgent calls.
       // The console route runs the pipeline in-process (not via claude -p child),
@@ -264,23 +256,12 @@ export async function POST(req: NextRequest) {
           error instanceof Error ? error.message : "Errore sconosciuto";
         send("error", { message });
       } finally {
-        try {
-          controller.close();
-        } catch {
-          // Already closed
-        }
+        closeStream();
       }
       }); // end sessionTierStore.run()
-    },
-  });
+  })();
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  return new Response(stream, { headers: SSE_HEADERS });
 }
 
 // ─── Model Info helper ───

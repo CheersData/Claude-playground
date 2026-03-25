@@ -132,4 +132,4 @@ La caparra confirmatoria, in quanto somma versata a titolo di garanzia, è sogge
 
 ## Stai per firmare un contratto con una clausola sulla caparra?
 
-Carica il documento su [controlla.me](https://controlla.me): il nostro sistema AI analizza le clausole e ti spiega esattamente cosa rischi. Le prime 3 analisi sono gratuite.
+Carica il documento su [Poimandres](https://poimandres.work): il nostro sistema AI analizza le clausole e ti spiega esattamente cosa rischi. Le prime 3 analisi sono gratuite.

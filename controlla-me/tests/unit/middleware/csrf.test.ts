@@ -60,6 +60,11 @@ describe("checkCsrf — produzione (NEXT_PUBLIC_APP_URL)", () => {
     expect(checkCsrf(req)).toBeNull();
   });
 
+  it("POST da www variant auto-allowed → null (ok)", () => {
+    const req = makeRequest("POST", "https://www.controlla.me");
+    expect(checkCsrf(req)).toBeNull();
+  });
+
   it("POST da origine diversa → 403", () => {
     const req = makeRequest("POST", "https://evil.com");
     const result = checkCsrf(req);
@@ -86,6 +91,27 @@ describe("checkCsrf — produzione (NEXT_PUBLIC_APP_URL)", () => {
     const result = checkCsrf(req);
     expect(result).not.toBeNull();
     expect(result!.status).toBe(403);
+  });
+});
+
+describe("checkCsrf — www/non-www auto-allow (APP_URL = www)", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://www.poimandres.work");
+    vi.stubEnv("NODE_ENV", "production");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("POST da www origin → null (ok)", () => {
+    const req = makeRequest("POST", "https://www.poimandres.work");
+    expect(checkCsrf(req)).toBeNull();
+  });
+
+  it("POST da non-www variant → null (auto-allowed)", () => {
+    const req = makeRequest("POST", "https://poimandres.work");
+    expect(checkCsrf(req)).toBeNull();
   });
 });
 

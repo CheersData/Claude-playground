@@ -95,6 +95,10 @@ const CC: TagRule[] = [
   // Tit. II: Persone giuridiche
   { min: 11, max: 35, tags: ["persona_giuridica", "associazione", "fondazione"] },
   { min: 36, max: 42, tags: ["persona_giuridica", "comitato"] },
+  // Tit. III: Domicilio e residenza
+  { min: 43, max: 47, tags: ["domicilio", "residenza"] },
+  // Tit. IV: Assenza e morte presunta
+  { min: 48, max: 73, tags: ["assenza", "morte_presunta"] },
   // Tit. V: Parentela e affinità
   { min: 74, max: 78, tags: ["parentela"] },
   // Tit. VI: Matrimonio
@@ -111,8 +115,12 @@ const CC: TagRule[] = [
   { min: 291, max: 342, tags: ["filiazione", "responsabilità_genitoriale"] },
   // Tit. X: Tutela e curatela
   { min: 343, max: 413, tags: ["tutela"] },
+  // Tit. XII: Interdizione, inabilitazione, amministrazione di sostegno
+  { min: 414, max: 432, tags: ["interdizione", "inabilitazione", "amministrazione_sostegno"] },
   // Tit. XIII: Alimenti
   { min: 433, max: 448, tags: ["alimenti", "obbligo_alimentare"] },
+  // Tit. XIV: Atti dello stato civile
+  { min: 449, max: 455, tags: ["stato_civile"] },
 
   // ═══ LIBRO II: Delle successioni ═══
 
@@ -290,6 +298,16 @@ const CC: TagRule[] = [
   { min: 2130, max: 2134, tags: ["lavoro_subordinato", "licenziamento"] },
   // Tit. II, Capo III: Tirocinio, apprendistato
   { min: 2130, max: 2134, tags: ["lavoro_subordinato"] },
+  // Tit. II: Impresa agricola
+  { min: 2135, max: 2140, tags: ["imprenditore_agricolo", "impresa"] },
+  // Tit. II: Lavoro subordinato (remainder)
+  { min: 2141, max: 2187, tags: ["lavoro_subordinato", "contratto_lavoro"] },
+  // Tit. II: Registro imprese
+  { min: 2188, max: 2202, tags: ["registro_imprese"] },
+  // Tit. II: Istitore, procuratore, rappresentanza commerciale
+  { min: 2203, max: 2213, tags: ["azienda", "procura_institoria", "rappresentanza_commerciale"] },
+  // Tit. II: Azienda (cessione, usufrutto, affitto)
+  { min: 2214, max: 2221, tags: ["azienda"] },
   // Tit. III: Lavoro autonomo
   { min: 2222, max: 2238, tags: ["lavoro_autonomo", "contratto_opera"] },
   // Tit. IV: Lavoro nelle PA (abrogato in gran parte)
@@ -298,7 +316,12 @@ const CC: TagRule[] = [
   { min: 2247, max: 2324, tags: ["società_semplice"] },
   { min: 2325, max: 2461, tags: ["spa"] },
   { min: 2462, max: 2510, tags: ["srl"] },
-  { min: 2511, max: 2554, tags: ["società_semplice"] },
+  // Tit. VI: Cooperative
+  { min: 2511, max: 2545, tags: ["cooperativa", "società_cooperativa"] },
+  // Tit. VI: Mutue assicuratrici
+  { min: 2546, max: 2548, tags: ["mutua_assicuratrice"] },
+  // Tit. VII: Associazione in partecipazione e consorzio
+  { min: 2549, max: 2554, tags: ["consorzio", "associazione_in_partecipazione"] },
   // Tit. VIII-X: Impresa, azienda, concorrenza
   { min: 2555, max: 2574, tags: ["azienda", "registro_imprese"] },
   { min: 2575, max: 2601, tags: ["impresa"] },
@@ -579,11 +602,123 @@ const DLGS81: TagRule[] = [
   { min: 266, max: 286, tags: ["sicurezza_lavoro", "agenti_biologici"] },
   // Tit. XI: Atmosfere esplosive (Art. 287-297)
   { min: 287, max: 297, tags: ["sicurezza_lavoro", "atmosfere_esplosive"] },
+  // Tit. VIII: Agenti fisici (Art. 180-220)
+  { min: 180, max: 220, tags: ["sicurezza_lavoro", "agenti_fisici"] },
+  // Tit. IX: Sostanze pericolose (Art. 221-265)
+  { min: 221, max: 265, tags: ["sicurezza_lavoro", "sostanze_pericolose"] },
+  // Tit. XII: Disposizioni penali (Art. 298-306)
+  { min: 298, max: 306, tags: ["sicurezza_lavoro", "sanzioni_sicurezza"] },
 ];
 
 function getDlgs81Tags(num: number): string[] | null {
   let best: TagRule | null = null;
   for (const rule of DLGS81) {
+    if (num >= rule.min && num <= rule.max) best = rule;
+  }
+  return best ? [...best.tags] : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// D.LGS. 231/2001 — Responsabilità amministrativa degli enti
+// ═══════════════════════════════════════════════════════════
+
+const DLGS231: TagRule[] = [
+  // Capo I: Principi generali (Art. 1-4)
+  { min: 1, max: 4, tags: ["responsabilita_ente", "modelli_organizzativi_231"] },
+  // Capo I: Criteri di attribuzione (Art. 5-8)
+  { min: 5, max: 8, tags: ["reati_presupposto", "responsabilita_ente"] },
+  // ★ Art. 6-7: Modelli organizzativi e organismo di vigilanza
+  { min: 6, max: 7, tags: ["modelli_organizzativi_231", "organismo_vigilanza", "responsabilita_ente"] },
+  // Capo II: Sanzioni (Art. 9-23)
+  { min: 9, max: 23, tags: ["sanzioni_interdittive", "confisca", "responsabilita_ente"] },
+  // Capo III: Reati presupposto (Art. 24-25octies+)
+  { min: 24, max: 25, tags: ["reati_presupposto", "responsabilita_ente"] },
+  // ★ Art. 25-bis+: reati specifici presupposto
+  { min: 26, max: 67, tags: ["reati_presupposto", "responsabilita_ente"] },
+  // ★ Whistleblowing (Art. 6, comma 2-bis — taggato nel range 6-7 sopra)
+];
+
+function getDlgs231Tags(num: number): string[] | null {
+  let best: TagRule | null = null;
+  for (const rule of DLGS231) {
+    if (num >= rule.min && num <= rule.max) best = rule;
+  }
+  return best ? [...best.tags] : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DPR 380/2001 — Testo Unico Edilizia
+// ═══════════════════════════════════════════════════════════
+
+const DPR380: TagRule[] = [
+  // Parte I: Disposizioni generali (Art. 1-5)
+  { min: 1, max: 5, tags: ["disposizioni_generali", "edilizia"] },
+  // Parte I, Tit. II: Titoli abilitativi (Art. 6-23)
+  { min: 6, max: 23, tags: ["permesso_costruire", "SCIA_edilizia", "oneri_urbanizzazione"] },
+  // ★ Art. 6: attività edilizia libera
+  { min: 6, max: 6, tags: ["edilizia_libera", "SCIA_edilizia"] },
+  // ★ Art. 10-15: permesso di costruire
+  { min: 10, max: 15, tags: ["permesso_costruire", "edilizia"] },
+  // ★ Art. 16-17: oneri di urbanizzazione
+  { min: 16, max: 17, tags: ["oneri_urbanizzazione", "permesso_costruire"] },
+  // ★ Art. 22-23: SCIA
+  { min: 22, max: 23, tags: ["SCIA_edilizia", "edilizia"] },
+  // Parte I, Tit. III: Agibilità (Art. 24-26)
+  { min: 24, max: 26, tags: ["agibilita", "edilizia"] },
+  // Parte I, Tit. IV: Vigilanza e sanzioni (Art. 27-47)
+  { min: 27, max: 47, tags: ["abuso_edilizio", "sanzioni_edilizie"] },
+  // ★ Art. 31: interventi in assenza di permesso
+  { min: 31, max: 31, tags: ["abuso_edilizio", "demolizione", "sanzioni_edilizie"] },
+  // ★ Art. 36-37: accertamento conformità, SCIA tardiva
+  { min: 36, max: 37, tags: ["abuso_edilizio", "sanatoria_edilizia"] },
+  // Parte II: Norme tecniche costruzioni (Art. 48-76)
+  { min: 48, max: 76, tags: ["norme_tecniche_costruzioni", "edilizia"] },
+  // Parte II, Capo IV: Norme antisismiche (Art. 77-106)
+  { min: 77, max: 106, tags: ["norme_sismiche", "edilizia"] },
+  // Parte III: Varie (Art. 107-151)
+  { min: 107, max: 151, tags: ["efficienza_energetica", "edilizia"] },
+];
+
+function getDpr380Tags(num: number): string[] | null {
+  let best: TagRule | null = null;
+  for (const rule of DPR380) {
+    if (num >= rule.min && num <= rule.max) best = rule;
+  }
+  return best ? [...best.tags] : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// D.LGS. 81/2015 — Jobs Act Contratti (Riordino tipologie contrattuali)
+// ═══════════════════════════════════════════════════════════
+
+const DLGS81_2015: TagRule[] = [
+  // Capo I: Disposizioni in materia di rapporto di lavoro (Art. 1-12)
+  { min: 1, max: 12, tags: ["contratto_tempo_determinato", "lavoro_subordinato"] },
+  // Capo II: Somministrazione di lavoro (Art. 13-18)
+  { min: 13, max: 18, tags: ["somministrazione_lavoro", "lavoro_subordinato"] },
+  // Capo III: Contratto a tempo determinato — regime transitorio (Art. 19-29)
+  { min: 19, max: 29, tags: ["contratto_tempo_determinato", "lavoro_subordinato"] },
+  // ★ Art. 19-21: limiti durata e proroghe
+  { min: 19, max: 21, tags: ["contratto_tempo_determinato", "durata_contratto", "proroga_contratto"] },
+  // ★ Art. 28-29: impugnazione e sanzioni
+  { min: 28, max: 29, tags: ["contratto_tempo_determinato", "impugnazione", "conversione_contratto"] },
+  // Capo IV: Regime transitorio (Art. 30-40)
+  { min: 30, max: 40, tags: ["contratto_tempo_determinato", "lavoro_subordinato"] },
+  // Capo V: Apprendistato (Art. 41-47)
+  { min: 41, max: 47, tags: ["apprendistato", "lavoro_subordinato", "formazione"] },
+  // Capo VI: Lavoro intermittente (Art. 48-50)
+  { min: 48, max: 50, tags: ["lavoro_intermittente", "lavoro_subordinato"] },
+  // Capo VII: Part-time (Art. 51-57)
+  { min: 51, max: 57, tags: ["part_time", "lavoro_subordinato"] },
+  // ★ Art. 51: clausole elastiche
+  { min: 51, max: 51, tags: ["part_time", "clausole_elastiche", "lavoro_subordinato"] },
+  // Capo VIII: Lavoro accessorio e disposizioni finali (Art. 58-66)
+  { min: 58, max: 66, tags: ["lavoro_accessorio", "disposizioni_finali", "lavoro_subordinato"] },
+];
+
+function getDlgs81_2015Tags(num: number): string[] | null {
+  let best: TagRule | null = null;
+  for (const rule of DLGS81_2015) {
     if (num >= rule.min && num <= rule.max) best = rule;
   }
   return best ? [...best.tags] : null;
@@ -847,6 +982,156 @@ async function run() {
       const current = JSON.stringify((art.related_institutes ?? []).sort());
       const target = JSON.stringify([...tags].sort());
       if (current !== target) updates.set(art.id, tags);
+    }
+
+    // ─── D.Lgs. 231/2001 (Responsabilità enti) ───
+    if (art.law_source === "D.Lgs. 231/2001") {
+      const dlgs231Tags = getDlgs231Tags(num);
+      if (dlgs231Tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...dlgs231Tags].sort());
+        if (current !== target) updates.set(art.id, dlgs231Tags);
+      }
+    }
+
+    // ─── DPR 380/2001 (TU Edilizia) ───
+    if (art.law_source === "DPR 380/2001") {
+      const dpr380Tags = getDpr380Tags(num);
+      if (dpr380Tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...dpr380Tags].sort());
+        if (current !== target) updates.set(art.id, dpr380Tags);
+      }
+    }
+
+    // ─── D.Lgs. 81/2015 (Jobs Act Contratti) ───
+    if (art.law_source === "D.Lgs. 81/2015" || art.law_source === "Jobs Act Contratti (D.Lgs. 81/2015)") {
+      const dlgs81_2015Tags = getDlgs81_2015Tags(num);
+      if (dlgs81_2015Tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...dlgs81_2015Tags].sort());
+        if (current !== target) updates.set(art.id, dlgs81_2015Tags);
+      }
+    }
+
+    // ─── Direttiva 93/13/CEE (Clausole Abusive) ───
+    if (art.law_source.includes("93/13")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 2) tags = ["ambito_applicazione", "clausole_abusive"];
+      if (num >= 3 && num <= 5) tags = ["clausole_abusive", "trasparenza_contrattuale"];
+      if (num >= 6 && num <= 7) tags = ["tutela_consumatore", "clausole_abusive"];
+      if (num >= 8 && num <= 11) tags = ["disposizioni_finali", "clausole_abusive"];
+      if (!tags && num >= 1) tags = ["clausole_abusive", "tutela_consumatore"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── Direttiva 2011/83/UE (Dir. Consumatori) ───
+    if (art.law_source.includes("2011/83")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 4) tags = ["ambito_applicazione", "tutela_consumatore"];
+      if (num >= 5 && num <= 8) tags = ["obblighi_informazione_precontrattuale", "tutela_consumatore"];
+      if (num >= 9 && num <= 16) tags = ["diritto_recesso", "contratti_distanza", "tutela_consumatore"];
+      if (num >= 17 && num <= 20) tags = ["contratti_fuori_sede", "tutela_consumatore"];
+      if (num >= 21 && num <= 35) tags = ["disposizioni_finali", "tutela_consumatore"];
+      if (!tags && num >= 1) tags = ["tutela_consumatore", "contratti_distanza"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── Direttiva 2019/771/UE (Dir. Vendita Beni) ───
+    if (art.law_source.includes("2019/771")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 4) tags = ["ambito_applicazione", "garanzia_legale"];
+      if (num >= 5 && num <= 9) tags = ["conformita_bene", "garanzia_legale"];
+      if (num >= 10 && num <= 16) tags = ["difetto_conformita", "rimedi_consumatore"];
+      if (num >= 17 && num <= 28) tags = ["disposizioni_finali", "garanzia_legale"];
+      if (!tags && num >= 1) tags = ["garanzia_legale", "conformita_bene"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── Reg. Roma I (593/2008) — Legge applicabile alle obbligazioni contrattuali ───
+    if (art.law_source.includes("Roma I") || art.law_source.includes("593/2008")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 2) tags = ["ambito_applicazione", "legge_applicabile"];
+      if (num >= 3 && num <= 4) tags = ["scelta_legge", "legge_applicabile"];
+      if (num >= 5 && num <= 8) tags = ["contratti_consumo_internazionale", "contratto_lavoro_internazionale", "legge_applicabile"];
+      if (num >= 9 && num <= 29) tags = ["norme_imperative", "disposizioni_finali", "legge_applicabile"];
+      if (!tags && num >= 1) tags = ["legge_applicabile", "diritto_internazionale_privato"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── Digital Services Act (Reg. 2022/2065) ───
+    if (art.law_source.includes("DSA") || art.law_source.includes("2022/2065")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 3) tags = ["ambito_applicazione", "responsabilita_intermediari"];
+      if (num >= 4 && num <= 10) tags = ["responsabilita_intermediari", "moderazione_contenuti"];
+      if (num >= 11 && num <= 28) tags = ["moderazione_contenuti", "segnalazione_contenuti", "trasparenza_algoritmica"];
+      if (num >= 29 && num <= 43) tags = ["VLOP", "obblighi_piattaforme", "trasparenza_algoritmica"];
+      if (num >= 44 && num <= 93) tags = ["disposizioni_finali", "sanzioni", "responsabilita_intermediari"];
+      if (!tags && num >= 1) tags = ["responsabilita_intermediari", "moderazione_contenuti"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── AI Act (Reg. 2024/1689) ───
+    if (art.law_source.includes("AI Act") || art.law_source.includes("2024/1689")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 4) tags = ["ambito_applicazione", "intelligenza_artificiale"];
+      if (num === 5) tags = ["pratiche_vietate", "intelligenza_artificiale"];
+      if (num >= 6 && num <= 51) tags = ["ai_alto_rischio", "valutazione_conformita", "obblighi_fornitore"];
+      if (num >= 52 && num <= 56) tags = ["trasparenza_ai", "intelligenza_artificiale"];
+      if (num >= 57 && num <= 99) tags = ["governance_ai", "sanzioni_ai"];
+      if (num >= 100) tags = ["disposizioni_finali", "intelligenza_artificiale"];
+      if (!tags && num >= 1) tags = ["intelligenza_artificiale", "ai_alto_rischio"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── NIS2 (Dir. 2022/2555) ───
+    if (art.law_source.includes("NIS2") || art.law_source.includes("2022/2555")) {
+      let tags: string[] | null = null;
+      if (num >= 1 && num <= 6) tags = ["cybersicurezza", "ambito_applicazione"];
+      if (num >= 7 && num <= 13) tags = ["governance_cybersicurezza", "cybersicurezza"];
+      if (num >= 14 && num <= 25) tags = ["obblighi_sicurezza", "gestione_incidenti", "cybersicurezza"];
+      if (num >= 26 && num <= 37) tags = ["vigilanza_cybersicurezza", "sanzioni", "cybersicurezza"];
+      if (!tags && num >= 1) tags = ["cybersicurezza", "obblighi_sicurezza"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
+    }
+
+    // ─── L. 590/1965 (Prelazione agraria) ───
+    if (art.law_source.includes("590/1965") || art.law_source.includes("prelazione agraria") || art.law_source.includes("Prelazione agraria")) {
+      let tags: string[] | null = null;
+      if (num >= 1) tags = ["prelazione_agraria", "affittuario_coltivatore"];
+      if (tags) {
+        const current = JSON.stringify((art.related_institutes ?? []).sort());
+        const target = JSON.stringify([...tags].sort());
+        if (current !== target) updates.set(art.id, tags);
+      }
     }
   }
 

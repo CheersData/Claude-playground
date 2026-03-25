@@ -1,0 +1,26 @@
+{
+  "department": "trading",
+  "scenarios": [
+    {
+      "id": "trading-api-health",
+      "name": "Trading cost API responds",
+      "department": "trading",
+      "vertical": "trading",
+      "description": "Verify the company costs API endpoint responds with valid JSON (trading cost data)",
+      "steps": [
+        {
+          "type": "api-call",
+          "params": {
+            "url": "/api/company/costs?days=7",
+            "method": "GET"
+          },
+          "expect": {
+            "status": 200,
+            "timeout": 10000
+          }
+        }
+      ],
+      "tags": ["smoke"]
+    }
+  ]
+}

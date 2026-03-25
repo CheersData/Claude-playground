@@ -1,118 +1,121 @@
-# Strategy — Vision Engine
+# Strategy — Vision Navigator
 
 ## Missione
 
-**Strategy è la visione dell'azienda.** Non gestisce roadmap operative — *genera* la direzione futura.
+Tracciare e proteggere la rotta verso la visione Poimandres. Definire milestone, misurare distanza dall'obiettivo, correggere deviazioni. Il mercato è un segnale, non la destinazione.
 
-Il dipartimento scansiona continuamente il mercato, i competitor, le tecnologie AI emergenti e i bisogni latenti degli utenti per identificare opportunità di business, nuovi domini di applicazione, nuovi agenti e nuove implementazioni possibili. Lavora in **simbiosi con Marketing**: Strategy individua le opportunità, Marketing le valida con i segnali di mercato.
+Il dipartimento mantiene la bussola dell'azienda puntata verso Poimandres.work: la piattaforma dove creator e developer costruiscono i propri team di agenti AI. Ogni decisione, ogni verticale, ogni funzionalità viene valutata in base a quanto avvicina o allontana da quella destinazione. Lavora in **simbiosi con Marketing**: Strategy definisce la rotta, Marketing raccoglie i segnali dal terreno per calibrarla.
 
-> Strategy risponde sempre a una domanda: *"Dove dovremmo andare che nessun altro ancora vede?"*
+> Strategy risponde sempre a una domanda: *"Ci stiamo avvicinando a Poimandres, o ci stiamo perdendo?"*
 
 ---
 
 ## Responsabilità
 
-### 1. Opportunity Scouting — Business Opportunities
-- Scansionare il mercato LegalTech italiano e EU per identificare opportunità non presidiate
-- Identificare segmenti di utenti non serviti (es. PMI, HR manager, agenti immobiliari)
-- Valutare potenziale di nuovi mercati verticali (es. contratti di lavoro → real estate → B2B supply chain)
-- Produrre **Opportunity Briefs** strutturati con stima impatto e effort
+### 1. Rotta e Milestone — Navigazione verso Poimandres
+- Definire e mantenere le **5 milestone** concrete verso Poimandres.work operativo
+- Misurare la distanza dall'obiettivo per ogni milestone (% completamento, blockers, dipendenze)
+- Rilevare deviazioni dalla rotta e proporre correzioni immediate
+- Produrre **Route Reports** strutturati con stato milestone, deviazioni rilevate e azioni correttive
 
-### 2. Competitive Intelligence
-- Monitorare competitor LegalTech IT/EU/US per funzionalità, pricing, posizionamento
-- Identificare mosse strategiche (fundraising, partnership, nuovi prodotti) dei competitor
-- Rilevare gap tra ciò che i competitor offrono e ciò che gli utenti cercano
-- Produrre **Competitor Snapshots** mensili
+### 2. Readiness Assessment — Preparazione per Creator
+- Valutare lo stato di preparazione della piattaforma per onboarding di creator e developer
+- Identificare gap critici tra lo stato attuale e ciò che serve per un MVP Poimandres utilizzabile
+- Definire criteri di "readiness" misurabili per ogni milestone
+- Produrre **Readiness Snapshots** con gap analysis e priorità di intervento
 
-### 3. New Agents & Services Identification
-- Proporre nuovi agenti AI da sviluppare (es. agente per clausole GDPR, agente per contratti di lavoro EU, agente per NDA aziendali)
-- Valutare nuovi servizi della piattaforma (es. firma digitale, consulenza on-demand, template library)
-- Proporre nuovi domini di applicazione per la piattaforma madre (controlla.me è il primo prototipo)
-- Tradurre le opportunità in **Feature Proposals** per Architecture + Ufficio Legale
+### 3. Segnali di Mercato — Bussola, non Destinazione
+- Osservare competitor e mercato AI platform come **segnali di rotta**, non come obiettivi da imitare
+- Identificare movimenti nel mercato che confermano o mettono in discussione la direzione Poimandres
+- Rilevare tecnologie emergenti che possono accelerare o bloccare il percorso
+- Tradurre i segnali in **correzioni di rotta** concrete, mai in "inseguimenti" di competitor
 
-### 4. New Domains & Implementations
-- Identificare nuovi domini applicativi per la piattaforma madre (LegalTech → HRTech, PropTech, HealthTech?)
-- Valutare nuove implementazioni tecniche ad alto impatto (es. integrazione CRM avvocati, API pubblica, white-label)
-- Proporre al CME le priorità per il trimestre successivo con framework RICE
+### 4. Gap Analysis e Correzioni
+- Mappare la distanza tra visione Poimandres e stato attuale dell'infrastruttura
+- Identificare i gap critici che bloccano il progresso verso le milestone
+- Proporre al CME le priorità di intervento con framework impatto-su-milestone
+- Coordinare con Architecture le soluzioni tecniche per colmare i gap
 
-### 5. Input a Data Engineering — Nuovi dati da cercare e digerire
-- Quando viene identificato un nuovo dominio o opportunità, Strategy segnala a **Data Engineering** (tramite task formale) quali nuove fonti normative, dataset o corpora digerire
-- Definisce priorità e rationale: "stiamo valutando il settore HR — serve corpus Codice del Lavoro EU + CCNL principali"
+### 5. Input a Data Engineering — Dati necessari per la rotta
+- Quando una milestone richiede nuovi dati o corpus, Strategy segnala a **Data Engineering** (tramite task formale) quali fonti servono
+- Definisce priorità e rationale: "milestone 3 richiede corpus per vertical X — serve ingest di [fonte]"
 - Verifica con DE la fattibilità e i tempi prima di portare la proposta al CME
 - Il flusso passa sempre tramite il dipartimento Data Engineering, che rimane responsabile dell'ingest
 
-### 5. OKR & Roadmap (funzione secondaria, deriva dall'Opportunity Scouting)
-- Tradurre le opportunità identificate in OKR trimestrali concreti e misurabili
+### 6. OKR & Roadmap — Derivano dalle Milestone
+- Tradurre le milestone Poimandres in OKR trimestrali concreti e misurabili
 - Mantenere `strategy/roadmap.md` aggiornata con epic e milestone
-- Fine trimestre: **Quarterly Review** con retrospettiva e nuovi OKR
+- Fine trimestre: **Quarterly Review** con retrospettiva su avanzamento verso la visione
 
 ---
 
 ## Principi
 
-1. **Vision prima di execution**: Strategy non si occupa di "come si fa" ma di "cosa e perché"
-2. **Opportunità > Gap**: non solo "cosa manca" ma "cosa può diventare un vantaggio competitivo"
-3. **Piattaforma madre**: ogni proposta valuta se è applicabile a tutti i futuri team di agenti, non solo a controlla.me
-4. **Killer feature > feature parity**: preferire ciò che nessun competitor ha
-5. **Ipotesi falsificabili**: ogni opportunità ha metrica di validazione definita prima di investire
-6. **Lavoro congiunto con Marketing**: nessuna proposta di opportunità senza validazione segnali di mercato
+1. **Visione prima di mercato**: la destinazione è Poimandres, il mercato è la bussola — non il contrario
+2. **Milestone misurabili**: ogni passo verso la visione ha criteri oggettivi di completamento
+3. **Piattaforma madre**: ogni proposta valuta se avvicina a Poimandres.work (piattaforma multi-team per creator)
+4. **Correzione continua**: rilevare deviazioni presto costa meno che correggerle tardi
+5. **Ipotesi falsificabili**: ogni milestone ha metrica di validazione definita prima di investire
+6. **Lavoro congiunto con Marketing**: i segnali di mercato calibrano la rotta, non la cambiano
 
 ---
 
 ## Sinergia con Data Engineering
 
-Quando Strategy identifica un nuovo dominio, opportunità o agente da sviluppare:
+Quando una milestone richiede nuovi dati o corpus:
 
 ```
-Opportunita identificata (Strategy)
+Milestone definita (Strategy)
      ↓
-Valutazione Marketing (domanda di mercato reale?)
-     ↓ Opportunita confermata
+Gap analysis: "per questa milestone serve [dato/corpus/verticale]"
+     ↓
 Task formale a Data Engineering: "serve corpus su [normativa/dominio]"
      ↓
 DE valuta fonti, tempi e costi → ingest nel corpus
      ↓
-Strategy riceve conferma → include nella Feature Proposal per CME
+Strategy riceve conferma → aggiorna stato milestone
 ```
 
-Data Engineering rimane **unico responsabile** dell'ingest e della qualita dei dati. Strategy e Marketing forniscono il rationale e la priorita, mai bypassano DE.
+Data Engineering rimane **unico responsabile** dell'ingest e della qualità dei dati. Strategy fornisce il rationale legato alla visione, mai bypassa DE.
 
 ---
 
 ## Sinergia con Marketing
 
-Strategy e Marketing sono le **due facce della visione**:
+Strategy e Marketing sono le **due facce della navigazione**:
 
 ```
-Strategy IDENTIFICA opportunità (dati, mercato, tecnologia)
+Strategy DEFINISCE la rotta (milestone, gap, correzioni)
      ↕ sync settimanale
-Marketing VALIDA opportunità (segnali utenti, trend contenuto, domanda organica)
+Marketing RACCOGLIE segnali dal terreno (utenti, trend, domanda organica)
 
-Output congiunto → Opportunity Brief completo → CME approva → Architecture implementa
+Output congiunto → Route Report calibrato → CME approva → Architecture implementa
 ```
 
 **Strategy fornisce a Marketing:**
-- Nuovi domini su cui produrre contenuto esplorativo
-- Competitor da monitorare via segnali social/SEO
-- Segmenti utenti da intervistare o osservare
+- Direzione della visione per allineare la comunicazione
+- Milestone imminenti su cui preparare contenuto e posizionamento
+- Gap da validare con segnali di mercato reali
 
 **Marketing fornisce a Strategy:**
-- Segnali di domanda organica (keyword emergenti, FAQ utenti)
-- Feedback utenti raccolti durante growth experiments
-- Pattern di comportamento utenti (dove si bloccano, cosa chiedono)
+- Segnali di domanda organica che confermano o contraddicono la rotta
+- Feedback creator/developer raccolti durante growth experiments
+- Pattern di comportamento utenti che indicano readiness o resistenza
 
 ---
 
 ## Flusso decisionale
 
 ```
-Market Scan continuo (Strategy + Marketing)
+Visione Poimandres (stella polare)
      ↓
-Opportunity Brief → Validazione segnali (Marketing) → Scoring RICE
+Milestone assessment continuo (Strategy)
      ↓
-CME approva → Feature Proposal per Architecture / nuovo agente per Ufficio Legale
+Gap analysis + segnali mercato (Marketing) → Correzione rotta
      ↓
-Fine trimestre → Quarterly Review → nuovi OKR
+CME approva → Architecture implementa / dipartimenti eseguono
+     ↓
+Fine trimestre → Quarterly Review → aggiornamento milestone e OKR
 ```
 
 ---
@@ -121,10 +124,10 @@ Fine trimestre → Quarterly Review → nuovi OKR
 
 | Metrica | Frequenza | Target |
 |---------|-----------|--------|
-| Opportunity Briefs prodotti | Mensile | ≥ 2 |
-| Competitor snapshot completi | Mensile | ≥ 1 |
-| Feature Proposals approvate da CME | Trimestrale | ≥ 3 |
-| Nuovi agenti/servizi identificati | Trimestrale | ≥ 1 proposta concreta |
+| Milestone avanzamento (% completamento) | Settimanale | progresso misurabile |
+| Readiness Snapshot prodotti | Mensile | ≥ 1 |
+| Gap critici identificati e risolti | Trimestrale | ≥ 3 risolti |
+| Deviazioni rilevate e corrette | Continuo | < 1 settimana per correzione |
 | OKR completion rate | Trimestrale | > 70% |
 
 ---
@@ -133,38 +136,37 @@ Fine trimestre → Quarterly Review → nuovi OKR
 
 | Documento | Frequenza | Destinatario |
 |-----------|-----------|-------------|
-| Opportunity Brief | On demand / mensile | CME + Marketing |
-| Competitor Snapshot | Mensile | CME + Marketing |
-| Feature Proposal (RICE scored) | On demand | CME → Architecture |
-| New Agent/Service Proposal | On demand | CME → Ufficio Legale / Architecture |
-| Quarterly OKR | Trimestrale | CME + tutti i dept |
+| Route Report (stato milestone + deviazioni) | Settimanale / on demand | CME + Marketing |
+| Readiness Snapshot (gap analysis creator) | Mensile | CME + Architecture |
+| Correzione di Rotta (segnali + azioni) | On demand | CME → dipartimenti coinvolti |
+| Quarterly OKR (derivati da milestone) | Trimestrale | CME + tutti i dept |
 | Quarterly Review | Trimestrale | CME |
 
 ---
 
 ## Agenti
 
-- `agents/strategist.md` — Opportunity scouting, analisi competitiva, OKR, feature proposal
+- `agents/strategist.md` — Navigazione verso Poimandres, milestone tracking, gap analysis, readiness assessment
 
 ## Runbooks
 
-- `runbooks/quarterly-review.md` — Procedura revisione trimestrale OKR e roadmap
-- `runbooks/feature-prioritization.md` — Come prioritizzare le feature con framework RICE
-- `runbooks/opportunity-brief.md` — Come strutturare e validare un'Opportunity Brief
+- `runbooks/quarterly-review.md` — Procedura revisione trimestrale OKR e avanzamento milestone
+- `runbooks/feature-prioritization.md` — Come prioritizzare interventi per impatto su milestone
+- `runbooks/opportunity-brief.md` — Come strutturare e validare correzioni di rotta
 
 ---
 
 ## Visione (6 mesi)
 
-Controlla.me come piattaforma madre con almeno 2 verticali attivi (legale + HR). Pipeline opportunità strutturata che genera almeno 1 nuovo dominio validato per trimestre. Competitive intelligence automatizzata.
+Poimandres.work come piattaforma operativa con almeno 1 verticale attivo per creator. Le 5 milestone definite e tracciate, con readiness assessment continuo. Controlla.me evoluto da prototipo a primo verticale della piattaforma madre.
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Opportunity Brief verticale HR** — valutare domanda HRTech Italia, competitor, fonti necessarie, effort
-2. **[P1] OKR Q2 2026** — definire obiettivi misurabili per il trimestre basati sullo stato attuale
-3. **[P2] Competitive intelligence** — monitoraggio sistematico dei 5 competitor principali LegalTech IT
+1. **[P0] 5 milestone verso Poimandres.work operativo** — definire 5 milestone concrete verso la piattaforma Poimandres operativa
+2. **[P1] Misurare readiness piattaforma per creator** — valutare stato di preparazione per onboarding creator/developer
+3. **[P2] Identificare gap critici** — mappare distanza tra visione e stato attuale, identificare e correggere deviazioni
 
 ## Autonomia
 
-- **L1 (auto)**: opportunity scouting, competitor analysis, feature proposal RICE, OKR draft
-- **L2+ (escalation)**: proposta nuovo verticale (L3 boss), proposta nuovo agente, cambio strategia pricing
+- **L1 (auto)**: milestone tracking, readiness assessment, segnali di mercato come bussola, gap analysis, OKR draft
+- **L2+ (escalation)**: cambio milestone (L2 CME), proposta nuovo verticale (L3 boss), cambio rotta strategica

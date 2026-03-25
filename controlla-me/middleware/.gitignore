@@ -1,0 +1,22 @@
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# .NET SDK (local install)
+dotnet/
+.dotnet/
+dotnet-sdk.tar.gz
+install-dotnet.sh
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# Env
+.env
+appsettings.Production.json
+
+# OS
+.DS_Store
+Thumbs.db

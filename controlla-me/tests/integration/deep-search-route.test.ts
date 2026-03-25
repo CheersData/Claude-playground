@@ -157,7 +157,7 @@ describe("POST /api/deep-search", () => {
     it("returns 403 when CSRF check fails", async () => {
       const { NextResponse } = await import("next/server");
       mockCheckCsrf.mockReturnValue(
-        NextResponse.json({ error: "Richiesta non autorizzata" }, { status: 403 })
+        NextResponse.json({ error: "Origine della richiesta non consentita" }, { status: 403 })
       );
 
       const req = makeRequest(VALID_REQUEST_BODY);

@@ -22,6 +22,6 @@ cd /d "%~dp0"
 
 REM --target matcha il substring nel titolo della finestra Claude Code
 REM Cambia "controlla-me" con il nome del progetto/finestra target
-python scripts/gui-daemon.py --interval 10 --target "controlla.me"
+python scripts/gui-daemon.py --interval 10 --target "poimandres"
 
 pause

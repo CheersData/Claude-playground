@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "strategy",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:21:14.653Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-23T11:30:00.000Z",
+    "updated_by": "ops-status-refresh"
   },
   "health": "ok",
-  "summary": "1 task aperto (review). 26 completati (totale). Decisione consulente EU AI Act in review (L3).",
+  "summary": "0 task aperti. 29 completati (30 totale). Tutti i task completati.",
   "okr_q2": {
     "o1": {
       "title": "Rendere il prodotto production-ready",
@@ -349,8 +349,6 @@
       "urgency": "medium"
     }
   ],
-  "open_tasks": [
-    "Decisione consulente EU AI Act (review L3)"
-  ],
+  "open_tasks": [],
   "blockers": []
 }

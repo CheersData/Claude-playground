@@ -212,10 +212,10 @@ describe("Stripe Parser", () => {
         metadata: { foo: "bar" },
       };
 
-      const result = parseStripeObject("charge", raw as any);
+      const result = parseStripeObject("unknown_custom_type", raw as any);
 
       expect(result.externalId).toBe("unknown_123");
-      expect(result.objectType).toBe("charge");
+      expect(result.objectType).toBe("unknown_custom_type");
       expect(result.status).toBeNull();
       expect(result.email).toBeNull();
     });

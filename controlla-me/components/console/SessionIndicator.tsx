@@ -111,6 +111,7 @@ export default function SessionIndicator({ onSessionsUpdate }: SessionIndicatorP
   }, [getAuthHeaders, onSessionsUpdate]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch + polling interval
     fetchSessions();
     const interval = setInterval(fetchSessions, 15_000);
     return () => clearInterval(interval);

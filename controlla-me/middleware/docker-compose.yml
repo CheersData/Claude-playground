@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=Host=postgres;Port=5432;Database=middleware;Username=middleware;Password=middleware
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-changeme}
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=middleware
+      - POSTGRES_USER=middleware
+      - POSTGRES_PASSWORD=middleware
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -9,12 +9,15 @@
  *   npx tsx scripts/company-tasks.ts claim <id> --agent <agent>
  *   npx tsx scripts/company-tasks.ts done <id> [--summary "..."] [--data '{"key":"value"}'] [--benefit-status achieved|partial|missed] [--benefit-notes "..."] [--next "..."] [--commit] [--files "path1 path2"]
  *   npx tsx scripts/company-tasks.ts update <id> --status <status>
- *   npx tsx scripts/company-tasks.ts exec <id> [--runbook <name>]
+ *   npx tsx scripts/company-tasks.ts reprioritize <id> --priority <low|medium|high|critical>
+ *   npx tsx scripts/company-tasks.ts bulk-reprioritize --ids id1,id2,id3 --priority <low|medium|high|critical>
+ *   npx tsx scripts/company-tasks.ts exec <id> [--runbook <name>] [--headless] [--timeout <ms>]
  */
 
 import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+import { spawnSync } from "child_process";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -30,7 +33,9 @@ import {
   getOpenTasks,
   getTaskBoard,
 } from "../lib/company/tasks";
-import type { Department, TaskPriority, TaskStatus, CreateTaskInput } from "../lib/company/types";
+import type { Department, TaskPriority, TaskStatus, CreateTaskInput, UpdateTaskInput } from "../lib/company/types";
+import { isValidDepartment } from "../lib/company/types";
+import { loadDepartments, getDepartmentMetaAsync } from "../lib/company/departments";
 import { validateRouting, getAllValidRoutings, classifyRequest } from "../lib/company/routing";
 
 const args = process.argv.slice(2);
@@ -110,9 +115,38 @@ async function main() {
           const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
           const assignLabel = task.assignedTo ? ` → ${task.assignedTo}` : '';
           const routingLabel = task.approvalLevel ? ` [${task.approvalLevel}]` : '';
+          // Tempo trascorso da started_at
+          let elapsedLabel = '';
+          if (task.startedAt) {
+            const elapsedMs = Date.now() - new Date(task.startedAt).getTime();
+            const totalMin = Math.floor(elapsedMs / 60000);
+            const hours = Math.floor(totalMin / 60);
+            const mins = totalMin % 60;
+            if (hours >= 24) {
+              const days = Math.floor(hours / 24);
+              const remHours = hours % 24;
+              elapsedLabel = ` (${days}d ${remHours}h ${mins}m fa)`;
+            } else {
+              elapsedLabel = hours > 0 ? ` (${hours}h ${mins}m fa)` : ` (${mins}m fa)`;
+            }
+          }
           console.log(
-            `  ${seqLabel}${task.title} (${task.department}${assignLabel}${routingLabel}) — ${task.id.slice(0, 8)}`
+            `  ${seqLabel}${task.title} (${task.department}${assignLabel}${routingLabel})${elapsedLabel} — ${task.id.slice(0, 8)}`
           );
+          // Descrizione completa per task in_progress
+          if (task.description) {
+            if (/\b(COSA|PERCHÉ|RISULTATO)\b/.test(task.description)) {
+              const lines = task.description.split(/(?=\b(?:COSA|PERCHÉ|RISULTATO)\b)/);
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed) {
+                  console.log(`     └ ${trimmed}`);
+                }
+              }
+            } else {
+              console.log(`     └ ${task.description}`);
+            }
+          }
         }
       }
       if (board.recent.length > 0) {
@@ -125,8 +159,46 @@ async function main() {
             `  ${pri} [${task.status}] ${seqLabel}${task.title} (${task.department})${routingShort} — ${task.id.slice(0, 8)}`
           );
           if (task.description) {
-            const preview = task.description.length > 100 ? task.description.slice(0, 100) + "…" : task.description;
-            console.log(`     └ ${preview}`);
+            // Formattazione strutturata: se contiene COSA/PERCHÉ/RISULTATO, mostra su righe separate
+            if (/\b(COSA|PERCHÉ|RISULTATO)\b/.test(task.description)) {
+              const lines = task.description.split(/(?=\b(?:COSA|PERCHÉ|RISULTATO)\b)/);
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed) {
+                  console.log(`     └ ${trimmed}`);
+                }
+              }
+            } else {
+              console.log(`     └ ${task.description}`);
+            }
+          }
+        }
+      }
+      // Completati di recente (ultimi 5)
+      if (board.recentDone.length > 0) {
+        console.log("\n✅ Completati di recente:");
+        for (const task of board.recentDone.slice(0, 5)) {
+          const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
+          // Tempo trascorso dalla chiusura
+          let completedLabel = '';
+          if (task.completedAt) {
+            const elapsedMs = Date.now() - new Date(task.completedAt).getTime();
+            const totalMin = Math.floor(elapsedMs / 60000);
+            const hours = Math.floor(totalMin / 60);
+            if (hours >= 24) {
+              const days = Math.floor(hours / 24);
+              completedLabel = ` (${days}d fa)`;
+            } else if (hours > 0) {
+              completedLabel = ` (${hours}h fa)`;
+            } else {
+              completedLabel = ` (${totalMin}m fa)`;
+            }
+          }
+          console.log(
+            `  ${seqLabel}${task.title} (${task.department})${completedLabel} — ${task.id.slice(0, 8)}`
+          );
+          if (task.resultSummary) {
+            console.log(`     └ ${task.resultSummary}`);
           }
         }
       }
@@ -214,6 +286,19 @@ async function main() {
         console.error("ERRORE: --desc deve contenere almeno 20 caratteri. Ricevuto: " + desc.length + " char");
         process.exit(1);
       }
+
+      // ─── Department validation (static + DB) ───
+      if (!(await isValidDepartment(dept))) {
+        const allDepts = await loadDepartments();
+        const validSlugs = allDepts.map((d) => d.id).sort();
+        console.error(`ERRORE: dipartimento "${dept}" non valido.`);
+        console.error("Dipartimenti disponibili:");
+        for (const s of validSlugs) {
+          console.error(`  - ${s}`);
+        }
+        process.exit(1);
+      }
+
       if (!benefit) {
         console.warn("ATTENZIONE: --benefit non specificato. Raccomandato: descrivere il beneficio concreto atteso.");
       }
@@ -411,6 +496,24 @@ async function main() {
       // Default benefit_status to 'achieved' when closing a task
       const resolvedBenefitStatus = benefitStatusRaw ?? 'achieved';
       const id = await resolveId(rawId);
+
+      // ─── Gate: verificare stato attuale prima di chiudere ───
+      const currentTask = await getTask(id);
+      if (!currentTask) {
+        console.error(`Task ${rawId} non trovato.`);
+        process.exit(1);
+      }
+      if (currentTask.status !== "in_progress") {
+        if (currentTask.status === "done") {
+          console.error(`ERRORE: Task ${currentTask.id.slice(0, 8)} già completato.`);
+        } else if (currentTask.status === "open") {
+          console.error(`ERRORE: Task ${currentTask.id.slice(0, 8)} non in_progress (stato attuale: open). Usa 'claim' prima di 'done'.`);
+        } else {
+          console.error(`ERRORE: Task ${currentTask.id.slice(0, 8)} non in_progress (stato attuale: ${currentTask.status}). Workflow: open → claim → in_progress → done.`);
+        }
+        process.exit(1);
+      }
+
       const task = await updateTask(id, {
         status: "done",
         resultSummary: summary ?? undefined,
@@ -465,6 +568,37 @@ async function main() {
         // Non bloccare se l'update fallisce
       }
 
+      // ─── Hook: UAT suggestion after task completion ───
+      try {
+        const deptForUAT = task.department;
+        const taskPriority = task.priority;
+        // Inline UAT check logic (mirrors tests/uat/hooks.ts shouldRunUAT)
+        const uatExempt = ["marketing", "finance", "protocols", "strategy"];
+        const uatCodeDepts = [
+          "ufficio-legale", "trading", "integration", "music",
+          "architecture", "data-engineering", "quality-assurance",
+          "operations", "security", "ux-ui", "acceleration",
+        ];
+        const shouldUAT = !uatExempt.includes(deptForUAT) && (
+          taskPriority === "critical" || taskPriority === "high" || uatCodeDepts.includes(deptForUAT)
+        );
+        if (shouldUAT) {
+          // Check if department has UAT scenarios
+          const uatManifestPath = path.join(__dirname, "..", "company", deptForUAT, "uat-scenarios.json");
+          if (fs.existsSync(uatManifestPath)) {
+            const manifest = JSON.parse(fs.readFileSync(uatManifestPath, "utf-8"));
+            const scenarioCount = manifest.scenarios?.length ?? 0;
+            if (scenarioCount > 0) {
+              console.log(`  🧪 UAT: ${scenarioCount} scenario(s) available for ${deptForUAT}`);
+              console.log(`     Run: npx playwright test tests/uat/runner.spec.ts --grep "${deptForUAT}"`);
+              console.log("");
+            }
+          }
+        }
+      } catch {
+        // Non bloccare se il check UAT fallisce
+      }
+
       // ─── Hook: controlla se il board è vuoto dopo la chiusura ───
       try {
         const board = await getTaskBoard();
@@ -512,16 +646,33 @@ async function main() {
       const deptMdPath = path.join(deptDir, "department.md");
       const runbooksDir = path.join(deptDir, "runbooks");
       const agentsDir = path.join(deptDir, "agents");
+      const hasFsDir = fs.existsSync(deptDir);
 
-      // Leggi department.md
+      // Leggi department.md — filesystem first, then DB fallback for dynamic departments
       let deptContent = "";
       if (fs.existsSync(deptMdPath)) {
         deptContent = fs.readFileSync(deptMdPath, "utf-8");
       } else {
-        deptContent = `[department.md non trovato per ${dept}]`;
+        // DB-only department: build synthetic context from DepartmentMeta
+        const dbMeta = await getDepartmentMetaAsync(dept);
+        if (dbMeta) {
+          const parts = [
+            `# ${dbMeta.label}`,
+            "",
+            `**Missione:** ${dbMeta.mission || "(nessuna)"}`,
+            dbMeta.vision ? `**Visione:** ${dbMeta.vision}` : "",
+            dbMeta.priorities.length > 0 ? `\n**Priorità:**\n${dbMeta.priorities.map((p, i) => `${i + 1}. ${p}`).join("\n")}` : "",
+            dbMeta.kpis.length > 0 ? `\n**KPIs:**\n${dbMeta.kpis.map((k) => `- ${k}`).join("\n")}` : "",
+            "",
+            `_Dipartimento dinamico (DB-only, creato da ${dbMeta.createdBy ?? "sistema"})_`,
+          ].filter(Boolean);
+          deptContent = parts.join("\n");
+        } else {
+          deptContent = `[department.md non trovato per ${dept} — dipartimento non presente né su filesystem né nel DB]`;
+        }
       }
 
-      // Lista runbooks disponibili
+      // Lista runbooks disponibili (filesystem only — DB depts may not have filesystem runbooks)
       let runbooksList: string[] = [];
       if (fs.existsSync(runbooksDir)) {
         runbooksList = fs.readdirSync(runbooksDir).filter((f) => f.endsWith(".md"));
@@ -551,15 +702,33 @@ async function main() {
         runbookUsed = chosen;
       }
 
-      // Lista agenti del dipartimento
+      // Lista agenti del dipartimento (filesystem first, then DB fallback)
       let agentCards: string[] = [];
       if (fs.existsSync(agentsDir)) {
         agentCards = fs.readdirSync(agentsDir).filter((f) => f.endsWith(".md")).map((f) => f.replace(".md", ""));
+      } else if (!hasFsDir) {
+        // DB-only department: get agent list from DepartmentMeta
+        const dbMeta = await getDepartmentMetaAsync(dept);
+        if (dbMeta && dbMeta.agents.length > 0) {
+          agentCards = dbMeta.agents.map((a) => a.id || a.label);
+        }
       }
 
       // Trova leader dal department.md (prima riga con "Leader" o "lead")
       const leaderMatch = deptContent.match(/leader[:\s]+([^\n]+)/i);
       const leaderName = leaderMatch ? leaderMatch[1].trim() : `${dept}-lead`;
+
+      // Carica leader identity card (cerca *lead*.md o leader.md nella dir agenti)
+      let leaderCardContent = "";
+      if (fs.existsSync(agentsDir)) {
+        const agentFiles = fs.readdirSync(agentsDir).filter((f) => f.endsWith(".md"));
+        const leaderFile = agentFiles.find(
+          (f) => f.includes("lead") || f === "leader.md"
+        );
+        if (leaderFile) {
+          leaderCardContent = fs.readFileSync(path.join(agentsDir, leaderFile), "utf-8");
+        }
+      }
 
       // Stampa il delegation brief
       console.log("\n" + "═".repeat(60));
@@ -581,6 +750,16 @@ async function main() {
       console.log(deptPreview);
       if (deptLines.length > 80) console.log(`\n[... ${deptLines.length - 80} righe omesse — leggi ${deptMdPath} per il testo completo]`);
 
+      if (leaderCardContent) {
+        console.log("\n" + "─".repeat(60));
+        console.log(`  LEADER IDENTITY CARD`);
+        console.log("─".repeat(60));
+        const lcLines = leaderCardContent.split("\n");
+        const lcPreview = lcLines.slice(0, 40).join("\n");
+        console.log(lcPreview);
+        if (lcLines.length > 40) console.log(`\n[... ${lcLines.length - 40} righe omesse]`);
+      }
+
       if (runbookContent) {
         console.log("\n" + "─".repeat(60));
         console.log(`  RUNBOOK: ${runbookUsed}`);
@@ -600,6 +779,102 @@ async function main() {
       console.log(`    Esegui il task seguendo il runbook e le convenzioni del dipartimento.`);
       console.log(`    Quando completato: npx tsx scripts/company-tasks.ts done ${task.id.slice(0, 8)} --summary "..."`);
       console.log("═".repeat(60) + "\n");
+
+      // ─── Headless mode: invoke claude -p to execute the task ───
+      if (hasFlag("headless")) {
+        const headlessTimeoutStr = getFlag("timeout");
+        const headlessTimeout = headlessTimeoutStr ? parseInt(headlessTimeoutStr, 10) : 120_000;
+        console.log(`Headless mode: composing prompt and invoking claude -p (timeout: ${headlessTimeout}ms)...\n`);
+
+        // Build prompt from delegation brief context
+        const deptExcerpt = deptContent.split("\n").slice(0, 80).join("\n");
+        const rbExcerpt = runbookContent
+          ? runbookContent.split("\n").slice(0, 60).join("\n")
+          : "(nessun runbook disponibile)";
+
+        const headlessPrompt = [
+          `Sei il leader del dipartimento ${dept}. Esegui questo task.`,
+          ``,
+          `TASK: ${task.title}`,
+          `PRIORITÀ: ${task.priority.toUpperCase()}`,
+          `DESCRIZIONE: ${task.description ?? "(nessuna)"}`,
+          ``,
+          `CONTESTO DIPARTIMENTO:`,
+          deptExcerpt,
+          ``,
+          `RUNBOOK:`,
+          rbExcerpt,
+          ``,
+          `ISTRUZIONI:`,
+          `- Esegui il task descritto sopra`,
+          `- Scrivi codice se necessario, modifica file se necessario`,
+          `- Al termine, scrivi un SUMMARY di cosa hai fatto (max 3 righe)`,
+        ].join("\n");
+
+        // Invoke claude -p via spawnSync (CLI, not SDK — per CLAUDE.md rules)
+        let claudeResult: ReturnType<typeof spawnSync>;
+        try {
+          claudeResult = spawnSync(
+            "/usr/bin/claude",
+            ["-p", "--dangerously-skip-permissions", headlessPrompt],
+            {
+              encoding: "utf-8",
+              timeout: headlessTimeout,
+              maxBuffer: 10 * 1024 * 1024,
+              cwd: path.resolve(__dirname, ".."),
+              env: { ...process.env },
+            },
+          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Error spawning claude: ${msg}`);
+          // Leave task in_progress for retry
+          break;
+        }
+
+        // Handle spawn errors (ENOENT, ETIMEDOUT, etc.)
+        if (claudeResult.error) {
+          const errMsg = claudeResult.error.message.includes("ENOENT")
+            ? "claude CLI not found at /usr/bin/claude"
+            : claudeResult.error.message.includes("ETIMEDOUT")
+              ? `claude timed out after ${headlessTimeout}ms`
+              : claudeResult.error.message;
+          console.error(`claude -p failed: ${errMsg}`);
+          // Leave task in_progress for retry
+          break;
+        }
+
+        const stdout = String(claudeResult.stdout ?? "").trim();
+        const stderr = String(claudeResult.stderr ?? "").trim();
+
+        // Handle non-zero exit code (credit errors, etc.)
+        if (claudeResult.status !== 0) {
+          const hint = stderr.includes("Credit balance")
+            ? " (insufficient API credits — expected in demo environment)"
+            : "";
+          const errDetail = stderr.slice(0, 500) || stdout.slice(0, 500) || "unknown error";
+          console.error(`claude -p exited with code ${claudeResult.status}${hint}`);
+          console.error(`  stderr: ${errDetail}`);
+          // Leave task in_progress for retry
+          break;
+        }
+
+        // Success: save output and mark done
+        await updateTask(id, {
+          status: "done" as TaskStatus,
+          resultSummary: stdout.slice(0, 500),
+          resultData: { headlessOutput: stdout },
+        });
+
+        console.log(`Task executed headless. Output saved.`);
+        // Print first 20 lines of output
+        const outputLines = stdout.split("\n");
+        const preview = outputLines.slice(0, 20).join("\n");
+        console.log(preview);
+        if (outputLines.length > 20) {
+          console.log(`\n[... ${outputLines.length - 20} more lines]\n`);
+        }
+      }
 
       break;
     }
@@ -624,6 +899,61 @@ async function main() {
       if (updateTagsRaw) changes.push(`tags=[${(task.tags || []).join(', ')}]`);
       if (updateAssigned !== undefined) changes.push(`assigned="${task.assignedTo ?? '-'}"`);
       console.log(`\n✓ Task ${task.id.slice(0, 8)} aggiornato: ${changes.join(', ')}\n`);
+      break;
+    }
+
+    case "reprioritize": {
+      const rawId = args[1];
+      const priority = getFlag("priority") as TaskPriority | undefined;
+      const validPriorities: TaskPriority[] = ["low", "medium", "high", "critical"];
+      if (!rawId || !priority) {
+        console.error("Usage: reprioritize <task-id> --priority <low|medium|high|critical>");
+        process.exit(1);
+      }
+      if (!validPriorities.includes(priority)) {
+        console.error(`ERRORE: priorità "${priority}" non valida. Valori ammessi: ${validPriorities.join(", ")}`);
+        process.exit(1);
+      }
+      const id = await resolveId(rawId);
+      const task = await updateTask(id, { priority });
+      const pri = priority === "critical" ? "🔴" : priority === "high" ? "🟠" : priority === "medium" ? "🟡" : "⚪";
+      const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
+      console.log(`\n✓ Task ${seqLabel}${task.id.slice(0, 8)} riprioritizzato → ${pri} ${priority.toUpperCase()}\n`);
+      break;
+    }
+
+    case "bulk-reprioritize": {
+      const idsRaw = getFlag("ids");
+      const priority = getFlag("priority") as TaskPriority | undefined;
+      const validPriorities: TaskPriority[] = ["low", "medium", "high", "critical"];
+      if (!idsRaw || !priority) {
+        console.error("Usage: bulk-reprioritize --ids id1,id2,id3 --priority <low|medium|high|critical>");
+        process.exit(1);
+      }
+      if (!validPriorities.includes(priority)) {
+        console.error(`ERRORE: priorità "${priority}" non valida. Valori ammessi: ${validPriorities.join(", ")}`);
+        process.exit(1);
+      }
+      const rawIds = idsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+      if (rawIds.length === 0) {
+        console.error("ERRORE: --ids deve contenere almeno un ID.");
+        process.exit(1);
+      }
+      const pri = priority === "critical" ? "🔴" : priority === "high" ? "🟠" : priority === "medium" ? "🟡" : "⚪";
+      let successCount = 0;
+      for (const rawId of rawIds) {
+        try {
+          const id = await resolveId(rawId);
+          const task = await updateTask(id, { priority });
+          const seqLabel = task.seqNum != null ? `#${task.seqNum} ` : '';
+          console.log(`  ✓ ${seqLabel}${task.id.slice(0, 8)} → ${pri} ${priority.toUpperCase()}`);
+          successCount++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`  ✗ ${rawId} — ${msg}`);
+        }
+      }
+      console.log(`\n${successCount}/${rawIds.length} task riprioritizzati → ${priority.toUpperCase()}\n`);
       break;
     }
 
@@ -673,6 +1003,8 @@ Commands:
   done <id|#N> --summary "..." --no-next   (solo se il task non ha follow-up)
   exec <id|#N> [--runbook <name>]  Delegation brief: contesto dept + runbook + istruzioni leader
   update <id|#N> --status <status>  Aggiorna stato
+  reprioritize <id|#N> --priority <low|medium|high|critical>  Cambia priorità singolo task
+  bulk-reprioritize --ids id1,id2,id3 --priority <p>          Cambia priorità a più task
   route <testo richiesta>          Classifica richiesta e suggerisci routing (da YAML)
 
 Routing: validato contro decision tree YAML in company/protocols/decision-trees/

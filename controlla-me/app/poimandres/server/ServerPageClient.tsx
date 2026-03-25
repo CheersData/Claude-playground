@@ -22,6 +22,7 @@ export function ServerPageClient() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const token = sessionStorage.getItem("ops-token");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial hydration from sessionStorage
     setIsAuthed(!!token);
   }, []);
 

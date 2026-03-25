@@ -23,7 +23,6 @@ import {
   FileText,
   Search,
   MessageSquare,
-  CheckCircle,
   ArrowRight,
   Home,
   Ban,
@@ -437,7 +436,7 @@ export default function AffittiLandingClient() {
                 }}
               >
                 Il 68% dei contratti di locazione contiene almeno una clausola potenzialmente
-                illegittima. Spesso il conduttore non se ne accorge fino a quando non e' troppo tardi.
+                illegittima. Spesso il conduttore non se ne accorge fino a quando non e&apos; troppo tardi.
               </p>
             </motion.div>
           </motion.div>
@@ -599,7 +598,7 @@ export default function AffittiLandingClient() {
                   color: "var(--foreground)",
                 }}
               >
-                Clausole che l'AI individua nel tuo contratto
+                Clausole che l&apos;AI individua nel tuo contratto
               </h2>
               <p
                 className="max-w-2xl mx-auto"

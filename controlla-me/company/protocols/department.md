@@ -6,7 +6,7 @@
 
 ## Missione
 
-Garantire che ogni decisione in Poimandres segua un protocollo chiaro, veloce e tracciabile. Zero ambiguità, zero spaghetti, zero decisioni perse.
+Governance trasparente. Ogni decisione è tracciabile. Il creator ha i suoi livelli di approvazione.
 
 ## Responsabilità
 
@@ -78,12 +78,39 @@ RICHIESTA
 
 **protocol-router** — Riceve richieste, le classifica, le instrada. Reporta a CME.
 
+## Gate Enforcement
+
+Responsabilità core del dipartimento: **garantire che ZERO lavoro avvenga fuori dal task board**.
+
+### Regola
+
+Ogni modifica a file in `app/`, `lib/`, `trading/`, `scripts/`, `music/`, `components/` richiede:
+1. Task ID esistente nel board (`company-tasks.ts`)
+2. Department owner assegnato
+3. Livello di approvazione rispettato (L1-L4)
+4. Task in stato `in_progress` PRIMA di toccare codice
+5. Task chiuso con summary DOPO la verifica
+
+**Leggere file = libero. Modificare file = task obbligatorio.**
+
+### Enforcement
+
+- **Preventivo**: CME e ogni agente devono consultare il runbook `validate-task-gate.md` prima di operare
+- **Reattivo**: audit periodico `git log` vs task board per rilevare violazioni
+- **Escalation**: warning → incident → critical (vedi runbook per dettagli)
+
+### Autonomia gate
+
+- **L1 (auto)**: annotare violazioni, creare task retroattivi con flag `gate_bypass`
+- **L2+ (escalation)**: violazioni ripetute o su codice critico (trading live, security, deploy)
+
 ## Runbooks
 
 - `runbooks/route-request.md` — Come classificare e instradare una richiesta
 - `runbooks/approval-workflow.md` — Workflow completo di approvazione
 - `runbooks/add-decision-tree.md` — Come aggiungere un nuovo decision tree
 - `runbooks/audit-review.md` — Come fare audit delle decisioni prese
+- `runbooks/validate-task-gate.md` — Pre-action checklist e audit per gate compliance
 
 ## Decision Trees
 
@@ -92,6 +119,17 @@ I decision trees sono in `decision-trees/`. Ogni file YAML definisce:
 - Condizioni di routing
 - Dipartimenti da consultare
 - Livello di approvazione richiesto
+
+| File | Scope |
+|------|-------|
+| `feature-request.yaml` | Nuove feature e miglioramenti |
+| `company-operations.yaml` | Decisioni organizzative, nuovi dept/agenti |
+| `trading-operations.yaml` | Operazioni e decisioni trading |
+| `data-operations.yaml` | Pipeline dati, connettori, corpus |
+| `infrastructure.yaml` | Infrastruttura, deploy, config |
+| `integration-request.yaml` | Connettori OAuth2 per PMI |
+| `ui-ux-request.yaml` | Design e interfacce |
+| `creator-operations.yaml` | Onboarding, operazioni e escalation creator esterni (Poimandres) |
 
 ## Formati I/O
 
@@ -109,9 +147,9 @@ Governance zero-friction: ogni richiesta routata in <5s, plenarie automatiche qu
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Auto-plenaria** — trigger automatico: quando open tasks < 3, CME legge priorità dei dept e genera nuovi task
-2. **[P1] Routing accuracy** — verificare che tutti i decision tree coprano i casi reali (zero fallback a CME)
-3. **[P2] Decision audit** — report mensile sulle decisioni prese, tempi di approvazione, bottleneck
+1. **[P0] Decision tree per creator (onboarding, permessi)** — ~~creare decision tree specifico per onboarding e gestione permessi creator~~ COMPLETATO: `decision-trees/creator-operations.yaml`
+2. **[P1] Aggiornamento L1-L4 con creator come attore** — revisione livelli di approvazione per includere il creator come attore nel sistema
+3. **[P2] Auto-plenaria** — trigger automatico: quando open tasks < 3, CME legge priorità dei dept e genera nuovi task
 
 ## Autonomia
 

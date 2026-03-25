@@ -96,6 +96,16 @@ export function getProcessCategory(commandLine: string): ProcessCategory {
     return "vscode";
   }
 
+  // Task Runner (claude -p spawned by task-runner) — must be checked BEFORE
+  // claude-code detection because `claude -p` matches both patterns.
+  if (
+    cl.includes("claude -p") ||
+    cl.includes("task-runner") ||
+    cl.includes("company-tasks")
+  ) {
+    return "task-runner";
+  }
+
   // Claude Code detection (includes bare `claude` binary — interactive sessions)
   if (
     cl.includes("claude-code") ||
@@ -119,15 +129,6 @@ export function getProcessCategory(commandLine: string): ProcessCategory {
   // CME Daemon detection
   if (cl.includes("cme-autorun") || cl.includes("cme-daemon")) {
     return "daemon";
-  }
-
-  // Task Runner (claude -p spawned by task-runner)
-  if (
-    cl.includes("claude -p") ||
-    cl.includes("task-runner") ||
-    cl.includes("company-tasks")
-  ) {
-    return "task-runner";
   }
 
   // Workers: PostCSS, Turbopack, esbuild, SWC
@@ -230,6 +231,7 @@ export function isSacred(pid: number): boolean {
  * Parse wmic CSV-like output.
  * wmic output is whitespace-padded columns with \r\n line endings.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- used on Windows only
 function parseWmicOutput(raw: string): Array<Record<string, string>> {
   const lines = raw
     .split(/\r?\n/)

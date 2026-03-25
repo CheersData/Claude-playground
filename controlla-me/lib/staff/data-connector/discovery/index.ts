@@ -38,7 +38,6 @@ import type {
   TaggedField,
   TaxonomyBatchResult,
   SchemaField,
-  SchemaGraph,
   DiscoveredSchema,
   EntityRelationship,
   AuthenticatedFetchFn,

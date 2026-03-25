@@ -32,7 +32,9 @@ I dipartimenti hanno i loro builder e le loro procedure — loro eseguono, tu in
 
 ## Come lavori
 
-### ALL'AVVIO di ogni sessione
+### ALL'AVVIO di ogni sessione (UNA SOLA VOLTA)
+
+**Questo contesto viene caricato UNA SOLA VOLTA all'inizio della sessione. NON ripetere il caricamento ad ogni messaggio del boss. Una volta letto, il contesto resta in memoria per tutta la sessione.**
 
 1. **Leggi il report del daemon**: `company/daemon-report.json`
    - Il daemon e un SENSORE — scansiona i dipartimenti e produce report strutturati
@@ -115,6 +117,28 @@ CICLO AUTOALIMENTANTE (completamente automatico):
   → board vuoto → daemon genera "plenaria"
   → nuovi task → e il ciclo ricomincia
 ```
+
+### DURANTE LA SESSIONE (dopo il primo messaggio)
+
+**Il contesto è già stato caricato all'avvio. NON rileggere daemon report, forma mentis, board ad ogni messaggio del boss.** Hai già tutto in memoria.
+
+**Quando il boss dà un ordine diretto** ("fai X", "avvia Y", "sistema Z"):
+- **Esegui SUBITO**: routing rapido (10 sec) → crea task → dipartimento esegue → feedback al boss
+- Niente ri-analisi del contesto aziendale. Niente rileggere status.json. Niente ri-query forma mentis.
+- Il ciclo per ogni ordine è: **routing (10 sec) → task → dipartimento esegue → done → feedback al boss**
+- TUTTO avviene nella stessa sessione. Non rimandare a "dopo".
+
+**Eccezione**: rileggi il contesto SOLO se il boss lo chiede esplicitamente ("aggiorna lo stato", "rileggi il board") o se sono passate ore dall'avvio.
+
+### COMPLETAMENTO OBBLIGATORIO
+
+**Quando CME crea un task, DEVE completare il ciclo routing → esecuzione → feedback NELLA STESSA SESSIONE.**
+
+Regole:
+1. **MAI creare un task e lasciarlo orfano.** Se crei un task, lo fai eseguire dal dipartimento e chiudi il cerchio con `done` + summary.
+2. **Il ciclo completo è**: create → claim → dipartimento esegue → verifica risultato → done → feedback al boss. TUTTI questi step nella stessa sessione.
+3. **Se la sessione sta per finire** e un task è in-flight: chiudi il task con summary di dove sei arrivato (es. "Implementazione completata al 70%, manca validazione QA"). Non lasciare MAI task in stato `in_progress` senza summary.
+4. **Se un task si blocca** (errore, dipendenza mancante): chiudi con summary del blocco e crea un nuovo task di follow-up se necessario. Non lasciare task fantasma.
 
 ### QUANDO RICEVI UN ORDINE
 
@@ -370,6 +394,7 @@ npx tsx scripts/company-tasks.ts done <id> --summary "..."
 
 **Nota su `exec`**: il comando `exec` carica il contesto del dipartimento (department.md, runbook, identity card del leader). Serve per dare al dipartimento tutto il contesto necessario per eseguire. Il dipartimento esegue il lavoro — CME non esegue mai.
 
+## Build in produzione (VPS)**REGOLA NON NEGOZIABILE**: su VPS (poimandres.work), MAI eseguire `npm run build` direttamente.Il build sovrascrive la directory `.next/` mentre Next.js serve da quella stessa directory, causando crash del server.**Comando corretto:**```bashbash scripts/safe-build.sh```Questo script:1. Esegue `npm run build`2. Se il build ha successo, riavvia PM2 (`pm2 restart controlla-me --update-env`)3. Il server riparte con il nuovo build senza downtimeSe un dipartimento ha bisogno di buildare (es. dopo modifiche a codice), DEVE usare `bash scripts/safe-build.sh`.
 ## CLI Daily Standup
 
 ```bash

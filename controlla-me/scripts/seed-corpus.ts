@@ -664,7 +664,7 @@ async function main() {
   console.log("\n");
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║                                                            ║");
-  console.log("║   controlla.me — Seed Corpus Legislativo Italiano          ║");
+  console.log("║   Poimandres — Seed Corpus Legislativo Italiano             ║");
   console.log("║                                                            ║");
   console.log("║   Scarica INTERO Codice Civile (3.040 articoli)            ║");
   console.log("║   da HuggingFace → Classifica → Embeddings → Supabase     ║");

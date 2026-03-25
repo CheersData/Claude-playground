@@ -155,11 +155,11 @@ class RiskSettings(BaseSettings):
 
     # Trailing stop parameters — 4-tier system (matching backtest engine.py)
     trailing_enabled: bool = Field(default=True, description="Enable 4-tier trailing stop")
-    trailing_breakeven_atr: float = Field(default=0.5, description="Move SL to entry after this ATR profit — Tier 0 (was 1.5, same as lock → tier 0 was phantom)")
+    trailing_breakeven_atr: float = Field(default=1.5, description="Move SL to entry after this ATR profit — Tier 0 (Cycle 4 winner: 1.5)")
     trailing_lock_atr: float = Field(default=1.5, description="Lock profit after this ATR profit")
     trailing_lock_cushion_atr: float = Field(default=0.5, description="Cushion above entry for profit lock")
-    trailing_trail_threshold_atr: float = Field(default=3.5, description="Start trailing after this ATR profit (grid-optimal)")
-    trailing_trail_distance_atr: float = Field(default=2.0, description="Trail distance in ATR (grid-optimal)")
+    trailing_trail_threshold_atr: float = Field(default=3.5, description="Start trailing after this ATR profit (Cycle 4 winner: 3.5)")
+    trailing_trail_distance_atr: float = Field(default=2.0, description="Trail distance in ATR (Cycle 4 winner: 2.0)")
     trailing_tight_threshold_atr: float = Field(default=4.0, description="Tight trail after this ATR profit")
     trailing_tight_distance_atr: float = Field(default=1.0, description="Tight trail distance in ATR")
 
@@ -263,8 +263,8 @@ class SlopeVolumeSettings(BaseSettings):
     slope_threshold_pct: float = Field(default=0.01, description="Min abs slope % per bar to trigger — 0.01% calibrated for 1Min bars (5Min bars move ~5× per bar: 0.0155% avg, 0.02 was still too high)")
     volume_multiplier: float = Field(default=1.3, description="Volume must be > N*MA to confirm (1.3x = momentum confirmation, monitor and tune per market)")
     volume_ma_period: int = Field(default=20, description="Volume moving average period (20 × 1min = 20min)")
-    stop_loss_atr: float = Field(default=1.5, description="Stop loss in ATR units")
-    take_profit_atr: float = Field(default=3.0, description="Take profit in ATR units")
+    stop_loss_atr: float = Field(default=2.0, description="Stop loss in ATR units (Cycle 4 winner: 2.0)")
+    take_profit_atr: float = Field(default=4.0, description="Take profit in ATR units (Cycle 4 winner: 4.0)")
     atr_period: int = Field(default=14, description="ATR calculation period (14 × 1min = 14min)")
     # --- Wave detection: 3-factor entry (angle acceleration + volume trend + persistence) ---
     acceleration_bars: int = Field(default=5, description="Bars back to measure slope acceleration. Slope must be growing in the direction of the trade.")

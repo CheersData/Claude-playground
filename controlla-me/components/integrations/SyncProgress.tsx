@@ -168,7 +168,7 @@ export default function SyncProgress({
 
   const [eta, setEta] = useState<string>("--");
   const prevRecordsRef = useRef(0);
-  const prevTimestampRef = useRef(Date.now());
+  const prevTimestampRef = useRef(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ─── Poll for sync status ───

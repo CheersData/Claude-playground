@@ -1,0 +1,44 @@
+{
+  "department": "operations",
+  "scenarios": [
+    {
+      "id": "ops-console-load",
+      "name": "Ops console page loads",
+      "department": "operations",
+      "description": "Verify the /ops page loads correctly with key operational UI elements",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/ops" },
+          "expect": {
+            "timeout": 15000
+          }
+        }
+      ],
+      "tags": ["smoke", "critical"]
+    },
+    {
+      "id": "ops-api-daemon",
+      "name": "Daemon report API responds",
+      "department": "operations",
+      "description": "Verify the daemon report API returns valid JSON with signals array",
+      "steps": [
+        {
+          "type": "api-call",
+          "params": {
+            "url": "/api/company/daemon",
+            "method": "GET"
+          },
+          "expect": {
+            "status": 200,
+            "responseSchema": {
+              "signals": "array"
+            },
+            "timeout": 10000
+          }
+        }
+      ],
+      "tags": ["smoke"]
+    }
+  ]
+}

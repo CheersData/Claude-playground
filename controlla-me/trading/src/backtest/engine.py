@@ -164,8 +164,8 @@ class BacktestConfig(BaseModel):
     warmup_bars: int | None = None  # Auto-calculated from timeframe if None
     train_test_split: float | None = None  # e.g. 0.7 for 70/30
     signal_threshold: float = 0.3  # composite score threshold for BUY/SELL
-    stop_loss_atr: float = 1.5  # stop loss ATR multiplier (Cycle 4: tighter SL, was 2.0/2.5 — 126/136 SL exits in Cycle 3)
-    take_profit_atr: float = 3.0  # take profit ATR multiplier (Cycle 4: closer TP, was 6.0 — TP almost never reached at 6x)
+    stop_loss_atr: float = 2.0  # stop loss ATR multiplier (Cycle 4 winner: 2.0 — balanced SL, was 1.5 in Cycle 4 grid default)
+    take_profit_atr: float = 4.0  # take profit ATR multiplier (Cycle 4 winner: 4.0 — reachable TP, was 6.0 in Cycle 3)
     trend_filter: bool = True  # require price > SMA long for BUY signals
     timeframe: str = "1Day"  # "1Day", "1Hour", or "15Min"
     strategy: str = "trend_following"  # "trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume", or "noise_boundary"
@@ -177,19 +177,19 @@ class BacktestConfig(BaseModel):
 
     # Trailing stop parameters — 4-tier system (configurable for grid search)
     # Tier 0: Move SL to entry (breakeven) after this ATR profit
-    trailing_breakeven_atr: float = 1.5  # grid search optimal: don't breakeven too early
+    trailing_breakeven_atr: float = 1.5  # Cycle 4 winner: 1.5 — don't breakeven too early
     # Tier 1: Lock small profit (entry + lock_cushion) after this ATR profit
     trailing_lock_atr: float = 1.5
     trailing_lock_cushion_atr: float = 0.5  # Cushion above entry for profit lock
     # Tier 2: Start trailing at highest_close - trail_distance after this ATR profit
-    trailing_trail_threshold_atr: float = 3.5  # grid search optimal: trail later
-    trailing_trail_distance_atr: float = 2.0  # grid search optimal: wider trail
+    trailing_trail_threshold_atr: float = 3.5  # Cycle 4 winner: trail later
+    trailing_trail_distance_atr: float = 2.0  # Cycle 4 winner: wider trail
     # Tier 3: Tight trail at highest_close - tight_distance after this ATR profit
     trailing_tight_threshold_atr: float = 4.0
     trailing_tight_distance_atr: float = 1.0
 
     # Signal exit: close positions on MACD bearish crossover
-    signal_exit_enabled: bool = False  # Enable MACD bearish crossover exits
+    signal_exit_enabled: bool = True  # Enable MACD bearish crossover exits (Cycle 4 winner: enabled)
 
     # Slope exit: close positions when slope turns adverse (for slope_volume strategy)
     # Mirrors the live exit logic in signal_generator.py (slope reversal + adverse exit)
@@ -827,7 +827,7 @@ class BacktestEngine:
             self._check_exits(data, current_date, date_str)
 
             # Step 2.2: Slope exit — close on adverse slope (slope_volume strategy only)
-            if (self._is_five_min or self.config.strategy == "slope_volume") and self.config.strategy != "noise_boundary" and self.config.slope_exit_enabled:
+            if self.config.strategy == "slope_volume" and self.config.slope_exit_enabled:
                 self._check_slope_exits(data, current_date, date_str)
 
             # Step 2.3: Signal exit — MACD bearish crossover closes positions
@@ -1478,7 +1478,10 @@ class BacktestEngine:
                     self.config.signal,
                     self.config,
                 )
-            elif self._is_five_min or self.config.strategy == "slope_volume":
+            elif self.config.strategy == "slope_volume":
+                # True slope+volume strategy: wave-detection via analyze_slope_volume()
+                # from analysis.py (OLS regression, 3-factor entry gate).
+                # Previously _is_five_min routed here even for non-slope strategies.
                 signal = analyze_stock_slope_volume(
                     symbol,
                     df_slice,
@@ -1525,7 +1528,7 @@ class BacktestEngine:
 
             # Determine trade action from signal
             # Bidirectional strategies: slope_volume + noise_boundary can go long and short
-            is_bidirectional = self._is_five_min or self.config.strategy in ("slope_volume", "noise_boundary")
+            is_bidirectional = self.config.strategy in ("slope_volume", "noise_boundary")
             if signal.action == "BUY":
                 trade_action = TradeAction.BUY
             elif signal.action == "SHORT" and is_bidirectional:

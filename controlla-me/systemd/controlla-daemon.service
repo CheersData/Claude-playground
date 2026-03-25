@@ -1,5 +1,5 @@
 [Unit]
-Description=Controlla.me CME Daemon — sensor + ping loop
+Description=Poimandres CME Daemon — sensor + ping loop
 Documentation=https://github.com/CheersData/controlla-me
 After=network.target
 Wants=network-online.target

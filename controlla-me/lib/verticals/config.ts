@@ -1,5 +1,5 @@
 /**
- * Config-driven Vertical System — controlla.me
+ * Config-driven Vertical System — Poimandres
  *
  * Ogni verticale (legale, medicina, HR, ...) è definito qui con tutte le sue proprietà.
  * Un unico punto di configurazione per aggiungere nuovi verticali.
@@ -58,7 +58,7 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     id: "legal",
     name: "Controlla.me",
     tagline: "Analisi legale AI per contratti e documenti",
-    domain: "controlla.me",
+    domain: "poimandres.work",
     accentColor: "#FF6B35",
     accentColorSecondary: "#FF8F65",
     embeddingModel: "voyage-law-2",
@@ -128,7 +128,7 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     id: "hr",
     name: "Controlla.me HR",
     tagline: "Analisi AI per contratti di lavoro e diritto del lavoro",
-    domain: "controlla.me",
+    domain: "poimandres.work",
     accentColor: "#10B981",           // Emerald green
     accentColorSecondary: "#34D399",  // Lighter emerald
     embeddingModel: "voyage-law-2",   // Legal embedding — diritto del lavoro è diritto
@@ -164,7 +164,7 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     id: "tax",
     name: "Controlla.me Fiscale",
     tagline: "Analisi AI per diritto tributario e fiscale",
-    domain: "controlla.me",
+    domain: "poimandres.work",
     accentColor: "#F59E0B",           // Amber
     accentColorSecondary: "#FBBF24",  // Lighter amber
     embeddingModel: "voyage-law-2",   // Legal embedding — diritto tributario è diritto

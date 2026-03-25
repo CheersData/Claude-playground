@@ -138,11 +138,38 @@ export async function runOrchestrator(
 
   broadcastConsoleAgent("retrieval", "running", { task: "Retrieval: contesto normativo per Analyzer" });
 
+  // Enrich retrieval params for HR documents — map subtypes to specific labor law sources and institutes
+  const enrichedLaws = [...result.classification.applicableLaws];
+  const enrichedInstitutes = [...(result.classification.relevantInstitutes ?? [])];
+  const isHrDocument = detectHrDocument(result.classification);
+
+  if (isHrDocument) {
+    const hrEnrichment = getHrRetrievalEnrichment(result.classification.documentSubType);
+    // Add HR-specific law sources (dedup by reference)
+    const existingRefs = new Set(enrichedLaws.map(l => l.reference));
+    for (const law of hrEnrichment.laws) {
+      if (!existingRefs.has(law.reference)) {
+        enrichedLaws.push(law);
+      }
+    }
+    // Add HR-specific institutes (dedup)
+    const existingInstitutes = new Set(enrichedInstitutes);
+    for (const inst of hrEnrichment.institutes) {
+      if (!existingInstitutes.has(inst)) {
+        enrichedInstitutes.push(inst);
+      }
+    }
+    console.log(
+      `[ORCHESTRATOR] HR document detected (${result.classification.documentSubType}) — ` +
+      `enriched with ${hrEnrichment.laws.length} law sources, ${hrEnrichment.institutes.length} institutes`
+    );
+  }
+
   try {
     // Retrieve from the legal corpus (actual law articles)
     const legalResult = await retrieveLegalContext({
-      applicableLaws: result.classification.applicableLaws,
-      relevantInstitutes: result.classification.relevantInstitutes,
+      applicableLaws: enrichedLaws,
+      relevantInstitutes: enrichedInstitutes,
       clauseTexts: [], // Will be populated after analysis for investigator
     });
 
@@ -235,8 +262,8 @@ export async function runOrchestrator(
 
       if (problematicTexts.length > 0) {
         const clauseContext = await retrieveLegalContext({
-          applicableLaws: result.classification.applicableLaws,
-          relevantInstitutes: result.classification.relevantInstitutes,
+          applicableLaws: enrichedLaws,
+          relevantInstitutes: enrichedInstitutes,
           clauseTexts: problematicTexts,
         });
 
@@ -389,4 +416,213 @@ async function autoIndexAnalysis(
       `chunk: ${docResult?.chunksIndexed ?? 0} | ` +
       `knowledge: ${knowledgeResult?.entriesIndexed ?? 0}`
   );
+}
+
+// ─── HR Document Detection & Retrieval Enrichment ───
+
+/** HR document subtypes recognized by the classifier */
+const HR_SUBTYPES = new Set([
+  "subordinato_tempo_indeterminato", "subordinato_tempo_determinato",
+  "contratto_lavoro_subordinato", "contratto_co_co_co",
+  "contratto_somministrazione", "contratto_apprendistato",
+  "contratto_lavoro_tempo_determinato", "contratto_lavoro_part_time",
+  "contratto_lavoro_dirigente",
+  "collaborazione_coordinata", "co_co_co", "somministrazione",
+  "apprendistato", "part_time", "lavoro_intermittente", "lavoro_a_chiamata",
+  "distacco", "lavoro_agile_smart_working", "stage_tirocinio",
+  "contratto_dirigente", "contratto_domestico",
+  "lettera_licenziamento", "lettera_dimissioni", "dimissioni_volontarie",
+  "patto_non_concorrenza", "accordo_non_concorrenza",
+  "contestazione_disciplinare", "accordo_smart_working",
+  "cedolino_busta_paga", "regolamento_aziendale",
+  "cessione_contratto_lavoro", "lavoro_autonomo", "lavoro_autonomo_occasionale",
+]);
+
+/** HR-related legalFocusAreas that signal an HR document */
+const HR_FOCUS_AREAS = new Set([
+  "diritto_del_lavoro", "previdenza_sociale", "sicurezza_sul_lavoro",
+  "diritto_sindacale", "contratti_flessibili", "dirigenza",
+  "contrattazione_collettiva", "formazione_professionale",
+  "tutela_lavoratore_parasubordinato", "somministrazione_lavoro",
+  "licenziamento", "retribuzione", "fiscalita_lavoro", "potere_direttivo",
+]);
+
+/**
+ * Detect whether a classified document is HR-related.
+ * Checks documentSubType, documentType keywords, and legalFocusAreas.
+ */
+function detectHrDocument(classification: ClassificationResult): boolean {
+  // Check subtype
+  if (classification.documentSubType && HR_SUBTYPES.has(classification.documentSubType)) {
+    return true;
+  }
+
+  // Check documentType for HR keywords
+  const docTypeLower = (classification.documentType ?? "").toLowerCase();
+  if (
+    docTypeLower.includes("lavoro") ||
+    docTypeLower.includes("employment") ||
+    docTypeLower.includes("licenziamento") ||
+    docTypeLower.includes("dimissioni") ||
+    docTypeLower.includes("busta_paga") ||
+    docTypeLower.includes("cedolino")
+  ) {
+    return true;
+  }
+
+  // Check legalFocusAreas
+  const focusAreas = classification.legalFocusAreas ?? [];
+  return focusAreas.some(area => HR_FOCUS_AREAS.has(area));
+}
+
+/** Law source + institutes mapping per HR subtype */
+interface HrEnrichment {
+  laws: Array<{ reference: string; name: string }>;
+  institutes: string[];
+}
+
+/**
+ * Core labor law sources — always included for any HR document.
+ * These map to the 572 HR articles already loaded in the corpus.
+ */
+const HR_CORE_LAWS: Array<{ reference: string; name: string }> = [
+  { reference: "L. 300/1970", name: "Statuto dei Lavoratori" },
+  { reference: "D.Lgs. 81/2015", name: "Jobs Act — Contratti di lavoro" },
+  { reference: "D.Lgs. 23/2015", name: "Jobs Act — Tutele crescenti" },
+  { reference: "D.Lgs. 81/2008", name: "Sicurezza sul lavoro" },
+  { reference: "D.Lgs. 276/2003", name: "Riforma Biagi" },
+  { reference: "D.Lgs. 148/2015", name: "Ammortizzatori sociali" },
+];
+
+/** Core HR institutes — always included for any HR document */
+const HR_CORE_INSTITUTES: string[] = [
+  "tutela_lavoratore_subordinato",
+  "trattamento_fine_rapporto",
+  "contrattazione_collettiva",
+  "mobbing",
+];
+
+/**
+ * Returns additional law sources and institutes to query based on the HR document subtype.
+ * This enrichment ensures retrieval pulls the right labor law articles for each specific
+ * type of HR document (e.g., a dismissal letter gets licenziamento-specific institutes,
+ * an apprenticeship contract gets formazione-specific ones).
+ */
+function getHrRetrievalEnrichment(documentSubType: string | null): HrEnrichment {
+  const laws = [...HR_CORE_LAWS];
+  const institutes = [...HR_CORE_INSTITUTES];
+
+  // Subtype-specific enrichment
+  const subtypeMap: Record<string, { extraLaws?: Array<{ reference: string; name: string }>; extraInstitutes: string[] }> = {
+    // ── Contratti subordinati ──
+    subordinato_tempo_indeterminato: {
+      extraInstitutes: ["periodo_di_prova", "mansioni_inquadramento", "ferie_permessi_rol", "straordinario_orario_lavoro", "patto_non_concorrenza_lavoro"],
+    },
+    subordinato_tempo_determinato: {
+      extraInstitutes: ["contratto_tempo_determinato", "periodo_di_prova", "mansioni_inquadramento", "ferie_permessi_rol"],
+    },
+    contratto_lavoro_subordinato: {
+      extraInstitutes: ["periodo_di_prova", "mansioni_inquadramento", "ferie_permessi_rol", "straordinario_orario_lavoro", "sicurezza_sul_lavoro"],
+    },
+    contratto_lavoro_tempo_determinato: {
+      extraInstitutes: ["contratto_tempo_determinato", "periodo_di_prova", "mansioni_inquadramento", "ferie_permessi_rol", "preavviso_licenziamento_dimissioni"],
+    },
+    contratto_lavoro_part_time: {
+      extraInstitutes: ["part_time", "straordinario_orario_lavoro", "ferie_permessi_rol", "mansioni_inquadramento"],
+    },
+    contratto_lavoro_dirigente: {
+      extraInstitutes: ["patto_non_concorrenza_lavoro", "licenziamento_giustificato_motivo", "tfr_trattamento_fine_rapporto", "periodo_di_prova", "mobbing"],
+    },
+
+    // ── Collaborazioni e somministrazione ──
+    contratto_co_co_co: {
+      extraInstitutes: ["collaborazione_coordinata", "tutela_lavoratore_subordinato", "mansioni_inquadramento"],
+    },
+    collaborazione_coordinata: {
+      extraInstitutes: ["collaborazione_coordinata", "tutela_lavoratore_subordinato"],
+    },
+    co_co_co: {
+      extraInstitutes: ["collaborazione_coordinata", "tutela_lavoratore_subordinato"],
+    },
+    contratto_somministrazione: {
+      extraInstitutes: ["somministrazione_lavoro", "appalto_genuino", "distacco_lavoratore", "tutela_lavoratore_subordinato"],
+    },
+    somministrazione: {
+      extraInstitutes: ["somministrazione_lavoro", "appalto_genuino", "distacco_lavoratore"],
+    },
+
+    // ── Apprendistato ──
+    contratto_apprendistato: {
+      extraInstitutes: ["apprendistato", "periodo_di_prova", "mansioni_inquadramento", "sicurezza_sul_lavoro"],
+    },
+    apprendistato: {
+      extraInstitutes: ["apprendistato", "periodo_di_prova", "mansioni_inquadramento"],
+    },
+
+    // ── Licenziamento e dimissioni ──
+    lettera_licenziamento: {
+      extraInstitutes: ["licenziamento_giusta_causa", "licenziamento_giustificato_motivo", "tutele_crescenti", "preavviso_licenziamento_dimissioni", "tfr_trattamento_fine_rapporto", "sanzioni_disciplinari"],
+    },
+    lettera_dimissioni: {
+      extraInstitutes: ["dimissioni", "preavviso_licenziamento_dimissioni", "tfr_trattamento_fine_rapporto"],
+    },
+    dimissioni_volontarie: {
+      extraInstitutes: ["dimissioni", "preavviso_licenziamento_dimissioni", "tfr_trattamento_fine_rapporto"],
+    },
+
+    // ── Non concorrenza ──
+    accordo_non_concorrenza: {
+      extraInstitutes: ["patto_non_concorrenza_lavoro", "periodo_di_prova"],
+    },
+    patto_non_concorrenza: {
+      extraInstitutes: ["patto_non_concorrenza_lavoro"],
+    },
+
+    // ── Dirigenti ──
+    contratto_dirigente: {
+      extraInstitutes: ["patto_non_concorrenza_lavoro", "licenziamento_giustificato_motivo", "tfr_trattamento_fine_rapporto", "periodo_di_prova"],
+    },
+
+    // ── Busta paga e regolamento ──
+    cedolino_busta_paga: {
+      extraInstitutes: ["straordinario_orario_lavoro", "ferie_permessi_rol", "tfr_trattamento_fine_rapporto", "mansioni_inquadramento"],
+    },
+    regolamento_aziendale: {
+      extraInstitutes: ["sanzioni_disciplinari", "controllo_a_distanza", "sicurezza_sul_lavoro", "straordinario_orario_lavoro", "ferie_permessi_rol"],
+    },
+
+    // ── Smart working e flessibili ──
+    lavoro_agile_smart_working: {
+      extraLaws: [{ reference: "L. 81/2017", name: "Lavoro agile" }],
+      extraInstitutes: ["lavoro_agile", "straordinario_orario_lavoro", "sicurezza_sul_lavoro"],
+    },
+    accordo_smart_working: {
+      extraLaws: [{ reference: "L. 81/2017", name: "Lavoro agile" }],
+      extraInstitutes: ["lavoro_agile", "straordinario_orario_lavoro"],
+    },
+    part_time: {
+      extraInstitutes: ["part_time", "straordinario_orario_lavoro", "ferie_permessi_rol"],
+    },
+    lavoro_intermittente: {
+      extraInstitutes: ["lavoro_intermittente", "ferie_permessi_rol"],
+    },
+
+    // ── Distacco e disciplinare ──
+    distacco: {
+      extraInstitutes: ["distacco_lavoratore", "appalto_genuino", "sicurezza_sul_lavoro"],
+    },
+    contestazione_disciplinare: {
+      extraInstitutes: ["sanzioni_disciplinari", "licenziamento_giusta_causa", "reintegrazione_posto_lavoro"],
+    },
+  };
+
+  const mapping = documentSubType ? subtypeMap[documentSubType] : undefined;
+  if (mapping) {
+    if (mapping.extraLaws) {
+      laws.push(...mapping.extraLaws);
+    }
+    institutes.push(...mapping.extraInstitutes);
+  }
+
+  return { laws, institutes };
 }

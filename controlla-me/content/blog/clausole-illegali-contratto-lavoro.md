@@ -114,7 +114,7 @@ Le clausole nulle **restano nulle** anche se le firmi: il lavoratore non può ri
 - **Segnalarla prima di firmare**, chiedendo la modifica per iscritto
 - **Conservare una copia** del contratto originale firmato
 - **Consultare un sindacato o un avvocato del lavoro** se la clausola ti danneggia concretamente
-- **Caricare il contratto su controlla.me** per un'analisi automatica clausola per clausola
+- **Caricare il contratto su Poimandres** per un'analisi automatica clausola per clausola
 
 ## FAQ
 
@@ -132,4 +132,4 @@ Le rinunce e transazioni su diritti del lavoratore possono essere impugnate entr
 
 ---
 
-*Non sei sicuro che il tuo contratto sia regolare? Carica il documento su [controlla.me](https://controlla.me): l'analisi AI verifica ogni clausola in meno di 2 minuti, confrontandola con il Codice Civile, lo Statuto dei Lavoratori e il tuo CCNL. Le prime 3 analisi sono gratuite.*
+*Non sei sicuro che il tuo contratto sia regolare? Carica il documento su [Poimandres](https://poimandres.work): l'analisi AI verifica ogni clausola in meno di 2 minuti, confrontandola con il Codice Civile, lo Statuto dei Lavoratori e il tuo CCNL. Le prime 3 analisi sono gratuite.*

@@ -105,6 +105,7 @@ export async function updateTask(
       payload.started_at = new Date().toISOString();
     }
   }
+  if (update.priority !== undefined) payload.priority = update.priority;
   if (update.assignedTo !== undefined) payload.assigned_to = update.assignedTo;
   if (update.resultSummary !== undefined) payload.result_summary = update.resultSummary;
   if (update.resultData !== undefined) payload.result_data = update.resultData;

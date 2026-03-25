@@ -1,18 +1,18 @@
 {
-  "timestamp": "2026-03-19T09:40:47.784Z",
-  "durationMs": 250,
+  "timestamp": "2026-03-25T06:28:52.973Z",
+  "durationMs": 5640,
   "board": {
     "total": 0,
-    "open": 0,
-    "inProgress": 0,
-    "done": 976
+    "open": 2,
+    "inProgress": 1,
+    "done": 973
   },
   "signals": [
     {
       "deptId": "acceleration",
       "sourceId": "ACC-1",
       "title": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time",
-      "description": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time",
+      "description": "Audit performance dipartimenti mai eseguito — nessun benchmark cycle time [Dept memory: [context] acceleration_current_status: Health: OK. 8 tasks completed. Young department (established Q1). Code quality: 0 dead dependencies, 0 build warnings, ESLint clean, TypeScript strict. Resolved ]",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -21,7 +21,7 @@
       "deptId": "architecture",
       "sourceId": "ARCH-1",
       "title": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-dr",
-      "description": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-driven",
+      "description": "Pipeline multi-verticale non scala oltre 2-3 verticali — serve sistema config-driven [Dept memory: [context] architecture_current_status: Health: OK. 205 tasks completed total, 4 in progress. Tech debt: 0 critical, 0 high, 2 medium (multi-vertical pipeline, SSE+Edge), 3 low. Resolved recently: TD-1]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -30,7 +30,7 @@
       "deptId": "architecture",
       "sourceId": "ARCH-2",
       "title": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su No",
-      "description": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su Node.js, monitorare",
+      "description": "SSE + Edge Runtime incompatibili (maxDuration 300 vs limite 30s Edge) — OK su Node.js, monitorare [Dept memory: [learning] architecture_sse_edge_incompatibility: SSE with maxDuration=300 does not work on Vercel Edge Runtime (30s limit). Currently runs on Node.js — OK. Monitor if migrating to Edge.]",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -45,10 +45,37 @@
       "requiresHuman": false
     },
     {
+      "deptId": "data-engineering",
+      "sourceId": "DE-4",
+      "title": "D.Lgs. 9/2024 (Equita piattaforme digitali P2B) bloccato — non indicizzato su No",
+      "description": "D.Lgs. 9/2024 (Equita piattaforme digitali P2B) bloccato — non indicizzato su Normattiva Open Data API. Attendere indicizzazione o download manuale PDF da GU",
+      "priority": "low",
+      "routing": "data-operations:routine_sync",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "data-engineering",
+      "sourceId": "DE-5",
+      "title": "Verticale notarile: 3 fonti censite, 0 caricate. Reg. UE 650/2012, L. 218/1995, ",
+      "description": "Verticale notarile: 3 fonti censite, 0 caricate. Reg. UE 650/2012, L. 218/1995, L. 40/2007 tutti in stato planned",
+      "priority": "medium",
+      "routing": "data-operations:routine_sync",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "data-engineering",
+      "sourceId": "DE-6",
+      "title": "Verticale medico: solo StatPearls caricato (47 art. su ~9K disponibili). EuropeP",
+      "description": "Verticale medico: solo StatPearls caricato (47 art. su ~9K disponibili). EuropePMC api-tested. WHO ICD-11, Cochrane, OpenStax, SNLG, AIFA tutti planned",
+      "priority": "medium",
+      "routing": "data-operations:routine_sync",
+      "requiresHuman": false
+    },
+    {
       "deptId": "integration",
-      "sourceId": "blocker-integration-4",
+      "sourceId": "blocker-integration-7",
       "title": "Credential configuration: API keys / OAuth2 client IDs not yet configured for an",
-      "description": "Credential configuration: API keys / OAuth2 client IDs not yet configured for any connector",
+      "description": "Credential configuration: API keys / OAuth2 client IDs not yet configured for any connector (except HubSpot test) [Dept memory: [context] integration_current_status: Health: GREEN. Phase: building (Phase 0 infrastructure). Focus: credential vault, AuthenticatedBaseConnector, schema DB, OAuth2 flow generico. Planned connectors:]",
       "priority": "high",
       "routing": "feature-request:medium",
       "requiresHuman": false
@@ -57,7 +84,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-march_2026-0",
       "title": "Write content: Contratto di lavoro: 7 clausole illegali che il tuo datore n",
-      "description": "Content: \"Contratto di lavoro: 7 clausole illegali che il tuo datore non vuole che tu sappia\". Type: pillar. Keyword: clausole illegali contratto lavoro",
+      "description": "Content: \"Contratto di lavoro: 7 clausole illegali che il tuo datore non vuole che tu sappia\". Type: pillar. Keyword: clausole illegali contratto lavoro [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -66,7 +93,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-march_2026-1",
       "title": "Write content: Social: LinkedIn carousel '5 clausole che nessuno legge (e c",
-      "description": "Content: \"Social: LinkedIn carousel '5 clausole che nessuno legge (e che costano caro)'\". Type: social. Keyword: clausole illegali contratto",
+      "description": "Content: \"Social: LinkedIn carousel '5 clausole che nessuno legge (e che costano caro)'\". Type: social. Keyword: clausole illegali contratto [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -93,7 +120,7 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-march_2026-4",
       "title": "Write content: Social: Instagram story '3 clausole di affitto che potrebber",
-      "description": "Content: \"Social: Instagram story '3 clausole di affitto che potrebbero essere illegali'\". Type: social. Keyword: clausole affitto illegali",
+      "description": "Content: \"Social: Instagram story '3 clausole di affitto che potrebbero essere illegali'\". Type: social. Keyword: clausole affitto illegali [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -156,7 +183,34 @@
       "deptId": "marketing",
       "sourceId": "content-marketing-april_2026-5",
       "title": "Write content: Contratti per PMI: le 5 clausole più pericolose nei contratt",
-      "description": "Content: \"Contratti per PMI: le 5 clausole più pericolose nei contratti di fornitura\". Type: pillar. Keyword: clausole pericolose contratti commerciali PMI",
+      "description": "Content: \"Contratti per PMI: le 5 clausole più pericolose nei contratti di fornitura\". Type: pillar. Keyword: clausole pericolose contratti commerciali PMI [Dept memory: [context] marketing_current_status: Health: OK. 40 tasks completed, 1 in progress. Current metrics: 0 organic sessions, 0 signups, 0 pro users, 0 analyses. Q2 targets: 1500 organic sessions, 50 signup]",
+      "priority": "medium",
+      "routing": "feature-request:small",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "music",
+      "sourceId": "action-music-0",
+      "title": "Creare schema DB migration (music_analyses, music_artist_profiles, music_trend_c",
+      "description": "Creare schema DB migration (music_analyses, music_artist_profiles, music_trend_cache)",
+      "priority": "medium",
+      "routing": "feature-request:small",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "music",
+      "sourceId": "action-music-1",
+      "title": "Setup music/pyproject.toml con dipendenze Python",
+      "description": "Setup music/pyproject.toml con dipendenze Python",
+      "priority": "medium",
+      "routing": "feature-request:small",
+      "requiresHuman": false
+    },
+    {
+      "deptId": "music",
+      "sourceId": "action-music-2",
+      "title": "Implementare pipeline base: upload -> Demucs stem separation",
+      "description": "Implementare pipeline base: upload -> Demucs stem separation",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -174,7 +228,7 @@
       "deptId": "quality-assurance",
       "sourceId": "E1",
       "title": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con",
-      "description": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con browser headless",
+      "description": "E2E Playwright configurato ma mai eseguito su CI — passanti solo in ambiente con browser headless [Dept memory: [context] quality-assurance_current_status: Health: OK. 118 tasks completed, 6 in progress. Coverage: 72% overall (target 80%). 397 TS unit tests passing (19 files, Vitest 4). 34 Python unit tests pas]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -183,7 +237,7 @@
       "deptId": "security",
       "sourceId": "SEC-LOW-1",
       "title": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commercia",
-      "description": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI",
+      "description": "DPA con provider AI (Anthropic, Google, Mistral) — prerequisito lancio commerciale PMI [Dept memory: [warning] security_dpa_not_signed: DPA (Data Processing Agreements) with AI providers not signed: Anthropic, Google, Mistral. Blocks any B2B contract, HR vertical with business clients, and PMI Compli]",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": true
@@ -192,14 +246,14 @@
       "deptId": "security",
       "sourceId": "SEC-LOW-2",
       "title": "Consulente EU AI Act — scadenza agosto 2026",
-      "description": "Consulente EU AI Act — scadenza agosto 2026",
+      "description": "Consulente EU AI Act — scadenza agosto 2026 [Dept memory: [context] security_current_status: Health: OK (GREEN). 71 tasks completed. Last full audit: 2026-03-02. Findings: 0 critical, 0 high, 9 medium (all resolved), 4 low open. Infrastructure: HTTP headers ]",
       "priority": "low",
       "routing": "feature-request:small",
       "requiresHuman": true
     },
     {
       "deptId": "security",
-      "sourceId": "blocker-security-21",
+      "sourceId": "blocker-security-27",
       "title": "Boss invia email a top 3 consulenti EU AI Act",
       "description": "Boss invia email a top 3 consulenti EU AI Act",
       "priority": "high",
@@ -291,7 +345,7 @@
       "deptId": "strategy",
       "sourceId": "D-03",
       "title": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE ",
-      "description": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE 270. Tech readiness 95%. Finestra competitiva: 4-5 mesi. Decisione urgente: se GO, avvio questa settimana; se NO-GO, rivalutare in Q3 con dato aggiornato su LangGraph.",
+      "description": "Approvare lancio Poimandres come prodotto standalone parallelo (GO/NO-GO). RICE 270. Tech readiness 95%. Finestra competitiva: 4-5 mesi. Decisione urgente: se GO, avvio questa settimana; se NO-GO, rivalutare in Q3 con dato aggiornato su LangGraph. [Dept memory: [context] poimandres_vision_foundational: Poimandres = il Nous. Visione fondativa: AI dalla parte degli umani, sotto guida Marco Cristofori. Anti-capitale: multi-modello, open source, infra propria pe]",
       "priority": "high",
       "routing": "feature-request:medium",
       "requiresHuman": true
@@ -318,7 +372,7 @@
       "deptId": "strategy",
       "sourceId": "D-06",
       "title": "Approvare deploy in produzione e pubblicazione landing /affitti + content calend",
-      "description": "Approvare deploy in produzione e pubblicazione landing /affitti + content calendar Marketing. La landing è pronta, il CI/CD è verde, la security è verde. L'unico blocco è autorizzazione esplicita. Zero costi aggiuntivi (Vercel free tier sufficiente per traffico iniziale).",
+      "description": "Approvare deploy in produzione e pubblicazione landing /affitti + content calendar Marketing. La landing è pronta, il CI/CD è verde, la security è verde. L'unico blocco è autorizzazione esplicita. Zero costi aggiuntivi (Vercel free tier sufficiente per traffico iniziale). [Dept memory: [warning] strategy_zero_real_users: Zero real users after Q1. Product not in public production. Cannot validate economic model, identify friction points, or build social proof. Deploy to Vercel is tec]",
       "priority": "high",
       "routing": "feature-request:medium",
       "requiresHuman": true
@@ -354,7 +408,7 @@
       "deptId": "strategy",
       "sourceId": "OPP-3",
       "title": "Poimandres — Console Multi-Agente Standalone",
-      "description": "Poimandres — Console Multi-Agente Standalone. Next action: Decisione boss D-03 urgente — finestra si chiude entro luglio 2026. Se GO: DNS poimandres.work, pricing model B2B (freemium vs SaaS), avvio parallelo a controlla.me senza distogliere focus consumer.",
+      "description": "Poimandres — Console Multi-Agente Standalone. Next action: Decisione boss D-03 urgente — finestra si chiude entro luglio 2026. Se GO: DNS poimandres.work, pricing model B2B (freemium vs SaaS), avvio parallelo a controlla.me senza distogliere focus consumer. [Dept memory: [context] poimandres_vision_foundational: Poimandres = il Nous. Visione fondativa: AI dalla parte degli umani, sotto guida Marco Cristofori. Anti-capitale: multi-modello, open source, infra propria pe]",
       "priority": "medium",
       "routing": "feature-request:medium",
       "requiresHuman": false
@@ -363,7 +417,7 @@
       "deptId": "strategy",
       "sourceId": "OPP-4",
       "title": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act",
-      "description": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act. Next action: BLOCCATA da DPA provider AI (D-01/D-02/D-03). Explore in Q2: Marketing redige landing page e articolo SEO '231 PMI'. GO in Q3 se DPA firmati entro aprile.",
+      "description": "PMI Compliance B2B — D.Lgs. 231/2001 + EU AI Act. Next action: BLOCCATA da DPA provider AI (D-01/D-02/D-03). Explore in Q2: Marketing redige landing page e articolo SEO '231 PMI'. GO in Q3 se DPA firmati entro aprile. [Dept memory: [context] strategy_current_status: Health: OK. 30 tasks completed. OKR Q2 defined with 3 objectives, 9 KRs. O1 (production-ready): on_track. O2 (corpus + HR vertical): on_track. O3 (market validation)]",
       "priority": "medium",
       "routing": "feature-request:medium",
       "requiresHuman": true
@@ -372,7 +426,7 @@
       "deptId": "strategy",
       "sourceId": "OPP-5",
       "title": "Verticale Commerciale B2B (contratti commerciali tra imprese)",
-      "description": "Verticale Commerciale B2B (contratti commerciali tra imprese). Next action: Backlog — affrontare dopo HR e Tax. Segnalare a Marketing per keyword research ('contratto fornitura analisi' etc.).",
+      "description": "Verticale Commerciale B2B (contratti commerciali tra imprese). Next action: Backlog — affrontare dopo HR e Tax. Segnalare a Marketing per keyword research ('contratto fornitura analisi' etc.). [Dept memory: [context] strategy_current_status: Health: OK. 30 tasks completed. OKR Q2 defined with 3 objectives, 9 KRs. O1 (production-ready): on_track. O2 (corpus + HR vertical): on_track. O3 (market validation)]",
       "priority": "medium",
       "routing": "feature-request:medium",
       "requiresHuman": false
@@ -380,8 +434,8 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-0",
-      "title": "PRIORITY: Execute Cycle 4 grid search (60 combos) from external terminal",
-      "description": "PRIORITY: Execute Cycle 4 grid search (60 combos) from external terminal",
+      "title": "Boss to start paper trading scheduler manually: cd trading && python -m src.sche",
+      "description": "Boss to start paper trading scheduler manually: cd trading && python -m src.scheduler [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -389,8 +443,8 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-1",
-      "title": "Step 1 (Grid 2yr): cd trading && py -m src.backtest grid --start 2023-01-01 --en",
-      "description": "Step 1 (Grid 2yr): cd trading && py -m src.backtest grid --start 2023-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+      "title": "Monitor paper trading daily for 30 days minimum",
+      "description": "Monitor paper trading daily for 30 days minimum [Dept memory: [learning] grid_search_cycle4_results: Grid search Cycle 4 MACD daily completato: 60 combo, 43 simboli, 2023-2024. BEST: SL=2.0x TP=4.0x Sharpe +1.29, DD -3.1%, WR 48%, PF 1.43, 153 trades, return +83]",
       "priority": "medium",
       "routing": "trading-operations:routine",
       "requiresHuman": false
@@ -398,47 +452,20 @@
     {
       "deptId": "trading",
       "sourceId": "action-trading-2",
-      "title": "Step 2 (Analyze): Open grid_YYYYMMDD_HHMMSS/grid_results.csv → find best Sharpe ",
-      "description": "Step 2 (Analyze): Open grid_YYYYMMDD_HHMMSS/grid_results.csv → find best Sharpe > 1.0",
+      "title": "Compare paper results with backtest metrics (within 25% tolerance per go-live.md",
+      "description": "Compare paper results with backtest metrics (within 25% tolerance per go-live.md) [Dept memory: [context] trading_current_status: Health: OK. 53 tasks completed. Phase: backtest (cycle 3 done, cycle 4 prepared). Runtime: paper mode, enabled, kill switch off. Portfolio: $99,676.27 (9 positions, $]",
       "priority": "medium",
       "routing": "trading-operations:routine",
-      "requiresHuman": false
+      "requiresHuman": true
     },
     {
       "deptId": "trading",
       "sourceId": "action-trading-3",
-      "title": "Step 3 (Robustness): If GO in Step 1, run 3-year grid: py -m src.backtest grid -",
-      "description": "Step 3 (Robustness): If GO in Step 1, run 3-year grid: py -m src.backtest grid --start 2022-01-01 --end 2024-12-31 --grid-preset cycle4 --capital 100000",
+      "title": "After 30 days: evaluate go-live checklist (company/trading/runbooks/go-live.md)",
+      "description": "After 30 days: evaluate go-live checklist (company/trading/runbooks/go-live.md)",
       "priority": "medium",
       "routing": "trading-operations:routine",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "trading",
-      "sourceId": "action-trading-4",
-      "title": "Step 4 (Single run): Equity curve: py -m src.backtest run --start 2023-01-01 --e",
-      "description": "Step 4 (Single run): Equity curve: py -m src.backtest run --start 2023-01-01 --end 2024-12-31 --sl-atr X.X --tp-atr Y.Y (use best params from grid)",
-      "priority": "medium",
-      "routing": "trading-operations:routine",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "trading",
-      "sourceId": "action-trading-5",
-      "title": "Step 5 (Decision): If Sharpe > 1.0 + robustness checks pass → commit params, pla",
-      "description": "Step 5 (Decision): If Sharpe > 1.0 + robustness checks pass → commit params, plan Phase 3",
-      "priority": "medium",
-      "routing": "trading-operations:routine",
-      "requiresHuman": false
-    },
-    {
-      "deptId": "trading",
-      "sourceId": "action-trading-6",
-      "title": "Timing: 30-40 min total. Alpaca API key required for market data download.",
-      "description": "Timing: 30-40 min total. Alpaca API key required for market data download.",
-      "priority": "medium",
-      "routing": "trading-operations:routine",
-      "requiresHuman": false
+      "requiresHuman": true
     },
     {
       "deptId": "ufficio-legale",
@@ -453,7 +480,7 @@
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-0",
       "title": "Implement: OCR immagini (tesseract.js rimosso)",
-      "description": "OCR immagini (tesseract.js rimosso)",
+      "description": "OCR immagini (tesseract.js rimosso) [Dept memory: [context] ufficio-legale_current_status: Health: OK. 32 tasks completed. Pipeline: 7 agents (4 core + 3 support). Tier system active (intern/associate/partner). Corpus: ~5600 articles, 18 sources. Sco]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -462,7 +489,7 @@
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-1",
       "title": "Implement: Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt p",
-      "description": "Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt pending)",
+      "description": "Verticale HR (parziale — 572 articoli caricati, aggiornamento prompt pending) [Dept memory: [context] ufficio-legale_current_status: Health: OK. 32 tasks completed. Pipeline: 7 agents (4 core + 3 support). Tier system active (intern/associate/partner). Corpus: ~5600 articles, 18 sources. Sco]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -471,7 +498,7 @@
       "deptId": "ufficio-legale",
       "sourceId": "feature-ufficio-legale-2",
       "title": "Implement: Sistema referral avvocati (tabelle DB esistono, no UI)",
-      "description": "Sistema referral avvocati (tabelle DB esistono, no UI)",
+      "description": "Sistema referral avvocati (tabelle DB esistono, no UI) [Dept memory: [context] ufficio-legale_current_status: Health: OK. 32 tasks completed. Pipeline: 7 agents (4 core + 3 support). Tier system active (intern/associate/partner). Corpus: ~5600 articles, 18 sources. Sco]",
       "priority": "medium",
       "routing": "feature-request:small",
       "requiresHuman": false
@@ -480,7 +507,7 @@
       "deptId": "ux-ui",
       "sourceId": "UX-2",
       "title": "Audit accessibilita WCAG 2.1 AA su console components non eseguito",
-      "description": "Audit accessibilita WCAG 2.1 AA su console components non eseguito",
+      "description": "Audit accessibilita WCAG 2.1 AA su console components non eseguito [Dept memory: [warning] ux-ui_wcag_audit_pending: Console components not audited for WCAG 2.1 AA accessibility. No accessibility audit has been conducted yet. Gap UX-2 (medium severity).; [context] ux-ui_current_st]",
       "priority": "medium",
       "routing": "ui-ux-request:polish",
       "requiresHuman": false
@@ -489,13 +516,175 @@
   "llmAnalysis": null,
   "llmSuggestions": [],
   "alerts": [],
-  "goalChecks": [],
+  "goalChecks": [
+    {
+      "goalId": "ad7fbcfb-b89a-462f-ad3c-699079d6581c",
+      "goalTitle": "[O1] Rendere il prodotto production-ready",
+      "department": "strategy",
+      "metric": "o1_completion",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 100,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Review O1 progress across all KRs"
+    },
+    {
+      "goalId": "990a8895-cb60-47e0-b66e-6410e993fa3d",
+      "goalTitle": "[O1-KR1] Test coverage percorsi critici ≥ 80%",
+      "department": "quality-assurance",
+      "metric": "test_coverage",
+      "previousValue": 55,
+      "currentValue": 55,
+      "targetValue": 80,
+      "progressRatio": 0.6875,
+      "status": "active",
+      "previousStatus": "active",
+      "actionTaken": null
+    },
+    {
+      "goalId": "fd2b8543-73ce-49ee-8ac3-5b4b9c3df2e4",
+      "goalTitle": "[O1-KR2] Tech debt TD-1 risolto: cache Supabase atomica al posto di filesystem",
+      "department": "architecture",
+      "metric": "cache_supabase_migration",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 1,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Architecture: prioritize TD-1 cache migration sprint"
+    },
+    {
+      "goalId": "87a0ba0c-6c62-46e2-b0db-177e849fffaa",
+      "goalTitle": "[O1-KR3] CI/CD verde al 100%: zero test fail, zero ESLint errors, build success",
+      "department": "quality-assurance",
+      "metric": "ci_cd_green",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 1,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): QA: triage failing tests and ESLint errors, create fix tasks"
+    },
+    {
+      "goalId": "236f93b0-0001-43ed-9d4c-50d03d8b1da5",
+      "goalTitle": "[O2] Espandere il corpus e lanciare il verticale HR",
+      "department": "strategy",
+      "metric": "o2_completion",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 100,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Review O2 progress across all KRs"
+    },
+    {
+      "goalId": "ef79398b-c89c-4b3a-a740-1cb9a2d654cc",
+      "goalTitle": "[O2-KR2] Copertura istituti giuridici da 54.5% a ≥ 80%",
+      "department": "data-engineering",
+      "metric": "institute_coverage_ratio",
+      "previousValue": 54.5,
+      "currentValue": 54.5,
+      "targetValue": 80,
+      "progressRatio": 0.68125,
+      "status": "active",
+      "previousStatus": "active",
+      "actionTaken": null
+    },
+    {
+      "goalId": "86348917-f448-4d8b-a2b2-29a741c32d90",
+      "goalTitle": "[O2-KR3] HR Agent prototipo operativo: 3 analisi contratti lavoro end-to-end validate da QA",
+      "department": "ufficio-legale",
+      "metric": "hr_agent_validated_analyses",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 3,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): UL: create test contracts (TD, TI, licenziamento) and run analysis pipeline"
+    },
+    {
+      "goalId": "c895e782-0ac4-44e7-bea9-357038f7490f",
+      "goalTitle": "[O3] Validare il mercato con primi utenti reali",
+      "department": "strategy",
+      "metric": "o3_completion",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 100,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Review O3 progress across all KRs"
+    },
+    {
+      "goalId": "18098143-635b-4dd1-a0d5-3f99590f61b4",
+      "goalTitle": "[O3-KR1] Primo utente Pro pagante con pagamento Stripe confermato",
+      "department": "marketing",
+      "metric": "paying_users",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 1,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Marketing: activate outreach campaign, push landing /affitti live"
+    },
+    {
+      "goalId": "a861a8c1-5baa-4053-8b5f-a252372ce57e",
+      "goalTitle": "[O3-KR2] ≥ 20 analisi reali completate da utenti distinti",
+      "department": "operations",
+      "metric": "real_analyses_completed",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 20,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Operations: check if deploy is live, verify user funnel, check error rates"
+    },
+    {
+      "goalId": "f26b97eb-1c82-4051-b182-acd0bc129ca7",
+      "goalTitle": "[O3-KR3] ≥ 4 articoli SEO pubblicati live su controlla.me",
+      "department": "marketing",
+      "metric": "seo_articles_published",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 4,
+      "progressRatio": 0,
+      "status": "at_risk",
+      "previousStatus": "at_risk",
+      "actionTaken": "Triggered action (L1): Marketing: prioritize content publishing, boss already approved content calendar"
+    },
+    {
+      "goalId": "a9aaffea-b1fc-4869-917c-7c5c03e376de",
+      "goalTitle": "Test goal",
+      "department": "architecture",
+      "metric": "test",
+      "previousValue": 0,
+      "currentValue": 0,
+      "targetValue": 100,
+      "progressRatio": 0,
+      "status": "active",
+      "previousStatus": "active",
+      "actionTaken": null
+    }
+  ],
   "pendingDecisionReviews": 0,
   "cmeDirective": {
-    "mode": "plenaria",
-    "instructions": "BOARD VUOTO: 0 open, 0 in_progress. Tutti i task sono completati.\n\nAZIONE: Riunione plenaria obbligatoria.\n  1. Scansiona status.json di tutti i dipartimenti (vision, gap, blockers)\n  2. Leggi i signal del daemon report (opportunità, rischi)\n  3. Controlla goal a rischio (Forma Mentis Layer 3)\n  4. Controlla decisioni pending review (Layer 4)\n  5. Proponi al boss i nuovi piani di lavoro con priorità\n  6. Dopo approvazione boss → crea i task per i dipartimenti\n\nDOPO LA PLENARIA: il board avrà nuovi task open → al prossimo risveglio,\nil daemon genererà direttiva \"smaltimento\" e il ciclo ricomincia.",
-    "openTasksBatch": [],
-    "inProgressToAudit": [],
-    "requiresPlenary": true
+    "mode": "misto",
+    "instructions": "PRIORITÀ 1 — AUDIT: Ci sono 1 task in_progress. Verifica OGNUNO:\n  • Se bloccato/fermo da troppo tempo → rimetti a \"open\" (company-tasks.ts reopen <id>)\n  • Se completato ma non chiuso → chiudi con \"done\" (company-tasks.ts done <id> --summary \"...\")\n  • Se effettivamente in lavorazione → lascia in_progress\n\nPRIORITÀ 2 — SMALTIMENTO: Dopo l'audit, ci sono 2 task open.\n  Prendi i primi 5 per priorità, fai routing con i decision trees, e smaltisci UNO ALLA VOLTA.\n  Per ogni task: routing → crea/assegna al dipartimento → il dipartimento esegue → verifica → done.\n  Quando finisci i 5, il daemon al prossimo ciclo genererà i prossimi 5.",
+    "openTasksBatch": [
+      "[HIGH] Garantire chiusura ciclo task in sessione CME (architecture) — id:21e01ad4",
+      "[HIGH] Audit UX mobile app OPS (ux-ui) — id:627bafe3"
+    ],
+    "inProgressToAudit": [
+      "[CRITICAL] Daemon PM2: servizio persistente collegato a pannello OPS (operations) — id:3bbb66c4"
+    ],
+    "requiresPlenary": false
   }
 }

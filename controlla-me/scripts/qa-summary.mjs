@@ -1,5 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dir = path.join(__dirname, '..', 'company', 'qa-results');
 const files = fs.readdirSync(dir).filter(f => f.startsWith('qa-') && f.endsWith('.json'));
 
@@ -14,7 +17,7 @@ for (const f of files) {
     if (!latest[data.testId] || ts > latest[data.testId].ts) {
       latest[data.testId] = Object.assign({}, data, { ts, file: f });
     }
-  } catch (e) { /* skip */ }
+  } catch (_e) { /* skip */ }
 }
 
 const results = Object.values(latest).sort((a, b) =>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -7,16 +8,24 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
-  title: "controlla.me — Analisi AI di documenti legali",
+  title: "Poimandres — AI per gli umani",
   description:
-    "Carica un contratto, una bolletta, un documento legale. L'AI lo analizza, trova norme e sentenze, e ti dice cosa fare.",
+    "Poimandres e la piattaforma madre per team di agenti AI specializzati: analisi legale (controlla.me), studio medico (studia.me), direzione artistica musicale e strumenti per PMI.",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#FF6B35",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Poimandres",
+  },
   openGraph: {
-    title: "controlla.me — Non firmare nulla che non capisci",
+    title: "Poimandres — AI per gli umani",
     description:
-      "4 agenti AI analizzano il tuo documento in 30 secondi. Rischi, norme, sentenze e azioni consigliate.",
+      "Piattaforma AI multi-verticale con agenti specializzati: legale, medico, musica, integrazione PMI.",
     type: "website",
   },
 };
@@ -55,6 +64,7 @@ export default function RootLayout({
         <div id="main-content">
           {children}
         </div>
+        <ServiceWorkerRegistration />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         )}

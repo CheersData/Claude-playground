@@ -1,10 +1,10 @@
 @echo off
-title controlla.me - Setup e Avvio
+title Poimandres - Setup e Avvio
 color 0A
 
 echo.
 echo  ============================================
-echo     controlla.me - Setup Completo + Avvio
+echo     Poimandres - Setup Completo + Avvio
 echo  ============================================
 echo.
 

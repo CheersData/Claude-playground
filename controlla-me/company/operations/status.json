@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "operations",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:21:09.947Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-25T10:00:00.000Z",
+    "updated_by": "ops-monitor-task-1338"
   },
   "health": "ok",
-  "summary": "6 task aperti. 106 completati (totale). Fix WCAG High priority (contrasto, opacity) in coda.",
+  "summary": "0 task aperti. 134 completati (137 totale). Dashboard /ops operativo. Paper trading scheduler PM2 attivo. Daemon PM2 attivo.",
   "dashboard": {
     "url": "/ops",
     "status": "operational",
@@ -48,10 +48,7 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [
-    "Fix WCAG High priority componenti console",
-    "5 altri task open"
-  ],
+  "open_tasks": [],
   "blockers": [],
   "notes": "Provider attivi: Groq, Gemini, Cerebras, Mistral. Anthropic e OpenAI non usati (crediti esauriti/insufficienti)."
 }

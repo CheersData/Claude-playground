@@ -39,11 +39,11 @@ export default function ReasoningGraph({
   return (
     <div className="rounded-xl border border-[#F0F0F0] px-4 py-3">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] text-[#767676] tracking-[2px] uppercase font-medium">
+        <span className="text-[10px] text-[#595959] tracking-[2px] uppercase font-medium">
           Istituti rilevati
         </span>
         {questionType === "systematic" && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[#F8F8FA] text-[#6B6B6B]">
+          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[#F8F8FA] text-[#595959]">
             sistematica
           </span>
         )}
@@ -100,7 +100,7 @@ export default function ReasoningGraph({
             )}
           </div>
           {scopeNotes && (
-            <p className="text-[10px] text-[#767676] mt-1 italic">{scopeNotes}</p>
+            <p className="text-[10px] text-[#595959] mt-1 italic">{scopeNotes}</p>
           )}
         </motion.div>
       )}

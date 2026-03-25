@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "controlla-me-trading"
+name = "poimandres-trading"
 version = "0.1.0"
-description = "Automated swing trading for Controlla.me financial sustainability"
+description = "Automated swing trading for Poimandres financial sustainability"
 requires-python = ">=3.11"
 license = {text = "Private"}
 

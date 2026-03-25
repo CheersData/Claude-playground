@@ -41,7 +41,7 @@ export async function runDocumentChat(
   const startTime = Date.now();
 
   // Limita il testo documento per il prompt (max 4000 chars)
-  const docTextTruncated = input.documentText.slice(0, 4000);
+  const _docTextTruncated = input.documentText.slice(0, 4000);
 
   // Cronologia: max 10 messaggi precedenti (5 turni) per brevità
   const history = (input.conversationHistory || []).slice(-10);

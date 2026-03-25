@@ -149,6 +149,7 @@ def run_grid_search(
     timeframe: str = "1Day",
     output_dir: Path | None = None,
     param_grid: dict | None = None,
+    strategy: str | None = None,
 ) -> Path:
     """
     Run grid search over parameter combinations.
@@ -161,11 +162,22 @@ def run_grid_search(
         timeframe: "1Day" or "1Hour".
         output_dir: Custom output directory.
         param_grid: Custom parameter grid (default: PARAM_GRID).
+        strategy: Strategy override. None = auto-detect from timeframe
+                  (5Min=slope_volume, 15Min=mean_reversion, else=trend_following).
 
     Returns:
         Path to output directory with results.
     """
     grid = param_grid or PARAM_GRID
+
+    # Auto-detect strategy from timeframe if not specified
+    if strategy is None:
+        if timeframe == "5Min":
+            strategy = "slope_volume"
+        elif timeframe == "15Min":
+            strategy = "mean_reversion"
+        else:
+            strategy = "trend_following"
 
     # Generate all combinations
     keys = list(grid.keys())
@@ -173,7 +185,11 @@ def run_grid_search(
     combinations = list(itertools.product(*values))
     total = len(combinations)
 
-    tf_label = "HOURLY" if timeframe == "1Hour" else "DAILY"
+    tf_label = {
+        "1Hour": "HOURLY",
+        "5Min": f"5-MIN {strategy.upper()}",
+        "15Min": f"15-MIN {strategy.upper()}",
+    }.get(timeframe, "DAILY")
     print(f"\n{'='*70}")
     print(f"  GRID SEARCH [{tf_label}] -- {start} -> {end}")
     print(f"  Capital: ${initial_capital:,.0f} | Symbols: {len(symbols)}")
@@ -230,6 +246,7 @@ def run_grid_search(
                 end=end,
                 initial_capital=initial_capital,
                 timeframe=timeframe,
+                strategy=strategy,
                 stop_loss_atr=params.get("stop_loss_atr", 2.0),
                 take_profit_atr=params.get("take_profit_atr", 4.0),
                 trend_filter=params.get("trend_filter", True),

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, isAuthError } from "@/lib/middleware/auth";
+import { requireAuth, isAuthError, type AuthResult } from "@/lib/middleware/auth";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 
 /** Accepted audio MIME types */
 const ACCEPTED_MIME_TYPES: Record<string, string> = {
@@ -26,19 +27,20 @@ const ACCEPTED_EXTENSIONS = new Set(["mp3", "wav", "flac", "ogg", "m4a", "aiff"]
 /** 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-const UPLOAD_BASE_DIR = path.join(process.cwd(), ".music-uploads");
+const UPLOAD_BASE_DIR = path.join(/* turbopackIgnore: true */ process.cwd(), ".music-uploads");
 
 export async function POST(req: NextRequest) {
   // CSRF check (FormData endpoint)
   const csrf = checkCsrf(req);
   if (csrf) return csrf;
 
-  // Auth
-  const auth = await requireAuth();
-  if (isAuthError(auth)) return auth;
+  // Auth: optional — anonymous users can upload (like /api/analyze for legal analysis)
+  const authResult = await requireAuth();
+  const user = isAuthError(authResult) ? null : (authResult as AuthResult).user;
+  const userId = user?.id ?? null;
 
-  // Rate limit (10 uploads/hour — configured in RATE_LIMITS or uses endpoint match)
-  const limited = await checkRateLimit(req, auth.user.id);
+  // Rate limit (IP-based for anonymous, userId for authenticated)
+  const limited = await checkRateLimit(req, userId ?? undefined);
   if (limited) return limited;
 
   try {
@@ -91,10 +93,13 @@ export async function POST(req: NextRequest) {
     // --- Create DB record ---
     const supabase = createAdminClient();
 
+    // For anonymous users, generate a stable directory ID
+    const anonDirId = userId ?? `anon-${crypto.randomUUID()}`;
+
     const { data: analysis, error: dbError } = await supabase
       .from("music_analyses")
       .insert({
-        user_id: auth.user.id,
+        user_id: userId,  // NULL for anonymous users
         file_name: file.name,
         file_size_bytes: file.size,
         status: "pending",
@@ -116,7 +121,8 @@ export async function POST(req: NextRequest) {
     const analysisId = analysis.id as string;
 
     // --- Save file to filesystem ---
-    const userDir = path.join(UPLOAD_BASE_DIR, auth.user.id);
+    // Use userId if authenticated, otherwise use anonDirId for filesystem isolation
+    const userDir = path.join(UPLOAD_BASE_DIR, anonDirId);
     await mkdir(userDir, { recursive: true });
 
     const filePath = path.join(userDir, `${analysisId}.${resolvedExt}`);
@@ -127,6 +133,7 @@ export async function POST(req: NextRequest) {
       analysisId,
       fileName: file.name,
       status: "pending",
+      dirId: anonDirId,  // Needed by /api/music/analyze to locate the file on disk
     });
   } catch (error) {
     console.error("[MUSIC-UPLOAD] Unexpected error:", error);

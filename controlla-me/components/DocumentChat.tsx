@@ -174,7 +174,7 @@ export default function DocumentChat({
         setIsLoading(false);
       }
     },
-    [analysisId, conversationId, isLoading]
+    [analysisId, conversationId, isLoading, messages]
   );
 
   const handleSubmit = (e: React.FormEvent) => {

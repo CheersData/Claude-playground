@@ -2,8 +2,7 @@
 
 ## Missione
 
-Monitoring, dashboard e infrastruttura operativa. Visibilità completa sullo stato dell'azienda virtuale.
-Endpoint: `/ops`
+Visibilità totale sullo stato dell'organismo. Deploy, monitoring, daemon, zombie reaper.
 
 ## Responsabilità
 
@@ -77,10 +76,9 @@ Ops completamente autonoma: alerting automatico, dashboard self-service, monitor
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Alerting automatico** — ✅ PARZIALE: notifiche Telegram via daemon per segnali critical/high. Manca: alert su test falliti, costi soglia
-2. **[P0.5] Daemon + Zombie monitoring** — ✅ COMPLETATO: FASE 4.5 zombie reaper, enableSelfTimeout() su script, daemon heartbeat
-3. **[P1] Dashboard KPI dipartimenti** — metriche in tempo reale su /ops (cycle time, coverage, corpus status)
-4. **[P2] Cron monitoring** — health check automatico dei cron job (data-connector, trading scheduler)
+1. **[P0] /creator su stesso motore /ops** — infrastruttura operativa per il motore creator sulla piattaforma Poimandres
+2. **[P1] Status.json sempre aggiornati** — garantire che gli status.json di ogni dipartimento siano aggiornati in tempo reale
+3. **[P2] Health check automatici** — automazione health check su tutti i servizi e agenti
 
 ## Autonomia
 

@@ -30,7 +30,6 @@ import {
   deduplicateByChecksum,
   buildFolderTree,
   enrichWithFolderPaths,
-  getSubfolderIds,
   exceedsMaxSize,
   DEFAULT_MAX_FILE_SIZE,
   type DriveRecord,

@@ -12,7 +12,7 @@ import {
   ChevronUp,
   Eye,
 } from "lucide-react";
-import type { SchemaField, FieldMappingEntry } from "./index";
+
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -301,7 +301,7 @@ function SuggestionRow({
   suggestion,
   onAccept,
   onReject,
-  onPreview,
+  onPreview: _onPreview,
 }: {
   suggestion: MappingSuggestion;
   onAccept: (id: string) => void;

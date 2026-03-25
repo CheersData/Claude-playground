@@ -369,7 +369,7 @@ function parseArgs(): { source?: string; collection?: string } {
 
 async function main() {
   console.log("\n╔══════════════════════════════════════════════════════════════╗");
-  console.log("║  controlla.me — Seed via Normattiva Open Data API          ║");
+  console.log("║  Poimandres — Seed via Normattiva Open Data API             ║");
   console.log("║  https://dati.normattiva.it/ — CC BY 4.0                   ║");
   console.log("╚══════════════════════════════════════════════════════════════╝\n");
 

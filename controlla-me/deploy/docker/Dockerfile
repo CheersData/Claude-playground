@@ -1,5 +1,5 @@
 # =============================================================================
-# Dockerfile — Next.js App (controlla.me)
+# Dockerfile — Next.js App (Poimandres)
 # Multi-stage build optimized for Hetzner CX21 (2 vCPU, 4GB RAM)
 #
 # PREREQUISITE: Add `output: "standalone"` to next.config.ts before building.

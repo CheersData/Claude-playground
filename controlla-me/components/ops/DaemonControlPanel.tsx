@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Timer,
   Zap,
+  UserCheck,
 } from "lucide-react";
 import { getConsoleAuthHeaders, getConsoleJsonHeaders } from "@/lib/utils/console-client";
 
@@ -44,6 +45,7 @@ interface DaemonState {
   updatedBy: string;
   running: boolean;
   logs: DaemonLog[];
+  pauseWhenBossActive?: boolean;
 }
 
 export function DaemonControlPanel() {
@@ -73,9 +75,8 @@ export function DaemonControlPanel() {
 
   useEffect(() => {
     fetchState();
-    // Auto-refresh ogni 30 secondi
-    const interval = setInterval(fetchState, 30_000);
-    return () => clearInterval(interval);
+    // No continuous polling — fetch once on mount, then on manual refresh only.
+    // The daemon skips when the boss is active, so polling while /ops is open is wasteful.
   }, [fetchState]);
 
   // ── Toggle enabled ────────────────────────────────────────────────────
@@ -111,6 +112,26 @@ export function DaemonControlPanel() {
       const updated = await res.json();
       setState((prev) => (prev ? { ...prev, ...updated } : prev));
       setPendingInterval(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore aggiornamento");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Toggle pauseWhenBossActive ───────────────────────────────────────
+  const togglePauseWhenBoss = async () => {
+    if (!state) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/company/daemon", {
+        method: "PUT",
+        headers: getConsoleJsonHeaders(),
+        body: JSON.stringify({ pauseWhenBossActive: !state.pauseWhenBossActive }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+      setState((prev) => (prev ? { ...prev, ...updated } : prev));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore aggiornamento");
     } finally {
@@ -264,6 +285,30 @@ export function DaemonControlPanel() {
             <span>60min</span>
             <span>120min</span>
           </div>
+        </div>
+
+        {/* Pause when boss active checkbox */}
+        <div className="flex items-center justify-between pt-2 border-t border-[var(--border-dark-subtle)]/60">
+          <div className="flex items-center gap-2">
+            <UserCheck className="w-3 h-3 text-[var(--fg-invisible)]" />
+            <span className="text-xs text-[var(--fg-invisible)]">Pausa quando boss attivo</span>
+          </div>
+          <button
+            onClick={togglePauseWhenBoss}
+            disabled={saving}
+            className={`relative w-8 h-4 rounded-full transition-colors ${
+              state.pauseWhenBossActive !== false
+                ? "bg-[var(--accent)]"
+                : "bg-[var(--bg-overlay)]"
+            } ${saving ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
+            title={state.pauseWhenBossActive !== false ? "Daemon si ferma se boss attivo" : "Daemon gira sempre"}
+          >
+            <span
+              className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${
+                state.pauseWhenBossActive !== false ? "translate-x-4" : "translate-x-0.5"
+              }`}
+            />
+          </button>
         </div>
       </div>
 

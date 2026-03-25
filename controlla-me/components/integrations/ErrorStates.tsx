@@ -14,7 +14,7 @@
  * Design principle: clear, helpful, not scary. Italian labels.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   KeyRound,
@@ -125,6 +125,7 @@ function useCountdown(seconds: number | undefined) {
 
   useEffect(() => {
     if (!seconds || seconds <= 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync countdown with prop change
     setRemaining(seconds);
     const interval = setInterval(() => {
       setRemaining((prev) => {

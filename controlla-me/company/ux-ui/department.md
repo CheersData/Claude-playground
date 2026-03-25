@@ -2,7 +2,7 @@
 
 ## Missione
 
-Design, implementazione e mantenimento dell'esperienza utente su tutte le interfacce di Controlla.me: landing page, console, dashboard, pagine corpus, pricing. Garantire coerenza visiva, accessibilita e usabilita.
+Interfacce semplici e potenti. Il creator capisce cosa fare in 10 secondi.
 
 ## Responsabilita
 
@@ -96,9 +96,9 @@ Design system completo e riusabile per N verticali. Accessibilità WCAG 2.1 AA c
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Audit accessibilità WCAG** — verificare tutte le pagine principali (landing, corpus, dashboard, pricing, console)
-2. **[P1] Design system tokens** — estrarre tutti i valori hardcoded in token riusabili (colori, spacing, border-radius)
-3. **[P2] Template multi-verticale** — preparare layout template per nuovi verticali (HR, real estate)
+1. **[P0] Design /creator (5 tab)** — progettare e implementare l'interfaccia creator con 5 tab
+2. **[P1] WCAG 2.1 AA audit** — verificare accessibilità WCAG 2.1 AA su tutte le pagine
+3. **[P2] Sotto-tema developer** — creare sotto-tema e componenti riusabili per developer sulla piattaforma
 
 ## Autonomia
 

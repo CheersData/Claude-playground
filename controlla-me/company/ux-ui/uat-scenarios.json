@@ -1,0 +1,45 @@
+{
+  "department": "ux-ui",
+  "scenarios": [
+    {
+      "id": "uxui-landing-visual",
+      "name": "Main landing page visual check",
+      "department": "ux-ui",
+      "description": "Verify the main landing page loads with all core sections and branding visible",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/" },
+          "expect": {
+            "has": ["Controlla.me"],
+            "timeout": 15000
+          }
+        }
+      ],
+      "tags": ["smoke", "critical"]
+    },
+    {
+      "id": "uxui-responsive-mobile",
+      "name": "Landing page responsive on mobile viewport",
+      "department": "ux-ui",
+      "description": "Verify the landing page renders correctly on a mobile viewport (375x667) without layout issues",
+      "steps": [
+        {
+          "type": "visual-check",
+          "params": {
+            "viewport": { "width": 375, "height": 667 },
+            "screenshotName": "uxui-mobile-landing"
+          }
+        },
+        {
+          "type": "page-load",
+          "params": { "url": "/" },
+          "expect": {
+            "has": ["Controlla.me"]
+          }
+        }
+      ],
+      "tags": ["regression"]
+    }
+  ]
+}

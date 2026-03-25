@@ -22,10 +22,11 @@
 
 import { spawn, type ChildProcess } from "child_process";
 import { NextRequest } from "next/server";
-import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { requireConsoleRole } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import path from "path";
+import { createSSEStream, SSE_HEADERS } from "@/lib/sse-stream-factory";
 
 export const maxDuration = 300;
 
@@ -140,8 +141,8 @@ export async function POST(req: NextRequest) {
   const rl = await checkRateLimit(req);
   if (rl) return rl;
 
-  // Auth: requireConsoleAuth
-  const tokenPayload = requireConsoleAuth(req);
+  // Auth: requireConsoleRole — boss only (shell command execution)
+  const tokenPayload = requireConsoleRole(req, "boss");
   if (!tokenPayload) {
     return new Response(
       JSON.stringify({ error: "Non autorizzato" }),
@@ -253,101 +254,58 @@ export async function POST(req: NextRequest) {
   }, COMMAND_TIMEOUT_MS);
 
   // ── SSE Stream ──
-  let streamClosed = false;
+  const { stream, send, close: closeStream, onCleanup } = createSSEStream({ request: req });
 
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream({
-    start(controller) {
-      const send = (event: string, data: Record<string, unknown>) => {
-        if (streamClosed) return;
-        try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
-        } catch {
-          // Controller already closed
-        }
-      };
-
-      // Send PID immediately so the client can use it for kill
-      send("started", { pid, command });
-
-      // stdout
-      if (child.stdout) {
-        child.stdout.on("data", (chunk: Buffer) => {
-          send("output", { stream: "stdout", text: chunk.toString("utf-8") });
-        });
+  // Register cleanup for timeout timer and child process
+  onCleanup(() => {
+    clearTimeout(timeoutTimer);
+    // Kill the process if still running
+    if (child.exitCode === null && !child.killed) {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        // Process may have already exited
       }
-
-      // stderr
-      if (child.stderr) {
-        child.stderr.on("data", (chunk: Buffer) => {
-          send("error", { stream: "stderr", text: chunk.toString("utf-8") });
-        });
-      }
-
-      // Process exit
-      child.on("close", (code, signal) => {
-        clearTimeout(timeoutTimer);
-        activeProcesses.delete(pid);
-
-        send("exit", {
-          code: code ?? null,
-          signal: signal ?? null,
-          pid,
-        });
-
-        streamClosed = true;
-        try {
-          controller.close();
-        } catch {
-          // Already closed
-        }
-      });
-
-      // Spawn error (e.g., ENOENT)
-      child.on("error", (err) => {
-        clearTimeout(timeoutTimer);
-        activeProcesses.delete(pid);
-
-        send("error", {
-          stream: "stderr",
-          text: `spawn error: ${err.message}`,
-        });
-        send("exit", { code: 1, signal: null, pid });
-
-        streamClosed = true;
-        try {
-          controller.close();
-        } catch {
-          // Already closed
-        }
-      });
-    },
-
-    cancel() {
-      // Client disconnected
-      streamClosed = true;
-      clearTimeout(timeoutTimer);
-
-      // Kill the process if still running
-      if (child.exitCode === null && !child.killed) {
-        try {
-          child.kill("SIGTERM");
-        } catch {
-          // Process may have already exited
-        }
-      }
-      activeProcesses.delete(pid);
-    },
+    }
+    activeProcesses.delete(pid);
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
+  // Send PID immediately so the client can use it for kill
+  send("started", { pid, command });
+
+  // stdout
+  if (child.stdout) {
+    child.stdout.on("data", (chunk: Buffer) => {
+      send("output", { stream: "stdout", text: chunk.toString("utf-8") });
+    });
+  }
+
+  // stderr
+  if (child.stderr) {
+    child.stderr.on("data", (chunk: Buffer) => {
+      send("error", { stream: "stderr", text: chunk.toString("utf-8") });
+    });
+  }
+
+  // Process exit
+  child.on("close", (code, signal) => {
+    send("exit", {
+      code: code ?? null,
+      signal: signal ?? null,
+      pid,
+    });
+    closeStream();
   });
+
+  // Spawn error (e.g., ENOENT)
+  child.on("error", (err) => {
+    send("error", {
+      stream: "stderr",
+      text: `spawn error: ${err.message}`,
+    });
+    send("exit", { code: 1, signal: null, pid });
+    closeStream();
+  });
+
+  return new Response(stream, { headers: SSE_HEADERS });
 }

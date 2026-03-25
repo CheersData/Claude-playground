@@ -12,7 +12,7 @@
  * Design: Poimandres dark theme, accent #FF6B35
  */
 
-import { useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Bot } from "lucide-react";
 import IntegrationAgentChat from "./IntegrationAgentChat";
@@ -29,17 +29,16 @@ interface IntegrationAgentPanelProps {
 // ─── Responsive hook ───
 
 function useIsMobile() {
-  const ref = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => {
-      ref.current = window.innerWidth < 768;
+      setIsMobile(window.innerWidth < 768);
     };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-  // For SSR safety return false initially; the motion variants handle both anyway
-  return ref;
+  return isMobile;
 }
 
 // ─── Component ───
@@ -50,7 +49,7 @@ export default function IntegrationAgentPanel({
   connectorType,
   connectorId,
 }: IntegrationAgentPanelProps) {
-  const isMobileRef = useIsMobile();
+  const isMobile = useIsMobile();
 
   // Close on Escape key
   useEffect(() => {
@@ -99,8 +98,8 @@ export default function IntegrationAgentPanel({
             variants={{
               hidden: {
                 // Mobile: slide up from bottom; Desktop: slide in from right
-                y: isMobileRef.current ? "100%" : 0,
-                x: isMobileRef.current ? 0 : "100%",
+                y: isMobile ? "100%" : 0,
+                x: isMobile ? 0 : "100%",
                 opacity: 0,
               },
               visible: {
@@ -115,14 +114,14 @@ export default function IntegrationAgentPanel({
                 },
               },
               exit: {
-                y: isMobileRef.current ? "100%" : 0,
-                x: isMobileRef.current ? 0 : "100%",
+                y: isMobile ? "100%" : 0,
+                x: isMobile ? 0 : "100%",
                 opacity: 0,
                 transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
               },
             }}
             // Mobile drag-to-close
-            drag={isMobileRef.current ? "y" : false}
+            drag={isMobile ? "y" : false}
             dragConstraints={{ top: 0 }}
             dragElastic={0.2}
             onDragEnd={handleDragEnd}

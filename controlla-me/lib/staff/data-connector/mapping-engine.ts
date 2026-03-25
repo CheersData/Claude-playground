@@ -19,7 +19,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runAgent } from "@/lib/ai-sdk/agent-runner";
-import type { DataModelSpec, TransformRule } from "./types";
+import type { TransformRule } from "./types";
 
 // ─── Types ───
 
@@ -88,7 +88,7 @@ const STANDARD_ALIASES: Record<string, string[]> = {
  * Pattern-based aliases for common naming conventions.
  * Used when exact match fails.
  */
-const PATTERN_ALIASES: Array<{
+const _PATTERN_ALIASES: Array<{
   pattern: RegExp;
   replacement: string | ((...args: string[]) => string);
 }> = [
@@ -530,10 +530,10 @@ export async function generateMappings(
 ): Promise<MappingResult> {
   const useLLM = options?.useLLM !== false;
   const useCache = options?.useCache !== false;
-  const confidenceThreshold = options?.confidenceThreshold ?? 0.75;
+  const _confidenceThreshold = options?.confidenceThreshold ?? 0.75;
 
   // ─── Level 0: Cache Lookup ───
-  let allMappings: FieldMapping[] = [];
+  const allMappings: FieldMapping[] = [];
 
   if (useCache) {
     const cached = await loadCachedMappings(userId, connectorId, entityType);

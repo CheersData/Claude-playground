@@ -1,0 +1,163 @@
+# Decision Tree: Creator Operations
+# Gestione creator esterni sulla piattaforma Poimandres
+# Creator = utenti esterni che costruiscono i propri team di agenti AI
+
+name: creator-operations
+description: Routing per onboarding, operazioni e escalation dei creator esterni
+trigger: "Creator onboarding, creator department, creator agents, creator access, creator billing"
+
+classification:
+  questions:
+    - "Il creator opera nel proprio sandbox?"
+    - "La richiesta tocca risorse protette o di altri tenant?"
+    - "C'e' conflitto con dipartimenti di sistema?"
+    - "La richiesta ha impatto sulla piattaforma o solo sul tenant del creator?"
+
+routing:
+  # --- CREATOR ONBOARDING ---
+
+  # Registrazione nuovo creator
+  creator_registration:
+    condition: "Nuovo creator si registra sulla piattaforma"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator si registra via OAuth, riceve sandbox isolato"
+    note: "Self-service. Sandbox creato automaticamente. Zero intervento umano."
+
+  # Creator crea un dipartimento nel suo sandbox
+  creator_new_department:
+    condition: "Creator crea un dipartimento dentro il proprio tenant"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator crea 'Ufficio Copywriting' nel suo workspace"
+    note: "Sandboxed. Nessun accesso a risorse protette. Namespace isolato per tenant."
+
+  # Creator crea agenti nei propri dipartimenti
+  creator_new_agent:
+    condition: "Creator aggiunge agente a un proprio dipartimento"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator aggiunge 'copywriter-senior' al suo Ufficio Copywriting"
+    note: "L'agente opera solo dentro il sandbox del creator. No accesso cross-tenant."
+
+  # --- CREATOR OPERATIONS ---
+
+  # Creator esegue i propri agenti
+  creator_run_agents:
+    condition: "Creator avvia pipeline o agenti nel proprio sandbox"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator lancia analisi con i suoi agenti, esegue pipeline custom"
+    note: "Risorse computazionali limitate dal piano del creator. Rate limit per tenant."
+
+  # Creator modifica config del proprio dipartimento
+  creator_modify_department:
+    condition: "Creator modifica department.md, status.json, agents/ nel proprio sandbox"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator cambia prompt agente, aggiorna status, rinomina dipartimento"
+
+  # Creator cancella un proprio dipartimento
+  creator_delete_department:
+    condition: "Creator elimina un proprio dipartimento e relativi agenti"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator cancella 'Ufficio Copywriting' e tutti i suoi agenti"
+    note: "Richiede conferma esplicita. Soft-delete con 30 giorni di retention per recovery."
+
+  # Creator esporta i propri dati
+  creator_data_export:
+    condition: "Creator richiede export dei propri dati (GDPR Art. 20)"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    example: "Creator scarica tutti i suoi dipartimenti, agenti, config, log"
+    note: "Diritto alla portabilita. Export in formato standard (JSON/ZIP). Max 1 export/giorno."
+
+  # --- CREATOR ESCALATION ---
+
+  # Creator chiede accesso a risorse protette o del boss
+  creator_access_protected:
+    condition: "Creator richiede accesso a risorse di sistema, boss, o dipartimenti interni"
+    type: critico
+    approval: L4
+    consult: [security]
+    execute: [denied_by_default]
+    example: "Creator chiede accesso a company/trading/, API keys piattaforma, daemon"
+    note: "DENIED by default. Nessun creator accede a risorse interne. Log tentativo per audit."
+
+  # Creator chiede dati di un altro tenant
+  creator_cross_tenant:
+    condition: "Creator tenta accesso a dati, config, o agenti di un altro creator"
+    type: critico
+    approval: L4
+    consult: [security]
+    execute: [denied_by_default]
+    example: "Creator A tenta di leggere dipartimenti di Creator B"
+    note: "DENIED. Isolamento tenant e fondamentale. Tentativo loggato come security event."
+
+  # Conflitto namespace con dipartimento di sistema
+  creator_namespace_conflict:
+    condition: "Creator crea dipartimento con nome che collide con dipartimento di sistema"
+    type: operativo
+    approval: L2
+    consult: [architecture]
+    execute: [cme]
+    example: "Creator crea 'trading' o 'security' — collisione con dept interni"
+    note: "Risolvere con namespace: creator/{creator_id}/trading. Mai sovrascrivere dept di sistema."
+
+  # --- PLATFORM OPERATIONS ---
+
+  # Creator richiede nuova feature
+  creator_feature_request:
+    condition: "Creator propone feature o miglioramento alla piattaforma"
+    type: strategico
+    approval: L2
+    consult: [architecture, strategy]
+    execute: [department_owner]
+    review: [quality-assurance]
+    example: "Creator chiede webhook, API custom, nuovo tipo di agente, template"
+
+  # Creator segnala bug
+  creator_bug_report:
+    condition: "Creator segnala malfunzionamento della piattaforma"
+    type: operativo
+    approval: L2
+    consult: [quality-assurance]
+    execute: [department_owner]
+    example: "Creator segnala errore pipeline, agente che non risponde, dati corrotti"
+    note: "Triaged da QA. Critical bug (data loss, security) escalato a L3."
+
+  # Creator ha problema billing
+  creator_billing_issue:
+    condition: "Creator contesta fattura, chiede refund, problema pagamento"
+    type: operativo
+    approval: L2
+    consult: [finance]
+    execute: [finance]
+    example: "Creator contesta addebito, piano non aggiornato, refund richiesto"
+    note: "Finance gestisce. Refund > 50 EUR escalato a L3 (boss approval)."
+
+  # Creator chiede cancellazione account (GDPR Art. 17)
+  creator_account_deletion:
+    condition: "Creator richiede cancellazione completa account e dati"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [platform_auto]
+    notify: [finance]
+    example: "Creator chiede right to erasure"
+    note: "GDPR Art. 17. Cancellazione entro 30 giorni. Finance notificato per chiusura billing."

@@ -1,0 +1,44 @@
+{
+  "department": "integration",
+  "scenarios": [
+    {
+      "id": "integration-landing-load",
+      "name": "Integration landing page loads",
+      "department": "integration",
+      "vertical": "integrazione",
+      "description": "Verify the /integrazione page loads with connector dashboard elements",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/integrazione" },
+          "expect": {
+            "timeout": 15000
+          }
+        }
+      ],
+      "tags": ["smoke", "critical"]
+    },
+    {
+      "id": "integration-responsive-mobile",
+      "name": "Integration page responsive on mobile",
+      "department": "integration",
+      "vertical": "integrazione",
+      "description": "Verify the integration page renders correctly on mobile viewport (375x667)",
+      "steps": [
+        {
+          "type": "visual-check",
+          "params": {
+            "viewport": { "width": 375, "height": 667 },
+            "screenshotName": "integration-mobile"
+          }
+        },
+        {
+          "type": "page-load",
+          "params": { "url": "/integrazione" },
+          "expect": { "timeout": 15000 }
+        }
+      ],
+      "tags": ["regression"]
+    }
+  ]
+}

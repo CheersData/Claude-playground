@@ -182,6 +182,17 @@ export interface ProgressEvent {
   error?: string;
 }
 
+// ─── RBAC Types (re-exported from middleware/auth.ts for convenience) ───
+
+/**
+ * Role hierarchy: user < operator < admin < boss
+ * Canonical definition is in lib/middleware/auth.ts (ROLE_HIERARCHY, AppRole).
+ * Re-exported here so consumers of Profile don't need a separate import.
+ */
+export type { AppRole } from "@/lib/middleware/auth";
+
+import type { AppRole } from "@/lib/middleware/auth";
+
 // ─── Database Types ───
 
 export interface Profile {
@@ -190,6 +201,7 @@ export interface Profile {
   full_name: string;
   analyses_count: number;
   plan: "free" | "pro";
+  role: AppRole;
   stripe_customer_id: string | null;
   created_at: string;
 }

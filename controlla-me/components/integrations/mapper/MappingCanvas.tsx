@@ -96,7 +96,7 @@ export default function MappingCanvas({
   }, []);
 
   useEffect(() => {
-    recalcPorts();
+    recalcPorts(); // eslint-disable-line react-hooks/set-state-in-effect -- initial layout measurement + resize subscription
     const timer = setInterval(recalcPorts, 500);
     window.addEventListener("resize", recalcPorts);
     return () => {

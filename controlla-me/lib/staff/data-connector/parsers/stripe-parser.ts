@@ -51,9 +51,9 @@ export interface StripeRecord {
 /**
  * Parse any Stripe API object into a normalized StripeRecord.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseStripeObject(
   type: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   obj: any
 ): StripeRecord {
   switch (type) {

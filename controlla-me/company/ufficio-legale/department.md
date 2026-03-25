@@ -2,8 +2,7 @@
 
 ## Missione
 
-Gestione e ottimizzazione dei 7 agenti runtime che analizzano documenti legali per i cittadini.
-Punto di vista: **sempre dalla parte debole** (consumatore, conduttore, lavoratore).
+7 agenti AI che democratizzano la comprensione legale. Caso d'uso dimostrativo #1 di Poimandres. Punto di vista: **sempre dalla parte debole** (consumatore, conduttore, lavoratore).
 
 ## Agenti
 
@@ -56,9 +55,9 @@ Analisi legale best-in-class Italia con almeno 2 verticali (contratti generici +
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Verticale HR — agenti** — adattare prompt per contratti di lavoro (analista, investigatore, consigliere) quando corpus HR sarà pronto
-2. **[P1] Prompt optimization** — ridurre token usage mantenendo qualità output, calibrare fairness score
-3. **[P2] Testbook expansion** — aggiungere 10+ nuovi casi di test reali per coprire edge case
+1. **[P0] Prompt HR operativi** — adattare e rendere operativi i prompt per contratti di lavoro (analista, investigatore, consigliere)
+2. **[P1] Pipeline stabile per demo creator** — preparare un caso d'uso end-to-end stabile che dimostri il valore per creator/developer
+3. **[P2] Verticale tax** — preparare i prompt e la pipeline per il verticale fiscale/commercialista
 
 ## Autonomia
 

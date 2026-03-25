@@ -105,6 +105,7 @@ export default function OnboardingTour({ forceShow = false }: OnboardingTourProp
   // Check localStorage on mount
   useEffect(() => {
     if (forceShow) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync visibility with forceShow prop
       setVisible(true);
       return;
     }
@@ -138,6 +139,7 @@ export default function OnboardingTour({ forceShow = false }: OnboardingTourProp
 
   useEffect(() => {
     if (!visible) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- spotlight position sync on step/visibility change
     updateSpotlight();
 
     // Update on scroll/resize

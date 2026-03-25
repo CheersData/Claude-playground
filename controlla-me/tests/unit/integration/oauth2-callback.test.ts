@@ -96,6 +96,7 @@ import { GET } from "@/app/api/integrations/[connectorId]/callback/route";
 const ORIGINAL_ENV = { ...process.env };
 const MOCK_USER_ID = "user-oauth-test-001";
 const VALID_STATE = "abcdef1234567890".repeat(4); // 64 char hex
+const VALID_CODE_VERIFIER = "test-pkce-code-verifier-" + "x".repeat(40); // 64 char
 
 function makeRequest(
   connectorId: string,
@@ -109,11 +110,15 @@ function makeRequest(
     url.searchParams.set(key, value);
   }
 
-  const req = new NextRequest(url.toString(), { method: "GET" });
+  // Always include the PKCE code_verifier cookie when state cookie is present
+  const allCookies = { ...cookies };
+  if (allCookies[`oauth_state_${connectorId}`] && !allCookies[`pkce_verifier_${connectorId}`]) {
+    allCookies[`pkce_verifier_${connectorId}`] = VALID_CODE_VERIFIER;
+  }
 
   // NextRequest cookies are read-only in test, so we need to create with headers
-  if (Object.keys(cookies).length > 0) {
-    const cookieString = Object.entries(cookies)
+  if (Object.keys(allCookies).length > 0) {
+    const cookieString = Object.entries(allCookies)
       .map(([k, v]) => `${k}=${v}`)
       .join("; ");
     return new NextRequest(url.toString(), {
@@ -122,7 +127,7 @@ function makeRequest(
     });
   }
 
-  return req;
+  return new NextRequest(url.toString(), { method: "GET" });
 }
 
 function makeParams(connectorId: string) {
@@ -477,7 +482,9 @@ describe("Credential storage", () => {
     );
   });
 
-  it("stores credentials in AES-256-GCM vault", async () => {
+  it("does not use AES vault — only pgcrypto vault stores credentials", async () => {
+    // The callback route only uses pgcrypto vault (lib/credential-vault.ts).
+    // AES vault (lib/staff/credential-vault) is used by other integration components.
     setupSuccessfulTokenExchange();
     setupSuccessfulUser();
     setupSuccessfulVaults();
@@ -491,21 +498,15 @@ describe("Credential storage", () => {
 
     await GET(req, makeParams("hubspot"));
 
-    expect(mockAesVault.storeCredential).toHaveBeenCalledWith(
-      MOCK_USER_ID,
-      "hubspot",
-      "oauth2",
-      expect.objectContaining({
-        accessToken: "test-access-token-abc",
-        refreshToken: "test-refresh-token-xyz",
-        tokenUrl: "https://api.hubapi.com/oauth/v1/token",
-        clientId: "hubspot-client-id",
-        clientSecret: "hubspot-client-secret",
-      })
-    );
+    // pgcrypto vault IS called
+    expect(mockPgcryptoVault.storeCredential).toHaveBeenCalled();
+    // AES vault is NOT called by the callback route
+    expect(mockAesVault.storeCredential).not.toHaveBeenCalled();
   });
 
-  it("succeeds when pgcrypto vault fails but AES vault succeeds", async () => {
+  it("fails when pgcrypto vault fails (no AES fallback)", async () => {
+    // The callback route only uses pgcrypto vault. When it fails,
+    // the route redirects with vault_unavailable error.
     setupSuccessfulTokenExchange();
     setupSuccessfulUser();
     setupSuccessfulDbInsert();
@@ -513,7 +514,6 @@ describe("Credential storage", () => {
     mockPgcryptoVault.storeCredential.mockRejectedValue(
       new Error("pgcrypto unavailable")
     );
-    mockAesVault.storeCredential.mockResolvedValue("aes-vault-id-456");
 
     const req = makeRequest(
       "hubspot",
@@ -524,8 +524,7 @@ describe("Credential storage", () => {
     const response = await GET(req, makeParams("hubspot"));
 
     const location = response.headers.get("location")!;
-    expect(location).toContain("setup=complete");
-    expect(location).not.toContain("oauth_error");
+    expect(location).toContain("oauth_error=vault_unavailable");
   });
 
   it("succeeds when AES vault fails but pgcrypto vault succeeds", async () => {

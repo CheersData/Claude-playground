@@ -36,7 +36,17 @@ routing:
     example: "Mean reversion 15min, pairs trading, options"
     requirement: "Backtest 3+ anni, Sharpe > 1.0, 30 giorni paper"
 
-  # Go-live o modifica risk params
+  # Avvio paper trading (test, zero soldi veri)
+  paper_start:
+    condition: "Avvio o riavvio paper trading (simulazione)"
+    type: operativo
+    approval: L1
+    consult: []
+    execute: [trading]
+    example: "Avvia paper trading, riavvia scheduler paper, start paper mode"
+    note: "Paper trading è test — zero rischio capitale. Non richiede consultazioni."
+
+  # Go-live o modifica risk params (SOLDI VERI)
   go_live:
     condition: "Passaggio a live trading O modifica risk management"
     type: critico

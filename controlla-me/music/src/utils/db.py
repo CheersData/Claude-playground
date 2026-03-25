@@ -94,11 +94,18 @@ class MusicDB:
     # --- Artist Profiles -------------------------------------------------
 
     def upsert_artist_profile(self, profile: dict[str, Any]) -> dict:
-        """Upsert an artist profile (by artist_name)."""
+        """Upsert an artist profile (by user_id).
+
+        Requires 'user_id' in the profile dict.  The unique constraint is
+        on user_id (music_artist_profiles_user_unique), not artist_name.
+        """
+        if not profile.get("user_id"):
+            logger.warning("artist_profile_skip", reason="no user_id provided")
+            return {}
         profile["updated_at"] = datetime.utcnow().isoformat()
         result = (
             self._client.table("music_artist_profiles")
-            .upsert(profile, on_conflict="artist_name")
+            .upsert(profile, on_conflict="user_id")
             .execute()
         )
         logger.info(
@@ -131,16 +138,33 @@ class MusicDB:
     # --- Trend Cache -----------------------------------------------------
 
     def insert_trend(self, trend_data: dict[str, Any]) -> dict:
-        """Insert a trend cache entry."""
+        """Insert a trend cache entry.
+
+        Accepts legacy keys (trend_type) and maps them to the DB schema
+        columns: source, query_key, genre, data, fetched_at, expires_at.
+        """
+        # Map legacy field names to actual DB schema (migration 045)
+        source = trend_data.get("source") or trend_data.get("trend_type", "unknown")
+        genre = trend_data.get("genre", "unknown")
+        query_key = trend_data.get("query_key") or f"{source}_{genre}"
+        data = trend_data.get("data")
+
         record = {
-            **trend_data,
-            "created_at": datetime.utcnow().isoformat(),
+            "source": source,
+            "genre": genre,
+            "query_key": query_key,
+            "data": data,
+            # fetched_at and expires_at have DB defaults (now() and now()+7d)
         }
-        result = self._client.table("music_trend_cache").insert(record).execute()
+        result = (
+            self._client.table("music_trend_cache")
+            .upsert(record, on_conflict="source,query_key")
+            .execute()
+        )
         logger.info(
             "trend_inserted",
-            trend_type=trend_data.get("trend_type"),
-            genre=trend_data.get("genre"),
+            source=source,
+            genre=genre,
         )
         return result.data[0] if result.data else {}
 
@@ -150,25 +174,36 @@ class MusicDB:
         genre: str | None = None,
         limit: int = 50,
     ) -> list[dict]:
-        """Get trend cache entries, optionally filtered by type and/or genre."""
+        """Get trend cache entries, optionally filtered by source and/or genre.
+
+        Args:
+            trend_type: Maps to the 'source' column in DB (legacy name kept for API compat).
+            genre: Filter by genre.
+            limit: Max entries to return.
+        """
         query = self._client.table("music_trend_cache").select("*")
         if trend_type:
-            query = query.eq("trend_type", trend_type)
+            query = query.eq("source", trend_type)
         if genre:
             query = query.eq("genre", genre)
-        result = query.order("created_at", desc=True).limit(limit).execute()
+        result = query.order("fetched_at", desc=True).limit(limit).execute()
         return result.data or []
 
     def get_latest_trend(self, trend_type: str, genre: str | None = None) -> dict | None:
-        """Get the most recent trend entry for a given type."""
+        """Get the most recent trend entry for a given source.
+
+        Args:
+            trend_type: Maps to the 'source' column in DB (legacy name kept for API compat).
+            genre: Optional genre filter.
+        """
         query = (
             self._client.table("music_trend_cache")
             .select("*")
-            .eq("trend_type", trend_type)
+            .eq("source", trend_type)
         )
         if genre:
             query = query.eq("genre", genre)
-        result = query.order("created_at", desc=True).limit(1).execute()
+        result = query.order("fetched_at", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
 
     def delete_old_trends(self, days: int = 90) -> int:
@@ -178,7 +213,7 @@ class MusicDB:
         result = (
             self._client.table("music_trend_cache")
             .delete()
-            .lt("created_at", cutoff)
+            .lt("fetched_at", cutoff)
             .execute()
         )
         count = len(result.data) if result.data else 0

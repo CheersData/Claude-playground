@@ -134,7 +134,7 @@ L'Italia e il primo paese UE ad aver adottato una legge nazionale sull'AI: la **
 - **Chiedi sempre** se stai interagendo con un'AI, specialmente per decisioni importanti
 - **Se ti rifiutano un prestito o un'assicurazione**, dal 2 agosto 2026 hai il diritto formale di chiedere spiegazioni
 - **Conserva le comunicazioni** con chatbot e sistemi automatizzati -- possono servire come prova
-- **Fai controllare i tuoi contratti** prima di firmare. Strumenti come [controlla.me](/) analizzano ogni clausola in pochi secondi, confrontandola con la normativa vigente -- comprese le nuove regole sull'AI. Le prime 3 analisi sono gratuite
+- **Fai controllare i tuoi contratti** prima di firmare. Strumenti come [Poimandres](/) analizzano ogni clausola in pochi secondi, confrontandola con la normativa vigente -- comprese le nuove regole sull'AI. Le prime 3 analisi sono gratuite
 
 ### Se sei una PMI
 
@@ -159,10 +159,10 @@ Si, ma la legge italiana (L. 132/2025, Art. 13) impone che sia solo uno strument
 Le autorita nazionali (AgID e ACN) possono avviare ispezioni e comminare sanzioni. Le denunce dei consumatori possono accelerare i controlli su aziende specifiche.
 
 **Come posso verificare se un contratto rispetta le nuove regole?**
-Controlla.me analizza i contratti clausola per clausola, confrontandoli con il Codice Civile, il Codice del Consumo e la normativa settoriale. E uno strumento utile sia per i consumatori che vogliono capire cosa firmano, sia per le PMI che vogliono verificare la conformita dei propri contratti.
+Poimandres analizza i contratti clausola per clausola, confrontandoli con il Codice Civile, il Codice del Consumo e la normativa settoriale. E uno strumento utile sia per i consumatori che vogliono capire cosa firmano, sia per le PMI che vogliono verificare la conformita dei propri contratti.
 
 ---
 
 *Il Regolamento UE 2024/1689 (EU AI Act) e stato pubblicato sulla Gazzetta Ufficiale dell'Unione Europea il 12 luglio 2024. La Legge italiana 132/2025 e stata pubblicata sulla Gazzetta Ufficiale il 25 settembre 2025. Questo articolo ha natura informativa e non costituisce consulenza legale.*
 
-**Vuoi verificare se il tuo contratto contiene clausole rischiose -- magari scritte o influenzate da un'AI?** [Analizzalo gratis su controlla.me](/)
+**Vuoi verificare se il tuo contratto contiene clausole rischiose -- magari scritte o influenzate da un'AI?** [Analizzalo gratis su Poimandres](/)

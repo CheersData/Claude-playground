@@ -59,6 +59,35 @@ class TradingDB:
         )
         return result.data or []
 
+    def get_today_strategy_breakdown(self) -> dict[str, dict]:
+        """Get strategy breakdown for today's trade signals.
+
+        Returns dict like:
+            {"conventional": {"trades": 3, "wins": 2},
+             "slope_volume": {"trades": 10, "wins": 5}}
+        """
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        result = (
+            self._client.table("trading_signals")
+            .select("data")
+            .eq("signal_type", "trade")
+            .gte("created_at", f"{today}T00:00:00")
+            .execute()
+        )
+        breakdown: dict[str, dict] = {}
+        for row in result.data or []:
+            data = row.get("data", {})
+            strategy = data.get("strategy", "conventional")
+            signals = data.get("signals", [])
+            if strategy not in breakdown:
+                breakdown[strategy] = {"trades": 0, "wins": 0}
+            breakdown[strategy]["trades"] += len(signals)
+            # Count wins: signals where action resulted in positive score
+            for sig in signals:
+                if sig.get("score", 0) > 0:
+                    breakdown[strategy]["wins"] += 1
+        return breakdown
+
     # ─── Orders ────────────────────────────────────────────────
 
     def insert_order(self, order_data: dict[str, Any]) -> dict:

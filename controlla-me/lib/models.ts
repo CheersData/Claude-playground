@@ -1,5 +1,5 @@
 /**
- * Registry centralizzato dei modelli AI — controlla.me
+ * Registry centralizzato dei modelli AI — Poimandres
  *
  * Un unico file per configurare quale modello usa ogni agente.
  * Per cambiare modello a un agente, modifica SOLO questo file.

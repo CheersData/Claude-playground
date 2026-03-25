@@ -2,8 +2,7 @@
 
 ## Missione
 
-Gestione pipeline dati legislativi: connessione a fonti, parsing, validazione e caricamento nel corpus.
-Obiettivo: corpus completo e aggiornato delle leggi italiane ed europee.
+Alimentare l'intelligenza di Poimandres con dati strutturati da fonti ufficiali. 131K+ articoli, 48+ fonti, 6 verticali.
 
 ## Agenti
 
@@ -105,9 +104,9 @@ Corpus legislativo completo per ogni verticale attivo. Pipeline automatizzata co
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Statuto dei Lavoratori (L. 300/1970)** — ricercare API/sistemi alternativi, se non disponibili proporre workaround a boss
-2. **[P1] Fonti verticale HR** — D.Lgs. 81/2008 (306 art., pipeline standard), D.Lgs. 276/2003, D.Lgs. 23/2015
-3. **[P2] Automazione delta update** — rendere gli update incrementali completamente automatici (cron, no intervento manuale)
+1. **[P0] Copertura istituti giuridici ≥80%** — aumentare la copertura degli istituti giuridici nel corpus
+2. **[P1] Delta update automatici** — aggiornamenti incrementali automatizzati per le fonti esistenti
+3. **[P2] Template pipeline per nuovi domini** — creare template riusabile della pipeline dati per nuovi domini
 
 ## Autonomia
 

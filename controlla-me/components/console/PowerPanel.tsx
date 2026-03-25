@@ -441,14 +441,14 @@ function AgentRow({ agent, info, index, onToggle }: {
           onClick={(e) => { e.stopPropagation(); onToggle(agent, !enabled); }}
           role="switch"
           aria-checked={enabled}
-          className={`shrink-0 mr-4 w-8 h-[18px] rounded-full transition-colors relative focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
+          className={`shrink-0 mr-4 w-11 h-6 rounded-full transition-colors relative focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
             enabled ? "bg-[var(--foreground)]" : "bg-[#A3A3A3]"
           }`}
           aria-label={`${enabled ? "Disattiva" : "Attiva"} ${label.name}`}
         >
           <motion.div
-            className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm"
-            animate={{ left: enabled ? 14 : 2 }}
+            className="absolute top-[2px] w-5 h-5 rounded-full bg-white shadow-sm"
+            animate={{ left: enabled ? 22 : 2 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           />
         </button>

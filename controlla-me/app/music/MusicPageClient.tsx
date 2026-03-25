@@ -6,10 +6,8 @@ import {
   Upload,
   Music,
   Headphones,
-  BarChart3,
   Mic2,
   Sparkles,
-  Zap,
   Shield,
   ArrowRight,
   CheckCircle2,
@@ -19,9 +17,14 @@ import {
   Sliders,
   Star,
   AlertCircle,
+  Play,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import MusicAnalysisProgress from "@/components/music/MusicAnalysisProgress";
+import type { MusicPhase } from "@/components/music/MusicAnalysisProgress";
+import MusicResultsView from "@/components/music/MusicResultsView";
+import type { MusicAnalysisResult } from "@/components/music/MusicResultsView";
 
 /* ══════════════════════════════════════════════════════
    Music Agent Colors (matching design system identity)
@@ -104,9 +107,19 @@ const AGENTS = [
 ];
 
 /* ══════════════════════════════════════════════════════
-   Upload State Types
+   State Types
    ══════════════════════════════════════════════════════ */
 type UploadState = "idle" | "uploading" | "success" | "error";
+type AppView = "landing" | "analyzing" | "results";
+
+/** Map SSE stage names to internal phase names */
+const STAGE_TO_PHASE: Record<string, MusicPhase> = {
+  ingest: "ingest",
+  stem_separation: "stem",
+  audio_analysis: "analysis",
+  trend_analysis: "analysis",
+  save_results: "synthesis",
+};
 
 /* ══════════════════════════════════════════════════════
    Main Component
@@ -116,12 +129,28 @@ export default function MusicPageClient() {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadMessage, setUploadMessage] = useState("");
   const [fileName, setFileName] = useState("");
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [dirId, setDirId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Analysis state
+  const [appView, setAppView] = useState<AppView>("landing");
+  const [currentPhase, setCurrentPhase] = useState<MusicPhase | null>(null);
+  const [completedPhases, setCompletedPhases] = useState<MusicPhase[]>([]);
+  const [analysisError, setAnalysisError] = useState<string | undefined>();
+  const [phaseEstimates, setPhaseEstimates] = useState<Partial<Record<MusicPhase, number>> | null>(null);
+  const [phaseResults, setPhaseResults] = useState<Record<string, unknown>>({});
+  const [analysisResult, setAnalysisResult] = useState<MusicAnalysisResult | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  /* ── Upload handler ── */
   const handleUpload = useCallback(async (file: File) => {
     setFileName(file.name);
     setUploadState("uploading");
     setUploadMessage("");
+    setAnalysisId(null);
 
     try {
       const formData = new FormData();
@@ -141,8 +170,10 @@ export default function MusicPageClient() {
       }
 
       setUploadState("success");
+      setAnalysisId(data.analysisId || null);
+      setDirId(data.dirId || null);
       setUploadMessage(
-        `"${file.name}" caricato con successo. L'analisi partira a breve.`
+        `"${file.name}" caricato con successo.`
       );
     } catch {
       setUploadState("error");
@@ -150,6 +181,191 @@ export default function MusicPageClient() {
     }
   }, []);
 
+  /* ── Start analysis via SSE ── */
+  const startAnalysis = useCallback(async () => {
+    if (!analysisId) return;
+
+    // Reset analysis state
+    setAppView("analyzing");
+    setCurrentPhase(null);
+    setCompletedPhases([]);
+    setAnalysisError(undefined);
+    setPhaseResults({});
+    setAnalysisResult(null);
+    setSessionId(null);
+
+    // Abort previous connection if any
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const formData = new FormData();
+      formData.append("analysisId", analysisId);
+      if (dirId) formData.append("dirId", dirId);
+
+      const res = await fetch("/api/music/analyze", {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        const text = await res.text().catch(() => "");
+        setAnalysisError(text || `Errore dal server (HTTP ${res.status})`);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // Accumulated pipeline data
+      let audioDna: Record<string, unknown> | null = null;
+      let trendReport: Record<string, unknown> | null = null;
+      let arrangementPlan: Record<string, unknown> | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let eventName = "";
+        let dataStr = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventName = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            dataStr = line.slice(6).trim();
+
+            if (!eventName || !dataStr) continue;
+
+            try {
+              const data = JSON.parse(dataStr);
+
+              switch (eventName) {
+                case "timing": {
+                  // Map SSE timing keys to our phase keys
+                  const mapped: Partial<Record<MusicPhase, number>> = {};
+                  if (data.ingest) mapped.ingest = data.ingest;
+                  if (data.stem_separation) mapped.stem = data.stem_separation;
+                  if (data.audio_analysis) mapped.analysis = data.audio_analysis;
+                  if (data.save_results) mapped.synthesis = data.save_results;
+                  setPhaseEstimates(mapped);
+                  break;
+                }
+
+                case "session": {
+                  setSessionId(data.analysisId || null);
+                  break;
+                }
+
+                case "progress": {
+                  const phase = STAGE_TO_PHASE[data.phase] || data.phase;
+                  if (data.status === "running") {
+                    setCurrentPhase(phase as MusicPhase);
+                  } else if (data.status === "done") {
+                    setCompletedPhases((prev) =>
+                      prev.includes(phase as MusicPhase) ? prev : [...prev, phase as MusicPhase]
+                    );
+                    // Store phase result data if provided
+                    if (data.data) {
+                      setPhaseResults((prev) => ({ ...prev, [phase]: data.data }));
+                    }
+                    // Move to next phase or clear current
+                    setCurrentPhase((curr) => (curr === phase ? null : curr));
+                  } else if (data.status === "skipped") {
+                    setCompletedPhases((prev) =>
+                      prev.includes(phase as MusicPhase) ? prev : [...prev, phase as MusicPhase]
+                    );
+                  } else if (data.status === "error") {
+                    setAnalysisError(data.error || `Errore nella fase ${phase}`);
+                  }
+                  break;
+                }
+
+                case "error": {
+                  setAnalysisError(data.message || "Errore sconosciuto");
+                  break;
+                }
+
+                case "complete": {
+                  audioDna = data.audioDna || null;
+                  trendReport = data.trendReport || null;
+                  arrangementPlan = data.arrangementPlan || null;
+
+                  // Build full result
+                  const result: MusicAnalysisResult = {
+                    summary:
+                      (data.summary as string) ||
+                      "Analisi completata. Esplora i risultati nelle sezioni sottostanti.",
+                    fileName,
+                    audioDna: {
+                      bpm: audioDna?.bpm as number || 120,
+                      key: (audioDna?.key as string) || "N/A",
+                      energy: (audioDna?.energy as number) || 50,
+                      loudness: (audioDna?.loudness as number) || -14,
+                      dynamicRange: (audioDna?.dynamic_range as number) || 8,
+                    },
+                    stems: (data.stems as MusicAnalysisResult["stems"]) || [],
+                    advice: (data.advice as MusicAnalysisResult["advice"]) || [],
+                    overallScore: data.overallScore as number | undefined,
+                    genre: (trendReport?.genre_analysis as Record<string, unknown>)?.primary_genre as string | undefined,
+                    trendReport: trendReport
+                      ? {
+                          analysis_id: trendReport.analysis_id as string | undefined,
+                          genre_analysis: trendReport.genre_analysis as MusicAnalysisResult["trendReport"] extends { genre_analysis: infer G } ? G : undefined,
+                          market_comparison: trendReport.market_comparison as MusicAnalysisResult["trendReport"] extends { market_comparison: infer M } ? M : undefined,
+                          reference_tracks: trendReport.reference_tracks as MusicAnalysisResult["trendReport"] extends { reference_tracks: infer R } ? R : undefined,
+                          gap_analysis: trendReport.gap_analysis as MusicAnalysisResult["trendReport"] extends { gap_analysis: infer G } ? G : undefined,
+                        }
+                      : undefined,
+                    arrangementPlan: arrangementPlan
+                      ? {
+                          overall_direction: (arrangementPlan.overall_direction as string) || "",
+                          suggestions: (arrangementPlan.suggestions as MusicAnalysisResult["arrangementPlan"] extends { suggestions: infer S } ? S : never) || [],
+                          vocal_direction: (arrangementPlan.vocal_direction as string) || "",
+                          production_notes: (arrangementPlan.production_notes as string) || "",
+                          commercial_viability_delta: (arrangementPlan.commercial_viability_delta as number) || 0,
+                          confidence: (arrangementPlan.confidence as number) || 0,
+                        }
+                      : undefined,
+                  };
+
+                  setAnalysisResult(result);
+                  setAppView("results");
+                  setCurrentPhase(null);
+                  break;
+                }
+              }
+            } catch {
+              // Skip unparseable events
+            }
+
+            eventName = "";
+            dataStr = "";
+          } else if (line === "") {
+            eventName = "";
+            dataStr = "";
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        setAnalysisError(
+          (err as Error).message || "Errore di connessione durante l'analisi."
+        );
+      }
+    }
+  }, [analysisId, fileName, dirId]);
+
+  /* ── Drag/drop and file handlers ── */
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -168,12 +384,61 @@ export default function MusicPageClient() {
     [handleUpload]
   );
 
-  const resetUpload = useCallback(() => {
+  const resetAll = useCallback(() => {
+    abortRef.current?.abort();
     setUploadState("idle");
     setUploadMessage("");
     setFileName("");
+    setAnalysisId(null);
+    setAppView("landing");
+    setCurrentPhase(null);
+    setCompletedPhases([]);
+    setAnalysisError(undefined);
+    setPhaseResults({});
+    setAnalysisResult(null);
+    setSessionId(null);
+    setPhaseEstimates(null);
   }, []);
 
+  /* ── Results view ── */
+  if (appView === "results" && analysisResult) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-[var(--background)]">
+        <div className="noise-overlay" />
+        <Navbar />
+        <MusicResultsView result={analysisResult} onReset={resetAll} />
+        <Footer />
+      </div>
+    );
+  }
+
+  /* ── Analysis in progress view ── */
+  if (appView === "analyzing") {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-[var(--background)]">
+        <div className="noise-overlay" />
+        <Navbar />
+
+        <div className="flex items-center justify-center min-h-[80vh] px-6 pt-20">
+          <MusicAnalysisProgress
+            fileName={fileName}
+            currentPhase={currentPhase}
+            completedPhases={completedPhases}
+            error={analysisError}
+            onReset={resetAll}
+            onRetry={startAnalysis}
+            sessionId={sessionId}
+            phaseEstimates={phaseEstimates}
+            phaseResults={phaseResults}
+          />
+        </div>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  /* ── Landing page view ── */
   return (
     <div className="min-h-screen relative overflow-hidden bg-[var(--background)]">
       {/* Noise texture overlay */}
@@ -217,11 +482,11 @@ export default function MusicPageClient() {
         }}
       />
 
-      {/* ═══════════ HERO SECTION ═══════════ */}
+      {/* HERO SECTION */}
       <section className="relative min-h-[90vh] flex items-center bg-[var(--surface)] overflow-hidden">
         <div className="w-full max-w-[var(--max-width-wide)] mx-auto px-6 md:px-12 pt-24 pb-12">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
-            {/* LEFT — Text */}
+            {/* LEFT -- Text */}
             <div className="flex-1 w-full md:w-1/2 text-left">
               {/* Badge */}
               <motion.div
@@ -293,7 +558,7 @@ export default function MusicPageClient() {
               </motion.button>
             </div>
 
-            {/* RIGHT — Waveform Visualization */}
+            {/* RIGHT -- Waveform Visualization */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -441,7 +706,7 @@ export default function MusicPageClient() {
       {/* Divider */}
       <div className="section-divider" />
 
-      {/* ═══════════ COME FUNZIONA ═══════════ */}
+      {/* COME FUNZIONA */}
       <section className="relative z-10 py-20 md:py-28 px-6">
         <div className="max-w-[var(--max-width-content)] mx-auto">
           {/* Section header */}
@@ -520,7 +785,7 @@ export default function MusicPageClient() {
       {/* Divider */}
       <div className="section-divider" />
 
-      {/* ═══════════ TEAM AGENTI ═══════════ */}
+      {/* TEAM AGENTI */}
       <section className="relative z-10 py-20 md:py-28 px-6 bg-[var(--background-secondary)]">
         <div className="max-w-[var(--max-width-content)] mx-auto">
           <motion.div
@@ -596,7 +861,7 @@ export default function MusicPageClient() {
       {/* Divider */}
       <div className="section-divider" />
 
-      {/* ═══════════ UPLOAD SECTION ═══════════ */}
+      {/* UPLOAD SECTION */}
       <section
         id="upload-music"
         className="relative z-10 py-20 md:py-28 px-6"
@@ -653,19 +918,38 @@ export default function MusicPageClient() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mb-6 p-4 rounded-[var(--radius-lg)] border border-green-200 bg-green-50 flex items-center gap-3"
+                    className="mb-6 p-4 rounded-[var(--radius-lg)] flex items-start gap-3"
+                    style={{
+                      background: "color-mix(in srgb, #4ade80 8%, transparent)",
+                      border: "1px solid color-mix(in srgb, #4ade80 20%, transparent)",
+                    }}
                   >
-                    <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-green-800">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-300">
                         {uploadMessage}
                       </p>
-                      <button
-                        onClick={resetUpload}
-                        className="text-xs text-green-600 hover:underline mt-1"
-                      >
-                        Carica un altro brano
-                      </button>
+                      <div className="flex flex-wrap gap-3 mt-3">
+                        {/* Analizza button */}
+                        <button
+                          onClick={startAnalysis}
+                          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all"
+                          style={{
+                            backgroundImage:
+                              "linear-gradient(135deg, var(--accent), var(--accent-cta-end))",
+                            boxShadow: "0 8px 24px rgba(255, 107, 53, 0.3)",
+                          }}
+                        >
+                          <Play className="w-4 h-4" />
+                          Analizza
+                        </button>
+                        <button
+                          onClick={resetAll}
+                          className="text-xs text-[var(--foreground-tertiary)] hover:text-[var(--foreground-secondary)] transition-colors px-3 py-2"
+                        >
+                          Carica un altro brano
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -676,16 +960,20 @@ export default function MusicPageClient() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mb-6 p-4 rounded-[var(--radius-lg)] border border-red-200 bg-red-50 flex items-center gap-3"
+                    className="mb-6 p-4 rounded-[var(--radius-lg)] flex items-center gap-3"
+                    style={{
+                      background: "color-mix(in srgb, #FF6B6B 8%, transparent)",
+                      border: "1px solid color-mix(in srgb, #FF6B6B 20%, transparent)",
+                    }}
                   >
-                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                    <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-red-800">
+                      <p className="text-sm font-medium text-red-300">
                         {uploadMessage}
                       </p>
                       <button
-                        onClick={resetUpload}
-                        className="text-xs text-red-600 hover:underline mt-1"
+                        onClick={resetAll}
+                        className="text-xs text-red-400 hover:underline mt-1"
                       >
                         Riprova
                       </button>
@@ -774,7 +1062,7 @@ export default function MusicPageClient() {
                               : "Trascina qui il tuo brano"}
                           </p>
                           <p className="text-sm text-[var(--foreground-tertiary)]">
-                            MP3, WAV, FLAC, OGG, M4A, AIFF — max 50MB
+                            MP3, WAV, FLAC, OGG, M4A, AIFF -- max 50MB
                           </p>
                         </div>
                         <button
@@ -818,7 +1106,7 @@ export default function MusicPageClient() {
       {/* Divider */}
       <div className="section-divider" />
 
-      {/* ═══════════ PRICING PREVIEW ═══════════ */}
+      {/* PRICING PREVIEW */}
       <section className="relative z-10 py-20 md:py-28 px-6 bg-[var(--background-secondary)]">
         <div className="max-w-[var(--max-width-content)] mx-auto">
           <motion.div
@@ -951,7 +1239,7 @@ export default function MusicPageClient() {
       {/* Divider */}
       <div className="section-divider" />
 
-      {/* ═══════════ CTA FINALE ═══════════ */}
+      {/* CTA FINALE */}
       <section className="relative z-10 py-20 md:py-28 px-6">
         <div className="max-w-[600px] mx-auto text-center">
           <motion.div

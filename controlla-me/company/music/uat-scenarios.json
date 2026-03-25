@@ -1,0 +1,78 @@
+{
+  "department": "music",
+  "scenarios": [
+    {
+      "id": "music-landing-load",
+      "name": "Music landing page loads",
+      "department": "music",
+      "vertical": "musica",
+      "description": "Verify the music office landing page loads with upload zone and key sections",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/music" },
+          "expect": {
+            "has": ["Music"],
+            "timeout": 15000
+          }
+        }
+      ],
+      "tags": ["smoke", "critical"]
+    },
+    {
+      "id": "music-upload-api",
+      "name": "Music upload API accepts audio file",
+      "department": "music",
+      "vertical": "musica",
+      "description": "Verify the upload API endpoint accepts an audio file and returns analysis ID",
+      "steps": [
+        {
+          "type": "api-call",
+          "params": {
+            "url": "/api/music/upload",
+            "method": "POST",
+            "mockRoute": {
+              "status": 200,
+              "body": {
+                "analysisId": "mock-analysis-001",
+                "fileName": "demo-track.mp3",
+                "status": "pending"
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "responseSchema": {
+              "analysisId": "string",
+              "fileName": "string",
+              "status": "string"
+            }
+          }
+        }
+      ],
+      "tags": ["regression"]
+    },
+    {
+      "id": "music-responsive-mobile",
+      "name": "Music page responsive on mobile",
+      "department": "music",
+      "vertical": "musica",
+      "description": "Verify the music page renders correctly on mobile viewport",
+      "steps": [
+        {
+          "type": "visual-check",
+          "params": {
+            "viewport": { "width": 375, "height": 667 },
+            "screenshotName": "music-mobile"
+          }
+        },
+        {
+          "type": "page-load",
+          "params": { "url": "/music" },
+          "expect": { "timeout": 15000 }
+        }
+      ],
+      "tags": ["regression"]
+    }
+  ]
+}

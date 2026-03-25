@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "protocols",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:21:22.672Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-23T11:30:00.000Z",
+    "updated_by": "ops-status-refresh"
   },
   "health": "ok",
-  "summary": "0 task aperti. 8 completati (totale). Tutti i task completati.",
+  "summary": "0 task aperti. 9 completati (9 totale). Tutti i task completati.",
   "decision_trees": {
     "total": 6,
     "trees": [

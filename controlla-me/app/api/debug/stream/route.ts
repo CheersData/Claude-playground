@@ -16,6 +16,7 @@ import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { createSSEStream, SSE_HEADERS_NO_BUFFER } from "@/lib/sse-stream-factory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -347,174 +348,163 @@ export async function GET(req: NextRequest) {
   const rl = await checkRateLimit(req);
   if (rl) return rl;
 
-  const encoder = new TextEncoder();
   const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // last 24h
 
   let lastSignalAt = windowStart;
   let lastCostAt = windowStart;
   let lastTaskAt = windowStart;
-  let timer: ReturnType<typeof setInterval> | null = null;
 
   // Track seen cost IDs to avoid emitting duplicate derived events
   const seenCostIds = new Set<string>();
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const supabase = createAdminClient();
+  const { stream, sendData, sendComment, onCleanup } = createSSEStream({
+    request: req,
+    noBuffer: true,
+  });
 
-      const enqueue = (line: LogLine) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(line)}\n\n`));
-      };
+  // Register cleanup for seenCostIds
+  onCleanup(() => seenCostIds.clear());
 
-      /**
-       * Process cost rows: emit the primary AI event + derived events
-       * (pipeline, rate_limit, error) from the same row.
-       */
-      const processCostRow = (row: CostRow, batch: Array<{ line: LogLine; ts: string }>) => {
-        // Primary AI event
-        batch.push({ line: formatCost(row), ts: row.created_at });
+  /**
+   * Process cost rows: emit the primary AI event + derived events
+   * (pipeline, rate_limit, error) from the same row.
+   */
+  const processCostRow = (row: CostRow, batch: Array<{ line: LogLine; ts: string }>) => {
+    // Primary AI event
+    batch.push({ line: formatCost(row), ts: row.created_at });
 
-        // Derived events (only emit once per cost row)
-        if (!seenCostIds.has(row.id)) {
-          seenCostIds.add(row.id);
+    // Derived events (only emit once per cost row)
+    if (!seenCostIds.has(row.id)) {
+      seenCostIds.add(row.id);
 
-          const pipelineEvt = formatPipelineEvent(row);
-          if (pipelineEvt) batch.push({ line: pipelineEvt, ts: row.created_at });
+      const pipelineEvt = formatPipelineEvent(row);
+      if (pipelineEvt) batch.push({ line: pipelineEvt, ts: row.created_at });
 
-          const rlEvt = formatRateLimitEvent(row);
-          if (rlEvt) batch.push({ line: rlEvt, ts: row.created_at });
+      const rlEvt = formatRateLimitEvent(row);
+      if (rlEvt) batch.push({ line: rlEvt, ts: row.created_at });
 
-          const errEvt = formatErrorEvent(row);
-          if (errEvt) batch.push({ line: errEvt, ts: row.created_at });
-        }
-      };
+      const errEvt = formatErrorEvent(row);
+      if (errEvt) batch.push({ line: errEvt, ts: row.created_at });
+    }
+  };
 
-      // ── Initial batch: merge and sort all sources by created_at ────────
+  // ── Initial batch + polling (fire-and-forget async) ──
+  (async () => {
+    const supabase = createAdminClient();
+
+    // ── Initial batch: merge and sort all sources by created_at ────────
+    try {
+      const [{ data: initSignals }, { data: initCosts }, { data: initTasks }] = await Promise.all([
+        supabase
+          .from("trading_signals")
+          .select("id, signal_type, data, created_at")
+          .gte("created_at", windowStart)
+          .order("created_at", { ascending: true })
+          .limit(100),
+        supabase
+          .from("agent_cost_log")
+          .select("id, agent_name, model_key, provider, input_tokens, output_tokens, total_cost_usd, duration_ms, used_fallback, session_type, created_at")
+          .gte("created_at", windowStart)
+          .order("created_at", { ascending: true })
+          .limit(100),
+        supabase
+          .from("company_tasks")
+          .select("id, title, department, status, priority, assigned_to, created_by, created_at, started_at, completed_at")
+          .gte("created_at", windowStart)
+          .order("created_at", { ascending: true })
+          .limit(80),
+      ]);
+
+      // Merge and sort chronologically
+      const merged: Array<{ line: LogLine; ts: string }> = [];
+
+      for (const row of initSignals ?? []) {
+        merged.push({ line: formatSignal(row as SignalRow), ts: row.created_at });
+      }
+      for (const row of initCosts ?? []) {
+        processCostRow(row as CostRow, merged);
+      }
+      for (const row of initTasks ?? []) {
+        merged.push({ line: formatTask(row as TaskRow), ts: row.created_at });
+      }
+
+      merged.sort((a, b) => a.ts.localeCompare(b.ts));
+      merged.forEach(({ line }) => sendData(line));
+
+      if (initSignals && initSignals.length > 0) {
+        lastSignalAt = initSignals[initSignals.length - 1].created_at;
+      }
+      if (initCosts && initCosts.length > 0) {
+        lastCostAt = initCosts[initCosts.length - 1].created_at;
+      }
+      if (initTasks && initTasks.length > 0) {
+        lastTaskAt = initTasks[initTasks.length - 1].created_at;
+      }
+    } catch (err) {
+      console.error("[debug/stream] initial fetch error:", err);
+    }
+
+    // ── Poll every 5s for new rows from all tables ──────────────────────
+    let pingCounter = 0;
+    const timer = setInterval(async () => {
       try {
-        const [{ data: initSignals }, { data: initCosts }, { data: initTasks }] = await Promise.all([
+        pingCounter++;
+        if (pingCounter % 5 === 0) {
+          sendComment("ping");
+        }
+
+        const [{ data: newSignals }, { data: newCosts }, { data: newTasks }] = await Promise.all([
           supabase
             .from("trading_signals")
             .select("id, signal_type, data, created_at")
-            .gte("created_at", windowStart)
+            .gt("created_at", lastSignalAt)
             .order("created_at", { ascending: true })
-            .limit(100),
+            .limit(20),
           supabase
             .from("agent_cost_log")
             .select("id, agent_name, model_key, provider, input_tokens, output_tokens, total_cost_usd, duration_ms, used_fallback, session_type, created_at")
-            .gte("created_at", windowStart)
+            .gt("created_at", lastCostAt)
             .order("created_at", { ascending: true })
-            .limit(100),
+            .limit(20),
           supabase
             .from("company_tasks")
             .select("id, title, department, status, priority, assigned_to, created_by, created_at, started_at, completed_at")
-            .gte("created_at", windowStart)
+            .gt("created_at", lastTaskAt)
             .order("created_at", { ascending: true })
-            .limit(80),
+            .limit(20),
         ]);
 
-        // Merge and sort chronologically
-        const merged: Array<{ line: LogLine; ts: string }> = [];
+        // Merge and emit chronologically
+        const batch: Array<{ line: LogLine; ts: string }> = [];
 
-        for (const row of initSignals ?? []) {
-          merged.push({ line: formatSignal(row as SignalRow), ts: row.created_at });
+        for (const row of newSignals ?? []) {
+          batch.push({ line: formatSignal(row as SignalRow), ts: row.created_at });
         }
-        for (const row of initCosts ?? []) {
-          processCostRow(row as CostRow, merged);
+        for (const row of newCosts ?? []) {
+          processCostRow(row as CostRow, batch);
         }
-        for (const row of initTasks ?? []) {
-          merged.push({ line: formatTask(row as TaskRow), ts: row.created_at });
+        for (const row of newTasks ?? []) {
+          batch.push({ line: formatTask(row as TaskRow), ts: row.created_at });
         }
 
-        merged.sort((a, b) => a.ts.localeCompare(b.ts));
-        merged.forEach(({ line }) => enqueue(line));
+        batch.sort((a, b) => a.ts.localeCompare(b.ts));
+        batch.forEach(({ line }) => sendData(line));
 
-        if (initSignals && initSignals.length > 0) {
-          lastSignalAt = initSignals[initSignals.length - 1].created_at;
+        if (newSignals && newSignals.length > 0) {
+          lastSignalAt = newSignals[newSignals.length - 1].created_at;
         }
-        if (initCosts && initCosts.length > 0) {
-          lastCostAt = initCosts[initCosts.length - 1].created_at;
+        if (newCosts && newCosts.length > 0) {
+          lastCostAt = newCosts[newCosts.length - 1].created_at;
         }
-        if (initTasks && initTasks.length > 0) {
-          lastTaskAt = initTasks[initTasks.length - 1].created_at;
+        if (newTasks && newTasks.length > 0) {
+          lastTaskAt = newTasks[newTasks.length - 1].created_at;
         }
       } catch (err) {
-        console.error("[debug/stream] initial fetch error:", err);
+        console.error("[debug/stream] poll error:", err);
       }
+    }, 5000);
+    onCleanup(() => clearInterval(timer));
+  })();
 
-      // ── Poll every 5s for new rows from all tables ──────────────────────
-      let pingCounter = 0;
-      timer = setInterval(async () => {
-        try {
-          pingCounter++;
-          if (pingCounter % 5 === 0) {
-            controller.enqueue(encoder.encode(`: ping\n\n`));
-          }
-
-          const [{ data: newSignals }, { data: newCosts }, { data: newTasks }] = await Promise.all([
-            supabase
-              .from("trading_signals")
-              .select("id, signal_type, data, created_at")
-              .gt("created_at", lastSignalAt)
-              .order("created_at", { ascending: true })
-              .limit(20),
-            supabase
-              .from("agent_cost_log")
-              .select("id, agent_name, model_key, provider, input_tokens, output_tokens, total_cost_usd, duration_ms, used_fallback, session_type, created_at")
-              .gt("created_at", lastCostAt)
-              .order("created_at", { ascending: true })
-              .limit(20),
-            supabase
-              .from("company_tasks")
-              .select("id, title, department, status, priority, assigned_to, created_by, created_at, started_at, completed_at")
-              .gt("created_at", lastTaskAt)
-              .order("created_at", { ascending: true })
-              .limit(20),
-          ]);
-
-          // Merge and emit chronologically
-          const batch: Array<{ line: LogLine; ts: string }> = [];
-
-          for (const row of newSignals ?? []) {
-            batch.push({ line: formatSignal(row as SignalRow), ts: row.created_at });
-          }
-          for (const row of newCosts ?? []) {
-            processCostRow(row as CostRow, batch);
-          }
-          for (const row of newTasks ?? []) {
-            batch.push({ line: formatTask(row as TaskRow), ts: row.created_at });
-          }
-
-          batch.sort((a, b) => a.ts.localeCompare(b.ts));
-          batch.forEach(({ line }) => enqueue(line));
-
-          if (newSignals && newSignals.length > 0) {
-            lastSignalAt = newSignals[newSignals.length - 1].created_at;
-          }
-          if (newCosts && newCosts.length > 0) {
-            lastCostAt = newCosts[newCosts.length - 1].created_at;
-          }
-          if (newTasks && newTasks.length > 0) {
-            lastTaskAt = newTasks[newTasks.length - 1].created_at;
-          }
-        } catch (err) {
-          console.error("[debug/stream] poll error:", err);
-        }
-      }, 5000);
-    },
-
-    cancel() {
-      if (timer) clearInterval(timer);
-      // Prevent unbounded growth of seenCostIds
-      seenCostIds.clear();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
+  return new Response(stream, { headers: SSE_HEADERS_NO_BUFFER });
 }

@@ -12,7 +12,7 @@
  */
 
 import { execSync } from "child_process";
-import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { requireConsoleRole } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import {
@@ -35,7 +35,7 @@ export async function POST(
   const rl = await checkRateLimit(req as unknown as NextRequest);
   if (rl) return rl;
 
-  const authPayload = requireConsoleAuth(req as unknown as NextRequest);
+  const authPayload = requireConsoleRole(req as unknown as NextRequest, "boss");
   if (!authPayload) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,

@@ -6,11 +6,11 @@ Ufficio (Revenue) — Label virtuale AI-powered
 
 ## Missione
 
-Aiutare artisti emergenti a trasformare i loro brani originali in hit, riarrangiandoli secondo i trend di mercato. NON generiamo musica da zero — prendiamo il demo dell'artista e lo guidiamo verso il successo commerciale.
+Label virtuale AI. Caso d'uso dimostrativo #3 -- prova che Poimandres funziona per qualsiasi dominio.
+
+Aiutare artisti emergenti a trasformare i loro brani originali in hit, riarrangiandoli secondo i trend di mercato. NON generiamo musica da zero. L'artista mantiene il 100% della proprieta intellettuale.
 
 **Claim: "Il tuo A&R personale, powered by AI."**
-
-L'artista mantiene il 100% della proprieta intellettuale. Noi vendiamo il servizio di direzione artistica, non diritti.
 
 ## Vincolo Architetturale
 
@@ -112,3 +112,9 @@ Release monitoring + Feedback loop + Career development
 | 1. Core MVP | 4 agenti analisi + Direction Agent + UI /music | 3-4 settimane |
 | 2. Release & Growth | Release Strategist, distribuzione, career advisor | 4-6 settimane |
 | 3. Monetizzazione | Stripe billing, sync licensing, white-label | Ongoing |
+
+## Priorità operative (ordinate)
+
+1. **[P0] Pipeline completa stadi 1-7** — integrare tutti e 7 gli agenti nella pipeline orchestrator
+2. **[P1] UI risultati completa** — completare l'interfaccia per visualizzare tutti i risultati della pipeline
+3. **[P2] Monetizzazione** — definire e implementare i piani di pricing (Free/Artist/Pro/Label) con Stripe billing

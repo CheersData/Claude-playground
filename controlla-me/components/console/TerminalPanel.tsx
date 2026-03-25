@@ -19,7 +19,6 @@ import {
   Terminal,
   XCircle,
   Eye,
-  Activity,
   ChevronDown,
   ChevronRight,
   Bot,

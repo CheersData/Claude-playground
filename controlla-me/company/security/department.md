@@ -2,7 +2,7 @@
 
 ## Missione
 
-Proteggere Controlla.me e i suoi utenti. App legale = dati sensibili. Zero compromessi.
+Zero vulnerabilità. Defense in depth. Isolamento tenant per multi-creator.
 
 ## Responsabilità
 
@@ -66,9 +66,9 @@ Compliance automatizzata: audit security schedulati, DPA firmati con tutti i pro
 
 ## Priorità operative (ordinate)
 
-1. **[P0] DPA provider AI** — firmare Data Processing Agreement con Anthropic, Google, Mistral (IN REVIEW — prerequisito PMI)
-2. **[P1] EU AI Act readiness** — ingaggiare consulente, classificazione sistema, gap analysis (IN REVIEW — deadline agosto 2026)
-3. **[P2] Security scanning CI/CD** — integrare audit automatico delle route nella pipeline CI/CD
+1. **[P0] Auth e isolamento per /creator** — garantire autenticazione e isolamento completo dei dati tra tenant creator
+2. **[P1] DPA provider AI** — firmare Data Processing Agreement con Anthropic, Google, Mistral (quando il boss decide)
+3. **[P2] EU AI Act compliance** — ingaggiare consulente, classificazione sistema, gap analysis
 
 ## Autonomia
 

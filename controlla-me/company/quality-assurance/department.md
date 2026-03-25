@@ -2,8 +2,7 @@
 
 ## Missione
 
-Validazione continua del sistema: test unitari, type check, lint, e testbook (validazione output agenti).
-Garantisce che ogni modifica non rompa nulla.
+Zero regressioni, test reproducibili. Ogni agente ha una suite di test. Il creator può testare i propri agenti.
 
 ## Strumenti
 
@@ -41,9 +40,9 @@ Coverage 100% su tutta l'infrastruttura core (ai-sdk, tiers, middleware). Testbo
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Test suite critiche** — agent-runner.ts, tiers.ts, generate.ts (core AI infrastructure)
-2. **[P1] Middleware coverage** — console-token.ts, analysis-cache.ts
-3. **[P2] Testbook accuracy** — portare da 75% a >85% con nuovi casi di test
+1. **[P0] Coverage percorsi critici ≥80%** — portare la test coverage all'80% target sui percorsi critici
+2. **[P1] Framework test per agenti creator** — creare framework di test riusabile per agenti sviluppati da creator
+3. **[P2] E2E su CI stabile** — integrare test end-to-end stabili nella pipeline CI/CD con Playwright
 
 ## Autonomia
 

@@ -58,7 +58,7 @@ const ALL_AGENTS: AgentName[] = [
   "leader", "question-prep", "classifier", "corpus-agent",
   "analyzer", "investigator", "advisor", "document-chat",
   "task-executor", "mapper", "mapping-agent",
-  "integration-setup", "sync-supervisor",
+  "integration-setup", "sync-supervisor", "critic",
 ];
 
 const ALL_TIERS: TierName[] = ["intern", "associate", "partner"];

@@ -258,7 +258,7 @@ No. Lo sfratto si basa su inadempimenti reali e previsti dalla legge. La violazi
 
 **Come faccio a sapere se una clausola del mio contratto è nulla?**
 
-La verifica richiede il confronto puntuale tra il testo contrattuale e le norme imperative della `L. 392/1978`, della `L. 431/1998` e del Codice Civile. Se non hai competenze giuridiche, puoi rivolgerti a un'associazione di inquilini (SUNIA, SICET, UNIAT), a un avvocato specializzato in diritto immobiliare, oppure utilizzare strumenti di analisi automatica come controlla.me che confrontano ogni clausola con il quadro normativo vigente.
+La verifica richiede il confronto puntuale tra il testo contrattuale e le norme imperative della `L. 392/1978`, della `L. 431/1998` e del Codice Civile. Se non hai competenze giuridiche, puoi rivolgerti a un'associazione di inquilini (SUNIA, SICET, UNIAT), a un avvocato specializzato in diritto immobiliare, oppure utilizzare strumenti di analisi automatica come Poimandres che confrontano ogni clausola con il quadro normativo vigente.
 
 **Le clausole nulle si applicano anche ai contratti tra privati non registrati?**
 
@@ -280,4 +280,4 @@ Ricorda tre principi fondamentali:
 - **Il contratto resta valido**: la nullità della clausola non invalida tutto il contratto. Si elimina la clausola illegale, il resto sopravvive.
 - **La legge prevale sul contratto**: non puoi rinunciare preventivamente a diritti che la legge ti riconosce come irrinunciabili. Anche se firmi, la rinuncia non vale.
 
-Hai un contratto di affitto e vuoi verificare che sia tutto in regola? Carica il documento su [controlla.me](https://controlla.me): il nostro sistema AI analizza ogni clausola e ti segnala quelle potenzialmente illegali. Le prime 3 analisi sono gratuite.
+Hai un contratto di affitto e vuoi verificare che sia tutto in regola? Carica il documento su [Poimandres](https://poimandres.work): il nostro sistema AI analizza ogni clausola e ti segnala quelle potenzialmente illegali. Le prime 3 analisi sono gratuite.

@@ -167,4 +167,4 @@ La giurisprudenza è divisa. L'orientamento prevalente è che il patto resta val
 
 Il patto di non concorrenza è una delle clausole più tecniche e insidiose nei contratti di lavoro. Un patto nullo può liberarti da vincoli che credevi di avere. Un patto valido può limitare la tua carriera per anni.
 
-Prima di firmare, caricalo su **Controlla.me**. L'analisi AI verifica se il patto rispetta i 4 requisiti di legge, ti segnala eventuali criticità e ti spiega in parole semplici cosa rischi. Gratis per le prime 3 analisi.
+Prima di firmare, caricalo su **Poimandres**. L'analisi AI verifica se il patto rispetta i 4 requisiti di legge, ti segnala eventuali criticità e ti spiega in parole semplici cosa rischi. Gratis per le prime 3 analisi.

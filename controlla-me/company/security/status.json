@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "security",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:21:02.344Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-23T11:30:00.000Z",
+    "updated_by": "ops-status-refresh"
   },
   "health": "warning",
-  "summary": "3 task aperti, 1 blocked. 65 completati (totale). DPA Anthropic in review (L3). EU AI Act consulente blocked (attesa boss).",
+  "summary": "0 task aperti. 57 completati (59 totale). DPA e EU AI Act consulente restano gap aperti.",
   "findings": {
     "critical": 0,
     "high": 0,
@@ -47,11 +47,7 @@
       "severity": "low"
     }
   ],
-  "open_tasks": [
-    "DPA Anthropic (review L3)",
-    "EU AI Act consulente (blocked)",
-    "1 altro task open"
-  ],
+  "open_tasks": [],
   "blockers": [
     "Boss invia email a top 3 consulenti EU AI Act"
   ],

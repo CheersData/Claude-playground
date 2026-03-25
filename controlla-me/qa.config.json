@@ -1,6 +1,6 @@
 {
-  "project": "controlla.me",
-  "description": "AI Legal Document Analysis — Classifier → Analyzer → Investigator → Advisor",
+  "project": "poimandres",
+  "description": "AI multi-vertical platform — Legal Analysis, Trading, Music, Integration",
   "test_command": "npm test",
   "lint_command": "npm run lint",
   "typecheck_command": "npm run typecheck",

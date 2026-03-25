@@ -2,7 +2,7 @@
 
 ## Missione
 
-Progettazione soluzioni tecniche cost-aware. Ogni proposta deve considerare costo API, complessità, e impatto su altri dipartimenti.
+Rendere Poimandres scalabile, estensibile e self-hostable. Ogni decisione tecnica serve la visione: un creator arriva e costruisce in meno di un'ora.
 
 ## Responsabilità
 
@@ -63,9 +63,9 @@ Infrastruttura config-driven che supporti N verticali (legale, HR, real estate) 
 
 ## Priorità operative (ordinate)
 
-1. **[P0] CI/CD pipeline** — GitHub Actions: test + build + deploy preview su ogni PR
-2. **[P1] Multi-verticale config-driven** — sistema di configurazione per aggiungere verticali senza codice inline in `app/page.tsx`
-3. **[P2] ADR cleanup** — aggiornare decision log con le ultime decisioni (free providers, tier system, CSP)
+1. **[P0] Astrazione Supabase→PostgreSQL standalone** — disaccoppiare il codice dal client Supabase per supportare PostgreSQL generico
+2. **[P1] Sistema config-driven per verticali** — sistema di configurazione per aggiungere verticali senza codice inline
+3. **[P2] Template "nuovo agente" parametrizzabile** — scaffolding riusabile per creare nuovi agenti rapidamente
 
 ## Autonomia
 

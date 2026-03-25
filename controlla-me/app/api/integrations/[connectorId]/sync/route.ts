@@ -53,6 +53,7 @@ import {
   getSourceById,
 } from "@/lib/staff/data-connector";
 import { generateSupervisorComment } from "@/lib/agents/sync-supervisor";
+import { createSSEStream, SSE_HEADERS } from "@/lib/sse-stream-factory";
 
 // ─── GET: Poll sync progress ───
 //
@@ -701,26 +702,16 @@ export async function POST(
   // ── SSE Streaming Mode ──
 
   if (wantsStream) {
-    const encoder = new TextEncoder();
-
     // Track pipeline state for supervisor context
     let totalFetched = 0;
     let totalMapped = 0;
     const pipelineErrors: string[] = [];
     let lastSupervisorStage = "";
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        const send = (event: string, data: unknown) => {
-          try {
-            controller.enqueue(
-              encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-            );
-          } catch {
-            // Controller may be closed if client disconnected
-          }
-        };
+    const { stream, send, close: closeStream } = createSSEStream({ request: req });
 
+    // Run the sync pipeline asynchronously
+    (async () => {
         try {
           // Generate initial supervisor comment
           const connectComment = await generateSupervisorComment(
@@ -843,22 +834,11 @@ export async function POST(
           send("error", { message });
           send("done", {});
         } finally {
-          try {
-            controller.close();
-          } catch {
-            // Controller may already be closed
-          }
+          closeStream();
         }
-      },
-    });
+    })();
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+    return new Response(stream, { headers: SSE_HEADERS });
   }
 
   // ── JSON Mode (default — existing behavior) ──
@@ -875,7 +855,7 @@ export async function POST(
   );
 
   // Update DB with results
-  const { syncStatus, analysisSuccessCount, analysisFailCount } =
+  const { analysisSuccessCount, analysisFailCount } =
     await updateSyncResults(admin, syncLogId, connectionId, result);
 
   // Return response

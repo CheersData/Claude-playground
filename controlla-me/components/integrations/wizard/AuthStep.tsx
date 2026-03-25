@@ -136,7 +136,7 @@ export default function AuthStep({
             <Shield className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--info)" }} />
 
             <p className="text-sm font-medium mb-4" style={{ color: "var(--fg-secondary)" }}>
-              Controlla.me richiede accesso a:
+              Poimandres richiede accesso a:
             </p>
 
             {/* Permissions list */}
@@ -169,7 +169,7 @@ export default function AuthStep({
                   I tuoi dati restano tuoi
                 </p>
                 <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--fg-muted)" }}>
-                  Controlla.me accede solo ai documenti, mai ai tuoi dati personali.
+                  Poimandres accede solo ai documenti, mai ai tuoi dati personali.
                   Criptazione AES-256-GCM, conforme GDPR.{" "}
                   <a
                     href="/privacy"

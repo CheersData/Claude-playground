@@ -167,6 +167,7 @@ class RiskManager(BaseAgent):
         """Validate a single signal against risk rules."""
         symbol = signal["symbol"]
         action = SignalAction(signal["action"])
+        strategy = signal.get("strategy")  # Propagate strategy for traceability
         entry_price = signal["entry_price"]
         stop_loss = signal.get("stop_loss")
         take_profit = signal.get("take_profit")
@@ -187,6 +188,7 @@ class RiskManager(BaseAgent):
             return RiskDecision(
                 symbol=symbol,
                 action=action,
+                strategy=strategy,
                 status=RiskDecisionStatus.APPROVED,
                 position_size=int(open_position["qty"]),
                 reason=None,
@@ -207,6 +209,7 @@ class RiskManager(BaseAgent):
             return RiskDecision(
                 symbol=symbol,
                 action=action,
+                strategy=strategy,
                 status=RiskDecisionStatus.APPROVED,
                 position_size=abs(int(open_position["qty"])),
                 reason=None,
@@ -289,6 +292,7 @@ class RiskManager(BaseAgent):
             return RiskDecision(
                 symbol=symbol,
                 action=action,
+                strategy=strategy,
                 status=RiskDecisionStatus.APPROVED,
                 position_size=qty,
                 position_value=position_value,
@@ -464,6 +468,7 @@ class RiskManager(BaseAgent):
         return RiskDecision(
             symbol=symbol,
             action=action,
+            strategy=strategy,
             status=RiskDecisionStatus.APPROVED,
             position_size=qty,
             position_value=position_value,

@@ -454,7 +454,7 @@ export async function persistSyncItems(
  * Determines if a synced record contains analyzable document content.
  * Checks entity type, MIME type, and whether text content is available.
  */
-function isAnalyzableRecord(
+function _isAnalyzableRecord(
   item: SyncItem,
   allowedTypes?: string[]
 ): boolean {
@@ -488,7 +488,7 @@ function isAnalyzableRecord(
  *
  * @returns Extracted text or null if not extractable
  */
-async function extractRecordText(
+async function _extractRecordText(
   item: SyncItem,
   connectorId: string,
   accessToken: string,

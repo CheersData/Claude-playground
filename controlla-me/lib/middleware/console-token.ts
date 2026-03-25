@@ -2,19 +2,22 @@
  * Console Token — HMAC-SHA256 signed tokens per autenticazione console.
  *
  * Formato:  base64url(payload_json) + "." + hmac_hex
- * Payload:  { nome, cognome, ruolo, sid, tier, disabledAgents, iat, exp }
+ * Payload:  { nome, cognome, ruolo, role, permissions, sid, tier, disabledAgents, iat, exp }
  *
- * Il token è STATELESS: contiene tier e disabledAgents correnti della sessione.
- * Quando l'utente cambia tier, la route emette un nuovo token (refreshToken).
- * Il client aggiorna sessionStorage — zero Map lato server.
+ * The token is STATELESS: contains tier, disabledAgents, RBAC role and permissions.
+ * When the user changes tier, the route emits a new token (refreshToken).
+ * The client updates sessionStorage — zero Map server-side.
  *
- * SEC-004: implementa requireConsoleAuth() usato da /api/console e /api/console/tier.
+ * SEC-004: implements requireConsoleAuth() used by /api/console and /api/console/tier.
+ * RBAC: role/permissions from profiles.role + role_permissions table (migration 044).
  */
 
 import { createHmac, randomBytes } from "crypto";
 import type { NextRequest } from "next/server";
 import type { TierName } from "@/lib/tiers";
 import type { AgentName } from "@/lib/models";
+import type { AppRole } from "@/lib/middleware/auth";
+import { roleLevel, ROLE_HIERARCHY } from "@/lib/middleware/auth";
 
 // ─── Secret ───
 
@@ -59,8 +62,14 @@ export interface ConsoleTokenPayload {
   nome: string;
   /** Cognome dell'operatore */
   cognome: string;
-  /** Ruolo dell'operatore */
+  /** Ruolo dell'operatore (legacy — display role like "Notaio", "Boss") */
   ruolo: string;
+  /** RBAC role from profiles table (boss|admin|creator|operator|user) */
+  role: AppRole;
+  /** Permissions resolved from role_permissions table */
+  permissions: string[];
+  /** Whether the user account is active (false = deactivated by boss) */
+  active: boolean;
   /** Session ID stabile — usato per logging e correlazione */
   sid: string;
   /** Tier corrente della sessione */
@@ -92,9 +101,19 @@ function getDefaultTier(): TierName {
  * Genera un token firmato per un utente autenticato.
  * Il sid è stabile per tutta la durata della sessione;
  * tier e disabledAgents cambiano con refreshToken().
+ *
+ * `role` and `permissions` come from the RBAC system (migration 046).
+ * H1-FIX: `role` is required — no default to prevent privilege escalation.
  */
 export function generateToken(
-  user: { nome: string; cognome: string; ruolo: string },
+  user: {
+    nome: string;
+    cognome: string;
+    ruolo: string;
+    role: AppRole;
+    permissions?: string[];
+    active?: boolean;
+  },
   options: {
     tier?: TierName;
     disabledAgents?: AgentName[];
@@ -106,6 +125,9 @@ export function generateToken(
     nome: user.nome,
     cognome: user.cognome,
     ruolo: user.ruolo,
+    role: user.role,
+    permissions: user.permissions ?? [],
+    active: user.active !== false, // default true for backward compat
     sid: options.sid ?? randomBytes(16).toString("hex"),
     tier: options.tier ?? getDefaultTier(),
     disabledAgents: options.disabledAgents ?? [],
@@ -118,14 +140,21 @@ export function generateToken(
 
 /**
  * Emette un nuovo token con tier/disabledAgents aggiornati.
- * Preserva sid, nome, cognome, ruolo del token originale.
+ * Preserva sid, nome, cognome, ruolo, role, permissions del token originale.
  */
 export function refreshToken(
   payload: ConsoleTokenPayload,
   updates: Partial<Pick<ConsoleTokenPayload, "tier" | "disabledAgents">>
 ): string {
   return generateToken(
-    { nome: payload.nome, cognome: payload.cognome, ruolo: payload.ruolo },
+    {
+      nome: payload.nome,
+      cognome: payload.cognome,
+      ruolo: payload.ruolo,
+      role: payload.role,
+      permissions: payload.permissions,
+      active: payload.active,
+    },
     {
       sid: payload.sid,
       tier: updates.tier ?? payload.tier,
@@ -137,6 +166,9 @@ export function refreshToken(
 /**
  * Verifica il token e ritorna il payload se valido e non scaduto.
  * Ritorna null se firma errata, token malformato o scaduto.
+ *
+ * H1-FIX: tokens without a `role` field are rejected (return null).
+ * Pre-RBAC tokens must re-authenticate to get a valid token with role.
  */
 export function verifyToken(token: string): ConsoleTokenPayload | null {
   try {
@@ -157,11 +189,31 @@ export function verifyToken(token: string): ConsoleTokenPayload | null {
     }
     if (diff !== 0) return null;
 
-    const payload = JSON.parse(
+    const raw = JSON.parse(
       Buffer.from(payloadB64, "base64url").toString("utf8")
-    ) as ConsoleTokenPayload;
+    ) as Record<string, unknown>;
 
-    if (Date.now() > payload.exp) return null;
+    if (Date.now() > (raw.exp as number)) return null;
+
+    // H1-FIX: reject pre-RBAC tokens that lack a role field.
+    // Users must re-authenticate to get a token with proper RBAC role.
+    if (!raw.role || !ROLE_HIERARCHY.includes(raw.role as AppRole)) {
+      return null;
+    }
+
+    const payload: ConsoleTokenPayload = {
+      nome: raw.nome as string,
+      cognome: raw.cognome as string,
+      ruolo: raw.ruolo as string,
+      role: raw.role as AppRole,
+      permissions: (raw.permissions as string[]) ?? [],
+      active: raw.active !== false, // backward compat: tokens without 'active' field are treated as active
+      sid: raw.sid as string,
+      tier: raw.tier as TierName,
+      disabledAgents: (raw.disabledAgents as AgentName[]) ?? [],
+      iat: raw.iat as number,
+      exp: raw.exp as number,
+    };
 
     return payload;
   } catch {
@@ -190,6 +242,48 @@ export function requireConsoleAuth(
   }
 
   return null;
+}
+
+/**
+ * RBAC: requires the console token's role to be at least `minRole`.
+ * Uses the role hierarchy: boss > admin > operator > user.
+ *
+ * Returns the verified payload if role is sufficient, null otherwise.
+ * Callers should return 403 when this returns null.
+ */
+export function requireConsoleRole(
+  req: NextRequest,
+  minRole: AppRole
+): ConsoleTokenPayload | null {
+  const payload = requireConsoleAuth(req);
+  if (!payload) return null;
+
+  if (roleLevel(payload.role) < roleLevel(minRole)) {
+    return null;
+  }
+
+  return payload;
+}
+
+/**
+ * RBAC: requires the console token to have a specific permission.
+ * Wildcard '*' matches everything.
+ *
+ * Returns the verified payload if permission is granted, null otherwise.
+ */
+export function requireConsolePermission(
+  req: NextRequest,
+  permission: string
+): ConsoleTokenPayload | null {
+  const payload = requireConsoleAuth(req);
+  if (!payload) return null;
+
+  const perms = payload.permissions ?? [];
+  if (!perms.includes("*") && !perms.includes(permission)) {
+    return null;
+  }
+
+  return payload;
 }
 
 // ─── Internals ───

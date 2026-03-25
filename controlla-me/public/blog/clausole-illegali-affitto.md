@@ -136,11 +136,11 @@ In questi casi, una lettera di un avvocato costa poco e risolve molto.
 
 Hai letto fin qui, il che significa che probabilmente hai un contratto di affitto che ti preoccupa. O stai per firmarne uno.
 
-Su [Controlla.me](/) puoi caricare il tuo contratto e farlo analizzare da un team di agenti AI specializzati in diritto italiano. In meno di 2 minuti ti segnalano le clausole a rischio, ti spiegano perche' sono problematiche e ti dicono cosa fare. Le prime 3 analisi sono gratuite, senza registrazione.
+Su [Poimandres](/) puoi caricare il tuo contratto e farlo analizzare da un team di agenti AI specializzati in diritto italiano. In meno di 2 minuti ti segnalano le clausole a rischio, ti spiegano perche' sono problematiche e ti dicono cosa fare. Le prime 3 analisi sono gratuite, senza registrazione.
 
 Non sostituisce un avvocato. Ma ti dice se ne hai bisogno.
 
-Se vuoi esplorare direttamente gli articoli di legge che abbiamo citato, il [corpus normativo](/corpus) di Controlla.me contiene oltre 5.600 articoli di legislazione italiana consultabili gratuitamente.
+Se vuoi esplorare direttamente gli articoli di legge che abbiamo citato, il [corpus normativo](/corpus) di Poimandres contiene oltre 5.600 articoli di legislazione italiana consultabili gratuitamente.
 
 ---
 

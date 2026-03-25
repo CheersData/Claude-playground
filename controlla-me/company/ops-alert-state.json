@@ -2,301 +2,301 @@
   "lastAlerts": {},
   "auditTrail": [
     {
-      "timestamp": "2026-03-19T03:44:08.650Z",
+      "timestamp": "2026-03-23T13:53:22.974Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T03:44:08.774Z",
+      "timestamp": "2026-03-23T13:53:23.063Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T03:54:17.840Z",
+      "timestamp": "2026-03-23T14:18:48.771Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T03:54:17.946Z",
+      "timestamp": "2026-03-23T14:18:48.837Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T03:54:18.087Z",
+      "timestamp": "2026-03-23T14:18:48.906Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T04:04:27.100Z",
+      "timestamp": "2026-03-23T14:44:13.866Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T04:04:27.189Z",
+      "timestamp": "2026-03-23T14:44:13.933Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T04:04:27.284Z",
+      "timestamp": "2026-03-23T14:44:14.004Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T04:14:36.294Z",
+      "timestamp": "2026-03-23T15:09:39.537Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T04:14:36.397Z",
+      "timestamp": "2026-03-23T15:09:39.593Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T04:14:36.492Z",
+      "timestamp": "2026-03-23T15:09:39.649Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T04:24:46.489Z",
+      "timestamp": "2026-03-23T15:35:06.186Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T04:24:46.750Z",
+      "timestamp": "2026-03-23T15:35:06.252Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T04:24:46.868Z",
+      "timestamp": "2026-03-23T15:35:06.330Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T04:34:56.818Z",
+      "timestamp": "2026-03-23T16:00:32.189Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T04:34:56.948Z",
+      "timestamp": "2026-03-23T16:00:32.256Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T04:34:57.058Z",
+      "timestamp": "2026-03-23T16:00:32.338Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T04:45:06.562Z",
+      "timestamp": "2026-03-23T16:25:57.962Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T04:45:06.673Z",
+      "timestamp": "2026-03-23T16:25:58.048Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T04:45:06.859Z",
+      "timestamp": "2026-03-23T16:25:58.149Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T04:55:15.170Z",
+      "timestamp": "2026-03-23T16:51:23.639Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T04:55:15.271Z",
+      "timestamp": "2026-03-23T16:51:23.709Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T04:55:15.438Z",
+      "timestamp": "2026-03-23T16:51:23.765Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T05:05:25.533Z",
+      "timestamp": "2026-03-23T17:16:48.656Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T05:05:25.644Z",
+      "timestamp": "2026-03-23T17:16:48.719Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T05:05:25.739Z",
+      "timestamp": "2026-03-23T17:16:48.785Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T05:15:35.132Z",
+      "timestamp": "2026-03-23T17:42:14.164Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T05:15:35.291Z",
+      "timestamp": "2026-03-23T17:42:14.225Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T05:15:35.404Z",
+      "timestamp": "2026-03-23T17:42:14.293Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T05:25:46.017Z",
+      "timestamp": "2026-03-23T18:07:38.905Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T05:25:46.220Z",
+      "timestamp": "2026-03-23T18:07:38.977Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T05:25:46.398Z",
+      "timestamp": "2026-03-23T18:07:39.048Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T05:35:55.001Z",
+      "timestamp": "2026-03-23T18:33:04.948Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T05:35:55.110Z",
+      "timestamp": "2026-03-23T18:33:05.011Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T05:35:55.232Z",
+      "timestamp": "2026-03-23T18:33:05.076Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T05:46:03.831Z",
+      "timestamp": "2026-03-23T18:58:30.440Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T05:46:03.950Z",
+      "timestamp": "2026-03-23T18:58:30.498Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T05:46:04.048Z",
+      "timestamp": "2026-03-23T18:58:30.559Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T06:47:56.533Z",
+      "timestamp": "2026-03-23T19:23:56.390Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T06:47:56.772Z",
+      "timestamp": "2026-03-23T19:23:56.457Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T06:47:56.928Z",
+      "timestamp": "2026-03-23T19:23:56.523Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T09:20:29.873Z",
+      "timestamp": "2026-03-23T19:49:20.148Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T09:20:30.008Z",
+      "timestamp": "2026-03-23T19:49:20.224Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T09:20:30.108Z",
+      "timestamp": "2026-03-23T19:49:20.300Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T09:30:42.456Z",
+      "timestamp": "2026-03-24T08:10:49.595Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T09:30:42.553Z",
+      "timestamp": "2026-03-24T08:10:49.657Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T09:30:42.697Z",
+      "timestamp": "2026-03-24T08:10:49.715Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"
     },
     {
-      "timestamp": "2026-03-19T09:40:51.774Z",
+      "timestamp": "2026-03-25T06:28:54.979Z",
       "check": "costs",
       "result": "ok",
       "message": "Nessun costo oggi"
     },
     {
-      "timestamp": "2026-03-19T09:40:51.855Z",
+      "timestamp": "2026-03-25T06:28:55.055Z",
       "check": "blocked",
       "result": "ok",
       "message": "Nessun task bloccato"
     },
     {
-      "timestamp": "2026-03-19T09:40:51.941Z",
+      "timestamp": "2026-03-25T06:28:55.120Z",
       "check": "sync",
       "result": "ok",
       "message": "Nessun errore sync"

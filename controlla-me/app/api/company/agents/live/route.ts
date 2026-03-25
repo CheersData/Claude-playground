@@ -14,6 +14,7 @@ import { NextRequest } from "next/server";
 import { requireConsoleAuth } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { onAgentEvent, getActiveAgentEvents, type AgentEvent } from "@/lib/agent-broadcast";
+import { createSSEStream, SSE_HEADERS_NO_BUFFER } from "@/lib/sse-stream-factory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,58 +33,23 @@ export async function GET(req: NextRequest) {
   const rlErr = await checkRateLimit(req);
   if (rlErr) return rlErr;
 
-  const encoder = new TextEncoder();
-  let unsubscribe: (() => void) | null = null;
+  const { stream, send, sendComment, onCleanup } = createSSEStream({ request: req });
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const send = (event: string, data: unknown) => {
-        try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
-        } catch {
-          // Controller closed
-        }
-      };
+  // Send current snapshot immediately
+  const snapshot = getActiveAgentEvents();
+  send("snapshot", snapshot);
 
-      // Send current snapshot immediately
-      const snapshot = getActiveAgentEvents();
-      send("snapshot", snapshot);
-
-      // Subscribe to live events
-      unsubscribe = onAgentEvent((evt: AgentEvent) => {
-        send("agent", evt);
-      });
-
-      // Heartbeat every 15s to keep connection alive
-      const heartbeat = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(": heartbeat\n\n"));
-        } catch {
-          clearInterval(heartbeat);
-        }
-      }, 15_000);
-
-      // Cleanup on abort
-      req.signal.addEventListener("abort", () => {
-        clearInterval(heartbeat);
-        if (unsubscribe) unsubscribe();
-        try { controller.close(); } catch { /* already closed */ }
-      });
-    },
-
-    cancel() {
-      if (unsubscribe) unsubscribe();
-    },
+  // Subscribe to live events
+  const unsubscribe = onAgentEvent((evt: AgentEvent) => {
+    send("agent", evt);
   });
+  onCleanup(() => unsubscribe());
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
+  // Heartbeat every 15s to keep connection alive
+  const heartbeat = setInterval(() => {
+    sendComment("heartbeat");
+  }, 15_000);
+  onCleanup(() => clearInterval(heartbeat));
+
+  return new Response(stream, { headers: SSE_HEADERS_NO_BUFFER });
 }

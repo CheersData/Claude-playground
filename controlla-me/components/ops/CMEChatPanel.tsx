@@ -415,7 +415,7 @@ export function CMEChatPanel({ onBack, onDebugEvent, embedded }: CMEChatPanelPro
             }}
             rows={1}
             placeholder={responding ? "CME sta elaborando... (il messaggio verrà accodato)" : "Scrivi a CME..."}
-            className="flex-1 text-sm text-[var(--fg-primary)] placeholder-[var(--fg-invisible)] bg-transparent outline-none resize-none leading-relaxed"
+            className="flex-1 text-base md:text-sm text-[var(--fg-primary)] placeholder-[var(--fg-invisible)] bg-transparent outline-none resize-none leading-relaxed"
             style={{ maxHeight: "120px" }}
           />
           {responding && (

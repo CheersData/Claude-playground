@@ -12,12 +12,11 @@ import { checkCsrf } from "@/lib/middleware/csrf";
 import type { AgentPhase, PhaseStatus } from "@/lib/types";
 import { broadcastConsoleAgent } from "@/lib/agent-broadcast";
 import { recordProfileEvent } from "@/lib/cdp/profile-builder";
+import { createSSEStream, SSE_HEADERS } from "@/lib/sse-stream-factory";
 
 export const maxDuration = 300; // 5 minutes for long-running analysis
 
 export async function POST(req: NextRequest) {
-  const encoder = new TextEncoder();
-
   // CSRF check (FormData endpoint — SEC-004)
   const csrf = checkCsrf(req);
   if (csrf) return csrf;
@@ -59,14 +58,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (event: string, data: unknown) => {
-        controller.enqueue(
-          encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-        );
-      };
+  const { stream, send, close: closeStream } = createSSEStream({ request: req });
 
+  // Run the analysis pipeline asynchronously
+  (async () => {
       let analysisDbId: string | null = null;
 
       try {
@@ -264,20 +259,9 @@ export async function POST(req: NextRequest) {
           }
         }
       } finally {
-        try {
-          controller.close();
-        } catch {
-          // Controller may already be closed from early returns
-        }
+        closeStream();
       }
-    },
-  });
+  })();
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  return new Response(stream, { headers: SSE_HEADERS });
 }

@@ -110,7 +110,7 @@ function writeNotification(content: string): void {
 // ─── Task Execution ───
 
 function buildTaskPrompt(task: Task): string {
-  return `Sei un agente AI che lavora per CME (Controlla.Me virtual company) nel dipartimento "${task.department}".
+  return `Sei un agente AI che lavora per CME (Poimandres virtual company) nel dipartimento "${task.department}".
 
 Devi completare il seguente task:
 
@@ -122,7 +122,7 @@ DESCRIZIONE:
 ${task.description ?? "(nessuna descrizione fornita)"}
 
 CONTESTO PROGETTO:
-controlla.me è un'app di analisi legale AI (Next.js 15, TypeScript, 7 agenti AI, 7 provider AI,
+Poimandres è una piattaforma AI con verticale legale (Next.js 15, TypeScript, 7 agenti AI, 7 provider AI,
 tier system, vector DB pgvector, corpus legislativo italiano ~5600 articoli).
 Codebase: ${path.resolve(__dirname, "..").replace(/\\/g, "/")}
 
@@ -166,12 +166,12 @@ async function executeTask(
  * Legge il department.md come contesto.
  */
 async function generateDeptReport(dept: Department, deptContext: string): Promise<string> {
-  const prompt = `Sei il responsabile del dipartimento "${dept}" di Controlla.Me, app di analisi legale AI.
+  const prompt = `Sei il responsabile del dipartimento "${dept}" di Poimandres, piattaforma AI con verticale legale.
 
 CONTESTO DIPARTIMENTO:
 ${deptContext || "(nessun file department.md trovato)"}
 
-PROGETTO: controlla.me — analisi legale AI, Next.js 15, TypeScript, 7 agenti AI multi-provider,
+PROGETTO: Poimandres — piattaforma AI, Next.js 15, TypeScript, 7 agenti AI multi-provider,
 tier system, vector DB, corpus legislativo italiano ~5600 articoli.
 
 COMPITO: Genera un report breve (max 200 parole) con:
@@ -218,7 +218,7 @@ async function synthesizeSprintPlan(
     (dept) => `### ${dept}\n${reports[dept] ?? "(nessun report)"}`
   ).join("\n\n");
 
-  const prompt = `Sei CME, CEO di Controlla.Me (app analisi legale AI).
+  const prompt = `Sei CME, CEO di Poimandres (piattaforma AI).
 
 Stai pianificando lo Sprint ${sprintNumber}.
 
@@ -226,7 +226,7 @@ Hai ricevuto i report di tutti i dipartimenti:
 
 ${reportsText}
 
-PROGETTO: controlla.me — Next.js 15, TypeScript, 7 agenti AI, tier system, vector DB, corpus legislativo.
+PROGETTO: Poimandres — Next.js 15, TypeScript, 7 agenti AI, tier system, vector DB, corpus legislativo.
 
 COMPITO: Sintetizza i report e crea il piano per lo Sprint ${sprintNumber} con 10-15 task concreti e prioritizzati.
 Seleziona le attività più impattanti e urgenti tra quelle proposte dai dipartimenti.

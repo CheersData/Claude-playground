@@ -94,7 +94,7 @@ export default function SyncSuccess({
       const key = `${STORAGE_PREFIX}${connectorId}`;
       const alreadyShown = localStorage.getItem(key);
       if (!alreadyShown) {
-        setVisible(true);
+        setVisible(true); // eslint-disable-line react-hooks/set-state-in-effect -- localStorage hydration on mount
         localStorage.setItem(key, new Date().toISOString());
       }
     } catch {
@@ -127,7 +127,7 @@ export default function SyncSuccess({
         >
           {/* ─── Particles ─── */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {particles.map((p) => (
+            {particles.map((p, idx) => (
               <motion.div
                 key={p.id}
                 initial={{
@@ -142,7 +142,7 @@ export default function SyncSuccess({
                   x: `calc(${p.x}vw + ${p.drift}px)`,
                   opacity: [1, 1, 0],
                   scale: [0, 1.2, 0.8],
-                  rotate: Math.random() * 360,
+                  rotate: (idx * 137.5) % 360, // deterministic golden-angle spread
                 }}
                 transition={{
                   duration: p.duration,

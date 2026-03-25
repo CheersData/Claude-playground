@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.yml — controlla.me production stack
+# docker-compose.yml — Poimandres production stack
 # Target: Hetzner CX21 (2 vCPU, 4GB RAM, 40GB SSD)
 # =============================================================================
 #
@@ -15,13 +15,13 @@
 
 services:
   # ---------------------------------------------------------------------------
-  # Next.js Application (controlla.me + poimandres.work)
+  # Next.js Application (poimandres.work)
   # ---------------------------------------------------------------------------
   nextjs:
     build:
       context: ../
       dockerfile: deploy/docker/Dockerfile
-    container_name: controlla-nextjs
+    container_name: poimandres-nextjs
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -63,7 +63,7 @@ services:
     build:
       context: ../
       dockerfile: deploy/docker/Dockerfile.trading
-    container_name: controlla-trading
+    container_name: poimandres-trading
     restart: unless-stopped
     env_file:
       - .env.production
@@ -101,7 +101,7 @@ services:
   # ---------------------------------------------------------------------------
   cron:
     image: alpine:3.19
-    container_name: controlla-cron
+    container_name: poimandres-cron
     restart: unless-stopped
     env_file:
       - .env.production

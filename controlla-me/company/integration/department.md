@@ -6,7 +6,7 @@
 
 ## Missione
 
-Integrazione dati business per PMI italiane — connettori OAuth2 verso piattaforme esterne (fatturazione, CRM, document management), pipeline CONNECT-AUTH-MAP-SYNC, analisi legale automatica sui documenti importati. Ogni contratto, fattura o documento che transita nei sistemi di una PMI viene analizzato automaticamente dai 4 agenti legali di controlla.me.
+Connettori OAuth2 per PMI. Template riusabile per creator che vogliono integrare fonti esterne.
 
 ## Vincoli Architetturali
 
@@ -148,11 +148,11 @@ HUBSPOT_CLIENT_SECRET=...       # OAuth2 client secret
 
 10+ connettori attivi, self-service setup wizard per PMI (connetti in 3 click), auto-mapping 95%+ accuracy, 100+ PMI con almeno 1 connettore, 2000+ documenti auto-analizzati al mese. Revenue da piani Business (EUR 29.99/mese) che contribuisce alla sostenibilita finanziaria di controlla.me.
 
-## Priorita operative (ordinate)
+## Priorità operative (ordinate)
 
-1. **[P0] Infrastruttura** — Credential vault AES-256-GCM, AuthenticatedBaseConnector, schema DB `integration_*`, OAuth2 flow generico riusabile
-2. **[P1] MVP 3 connettori** — Fatture in Cloud, Google Drive, HubSpot (in ordine RICE). Ogni connettore: connect, auth, map, sync funzionanti end-to-end
-3. **[P2] UI dashboard integrazione** — Setup wizard OAuth per utente, pannello monitoring documenti sincronizzati, stato connettori, storico analisi automatiche
+1. **[P0] Fatture in Cloud MVP** — completare il connettore Fatture in Cloud come primo connettore operativo
+2. **[P1] Template connettore per creator** — creare template riusabile per connettori OAuth2 che i creator possano estendere
+3. **[P2] Google Drive + HubSpot** — completare i connettori Google Drive e HubSpot
 
 ## Autonomia
 

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "controlla-me-music"
+name = "poimandres-music"
 version = "0.1.0"
-description = "AI-powered music analysis and production tools for Controlla.me"
+description = "AI-powered music analysis and production tools for Poimandres"
 requires-python = ">=3.11"
 license = {text = "Private"}
 
@@ -16,12 +16,22 @@ dependencies = [
 
     # Audio Analysis
     "librosa>=0.10.0",
-    "essentia>=2.1b6",
-    "madmom>=0.16.1",
-
-    # Pitch Detection
-    "crepe>=0.0.16",
-    "basic-pitch>=0.3.0",
+    "essentia>=2.1b6.dev1389",
+    # --- Removed deps (Python 3.12 incompatible) and their replacements ---
+    # madmom (beat tracking, downbeat detection):
+    #   REMOVED — uses collections.MutableSequence, broken on Python 3.12+.
+    #   REPLACEMENT: librosa.beat.beat_track() — already used in AudioAnalyst._detect_bpm().
+    #   If higher accuracy needed: "BeatNet>=1.1.0" (PyTorch-based, Py3.12 compatible).
+    # crepe (monophonic pitch tracking):
+    #   REMOVED — requires old setuptools, not imported anywhere in codebase.
+    #   REPLACEMENT: librosa.piptrack() — already used in AudioAnalyst._analyze_single_stem()
+    #   for vocal pitch range estimation. If neural pitch tracking needed: "torchcrepe>=0.0.22"
+    #   (PyTorch reimplementation, Py3.12 compatible, pip install torchcrepe).
+    # basic-pitch (polyphonic pitch detection / MIDI transcription):
+    #   REMOVED — requires tensorflow <2.16, unavailable on Python 3.12.
+    #   REPLACEMENT: not currently needed (no MIDI transcription feature).
+    #   If needed in future: "piano-transcription-inference>=0.0.5" (PyTorch-based)
+    #   or Spotify basic-pitch v0.3+ when tf2.16+ support lands.
 
     # Data
     "pandas>=2.2.0",

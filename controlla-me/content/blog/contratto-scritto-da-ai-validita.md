@@ -101,7 +101,7 @@ Usa l'AI per generare una prima bozza, poi falla revisionare da un avvocato. Que
 
 ### Approccio 2: AI + analisi automatizzata specializzata
 
-Se non vuoi (o non puoi) rivolgerti a un avvocato per ogni contratto, usa un'AI specializzata per la **verifica**. A differenza di ChatGPT o Claude (che sono AI generaliste), strumenti come Controlla.me sono progettati specificamente per analizzare contratti italiani confrontandoli con la normativa vigente.
+Se non vuoi (o non puoi) rivolgerti a un avvocato per ogni contratto, usa un'AI specializzata per la **verifica**. A differenza di ChatGPT o Claude (che sono AI generaliste), strumenti come Poimandres sono progettati specificamente per analizzare contratti italiani confrontandoli con la normativa vigente.
 
 La differenza è cruciale: un'AI generalista genera testo che sembra un contratto. Un'AI specializzata nella verifica contrattuale ti dice se quel contratto ti protegge davvero.
 
@@ -137,4 +137,4 @@ Tu. Chi firma un contratto ne è responsabile, indipendentemente da chi l'ha scr
 
 Che l'abbia scritto un avvocato, un template, ChatGPT o il tuo commercialista, ogni contratto può avere clausole rischiose o mancanti.
 
-**Controlla.me** lo analizza clausola per clausola, confrontandolo con la normativa italiana vigente. L'AI specializzata identifica rischi, clausole vessatorie e lacune — e ti spiega tutto in parole semplici. Caricalo gratis e scopri i rischi nascosti.
+**Poimandres** lo analizza clausola per clausola, confrontandolo con la normativa italiana vigente. L'AI specializzata identifica rischi, clausole vessatorie e lacune — e ti spiega tutto in parole semplici. Caricalo gratis e scopri i rischi nascosti.

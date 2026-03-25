@@ -108,7 +108,7 @@ function generatePlanId(): string {
 // ─── Contesto aziendale per il modello ───
 
 const COMPANY_CONTEXT = `
-Controlla.me è un'app di analisi legale AI (contratti) con 4 agenti: Classifier, Analyzer, Investigator, Advisor.
+Poimandres è una piattaforma AI con verticale legale (contratti) con 4 agenti: Classifier, Analyzer, Investigator, Advisor.
 Stack: Next.js 15, TypeScript, Supabase/pgvector, Claude/Gemini/Groq, Tailwind 4.
 Fase attuale: pre-lancio commerciale PMI. Priorità: qualità prodotto, copertura test, EU AI Act compliance.
 
@@ -173,7 +173,7 @@ ${recentContext}
 
 Il task board è ora VUOTO (0 open, 0 in_progress). ${triggerContext}
 
-Proponi i prossimi 3-6 task concreti e prioritari per far avanzare Controlla.me.
+Proponi i prossimi 3-6 task concreti e prioritari per far avanzare Poimandres.
 Scegli dai backlog noti. Bilancia: almeno un task di qualità (QA/Security) e uno di feature/prodotto.
 Dipartimenti disponibili: architecture, data-engineering, quality-assurance, security, finance, operations, strategy, marketing, ufficio-legale, trading.
 

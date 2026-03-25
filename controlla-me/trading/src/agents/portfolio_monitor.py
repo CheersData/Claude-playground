@@ -131,9 +131,13 @@ class PortfolioMonitor(BaseAgent):
         # Generate alerts if thresholds breached
         alerts = self._generate_alerts(snapshot)
 
+        # Strategy breakdown for today's signals
+        strategy_breakdown = self._db.get_today_strategy_breakdown()
+
         result = snapshot.model_dump(mode="json")
         result["mode"] = "daily_report"
         result["alerts"] = [a.model_dump(mode="json") for a in alerts]
+        result["strategy_breakdown"] = strategy_breakdown
         return result
 
     # ─── Mode: check_stops ────────────────────────────────────

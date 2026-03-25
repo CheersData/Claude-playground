@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { requireConsoleAuth, requireConsoleRole } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import * as fs from "fs";
@@ -19,7 +19,7 @@ const LOCK_FILE = resolve(LOG_DIR, ".autorun.lock");
 const REPORT_FILE = resolve(process.cwd(), "company/daemon-report.json");
 
 // Health thresholds
-const STALE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour — daemon should run at least hourly
+const _STALE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour — daemon should run at least hourly
 const STUCK_LOCK_THRESHOLD_MS = 30 * 60 * 1000; // 30 min — lock older than this is stale
 
 interface DaemonState {
@@ -35,6 +35,8 @@ interface DaemonState {
   rateLimitUntil?: string | null;
   consecutiveNoOp?: number;
   lastPlenaryAt?: string | null;
+  /** If true, daemon skips cycle when boss has active heartbeat */
+  pauseWhenBossActive?: boolean;
 }
 
 type DaemonHealth = "healthy" | "warning" | "error" | "unknown";
@@ -285,7 +287,8 @@ export async function PUT(req: NextRequest) {
   const csrfError = checkCsrf(req);
   if (csrfError) return csrfError;
 
-  const payload = requireConsoleAuth(req);
+  // Admin only — daemon control (enable/disable, interval changes)
+  const payload = requireConsoleRole(req, "admin");
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const rl = await checkRateLimit(req);
@@ -301,6 +304,9 @@ export async function PUT(req: NextRequest) {
     }
     if (typeof body.intervalMinutes === "number") {
       current.intervalMinutes = Math.max(5, Math.min(120, body.intervalMinutes));
+    }
+    if (typeof body.pauseWhenBossActive === "boolean") {
+      current.pauseWhenBossActive = body.pauseWhenBossActive;
     }
 
     current.updatedAt = new Date().toISOString();
@@ -323,7 +329,8 @@ export async function POST(req: NextRequest) {
   const csrfError = checkCsrf(req);
   if (csrfError) return csrfError;
 
-  const payload = requireConsoleAuth(req);
+  // Admin only — daemon actions (reset, health check)
+  const payload = requireConsoleRole(req, "admin");
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const rl = await checkRateLimit(req);

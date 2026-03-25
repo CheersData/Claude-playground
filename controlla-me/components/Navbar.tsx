@@ -4,7 +4,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronUp } from "lucide-react";
+import { Menu, X, ChevronUp, Scale, GraduationCap, Music } from "lucide-react";
+
+const verticalLinks = [
+  { label: "Legale", href: "/", icon: Scale, color: "#FF6B35" },
+  { label: "Medico", href: "/studia", icon: GraduationCap, color: "#4ECDC4" },
+  { label: "Music", href: "/music", icon: Music, color: "#A78BFA" },
+];
 
 const navLinks = [
   { label: "Come funziona", href: "/#mission", sectionId: "mission" },
@@ -133,14 +139,33 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
         <Link
           href="/"
           onClick={handleLogoClick}
-          className="flex items-baseline gap-0.5 group"
+          className="flex items-center gap-3 group"
         >
           <span className="font-serif text-[28px] text-foreground italic group-hover:text-foreground/80 transition-colors">
-            controlla
+            Poimandres
           </span>
-          <span className="font-serif text-[28px] text-accent group-hover:text-accent/80 transition-colors">
-            .me
-          </span>
+          {/* Vertical pills — desktop only */}
+          <div className="hidden lg:flex items-center gap-1">
+            {verticalLinks.map((v) => {
+              const Icon = v.icon;
+              const isActive = pathname === v.href || (v.href !== "/" && pathname.startsWith(v.href));
+              return (
+                <Link
+                  key={v.href}
+                  href={v.href}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                    isActive
+                      ? "bg-foreground/8 text-foreground"
+                      : "text-foreground-tertiary hover:text-foreground-secondary hover:bg-foreground/5"
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Icon className="w-3 h-3" style={{ color: v.color }} />
+                  {v.label}
+                </Link>
+              );
+            })}
+          </div>
         </Link>
 
         {/* Desktop nav */}
@@ -211,6 +236,29 @@ export default function Navbar({ onLogoClick }: NavbarProps) {
               className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg px-6 py-6 md:hidden"
             >
               <div className="flex flex-col gap-1">
+                {/* Vertical links — mobile */}
+                <div className="flex items-center gap-2 px-4 py-3 mb-2">
+                  {verticalLinks.map((v) => {
+                    const Icon = v.icon;
+                    const isActive = pathname === v.href || (v.href !== "/" && pathname.startsWith(v.href));
+                    return (
+                      <Link
+                        key={v.href}
+                        href={v.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-foreground/8 text-foreground"
+                            : "text-foreground-tertiary hover:text-foreground-secondary"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" style={{ color: v.color }} />
+                        {v.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="border-t border-border-subtle mb-2" />
                 {navLinks.map((link) => {
                   const active = isLinkActive(link);
                   return (

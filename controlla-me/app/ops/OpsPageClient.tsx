@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ComponentType } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RefreshCw,
@@ -308,11 +309,40 @@ function FullscreenOverlay({
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
+/**
+ * Decode the console token payload (base64url before the last ".").
+ * Returns the parsed payload or null if invalid.
+ */
+function decodeTokenPayload(token: string): { role?: string; nome?: string; cognome?: string } | null {
+  try {
+    const dotIdx = token.lastIndexOf(".");
+    if (dotIdx === -1) return null;
+    const payloadB64 = token.slice(0, dotIdx);
+    const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+/** RBAC role hierarchy — higher index = more privileges. */
+const ROLE_LEVELS: Record<string, number> = { user: 0, operator: 1, admin: 2, boss: 3 };
+
 export default function OpsPageClient() {
+  // ── Mobile redirect ───────────────────────────────────────────────────────
+  const router = useRouter();
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    if (mq.matches) {
+      router.push("/ops/mobile");
+    }
+  }, [router]);
+
   // ── Auth ────────────────────────────────────────────────────────────────────
   const [authed, setAuthed] = useState(false);
   const [authInput, setAuthInput] = useState("");
   const [authError, setAuthError] = useState("");
+  const [userRole, setUserRole] = useState<string>("user");
 
   // ── Data ────────────────────────────────────────────────────────────────────
   const [data, setData] = useState<OpsData | null>(null);
@@ -335,6 +365,44 @@ export default function OpsPageClient() {
     const iv = setInterval(fetchSysStats, 5000);
     return () => clearInterval(iv);
   }, [fetchSysStats]);
+
+  // ── Boss heartbeat (signals daemon to skip cycles while /ops is open) ─────
+  useEffect(() => {
+    if (!authed) return;
+
+    const sendHeartbeat = () => {
+      fetch("/api/company/sessions/heartbeat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getConsoleAuthHeaders(),
+        },
+        body: JSON.stringify({ target: "ops-page" }),
+      }).catch(() => { /* silent — heartbeat is best-effort */ });
+    };
+
+    const clearHb = () => {
+      // keepalive: true ensures the request completes even during page unload
+      fetch("/api/company/sessions/heartbeat", {
+        method: "DELETE",
+        headers: { ...getConsoleAuthHeaders() },
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    // Send first heartbeat immediately, then every 10s
+    sendHeartbeat();
+    const iv = setInterval(sendHeartbeat, 10_000);
+
+    // Clear heartbeat on tab close / navigation away
+    window.addEventListener("beforeunload", clearHb);
+
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener("beforeunload", clearHb);
+      clearHb();
+    };
+  }, [authed]);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -359,11 +427,16 @@ export default function OpsPageClient() {
     setLiveSessions(sessions);
   }, []);
 
-  // ── Auth check ─────────────────────────────────────────────────────────────
+  // ── Auth check + role extraction ──────────────────────────────────────────
   useEffect(() => {
     try {
-      if (typeof window !== "undefined" && sessionStorage.getItem("lexmea-token")) {
-        setAuthed(true);
+      if (typeof window !== "undefined") {
+        const token = sessionStorage.getItem("lexmea-token");
+        if (token) {
+          setAuthed(true);
+          const payload = decodeTokenPayload(token);
+          if (payload?.role) setUserRole(payload.role);
+        }
       }
     } catch {
       // sessionStorage can throw in some mobile private browsing contexts
@@ -383,6 +456,8 @@ export default function OpsPageClient() {
       const json = await res.json().catch(() => null);
       if (json?.authorized && json?.token) {
         try { sessionStorage.setItem("lexmea-token", json.token); } catch { /* ignore */ }
+        const payload = decodeTokenPayload(json.token);
+        if (payload?.role) setUserRole(payload.role);
         setAuthed(true);
       } else {
         setAuthError(json?.message ?? "Accesso negato");
@@ -687,6 +762,51 @@ export default function OpsPageClient() {
             Accedi
           </button>
         </form>
+      </div>
+    );
+  }
+
+  // ── RBAC guard: require at least 'operator' role ──────────────────────────
+  if ((ROLE_LEVELS[userRole] ?? 0) < ROLE_LEVELS["operator"]) {
+    return (
+      <div
+        className="flex items-center justify-center min-h-screen"
+        style={{ background: "var(--bg-base)" }}
+      >
+        <div
+          className="rounded-2xl p-6 md:p-8 w-full max-w-sm space-y-4 text-center"
+          style={{
+            background: "var(--bg-raised)",
+            border: "1px solid var(--border-dark-subtle)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+          }}
+        >
+          <h2
+            className="text-lg font-semibold font-serif"
+            style={{ color: "var(--fg-primary)" }}
+          >
+            Accesso Negato
+          </h2>
+          <p className="text-sm" style={{ color: "var(--fg-secondary)" }}>
+            Il tuo ruolo ({userRole}) non ha i permessi per accedere all&apos;Operations Center.
+            Ruolo minimo richiesto: <strong>operator</strong>.
+          </p>
+          <button
+            onClick={() => {
+              try { sessionStorage.removeItem("lexmea-token"); } catch { /* ignore */ }
+              setAuthed(false);
+              setUserRole("user");
+            }}
+            className="px-4 py-2 text-sm rounded-lg transition-colors"
+            style={{
+              background: "var(--bg-overlay)",
+              color: "var(--fg-primary)",
+              border: "1px solid var(--border-dark-subtle)",
+            }}
+          >
+            Disconnetti
+          </button>
+        </div>
       </div>
     );
   }

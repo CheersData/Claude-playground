@@ -88,16 +88,26 @@ def notify_trades(orders: list[dict], mode: str = "paper") -> None:
     mode_label = "📄 PAPER" if mode == "paper" else "💸 LIVE"
     lines = [f"🔔 <b>Trade Eseguito</b> — {mode_label}\n"]
 
+    # Strategy label mapping
+    _STRATEGY_LABELS = {
+        "conventional": "📊 MACD",
+        "slope_volume": "📈 SLOPE",
+        "crypto_slope": "🪙 CRYPTO",
+    }
+
     for o in orders:
         side = o.get("side", "?").upper()
         symbol = o.get("symbol", "?")
         qty = o.get("qty", "?")
         price = o.get("filled_avg_price")
         status = o.get("status", "?")
+        strategy = o.get("strategy", "")
+        strategy_label = _STRATEGY_LABELS.get(strategy, "")
 
         icon = "📈" if side in ("BUY", "buy") else "📉"
         price_str = f" @ ${price:.2f}" if price else ""
-        lines.append(f"{icon} <b>{side} {symbol}</b> — {qty} azioni{price_str} [{status}]")
+        strategy_str = f" [{strategy_label}]" if strategy_label else ""
+        lines.append(f"{icon} <b>{side} {symbol}</b> — {qty} azioni{price_str}{strategy_str} [{status}]")
 
     send("\n".join(lines))
 
@@ -128,6 +138,7 @@ def notify_daily_report(report: dict, mode: str = "paper") -> None:
     win_rate = report.get("win_rate")
     positions = report.get("positions", [])
     alerts = report.get("alerts", [])
+    strategy_breakdown = report.get("strategy_breakdown", {})
 
     # Portfolio value line
     pv_str = f"${pv:,.0f}" if pv else "N/A"
@@ -162,6 +173,22 @@ def notify_daily_report(report: dict, mode: str = "paper") -> None:
     else:
         lines.append("")
         lines.append("📭 Nessuna posizione aperta")
+
+    # Strategy breakdown (if available)
+    _STRATEGY_ICONS = {
+        "conventional": "📊 MACD",
+        "slope_volume": "📈 SLOPE",
+        "crypto_slope": "🪙 CRYPTO",
+    }
+    if strategy_breakdown:
+        lines.append("")
+        lines.append("<b>Per strategia:</b>")
+        for strat_key, strat_data in strategy_breakdown.items():
+            label = _STRATEGY_ICONS.get(strat_key, strat_key)
+            trades = strat_data.get("trades", 0)
+            wins = strat_data.get("wins", 0)
+            wr = f"{wins/trades:.0%}" if trades > 0 else "N/A"
+            lines.append(f"  {label}: {trades} trade, {wr} win rate")
 
     # Alerts
     lines.append("")

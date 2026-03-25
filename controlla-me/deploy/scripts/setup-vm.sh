@@ -36,7 +36,7 @@ error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 # ---- Configuration ----
 DEPLOY_USER="deploy"
 APP_DIR="/opt/controlla-me"
-DOMAIN_MAIN="controlla.me"
+DOMAIN_MAIN="poimandres.work"
 DOMAIN_OPS="poimandres.work"
 
 # =============================================================================

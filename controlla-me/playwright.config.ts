@@ -20,7 +20,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["tests/e2e/**/*.spec.ts", "e2e/**/*.spec.ts"],
+  testMatch: ["tests/e2e/**/*.spec.ts", "tests/uat/**/*.spec.ts", "e2e/**/*.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

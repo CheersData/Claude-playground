@@ -92,6 +92,12 @@ def parse_args() -> argparse.Namespace:
         default="default",
         help="Grid preset: 'default' (original 64-combo), 'tpsl' (96-combo TP/SL + trailing), 'cycle4' (60-combo — BAD trailing params), or 'cycle4b' (12-combo — Cycle 3 trailing defaults, signal exit OFF)",
     )
+    grid_parser.add_argument(
+        "--strategy", type=str,
+        choices=["trend_following", "mean_reversion", "mean_reversion_v3", "slope_volume", "noise_boundary"],
+        default=None,
+        help="Strategy override. Default: auto-detect from timeframe (5Min=slope_volume, 15Min=mean_reversion, else=trend_following)",
+    )
 
     return parser.parse_args()
 
@@ -534,6 +540,7 @@ def cmd_grid(args: argparse.Namespace) -> None:
         timeframe=args.timeframe,
         output_dir=output_dir,
         param_grid=selected_grid,
+        strategy=getattr(args, "strategy", None),
     )
 
 

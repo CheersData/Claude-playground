@@ -8,22 +8,24 @@
 
 import { createClient } from "../supabase/server";
 import { createAdminClient } from "../supabase/admin";
+import type { AppRole } from "../middleware/auth";
 
 export interface Profile {
   plan: "free" | "pro";
+  role: AppRole;
   analysesCount: number;
   stripeCustomerId: string | null;
 }
 
 /**
- * Get a user's profile (plan, usage, stripe ID).
+ * Get a user's profile (plan, role, usage, stripe ID).
  * Uses the server client so RLS enforces user_id = auth.uid().
  */
 export async function getProfile(userId: string): Promise<Profile | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("plan, analyses_count, stripe_customer_id")
+    .select("plan, role, analyses_count, stripe_customer_id")
     .eq("id", userId)
     .single();
 
@@ -31,6 +33,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
   return {
     plan: (data.plan as "free" | "pro") || "free",
+    role: (data.role as AppRole) || "user",
     analysesCount: data.analyses_count ?? 0,
     stripeCustomerId: data.stripe_customer_id ?? null,
   };
@@ -88,4 +91,57 @@ export async function updatePlanByStripeId(
 export async function incrementAnalysesCount(userId: string): Promise<void> {
   const admin = createAdminClient();
   await admin.rpc("increment_analyses_count", { uid: userId });
+}
+
+/**
+ * Update a user's role.
+ * Uses admin client (service_role) to bypass RLS.
+ * Caller must verify authorization before invoking.
+ */
+export async function updateUserRole(
+  userId: string,
+  role: AppRole
+): Promise<{ success: boolean; error?: string }> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profiles")
+    .update({ role })
+    .eq("id", userId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
+/**
+ * List all profiles with roles (for admin panel).
+ * Uses admin client to bypass RLS.
+ */
+export async function listProfilesWithRoles(): Promise<
+  Array<{
+    id: string;
+    email: string;
+    full_name: string;
+    role: AppRole;
+    plan: string;
+    created_at: string;
+  }>
+> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profiles")
+    .select("id, email, full_name, role, plan, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    id: row.id,
+    email: row.email ?? "",
+    full_name: row.full_name ?? "",
+    role: (row.role as AppRole) || "user",
+    plan: row.plan ?? "free",
+    created_at: row.created_at,
+  }));
 }

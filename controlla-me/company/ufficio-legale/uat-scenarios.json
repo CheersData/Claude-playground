@@ -1,0 +1,174 @@
+{
+  "department": "ufficio-legale",
+  "scenarios": [
+    {
+      "id": "legale-landing-load",
+      "name": "Landing page loads correctly",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "Verify the main landing page loads with all key sections visible",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/" },
+          "expect": {
+            "has": ["Controlla.me"],
+            "timeout": 15000
+          }
+        }
+      ],
+      "tags": ["smoke", "critical"]
+    },
+    {
+      "id": "legale-upload-analyze",
+      "name": "Upload contract and receive analysis",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "User uploads a PDF contract, SSE analysis runs through 4 agents, results displayed",
+      "fixtures": ["legale/sample-contratto-affitto.pdf"],
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/" },
+          "expect": { "has": ["Controlla.me"] }
+        },
+        {
+          "type": "file-upload",
+          "params": {
+            "selector": "[data-testid='upload-zone']",
+            "fixturePath": "legale/sample-contratto-affitto.pdf",
+            "mimeType": "application/pdf"
+          },
+          "expect": { "timeout": 15000 }
+        },
+        {
+          "type": "sse-stream",
+          "params": {
+            "url": "/api/analyze",
+            "events": ["timing", "session", "progress", "complete"]
+          },
+          "expect": {
+            "has": ["complete"],
+            "timeout": 30000
+          }
+        }
+      ],
+      "tags": ["regression", "critical"]
+    },
+    {
+      "id": "legale-corpus-page",
+      "name": "Corpus page loads",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "The corpus legislativo page loads and shows navigation elements",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/corpus" },
+          "expect": {
+            "has": ["Corpus"],
+            "timeout": 15000
+          }
+        }
+      ],
+      "tags": ["smoke"]
+    },
+    {
+      "id": "legale-corpus-qa",
+      "name": "Corpus Q&A flow",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "User asks a legal question in corpus chat, receives answer with citations",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/corpus" },
+          "expect": { "has": ["Corpus"] }
+        },
+        {
+          "type": "api-call",
+          "params": {
+            "url": "/api/corpus/ask",
+            "method": "POST",
+            "body": { "question": "Quali sono i termini per il recesso?" },
+            "mockRoute": {
+              "status": 200,
+              "body": {
+                "answer": "Il diritto di recesso del consumatore e regolato dal Codice del Consumo (D.Lgs. 206/2005). Il termine per esercitare il recesso e di 14 giorni dalla ricezione del bene.",
+                "citedArticles": [{ "id": "art-1", "lawSource": "D.Lgs. 206/2005", "articleReference": "Art. 52" }],
+                "confidence": 0.88,
+                "followUp": ["Cosa succede se il venditore non informa sul recesso?"]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "has": ["recesso"],
+            "responseSchema": {
+              "answer": "string",
+              "citedArticles": "array",
+              "confidence": "number"
+            }
+          }
+        }
+      ],
+      "tags": ["regression"]
+    },
+    {
+      "id": "legale-dashboard",
+      "name": "Dashboard shows analysis history",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "Authenticated user sees their analysis history on the dashboard",
+      "steps": [
+        {
+          "type": "auth-setup",
+          "params": { "role": "authenticated" }
+        },
+        {
+          "type": "page-load",
+          "params": { "url": "/dashboard" },
+          "expect": { "timeout": 15000 }
+        }
+      ],
+      "tags": ["regression"]
+    },
+    {
+      "id": "legale-pricing-page",
+      "name": "Pricing page loads with plans",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "Verify the pricing page shows Free, Pro, and Single plans",
+      "steps": [
+        {
+          "type": "page-load",
+          "params": { "url": "/pricing" },
+          "expect": { "timeout": 15000 }
+        }
+      ],
+      "tags": ["smoke"]
+    },
+    {
+      "id": "legale-responsive-mobile",
+      "name": "Landing responsive on mobile viewport",
+      "department": "ufficio-legale",
+      "vertical": "legale",
+      "description": "Verify the landing page renders correctly on a mobile viewport (375x667)",
+      "steps": [
+        {
+          "type": "visual-check",
+          "params": {
+            "viewport": { "width": 375, "height": 667 },
+            "screenshotName": "legale-mobile-landing"
+          }
+        },
+        {
+          "type": "page-load",
+          "params": { "url": "/" },
+          "expect": { "has": ["Controlla.me"] }
+        }
+      ],
+      "tags": ["regression"]
+    }
+  ]
+}

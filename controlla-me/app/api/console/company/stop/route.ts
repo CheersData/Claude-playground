@@ -3,7 +3,7 @@
  */
 
 import { deleteSession } from "@/lib/company/sessions";
-import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { requireConsoleRole } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import type { NextRequest } from "next/server";
@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   const rl = await checkRateLimit(req as unknown as NextRequest);
   if (rl) return rl;
 
-  const authPayload = requireConsoleAuth(req as unknown as NextRequest);
+  // Admin only — kills company agent session
+  const authPayload = requireConsoleRole(req as unknown as NextRequest, "admin");
   if (!authPayload) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# deploy.sh — Build and deploy controlla.me on Hetzner VM
+# deploy.sh — Build and deploy Poimandres on Hetzner VM
 #
 # Usage:
 #   ./deploy/scripts/deploy.sh              # Full deploy (pull + build + restart)
@@ -94,11 +94,11 @@ log "Creating deployment backup..."
 BACKUP_TAG="$(date +%Y%m%d-%H%M%S)"
 
 # Save current image IDs for potential rollback
-if docker image inspect controlla-me-deploy-nextjs > /dev/null 2>&1; then
-    docker tag controlla-me-deploy-nextjs:latest "controlla-me-deploy-nextjs:backup-$BACKUP_TAG" 2>/dev/null || true
+if docker image inspect poimandres-deploy-nextjs > /dev/null 2>&1; then
+    docker tag poimandres-deploy-nextjs:latest "poimandres-deploy-nextjs:backup-$BACKUP_TAG" 2>/dev/null || true
 fi
-if docker image inspect controlla-me-deploy-trading > /dev/null 2>&1; then
-    docker tag controlla-me-deploy-trading:latest "controlla-me-deploy-trading:backup-$BACKUP_TAG" 2>/dev/null || true
+if docker image inspect poimandres-deploy-trading > /dev/null 2>&1; then
+    docker tag poimandres-deploy-trading:latest "poimandres-deploy-trading:backup-$BACKUP_TAG" 2>/dev/null || true
 fi
 
 # =============================================================================
@@ -131,7 +131,7 @@ restart_service() {
 
     while [ $attempts -lt $max_attempts ]; do
         local health
-        health=$(docker inspect --format='{{.State.Health.Status}}' "controlla-$svc" 2>/dev/null || echo "unknown")
+        health=$(docker inspect --format='{{.State.Health.Status}}' "poimandres-$svc" 2>/dev/null || echo "unknown")
 
         if [ "$health" = "healthy" ]; then
             log "$svc is healthy!"
@@ -140,7 +140,7 @@ restart_service() {
 
         if [ "$health" = "unhealthy" ]; then
             warn "$svc is unhealthy. Checking logs..."
-            docker logs --tail 20 "controlla-$svc" 2>&1 | tee -a "$LOG_FILE"
+            docker logs --tail 20 "poimandres-$svc" 2>&1 | tee -a "$LOG_FILE"
             return 1
         fi
 
@@ -148,7 +148,7 @@ restart_service() {
         sleep 5
     done
 
-    warn "$svc health check timed out after ${timeout}s (status: $(docker inspect --format='{{.State.Health.Status}}' "controlla-$svc" 2>/dev/null || echo 'unknown'))"
+    warn "$svc health check timed out after ${timeout}s (status: $(docker inspect --format='{{.State.Health.Status}}' "poimandres-$svc" 2>/dev/null || echo 'unknown'))"
     return 1
 }
 
@@ -161,10 +161,10 @@ fi
 if [ -z "$SERVICE" ] || [ "$SERVICE" = "nextjs" ]; then
     if ! restart_service "nextjs" 120; then
         warn "Next.js health check failed. Attempting rollback..."
-        if docker image inspect "controlla-me-deploy-nextjs:backup-$BACKUP_TAG" > /dev/null 2>&1; then
-            docker tag "controlla-me-deploy-nextjs:backup-$BACKUP_TAG" controlla-me-deploy-nextjs:latest
+        if docker image inspect "poimandres-deploy-nextjs:backup-$BACKUP_TAG" > /dev/null 2>&1; then
+            docker tag "poimandres-deploy-nextjs:backup-$BACKUP_TAG" poimandres-deploy-nextjs:latest
             docker compose -f "$COMPOSE_FILE" up -d --no-deps nextjs
-            error "Rolled back Next.js to previous version. Check logs: docker logs controlla-nextjs"
+            error "Rolled back Next.js to previous version. Check logs: docker logs poimandres-nextjs"
         fi
         error "No backup image found. Manual intervention required."
     fi

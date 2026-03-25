@@ -24,7 +24,6 @@
 
 import {
   discoverOSNodeProcesses,
-  getProcessCategory,
   getSacredPIDs,
   isSacred,
   killPid,

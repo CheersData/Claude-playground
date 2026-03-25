@@ -88,3 +88,15 @@ company/.active-sessions.json
 deploy/.env.production
 deploy/logs/
 deploy/backups/
+
+# Python virtual environments
+.venv/
+music/.venv/
+
+# Middleware C# build artifacts
+middleware/dotnet/
+middleware/dotnet-sdk.tar.gz
+middleware/install-dotnet.sh
+middleware/**/bin/
+middleware/**/obj/
+middleware/.dotnet/

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, X } from "lucide-react";
 
 // ─── Types ───
 
@@ -120,7 +120,27 @@ function PanelCount({ value, suffix }: { value: number; suffix?: string }) {
 
 // ─── Main Component ───
 
-export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleId }: CorpusTreePanelProps) {
+export default function CorpusTreePanel({ open, onClose, focusArticleId }: CorpusTreePanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // C1: Focus panel on open
+  useEffect(() => {
+    if (open && panelRef.current) {
+      panelRef.current.focus();
+    }
+  }, [open]);
+
+  // C1: Escape key closes panel
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
   const [activeTab, setActiveTab] = useState<"fonti" | "istituti">("fonti");
 
   // Sources
@@ -388,21 +408,50 @@ export default function CorpusTreePanel({ open, onClose: _onClose, focusArticleI
   const itSources = sources.filter((s) => s.source_type === "normattiva");
   const euSources = sources.filter((s) => s.source_type === "eurlex");
 
+  const tabs = ["fonti", "istituti"] as const;
+
+  const handleTabKeyDown = (e: ReactKeyboardEvent, currentTab: typeof tabs[number]) => {
+    const currentIndex = tabs.indexOf(currentTab);
+    let nextIndex = -1;
+    if (e.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (e.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    }
+    if (nextIndex >= 0) {
+      e.preventDefault();
+      switchTab(tabs[nextIndex]);
+      const nextButton = document.getElementById(`corpus-tab-${tabs[nextIndex]}`);
+      nextButton?.focus();
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div ref={panelRef} tabIndex={-1} className="flex-1 flex flex-col min-h-0 focus:outline-none">
 
       {/* ─── Toolbar (top) ─── */}
       <div className="flex flex-wrap items-center gap-2 md:gap-4 px-3 md:px-6 py-2 md:py-3 border-b border-[var(--border)] bg-[var(--background-secondary)] shrink-0">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] p-1 rounded"
+          aria-label="Chiudi pannello corpus"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         {/* Tabs */}
         <div className="flex gap-1" role="tablist" aria-label="Modalità navigazione corpus">
-          {(["fonti", "istituti"] as const).map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab}
               role="tab"
               aria-selected={activeTab === tab}
               aria-controls={`corpus-tabpanel-${tab}`}
               id={`corpus-tab-${tab}`}
+              tabIndex={activeTab === tab ? 0 : -1}
               onClick={() => switchTab(tab)}
+              onKeyDown={(e) => handleTabKeyDown(e, tab)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] ${
                 activeTab === tab
                   ? "bg-[var(--foreground)] text-white"
@@ -650,7 +699,7 @@ function HierarchyColumn({
           {column.label}
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="tree" aria-label={column.label}>
         {/* Nodes */}
         {column.nodes.map((node) => {
           const total = countArticles(node);
@@ -660,6 +709,8 @@ function HierarchyColumn({
           return (
             <button
               key={node.key}
+              role="treeitem"
+              aria-selected={isSelected}
               onClick={() => hasContent && onNodeSelect(colIndex, node)}
               aria-label={`${node.label}${total > 0 ? ` — ${total} articoli` : ""}${isSelected ? " (selezionato)" : ""}`}
               aria-expanded={hasContent ? isSelected : undefined}
@@ -697,6 +748,8 @@ function HierarchyColumn({
               return (
                 <button
                   key={art.id}
+                  role="treeitem"
+                  aria-selected={isSelected}
                   onClick={() => onArticleSelect(art.id, colIndex)}
                   aria-label={`Articolo ${art.article_number}${art.article_title ? ` — ${art.article_title}` : ""}${isSelected ? " (selezionato)" : ""}`}
                   className={`w-full text-left px-4 py-1.5 flex items-center gap-1.5 text-xs transition-colors focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--accent)] ${

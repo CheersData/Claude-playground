@@ -223,6 +223,26 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     }
   }, [filePreview]);
 
+  // Track whether the page is hidden (screen locked / tab switched).
+  // When hidden, blur the textarea to prevent iOS from sending spurious
+  // keystrokes (e.g. "blocca") into the input field on screen lock.
+  const pageHiddenRef = useRef(false);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        pageHiddenRef.current = true;
+        inputRef.current?.blur();
+      } else {
+        // Short delay: some mobile browsers fire a brief focus + key event right
+        // after screen unlock which can inject stale keyboard buffer characters.
+        setTimeout(() => { pageHiddenRef.current = false; }, 300);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   // Focus input when panel opens
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -270,9 +290,10 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     return () => clearInterval(interval);
   }, [open, embedded, fetchDashboard]);
 
-  // ── Daemon directive polling (every 30s) ──
-  // Detects new cmeDirective from daemon-report.json and auto-injects into chat.
-  // This closes the autoalimentante loop: daemon → chat → CME → action → board changes → daemon updates.
+  // ── Daemon directive: single fetch on mount (no polling) ──
+  // The daemon only runs when the boss is NOT active, so continuous polling is wasteful.
+  // We fetch once when the panel opens. The directive is shown as a static banner,
+  // not auto-injected into the chat stream.
   useEffect(() => {
     if (!open && !embedded) return;
 
@@ -284,12 +305,12 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
         const reportTs: string | undefined = data.lastReport?.timestamp;
         const directive = data.cmeDirective;
         if (!reportTs || !directive) return;
-        // Deduplicate: only inject if this is a NEW report (different timestamp)
+        // Deduplicate: only show if this is a NEW report (different timestamp)
         if (reportTs === lastDirectiveTsRef.current) return;
         lastDirectiveTsRef.current = reportTs;
         localStorage.setItem("daemon-directive-ts", reportTs);
 
-        // Format directive as a readable chat message
+        // Format directive as a readable message for the banner
         const time = new Date(reportTs).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
         const lines: string[] = [
           `[DAEMON DIRECTIVE — ${time}]`,
@@ -307,27 +328,12 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
         }
         setAutoDirective(lines.join("\n"));
       } catch {
-        /* silently ignore — will retry next 30s cycle */
+        /* silently ignore */
       }
     };
 
-    checkDirective(); // Check immediately on mount
-    const iv = setInterval(checkDirective, 30_000);
-    return () => clearInterval(iv);
+    checkDirective(); // Single fetch on mount — no interval
   }, [open, embedded]);
-
-  // ── Process pending daemon directive ──
-  // Fires when autoDirective is set AND CME is not currently responding.
-  // Starts a new CME session with the directive as the message.
-  useEffect(() => {
-    if (!autoDirective) return;
-    if (responding) return; // Don't interrupt CME while it's working
-    const msg = autoDirective;
-    setAutoDirective(null);
-    // Start a new session targeting CME with the daemon directive
-    startSession(msg, false, "cme");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoDirective, responding]);
 
   // ── Reconnect helpers ──
   const clearReconnectTimer = useCallback(() => {
@@ -372,6 +378,10 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
   }, [clearReconnectTimer]); // startSession is intentionally omitted — it's stable via hoisting
 
   // ── Visibility change + online: reconnect on mobile screen unlock ──
+  // Track pending visibility/online timeouts so we can clean them up on unmount
+  const visibilityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onlineTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const handleReconnectTrigger = (reason: string) => {
       // Only reconnect if we had an active stream that died AND no data was received
@@ -390,10 +400,22 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible") {
+        // Screen locked / tab hidden — cancel any pending visibility reconnect timeout
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current);
+          visibilityTimeoutRef.current = null;
+        }
+        return;
+      }
       // On mobile screen unlock, wait for network to stabilize before attempting reconnect.
       // Use a longer delay (1.5s) because mobile radios can take time to re-associate.
-      setTimeout(() => {
+      // Cancel any previous pending timeout first (prevents double-fire if visibility toggles fast).
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+      }
+      visibilityTimeoutRef.current = setTimeout(() => {
+        visibilityTimeoutRef.current = null;
         // Double-check we're still visible (user might have locked screen again)
         if (document.visibilityState !== "visible") return;
         // Check if we're online before attempting reconnect
@@ -406,8 +428,17 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     };
 
     const handleOnline = () => {
+      // Cancel previous pending online timeout to prevent double-fire
+      if (onlineTimeoutRef.current) {
+        clearTimeout(onlineTimeoutRef.current);
+      }
       // Delay slightly to let the connection stabilize
-      setTimeout(() => handleReconnectTrigger("online event (network restored)"), 500);
+      onlineTimeoutRef.current = setTimeout(() => {
+        onlineTimeoutRef.current = null;
+        // Only reconnect if tab is visible (avoid reconnecting while screen is locked)
+        if (document.visibilityState !== "visible") return;
+        handleReconnectTrigger("online event (network restored)");
+      }, 500);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -415,6 +446,15 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", handleOnline);
+      // Clean up pending timeouts to prevent reconnect on unmounted component
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+        visibilityTimeoutRef.current = null;
+      }
+      if (onlineTimeoutRef.current) {
+        clearTimeout(onlineTimeoutRef.current);
+        onlineTimeoutRef.current = null;
+      }
     };
   }, [attemptReconnect, clearReconnectTimer]);
 
@@ -519,12 +559,15 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
 
       // Inactivity timeout: if no data arrives for 45s (3x server keepalive of 15s),
       // the connection is dead. Abort and let the reconnect logic handle it.
+      // Mark streamActiveRef as false BEFORE aborting so the reconnect handler
+      // sees the correct state immediately (avoids race condition).
       let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
       const INACTIVITY_TIMEOUT_MS = 45_000;
       const resetInactivityTimer = () => {
         if (inactivityTimer) clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(() => {
           console.log("[CompanyPanel] Inactivity timeout — aborting stream");
+          streamActiveRef.current = false;
           controller.abort();
         }, INACTIVITY_TIMEOUT_MS);
       };
@@ -1141,6 +1184,21 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
             aria-label="Messaggi chat"
             aria-live="polite"
           >
+              {/* Daemon directive banner — shown once, dismissible */}
+              {autoDirective && (
+                <div className="mb-3 bg-[var(--accent)]/10 border border-[var(--accent)]/30 rounded-lg px-4 py-3 relative">
+                  <button
+                    onClick={() => setAutoDirective(null)}
+                    className="absolute top-2 right-2 text-[var(--fg-invisible)] hover:text-[var(--fg-primary)] transition-colors"
+                    title="Chiudi direttiva"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-wider mb-1">Direttiva Daemon</p>
+                  <pre className="text-xs text-[var(--fg-secondary)] whitespace-pre-wrap font-mono leading-relaxed">{autoDirective}</pre>
+                </div>
+              )}
+
               {/* Messages — chronological order (oldest first) */}
               {messages.map((msg, i) => (
                 <ChatBubble
@@ -1275,8 +1333,13 @@ export default function CompanyPanel({ open, onClose, embedded }: CompanyPanelPr
                   autoComplete="off"
                   autoCorrect="off"
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    // Ignore input while page is hidden (prevents OS-injected strings like "blocca" on iOS)
+                    if (pageHiddenRef.current) return;
+                    setInput(e.target.value);
+                  }}
                   onKeyDown={(e) => {
+                    if (pageHiddenRef.current) { e.preventDefault(); return; }
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       if (input.trim() || file) {

@@ -311,7 +311,7 @@ async function generateDepartmentAnalyses(
       ...dp.blocked.map((t) => `[BLOCKED] ${t.title}`),
     ].join("\n");
 
-    const prompt = `Sei un analista aziendale che valuta lo stato del dipartimento "${label}" della virtual company controlla.me (app di analisi legale AI).
+    const prompt = `Sei un analista aziendale che valuta lo stato del dipartimento "${label}" della virtual company Poimandres (piattaforma AI con verticale legale).
 
 Stato attuale (${date}):
 ${taskSummary}

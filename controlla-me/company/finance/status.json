@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "finance",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:21:06.038Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-23T11:30:00.000Z",
+    "updated_by": "ops-status-refresh"
   },
   "health": "ok",
-  "summary": "3 task aperti. 19 completati (totale). Verifica piano Cerebras + documentazione SambaNova in coda.",
+  "summary": "0 task aperti. 21 completati (21 totale). Tutti i task completati.",
   "costs": {
     "last_7d": {
       "total_usd": 1.03,
@@ -51,10 +51,7 @@
     "notes": "App in fase pre-lancio, nessun revenue ancora"
   },
   "gaps": [],
-  "open_tasks": [
-    "Verifica piano Cerebras e documentazione SambaNova",
-    "2 altri task open"
-  ],
+  "open_tasks": [],
   "blockers": [],
   "notes": "Strategia tier system funziona: modelli gratuiti (Cerebras, Groq) coprono 87% delle chiamate. Costo medio per chiamata: $0.002."
 }

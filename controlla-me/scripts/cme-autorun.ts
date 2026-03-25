@@ -11,7 +11,8 @@
  *   FASE 3: Report write ($0) — daemon-report.json
  *   FASE 4: Telegram ping ($0) — notify boss if critical/high signals
  *   FASE 4.5: Zombie reaper ($0) — kills stale killable node processes (>30min)
- *   STOP — CME nel terminale del boss esegue
+ *   FASE 5: CME trigger via claude -p ($0 subscription) — headless task execution
+ *   STOP — aggiorna stato daemon
  *
  * Usage:
  *   npx tsx scripts/cme-autorun.ts              # Sessione singola (sensor + report + telegram)
@@ -41,6 +42,7 @@ import { getDecisionsPendingReview } from "../lib/company/riflessione/decision-j
 // NOTE: recordDecision REMOVED — it calls generateEmbedding (Voyage AI API, costs $)
 import { getDepartmentMemories, expireDepartmentMemories } from "../lib/company/memory/department-memory";
 import { loadFormaMentisContext } from "../lib/company/memory/daemon-context-loader";
+import { loadDepartments } from "../lib/company/departments";
 
 // Forma Mentis Layer 5: COLLABORAZIONE
 import { createFanOut, isFanOutComplete, aggregateFanOutResults } from "../lib/company/collaborazione/fan-out";
@@ -99,6 +101,8 @@ interface CmeDirective {
   openTasksBatch: string[];
   /** Task in_progress da verificare */
   inProgressToAudit: string[];
+  /** Task in_progress stale (>2h senza aggiornamento) — richiedono azione immediata */
+  staleInProgressIds: string[];
   /** Se true, CME deve fare riunione plenaria dopo aver smaltito */
   requiresPlenary: boolean;
 }
@@ -240,6 +244,65 @@ function readInProgressTasks(): string {
 
 // readDepartmentVisions RIMOSSO — usato solo dal vecchio LLM prompt builder
 
+// ─── Stale Task Detection ────────────────────────────────────────────────────
+
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+interface StaleTask {
+  id: string;
+  title: string;
+  department: string;
+  startedAt: string;
+  hoursStale: number;
+}
+
+/**
+ * Query Supabase for in_progress tasks whose started_at is older than 2 hours.
+ * Returns stale tasks with their age in hours. Pure read, $0.
+ */
+async function detectStaleTasks(): Promise<StaleTask[]> {
+  try {
+    const { createAdminClient } = await import("../lib/supabase/admin");
+    const admin = createAdminClient();
+
+    const { data, error } = await admin
+      .from("company_tasks")
+      .select("id, title, department, started_at")
+      .eq("status", "in_progress")
+      .order("started_at", { ascending: true });
+
+    if (error || !data) {
+      log(`[STALE] Query error: ${error?.message ?? "no data"}`);
+      return [];
+    }
+
+    const now = Date.now();
+    const stale: StaleTask[] = [];
+    for (const row of data) {
+      const startedAt = row.started_at as string | null;
+      if (!startedAt) continue;
+      const elapsed = now - new Date(startedAt).getTime();
+      if (elapsed > STALE_THRESHOLD_MS) {
+        stale.push({
+          id: row.id as string,
+          title: row.title as string,
+          department: row.department as string,
+          startedAt,
+          hoursStale: Math.round(elapsed / (60 * 60 * 1000) * 10) / 10,
+        });
+      }
+    }
+
+    if (stale.length > 0) {
+      log(`[STALE] Detected ${stale.length} stale in_progress task(s) (>2h)`);
+    }
+    return stale;
+  } catch (err) {
+    log(`[STALE] Detection failed: ${err}`);
+    return [];
+  }
+}
+
 // ─── CME Directive Generator ────────────────────────────────────────────────
 
 /**
@@ -255,6 +318,7 @@ function generateCmeDirective(
   boardStats: { open: number; inProgress: number; done: number; total: number },
   openTasksRaw: string,
   inProgressTasksRaw: string,
+  staleTasks: StaleTask[] = [],
 ): CmeDirective {
   // Parse task titoli e ID dal list output
   // Formato output:
@@ -292,10 +356,20 @@ function generateCmeDirective(
   const hasOpen = boardStats.open > 0;
   const hasInProgress = boardStats.inProgress > 0;
 
+  // Stale task IDs for the directive
+  const staleIds = staleTasks.map(t => t.id);
+  const staleWarning = staleTasks.length > 0
+    ? `⚠ ATTENZIONE: ${staleTasks.length} task stale in_progress da >2h. Verifica e chiudi o riapri PRIMA di smaltire.\n` +
+      staleTasks.map(t => `  • id:${t.id} "${t.title}" (${t.department}) — ${t.hoursStale}h`).join('\n') +
+      `\n\n`
+    : '';
+
+  let directive: CmeDirective;
+
   // CASO 1: ci sono task in_progress E open → misto (prima audit, poi smaltimento)
   if (hasInProgress && hasOpen) {
     const batch = openTasks.slice(0, 5);
-    return {
+    directive = {
       mode: "misto",
       instructions: [
         `PRIORITÀ 1 — AUDIT: Ci sono ${boardStats.inProgress} task in_progress. Verifica OGNUNO:`,
@@ -310,13 +384,14 @@ function generateCmeDirective(
       ].join('\n'),
       openTasksBatch: batch,
       inProgressToAudit: inProgressTasks,
+      staleInProgressIds: staleIds,
       requiresPlenary: false,
     };
   }
 
   // CASO 2: ci sono SOLO task in_progress (nessun open) → audit
-  if (hasInProgress && !hasOpen) {
-    return {
+  else if (hasInProgress && !hasOpen) {
+    directive = {
       mode: "audit_in_progress",
       instructions: [
         `AUDIT IN_PROGRESS: Ci sono ${boardStats.inProgress} task in_progress e 0 open.`,
@@ -330,14 +405,15 @@ function generateCmeDirective(
       ].join('\n'),
       openTasksBatch: [],
       inProgressToAudit: inProgressTasks,
+      staleInProgressIds: staleIds,
       requiresPlenary: true,
     };
   }
 
   // CASO 3: ci sono task open (nessun in_progress) → smaltimento
-  if (hasOpen && !hasInProgress) {
+  else if (hasOpen && !hasInProgress) {
     const batch = openTasks.slice(0, 5);
-    return {
+    directive = {
       mode: "smaltimento",
       instructions: [
         `SMALTIMENTO: Ci sono ${boardStats.open} task open, 0 in_progress. Board pulito.`,
@@ -353,31 +429,42 @@ function generateCmeDirective(
       ].join('\n'),
       openTasksBatch: batch,
       inProgressToAudit: [],
+      staleInProgressIds: staleIds,
       requiresPlenary: boardStats.open <= 5,
     };
   }
 
   // CASO 4: nessun task open né in_progress → plenaria
-  return {
-    mode: "plenaria",
-    instructions: [
-      `BOARD VUOTO: 0 open, 0 in_progress. Tutti i task sono completati.`,
-      ``,
-      `AZIONE: Riunione plenaria obbligatoria.`,
-      `  1. Scansiona status.json di tutti i dipartimenti (vision, gap, blockers)`,
-      `  2. Leggi i signal del daemon report (opportunità, rischi)`,
-      `  3. Controlla goal a rischio (Forma Mentis Layer 3)`,
-      `  4. Controlla decisioni pending review (Layer 4)`,
-      `  5. Proponi al boss i nuovi piani di lavoro con priorità`,
-      `  6. Dopo approvazione boss → crea i task per i dipartimenti`,
-      ``,
-      `DOPO LA PLENARIA: il board avrà nuovi task open → al prossimo risveglio,`,
-      `il daemon genererà direttiva "smaltimento" e il ciclo ricomincia.`,
-    ].join('\n'),
-    openTasksBatch: [],
-    inProgressToAudit: [],
-    requiresPlenary: true,
-  };
+  else {
+    directive = {
+      mode: "plenaria",
+      instructions: [
+        `BOARD VUOTO: 0 open, 0 in_progress. Tutti i task sono completati.`,
+        ``,
+        `AZIONE: Riunione plenaria obbligatoria.`,
+        `  1. Scansiona status.json di tutti i dipartimenti (vision, gap, blockers)`,
+        `  2. Leggi i signal del daemon report (opportunità, rischi)`,
+        `  3. Controlla goal a rischio (Forma Mentis Layer 3)`,
+        `  4. Controlla decisioni pending review (Layer 4)`,
+        `  5. Proponi al boss i nuovi piani di lavoro con priorità`,
+        `  6. Dopo approvazione boss → crea i task per i dipartimenti`,
+        ``,
+        `DOPO LA PLENARIA: il board avrà nuovi task open → al prossimo risveglio,`,
+        `il daemon genererà direttiva "smaltimento" e il ciclo ricomincia.`,
+      ].join('\n'),
+      openTasksBatch: [],
+      inProgressToAudit: [],
+      staleInProgressIds: staleIds,
+      requiresPlenary: true,
+    };
+  }
+
+  // Prepend stale warning to instructions if there are stale tasks
+  if (staleWarning) {
+    directive.instructions = staleWarning + directive.instructions;
+  }
+
+  return directive;
 }
 
 // ─── Daily Plan ─────────────────────────────────────────────────────────────
@@ -387,7 +474,7 @@ function todayPlanPath(): string {
   return resolve(COMPANY_DIR, "daily-plans", `${today}.md`);
 }
 
-function readDailyPlan(): string | null {
+function _readDailyPlan(): string | null {
   try {
     return fs.readFileSync(todayPlanPath(), "utf-8").slice(0, 3000);
   } catch {
@@ -481,15 +568,12 @@ async function loadRecentDaemonReports(limit = 3): Promise<{
  * Expire old department memories and log the count.
  */
 async function expireAllDepartmentMemories(): Promise<void> {
-  const DEPARTMENTS = [
-    "ufficio-legale", "trading", "data-engineering", "quality-assurance",
-    "architecture", "finance", "operations", "security",
-    "strategy", "marketing", "ux-ui", "protocols", "acceleration",
-  ];
-
   try {
+    const allDepts = await loadDepartments();
+    const deptSlugs = allDepts.map((d) => d.id);
+
     const results = await Promise.all(
-      DEPARTMENTS.map((dept) => expireDepartmentMemories(dept))
+      deptSlugs.map((dept) => expireDepartmentMemories(dept))
     );
     const totalExpired = results.reduce((sum, n) => sum + n, 0);
     if (totalExpired > 0) {
@@ -509,16 +593,13 @@ async function expireAllDepartmentMemories(): Promise<void> {
  * Returns a Map<string, string> for quick access during signal enrichment.
  */
 async function loadDeptMemoryMap(): Promise<Map<string, string>> {
-  const DEPARTMENTS = [
-    "ufficio-legale", "trading", "data-engineering", "quality-assurance",
-    "architecture", "finance", "operations", "security",
-    "strategy", "marketing", "ux-ui", "protocols", "acceleration",
-  ];
-
   const memoryMap = new Map<string, string>();
 
   try {
-    const promises = DEPARTMENTS.map(async (dept) => {
+    const allDepts = await loadDepartments();
+    const deptSlugs = allDepts.map((d) => d.id);
+
+    const promises = deptSlugs.map(async (dept) => {
       const memories = await getDepartmentMemories(dept, {
         categories: ["warning", "learning", "context", "fact"],
         limit: 5,
@@ -738,23 +819,29 @@ function deptRouting(dept: string, severity?: string): string {
 }
 
 function _mapDeptName(dirName: string): string {
-  const valid = new Set([
-    "ufficio-legale", "trading", "data-engineering", "quality-assurance",
-    "architecture", "finance", "operations", "security",
-    "strategy", "marketing", "ux-ui", "protocols", "acceleration",
-  ]);
-  return valid.has(dirName) ? dirName : "architecture";
+  // Accept any valid slug (dynamic departments supported).
+  // Fallback to "architecture" only for empty/invalid strings.
+  if (!dirName || dirName.trim() === "") return "architecture";
+  return dirName;
 }
 
 // Vision tracker rimosso — il daemon non crea più task, solo report
 
 /**
- * Scans all department status.json files and extracts actionable items
- * (gaps, blockers, next_actions, features_incomplete, risks, opportunities, content_calendar)
+ * Scans all department status.json files AND DB-only departments,
+ * extracting actionable items (gaps, blockers, next_actions, features_incomplete,
+ * risks, opportunities, content_calendar).
+ *
+ * Merge logic:
+ * - Filesystem departments: read company/{dept}/status.json as before
+ * - DB-only departments (no filesystem folder): read `status` JSONB from company_departments table
+ * - No duplicates: DB departments are only scanned if they don't have a filesystem status.json
  */
-function scanDepartmentStatus(): ActionableItem[] {
+async function scanDepartmentStatus(): Promise<ActionableItem[]> {
   const items: ActionableItem[] = [];
+  const scannedDepts = new Set<string>();
 
+  // ── Phase A: Filesystem scan (existing behavior) ──
   let deptDirs: string[];
   try {
     deptDirs = fs
@@ -762,7 +849,7 @@ function scanDepartmentStatus(): ActionableItem[] {
       .filter((d) => d.isDirectory())
       .map((d) => d.name);
   } catch {
-    return items;
+    deptDirs = [];
   }
 
   for (const dept of deptDirs) {
@@ -776,6 +863,50 @@ function scanDepartmentStatus(): ActionableItem[] {
     } catch {
       continue;
     }
+    scannedDepts.add(dept);
+    extractSignalsFromStatus(dept, status, items);
+  }
+
+  // ── Phase B: DB-only departments (no filesystem status.json) ──
+  try {
+    const allDepts = await loadDepartments();
+    for (const deptMeta of allDepts) {
+      if (scannedDepts.has(deptMeta.id)) continue; // already scanned from filesystem
+
+      // Try to load status from DB (company_departments.status JSONB)
+      try {
+        const { createAdminClient } = await import("@/lib/supabase/admin");
+        const admin = createAdminClient();
+        const { data } = await admin
+          .from("company_departments")
+          .select("status")
+          .eq("name", deptMeta.id)
+          .limit(1)
+          .single();
+
+        if (data?.status && typeof data.status === "object" && Object.keys(data.status as object).length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          extractSignalsFromStatus(deptMeta.id, data.status as Record<string, any>, items);
+          scannedDepts.add(deptMeta.id);
+        }
+      } catch {
+        // DB not reachable or dept not found — skip silently
+      }
+    }
+  } catch {
+    // loadDepartments failed (DB unreachable) — we already have filesystem results
+    log("[FASE 2] DB department scan failed (non-fatal), using filesystem only");
+  }
+
+  return items;
+}
+
+/**
+ * Extracts actionable signals from a department status object.
+ * Shared between filesystem and DB-sourced department statuses.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractSignalsFromStatus(dept: string, status: Record<string, any>, items: ActionableItem[]): void {
 
     // 1. gaps[]
     if (Array.isArray(status.gaps)) {
@@ -920,9 +1051,25 @@ function scanDepartmentStatus(): ActionableItem[] {
         }
       }
     }
-  }
 
-  return items;
+    // 9. completed_recently[] — positive signals for high/critical completions in last 24h
+    if (Array.isArray(status.completed_recently)) {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      for (const c of status.completed_recently) {
+        if (!c.completedAt || !c.title) continue;
+        if (c.priority !== "high" && c.priority !== "critical") continue;
+        if (new Date(c.completedAt).getTime() < oneDayAgo) continue;
+        items.push({
+          deptId: dept,
+          sourceId: `completed-${c.id || dept}-${items.length}`,
+          title: `Completed: "${c.title}" (${c.priority})`,
+          description: `[${dept}] Completed: "${c.title}" (${c.priority})${c.resultSummary ? `. Result: ${c.resultSummary.slice(0, 150)}` : ""}`,
+          priority: "low",
+          routing: deptRouting(dept),
+          requiresHuman: false,
+        });
+      }
+    }
 }
 
 // autoGenerateTasks RIMOSSO — il daemon non crea task, produce solo report per CME
@@ -1060,7 +1207,7 @@ async function main() {
 
   if (dryRun) {
     log("Modo dry-run: mostro signal senza scrivere report.\n");
-    const items = scanDepartmentStatus();
+    const items = await scanDepartmentStatus();
     const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     items.sort((a, b) => (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2));
     console.log(`\nSignal totali: ${items.length}`);
@@ -1074,7 +1221,7 @@ async function main() {
   // Scan-only mode: mostra signal dai dipartimenti (no report write)
   if (args.includes("--scan")) {
     log("Modo scan: mostro signal dai dipartimenti.\n");
-    const items = scanDepartmentStatus();
+    const items = await scanDepartmentStatus();
 
     const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     items.sort((a, b) => (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2));
@@ -1104,6 +1251,95 @@ async function main() {
     console.log("\nNota: il daemon NON crea task. CME legge questi signal e decide.");
     console.log("──────────────────────────────────────────────────");
     return;
+  }
+
+  // ─── CME Trigger via claude -p ─────────────────────────────────────
+  const AUTORUN_LOG_DIR = resolve(COMPANY_DIR, "autorun-logs");
+
+  function triggerCME(report: DaemonReport): void {
+    const { cmeDirective, board, signals } = report;
+
+    // Skip if nothing actionable
+    if (board.open === 0 && board.inProgress === 0 && signals.length === 0) {
+      log("[CME-TRIGGER] Skip: board vuoto e nessun segnale.");
+      return;
+    }
+
+    // Build minimal prompt based on directive mode
+    let modeInstruction = "";
+    switch (cmeDirective.mode) {
+      case "smaltimento":
+        modeInstruction = "Smaltisci i task open per priorità.";
+        break;
+      case "audit_in_progress":
+        modeInstruction = "Audita i task in_progress: chiudi i completati, riapri i bloccati.";
+        break;
+      case "plenaria":
+        modeInstruction = "Prepara plenaria: aggiorna status dept, ri-prioritizza, crea nuovi task con auto-plenary.ts.";
+        break;
+      case "misto":
+        modeInstruction = "Prima audita in_progress, poi smaltisci open.";
+        break;
+    }
+
+    const prompt = [
+      `Sei CME headless. Leggi company/daemon-report.json, segui la cmeDirective.`,
+      `Modo: ${cmeDirective.mode}`,
+      `Board: ${board.open} open, ${board.inProgress} in_progress, ${board.done} done.`,
+      modeInstruction,
+      `Usa scripts/company-tasks.ts per creare/chiudere task. Alla fine scrivi un breve summary di cosa hai fatto.`,
+    ].join("\n");
+
+    log(`[CME-TRIGGER] Launching claude -p (mode=${cmeDirective.mode}, timeout=120s)...`);
+    const triggerStart = Date.now();
+
+    try {
+      const result = spawnSync("/usr/bin/claude", ["-p", "--dangerously-skip-permissions"], {
+        input: prompt,
+        cwd: ROOT,
+        encoding: "utf-8",
+        timeout: 120_000,
+        windowsHide: true,
+      });
+
+      const triggerDuration = Date.now() - triggerStart;
+      const exitCode = result.status ?? -1;
+
+      if (exitCode === 0) {
+        log(`[CME-TRIGGER] Success in ${(triggerDuration / 1000).toFixed(1)}s (exit ${exitCode})`);
+      } else {
+        log(`[CME-TRIGGER] Failed (exit ${exitCode}) in ${(triggerDuration / 1000).toFixed(1)}s`);
+        if (result.stderr) {
+          log(`[CME-TRIGGER] stderr: ${result.stderr.slice(0, 500)}`);
+        }
+      }
+
+      // Save response for debugging
+      try {
+        if (!fs.existsSync(AUTORUN_LOG_DIR)) {
+          fs.mkdirSync(AUTORUN_LOG_DIR, { recursive: true });
+        }
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        const logFile = resolve(AUTORUN_LOG_DIR, `cme-response-${ts}.txt`);
+        const content = [
+          `# CME Trigger Response — ${new Date().toISOString()}`,
+          `# Mode: ${cmeDirective.mode} | Exit: ${exitCode} | Duration: ${triggerDuration}ms`,
+          `# Board: open=${board.open} inProgress=${board.inProgress} done=${board.done}`,
+          "",
+          "## STDOUT",
+          result.stdout || "(empty)",
+          "",
+          "## STDERR",
+          result.stderr || "(empty)",
+        ].join("\n");
+        fs.writeFileSync(logFile, content, "utf-8");
+      } catch (logErr) {
+        log(`[CME-TRIGGER] Failed to save response log: ${logErr instanceof Error ? logErr.message : String(logErr)}`);
+      }
+    } catch (err) {
+      const triggerDuration = Date.now() - triggerStart;
+      log(`[CME-TRIGGER] Error after ${(triggerDuration / 1000).toFixed(1)}s: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   const runOnce = async () => {
@@ -1142,7 +1378,7 @@ async function main() {
       writeDaemonHeartbeat();
 
       // ─── FASE 2: Vision scanner — scansiona status.json, produce SIGNAL ─
-      const signals = scanDepartmentStatus();
+      const signals = await scanDepartmentStatus();
       const uniqueDepts = new Set(signals.map((i) => i.deptId)).size;
       log(`[FASE 2] ${signals.length} signal da ${uniqueDepts} dipartimenti.`);
 
@@ -1272,8 +1508,27 @@ async function main() {
       // Leggi task open e in_progress per generare la direttiva operativa
       const openTasksRaw = boardStats.open > 0 ? readOpenTasks() : "";
       const inProgressTasksRaw = boardStats.inProgress > 0 ? readInProgressTasks() : "";
-      const cmeDirective = generateCmeDirective(boardStats, openTasksRaw, inProgressTasksRaw);
-      log(`[DIRECTIVE] mode=${cmeDirective.mode} | open_batch=${cmeDirective.openTasksBatch.length} | audit=${cmeDirective.inProgressToAudit.length} | plenary=${cmeDirective.requiresPlenary}`);
+
+      // Detect stale in_progress tasks (>2h) via Supabase query
+      const staleTasks = boardStats.inProgress > 0 ? await detectStaleTasks() : [];
+      // Generate signals for stale tasks
+      for (const stale of staleTasks) {
+        signals.push({
+          deptId: stale.department,
+          sourceId: `stale-task-${stale.id}`,
+          title: `Task stale in_progress da ${stale.hoursStale}h`,
+          description: `Task ${stale.id.slice(0, 8)} "${stale.title}" in_progress da ${stale.hoursStale}h senza aggiornamento — probabile sessione chiusa senza completare`,
+          priority: "high",
+          routing: "company-operations:high",
+          requiresHuman: false,
+        });
+      }
+      if (staleTasks.length > 0) {
+        log(`[STALE] Added ${staleTasks.length} stale task signal(s) to report`);
+      }
+
+      const cmeDirective = generateCmeDirective(boardStats, openTasksRaw, inProgressTasksRaw, staleTasks);
+      log(`[DIRECTIVE] mode=${cmeDirective.mode} | open_batch=${cmeDirective.openTasksBatch.length} | audit=${cmeDirective.inProgressToAudit.length} | stale=${cmeDirective.staleInProgressIds.length} | plenary=${cmeDirective.requiresPlenary}`);
 
       // ─── FASE 3: Write report ($0) ─────────────────────────────────────
       const report: DaemonReport = {
@@ -1383,6 +1638,14 @@ async function main() {
         if (alertResult.stdout) log(`[ALERTING] ${alertResult.stdout.trim()}`);
       } catch (e) {
         log(`[ALERTING] Check failed: ${e}`);
+      }
+
+      // ─── FASE 5: CME Trigger via claude -p ($0 subscription) ──────────
+      // Fire-and-forget: if claude is unavailable, daemon continues as pure sensor
+      try {
+        triggerCME(report);
+      } catch (err) {
+        log(`[CME-TRIGGER] Unexpected error (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
       }
 
       // ─── STOP — Aggiorna stato daemon e basta ──────────────────────────

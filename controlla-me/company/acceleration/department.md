@@ -2,9 +2,7 @@
 
 ## Missione
 
-Ottimizzare velocità ed efficienza di tutta la virtual company. Due assi paralleli:
-1. **Performance operativa** — processi, runbook, workflow dei dipartimenti: ridurre cycle time, eliminare blocchi, automatizzare il ripetitivo
-2. **Pulizia codebase** — eliminare codice morto, file ridondanti, dipendenze inutili: ogni riga che non serve costa tempo a chi legge
+Velocità e pulizia. Zero dead code, zero build warning, ogni dipartimento performa al massimo.
 
 ## Strumenti
 
@@ -67,9 +65,9 @@ Zero tech debt, massima velocità operativa. Cycle time medio < 24h per task med
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Audit dipendenze npm** — depcheck + verifica @google/genai compatibility (IN CORSO)
-2. **[P1] Dead code cleanup** — identificare e rimuovere file .ts/.tsx non importati da nessuno
-3. **[P2] Cycle time tracking** — misurare e ridurre tempo medio task per priorità
+1. **[P0] Pulizia codebase pre-launch creator** — eliminare dead code, file ridondanti e dipendenze inutili prima del lancio creator
+2. **[P1] Performance audit dipartimenti** — misurare e ottimizzare le performance operative di ogni dipartimento
+3. **[P2] Automazione cleanup** — automatizzare processi di pulizia e manutenzione ricorrenti
 
 ## Autonomia
 

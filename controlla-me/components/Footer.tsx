@@ -11,13 +11,12 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="inline-flex items-baseline gap-0.5 mb-4">
-              <span className="font-serif text-2xl text-foreground italic">controlla</span>
-              <span className="font-serif text-2xl text-accent">.me</span>
+              <span className="font-serif text-2xl text-foreground italic">Poimandres</span>
             </Link>
             <p className="text-sm text-foreground-tertiary leading-relaxed">
-              Il tuo studio legale AI.
+              La tua piattaforma AI.
               <br />
-              4 consulenti, 30 secondi, zero sorprese.
+              Multi-agente, multi-verticale, zero sorprese.
             </p>
           </div>
 
@@ -82,7 +81,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-border-subtle">
           <p className="text-xs text-foreground-tertiary">
-            &copy; {new Date().getFullYear()} controlla.me — Non sostituisce un avvocato. Ti aiuta a capire cosa stai firmando.
+            &copy; {new Date().getFullYear()} Poimandres — poimandres.work
           </p>
           <div className="flex items-center gap-1.5">
             <motion.div

@@ -118,4 +118,4 @@ Sì. Le vendite in fiere, mercatini e stand temporanei rientrano nei "contratti 
 
 ---
 
-*Hai un contratto di acquisto o un abbonamento con clausole poco chiare? Caricalo su [controlla.me](https://controlla.me): l'analisi AI verifica i tuoi diritti di consumatore in meno di 2 minuti, confrontando ogni clausola con il Codice del Consumo. Le prime 3 analisi sono gratuite.*
+*Hai un contratto di acquisto o un abbonamento con clausole poco chiare? Caricalo su [Poimandres](https://poimandres.work): l'analisi AI verifica i tuoi diritti di consumatore in meno di 2 minuti, confrontando ogni clausola con il Codice del Consumo. Le prime 3 analisi sono gratuite.*

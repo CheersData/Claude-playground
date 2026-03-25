@@ -191,6 +191,18 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "api/music/upload": { windowSec: 3600, max: 10 },
   // Ops CLI exec — spawns processes, strict limit (10/min exec, 5/min kill)
   "api/ops/exec": { windowSec: 60, max: 10 },
+  // Push notifications — subscribe/unsubscribe and send
+  "api/push/subscribe": { windowSec: 60, max: 10 },
+  "api/push/send": { windowSec: 60, max: 10 },
+  // Telegram approval webhook — server-to-server, defense-in-depth (chat_id is primary auth)
+  "api/company/approval/telegram": { windowSec: 60, max: 30 },
+  // Admin departments — creator-auth-protected
+  // POST capped at 5/min to prevent spam creation
+  "api/admin/departments": { windowSec: 60, max: 30 },
+  // Admin middleware configs — creator-auth-protected
+  "api/admin/middleware": { windowSec: 60, max: 30 },
+  // Middleware engine catch-all — per-config execution, moderate limit
+  "api/middleware": { windowSec: 60, max: 20 },
   // Default per endpoint non specificati
   default: { windowSec: 60, max: 30 },
 };

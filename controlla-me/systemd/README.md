@@ -1,4 +1,4 @@
-# Controlla.me Daemon — systemd setup
+# Poimandres Daemon — systemd setup
 
 ## Installazione
 

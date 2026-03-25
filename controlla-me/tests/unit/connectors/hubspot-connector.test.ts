@@ -163,13 +163,17 @@ describe("HubSpotConnector", () => {
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "x")])));
       // engagement (no more → 0)
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      // remaining 9 types: empty
+      for (let i = 0; i < 9; i++) {
+        fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      }
       // Sample
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
 
       const result = await connector.connect();
 
       expect(result.ok).toBe(true);
-      // company=50 (has_more estimate) + contact=1 + deal=0 + ticket=1 + engagement=0 = 52
+      // company=50 (has_more estimate) + contact=1 + deal=0 + ticket=1 + engagement=0 + 9 types=0 = 52
       expect(result.census.estimatedItems).toBe(52);
     });
   });
@@ -177,7 +181,7 @@ describe("HubSpotConnector", () => {
   // ─── fetchAll() ───
 
   describe("fetchAll", () => {
-    it("fetches all 5 object types", async () => {
+    it("fetches all object types", async () => {
       const company = makeHubSpotObject("co1", "company", { name: "Acme" });
       const contact = makeHubSpotObject("c1", "contact", { email: "a@b.com", firstname: "A" });
       const deal = makeHubSpotObject("d1", "deal", { dealname: "Big Deal" });
@@ -189,6 +193,10 @@ describe("HubSpotConnector", () => {
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([deal])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([ticket])))
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([]))); // engagement
+      // remaining 9 types: empty
+      for (let i = 0; i < 9; i++) {
+        fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      }
 
       const result = await connector.fetchAll();
 
@@ -216,21 +224,24 @@ describe("HubSpotConnector", () => {
       const page1 = [makeHubSpotObject("c1", "contact")];
       const page2 = [makeHubSpotObject("c2", "contact")];
 
+      // company: empty
+      fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       // contacts: page1 with next cursor, page2 without
       fetchMock
         .mockResolvedValueOnce(mockFetchOk(makeListResponse(page1, "cursor_2")))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse(page2)))
-        // company, deal, ticket: empty
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+        .mockResolvedValueOnce(mockFetchOk(makeListResponse(page2)));
+      // remaining types: empty
+      for (let i = 0; i < 12; i++) {
+        fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      }
 
       const result = await connector.fetchAll();
 
       expect(result.items).toHaveLength(2);
-      // Verify second call includes 'after' parameter
-      const secondCallUrl = fetchMock.mock.calls[1][0] as string;
-      expect(secondCallUrl).toContain("after=cursor_2");
+      // Verify the paginated call includes 'after' parameter
+      // calls[0] = company (empty), calls[1] = contact page 1, calls[2] = contact page 2 (with after=cursor_2)
+      const paginatedCallUrl = fetchMock.mock.calls[2][0] as string;
+      expect(paginatedCallUrl).toContain("after=cursor_2");
     });
 
     it("includes metadata with counts per type", async () => {
@@ -240,26 +251,27 @@ describe("HubSpotConnector", () => {
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("d1", "deal")])))  // deal
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))                               // ticket
         .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));                              // engagement
+      // remaining 9 types: empty
+      for (let i = 0; i < 9; i++) {
+        fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      }
 
       const result = await connector.fetchAll();
 
-      expect(result.metadata.counts).toEqual({
-        company: 0,
-        contact: 1,
-        deal: 1,
-        ticket: 0,
-        engagement: 0,
-      });
+      const counts = result.metadata.counts as Record<string, number>;
+      expect(counts.company).toBe(0);
+      expect(counts.contact).toBe(1);
+      expect(counts.deal).toBe(1);
+      expect(counts.ticket).toBe(0);
+      expect(counts.engagement).toBe(0);
     });
 
     it("handles API error during fetch", async () => {
       fetchMock.mockResolvedValueOnce(mockFetchError(500, "Internal Server Error"));
-      // Other types proceed normally
-      fetchMock
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])))
-        .mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      // Other types proceed normally (13 remaining types)
+      for (let i = 0; i < 13; i++) {
+        fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
+      }
 
       const result = await connector.fetchAll();
 
@@ -385,8 +397,8 @@ describe("HubSpotConnector", () => {
     it("includes sampleData when sample fetch succeeds", async () => {
       // Test API
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // Census: 5 types (company, contact, deal, ticket, engagement)
-      for (let i = 0; i < 5; i++) {
+      /// Census: 14 types (company, contact, deal, ticket, engagement, product, line_item, quote, feedback_submission, call, email, meeting, note, task)
+      for (let i = 0; i < 14; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       // Sample: 2 contacts
@@ -410,8 +422,8 @@ describe("HubSpotConnector", () => {
     it("succeeds even when sample fetch fails", async () => {
       // Test API
       fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([makeHubSpotObject("1", "contact")])));
-      // Census: 5 types (company, contact, deal, ticket, engagement)
-      for (let i = 0; i < 5; i++) {
+      /// Census: 14 types (company, contact, deal, ticket, engagement, product, line_item, quote, feedback_submission, call, email, meeting, note, task)
+      for (let i = 0; i < 14; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk(makeListResponse([])));
       }
       // Sample: network error
@@ -802,7 +814,7 @@ describe("HubSpotConnector", () => {
 
       const result = await connector.fetchAll();
 
-      expect(result.metadata.syncTypes).toEqual(["company", "contact", "deal", "ticket", "engagement"]);
+      expect(result.metadata.syncTypes).toEqual(["company", "contact", "deal", "ticket", "engagement", "product", "line_item", "quote", "feedback_submission", "call", "email", "meeting", "note", "task"]);
     });
 
     it("includes syncTypes and since in fetchDelta metadata", async () => {
@@ -810,7 +822,7 @@ describe("HubSpotConnector", () => {
 
       const result = await connector.fetchDelta("2026-03-10T00:00:00Z");
 
-      expect(result.metadata.syncTypes).toEqual(["company", "contact", "deal", "ticket", "engagement"]);
+      expect(result.metadata.syncTypes).toEqual(["company", "contact", "deal", "ticket", "engagement", "product", "line_item", "quote", "feedback_submission", "call", "email", "meeting", "note", "task"]);
       expect(result.metadata.since).toBe("2026-03-10T00:00:00Z");
     });
   });

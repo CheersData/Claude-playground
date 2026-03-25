@@ -63,6 +63,7 @@ export async function PATCH(
 
     const task = await updateTask(id, {
       status: body.status,
+      priority: body.priority,
       assignedTo: body.assignedTo,
       resultSummary: body.resultSummary,
       resultData: body.resultData,

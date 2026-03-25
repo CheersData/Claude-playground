@@ -33,7 +33,7 @@ export default function ChatWelcome({ onSuggestion }: ChatWelcomeProps) {
       <div className="max-w-2xl w-full text-center">
         {/* Logo / Title */}
         <h1 className="font-serif text-4xl md:text-5xl text-[#1A1A2E] mb-3">
-          controlla.me
+          Poimandres
         </h1>
         <p className="text-[#6B6B6B] text-lg mb-12">
           Analisi legale AI. Carica un documento o fai una domanda.

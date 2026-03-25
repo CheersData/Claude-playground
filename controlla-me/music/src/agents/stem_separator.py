@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -325,7 +326,7 @@ class StemSeparator(BaseAgent):
             StemSeparationError: on Demucs failure
         """
         cmd = [
-            "python", "-m", "demucs",
+            sys.executable, "-m", "demucs",
             "--name", model,
             "--out", output_dir,
             "--two-stems" if False else None,  # placeholder, always use 4-stem
@@ -363,6 +364,30 @@ class StemSeparator(BaseAgent):
 
         if proc.returncode != 0:
             stderr_snippet = proc.stderr[:500] if proc.stderr else "(no stderr)"
+
+            # Detect OOM / killed-by-OS signals for a clear error message
+            is_oom = (
+                proc.returncode == -9      # SIGKILL (OOM killer)
+                or proc.returncode == 137   # 128 + 9 (SIGKILL via shell)
+                or "Killed" in stderr_snippet
+                or "MemoryError" in stderr_snippet
+                or "Cannot allocate memory" in stderr_snippet
+                or "CUDA out of memory" in stderr_snippet
+                or "OutOfMemoryError" in stderr_snippet
+            )
+
+            if is_oom:
+                self.logger.warning(
+                    "demucs_oom",
+                    return_code=proc.returncode,
+                    stderr=stderr_snippet[:200],
+                    hint="Server does not have enough RAM/VRAM for Demucs. Pipeline will continue without stems.",
+                )
+                raise StemSeparationError(
+                    f"Demucs killed by OS (likely OOM, exit code {proc.returncode}). "
+                    f"Server needs more RAM or GPU for stem separation."
+                )
+
             raise StemSeparationError(
                 f"Demucs exited with code {proc.returncode}. "
                 f"stderr: {stderr_snippet}"

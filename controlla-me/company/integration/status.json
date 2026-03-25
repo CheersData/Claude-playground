@@ -3,12 +3,18 @@
   "type": "ufficio",
   "health": "green",
   "phase": "phase-0-complete",
-  "focus": "All 7 connectors implemented and registered. Gap: credential configuration (env vars) and production testing with real API keys.",
+  "focus": "All 7 connectors implemented and registered. 6 task completati (6 totale), 0 open, 0 in_progress. HubSpot validated live (200 records synced). Blocking on credential configuration (env vars) for production use.",
   "connectors": {
     "implemented": ["stripe", "hubspot", "google-drive", "salesforce", "fatture-in-cloud", "universal-rest", "csv"],
     "active": [],
     "total_implemented": 7,
-    "note": "All connectors registered in plugin-registry.ts. Sync dispatcher (1083 lines) operational. Blocking on env var configuration for each provider."
+    "note": "All connectors registered in plugin-registry.ts. Sync dispatcher operational. HubSpot tested live (66 contacts, 51 companies, 83 engagements). Blocking on env var configuration for remaining providers."
+  },
+  "tasks": {
+    "open": 0,
+    "in_progress": 0,
+    "done": 6,
+    "total": 6
   },
   "metrics": {
     "sync_success_rate": null,
@@ -17,7 +23,7 @@
     "docs_auto_analyzed_month": 0
   },
   "blockers": [
-    "Credential configuration: API keys / OAuth2 client IDs not yet configured for any connector"
+    "Credential configuration: API keys / OAuth2 client IDs not yet configured for any connector (except HubSpot test)"
   ],
-  "last_updated": "2026-03-18T00:00:00Z"
+  "last_updated": "2026-03-23T23:30:00.000Z"
 }

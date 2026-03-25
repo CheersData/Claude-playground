@@ -50,7 +50,7 @@ export default function ChatSidebar({
     <aside className="w-64 h-full flex flex-col bg-[#F7F7F8] border-r border-gray-100 shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
-        <span className="font-serif text-lg text-[#1A1A2E]">controlla.me</span>
+        <span className="font-serif text-lg text-[#1A1A2E]">Poimandres</span>
         <button
           onClick={onToggle}
           className="p-1.5 rounded-lg hover:bg-gray-200/60 transition-colors"

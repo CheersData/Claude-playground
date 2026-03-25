@@ -34,7 +34,7 @@ import type { NextRequest } from "next/server";
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
-const testUser = { nome: "Mario", cognome: "Rossi", ruolo: "admin" };
+const testUser = { nome: "Mario", cognome: "Rossi", ruolo: "admin", role: "operator" as const };
 
 function makeValidToken(overrides?: Partial<typeof testUser>) {
   return generateToken({ ...testUser, ...overrides });
@@ -223,6 +223,28 @@ describe("verifyToken", () => {
     const fakeToken = `${fakePayload}.fakesignature`;
 
     expect(verifyToken(fakeToken)).toBeNull();
+  });
+
+  it("H1-FIX: ritorna null per token pre-RBAC senza campo role", () => {
+    // Simulate a pre-RBAC token by creating a valid token and removing the role field
+    const { createHmac } = require("crypto");
+    const payload = {
+      nome: "Mario",
+      cognome: "Rossi",
+      ruolo: "admin",
+      // no 'role' field — pre-RBAC token
+      sid: "test-sid",
+      tier: "partner",
+      disabledAgents: [],
+      iat: Date.now(),
+      exp: Date.now() + 24 * 3600 * 1000,
+    };
+    const secret = "dev-console-secret-CHANGE-IN-PRODUCTION-min32chars!!";
+    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+    const sig = createHmac("sha256", secret).update(payloadB64).digest("hex");
+    const token = `${payloadB64}.${sig}`;
+
+    expect(verifyToken(token)).toBeNull();
   });
 });
 
@@ -449,7 +471,7 @@ describe("refreshToken — catena di refresh multipli", () => {
 
 describe("generateToken — edge cases campi utente", () => {
   it("accetta campi utente vuoti senza errore", () => {
-    const token = generateToken({ nome: "", cognome: "", ruolo: "" });
+    const token = generateToken({ nome: "", cognome: "", ruolo: "", role: "user" });
     const payload = verifyToken(token);
 
     expect(payload).not.toBeNull();
@@ -463,6 +485,7 @@ describe("generateToken — edge cases campi utente", () => {
       nome: "Giuseppe",
       cognome: "De Nicola",
       ruolo: "amministratore",
+      role: "operator",
     });
     const payload = verifyToken(token);
 
@@ -476,6 +499,7 @@ describe("generateToken — edge cases campi utente", () => {
       nome: "Rene",
       cognome: "Muller",
       ruolo: "operatore",
+      role: "operator",
     });
     const payload = verifyToken(token);
 

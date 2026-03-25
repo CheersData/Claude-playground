@@ -1,6 +1,6 @@
 # Checklist: Clausole Illegittime nei Contratti di Affitto
 
-**Guida pratica per inquilini — controlla.me**
+**Guida pratica per inquilini — Poimandres**
 Aggiornata: marzo 2024 | Normativa di riferimento: Legge 431/1998, Codice Civile (artt. 1571-1614), D.Lgs. 385/1993
 
 ---
@@ -154,7 +154,7 @@ Per ogni clausola trovata nel tuo contratto:
 2. **Chiedi la modifica per iscritto** — invia una raccomandata o PEC con le clausole da eliminare
 3. **Ricorda**: le clausole nulle sono inefficaci anche se hai firmato — puoi farle dichiarare nulle dal giudice
 4. **Consulta un avvocato** specializzato in locazioni o rivolgiti ai CAF/patronati per assistenza gratuita
-5. **Usa controlla.me** per un'analisi AI completa del tuo contratto prima di firmare
+5. **Usa Poimandres** per un'analisi AI completa del tuo contratto prima di firmare
 
 ---
 
@@ -163,9 +163,9 @@ Per ogni clausola trovata nel tuo contratto:
 - **Sunia** (Sindacato Unitario Nazionale Inquilini e Assegnatari): sunia.it
 - **CGIL Camere del Lavoro** — sportello affitti gratuito
 - **Giudice di Pace** — per controversie fino a 5.000 euro
-- **controlla.me** — analisi AI del contratto in pochi minuti
+- **Poimandres** — analisi AI del contratto in pochi minuti
 
 ---
 
-*Contenuto a cura del team legale di controlla.me | controlla.me*
+*Contenuto a cura del team legale di Poimandres | poimandres.work*
 *Questa checklist è aggiornata al marzo 2024. La normativa può variare.*

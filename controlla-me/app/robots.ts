@@ -8,13 +8,13 @@ import { MetadataRoute } from "next";
  */
 export default function robots(): MetadataRoute.Robots {
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://controlla.me";
+    process.env.NEXT_PUBLIC_APP_URL || "https://poimandres.work";
 
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/blog/", "/corpus", "/pricing", "/integrazione"],
+        allow: ["/", "/blog/", "/corpus", "/pricing", "/integrazione", "/music"],
         disallow: [
           "/api/",
           "/console/",

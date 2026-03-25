@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "quality-assurance",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:20:50.457Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-25T10:00:00.000Z",
+    "updated_by": "ops-monitor-task-1338"
   },
   "health": "ok",
-  "summary": "7 task aperti (1 in review). 115 completati (totale). E2E test connettori in attesa wiring Architecture.",
+  "summary": "0 task aperti. 98 completati (102 totale). 102 file test (97 unit, 12 E2E, 2 UAT). CI include Playwright E2E. Coverage: 72% (target 80%). Gap: lib/company/ e Python offices non coperti.",
   "coverage": {
     "overall_pct": 72,
     "target_pct": 80,
@@ -101,10 +101,7 @@
       "severity": "medium"
     }
   ],
-  "open_tasks": [
-    "E2E test connettori Google Drive + HubSpot (review)",
-    "6 task open"
-  ],
+  "open_tasks": [],
   "blockers": [],
   "notes": "397 test passanti su 19 file (era 365 su 17). Nuovi test: vector-search-route.test.ts (15 test: auth/CSRF/rate-limit/vectorDB/type filter/error handling) e corpus-ask-route.test.ts (17 test: auth opzionale/validation/providers/error handling). Coverage stimata ~72% — avviciniamo il target 80%. Gap E2E resta (Playwright non CI). Gap residuo: /api/deep-search route non testata."
 }

@@ -106,8 +106,8 @@ describe("SalesforceConnector", () => {
       fetchMock.mockResolvedValueOnce(
         mockFetchOk(makeQueryResponse([makeSfRecord("001abc", "Account")]))
       );
-      // Census: 5 COUNT queries
-      for (let i = 0; i < 5; i++) {
+      // Census: 12 COUNT queries (Account, Contact, Opportunity, Lead, Case, Task, Event, Campaign, Product2, Order, Quote, Contract)
+      for (let i = 0; i < 12; i++) {
         fetchMock.mockResolvedValueOnce(mockFetchOk({ totalSize: 10 }));
       }
       // Sample data
@@ -119,7 +119,7 @@ describe("SalesforceConnector", () => {
 
       expect(result.ok).toBe(true);
       expect(result.message).toContain("API OK");
-      expect(result.census.estimatedItems).toBe(50); // 5 types × 10 each
+      expect(result.census.estimatedItems).toBe(120); // 12 types × 10 each
     });
 
     it("returns ok=false when instance URL is missing", async () => {

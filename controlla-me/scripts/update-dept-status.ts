@@ -6,6 +6,7 @@
  *   npx tsx scripts/update-dept-status.ts --view --all            # Visualizza tutti gli status
  *   npx tsx scripts/update-dept-status.ts <dept> --set key=value  # Aggiorna un campo
  *   npx tsx scripts/update-dept-status.ts <dept> --patch <json>   # Merge JSON nel top-level
+ *   npx tsx scripts/update-dept-status.ts <dept> --update-mission "New mission text"  # Aggiorna missione in department.md
  *   npx tsx scripts/update-dept-status.ts --list                  # Lista dipartimenti con status
  *
  * Esempi:
@@ -37,6 +38,8 @@ const SUPPORTED_DEPTS = [
   "ux-ui",
   "ufficio-legale",
   "acceleration",
+  "integration",
+  "music",
 ];
 
 function getStatusPath(dept: string): string {
@@ -151,6 +154,77 @@ function viewStatus(dept: string): void {
   }
 }
 
+function getDeptMdPath(dept: string): string {
+  return path.join(COMPANY_DIR, dept, "department.md");
+}
+
+function updateMission(dept: string, newMission: string): void {
+  const mdPath = getDeptMdPath(dept);
+  if (!fs.existsSync(mdPath)) {
+    console.error(`Errore: ${mdPath} non trovato`);
+    process.exit(1);
+  }
+
+  const content = fs.readFileSync(mdPath, "utf-8");
+  const lines = content.split("\n");
+
+  // Find mission header: ## Missione, ### Missione, **Missione**
+  let missionStart = -1;
+  let _missionHeaderType: "heading" | "bold" = "heading";
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (/^#{2,3}\s+[Mm]ission[ei]/.test(trimmed)) {
+      missionStart = i;
+      _missionHeaderType = "heading";
+      break;
+    }
+    if (/^\*\*[Mm]ission[ei]\*\*/.test(trimmed)) {
+      missionStart = i;
+      _missionHeaderType = "bold";
+      break;
+    }
+  }
+
+  if (missionStart === -1) {
+    // No mission section found — append at end
+    const newContent = content.trimEnd() + "\n\n## Missione\n\n" + newMission + "\n";
+    fs.writeFileSync(mdPath, newContent);
+    console.log(`✓ [${dept}] Sezione "## Missione" aggiunta in fondo a department.md`);
+    return;
+  }
+
+  // Find the paragraph range after the mission header.
+  // Skip blank lines after header, then consume until next heading (##) or end.
+  let paraStart = missionStart + 1;
+  // Skip blank lines right after header
+  while (paraStart < lines.length && lines[paraStart].trim() === "") {
+    paraStart++;
+  }
+
+  // Find end of mission paragraph(s): next heading line (starts with ##) or end of file
+  let paraEnd = paraStart;
+  while (paraEnd < lines.length) {
+    const trimmed = lines[paraEnd].trim();
+    // Stop at next markdown heading (## or more)
+    if (paraEnd > paraStart && /^#{2,}\s/.test(trimmed)) {
+      break;
+    }
+    paraEnd++;
+  }
+
+  // Trim trailing blank lines from the paragraph block
+  while (paraEnd > paraStart && lines[paraEnd - 1].trim() === "") {
+    paraEnd--;
+  }
+
+  // Replace the paragraph content
+  const before = lines.slice(0, paraStart);
+  const after = lines.slice(paraEnd);
+  const newLines = [...before, newMission, ...after];
+  fs.writeFileSync(mdPath, newLines.join("\n"));
+  console.log(`✓ [${dept}] Missione aggiornata in department.md`);
+}
+
 function listDepts(): void {
   console.log("\nDipartimenti con status.json:");
   for (const dept of SUPPORTED_DEPTS) {
@@ -181,11 +255,13 @@ Usage:
   npx tsx scripts/update-dept-status.ts --view --all              # Visualizza tutti
   npx tsx scripts/update-dept-status.ts <dept> --set key=value    # Imposta campo (dot-notation)
   npx tsx scripts/update-dept-status.ts <dept> --patch '<json>'   # Merge JSON
+  npx tsx scripts/update-dept-status.ts <dept> --update-mission "text"  # Aggiorna missione in department.md
 
 Esempi:
   npx tsx scripts/update-dept-status.ts trading --set health=warning
   npx tsx scripts/update-dept-status.ts trading --set "runtime.kill_switch_active=true"
   npx tsx scripts/update-dept-status.ts trading --patch '{"runtime":{"last_pipeline_run":"2026-03-03T10:00:00Z"}}'
+  npx tsx scripts/update-dept-status.ts trading --update-mission "Swing trading automatizzato su azioni US"
   npx tsx scripts/update-dept-status.ts --view trading
   npx tsx scripts/update-dept-status.ts --view --all
 `);
@@ -225,6 +301,18 @@ if (!SUPPORTED_DEPTS.includes(dept)) {
   console.error(`Errore: dipartimento '${dept}' non riconosciuto`);
   console.error(`Dipartimenti supportati: ${SUPPORTED_DEPTS.join(", ")}`);
   process.exit(1);
+}
+
+// --update-mission "New mission text"
+const missionIdx = args.indexOf("--update-mission");
+if (missionIdx !== -1) {
+  const missionText = args[missionIdx + 1];
+  if (!missionText) {
+    console.error('Errore: --update-mission richiede un testo. Es: --update-mission "Nuova missione"');
+    process.exit(1);
+  }
+  updateMission(dept, missionText);
+  process.exit(0);
 }
 
 const _statusPath = getStatusPath(dept);

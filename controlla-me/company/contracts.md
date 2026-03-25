@@ -54,6 +54,52 @@ Flusso: Dipartimento A crea task → Task System → Dipartimento B lo prende �
 - Uff. Integrazione → modificare pipeline agenti legali (competenza Ufficio Legale)
 - Uff. Integrazione → modificare infrastruttura data-connector base (competenza Architecture / Data Engineering)
 
+## Gate Contract — Obbligo di tracciamento
+
+### Scope
+
+Qualsiasi modifica a file nelle directory protette richiede un task formale nel board.
+
+**Directory protette:**
+- `app/` — Route API, pagine, layout
+- `lib/` — Logica core, agenti, middleware, utilities
+- `trading/` — Ufficio Trading (Python)
+- `scripts/` — Script CLI e automazione
+- `music/` — Ufficio Musica (Python)
+- `components/` — Componenti React UI
+
+### Requisiti obbligatori
+
+| # | Requisito | Quando | Come verificare |
+|---|-----------|--------|-----------------|
+| 1 | Task ID esistente | Prima di modificare qualsiasi file protetto | `npx tsx scripts/company-tasks.ts list --status open` |
+| 2 | Department owner assegnato | Alla creazione del task | Campo `dept` nel task |
+| 3 | Livello approvazione rispettato | Prima dell'esecuzione | L1: auto. L2: CME. L3/L4: boss via Telegram |
+| 4 | Task in stato `in_progress` | Prima di toccare codice | `npx tsx scripts/company-tasks.ts claim <id>` |
+| 5 | Task chiuso con summary | Dopo verifica completamento | `npx tsx scripts/company-tasks.ts done <id> --summary "..."` |
+
+### Cosa NON richiede task
+
+- Lettura di file (esplorazione, debug read-only, audit)
+- Modifica a file in `company/` (status.json, reports, department.md) — questi sono output organizzativi, non codice
+- Modifica a file di documentazione pura (CLAUDE.md, README, docs/)
+
+### Violazioni
+
+Le violazioni del gate contract sono tracciate e reportate:
+
+| Livello | Violazione | Conseguenza |
+|---------|-----------|-------------|
+| Warning | Prima violazione su task L1 | Annotazione nel daemon report. Task retroattivo con flag `gate_bypass` |
+| Incident | Violazione ripetuta o su task L2 | Report al boss via Telegram |
+| Critical | Violazione su codice L3/L4 (trading live, security, deploy prod) | Stop immediato + notifica boss + rollback se necessario |
+
+### Responsabile enforcement
+
+**Dipartimento Protocolli** — tramite runbook `validate-task-gate.md` e audit periodici.
+
+---
+
 ## Formati I/O per unità organizzativa
 
 ### Uffici (Revenue)

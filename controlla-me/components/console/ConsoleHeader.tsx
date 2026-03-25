@@ -14,6 +14,10 @@ interface ConsoleHeaderProps {
   onCompanyToggle?: () => void;
   onTerminalToggle?: () => void;
   onPrint?: () => void;
+  companyOpen?: boolean;
+  shellOpen?: boolean;
+  terminalOpen?: boolean;
+  powerOpen?: boolean;
 }
 
 const statusDotColor: Record<ConsoleHeaderProps["status"], string> = {
@@ -43,7 +47,7 @@ function barColor(pct: number): string {
   return "bg-emerald-500";
 }
 
-export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onTerminalToggle, onPrint }: ConsoleHeaderProps) {
+export default function ConsoleHeader({ status, userName, corpusActive, onCorpusToggle, onPowerToggle, onShellToggle, onCompanyToggle, onTerminalToggle, onPrint, companyOpen, shellOpen, terminalOpen, powerOpen }: ConsoleHeaderProps) {
   const [time, setTime] = useState("");
   const [stats, setStats] = useState<SystemStats | null>(null);
 
@@ -63,6 +67,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch + polling interval
     fetchStats();
     const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
@@ -129,6 +134,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
           <button
             onClick={onCompanyToggle}
             className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors print:hidden hidden lg:inline flex-shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-expanded={companyOpen ?? false}
             aria-label="Apri pannello Company"
           >
             Company
@@ -138,6 +144,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
           <button
             onClick={onShellToggle}
             className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors print:hidden hidden lg:inline flex-shrink-0 font-mono focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-expanded={shellOpen ?? false}
             aria-label="Apri pannello comandi Shell"
           >
             Shell
@@ -147,6 +154,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
           <button
             onClick={onTerminalToggle}
             className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors print:hidden hidden lg:inline flex-shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-expanded={terminalOpen ?? false}
             aria-label="Apri pannello Terminal — processi attivi"
           >
             <Activity className="w-3.5 h-3.5 inline-block mr-1" />
@@ -157,6 +165,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
           <button
             onClick={onPowerToggle}
             className="text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors print:hidden flex-shrink-0 focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]"
+            aria-expanded={powerOpen ?? false}
             aria-label="Apri pannello Power — modelli e catene di fallback"
           >
             Power
@@ -188,14 +197,14 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
           <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded border border-[var(--border)] flex-shrink-0" aria-label={`CPU ${stats.cpu_percent}%, RAM ${stats.ram_percent}%`}>
             <div className="flex items-center gap-1" title={`CPU: ${stats.cpu_percent}%`}>
               <Cpu className={`w-3 h-3 ${statColor(stats.cpu_percent)}`} />
-              <div className="w-8 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
+              <div className="w-8 h-1.5 rounded-full bg-[var(--border)] overflow-hidden" aria-hidden="true">
                 <div className={`h-full rounded-full transition-all duration-500 ${barColor(stats.cpu_percent)}`} style={{ width: `${Math.min(stats.cpu_percent, 100)}%` }} />
               </div>
               <span className={`tabular-nums text-[10px] ${statColor(stats.cpu_percent)}`}>{stats.cpu_percent}%</span>
             </div>
             <div className="flex items-center gap-1" title={`RAM: ${stats.ram_used_mb}/${stats.ram_total_mb} MB (${stats.ram_percent}%)`}>
               <MemoryStick className={`w-3 h-3 ${statColor(stats.ram_percent)}`} />
-              <div className="w-8 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
+              <div className="w-8 h-1.5 rounded-full bg-[var(--border)] overflow-hidden" aria-hidden="true">
                 <div className={`h-full rounded-full transition-all duration-500 ${barColor(stats.ram_percent)}`} style={{ width: `${Math.min(stats.ram_percent, 100)}%` }} />
               </div>
               <span className={`tabular-nums text-[10px] ${statColor(stats.ram_percent)}`}>{stats.ram_percent}%</span>

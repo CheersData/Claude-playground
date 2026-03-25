@@ -1,15 +1,17 @@
 {
-  "enabled": true,
-  "intervalMinutes": 10,
-  "lastRun": "2026-03-19T09:40:52.036Z",
-  "lastDurationMs": 9227,
+  "enabled": false,
+  "intervalMinutes": 25,
+  "lastRun": "2026-03-25T06:28:56.231Z",
+  "lastDurationMs": 14140,
   "lastExitCode": 0,
-  "lastTasksExecuted": 1,
-  "totalRuns": 131,
-  "updatedAt": "2026-03-20T16:15:43.065Z",
-  "updatedBy": "cme-autorun-pure-sensor",
+  "lastTasksExecuted": 0,
+  "totalRuns": 285,
+  "updatedAt": "2026-03-25T06:54:10.315Z",
+  "updatedBy": "ops-panel",
   "consecutiveNoOp": 2,
   "rateLimitUntil": null,
   "lastPlenaryAt": "2026-03-15T16:34:29.058Z",
-  "lastHeartbeat": "2026-03-20T16:15:43.065Z"
+  "lastHeartbeat": "2026-03-25T06:29:13.079Z",
+  "pauseWhenBossActive": true,
+  "executorEnabled": true
 }

@@ -185,7 +185,7 @@ Non devi diventare un giurista. Ma devi sapere cosa c'e scritto nel tuo contratt
 
 Non sei sicuro se la caparra nel tuo contratto e confirmatoria o penitenziale? O se quello che c'e scritto e davvero una caparra e non un acconto mascherato?
 
-Carica il contratto su [Controlla.me](https://controlla.me): l'analisi AI identifica il tipo di caparra, verifica la clausola rispetto agli Art. 1385 e 1386 del Codice Civile, e ti spiega in parole semplici cosa succede se qualcosa va storto.
+Carica il contratto su [Poimandres](https://poimandres.work): l'analisi AI identifica il tipo di caparra, verifica la clausola rispetto agli Art. 1385 e 1386 del Codice Civile, e ti spiega in parole semplici cosa succede se qualcosa va storto.
 
 Due minuti. Gratis per le prime 3 analisi. Senza registrazione.
 

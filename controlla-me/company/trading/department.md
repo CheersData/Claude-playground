@@ -6,7 +6,7 @@
 
 ## Missione
 
-Trading automatizzato su azioni US e ETF via Alpaca per garantire sostenibilità finanziaria a Controlla.me. Ogni euro generato dal trading è un euro che non serve chiedere agli utenti.
+Sostenibilità finanziaria tramite trading automatizzato. Caso d'uso dimostrativo #2.
 
 ## Vincolo Architetturale (direttiva boss)
 
@@ -79,8 +79,8 @@ Trading automatizzato su azioni US e ETF via Alpaca per garantire sostenibilità
 |-----------|--------|
 | Universo | 14 ETF settoriali (XLF, XLK, XLE, XLV, XLI, XLU, XLY, XLP, XLRE, XLB, XLC, SPY, QQQ, IWM) |
 | Timeframe | 1Day |
-| SL | 2.5x ATR |
-| TP | 6.0x ATR |
+| SL | 2.0x ATR (Cycle 4 winner) |
+| TP | 4.0x ATR (Cycle 4 winner) |
 | Filtro trend | SMA200 |
 | Conferma RSI | Sì (momentum) |
 
@@ -103,8 +103,8 @@ Trading automatizzato su azioni US e ETF via Alpaca per garantire sostenibilità
 | Fase | Durata | Criteri go/no-go | Stato |
 |------|--------|-----------------|-------|
 | 1. Fondamenta | 1-2 settimane | Infrastruttura Python funzionante, connessione Alpaca paper, schema DB | ✅ COMPLETATA (2026-02-xx) |
-| 2. Backtest | 1-2 settimane | Backtest su dati storici (min 1 anno), Sharpe > 1.0, max drawdown < 15% | ⚠️ PARZIALE — 4/5 criteri OK, Sharpe negativo (da ottimizzare) |
-| 3. Paper Trading | 30 giorni minimi | Paper trading con risultati consistenti col backtest, nessun bug critico | 🟠 **IN CORSO** — avviato 2026-03-02 |
+| 2. Backtest | 1-2 settimane | Backtest su dati storici (min 1 anno), Sharpe > 1.0, max drawdown < 15% | ✅ COMPLETATA — Cycle 4 GO (SL=2.0x, TP=4.0x, signal_exit=ON) |
+| 3. Paper Trading | 30 giorni minimi | Paper trading con risultati consistenti col backtest, nessun bug critico | 🟠 **IN CORSO** — params configured, awaiting boss start |
 | 4. Go Live | Indefinito | Boss approva, capital allocato, kill switch testato | 🔒 PENDING |
 
 ## Agenti
@@ -146,9 +146,9 @@ Trading live profittevole con Sharpe > 1.0, max drawdown < 10%, 30+ giorni paper
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Sharpe > 1.0** — grid search parametri (TP/SL, threshold, lookback) per superare soglia 1.0
-2. **[P1] Paper trading 30 giorni** — validare strategia ottimizzata su paper con risultati consistenti col backtest
-3. **[P2] Go-live checklist** — preparare tutto per approvazione boss: kill switch testato, capital allocato, monitoring attivo
+1. **[P0] Paper trading → GO dal boss** — validare strategia su paper trading per 30 giorni minimi e ottenere approvazione boss
+2. **[P1] Reporting automatico** — dashboard e report automatici per P&L, posizioni, risk events, kill switch
+3. **[P2] Go-live** — preparare tutto per go-live: kill switch testato, capital allocato, monitoring attivo
 
 ## Autonomia
 

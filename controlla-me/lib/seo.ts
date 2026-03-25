@@ -1,7 +1,7 @@
 /**
  * SEO utilities — Metadata, JSON-LD, Open Graph helpers.
  *
- * Shared between controlla.me and poimandres.work.
+ * Shared across Poimandres verticals (poimandres.work).
  * Centralizes structured data generation for articles, organization,
  * and website schemas.
  */
@@ -10,26 +10,22 @@ import type { Metadata } from "next";
 
 // ─── Constants ───
 
-export const CONTROLLA_ME_URL = "https://controlla.me";
 export const POIMANDRES_URL = "https://poimandres.work";
 
-export const ORGANIZATION_CONTROLLA = {
-  "@type": "Organization" as const,
-  name: "controlla.me",
-  url: CONTROLLA_ME_URL,
-  description:
-    "Studio legale AI italiano — 4 agenti specializzati analizzano contratti in 30 secondi.",
-  sameAs: [] as string[], // Add social URLs when available
-};
+/** @deprecated Use POIMANDRES_URL — controlla.me redirects to poimandres.work */
+export const CONTROLLA_ME_URL = POIMANDRES_URL;
 
 export const ORGANIZATION_POIMANDRES = {
   "@type": "Organization" as const,
-  name: "poimandres",
+  name: "Poimandres",
   url: POIMANDRES_URL,
   description:
-    "Analisi legale AI, diritto dei contratti e legal tech — guide, approfondimenti e strumenti per professionisti e PMI.",
+    "Piattaforma AI multi-verticale — analisi legale, trading, musica e strumenti per professionisti e PMI.",
   sameAs: [] as string[],
 };
+
+/** @deprecated Use ORGANIZATION_POIMANDRES — kept for backward compatibility */
+export const ORGANIZATION_CONTROLLA = ORGANIZATION_POIMANDRES;
 
 // ─── JSON-LD Generators ───
 
@@ -44,7 +40,7 @@ export interface ArticleJsonLdInput {
   category: string;
   wordCount: number;
   baseUrl: string;
-  publisher: typeof ORGANIZATION_CONTROLLA;
+  publisher: typeof ORGANIZATION_POIMANDRES;
 }
 
 /**

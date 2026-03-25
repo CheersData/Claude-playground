@@ -36,7 +36,19 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
   // Costruisce set di origini consentite: app URL + hardcoded + ALLOWED_ORIGINS
   const allowedOrigins = new Set<string>();
   try {
-    allowedOrigins.add(new URL(appUrl).origin);
+    const parsed = new URL(appUrl);
+    allowedOrigins.add(parsed.origin);
+    // Auto-allow www/non-www variant to prevent CSRF false positives
+    // when users access via www.domain vs domain (common with DNS setups)
+    if (parsed.hostname.startsWith("www.")) {
+      const nonWww = new URL(appUrl);
+      nonWww.hostname = parsed.hostname.slice(4);
+      allowedOrigins.add(nonWww.origin);
+    } else if (!parsed.hostname.includes("localhost")) {
+      const withWww = new URL(appUrl);
+      withWww.hostname = `www.${parsed.hostname}`;
+      allowedOrigins.add(withWww.origin);
+    }
   } catch {
     // URL non valida, ignorata
   }
@@ -77,7 +89,7 @@ export function checkCsrf(req: NextRequest): NextResponse | null {
   }
 
   return NextResponse.json(
-    { error: "Richiesta non autorizzata" },
+    { error: "Origine della richiesta non consentita" },
     { status: 403 }
   );
 }

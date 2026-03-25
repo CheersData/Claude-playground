@@ -282,6 +282,7 @@ class Executor(BaseAgent):
                     "symbol": symbol,
                     "side": side,
                     "qty": qty,
+                    "strategy": decision.get("strategy"),
                     "order_type": "bracket" if (stop_loss and take_profit) else "market",
                     "status": fill_info.get("status", result.get("status", "submitted")),
                     "stop_loss": stop_loss,

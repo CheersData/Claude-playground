@@ -514,19 +514,29 @@ function HeroBrand() {
 
           {/* LEFT — Brand text on clean white */}
           <div className="flex-1 w-full md:w-1/2 text-left">
-            {/* Brand mark */}
+            {/* Brand mark — Poimandres parent */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.6 }}
-              className="mb-4"
+              className="mb-2"
             >
-              <span className="font-serif font-black text-[var(--fluid-brand)] leading-none tracking-[var(--tracking-tight)]">
-                <span className="text-[var(--foreground)]">controlla</span>
-                <span className="text-[var(--accent)]">.me</span>
+              <span className="font-serif font-black text-[var(--fluid-brand)] leading-none tracking-[var(--tracking-tight)] text-[var(--foreground)]">
+                Poimandres
               </span>
             </motion.div>
+
+            {/* Tagline */}
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15, duration: 0.5 }}
+              className="text-sm font-medium text-[var(--foreground-tertiary)] tracking-widest uppercase mb-6"
+            >
+              AI per gli umani
+            </motion.p>
 
             <motion.p
               initial={{ opacity: 0, y: 15 }}
@@ -536,7 +546,7 @@ function HeroBrand() {
               className="font-serif italic text-[var(--fluid-h2)] leading-[var(--leading-snug)] bg-clip-text text-transparent mb-6"
               style={{ backgroundImage: "linear-gradient(to bottom right, var(--accent), var(--gradient-warm-mid), var(--gradient-warm-end))" }}
             >
-              La legge, compresa da tutti.
+              Team di agenti AI specializzati.
             </motion.p>
 
             <motion.p
@@ -546,9 +556,9 @@ function HeroBrand() {
               transition={{ delay: 0.3 }}
               className="text-[var(--fluid-body)] text-[var(--foreground-secondary)] max-w-[440px] mb-10 leading-[var(--leading-relaxed)]"
             >
-              Un team di intelligenze artificiali specializzate che leggono,
-              analizzano e ti spiegano i tuoi documenti legali — prima che sia
-              troppo tardi.
+              La piattaforma madre per agenti AI verticali:
+              <br className="hidden md:block" />
+              <strong>controlla.me</strong> (legale) · <strong>studia.me</strong> (medico) · <strong>Music</strong> (artisti).
             </motion.p>
 
             {/* CTA scroll */}

@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronRight, Database, Filter } from "lucide-react";
 import FieldNode from "./FieldNode";
-import type { SchemaField, SchemaEntity, FieldType } from "./index";
+import type { SchemaEntity, FieldType } from "./index";
 
 interface SchemaExplorerProps {
   entity: SchemaEntity | null;

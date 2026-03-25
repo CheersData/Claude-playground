@@ -2,45 +2,47 @@
   "_meta": {
     "dept": "music",
     "schema_version": "1.0",
-    "last_updated": "2026-03-20T12:00:00Z",
-    "updated_by": "cme"
+    "last_updated": "2026-03-25T10:00:00.000Z",
+    "updated_by": "ops-monitor"
   },
   "health": "ok",
-  "summary": "Ufficio Musica appena creato. Fase 0 non ancora avviata. Report Strategy e Architecture completati, boss ha approvato.",
+  "summary": "0 task aperti. Fondamenta completate: schema DB (migration 045), pyproject.toml, pipeline operativa (upload+stems+analysis+save), API routes (upload+analyze SSE), UI landing+upload+progress+results (9 componenti React), 7 agenti Python (2 operativi: StemSeparator+AudioAnalyst, 5 strutturati: TrendScout, ArrangementDirector, QualityReviewer, ReleaseStrategist, CareerAdvisor).",
   "phase": {
-    "current": "setup",
+    "current": "fondamenta",
     "stages": ["setup", "fondamenta", "core_mvp", "release_growth", "monetizzazione"],
-    "setup": "in_progress",
-    "fondamenta": "pending",
-    "core_mvp": "pending",
+    "setup": "completed",
+    "fondamenta": "completed",
+    "core_mvp": "in_progress",
     "release_growth": "pending",
     "monetizzazione": "pending"
   },
   "runtime": {
-    "mode": "planning",
-    "enabled": false,
+    "mode": "analysis",
+    "enabled": true,
     "last_execution": null,
     "metrics": {}
   },
   "risk": {
     "demucs_gpu": "MVP su CPU (~3min/brano), GPU quando volume lo richiede",
-    "tunebat_api": "Pricing non pubblico, fallback su Hooktheory + analisi locale",
-    "llm_quality": "Suggerimenti LLM da validare con artisti reali"
+    "tunebat_api": "Pricing non pubblico, fallback su genre profiles heuristic",
+    "llm_quality": "Suggerimenti LLM da validare con artisti reali",
+    "venv_staged": "music/.venv (36K file) era stato stagato per errore in git — risolto in .gitignore, unstage pendente"
   },
   "agents": {
-    "audio-analyst": "planned",
-    "trend-scout": "planned",
-    "arrangement-director": "planned",
-    "release-strategist": "planned",
-    "quality-reviewer": "planned",
-    "career-advisor": "planned"
+    "stem-separator": "operational",
+    "audio-analyst": "operational",
+    "trend-scout": "implemented",
+    "arrangement-director": "implemented",
+    "quality-reviewer": "implemented",
+    "release-strategist": "implemented",
+    "career-advisor": "implemented"
   },
   "next_actions": [
-    "Creare schema DB migration (music_analyses, music_artist_profiles, music_trend_cache)",
-    "Setup music/pyproject.toml con dipendenze Python",
-    "Implementare pipeline base: upload -> Demucs stem separation"
+    "Integrare TrendScout+ArrangementDirector+QualityReviewer+ReleaseStrategist+CareerAdvisor nella pipeline orchestrator",
+    "Test end-to-end con brano reale",
+    "Definire pricing e billing Stripe per piani Artist/Pro/Label"
   ],
   "open_tasks": [],
   "blockers": [],
-  "notes": "Approvazione boss ricevuta 2026-03-20. Marketing aveva dato NO-GO, boss ha overridato: vuole dipartimento artistico."
+  "notes": "Approvazione boss ricevuta 2026-03-20. Marketing aveva dato NO-GO, boss ha overridato: vuole dipartimento artistico. Pipeline base funzionante: upload → stems → analysis → save DB."
 }

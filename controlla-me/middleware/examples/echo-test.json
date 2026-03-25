@@ -1,0 +1,93 @@
+{
+  "slug": "echo-test",
+  "name": "Echo Test - Verifica pipeline",
+  "version": "1.0.0",
+  "enabled": true,
+  "endpoint": {
+    "path": "/api/middleware/test/echo",
+    "method": "POST",
+    "description": "Endpoint di test: invia dati, li valida, li mappa e li rimanda indietro via httpbin",
+    "tags": ["test", "echo"]
+  },
+  "auth": {
+    "type": "none"
+  },
+  "input": {
+    "content_type": "application/json",
+    "fields": {
+      "nome": {
+        "type": "string",
+        "required": true,
+        "min_length": 2,
+        "max_length": 100,
+        "description": "Nome utente"
+      },
+      "email": {
+        "type": "string",
+        "required": true,
+        "format": "email",
+        "description": "Email utente"
+      },
+      "importo": {
+        "type": "number",
+        "required": false,
+        "min": 0,
+        "max": 99999,
+        "default": 0,
+        "description": "Importo opzionale"
+      }
+    },
+    "validators": []
+  },
+  "target": {
+    "base_url": "https://httpbin.org",
+    "path": "/post",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Test-Header": "poimandres-middleware"
+    },
+    "timeout_ms": 10000,
+    "retry": {
+      "max_attempts": 2,
+      "backoff_ms": [1000],
+      "retry_on_status": [500, 502, 503]
+    }
+  },
+  "mapping": {
+    "request_body": {
+      "user": {
+        "source": "input",
+        "field": "nome"
+      },
+      "contact": {
+        "source": "input",
+        "field": "email"
+      },
+      "amount_cents": {
+        "source": "transform",
+        "field": "importo",
+        "transform": "to_cents"
+      },
+      "timestamp": {
+        "source": "static",
+        "value": "auto"
+      },
+      "origin": {
+        "source": "static",
+        "value": "poimandres-middleware-v1"
+      }
+    }
+  },
+  "response": {
+    "success_status": [200],
+    "extract": {
+      "echo_data": "$.json",
+      "origin_ip": "$.origin",
+      "url": "$.url"
+    },
+    "error_extract": {
+      "message": "$.message"
+    }
+  }
+}

@@ -20,11 +20,12 @@ import {
   clearOutputRing,
   appendOutputLine,
 } from "@/lib/company/sessions";
-import { requireConsoleAuth } from "@/lib/middleware/console-token";
+import { requireConsoleRole } from "@/lib/middleware/console-token";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { checkCsrf } from "@/lib/middleware/csrf";
 import type { NextRequest } from "next/server";
 import { broadcastAgentEvent } from "@/lib/agent-broadcast";
+import { createSSEStream, SSE_HEADERS } from "@/lib/sse-stream-factory";
 
 export const maxDuration = 300; // Sessioni interattive possono durare di più
 
@@ -63,7 +64,8 @@ export async function POST(req: Request) {
   const rl = await checkRateLimit(req as unknown as NextRequest);
   if (rl) return rl;
 
-  const authPayload = requireConsoleAuth(req as unknown as NextRequest);
+  // Admin only — spawns claude -p child process
+  const authPayload = requireConsoleRole(req as unknown as NextRequest, "admin");
   if (!authPayload) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -95,7 +97,7 @@ export async function POST(req: Request) {
     try {
       promptContent = readFileSync(join(companyDir, targetConfig.promptFile), "utf-8");
     } catch {
-      promptContent = `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano.`;
+      promptContent = `Sei il ${targetConfig.label} di Poimandres. Rispondi in italiano.`;
     }
 
     // Fetch live data + Forma Mentis context in parallel
@@ -157,8 +159,8 @@ export async function POST(req: Request) {
 
     // System prompt — references Forma Mentis context to ensure LLM gives it weight
     const shortSystemPrompt = formaMentisBlock
-      ? `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri. IMPORTANTE: il messaggio contiene un blocco "CONTESTO AZIENDALE (Forma Mentis)" con sessioni precedenti, task completati, warning e goal. DEVI leggerlo e usarlo per evitare di riproporre lavoro già fatto.`
-      : `Sei il ${targetConfig.label} di Controlla.me. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri.`;
+      ? `Sei il ${targetConfig.label} di Poimandres. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri. IMPORTANTE: il messaggio contiene un blocco "CONTESTO AZIENDALE (Forma Mentis)" con sessioni precedenti, task completati, warning e goal. DEVI leggerlo e usarlo per evitare di riproporre lavoro già fatto.`
+      : `Sei il ${targetConfig.label} di Poimandres. Rispondi in italiano, conciso, max 200 parole. Non inventare numeri.`;
 
     // Build conversation history section (if resuming)
     let historySection = "";
@@ -192,31 +194,20 @@ export async function POST(req: Request) {
 
     const projectDir = process.cwd();
 
-    const stream = new ReadableStream({
-      start(controller) {
-        let closed = false;
-        const encoder = new TextEncoder();
-        const send = (event: string, data: unknown) => {
-          try {
-            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-          } catch {
-            // Controller may be closed
-          }
-        };
+    const { stream, send, sendComment, close: closeStream, onCleanup } = createSSEStream({ request: req });
 
         // ── Keepalive ping every 15s ──
         // Mobile browsers aggressively kill idle SSE connections (especially on screen lock).
         // Sending periodic pings keeps the TCP connection alive and helps the client detect
         // a dead connection faster (no data = connection truly lost, not just idle).
         const keepaliveInterval = setInterval(() => {
-          if (closed) { clearInterval(keepaliveInterval); return; }
-          try {
-            // SSE comment line (:) — ignored by EventSource/SSE parsers but keeps connection alive
-            controller.enqueue(encoder.encode(`: keepalive ${Date.now()}\n\n`));
-          } catch {
-            clearInterval(keepaliveInterval);
-          }
+          sendComment(`keepalive ${Date.now()}`);
         }, 15_000);
+        onCleanup(() => clearInterval(keepaliveInterval));
+
+        // Auto-continuation: track turns to avoid infinite loops
+        let turnCount = 0;
+        const MAX_AUTO_TURNS = 50;
 
         const args = [
           "-p",
@@ -226,7 +217,7 @@ export async function POST(req: Request) {
           "--output-format", "stream-json",
           "--verbose",
           "--no-session-persistence",
-          "--dangerously-skip-permissions",
+          "--strict-mcp-config",
         ];
 
         const claudeBin = resolveClaudePath();
@@ -356,20 +347,47 @@ export async function POST(req: Request) {
                   });
                   break;
 
-                case "result":
+                case "result": {
+                  turnCount++;
                   send("debug", {
                     type: "result",
-                    msg: `${event.duration_ms}ms | $${event.total_cost_usd?.toFixed(4) ?? "?"} | turns: ${event.num_turns}`,
+                    msg: `Turn ${turnCount}/${MAX_AUTO_TURNS} | ${event.duration_ms}ms | $${event.total_cost_usd?.toFixed(4) ?? "?"} | turns: ${event.num_turns}`,
                     ts: Date.now(),
                   });
-                  // Signal end of current turn (session stays open for follow-ups!)
                   send("turn-end", {
                     duration_ms: event.duration_ms,
                     cost_usd: event.total_cost_usd,
                     num_turns: event.num_turns,
                     result: event.result,
                   });
+
+                  // Auto-continuation: ALWAYS continue UNLESS CME explicitly signals
+                  // it's waiting for the boss. This inverts the old fragile approach
+                  // (matching Italian verbs for pending work) with a robust opt-out:
+                  // continue by default, stop only on explicit completion phrases.
+                  const resultText = typeof event.result === "string" ? event.result : "";
+                  // Only match explicit "waiting for boss" / "nothing to do" phrases
+                  const isWaitingForBoss = /su cosa vuoi|aspetto.*(?:go|ok|boss|ordini|istruzioni)|in attesa|dimmi cosa|a tua disposizione|board.*vuoto.*0 open/i.test(resultText);
+                  // Empty result = tools were used (Agent/Bash) → always continue
+                  const shouldContinue = !isWaitingForBoss && turnCount < MAX_AUTO_TURNS;
+
+                  if (shouldContinue) {
+                    send("debug", { type: "auto-continue", msg: `Turn ${turnCount}: continuing (not waiting for boss)`, ts: Date.now() });
+                    const followUp = JSON.stringify({
+                      type: "user",
+                      message: {
+                        role: "user",
+                        content: [{ type: "text", text: "Procedi. Esegui i task che hai pianificato. Completa il ciclo: routing → esecuzione dipartimento → done → feedback. Non fermarti." }],
+                      },
+                    });
+                    try { child.stdin.write(followUp + "\n"); } catch { /* stdin closed */ }
+                  } else if (turnCount >= MAX_AUTO_TURNS) {
+                    send("debug", { type: "auto-continue", msg: `Max turns (${MAX_AUTO_TURNS}) reached, stopping`, ts: Date.now() });
+                  } else {
+                    send("debug", { type: "auto-continue", msg: `Turn ${turnCount}: waiting for boss (explicit stop detected)`, ts: Date.now() });
+                  }
                   break;
+                }
 
                 case "rate_limit_event":
                   send("debug", {
@@ -425,8 +443,7 @@ export async function POST(req: Request) {
             send("error", { error: `Claude Code exit ${code}: ${stderrOutput.slice(0, 500)}` });
           }
           send("done", { target, sessionId });
-          clearInterval(keepaliveInterval);
-          if (!closed) { closed = true; controller.close(); }
+          closeStream();
         });
 
         child.on("error", (err) => {
@@ -446,25 +463,17 @@ export async function POST(req: Request) {
           });
           send("debug", { type: "spawn-error", msg: err.message, ts: Date.now() });
           send("error", { error: `Errore spawn: ${err.message}. Claude Code è installato?` });
-          clearInterval(keepaliveInterval);
-          if (!closed) { closed = true; controller.close(); }
+          closeStream();
         });
-      },
 
-      cancel() {
-        // Client disconnected — clean up child process
-        deleteSession(sessionId);
-        // Note: child.on("close") handler will unregister from tracker
-      },
-    });
+        // Clean up child process + session on client disconnect
+        onCleanup(() => {
+          try { child.kill("SIGTERM"); } catch {}
+          deleteSession(sessionId);
+          // child.on("close") handler will unregister from tracker
+        });
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+    return new Response(stream, { headers: SSE_HEADERS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Errore sconosciuto";
     return new Response(JSON.stringify({ error: msg }), {

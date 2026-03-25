@@ -447,7 +447,7 @@ export default function MappingView({
             Mappatura Campi
           </h2>
           <p className="text-sm mt-0.5" style={{ color: "var(--fg-secondary)" }}>
-            {connectorName} &rarr; Controlla.me
+            {connectorName} &rarr; Poimandres
           </p>
         </div>
 

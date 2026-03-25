@@ -428,7 +428,7 @@ export default function AgentOutput({
   // Skipped
   if (status === "skipped") {
     return (
-      <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-xs" role="status">
+      <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-xs" role="status" aria-live="polite">
         <div className="flex items-center gap-2">
           <StatusDot status="skipped" />
           <span className="font-medium text-[var(--foreground-secondary)]">{phaseName}</span>
@@ -442,7 +442,7 @@ export default function AgentOutput({
   const doneMessage = getDoneMessage(phase, output);
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3" role="status">
+    <div className="rounded-xl border border-[var(--border-subtle)] px-4 py-3" role="status" aria-live="polite">
       <div className="flex items-center gap-2 text-xs">
         <StatusDot status="done" />
         <span className="font-medium text-[var(--foreground)]">{phaseName}</span>

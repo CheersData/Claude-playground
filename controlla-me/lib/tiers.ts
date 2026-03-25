@@ -400,7 +400,7 @@ export function getTierInfo(): TierInfo {
     "leader", "question-prep", "classifier", "corpus-agent",
     "analyzer", "investigator", "advisor", "document-chat",
     "task-executor", "mapper", "mapping-agent",
-    "integration-setup", "sync-supervisor",
+    "integration-setup", "sync-supervisor", "critic",
   ];
 
   for (const agent of allAgents) {
@@ -444,7 +444,7 @@ export function getTierInfoForSession(
     "leader", "question-prep", "classifier", "corpus-agent",
     "analyzer", "investigator", "advisor", "document-chat",
     "task-executor", "mapper", "mapping-agent",
-    "integration-setup", "sync-supervisor",
+    "integration-setup", "sync-supervisor", "critic",
   ];
 
   for (const agent of allAgents) {

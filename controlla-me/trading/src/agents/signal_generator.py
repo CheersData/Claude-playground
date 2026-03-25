@@ -145,6 +145,7 @@ class SignalGenerator(BaseAgent):
         return Signal(
             symbol=result["symbol"],
             action=action,
+            strategy="conventional",
             confidence=result["confidence"],
             score=result["score"],
             entry_price=result["entry_price"],
@@ -359,6 +360,7 @@ class SignalGenerator(BaseAgent):
                     Signal(
                         symbol=result["symbol"],
                         action=action,
+                        strategy="slope_volume",
                         confidence=result["confidence"],
                         score=result["score"],
                         entry_price=result["entry_price"],
@@ -420,6 +422,7 @@ class SignalGenerator(BaseAgent):
                                 Signal(
                                     symbol=symbol,
                                     action=exit_action,
+                                    strategy="slope_volume",
                                     confidence=adverse_confidence,
                                     score=slope_pct_val,  # actual slope_pct
                                     entry_price=current_price,
@@ -502,6 +505,7 @@ class SignalGenerator(BaseAgent):
                             Signal(
                                 symbol=crypto_sym.upper(),
                                 action=SignalAction.BUY,
+                                strategy="crypto_slope",
                                 confidence=result["confidence"],
                                 score=result["score"],
                                 entry_price=result["entry_price"],

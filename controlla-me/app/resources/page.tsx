@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 import ResourcesClient from "./ResourcesClient";
 
 export const metadata: Metadata = {
-  title: "Risorse Legali Gratuite — Controlla.me",
+  title: "Risorse Legali Gratuite — Poimandres",
   description:
     "Guide pratiche sui contratti, scritte da avvocati e aggiornate al 2025. Scarica gratis la Guida ai contratti d'affitto: clausole rischiose, diritti del conduttore, template lettere legali.",
 };

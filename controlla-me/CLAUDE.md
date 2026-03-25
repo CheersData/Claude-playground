@@ -1304,6 +1304,226 @@ company/integration/
 
 ---
 
+## 16C. UFFICIO MUSICA (Label Virtuale AI-Powered)
+
+### Missione
+
+Aiutare artisti emergenti a trasformare i loro brani originali in hit, riarrangiandoli secondo i trend di mercato. NON generiamo musica da zero: prendiamo il demo dell'artista e lo guidiamo verso il successo commerciale. L'artista mantiene il 100% della proprieta intellettuale. Noi vendiamo il servizio di direzione artistica.
+
+**Claim: "Il tuo A&R personale, powered by AI."**
+
+### Vincolo architetturale
+
+- **Stesso localhost**: pattern identico a Ufficio Trading — servizio Python su stessa macchina, comunicazione via Supabase condiviso
+- **Zero generazione musicale**: analizziamo e consigliamo, non creiamo audio
+- **Riuso infrastruttura**: auth, billing, SSE streaming, agent broadcast — tutto da Controlla.me
+- **CME unico interlocutore**: nessun dipartimento parla direttamente con l'Ufficio Musica
+- **LLM via `claude -p` CLI**: gli agenti Python che necessitano di reasoning LLM (arrangement-director, release-strategist, career-advisor) usano il CLI, non il SDK (regola ambiente demo)
+
+### Stack
+
+| Livello | Tecnologia | Versione |
+|---------|-----------|----------|
+| Linguaggio (backend) | Python | 3.11+ |
+| Stem Separation | Demucs v4 (Meta) + PyTorch | demucs>=4.0, torch>=2.0 |
+| Audio Analysis | librosa + Essentia (fallback librosa-only) | librosa>=0.10, essentia>=2.1b6 |
+| Audio Probe | ffprobe (ffmpeg) | sistema |
+| Trend Data | Tunebat API, Hooktheory API (+ heuristic fallback) | HTTP via httpx |
+| Data | pandas + numpy | pandas>=2.2, numpy>=1.26 |
+| Database | supabase-py (shared instance) | supabase>=2.9 |
+| Config | pydantic-settings | pydantic>=2.9, pydantic-settings>=2.6 |
+| Logging | structlog | structlog>=24.4 |
+| Web App / UI | TypeScript/Next.js (App Router) | (app esistente) |
+| UI Components | 9 componenti React in `components/music/` | Framer Motion + Lucide |
+
+### Pipeline 7 agenti (6 + 1 orchestratore)
+
+```
+[Upload] Artista carica brano (WAV/MP3/FLAC, max 50MB)
+     |
+[0] CMM (Chief Music Manager) — orchestratore pipeline (pipeline.py)
+     |
+[1] STEM SEPARATOR — Demucs v4: vocals, drums, bass, other (~2-3 min CPU)
+     |
+[2] AUDIO ANALYST — AudioDNA completo: BPM, key, energy, spectral,
+     |               onsets, structure (intro/verse/chorus/bridge/outro),
+     |               chroma, chords, per-stem analysis
+     |
+[3] TREND SCOUT — Confronto con 25+ genre profiles (heuristic) +
+     |              Tunebat/Hooktheory API (se configurati).
+     |              Output: GenreAnalysis, MarketComparison, ReferenceTrack[], GapAnalysis
+     |
+[4] ARRANGEMENT DIRECTOR — Piano riarrangiamento prescrittivo via LLM (claude -p).
+     |                       Max 10 suggestions ordinate per priority.
+     |                       Fallback heuristic se CLI non disponibile.
+     |
+[5] QUALITY REVIEWER — Review deterministica (NO LLM): LUFS, dynamic range,
+     |                   frequency balance, stereo width, crest factor.
+     |                   Confronto con standard mastering per genere.
+     |
+[6] RELEASE STRATEGIST — Metadata, timing, playlist strategy, distribuzione,
+     |                     marketing hooks via LLM (claude -p). Fallback heuristic.
+     |
+[7] CAREER ADVISOR — Sintesi finale: consigli carriera azionabili dall'artista
+                      via LLM (claude -p). Riceve output di TUTTI gli agenti precedenti.
+```
+
+**Pipeline attuale (implementata):** Stadi 1-2 + salvataggio DB (stadi 3-7: struttura definita, integrazione pipeline TODO)
+
+### Architettura directory
+
+```
+music/                             # Python project (pattern identico a trading/)
+├── pyproject.toml                 # Python 3.11+, demucs, librosa, essentia, torch
+├── src/
+│   ├── __init__.py
+│   ├── pipeline.py                # Orchestratore: ingest → stems → analysis → save → (trend → direction)
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py            # Pydantic settings (Audio, Tunebat, Hooktheory, Telegram, Supabase)
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── base.py                # BaseAgent ABC (async, structured logging)
+│   │   ├── stem_separator.py      # [1] Demucs v4 CLI wrapper (4 stems, GPU/CPU auto)
+│   │   ├── audio_analyst.py       # [2] AudioDNA: BPM, key, energy, spectral, structure, chords, stems
+│   │   ├── trend_scout.py         # [3] Genre profiles + API comparison → TrendReport
+│   │   ├── arrangement_director.py # [4] LLM (claude -p) → ArrangementPlan (fallback heuristic)
+│   │   ├── quality_reviewer.py    # [5] Deterministic: LUFS, DR, spectrum, stereo, crest factor
+│   │   ├── release_strategist.py  # [6] LLM (claude -p) → ReleaseStrategy (fallback heuristic)
+│   │   └── career_advisor.py      # [7] LLM (claude -p) → career advice finale
+│   ├── models/
+│   │   ├── __init__.py            # Re-exports: AudioMetadata, StemResult, TrendReport, ArrangementPlan, ReleaseStrategy, ...
+│   │   ├── audio.py               # AudioMetadata, StemResult (Pydantic)
+│   │   └── trends.py              # GenreAnalysis, MarketComparison, ReferenceTrack, GapAnalysis,
+│   │                              # TrendReport, ArrangementSuggestion, ArrangementPlan,
+│   │                              # MetadataStrategy, TimingStrategy, PlaylistStrategy,
+│   │                              # PlatformStrategy, MarketingHook, ReleaseStrategy
+│   ├── market/
+│   │   └── __init__.py            # (futuro: market data adapters)
+│   └── utils/
+│       ├── __init__.py
+│       ├── db.py                  # MusicDB: CRUD su music_analyses, music_artist_profiles, music_trend_cache
+│       └── logging.py             # structlog setup
+├── tests/
+│
+├── app/music/                     # Next.js UI
+│   ├── page.tsx                   # Server component wrapper
+│   └── MusicPageClient.tsx        # Landing page + upload + progress + results
+│
+├── app/api/music/
+│   ├── upload/route.ts            # POST: file upload (auth, CSRF, rate-limit, 50MB max) → music_analyses record + filesystem
+│   └── analyze/route.ts           # POST: SSE streaming pipeline (auth, CSRF, rate-limit, 10min maxDuration)
+│                                  #   Spawns Python pipeline via subprocess, parses structlog progress
+│
+└── components/music/              # 9 componenti React
+    ├── MusicAnalysisProgress.tsx   # Progress bar real-time (4 fasi: ingest, stem, analysis, save)
+    ├── MusicResultsView.tsx        # Vista risultati completa
+    ├── AudioDnaCard.tsx            # Card AudioDNA (BPM, key, energy, spectral)
+    ├── GenreCard.tsx               # Card genere + trend direction
+    ├── MarketComparison.tsx        # Confronto mercato (percentili)
+    ├── GapAnalysisCard.tsx         # SWOT card (strengths, weaknesses, opportunities)
+    ├── ReferenceTracksSection.tsx  # Tracce di riferimento simili
+    ├── ArrangementPlanCard.tsx     # Piano riarrangiamento
+    └── StemPlayer.tsx              # Player stem separati
+```
+
+### Schema Database (Migration 045)
+
+```sql
+music_analyses         -- Core: id, user_id, file_name, file_size_bytes, duration_seconds,
+                       -- status (pending|processing|stem_separation|analyzing|comparing|directing|completed|failed),
+                       -- audio_dna (JSONB), trend_report (JSONB), direction_plan (JSONB),
+                       -- commercial_viability_score (1.0-10.0), genre, bpm, musical_key,
+                       -- error_message, created_at, updated_at, completed_at
+
+music_artist_profiles  -- id, user_id (unique), artist_name, genre, sub_genre,
+                       -- monthly_listeners, target_audience, influences (text[]),
+                       -- created_at, updated_at
+
+music_trend_cache      -- id, genre, source (tunebat|hooktheory|lastfm|musicbrainz|soundcharts),
+                       -- query_key (unique per source), data (JSONB),
+                       -- fetched_at, expires_at (default 7 days TTL)
+```
+
+RLS: `service_role` full access su tutte. Utenti autenticati: read/insert own su `music_analyses` e `music_artist_profiles`. `music_trend_cache` solo service_role (backend gestisce cache).
+
+### API Routes
+
+- `POST /api/music/upload` — Upload file audio (FormData, auth + CSRF + rate-limit). Crea record `music_analyses` in stato `pending`, salva file su `.music-uploads/{userId}/{analysisId}.{ext}`
+- `POST /api/music/analyze` — Avvia pipeline SSE (FormData con `analysisId`, auth + CSRF + rate-limit). Spawna Python pipeline, streaming progress via structlog parsing. `maxDuration=600` (10 min)
+
+### SSE Events (analyze)
+
+```
+event: timing    → {ingest: 3, stem_separation: 120, audio_analysis: 30, save_results: 2}
+event: session   → {analysisId, fileName}
+event: progress  → {phase: "stem_separation", status: "running"|"done"|"skipped"|"error"}
+event: complete  → {analysisId, stages, totalMs, audioDna}
+event: error     → {message, stage?}
+```
+
+### Variabili d'ambiente
+
+```env
+# Music Office (tutte opzionali — pipeline funziona senza, con fallback)
+MUSIC_ENABLED=true
+MUSIC_MODE=analysis                    # analysis | production | batch
+MUSIC_LOG_LEVEL=INFO
+MUSIC_MAX_FILE_SIZE_MB=50
+MUSIC_SAMPLE_RATE=44100
+MUSIC_STEM_OUTPUT_DIR=output/stems
+MUSIC_DEMUCS_MODEL=htdemucs_ft         # htdemucs | htdemucs_ft | htdemucs_6s | mdx | mdx_extra
+MUSIC_ANALYSIS_CACHE_DIR=output/cache
+
+# Trend APIs (opzionali — fallback su genre profiles heuristic)
+TUNEBAT_API_KEY=...
+HOOKTHEORY_API_KEY=...
+
+# Telegram (riusa stesse variabili del sistema)
+MUSIC_TELEGRAM_NOTIFY=false
+```
+
+### Company structure
+
+```
+company/music/
+├── department.md                  # Identita ufficio (label virtuale AI-powered)
+├── department-card.json           # Capabilities per discovery service
+├── status.json                    # Stato corrente (fase, agenti, rischi)
+├── reports/                       # Report interni
+├── agents/
+│   ├── music-lead.md              # CMM: Chief Music Manager (orchestratore)
+│   ├── audio-analyst.md           # Identity card audio analyst
+│   ├── trend-scout.md             # Identity card trend scout
+│   ├── arrangement-director.md    # Identity card arrangement director
+│   ├── quality-reviewer.md        # Identity card quality reviewer
+│   ├── release-strategist.md      # Identity card release strategist
+│   └── career-advisor.md          # Identity card career advisor
+└── runbooks/
+    ├── music-pipeline.md          # Pipeline completa
+    └── setup-python.md            # Setup ambiente Python + dipendenze
+```
+
+### Fasi di deployment
+
+| Fase | Stato (2026-03-22) |
+|------|-------------------|
+| 0. Fondamenta | **IN CORSO** — Schema DB (migration 045), pyproject.toml, pipeline base (upload+stems+analysis+save), API routes (upload+analyze SSE), UI landing+upload+progress+results, 9 componenti React, 7 agenti Python strutturati |
+| 1. Core MVP | Parziale — AudioAnalyst e StemSeparator funzionanti. TrendScout, ArrangementDirector, QualityReviewer, ReleaseStrategist, CareerAdvisor implementati ma non ancora integrati nella pipeline orchestrator |
+| 2. Release & Growth | Pianificato — Release Strategist + distribuzione + career advisor nella pipeline |
+| 3. Monetizzazione | Pianificato — Stripe billing, piani Artist/Pro/Label |
+
+### Pricing (proposto)
+
+| Piano | Prezzo | Include |
+|-------|--------|---------|
+| Free | $0 | 1 analisi demo/mese, report base |
+| Artist | $9.99/mese | 5 analisi/mese, piano riarrangiamento, review iterative |
+| Pro | $29.99/mese | Illimitato, release strategy, career advisor |
+| Label | $99.99/mese | Multi-artista (20), dashboard, API access |
+
+---
+
 ## 17. FEATURE INCOMPLETE (Ufficio Legale / App)
 
 1. OCR immagini — tesseract.js rimosso da `dependencies` (mai importato, ~50MB inutili). **Reinstallare quando si implementa concretamente: `npm install tesseract.js`.**
@@ -1466,6 +1686,7 @@ Dashboard: `/ops` | API: `GET /api/company/costs?days=7`
 | Ufficio Legale | 7 agenti AI analisi legale | TypeScript/Next.js | `company/ufficio-legale/` |
 | Ufficio Trading | 5 agenti swing trading | Python/Alpaca | `company/trading/` |
 | Ufficio Integrazione | 3 agenti connettori OAuth2 per PMI (Fatture in Cloud, Google Drive, HubSpot) | TypeScript/Next.js | `company/integration/` |
+| Ufficio Musica | 7 agenti label virtuale AI (AudioDNA, trend analysis, arrangement direction) | Python/Demucs + TypeScript/Next.js | `company/music/` |
 
 ### Dipartimenti (Staff)
 

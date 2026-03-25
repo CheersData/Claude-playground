@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 
 interface ConsoleInputProps {
   onSubmit: (message: string, file: File | null) => void;
@@ -13,6 +13,29 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
   const [file, setFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Track whether the page is hidden (screen locked / tab switched).
+  // When hidden, blur the textarea to prevent iOS from sending spurious
+  // keystrokes (e.g. "blocca") into the input field on screen lock.
+  const hiddenRef = useRef(false);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenRef.current = true;
+        // Blur the textarea so the OS keyboard dismisses and can't inject characters
+        textareaRef.current?.blur();
+      } else {
+        // Mark visible again after a short delay — some mobile browsers fire
+        // a brief focus event right after the screen unlocks which can inject
+        // stale keyboard buffer characters. The delay lets that settle.
+        setTimeout(() => {
+          hiddenRef.current = false;
+        }, 300);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   const handleSubmit = () => {
     if (disabled) return;
@@ -24,6 +47,12 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Ignore keystrokes that arrive while the page is hidden or just became visible
+    // (prevents "blocca" and similar OS-injected strings on iOS screen lock)
+    if (hiddenRef.current) {
+      e.preventDefault();
+      return;
+    }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
@@ -59,17 +88,21 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
       <textarea
         ref={textareaRef}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={(e) => {
+          // Ignore input while page is hidden (prevents OS-injected strings like "blocca")
+          if (hiddenRef.current) return;
+          setMessage(e.target.value);
+        }}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        aria-label="Messaggio per la console legale"
+        aria-label="Messaggio per la console legale (Ctrl+Enter per inviare)"
         placeholder={
           disabled
             ? "Elaborazione in corso..."
             : placeholder ?? "Scrivi una domanda o incolla un testo..."
         }
         rows={3}
-        className="w-full bg-transparent text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] resize-none text-sm leading-relaxed focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] rounded"
+        className="w-full bg-transparent text-[var(--foreground)] placeholder:text-[var(--foreground-tertiary)] resize-none text-base md:text-sm leading-relaxed focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)] rounded"
       />
 
       {/* Action bar */}
@@ -106,7 +139,7 @@ export default function ConsoleInput({ onSubmit, disabled, placeholder }: Consol
         </button>
       </div>
 
-      <div className="text-[10px] text-[var(--foreground-tertiary)] opacity-60 mt-1 text-right" aria-hidden="true">
+      <div className="text-[10px] text-[var(--foreground-tertiary)] opacity-60 mt-1 text-right">
         Ctrl+Enter per inviare
       </div>
     </div>

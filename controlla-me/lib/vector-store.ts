@@ -1,5 +1,5 @@
 /**
- * Vector Store — RAG pipeline per controlla.me
+ * Vector Store — RAG pipeline per Poimandres
  *
  * Gestisce:
  * 1. Chunking intelligente dei documenti

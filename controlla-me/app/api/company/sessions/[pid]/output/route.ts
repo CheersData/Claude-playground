@@ -35,6 +35,7 @@ import {
 } from "@/lib/agent-broadcast";
 import type { AgentEvent } from "@/lib/agent-broadcast";
 import type { NextRequest } from "next/server";
+import { createSSEStream, SSE_HEADERS } from "@/lib/sse-stream-factory";
 
 export const maxDuration = 300;
 
@@ -84,105 +85,38 @@ export async function GET(
 
   // ─── SSE stream ───
 
-  // Shared mutable state for cleanup coordination between start() and cancel().
-  // ReadableStream.start() does NOT use a return value for cleanup —
-  // the cancel() callback is the proper place for teardown.
-  let streamClosed = false;
-  let unsubscribeFn: (() => void) | null = null;
-  let heartbeatTimerRef: ReturnType<typeof setInterval> | null = null;
-  let closedCheckTimerRef: ReturnType<typeof setInterval> | null = null;
+  const { stream, send, sendComment, close: closeStream, onCleanup } = createSSEStream({ request: req as unknown as Request });
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
+  // 1. Send ring buffer replay
+  const { lines: bufferedLines, nextIndex } = getOutputLines(pid);
+  send("replay", { lines: bufferedLines, nextIndex });
 
-      const send = (event: string, data: unknown) => {
-        if (streamClosed) return;
-        try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
-        } catch {
-          // Controller already closed
-        }
-      };
-
-      const sendComment = (comment: string) => {
-        if (streamClosed) return;
-        try {
-          controller.enqueue(encoder.encode(`: ${comment}\n\n`));
-        } catch {
-          // Controller already closed
-        }
-      };
-
-      const cleanup = () => {
-        streamClosed = true;
-        if (heartbeatTimerRef) clearInterval(heartbeatTimerRef);
-        if (closedCheckTimerRef) clearInterval(closedCheckTimerRef);
-        if (unsubscribeFn) unsubscribeFn();
-        heartbeatTimerRef = null;
-        closedCheckTimerRef = null;
-        unsubscribeFn = null;
-      };
-
-      // 1. Send ring buffer replay
-      const { lines: bufferedLines, nextIndex } = getOutputLines(pid);
-      send("replay", { lines: bufferedLines, nextIndex });
-
-      // 2. Subscribe to live output lines
-      unsubscribeFn = onOutputLine(pid, (ev) => {
-        send("line", ev);
-      });
-
-      // 3. Heartbeat every 15s
-      heartbeatTimerRef = setInterval(() => {
-        sendComment("heartbeat");
-      }, 15_000);
-
-      // 4. Poll for session closure — check every 5s if session still exists
-      closedCheckTimerRef = setInterval(() => {
-        const { sessions: currentSessions } = getUnifiedSessions({
-          includeOrphans: false,
-        });
-        const stillAlive = currentSessions.some((s) => s.pid === pid);
-        if (!stillAlive && !streamClosed) {
-          // Send the closed event BEFORE cleanup (cleanup sets streamClosed=true
-          // which would cause send() to no-op)
-          try {
-            send("closed", { pid, code: null });
-          } catch {
-            // Already closed
-          }
-          cleanup();
-          try {
-            controller.close();
-          } catch {
-            // Already closed
-          }
-        }
-      }, 5_000);
-    },
-
-    cancel() {
-      // Client disconnected — clean up timers and subscriptions
-      streamClosed = true;
-      if (heartbeatTimerRef) clearInterval(heartbeatTimerRef);
-      if (closedCheckTimerRef) clearInterval(closedCheckTimerRef);
-      if (unsubscribeFn) unsubscribeFn();
-      heartbeatTimerRef = null;
-      closedCheckTimerRef = null;
-      unsubscribeFn = null;
-    },
+  // 2. Subscribe to live output lines
+  const unsubscribeFn = onOutputLine(pid, (ev) => {
+    send("line", ev);
   });
+  onCleanup(() => unsubscribeFn());
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  // 3. Heartbeat every 15s
+  const heartbeatTimer = setInterval(() => {
+    sendComment("heartbeat");
+  }, 15_000);
+  onCleanup(() => clearInterval(heartbeatTimer));
+
+  // 4. Poll for session closure — check every 5s if session still exists
+  const closedCheckTimer = setInterval(() => {
+    const { sessions: currentSessions } = getUnifiedSessions({
+      includeOrphans: false,
+    });
+    const stillAlive = currentSessions.some((s) => s.pid === pid);
+    if (!stillAlive) {
+      send("closed", { pid, code: null });
+      closeStream();
+    }
+  }, 5_000);
+  onCleanup(() => clearInterval(closedCheckTimer));
+
+  return new Response(stream, { headers: SSE_HEADERS });
 }
 
 // ─── Status Dashboard Stream (non-console sessions) ──────────────────────────
@@ -196,154 +130,88 @@ function buildStatusDashboardStream(
   session: TrackedSession,
   pid: number
 ): Response {
-  let streamClosed = false;
-  let unsubscribeAgentFn: (() => void) | null = null;
-  let heartbeatTimerRef: ReturnType<typeof setInterval> | null = null;
-  let agentPollTimerRef: ReturnType<typeof setInterval> | null = null;
-  let closedCheckTimerRef: ReturnType<typeof setInterval> | null = null;
+  const { stream, send, sendComment, close: closeStream, onCleanup } = createSSEStream();
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
+  // Helper: collect agent events for this PID
+  const getAgentsForPid = (): AgentEvent[] => {
+    return getActiveAgentEvents().filter(
+      (ev) =>
+        ev.parentPid === pid ||
+        (session.sessionId && ev.sessionId === session.sessionId)
+    );
+  };
 
-      const send = (event: string, data: unknown) => {
-        if (streamClosed) return;
-        try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
-        } catch {
-          // Controller already closed
-        }
-      };
+  // 1. Send status-dashboard with session metadata + initial agents
+  const uptime = Date.now() - session.startedAt.getTime();
+  send("status-dashboard", {
+    pid: session.pid,
+    type: session.type,
+    target: session.target,
+    department: session.department ?? session.target,
+    status: session.status,
+    currentTask: session.currentTask ?? null,
+    startedAt: session.startedAt.toISOString(),
+    uptimeMs: uptime,
+    agents: getAgentsForPid().map((ev) => ({
+      id: ev.id,
+      department: ev.department,
+      status: ev.status,
+      task: ev.task,
+      timestamp: ev.timestamp,
+    })),
+  });
 
-      const sendComment = (comment: string) => {
-        if (streamClosed) return;
-        try {
-          controller.enqueue(encoder.encode(`: ${comment}\n\n`));
-        } catch {
-          // Controller already closed
-        }
-      };
-
-      const cleanup = () => {
-        streamClosed = true;
-        if (heartbeatTimerRef) clearInterval(heartbeatTimerRef);
-        if (agentPollTimerRef) clearInterval(agentPollTimerRef);
-        if (closedCheckTimerRef) clearInterval(closedCheckTimerRef);
-        if (unsubscribeAgentFn) unsubscribeAgentFn();
-        heartbeatTimerRef = null;
-        agentPollTimerRef = null;
-        closedCheckTimerRef = null;
-        unsubscribeAgentFn = null;
-      };
-
-      // Helper: collect agent events for this PID
-      const getAgentsForPid = (): AgentEvent[] => {
-        return getActiveAgentEvents().filter(
-          (ev) =>
-            ev.parentPid === pid ||
-            (session.sessionId && ev.sessionId === session.sessionId)
-        );
-      };
-
-      // 1. Send status-dashboard with session metadata + initial agents
-      const uptime = Date.now() - session.startedAt.getTime();
-      send("status-dashboard", {
-        pid: session.pid,
-        type: session.type,
-        target: session.target,
-        department: session.department ?? session.target,
-        status: session.status,
-        currentTask: session.currentTask ?? null,
-        startedAt: session.startedAt.toISOString(),
-        uptimeMs: uptime,
-        agents: getAgentsForPid().map((ev) => ({
-          id: ev.id,
-          department: ev.department,
-          status: ev.status,
-          task: ev.task,
-          timestamp: ev.timestamp,
+  // 2. Subscribe to real-time agent events and forward those matching this PID
+  const unsubscribeAgentFn = onAgentEvent((ev) => {
+    const isForThisPid =
+      ev.parentPid === pid ||
+      (session.sessionId && ev.sessionId === session.sessionId);
+    if (isForThisPid) {
+      send("agent-update", {
+        agents: getAgentsForPid().map((a) => ({
+          id: a.id,
+          department: a.department,
+          status: a.status,
+          task: a.task,
+          timestamp: a.timestamp,
         })),
       });
-
-      // 2. Subscribe to real-time agent events and forward those matching this PID
-      unsubscribeAgentFn = onAgentEvent((ev) => {
-        if (streamClosed) return;
-        const isForThisPid =
-          ev.parentPid === pid ||
-          (session.sessionId && ev.sessionId === session.sessionId);
-        if (isForThisPid) {
-          send("agent-update", {
-            agents: getAgentsForPid().map((a) => ({
-              id: a.id,
-              department: a.department,
-              status: a.status,
-              task: a.task,
-              timestamp: a.timestamp,
-            })),
-          });
-        }
-      });
-
-      // 3. Periodic agent-update every 3 seconds (covers TTL expirations, etc.)
-      agentPollTimerRef = setInterval(() => {
-        send("agent-update", {
-          agents: getAgentsForPid().map((a) => ({
-            id: a.id,
-            department: a.department,
-            status: a.status,
-            task: a.task,
-            timestamp: a.timestamp,
-          })),
-        });
-      }, 3_000);
-
-      // 4. Heartbeat every 15s
-      heartbeatTimerRef = setInterval(() => {
-        sendComment("heartbeat");
-      }, 15_000);
-
-      // 5. Poll for session closure — check every 5s
-      closedCheckTimerRef = setInterval(() => {
-        const { sessions: currentSessions } = getUnifiedSessions({
-          includeOrphans: true,
-        });
-        const stillAlive = currentSessions.some((s) => s.pid === pid);
-        if (!stillAlive && !streamClosed) {
-          try {
-            send("closed", { pid, code: null });
-          } catch {
-            // Already closed
-          }
-          cleanup();
-          try {
-            controller.close();
-          } catch {
-            // Already closed
-          }
-        }
-      }, 5_000);
-    },
-
-    cancel() {
-      streamClosed = true;
-      if (heartbeatTimerRef) clearInterval(heartbeatTimerRef);
-      if (agentPollTimerRef) clearInterval(agentPollTimerRef);
-      if (closedCheckTimerRef) clearInterval(closedCheckTimerRef);
-      if (unsubscribeAgentFn) unsubscribeAgentFn();
-      heartbeatTimerRef = null;
-      agentPollTimerRef = null;
-      closedCheckTimerRef = null;
-      unsubscribeAgentFn = null;
-    },
+    }
   });
+  onCleanup(() => unsubscribeAgentFn());
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  // 3. Periodic agent-update every 3 seconds (covers TTL expirations, etc.)
+  const agentPollTimer = setInterval(() => {
+    send("agent-update", {
+      agents: getAgentsForPid().map((a) => ({
+        id: a.id,
+        department: a.department,
+        status: a.status,
+        task: a.task,
+        timestamp: a.timestamp,
+      })),
+    });
+  }, 3_000);
+  onCleanup(() => clearInterval(agentPollTimer));
+
+  // 4. Heartbeat every 15s
+  const heartbeatTimer = setInterval(() => {
+    sendComment("heartbeat");
+  }, 15_000);
+  onCleanup(() => clearInterval(heartbeatTimer));
+
+  // 5. Poll for session closure — check every 5s
+  const closedCheckTimer = setInterval(() => {
+    const { sessions: currentSessions } = getUnifiedSessions({
+      includeOrphans: true,
+    });
+    const stillAlive = currentSessions.some((s) => s.pid === pid);
+    if (!stillAlive) {
+      send("closed", { pid, code: null });
+      closeStream();
+    }
+  }, 5_000);
+  onCleanup(() => clearInterval(closedCheckTimer));
+
+  return new Response(stream, { headers: SSE_HEADERS });
 }

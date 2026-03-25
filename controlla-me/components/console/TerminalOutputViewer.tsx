@@ -144,7 +144,6 @@ const DEPT_LABELS: Record<string, string> = {
  * Handles common SGR sequences (\x1b[...m), cursor moves, and OSC sequences.
  */
 function stripAnsi(text: string): string {
-  // eslint-disable-next-line no-control-regex
   return text.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b\[[\d;]*m/g, "");
 }
 
@@ -409,6 +408,10 @@ export function TerminalOutputViewer({
   }, [pid, connectSSE, clearReconnectTimer]);
 
   // Reconnect on page visible (mobile screen unlock) + network restore
+  // Track pending timeouts to clean them up on unmount
+  const visibilityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onlineTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const triggerReconnect = (reason: string) => {
       if (!pidRef.current || sessionClosedRef.current) return;
@@ -428,18 +431,45 @@ export function TerminalOutputViewer({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        // Tab went hidden — cancel pending reconnect timer to avoid wasting attempts
+        // Tab went hidden — cancel pending reconnect timer and visibility timeout
         if (reconnectTimerRef.current) {
           clearReconnectTimer();
         }
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current);
+          visibilityTimeoutRef.current = null;
+        }
         return;
       }
-      // Small delay: on mobile, network may not be ready immediately when screen unlocks
-      setTimeout(() => triggerReconnect("visibilitychange (screen unlock)"), 500);
+      // Cancel any previous pending timeout to prevent double-fire
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+      }
+      // On mobile screen unlock, wait for network to stabilize (1.5s for radio re-association)
+      visibilityTimeoutRef.current = setTimeout(() => {
+        visibilityTimeoutRef.current = null;
+        // Double-check we're still visible (user might have locked screen again)
+        if (document.visibilityState !== "visible") return;
+        // Check if we're online before attempting reconnect
+        if (!navigator.onLine) {
+          console.log("[TerminalOutput] Screen unlocked but offline — waiting for online event");
+          return;
+        }
+        triggerReconnect("visibilitychange (screen unlock)");
+      }, 1500);
     };
 
     const handleOnline = () => {
-      triggerReconnect("online event (network restored)");
+      // Cancel previous pending online timeout to prevent double-fire
+      if (onlineTimeoutRef.current) {
+        clearTimeout(onlineTimeoutRef.current);
+      }
+      onlineTimeoutRef.current = setTimeout(() => {
+        onlineTimeoutRef.current = null;
+        // Only reconnect if tab is visible
+        if (document.visibilityState !== "visible") return;
+        triggerReconnect("online event (network restored)");
+      }, 500);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -447,6 +477,14 @@ export function TerminalOutputViewer({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", handleOnline);
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+        visibilityTimeoutRef.current = null;
+      }
+      if (onlineTimeoutRef.current) {
+        clearTimeout(onlineTimeoutRef.current);
+        onlineTimeoutRef.current = null;
+      }
     };
   }, [connectSSE, clearReconnectTimer]);
 

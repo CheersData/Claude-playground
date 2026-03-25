@@ -58,13 +58,13 @@ Target: **Hetzner CX21** (2 vCPU, 4GB RAM, 40GB SSD, EUR 5.39/month)
 
 - [ ] Update DNS A records (keep TTL low during migration, e.g., 300s):
   ```
-  controlla.me         A    <VM_IP>
-  www.controlla.me     A    <VM_IP>
+  poimandres.work         A    <VM_IP>
+  www.poimandres.work     A    <VM_IP>
   poimandres.work      A    <VM_IP>
   www.poimandres.work  A    <VM_IP>
   ```
-- [ ] Wait for DNS propagation (check with `dig controlla.me`)
-- [ ] Verify with: `curl -I http://controlla.me` (should get nginx default page)
+- [ ] Wait for DNS propagation (check with `dig poimandres.work`)
+- [ ] Verify with: `curl -I http://poimandres.work` (should get nginx default page)
 
 ## Phase 4: SSL Certificates
 
@@ -76,7 +76,7 @@ Target: **Hetzner CX21** (2 vCPU, 4GB RAM, 40GB SSD, EUR 5.39/month)
   ```bash
   # Temporary config for certbot validation
   sudo certbot certonly --webroot -w /var/www/certbot \
-    -d controlla.me -d www.controlla.me \
+    -d poimandres.work -d www.poimandres.work \
     --email <your-email> --agree-tos --no-eff-email
 
   sudo certbot certonly --webroot -w /var/www/certbot \
@@ -89,7 +89,7 @@ Target: **Hetzner CX21** (2 vCPU, 4GB RAM, 40GB SSD, EUR 5.39/month)
   sudo nginx -t && sudo systemctl restart nginx
   ```
 - [ ] Enable auto-renewal: `sudo systemctl enable certbot.timer`
-- [ ] Test SSL: `curl -I https://controlla.me`
+- [ ] Test SSL: `curl -I https://poimandres.work`
 
 ## Phase 5: Application Deployment
 
@@ -127,8 +127,8 @@ Target: **Hetzner CX21** (2 vCPU, 4GB RAM, 40GB SSD, EUR 5.39/month)
 
 ### Stripe
 - [ ] Update webhook endpoint in Stripe Dashboard:
-  - Old: `https://controlla.me/api/webhook` (via Vercel)
-  - New: `https://controlla.me/api/webhook` (same URL, different server)
+  - Old: `https://poimandres.work/api/webhook` (via Vercel)
+  - New: `https://poimandres.work/api/webhook` (same URL, different server)
   - Stripe does not need changes if the domain stays the same
 - [ ] Send a test webhook from Stripe Dashboard
 - [ ] Verify webhook received: `docker logs controlla-nextjs | grep webhook`
@@ -142,12 +142,12 @@ Target: **Hetzner CX21** (2 vCPU, 4GB RAM, 40GB SSD, EUR 5.39/month)
   ```
 
 ### OAuth Redirect URIs (if using Integration Office)
-- [ ] Google Cloud Console: update redirect URI to `https://controlla.me/api/integrations/google-drive/callback`
-- [ ] HubSpot App: update redirect URI to `https://controlla.me/api/integrations/hubspot/callback`
+- [ ] Google Cloud Console: update redirect URI to `https://poimandres.work/api/integrations/google-drive/callback`
+- [ ] HubSpot App: update redirect URI to `https://poimandres.work/api/integrations/hubspot/callback`
 
 ## Phase 7: Verification
 
-- [ ] Homepage loads: `https://controlla.me`
+- [ ] Homepage loads: `https://poimandres.work`
 - [ ] Console loads: `https://poimandres.work`
 - [ ] Auth flow works (Supabase OAuth login)
 - [ ] File upload works (PDF analysis pipeline)
@@ -180,7 +180,7 @@ Target: **Hetzner CX21** (2 vCPU, 4GB RAM, 40GB SSD, EUR 5.39/month)
 
 ### Recommended additions
 - [ ] Set up Uptime Robot (free) or Hetrix Tools for external monitoring
-  - Monitor `https://controlla.me` (HTTP 200)
+  - Monitor `https://poimandres.work` (HTTP 200)
   - Monitor `https://poimandres.work` (HTTP 200)
   - Alert via Telegram
 - [ ] Configure Hetzner Cloud monitoring (free, in dashboard)

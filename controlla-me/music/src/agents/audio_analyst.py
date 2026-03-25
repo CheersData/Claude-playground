@@ -29,6 +29,7 @@ import numpy as np
 import structlog
 
 from .base import BaseAgent
+from ..utils.numpy_json import sanitize_for_json
 
 logger = structlog.get_logger()
 
@@ -430,17 +431,40 @@ class AudioAnalyst(BaseAgent):
                 y=y, sr=sr, n_mfcc=13, hop_length=self.hop_length
             )
 
-            # Self-similarity via recurrence matrix
+            # Structural novelty via self-similarity matrix of MFCCs.
+            # librosa.segment.novelty was removed in recent librosa versions.
+            # Replacement: build a recurrence matrix from MFCCs, then compute
+            # a novelty curve by measuring change along the diagonal using a
+            # checkerboard kernel (same approach the old function used).
+            mfcc_norm = librosa.util.normalize(mfcc, axis=1)
             rec = librosa.segment.recurrence_matrix(
-                mfcc, mode="affinity", sym=True, width=3
+                mfcc_norm, mode="affinity", sym=True
             )
 
-            # Novelty curve from the recurrence matrix
-            novelty = librosa.segment.novelty(rec)
+            # Checkerboard kernel novelty: convolve the diagonal of the
+            # recurrence matrix with a checkerboard kernel to detect
+            # structural transitions (boundaries between self-similar blocks).
+            k = 16  # kernel half-width in frames (~0.37s at 22050/512)
+            checker = np.ones((2 * k, 2 * k))
+            checker[:k, k:] = -1
+            checker[k:, :k] = -1
+
+            n_frames = rec.shape[0]
+            novelty = np.zeros(n_frames)
+            for i in range(k, n_frames - k):
+                patch = rec[i - k : i + k, i - k : i + k]
+                novelty[i] = np.sum(patch * checker)
+            # Clip negative values (we only care about positive transitions)
+            novelty = np.maximum(novelty, 0.0)
+
+            # Smooth to reduce spurious peaks (moving average, ~2s window)
+            kernel_size = max(1, int(2.0 * sr / self.hop_length))
+            kernel = np.ones(kernel_size) / kernel_size
+            novelty = np.convolve(novelty, kernel, mode="same")
 
             # Pick peaks as segment boundaries
-            # Adaptive threshold: mean + 0.5 * std
-            threshold = float(np.mean(novelty) + 0.5 * np.std(novelty))
+            # Adaptive threshold: mean + 1.0 * std (structural boundaries are rarer)
+            threshold = float(np.mean(novelty) + 1.0 * np.std(novelty))
             peak_frames = np.where(novelty > threshold)[0]
 
             if len(peak_frames) == 0:
@@ -879,6 +903,7 @@ async def _cli_main() -> None:
             analyst.analyze, args.input, stems_dir=args.stems_dir
         )
 
+        dna = sanitize_for_json(dna)
         output_json = json.dumps(dna, indent=2, ensure_ascii=False)
 
         if args.output:

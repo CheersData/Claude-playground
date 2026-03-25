@@ -1,9 +1,16 @@
 /**
- * Console authentication — whitelist configurabile.
+ * Console authentication — RBAC + legacy whitelist.
  *
- * Per aggiungere un utente autorizzato, aggiungere un record a AUTHORIZED_USERS.
- * In futuro può leggere da env var o DB.
+ * Two authentication paths (checked in order):
+ * 1. DB role check: if user is logged in via Supabase and has role >= 'admin', access granted
+ * 2. Legacy whitelist: hardcoded AUTHORIZED_USERS for backwards compatibility (migration period)
+ *
+ * The legacy whitelist will be removed once all console users have DB accounts with roles.
  */
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { AppRole } from "@/lib/middleware/auth";
+import { roleLevel } from "@/lib/middleware/auth";
 
 export interface AuthorizedUser {
   nome: string;
@@ -11,13 +18,19 @@ export interface AuthorizedUser {
   ruolo: string;
 }
 
+/**
+ * Legacy whitelist — kept for backwards compatibility during migration.
+ * TODO: remove once all console users authenticate via Supabase OAuth + DB roles.
+ */
 export const AUTHORIZED_USERS: AuthorizedUser[] = [
   { nome: "Manuela", cognome: "Lo Buono", ruolo: "Notaio" },
   { nome: "Boss", cognome: "Boss", ruolo: "Boss" },
+  { nome: "Lady", cognome: "D", ruolo: "Creator" },
 ];
 
 /**
- * Verifica se l'utente è autorizzato (case-insensitive, trim).
+ * Verifica se l'utente è autorizzato via whitelist (case-insensitive, trim).
+ * Legacy path — used when no Supabase session is available.
  */
 export function authenticateUser(
   nome: string,
@@ -48,6 +61,71 @@ export function findUserByName(
         u.cognome.toLowerCase() === cognome.trim().toLowerCase()
     ) ?? null
   );
+}
+
+/**
+ * Check if a Supabase-authenticated user has console access (role >= operator).
+ * Also checks if the account is active (deactivated creators are rejected).
+ * Returns the user's role and active status if authorized, null otherwise.
+ * Uses admin client to bypass RLS (reads any profile).
+ */
+export async function checkConsoleAccessByUserId(
+  userId: string
+): Promise<{ authorized: boolean; role: AppRole; active: boolean }> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("profiles")
+      .select("role, active")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      return { authorized: false, role: "user", active: true };
+    }
+
+    const role = (data.role as AppRole) || "user";
+    const active = data.active !== false; // backward compat: null/undefined = active
+    return {
+      authorized: roleLevel(role) >= roleLevel("operator") && active,
+      role,
+      active,
+    };
+  } catch {
+    return { authorized: false, role: "user", active: true };
+  }
+}
+
+/**
+ * Check if a user has console access by email.
+ * Useful when we have email but not userId.
+ * Also checks if the account is active (deactivated creators are rejected).
+ */
+export async function checkConsoleAccessByEmail(
+  email: string
+): Promise<{ authorized: boolean; role: AppRole; active: boolean }> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("profiles")
+      .select("role, active")
+      .eq("email", email)
+      .single();
+
+    if (error || !data) {
+      return { authorized: false, role: "user", active: true };
+    }
+
+    const role = (data.role as AppRole) || "user";
+    const active = data.active !== false; // backward compat: null/undefined = active
+    return {
+      authorized: roleLevel(role) >= roleLevel("operator") && active,
+      role,
+      active,
+    };
+  } catch {
+    return { authorized: false, role: "user", active: true };
+  }
 }
 
 /**

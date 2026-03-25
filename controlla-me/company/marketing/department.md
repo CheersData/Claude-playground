@@ -1,14 +1,21 @@
-# Marketing — Market Intelligence & Vision Execution
+# Marketing — Braccio Esecutivo di Strategy per la Penetrazione di Mercato
 
 ## Missione
 
-**Marketing è il radar del mercato.** Non produce solo contenuto — *ascolta* il mercato, valida le opportunità identificate da Strategy e trasforma i segnali degli utenti in insight azionabili per la direzione aziendale.
+Marketing è la **declinazione operativa di Strategy**. Strategy decide dove andare, Marketing ci porta utenti reali.
 
-Lavora in **simbiosi con Strategy**: Marketing monitora la domanda reale (cosa cercano gli utenti, cosa fanno i competitor, quali segmenti sono non serviti) e porta questi segnali nella pipeline di opportunità condivisa. La produzione di contenuto è uno strumento di ascolto e acquisizione, non il fine.
+**Target primario**: developer e creator che vogliono costruire i propri team di agenti AI su Poimandres. Non vendiamo un prodotto finito — vendiamo l'infrastruttura per costruirne di propri.
 
-Fornisce inoltre input a **Data Engineering** su quali nuovi dati legislativi, normativi o settoriali cercare e digerire nel corpus, sulla base dei nuovi domini e opportunità identificate.
+**Due binari paralleli, un unico funnel:**
 
-> Marketing risponde sempre a una domanda: *"Cosa vuole il mercato che ancora non sa di volere?"*
+- **Track A — controlla.me** (legal SEO, trust consumatore): genera traffico organico qualificato. Ogni articolo legale è una porta d'ingresso che dimostra cosa possono fare gli agenti AI. Il lettore entra come utente, scopre la piattaforma come builder.
+- **Track B — Poimandres platform** (audience developer/creator): contenuto tecnico, casi d'uso, tutorial, community. Guida direttamente all'adozione della piattaforma: signup, primo team di agenti, attivazione.
+
+**Metriche che contano**: signup, activation rate, conversione contenuto-a-trial. Zero vanity metrics. Ogni contenuto ha una CTA misurabile. "Awareness" senza funnel tracciabile non esiste nel nostro vocabolario.
+
+**Anti-pattern vietati**: contenuto senza CTA, metriche di vanità (like, impressions senza conversione), campagne "brand awareness" senza funnel misurabile, contenuto che non guida verso l'adozione di Poimandres.
+
+> Marketing risponde a una sola domanda: *"Quanti builder nuovi abbiamo portato sulla piattaforma questa settimana?"*
 
 ---
 
@@ -174,9 +181,9 @@ Traffico organico >5.000 sessioni/mese con funnel misurabile. Primo Market Signa
 
 ## Priorità operative (ordinate)
 
-1. **[P0] GSC + GA4 operativi** — configurare proprietà Google, verificare dominio, iniziare raccolta dati
-2. **[P1] Contenuto SEO seed** — 5 guide legali ad alto volume di ricerca per attrarre traffico organico iniziale
-3. **[P2] Primo Market Signal Report** — raccogliere segnali da keyword, community, competitor per alimentare Strategy
+1. **[P0] Presentazione poimandres.work per creator** — produrre presentazione e contenuto mirato per attrarre creator sulla piattaforma
+2. **[P1] Canali developer (GitHub, Discord, Dev.to)** — identificare e attivare i canali più efficaci per raggiungere developer e creator
+3. **[P2] Casi d'uso dimostrativi** — creare casi d'uso concreti che dimostrino il valore della piattaforma per i creator
 
 ## Autonomia
 

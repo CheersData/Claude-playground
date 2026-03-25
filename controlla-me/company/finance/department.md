@@ -2,8 +2,7 @@
 
 ## Missione
 
-Monitoraggio costi API in tempo reale. Alert quando i costi superano le soglie.
-Obiettivo: massimo valore al minimo costo.
+Monitoraggio costi real-time. Ogni token ha un prezzo. Il creator vede quanto spende.
 
 ## Metriche monitorate
 
@@ -41,9 +40,9 @@ Costo per analisi < $0.02 (free tier maximization). Dashboard P&L che unisce cos
 
 ## Priorità operative (ordinate)
 
-1. **[P0] Free tier maximization** — monitorare utilizzo dei provider gratuiti (Gemini, Groq, Cerebras, Mistral), ottimizzare routing per minimizzare costi Anthropic
-2. **[P1] Costo per analisi** — metrica chiave: quanto costa una singola analisi end-to-end per tier (intern/associate/partner)
-3. **[P2] Trading P&L integration** — collegare i dati trading (portfolio_snapshots) al report finanziario complessivo
+1. **[P0] Dashboard costi per-progetto creator** — visibilità costi API segmentati per progetto/creator sulla piattaforma
+2. **[P1] Alert soglie budget** — sistema di alerting automatico quando i costi superano soglie configurabili
+3. **[P2] P&L per verticale** — profit & loss segmentato per verticale (legale, trading, musica, integrazione)
 
 ## Autonomia
 

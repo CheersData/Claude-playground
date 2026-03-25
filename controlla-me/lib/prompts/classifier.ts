@@ -54,7 +54,13 @@ REGOLE CRITICHE:
              "contratto_dirigente", "contratto_domestico",
              "lettera_licenziamento", "dimissioni_volontarie",
              "patto_non_concorrenza", "contestazione_disciplinare",
-             "accordo_smart_working"
+             "accordo_smart_working",
+             "contratto_lavoro_subordinato", "contratto_co_co_co",
+             "contratto_somministrazione", "contratto_apprendistato",
+             "contratto_lavoro_tempo_determinato", "contratto_lavoro_part_time",
+             "contratto_lavoro_dirigente",
+             "lettera_dimissioni", "accordo_non_concorrenza",
+             "cedolino_busta_paga", "regolamento_aziendale"
   * Se non riesci a determinarlo: null
 
 - relevantInstitutes: identifica TUTTI gli istituti giuridici presenti o richiamati.
@@ -69,19 +75,23 @@ REGOLE CRITICHE:
   * "risoluzione" / "recesso" → clausola_risolutiva / diritto_recesso
   -- ISTITUTI HR (L.300/1970 — Statuto dei Lavoratori) --
   * "preavviso" / "periodo di preavviso" → preavviso_licenziamento_dimissioni
-  * "TFR" / "trattamento di fine rapporto" → trattamento_fine_rapporto
+  * "TFR" / "trattamento di fine rapporto" / "liquidazione" → trattamento_fine_rapporto (alias: tfr_trattamento_fine_rapporto)
   * "mansioni" / "inquadramento" / "livello" / "CCNL" → mansioni_inquadramento
-  * "patto di non concorrenza" → patto_non_concorrenza
+  * "patto di non concorrenza" (in contesto lavoro) → patto_non_concorrenza_lavoro
   * "reintegra" / "art. 18" → reintegrazione_posto_lavoro
   * "controllo a distanza" / "videosorveglianza" → controllo_a_distanza
   * "sanzioni disciplinari" / "procedimento disciplinare" → sanzioni_disciplinari
-  * "orario di lavoro" / "straordinario" / "ferie" → orario_e_riposi
+  * "orario di lavoro" / "straordinario" / "ore di lavoro" → straordinario_orario_lavoro
+  * "ferie" / "permessi" / "ROL" / "riposi" → ferie_permessi_rol
   * "periodo di prova" → periodo_di_prova
   * "patto di stabilità" / "clausola di stabilità" → patto_stabilita
   * "trasferimento" (lavoratore) → trasferimento_lavoratore
   * "demansionamento" / "dequalificazione" / "art. 2103 c.c." → demansionamento
+  * "mobbing" / "straining" / "persecuzione sul lavoro" / "condotta vessatoria" → mobbing
   * "straordinario non pagato" / "ore non retribuite" / "lavoro supplementare non compensato" → straordinario_non_retribuito
-  * "tutela del lavoratore" / "diritti del lavoratore" / "parte debole" → tutela_lavoratore
+  * "tutela del lavoratore" / "diritti del lavoratore" / "parte debole" / "subordinato" → tutela_lavoratore_subordinato
+  * "CCNL" / "contratto collettivo" / "contrattazione collettiva" / "accordo sindacale" → contrattazione_collettiva
+  * "sicurezza sul lavoro" / "salute e sicurezza" / "D.Lgs. 81/2008" → sicurezza_sul_lavoro
   -- ISTITUTI HR (D.Lgs. 81/2015 — Jobs Act Contratti) --
   * "tempo determinato" / "causale" / "proroga" / "rinnovo" → contratto_tempo_determinato
   * "somministrazione" / "agenzia interinale" / "lavoro in somministrazione" → somministrazione_lavoro
@@ -133,9 +143,16 @@ REGOLE CRITICHE:
 
 - legalFocusAreas: indica le aree di diritto rilevanti per guidare l'analisi.
   Esempio: ["diritto_immobiliare", "diritto_urbanistico"] per un contratto immobiliare.
-  Per contratti di lavoro: ["diritto_del_lavoro", "previdenza_sociale", "sicurezza_sul_lavoro", "diritto_sindacale"]
-  Per contratti atipici/flessibili: ["diritto_del_lavoro", "contratti_flessibili", "tutela_lavoratore_parasubordinato"]
-  Per contratti dirigenziali: ["diritto_del_lavoro", "dirigenza", "patto_non_concorrenza"]
+  Per contratti di lavoro subordinato: ["diritto_del_lavoro", "previdenza_sociale", "sicurezza_sul_lavoro", "diritto_sindacale", "contrattazione_collettiva"]
+  Per contratti atipici/flessibili (co.co.co, somministrazione): ["diritto_del_lavoro", "contratti_flessibili", "tutela_lavoratore_parasubordinato", "somministrazione_lavoro"]
+  Per contratti dirigenziali: ["diritto_del_lavoro", "dirigenza", "patto_non_concorrenza_lavoro", "trattamento_fine_rapporto"]
+  Per lettere di licenziamento/dimissioni: ["diritto_del_lavoro", "licenziamento", "tutele_crescenti", "preavviso", "tfr_trattamento_fine_rapporto"]
+  Per apprendistato: ["diritto_del_lavoro", "formazione_professionale", "contratti_flessibili", "previdenza_sociale"]
+  Per cedolini/buste paga: ["diritto_del_lavoro", "retribuzione", "previdenza_sociale", "fiscalita_lavoro"]
+  Per regolamenti aziendali: ["diritto_del_lavoro", "potere_direttivo", "diritto_sindacale", "sicurezza_sul_lavoro"]
+  Per contratti a tempo determinato: ["diritto_del_lavoro", "contratti_flessibili", "previdenza_sociale", "licenziamento"]
+  Per contratti part-time: ["diritto_del_lavoro", "contratti_flessibili", "retribuzione", "previdenza_sociale"]
+  Per accordi di non concorrenza: ["diritto_del_lavoro", "patto_non_concorrenza_lavoro", "diritto_civile"]
   Per atti notarili/successioni: ["diritto_successorio", "diritto_delle_donazioni", "diritto_notarile"]
   Per compravendite immobiliari: ["diritto_immobiliare", "diritto_urbanistico", "diritto_catastale", "diritto_tributario"]
   Per testamenti: ["diritto_successorio", "diritto_testamentario", "diritto_delle_persone"]

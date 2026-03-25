@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "marketing",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:21:19.230Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-23T11:30:00.000Z",
+    "updated_by": "ops-status-refresh"
   },
   "health": "ok",
-  "summary": "1 task aperto. 37 completati (totale). Configurare GSC e GA4 + submit sitemap in coda.",
+  "summary": "0 task aperti. 35 completati (36 totale). Tutti i task completati.",
   "keyword_research": {
     "primary_clusters": [
       {
@@ -322,8 +322,6 @@
       "monitoring_frequency": "settimanale — alert su qualsiasi annuncio di espansione EU"
     }
   ],
-  "open_tasks": [
-    "Configurare GSC e GA4 da web UI e submit sitemap"
-  ],
+  "open_tasks": [],
   "blockers": []
 }

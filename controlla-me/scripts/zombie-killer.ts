@@ -24,7 +24,6 @@ import {
   formatBytes,
   formatUptime,
   CATEGORY_LABELS,
-  type OSProcess,
 } from "@/lib/company/self-preservation";
 import { execSync } from "child_process";
 

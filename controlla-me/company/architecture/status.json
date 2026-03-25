@@ -2,11 +2,11 @@
   "_meta": {
     "dept": "architecture",
     "schema_version": "1.0",
-    "last_updated": "2026-03-18T17:20:58.345Z",
-    "updated_by": "auto-update-dept-status"
+    "last_updated": "2026-03-23T11:30:00.000Z",
+    "updated_by": "ops-status-refresh"
   },
   "health": "ok",
-  "summary": "29 task aperti. 241 completati (totale). E2E test OAuth flow + wiring connettori in coda.",
+  "summary": "1 task aperto. 272 completati (282 totale). Daemon executor Phase 2.95 in coda.",
   "decisions": {
     "adr_file": "company/architecture/decisions.md",
     "total_adrs": null,
@@ -40,8 +40,7 @@
     }
   ],
   "open_tasks": [
-    "E2E test OAuth flow completo con credenziali reali",
-    "28 altri task open"
+    "Daemon executor: Phase 2.95 cme-autorun (#1254)"
   ],
   "blockers": [],
   "notes": "Dipartimento stabile. Focus su cost-awareness e backward compatibility nelle proposte."

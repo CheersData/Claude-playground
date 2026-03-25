@@ -37,10 +37,7 @@ import {
 import {
   discoverOSNodeProcesses,
   CATEGORY_LABELS,
-  CATEGORY_KILLABLE,
   formatBytes as selfPreservationFormatBytes,
-  type OSProcess,
-  type ProcessCategory,
 } from "@/lib/company/self-preservation";
 import type { AgentDTO } from "@/lib/company/sessions";
 import { getActiveAgentEvents } from "@/lib/agent-broadcast";

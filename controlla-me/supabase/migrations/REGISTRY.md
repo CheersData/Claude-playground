@@ -52,10 +52,21 @@ Aggiornare questo file ogni volta che si aggiunge o rinomina una migration.
 | 041 | `041_document_chat.sql` | Document Chat: `document_conversations` + `document_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. | — |
 | 042 | `042_deep_search_conversations.sql` | Deep Search conversazionale: `deep_search_conversations` (per clausola) + `deep_search_messages` con RLS per-user + service_role. Trigger auto-update `message_count`/`updated_at`. Cleanup TTL 90gg. Stesso pattern di 041 applicato alla deep search su clausole. | — |
 | 043 | `043_lower_thresholds_and_null_audit.sql` | Lower SQL default thresholds on all 9 `match_*` RPC functions to align with TS callers (Voyage AI voyage-law-2 yields ~0.40-0.65 for Italian text). NULL embedding diagnostic per table and per law_source. Confirms `SET hnsw.ef_search = 200` on all RPCs. | — |
+| 044 | `044_analysis_feedback.sql` | Analysis feedback: `analysis_feedback` table for user ratings (1-5) and categorized feedback on completed analyses. One feedback per user per analysis. RLS per-user. | — |
+| 045 | `045_music_office.sql` | Music Office schema | — |
+| 046 | `046_rbac.sql` | RBAC: `app_role` enum type (boss/admin/operator/user), `role` column on `profiles` (default 'user'), `role_permissions` table with seeded permissions, RPC `update_user_role` (boss/admin only), RPC `get_role_permissions` and `role_has_permission`. RLS on `role_permissions`. | — |
+| 047 | `047_rbac_security_fixes.sql` | RBAC security fixes (C1): drop unrestricted UPDATE policy on profiles, create role-protected UPDATE policy, add `trg_prevent_role_self_update` trigger blocking role column changes except via service_role. | — |
+| 048 | `048_music_anonymous_access.sql` | Music anonymous access: drop NOT NULL on `music_analyses.user_id` to allow anonymous uploads/analysis (matches legal analysis pattern). | — |
+| 049 | `049_push_subscriptions.sql` | Push notification subscriptions | — |
+| 050 | `050_telegram_approval_requests.sql` | Telegram approval requests | — |
+| 051 | `051_music_trend_cache_source_check.sql` | Music trend cache source check constraint update | — |
+| 052 | `052_music_add_missing_columns.sql` | Add missing columns to music tables: `track_name` + `analysis_type` on `music_analyses`, `last_analysis_id` + `total_analyses` on `music_artist_profiles`. Fixes PGRST204 error. | — |
+| 053 | `053_company_departments.sql` | Dynamic department registry: `company_departments` table (name UNIQUE, display_name, description, mission, config JSONB, agents JSONB, runbooks JSONB, status JSONB, protected boolean). RLS: service_role full, authenticated SELECT all, INSERT/UPDATE/DELETE solo own non-protected. Seed 15 dipartimenti storici (protected=true). Prerequisito per creator custom departments. | — |
+| 054 | `054_rbac_creator.sql` | RBAC Creator role (L1): ADD VALUE 'creator' to app_role enum (between admin and operator), creator permissions (console.access, api.analyze.unlimited, departments.create/update_own/delete_own), `active` + `deactivated_at` columns on profiles, RPC `toggle_creator_active` (boss-only), updated `update_user_role` RPC. | — |
 
 ## Ordine di applicazione
 
-Eseguire le migration in ordine numerico crescente (001 → 043) sul Supabase SQL Editor.
+Eseguire le migration in ordine numerico crescente (001 → 054) sul Supabase SQL Editor.
 Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`).
 
 ## Dipendenze tra migration
@@ -103,6 +114,17 @@ Le migration sono idempotenti dove possibile (`CREATE TABLE IF NOT EXISTS`, `CRE
 041 → dipende da 001 (FK su analyses, auth.users)
 042 → dipende da 001 (FK su analyses, auth.users). Stesso pattern di 041
 043 → dipende da 003+034+035+040 (CREATE OR REPLACE su tutte le match_* RPC functions)
+044 → dipende da 001 (FK su analyses, auth.users)
+045 → indipendente (music office schema)
+046 → dipende da 001 (alter table profiles, aggiunge colonna role)
+047 → dipende da 001 + 046 (drops old UPDATE policy from 001, adds trigger using app_role from 046)
+048 → dipende da 045 (alter table music_analyses)
+049 → indipendente
+050 → indipendente
+051 → dipende da 045 (alter check constraint su music_trend_cache)
+052 → dipende da 045 (alter table music_analyses + music_artist_profiles)
+053 → indipendente (nuova tabella company_departments, FK solo a auth.users)
+054 → dipende da 046 + 047 (alter type app_role, alter table profiles, replace update_user_role)
 ```
 
 ## Storico rinumerazione

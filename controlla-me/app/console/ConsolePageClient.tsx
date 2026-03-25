@@ -548,6 +548,10 @@ export default function ConsolePageClient() {
         onTerminalToggle={() => setTerminalOpen((v) => !v)}
         onCompanyToggle={isAuthenticated ? () => { setCompanyOpen((v) => !v); setCorpusOpen(false); } : undefined}
         onPrint={() => window.print()}
+        companyOpen={companyOpen}
+        shellOpen={shellOpen}
+        terminalOpen={terminalOpen}
+        powerOpen={powerOpen}
       />
 
       {companyOpen ? (

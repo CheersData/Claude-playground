@@ -1,5 +1,5 @@
 {
-  "name": "controlla-me",
+  "name": "poimandres",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -37,6 +37,7 @@
     "react-dom": "^19.2.4",
     "recharts": "^3.7.0",
     "stripe": "^20.3.1",
+    "web-push": "^3.6.7",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -48,7 +49,8 @@
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@types/web-push": "^3.6.4",
+    "@vitest/coverage-v8": "^4.1.1",
     "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",
     "eslint": "^9",

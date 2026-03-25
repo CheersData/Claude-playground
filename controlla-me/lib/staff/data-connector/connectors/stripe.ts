@@ -348,7 +348,6 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
   /**
    * List a single page of Stripe objects by type.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async listPage(
     stripe: Stripe,
     type: SyncType,
@@ -357,6 +356,7 @@ export class StripeConnector extends BaseConnector<StripeRecord> {
       starting_after?: string;
       created?: { gte: number };
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<Stripe.ApiList<any>> {
     const listParams = {
       limit: params.limit,

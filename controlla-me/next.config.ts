@@ -19,8 +19,8 @@ const ContentSecurityPolicy = [
   "connect-src 'self' *.supabase.co *.stripe.com https://www.google-analytics.com https://analytics.google.com",
   // Frame: Stripe per 3D Secure
   "frame-src 'self' js.stripe.com",
-  // Worker: nessuno (pdf-parse gira server-side)
-  "worker-src 'none'",
+  // Worker: self (service worker PWA)
+  "worker-src 'self'",
 ].join("; ");
 
 const securityHeaders = [
@@ -68,6 +68,14 @@ const nextConfig: NextConfig = {
   // anche se una pagina fallisce il prerendering, marcandola come dynamic.
   experimental: {
     prerenderEarlyExit: false,
+    // Music upload accepts 50 MB audio files — raise the default 10 MB proxy body limit
+    proxyClientMaxBodySize: 50 * 1024 * 1024, // 50 MB
+  },
+
+  // Escludi directory Python .venv dalla scansione Turbopack
+  // (symlink .venv/bin/python causa panic Turbopack)
+  outputFileTracingExcludes: {
+    "*": ["./music/.venv/**", "./trading/.venv/**"],
   },
 
   async headers() {
@@ -88,6 +96,7 @@ const nextConfig: NextConfig = {
    * - poimandres.work/blog            → /poimandres/blog    (Blog index)
    * - poimandres.work/blog/:slug      → /poimandres/blog/:slug (Article detail)
    * - poimandres.work/console         → /console            (Console Studio — accesso diretto)
+   * - poimandres.work/music           → /music              (Ufficio Music — landing)
    * - poimandres.work/api/*           → /api/*              (API invariate)
    *
    * Per attivare: aggiungere "poimandres.work" come custom domain
@@ -138,6 +147,17 @@ const nextConfig: NextConfig = {
         {
           source: "/console",
           destination: "/console",
+          has: [{ type: "host", value: "www.poimandres.work" }],
+        },
+        // poimandres.work/music — Ufficio Music (landing)
+        {
+          source: "/music",
+          destination: "/music",
+          has: [{ type: "host", value: "poimandres.work" }],
+        },
+        {
+          source: "/music",
+          destination: "/music",
           has: [{ type: "host", value: "www.poimandres.work" }],
         },
       ],

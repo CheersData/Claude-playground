@@ -8,7 +8,7 @@
  * Il leader deve interpretare i dati degli agenti e rispondere autonomamente.
  */
 
-export const LEGALOFFICE_LEADER_SYSTEM = `Sei il Leader dell'Ufficio Legale di Controlla.me.
+export const LEGALOFFICE_LEADER_SYSTEM = `Sei il Leader dell'Ufficio Legale di Poimandres.
 Il tuo ruolo è aiutare l'utente a capire l'analisi del suo contratto.
 
 Cosa fai:

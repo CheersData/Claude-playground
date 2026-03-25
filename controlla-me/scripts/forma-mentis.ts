@@ -12,10 +12,17 @@
  *   npx tsx scripts/forma-mentis.ts remember --dept <dept> --key <key> --content <content> [--category <cat>]
  *   npx tsx scripts/forma-mentis.ts decide --title <title> --dept <dept> --description <desc> --expected <outcome> [--type <type>] [--review-days <n>]
  *   npx tsx scripts/forma-mentis.ts goals [--dept <dept>] [--status <status>]
+ *   npx tsx scripts/forma-mentis.ts goals create --title "..." --dept <dept> --type okr [--target <n>] [--desc "..."] [--deadline YYYY-MM-DD] [--metric "..."] [--unit <unit>] [--status active]
+ *   npx tsx scripts/forma-mentis.ts goals update <goalId> [--current <n>] [--desc "..."] [--source "..."]
+ *   npx tsx scripts/forma-mentis.ts goals set-status <goalId> --status <active|at_risk|achieved|missed|paused>
+ *   npx tsx scripts/forma-mentis.ts goal-create --title "..." --dept <dept> --metric "..." --target <n> [--unit <unit>] [--deadline YYYY-MM-DD] [--type okr|kpi|milestone]
+ *   npx tsx scripts/forma-mentis.ts goal-update <goalId> --value <n> --source "..."
+ *   npx tsx scripts/forma-mentis.ts goal-set-status <goalId> --status <active|at_risk|achieved|missed|paused>
  *   npx tsx scripts/forma-mentis.ts discover [--capability <cap>] [--skill <skill>] [--dept <dept>]
  *   npx tsx scripts/forma-mentis.ts session-open --type <type> --by <who>
  *   npx tsx scripts/forma-mentis.ts session-close <sessionId> --summary <summary> [--decisions '<json>'] [--files-modified file1,file2]
  *   npx tsx scripts/forma-mentis.ts search <query>
+ *   npx tsx scripts/forma-mentis.ts approve --proposal "Lancio verticale HR" [--task-id abc123] [--timeout 300000]
  */
 
 import * as dotenv from "dotenv";
@@ -40,7 +47,7 @@ import type {
   CompanySession,
   SessionDecision,
   DepartmentMemoryEntry,
-  CompanyKnowledgeEntry,
+  // CompanyKnowledgeEntry removed — unused
 } from "../lib/company/memory";
 
 // ─── Layer 2: SINAPSI ───
@@ -52,8 +59,8 @@ import {
 } from "../lib/company/sinapsi";
 
 // ─── Layer 3: COSCIENZA ───
-import { getActiveGoals } from "../lib/company/coscienza";
-import type { CompanyGoal } from "../lib/company/coscienza";
+import { getActiveGoals, createGoal, updateGoalValue, updateGoal } from "../lib/company/coscienza";
+import type { CompanyGoal, GoalStatus } from "../lib/company/coscienza";
 
 // ─── Layer 4: RIFLESSIONE ───
 import {
@@ -64,6 +71,13 @@ import type { DecisionType } from "../lib/company/riflessione";
 
 // ─── Admin client for direct queries ───
 import { createAdminClient } from "../lib/supabase/admin";
+
+// ─── Telegram Approval ───
+import {
+  sendApprovalRequest,
+  waitForApproval,
+  isTelegramConfigured as isTgConfigured,
+} from "../lib/company/telegram-approval";
 
 // ─── CLI Parsing ───
 
@@ -351,6 +365,20 @@ async function cmdDecide() {
 }
 
 async function cmdGoals() {
+  // Check for sub-commands: goals create | goals update <id> | goals set-status <id>
+  const subCommand = args[1];
+
+  if (subCommand === "create") {
+    return cmdGoalsCreate();
+  }
+  if (subCommand === "update") {
+    return cmdGoalsUpdate();
+  }
+  if (subCommand === "set-status") {
+    return cmdGoalsSetStatus();
+  }
+
+  // Default: list goals
   const dept = getFlag("dept");
   const statusFilter = getFlag("status");
 
@@ -438,6 +466,288 @@ async function cmdGoals() {
     const deptStr = g.department.padEnd(15);
     console.log(`  ${titleStr}${metricStr}${progressStr}${statusStr}${deptStr}`);
   }
+  console.log("");
+}
+
+/**
+ * goals create — Create a new goal.
+ * Usage: goals create --title "..." --dept <dept> --type okr [--target <n>] [--desc "..."] [--deadline YYYY-MM-DD] [--metric "..."] [--unit <unit>] [--status active]
+ */
+async function cmdGoalsCreate() {
+  const title = getFlag("title");
+  const dept = getFlag("dept");
+  const type = getFlag("type");
+  const targetRaw = getFlag("target");
+  const desc = getFlag("desc");
+  const deadline = getFlag("deadline");
+  const metric = getFlag("metric");
+  const unit = getFlag("unit") ?? "";
+  const status = getFlag("status") ?? "active";
+
+  if (!title || !dept || !type) {
+    console.error("Usage: goals create --title <title> --dept <dept> --type <okr|kpi|milestone> [--target <number>] [--desc \"...\"] [--deadline YYYY-MM-DD] [--metric \"...\"] [--unit <unit>] [--status active]");
+    process.exit(1);
+  }
+
+  if (!isSupabaseConfigured()) {
+    console.error("[ERRORE] Supabase non configurato.");
+    process.exit(1);
+  }
+
+  const validTypes = ["okr", "kpi", "milestone"];
+  if (!validTypes.includes(type)) {
+    console.error(`Tipo non valido: "${type}". Valori ammessi: ${validTypes.join(", ")}`);
+    process.exit(1);
+  }
+
+  const validStatuses = ["active", "at_risk", "achieved", "missed", "paused"];
+  if (!validStatuses.includes(status)) {
+    console.error(`Status non valido: "${status}". Valori ammessi: ${validStatuses.join(", ")}`);
+    process.exit(1);
+  }
+
+  const targetValue = targetRaw ? parseFloat(targetRaw) : 100;
+  if (targetRaw && isNaN(targetValue)) {
+    console.error(`Valore target non valido: "${targetRaw}". Deve essere un numero.`);
+    process.exit(1);
+  }
+
+  // Use title as metric fallback if --metric not provided
+  const goalMetric = metric ?? title;
+
+  const goal = await createGoal({
+    title,
+    description: desc,
+    department: dept,
+    metric: goalMetric,
+    targetValue,
+    unit,
+    deadline: deadline ?? undefined,
+    tags: [type],
+  });
+
+  // If status is not "active" (the default), update it
+  if (status !== "active") {
+    await updateGoal(goal.id, { status: status as GoalStatus });
+  }
+
+  console.log(`\n  Goal creato: ${goal.id}`);
+  console.log(`  Titolo: ${title}`);
+  console.log(`  Metrica: ${goalMetric} | Target: ${targetValue}${unit ? " " + unit : ""}`);
+  console.log(`  Dipartimento: ${dept} | Tipo: ${type} | Status: ${status}`);
+  if (desc) console.log(`  Descrizione: ${truncate(desc, 100)}`);
+  if (deadline) console.log(`  Deadline: ${deadline}`);
+  console.log("");
+}
+
+/**
+ * goals update — Update an existing goal's current_value and/or description.
+ * Usage: goals update <goalId> [--current <number>] [--desc "..."] [--source "..."]
+ */
+async function cmdGoalsUpdate() {
+  const goalId = args[2];
+
+  if (!goalId) {
+    console.error("Usage: goals update <goalId> [--current <number>] [--desc \"...\"] [--source \"...\"]");
+    process.exit(1);
+  }
+
+  if (!isSupabaseConfigured()) {
+    console.error("[ERRORE] Supabase non configurato.");
+    process.exit(1);
+  }
+
+  const currentRaw = getFlag("current");
+  const desc = getFlag("desc");
+  const source = getFlag("source") ?? "manual";
+
+  if (!currentRaw && !desc) {
+    console.error("Almeno uno tra --current e --desc è obbligatorio.");
+    console.error("Usage: goals update <goalId> [--current <number>] [--desc \"...\"]");
+    process.exit(1);
+  }
+
+  let currentValue: number | undefined;
+  if (currentRaw) {
+    currentValue = parseFloat(currentRaw);
+    if (isNaN(currentValue)) {
+      console.error(`Valore non valido: "${currentRaw}". Deve essere un numero.`);
+      process.exit(1);
+    }
+  }
+
+  // If updating current_value, use updateGoalValue to append to value_history
+  if (currentValue !== undefined) {
+    const updated = await updateGoalValue(goalId, currentValue, source);
+    if (!updated) {
+      console.error(`Goal "${goalId}" non trovato.`);
+      process.exit(1);
+    }
+
+    // If also updating description, do a separate updateGoal call
+    if (desc) {
+      await updateGoal(goalId, { description: desc });
+    }
+
+    const bar = progressBar(updated.currentValue, updated.targetValue);
+    console.log(`\n  Goal aggiornato: ${updated.id.slice(0, 8)}`);
+    console.log(`  Titolo: ${updated.title}`);
+    console.log(`  Valore: ${updated.currentValue}/${updated.targetValue}${updated.unit ? " " + updated.unit : ""}`);
+    console.log(`  Progresso: ${bar}`);
+    if (desc) console.log(`  Descrizione aggiornata: ${truncate(desc, 100)}`);
+    console.log("");
+  } else if (desc) {
+    // Only updating description
+    const updated = await updateGoal(goalId, { description: desc });
+    console.log(`\n  Goal aggiornato: ${updated.id.slice(0, 8)}`);
+    console.log(`  Titolo: ${updated.title}`);
+    console.log(`  Descrizione aggiornata: ${truncate(desc, 100)}`);
+    console.log("");
+  }
+}
+
+/**
+ * goals set-status — Change the status of a goal.
+ * Usage: goals set-status <goalId> --status <active|at_risk|achieved|missed|paused>
+ */
+async function cmdGoalsSetStatus() {
+  const goalId = args[2];
+  const status = getFlag("status");
+
+  if (!goalId || !status) {
+    console.error("Usage: goals set-status <goalId> --status <active|at_risk|achieved|missed|paused>");
+    process.exit(1);
+  }
+
+  if (!isSupabaseConfigured()) {
+    console.error("[ERRORE] Supabase non configurato.");
+    process.exit(1);
+  }
+
+  const validStatuses = ["active", "at_risk", "achieved", "missed", "paused"];
+  if (!validStatuses.includes(status)) {
+    console.error(`Status non valido: "${status}". Valori ammessi: ${validStatuses.join(", ")}`);
+    process.exit(1);
+  }
+
+  const updated = await updateGoal(goalId, { status: status as GoalStatus });
+
+  console.log(`\n  Goal status aggiornato: ${updated.id.slice(0, 8)}`);
+  console.log(`  Titolo: ${updated.title}`);
+  console.log(`  Nuovo status: ${status}`);
+  console.log("");
+}
+
+async function cmdGoalCreate() {
+  const title = getFlag("title");
+  const dept = getFlag("dept");
+  const metric = getFlag("metric");
+  const targetRaw = getFlag("target");
+  const unit = getFlag("unit") ?? "";
+  const deadline = getFlag("deadline");
+  const type = getFlag("type") ?? "kpi";
+
+  if (!title || !dept || !metric || !targetRaw) {
+    console.error("Usage: goal-create --title <title> --dept <dept> --metric <metric> --target <number> [--unit <unit>] [--deadline YYYY-MM-DD] [--type okr|kpi|milestone]");
+    process.exit(1);
+  }
+
+  if (!isSupabaseConfigured()) {
+    console.error("[ERRORE] Supabase non configurato.");
+    process.exit(1);
+  }
+
+  const targetValue = parseFloat(targetRaw);
+  if (isNaN(targetValue)) {
+    console.error(`Valore target non valido: "${targetRaw}". Deve essere un numero.`);
+    process.exit(1);
+  }
+
+  const validTypes = ["okr", "kpi", "milestone"];
+  if (!validTypes.includes(type)) {
+    console.error(`Tipo non valido: "${type}". Valori ammessi: ${validTypes.join(", ")}`);
+    process.exit(1);
+  }
+
+  const goal = await createGoal({
+    title,
+    department: dept,
+    metric,
+    targetValue,
+    unit,
+    deadline: deadline ?? undefined,
+    tags: [type],
+  });
+
+  console.log(`\n  Goal creato: ${goal.id}`);
+  console.log(`  Titolo: ${title}`);
+  console.log(`  Metrica: ${metric} | Target: ${targetValue}${unit ? " " + unit : ""}`);
+  console.log(`  Dipartimento: ${dept} | Tipo: ${type}`);
+  if (deadline) console.log(`  Deadline: ${deadline}`);
+  console.log("");
+}
+
+async function cmdGoalUpdate() {
+  const goalId = args[1];
+  const valueRaw = getFlag("value");
+  const source = getFlag("source");
+
+  if (!goalId || !valueRaw || !source) {
+    console.error("Usage: goal-update <goalId> --value <number> --source <source>");
+    process.exit(1);
+  }
+
+  if (!isSupabaseConfigured()) {
+    console.error("[ERRORE] Supabase non configurato.");
+    process.exit(1);
+  }
+
+  const value = parseFloat(valueRaw);
+  if (isNaN(value)) {
+    console.error(`Valore non valido: "${valueRaw}". Deve essere un numero.`);
+    process.exit(1);
+  }
+
+  const updated = await updateGoalValue(goalId, value, source);
+  if (!updated) {
+    console.error(`Goal "${goalId}" non trovato.`);
+    process.exit(1);
+  }
+
+  const bar = progressBar(updated.currentValue, updated.targetValue);
+  console.log(`\n  Goal aggiornato: ${updated.id.slice(0, 8)}`);
+  console.log(`  Titolo: ${updated.title}`);
+  console.log(`  Valore: ${updated.currentValue}/${updated.targetValue}${updated.unit ? " " + updated.unit : ""}`);
+  console.log(`  Progresso: ${bar}`);
+  console.log(`  Source: ${source}`);
+  console.log("");
+}
+
+async function cmdGoalSetStatus() {
+  const goalId = args[1];
+  const status = getFlag("status");
+
+  if (!goalId || !status) {
+    console.error("Usage: goal-set-status <goalId> --status <active|at_risk|achieved|missed|paused>");
+    process.exit(1);
+  }
+
+  if (!isSupabaseConfigured()) {
+    console.error("[ERRORE] Supabase non configurato.");
+    process.exit(1);
+  }
+
+  const validStatuses = ["active", "at_risk", "achieved", "missed", "paused"];
+  if (!validStatuses.includes(status)) {
+    console.error(`Status non valido: "${status}". Valori ammessi: ${validStatuses.join(", ")}`);
+    process.exit(1);
+  }
+
+  const updated = await updateGoal(goalId, { status: status as GoalStatus });
+
+  console.log(`\n  Goal status aggiornato: ${updated.id.slice(0, 8)}`);
+  console.log(`  Titolo: ${updated.title}`);
+  console.log(`  Nuovo status: ${status}`);
   console.log("");
 }
 
@@ -767,6 +1077,49 @@ async function cmdSearch() {
   }
 }
 
+// ─── Approve (Telegram) ───
+
+async function cmdApprove() {
+  const proposal = getFlag("proposal");
+  const taskId = getFlag("task-id");
+  const timeoutStr = getFlag("timeout");
+  const timeoutMs = timeoutStr ? parseInt(timeoutStr, 10) : 5 * 60 * 1000; // 5 min default per CLI
+
+  if (!proposal) {
+    console.error("Usage: approve --proposal <testo> [--task-id <id>] [--timeout <ms>]");
+    process.exit(1);
+  }
+
+  if (!isTgConfigured()) {
+    console.error("[ERRORE] Telegram non configurato (TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID richiesti).");
+    process.exit(1);
+  }
+
+  console.log(`\n  Invio richiesta approvazione via Telegram...`);
+  console.log(`  Proposta: ${truncate(proposal, 120)}`);
+  if (taskId) console.log(`  Task ID: ${taskId}`);
+  console.log(`  Timeout: ${Math.round(timeoutMs / 1000)}s\n`);
+
+  const messageId = await sendApprovalRequest(proposal, taskId);
+  if (messageId < 0) {
+    console.error("[ERRORE] Impossibile inviare il messaggio Telegram.");
+    process.exit(1);
+  }
+
+  console.log(`  Messaggio inviato (ID: ${messageId}). In attesa di risposta...\n`);
+
+  const result = await waitForApproval(messageId, timeoutMs);
+
+  const icons: Record<string, string> = {
+    approved: "APPROVATO",
+    rejected: "RIFIUTATO",
+    timeout: "SCADUTO (nessuna risposta)",
+  };
+
+  console.log(`  Risultato: ${icons[result]}\n`);
+  process.exit(result === "approved" ? 0 : 1);
+}
+
 // ─── Help ───
 
 function showHelp() {
@@ -789,6 +1142,27 @@ Commands:
   goals [--dept <dept>] [--status active|at_risk|achieved|missed|paused]
     Mostra i goal aziendali con progresso.
 
+  goals create --title <title> --dept <dept> --type <okr|kpi|milestone> [--target <n>] [--desc "..."] [--deadline YYYY-MM-DD] [--metric "..."] [--unit <unit>] [--status active]
+    Crea un nuovo goal aziendale.
+    Esempio: goals create --title "Sharpe ratio > 1.0" --dept trading --type kpi --target 1.0 --unit "ratio" --deadline 2026-06-01 --desc "Backtest deve superare Sharpe 1.0"
+
+  goals update <goalId> [--current <number>] [--desc "..."] [--source "..."]
+    Aggiorna current_value e/o description di un goal esistente.
+    Esempio: goals update abc12345 --current 0.975 --desc "Aggiornamento post backtest cycle 4"
+
+  goals set-status <goalId> --status <active|at_risk|achieved|missed|paused>
+    Cambia lo status di un goal.
+    Esempio: goals set-status abc12345 --status achieved
+
+  goal-create --title <title> --dept <dept> --metric <metric> --target <number> [--unit <unit>] [--deadline YYYY-MM-DD] [--type okr|kpi|milestone]
+    (Legacy) Crea un nuovo goal aziendale.
+
+  goal-update <goalId> --value <number> --source <source>
+    (Legacy) Aggiorna il valore corrente di un goal.
+
+  goal-set-status <goalId> --status <active|at_risk|achieved|missed|paused>
+    (Legacy) Cambia lo status di un goal.
+
   discover [--capability <cap>] [--skill <skill>] [--dept <dept>]
     Scopri le capability dei dipartimenti.
     Esempio: discover --capability cost-estimation
@@ -803,6 +1177,11 @@ Commands:
   search <query>
     Ricerca semantica (con VOYAGE_API_KEY) o testo semplice su tutta la memoria.
     Esempio: search "normattiva zip download failure"
+
+  approve --proposal <testo> [--task-id <id>] [--timeout <ms>]
+    Invia una richiesta di approvazione al boss via Telegram (bottoni inline).
+    Aspetta la risposta (default timeout: 5 minuti per CLI).
+    Esempio: approve --proposal "Lancio verticale HR" --task-id abc123
   `);
 }
 
@@ -826,6 +1205,18 @@ async function main() {
       await cmdGoals();
       break;
 
+    case "goal-create":
+      await cmdGoalCreate();
+      break;
+
+    case "goal-update":
+      await cmdGoalUpdate();
+      break;
+
+    case "goal-set-status":
+      await cmdGoalSetStatus();
+      break;
+
     case "discover":
       await cmdDiscover();
       break;
@@ -840,6 +1231,10 @@ async function main() {
 
     case "search":
       await cmdSearch();
+      break;
+
+    case "approve":
+      await cmdApprove();
       break;
 
     default:

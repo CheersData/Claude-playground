@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,10 @@ class SignalType(StrEnum):
     SCAN = "scan"
     TRADE = "trade"
     RISK_CHECK = "risk_check"
+
+
+# Strategy identifiers — every signal MUST declare which strategy generated it.
+TradingStrategy = Literal["conventional", "slope_volume", "crypto_slope"]
 
 
 class SignalAction(StrEnum):
@@ -44,6 +49,8 @@ class Signal(BaseModel):
 
     symbol: str
     action: SignalAction
+    strategy: TradingStrategy
+    """Which strategy generated this signal: conventional (MACD daily), slope_volume (intraday), crypto_slope."""
     confidence: float = Field(ge=0, le=1)
     score: float = Field(ge=-1, le=1)
     entry_price: float
@@ -70,6 +77,8 @@ class RiskDecision(BaseModel):
 
     symbol: str
     action: SignalAction
+    strategy: TradingStrategy | None = None
+    """Propagated from the originating Signal for end-to-end traceability."""
     status: RiskDecisionStatus
     position_size: int | None = None  # shares
     position_value: float | None = None

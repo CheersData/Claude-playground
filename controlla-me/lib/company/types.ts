@@ -1,19 +1,71 @@
 /**
  * Company Types — Tipi per il task system della virtual company.
+ *
+ * Department è ora un alias per string anziché un union type fisso.
+ * Questo consente ai creator di registrare nuovi dipartimenti a runtime
+ * senza modificare il codice sorgente.
+ *
+ * Per validazione: usare isKnownDepartment() (sync, solo hardcoded)
+ * o isValidDepartment() (async, include DB).
  */
 
-export type Department =
-  | "ufficio-legale"
-  | "trading"
-  | "data-engineering"
-  | "quality-assurance"
-  | "architecture"
-  | "finance"
-  | "operations"
-  | "security"
-  | "strategy"
-  | "marketing"
-  | "ux-ui";
+/** Dipartimenti storici hardcoded — backward compatibility */
+export const KNOWN_DEPARTMENTS = [
+  "ufficio-legale",
+  "trading",
+  "data-engineering",
+  "quality-assurance",
+  "architecture",
+  "finance",
+  "operations",
+  "security",
+  "strategy",
+  "marketing",
+  "ux-ui",
+  "protocols",
+  "acceleration",
+  "integration",
+  "music",
+] as const;
+
+/** Union type dei dipartimenti noti (backward compat) */
+export type KnownDepartment = (typeof KNOWN_DEPARTMENTS)[number];
+
+/**
+ * Department — alias per string.
+ * Accetta sia i dipartimenti noti (KnownDepartment) sia quelli registrati a runtime nel DB.
+ * Il vecchio union type è preservato come KnownDepartment per chi necessita type narrowing.
+ */
+export type Department = string;
+
+/** Verifica sincrona: il nome è un dipartimento hardcoded noto? */
+export function isKnownDepartment(name: string): name is KnownDepartment {
+  return (KNOWN_DEPARTMENTS as readonly string[]).includes(name);
+}
+
+/**
+ * Verifica asincrona: il nome è un dipartimento valido (hardcoded O registrato nel DB)?
+ * Usa Supabase solo se il nome non è tra quelli noti — zero overhead per i dipartimenti storici.
+ */
+export async function isValidDepartment(name: string): Promise<boolean> {
+  if (isKnownDepartment(name)) return true;
+
+  try {
+    // Lazy import per evitare dipendenze circolari e mantenere il file leggero
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("company_departments")
+      .select("name")
+      .eq("name", name)
+      .limit(1)
+      .single();
+    return !!data;
+  } catch {
+    // Se il DB non è raggiungibile o la tabella non esiste ancora, fallback a false
+    return false;
+  }
+}
 
 export type TaskStatus = "open" | "in_progress" | "review" | "done" | "blocked" | "on_hold";
 
@@ -89,6 +141,7 @@ export interface CreateTaskInput {
 
 export interface UpdateTaskInput {
   status?: TaskStatus;
+  priority?: TaskPriority;
   assignedTo?: string;
   resultSummary?: string;
   resultData?: Record<string, unknown>;

@@ -144,4 +144,4 @@ Ecco perché per una PMI è ancora più importante leggere e comprendere ogni cl
 
 ---
 
-*Hai un contratto di fornitura da firmare e vuoi verificare che non ci siano clausole pericolose? Carica il documento su [controlla.me](https://controlla.me): l'analisi AI identifica le clausole rischiose in meno di 2 minuti, confrontandole con il Codice Civile e la normativa commerciale. Le prime 3 analisi sono gratuite.*
+*Hai un contratto di fornitura da firmare e vuoi verificare che non ci siano clausole pericolose? Carica il documento su [Poimandres](https://poimandres.work): l'analisi AI identifica le clausole rischiose in meno di 2 minuti, confrontandole con il Codice Civile e la normativa commerciale. Le prime 3 analisi sono gratuite.*
