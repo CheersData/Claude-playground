@@ -28,6 +28,10 @@ Poimandres (pmndrs) e il collettivo open-source piu influente nell'ecosistema Re
 | **Daishi Kato (dai-shi)** | Core Maintainer | Zustand, Jotai, Valtio — trilogia state management; Waku framework |
 | **Dennis Smolek** | Core Contributor | R3F v10, Drei v11, leadership tecnica WebGPU |
 | **Bruno Simon** | Contributor & Sponsor Top | Three.js Journey, evangelizzazione ecosistema |
+| **Gianmarco Simone (gsimone)** | Core Maintainer | R3F e Drei, co-fondatore community Discord |
+| **Cody Bennett** | Core Maintainer | R3F, supporto React 19 |
+| **David Bismut (dbismut)** | Core Maintainer | use-gesture, interazione utente |
+| **Kris Baumgartner (krispya)** | Core Maintainer | R3F, visione gaming/XR |
 
 ### 2.3 Valutazione Leadership
 - **Paul Henschel:** Visionario tecnico con capacita rara di identificare gap nell'ecosistema React e creare soluzioni eleganti. Ha trasformato un esperimento personale (R3F) in uno standard de facto per il 3D web React-based.
@@ -66,6 +70,11 @@ La decisione di mantenere tre librerie di state management "concorrenti" e una d
 | **Postprocessing** | ~2.700 | N/D | Post-processing per Three.js |
 | **React Postprocessing** | ~1.300 | N/D | Wrapper React per postprocessing |
 | **Triplex** | Recente | N/D | Editor visuale 3D per R3F (open-sourced Oct 2025) |
+| **UIKit** | ~3.100 | N/D | Componenti UI WebGL-rendered per R3F (v1.0 stable) |
+| **@react-three/xr** | N/D | N/D | Supporto WebXR (VR/AR) per R3F |
+| **detect-gpu** | ~1.200 | N/D | Classificatore GPU per qualita adattiva |
+| **Koota** | ~660 | N/D | ECS-based state management per gaming/XR real-time |
+| **GLTFJSX** | ~5.700 | N/D | Converte modelli GLTF in componenti JSX |
 
 **Architettura dell'ecosistema 3D:**
 ```
@@ -74,8 +83,12 @@ Three.js (fondazione)
        ├── Drei (helpers/utilities)
        ├── React Three Rapier (fisica)
        ├── React Postprocessing (effetti)
+       ├── UIKit (UI components 3D)
+       ├── @react-three/xr (VR/AR/XR)
+       ├── Koota (ECS per gaming)
        ├── Triplex (editor visuale)
        ├── GLTFJSX (conversione modelli)
+       ├── detect-gpu (adaptive quality)
        └── React Three Native (mobile)
 ```
 
@@ -100,6 +113,18 @@ Three.js (fondazione)
 
 > *"We're building the future of the React Three ecosystem. Think: first-class WebGPU, LLM-friendly tooling, and a rearchitecture for larger, more complex 3D experiences."*
 > — pmndrs, Gennaio 2025
+
+### 4.1b Release Principali Recenti
+
+| Release | Data | Significato |
+|---------|------|-------------|
+| **Zustand v5** | Ottobre 2024 | Pulizia: drop React <18, rimozione deprecated API, bundle piu snello |
+| **UIKit 1.0** | 2025 | Milestone: vanilla Three.js come core stabile, supporto web/AR/VR/native |
+| **R3F v9.5** | 2025 | Compatibilita React 19.0-19.2, reconciler bundled |
+| **R3F v10 alpha** | 2025-2026 | WebGPU first-class, nuovo scheduler, TSL built-ins |
+| **Drei v11 alpha** | 2025-2026 | Allineato a R3F v10 |
+| **Triplex open-source** | Ottobre 2025 | Editor visuale R3F entra nel collettivo |
+| **Koota** | 2025 | ECS per gaming/XR, BigInt support, Metro compat |
 
 ### 4.2 Pilastri Strategici Futuri
 
@@ -162,6 +187,17 @@ Three.js (fondazione)
 ---
 
 ## 6. METRICHE FINANZIARIE E SOSTENIBILITA
+
+### 6.0 Metriche Community
+
+| Metrica | Valore |
+|---------|--------|
+| **GitHub Org Followers** | ~9.600 |
+| **Repository totali** | 91 |
+| **Membri Discord** | ~10.700 |
+| **Core Team (GitHub)** | 20+ |
+| **Stars combinati (top 5)** | ~148.000+ |
+| **Download combinati/sett (top 5)** | ~28M+ |
 
 ### 6.1 Dati Open Collective (Marzo 2026)
 
