@@ -52,13 +52,18 @@ Poimandres (pmndrs) e il collettivo open-source piu influente nell'ecosistema Re
 **Impatto cumulativo state management: ~33M download/settimana**
 
 #### Strategia dei Tre Paradigmi
-La decisione di mantenere tre librerie di state management "concorrenti" e una delle mosse strategiche piu brillanti di pmndrs:
+La decisione di mantenere tre librerie di state management "concorrenti" e una delle mosse strategiche piu brillanti di pmndrs. Come ha spiegato Daishi Kato: *"We generally prefer things to be small and dedicated. Instead of providing one big library, we provide multiple dedicated libraries and let users pick the ones they need."*
 
-1. **Zustand** — Per chi viene da Redux e vuole semplicita senza rinunciare al pattern store
-2. **Jotai** — Per chi preferisce composizione atomica bottom-up (modello mentale React-native)
-3. **Valtio** — Per chi vuole scrivere JavaScript "normale" con oggetti mutabili
+| Dimensione | Zustand | Jotai | Valtio |
+|------------|---------|-------|--------|
+| **Modello** | Store centralizzato (Flux) | Atomico bottom-up | Proxy mutable |
+| **Tipo state** | Module state (fuori React) | Component state (dentro React) | Module state (fuori React) |
+| **Ottimizzazione render** | Manuale (selectors) | Automatica (dependency graph) | Automatica (usage tracking) |
+| **Bundle** | ~1.1KB gzip | ~2.9KB gzip | ~3.5KB gzip |
+| **Modello mentale** | "Uno store, subscribe a slices" | "Atomi primitivi composti" | "Muta oggetti JavaScript" |
+| **Target** | Da Redux, vuole semplicita | State granulare, composizione | Da Vue/MobX, prototipazione rapida |
 
-> Tutte e tre condividono lo stesso obiettivo fondamentale: **prevenire re-render inutili**. Ma offrono modelli mentali diversi per sviluppatori diversi. Questo garantisce che pmndrs catturi l'intero spettro del mercato state management.
+> Tutte e tre condividono lo stesso obiettivo fondamentale: **prevenire re-render inutili**. Estendere Zustand per coprire tutti i paradigmi, come ha ammesso Kato, "didn't go well" per ragioni sia tecniche che non-tecniche. Ogni libreria fa una cosa in modo eccellente. Le app possono anche mescolare gli approcci — Zustand per lo state globale, Jotai per i form.
 
 ### 3.2 Pilastro 2: Ecosistema 3D Web (Il Differenziatore)
 
@@ -107,7 +112,17 @@ Three.js (fondazione)
 
 ---
 
-## 4. VISIONE STRATEGICA E ROADMAP
+## 4. FILOSOFIA TECNICA E VISIONE STRATEGICA
+
+### 4.0 Principi di Design Fondamentali
+
+Cinque principi emergono coerentemente attraverso tutti i progetti pmndrs:
+
+1. **Minimalismo e API surface ridotta** — Ogni libreria ha un'API deliberatamente piccola. Zustand si impara in 2 minuti leggendo il README.
+2. **Hooks-first, React funzionale** — Nessuna API basata su classi, nessun HOC, nessun wrapper component. Impegno totale verso React moderno.
+3. **Dichiarativo sopra imperativo** — R3F trasforma codice imperativo Three.js (`new THREE.Mesh()`) in JSX dichiarativo (`<mesh />`). Questo pattern si estende a fisica (`<RigidBody>`), post-processing (`<EffectComposer>`), GUI (`leva`).
+4. **Zero-abstraction-cost (heuristics)** — R3F non importa classi Three.js direttamente. Usa euristiche per mappare dinamicamente tag JSX a costruttori Three.js a runtime. Questo significa **zero accoppiamento** a versioni specifiche di Three.js.
+5. **Accessibilita di domini complessi** — Rendere accessibili a tutti segmenti tradizionalmente difficili: WebGL/3D, fisica real-time, animazioni physics-based, state management scalabile.
 
 ### 4.1 Direzione Dichiarata (2025-2026)
 
@@ -165,7 +180,7 @@ Three.js (fondazione)
 | Metrica | Zustand (pmndrs) | Redux Toolkit | MobX | Recoil (Meta) |
 |---------|-----------------|---------------|------|---------------|
 | Download/sett. | ~28.7M | ~16.7M | ~3.2M | ~465K (in declino) |
-| Bundle size | ~1.2KB | ~11KB+ | ~16KB | ~20KB |
+| Bundle size (gzip) | ~1.1KB | ~43KB | ~16KB | ~14KB |
 | Boilerplate | Minimale | Strutturato | Medio | Medio |
 | Trend 2026 | Forte crescita | Declino relativo | Stabile | In abbandono |
 | DevTools | Via middleware | Eccellenti | Buoni | Limitati |
@@ -274,7 +289,8 @@ Three.js (fondazione)
 - **Meta/Vercel competition** — Se Meta o Vercel creassero soluzioni ufficiali integrate
 - **Framework shift** — Ascesa di Svelte, Solid, o Vue potrebbe erodere la base React
 - **Three.js disruption** — Se Three.js cambiasse drasticamente architettura o licenza
-- **Recoil 2.0 / Signal-based state** — Nuovi paradigmi di state management (Signals) potrebbero marginalizzare l'approccio hooks-based
+- **Signals (proposti per React, gia in Angular/Solid/Preact)** — Nuovo paradigma di reattivita che potrebbe marginalizzare approcci proxy-based e atom-based
+- **React Server Components** — Lo shift verso RSC potrebbe ridurre la rilevanza del client-side state management
 - **Fragmentazione interna** — Troppi progetti per pochi maintainer
 
 ---
@@ -327,17 +343,21 @@ Animation: React Spring / Motion
 
 ### 9.1 Innovazioni Pionieristiche
 
-1. **React Reconciler per Three.js** — R3F ha dimostrato che il reconciler React puo gestire scene graph 3D, creando un paradigma completamente nuovo
-2. **Proxy-based State Management** — Valtio ha pionerato l'uso di `Proxy` per reattivita trasparente in React
-3. **Atomic State in React** — Jotai ha introdotto il pattern atomico bottom-up come alternativa a store centralizzati
-4. **Zero-boilerplate Store** — Zustand ha dimostrato che lo state management puo essere semplice come una funzione
-5. **Spring Physics Animation** — React Spring ha portato animazioni basate sulla fisica nel mainstream React
-6. **Declarative 3D** — La possibilita di scrivere `<mesh><boxGeometry /><meshStandardMaterial /></mesh>` ha abbassato la barriera d'ingresso al 3D web di ordini di grandezza
+1. **Custom React Reconciler per 3D** — R3F e stato uno dei primi usi ad alto profilo di `react-reconciler` fuori da react-dom/react-native. L'innovazione chiave: mappatura dinamica JSX→costruttori via euristiche, rendendo R3F **version-agnostic** rispetto a Three.js
+2. **Proxy-based State con Snapshot Immutabili** — Valtio ha pionerato il pattern di usare ES6 Proxy per codice mutabile che produce automaticamente snapshot immutabili per React. La tecnica "state usage tracking" rileva quali proprieta un componente legge effettivamente
+3. **Transient State Subscriptions** — Zustand ha introdotto il pattern di sottoscrizione a cambiamenti di stato **fuori dal ciclo di render React** per aggiornamenti ad alta frequenza (60fps), evitando `setState` e re-render
+4. **Atomic State Bottom-up** — Jotai ha introdotto atomi senza string keys (usa riferimenti oggetto), eliminando problemi di naming collision di Recoil e memory leak noti
+5. **Spring Physics Animation** — React Spring modella animazioni come molle fisiche con massa, tensione e frizione, producendo movimento piu naturale e gestendo interruzioni con grazia
+6. **Declarative 3D + Physics** — `<mesh><boxGeometry /><meshStandardMaterial /></mesh>` + `<RigidBody><CuboidCollider /></RigidBody>` hanno abbassato la barriera d'ingresso al 3D web e alla fisica real-time di ordini di grandezza
+7. **ECS in React** — Miniplex/Koota portano il pattern Entity Component System dai game engine nel modello a componenti React
 
 ### 9.2 Influenza sull'Ecosistema React
-- Ha **legittimato** le custom hooks come pattern principale per state management
-- Ha reso le **micro-librerie** preferibili ai framework monolitici
-- Ha dimostrato il valore dei **bundle minimali** (Zustand ~1.2KB vs Redux ~11KB)
+- Ha **legittimato** le custom hooks come pattern principale per state management, spostando l'intero ecosistema verso soluzioni leggere
+- Ha **popularizzato i custom React reconciler** — R3F ha dimostrato che il reconciler e uno strumento general-purpose, ispirando react-native-skia, Ink (terminal UI), e altri
+- Ha **stabilito pattern per aggiornamenti ad alta frequenza** in React — le transient subscriptions di Zustand e il principio "never call setState in useFrame" di R3F sono ora best practice
+- Ha **portato la reattivita proxy-based** nel mondo React funzionale con Valtio
+- Ha **creato la categoria "3D dichiarativo in React"** — prima di R3F, fare 3D in React significava escape hatch imperativi
+- Ha dimostrato il valore dei **bundle minimali** (Zustand ~1.1KB vs Redux Toolkit ~43KB gzipped)
 - Ha creato il template per **collettivi open-source** come modello organizzativo
 
 ---
