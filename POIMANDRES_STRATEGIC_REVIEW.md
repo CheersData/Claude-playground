@@ -7,7 +7,7 @@
 
 ## 1. EXECUTIVE SUMMARY
 
-Poimandres (pmndrs) e il collettivo open-source piu influente nell'ecosistema React per quanto riguarda state management, 3D web e tooling creativo. Fondato nel 2017 da **Paul Henschel (drcmda)**, il collettivo gestisce oltre 90 repository su GitHub, con un impatto cumulativo stimato di **oltre 28 milioni di download settimanali npm** e un totale di **oltre 170.000 GitHub stars** attraverso i suoi progetti principali. Ha ridefinito il modo in cui gli sviluppatori React gestiscono lo stato applicativo e costruiscono esperienze 3D web.
+Poimandres (pmndrs) e il collettivo open-source piu influente nell'ecosistema React per quanto riguarda state management, 3D web e tooling creativo. Fondato nel 2017 da **Paul Henschel (drcmda)**, il collettivo gestisce oltre 90 repository su GitHub, con un impatto cumulativo stimato di **oltre 40 milioni di download settimanali npm** e un totale di **oltre 185.000 GitHub stars** attraverso i suoi progetti principali. Ha ridefinito il modo in cui gli sviluppatori React gestiscono lo stato applicativo e costruiscono esperienze 3D web.
 
 ---
 
@@ -45,11 +45,11 @@ Poimandres (pmndrs) e il collettivo open-source piu influente nell'ecosistema Re
 
 | Progetto | Stars | Download/settimana | Paradigma | Posizionamento |
 |----------|-------|-------------------|-----------|----------------|
-| **Zustand** | ~57.200 | ~24.5M | Store centralizzato con hooks | Sostituto di Redux. Leader di mercato 2026 |
-| **Jotai** | ~20.700 | ~2.3M | Atomic state (bottom-up) | Alternativa a Recoil. State granulare |
-| **Valtio** | ~10.100 | ~1.2M | Proxy-based mutable state | Alternativa a MobX. Semplicita JavaScript nativo |
+| **Zustand** | ~57.500 | ~28.7M | Store centralizzato con hooks | Sostituto di Redux. Leader di mercato 2026 |
+| **Jotai** | ~21.100 | ~3.3M | Atomic state (bottom-up) | Alternativa a Recoil. State granulare |
+| **Valtio** | ~10.150 | ~1.2M | Proxy-based mutable state | Alternativa a MobX. Semplicita JavaScript nativo |
 
-**Impatto cumulativo state management: ~28M download/settimana**
+**Impatto cumulativo state management: ~33M download/settimana**
 
 #### Strategia dei Tre Paradigmi
 La decisione di mantenere tre librerie di state management "concorrenti" e una delle mosse strategiche piu brillanti di pmndrs:
@@ -64,11 +64,11 @@ La decisione di mantenere tre librerie di state management "concorrenti" e una d
 
 | Progetto | Stars | Download/settimana | Funzione |
 |----------|-------|-------------------|----------|
-| **React Three Fiber** | ~30.400 | ~700K | Renderer React per Three.js |
-| **Drei** | ~9.500 | ~2M | Helpers e abstrazioni per R3F |
-| **React Three Rapier** | ~1.300 | ~73K | Motore fisico WASM (Rapier) |
+| **React Three Fiber** | ~30.400 | ~3.5M | Renderer React per Three.js |
+| **Drei** | ~9.500 | ~3.1M | Helpers e abstrazioni per R3F |
+| **React Three Rapier** | ~1.300 | ~159K | Motore fisico WASM (Rapier) |
 | **Postprocessing** | ~2.700 | N/D | Post-processing per Three.js |
-| **React Postprocessing** | ~1.300 | N/D | Wrapper React per postprocessing |
+| **React Postprocessing** | ~1.300 | ~603K | Wrapper React per postprocessing |
 | **Triplex** | Recente | N/D | Editor visuale 3D per R3F (open-sourced Oct 2025) |
 | **UIKit** | ~3.100 | N/D | Componenti UI WebGL-rendered per R3F (v1.0 stable) |
 | **@react-three/xr** | N/D | N/D | Supporto WebXR (VR/AR) per R3F |
@@ -96,9 +96,9 @@ Three.js (fondazione)
 
 | Progetto | Stars | Download | Funzione |
 |----------|-------|----------|----------|
-| **React Spring** | ~29.100 | ~3.6M/mese | Animazioni physics-based |
-| **use-gesture** | ~9.600 | N/D | Gesture handler (mouse/touch) |
-| **Leva** | ~5.800 | ~221K/settimana | GUI per tweaking parametri |
+| **React Spring** | ~29.100 | ~2.5M/settimana | Animazioni physics-based |
+| **use-gesture** | ~9.600 | ~1.4-2.9M/settimana | Gesture handler (mouse/touch) |
+| **Leva** | ~5.900 | ~230K/settimana | GUI per tweaking parametri |
 
 ### 3.4 Progetti Emergenti e Sperimentali
 - **Waku** — Framework React minimale per RSC (React Server Components), creato da Daishi Kato
@@ -164,11 +164,16 @@ Three.js (fondazione)
 
 | Metrica | Zustand (pmndrs) | Redux Toolkit | MobX | Recoil (Meta) |
 |---------|-----------------|---------------|------|---------------|
-| Download/sett. | ~24.5M | ~10M | ~3M | ~500K (stagnante) |
+| Download/sett. | ~28.7M | ~16.7M | ~3.2M | ~465K (in declino) |
 | Bundle size | ~1.2KB | ~11KB+ | ~16KB | ~20KB |
 | Boilerplate | Minimale | Strutturato | Medio | Medio |
 | Trend 2026 | Forte crescita | Declino relativo | Stabile | In abbandono |
 | DevTools | Via middleware | Eccellenti | Buoni | Limitati |
+
+**State of React 2025 Survey (3.760 rispondenti):**
+- Zustand e **#1 in soddisfazione sviluppatori** nel state management
+- Attrae il **21% della community React**
+- I principali pain points citati — complessita (20%) e boilerplate (15%) — sono esattamente cio che Zustand elimina
 
 **Verdetto:** Zustand e il **nuovo default** per il state management React. Redux mantiene rilevanza solo in contesti enterprise legacy con team 10+ e necessita di time-travel debugging.
 
@@ -196,8 +201,8 @@ Three.js (fondazione)
 | **Repository totali** | 91 |
 | **Membri Discord** | ~10.700 |
 | **Core Team (GitHub)** | 20+ |
-| **Stars combinati (top 5)** | ~148.000+ |
-| **Download combinati/sett (top 5)** | ~28M+ |
+| **Stars combinati (tutti i progetti)** | ~185.000+ |
+| **Download combinati/sett (ecosistema)** | ~40M+ |
 
 ### 6.1 Dati Open Collective (Marzo 2026)
 
@@ -229,7 +234,7 @@ Three.js (fondazione)
 
 > **Il finanziamento e drammaticamente insufficiente rispetto all'impatto.**
 
-- **Budget annuale: ~$7.600** per un ecosistema che serve **28+ milioni di download settimanali**
+- **Budget annuale: ~$7.600** per un ecosistema che serve **40+ milioni di download settimanali**
 - Per confronto: un singolo sviluppatore senior in US costa $150K-250K/anno
 - Il valore economico generato dall'ecosistema pmndrs e stimabile in **miliardi di dollari** di produttivita
 - Solo 38 contributori finanziari per un ecosistema usato da centinaia di migliaia di sviluppatori
@@ -280,10 +285,14 @@ Three.js (fondazione)
 - **Vercel** — Sponsor e utilizzatore
 - **Flux.ai** — Sponsor principale ($6,140)
 - **Sanity** — Sponsor
-- **Zillow** — Utilizzo R3F
+- **Zillow** — Utilizzo R3F per visualizzazione immobiliare
 - **Devolver Digital** — Utilizzo R3F per gaming
 - **GrabCAD** — Utilizzo R3F per visualizzazione 3D
-- **Numerose agenzie creative** — Ueno, e molte altre non divulgabili
+- **Ready Player Me** — Utilizzo R3F per avatar 3D
+- **Formidable** — Utilizzo ecosistema pmndrs
+- **~120 aziende** tracciate su TheirStack.com come utilizzatrici di R3F
+- **Numerose agenzie creative** — Ueno, e molte altre non divulgabili per NDA
+- **ThoughtWorks Technology Radar** — Ha inserito Jotai e Zustand nella categoria "Assess" (raccomandato per valutazione enterprise)
 
 ### 8.2 Settori di Adozione
 - **E-commerce:** Configuratori prodotto 3D (scarpe, mobili, auto)
@@ -302,6 +311,15 @@ Client State: Zustand
 3D/Visual: React Three Fiber + Drei
 Animation: React Spring / Motion
 ```
+
+### 8.4 Controversie e Rischi Noti
+1. **Zustand v4.5.5 breaking change** — Modifica al persist middleware che ha rotto app React Native in produzione (revertita in v4.5.6)
+2. **Zustand v5 "nessuna nuova feature"** — Major version che ha solo rimosso API deprecate, sorprendendo gli utenti
+3. **Regressione TypeScript v5.0.9** — Inference dei middleware rotta, errori di compilazione su codice funzionante
+4. **use-gesture potenzialmente under-maintained** — Ultimo rilascio oltre un anno fa
+5. **Documentazione giudicata insufficiente** — Riconosciuto dallo stesso Daishi Kato
+
+> Nessuna di queste controversie ha rallentato materialmente l'adozione. Sono tipiche di progetti OSS in rapida crescita.
 
 ---
 
@@ -345,7 +363,7 @@ Animation: React Spring / Motion
 
 **La visione strategica e eccezionale:** la scommessa simultanea su WebGPU, LLM-friendly tooling, gaming web e spatial computing posiziona il collettivo al centro delle prossime tre grandi transizioni tecnologiche del web.
 
-**Il rischio principale e la sostenibilita:** un ecosistema da 28+ milioni di download settimanali che opera con $7.600/anno di budget e una manciata di maintainer volontari e strutturalmente fragile. Qualsiasi strategia di coinvolgimento con pmndrs dovrebbe considerare seriamente la possibilita di contribuire finanziariamente alla sua sostenibilita.
+**Il rischio principale e la sostenibilita:** un ecosistema da 40+ milioni di download settimanali che opera con $7.600/anno di budget e una manciata di maintainer volontari e strutturalmente fragile. Qualsiasi strategia di coinvolgimento con pmndrs dovrebbe considerare seriamente la possibilita di contribuire finanziariamente alla sua sostenibilita.
 
 ---
 
