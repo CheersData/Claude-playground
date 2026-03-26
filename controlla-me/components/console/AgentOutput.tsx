@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { ConsoleAgentPhase, ConsolePhaseStatus } from "@/lib/types";
 
 // ─── Types ───
@@ -46,6 +46,7 @@ const RUNNING_MESSAGES: Record<ConsoleAgentPhase, string> = {
 
 function StatusDot({ status }: { status: string }) {
   const isRunning = status === "running";
+  const prefersReducedMotion = useReducedMotion();
   const colorClass = {
     running: "bg-emerald-500",
     done: "bg-[var(--foreground)]",
@@ -57,7 +58,7 @@ function StatusDot({ status }: { status: string }) {
     <span className="relative inline-flex w-[7px] h-[7px]" aria-hidden="true">
       {/* Pulse ring — only when running */}
       <AnimatePresence>
-        {isRunning && (
+        {isRunning && !prefersReducedMotion && (
           <motion.span
             className="absolute inset-0 rounded-full bg-emerald-500"
             initial={{ scale: 1, opacity: 0.5 }}
@@ -76,12 +77,12 @@ function StatusDot({ status }: { status: string }) {
       <motion.span
         className={`relative block w-[7px] h-[7px] rounded-full ${colorClass}`}
         animate={
-          isRunning
+          isRunning && !prefersReducedMotion
             ? { scale: [1, 1.2, 1], opacity: [1, 0.85, 1] }
             : { scale: 1, opacity: 1 }
         }
         transition={
-          isRunning
+          isRunning && !prefersReducedMotion
             ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" }
             : { duration: 0.3 }
         }

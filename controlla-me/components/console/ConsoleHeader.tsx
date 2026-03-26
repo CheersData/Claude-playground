@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Activity, Cpu, MemoryStick } from "lucide-react";
 
 interface ConsoleHeaderProps {
@@ -106,6 +106,7 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
   }[status];
 
   const isAnimating = status === "processing" || status === "clarification";
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <header className="flex items-center justify-between px-4 py-3 md:px-8 md:py-5 border-b border-[var(--border)] gap-3">
@@ -222,12 +223,12 @@ export default function ConsoleHeader({ status, userName, corpusActive, onCorpus
             className={`w-2 h-2 rounded-full ${statusDotColor[status]}`}
             aria-hidden="true"
             animate={
-              isAnimating
+              isAnimating && !prefersReducedMotion
                 ? { scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }
                 : { scale: 1, opacity: 1 }
             }
             transition={
-              isAnimating
+              isAnimating && !prefersReducedMotion
                 ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" }
                 : { duration: 0.3 }
             }

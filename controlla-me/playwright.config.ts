@@ -47,7 +47,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm run dev",
+    // In CI: reuse the production build started via `npm run start` (faster, no recompilation).
+    // Locally: spin up the dev server if none is already running.
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -394,6 +394,17 @@ npx tsx scripts/company-tasks.ts done <id> --summary "..."
 
 **Nota su `exec`**: il comando `exec` carica il contesto del dipartimento (department.md, runbook, identity card del leader). Serve per dare al dipartimento tutto il contesto necessario per eseguire. Il dipartimento esegue il lavoro — CME non esegue mai.
 
+## Model Routing per Sub-Agent
+
+**Quando lanci sub-agent, specifica SEMPRE il modello.** Non ereditare opus di default.
+
+Regola rapida:
+- **Explore agent** (ricerca, lettura) → `model="haiku"`
+- **general-purpose** (coding, task) → `model="sonnet"`
+- **Plan agent** (architettura) → `model="opus"`
+
+Policy completa: `company/protocols/policies/model-routing-policy.md`
+
 ## Build in produzione (VPS)**REGOLA NON NEGOZIABILE**: su VPS (poimandres.work), MAI eseguire `npm run build` direttamente.Il build sovrascrive la directory `.next/` mentre Next.js serve da quella stessa directory, causando crash del server.**Comando corretto:**```bashbash scripts/safe-build.sh```Questo script:1. Esegue `npm run build`2. Se il build ha successo, riavvia PM2 (`pm2 restart controlla-me --update-env`)3. Il server riparte con il nuovo build senza downtimeSe un dipartimento ha bisogno di buildare (es. dopo modifiche a codice), DEVE usare `bash scripts/safe-build.sh`.
 ## CLI Daily Standup
 

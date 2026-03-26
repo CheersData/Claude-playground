@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { motion, AnimatePresence, useInView } from "framer-motion";
+import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
 import { Search, ChevronRight, X } from "lucide-react";
 
 // ─── Types ───
@@ -98,10 +98,16 @@ function findArticleInTree(nodes: TreeNode[], articleId: string): TreeNode[] | n
 function PanelCount({ value, suffix }: { value: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true });
+  const prefersReducedMotion = useReducedMotion();
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
     if (!isInView) return;
+    // Skip animation when user prefers reduced motion — show final value immediately
+    if (prefersReducedMotion) {
+      setDisplay(value);
+      return;
+    }
     const start = performance.now();
     function tick(now: number) {
       const t = Math.min((now - start) / 1000, 1);
@@ -109,7 +115,7 @@ function PanelCount({ value, suffix }: { value: number; suffix?: string }) {
       if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-  }, [isInView, value]);
+  }, [isInView, value, prefersReducedMotion]);
 
   return (
     <span ref={ref} className="tabular-nums">
@@ -401,6 +407,7 @@ export default function CorpusTreePanel({ open, onClose, focusArticleId }: Corpu
   }, []);
 
   const totalArticles = sources.reduce((sum, s) => sum + s.article_count, 0);
+  const prefersReducedMotion = useReducedMotion();
 
   if (!open) return null;
 
@@ -538,10 +545,10 @@ export default function CorpusTreePanel({ open, onClose, focusArticleId }: Corpu
               {columns.map((col, i) => (
                 <motion.div
                   key={`col-${i}-${col.label}`}
-                  initial={{ opacity: 0, x: 30 }}
+                  initial={{ opacity: 0, x: prefersReducedMotion ? 0 : 30 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  exit={{ opacity: 0, x: prefersReducedMotion ? 0 : -20 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
                   className="shrink-0"
                 >
                   <HierarchyColumn
@@ -966,9 +973,10 @@ function ArticlePreview({ article, loading }: {
   article: ArticleDetail | null;
   loading: boolean;
 }) {
+  const prefersReducedMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={{ opacity: prefersReducedMotion ? 1 : 0 }}
       animate={{ opacity: 1 }}
       className="flex-1 min-w-[calc(100vw-2px)] md:min-w-[320px] snap-start flex flex-col min-h-0 bg-[var(--surface)]"
       role="region"

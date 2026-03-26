@@ -1887,3 +1887,46 @@ Plenaria → nuovi task (open) → daemon genera "smaltimento"
 5. Check decisioni pending review
 6. Segui la `cmeDirective` (smaltimento / audit / plenaria / misto)
 7. Reporta al boss con contesto arricchito
+
+---
+
+## 22. MODEL ROUTING PER SUB-AGENT
+
+> Policy completa: `company/protocols/policies/model-routing-policy.md`
+
+### Regola fondamentale
+
+Il parametro `model` negli Agent tool calls determina quale modello usa il sub-agent. **Default: sonnet** (NON opus).
+
+### Matrice rapida
+
+| Operazione | Modello | Esempio |
+|-----------|---------|---------|
+| Ricerca codebase, grep, lettura file | **haiku** | `Agent(subagent_type="Explore", model="haiku")` |
+| Implementazione codice, bug fix, test | **sonnet** | `Agent(subagent_type="general-purpose", model="sonnet")` |
+| Design architetturale, review cross-dept | **opus** | `Agent(subagent_type="Plan", model="opus")` |
+
+### Regole operative
+
+1. **DEFAULT sonnet** — se non sai quale usare, usa sonnet
+2. **ESCALATION** — se sonnet non basta, ri-lancia con opus
+3. **DOWNGRADE** — batch di N ricerche identiche → tutti haiku
+4. **PARALLELO** — N agent di ricerca in parallelo → tutti haiku
+5. **MAI haiku per**: scrittura codice, decisioni, review
+6. **MAI opus per**: ricerche semplici, lettura file, grep
+
+### Esempio pratico
+
+```
+❌ SPRECO — opus per ricerca
+Agent(subagent_type="Explore", prompt="cerca pattern X")  # eredita opus
+
+✅ CORRETTO — haiku per ricerca
+Agent(subagent_type="Explore", model="haiku", prompt="cerca pattern X")
+
+✅ CORRETTO — sonnet per implementazione
+Agent(subagent_type="general-purpose", model="sonnet", prompt="implementa feature Y")
+
+✅ CORRETTO — opus per design
+Agent(subagent_type="Plan", model="opus", prompt="progetta architettura Z")
+```

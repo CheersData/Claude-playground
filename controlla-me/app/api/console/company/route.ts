@@ -361,31 +361,13 @@ export async function POST(req: Request) {
                     result: event.result,
                   });
 
-                  // Auto-continuation: ALWAYS continue UNLESS CME explicitly signals
-                  // it's waiting for the boss. This inverts the old fragile approach
-                  // (matching Italian verbs for pending work) with a robust opt-out:
-                  // continue by default, stop only on explicit completion phrases.
-                  const resultText = typeof event.result === "string" ? event.result : "";
-                  // Only match explicit "waiting for boss" / "nothing to do" phrases
-                  const isWaitingForBoss = /su cosa vuoi|aspetto.*(?:go|ok|boss|ordini|istruzioni)|in attesa|dimmi cosa|a tua disposizione|board.*vuoto.*0 open/i.test(resultText);
-                  // Empty result = tools were used (Agent/Bash) → always continue
-                  const shouldContinue = !isWaitingForBoss && turnCount < MAX_AUTO_TURNS;
-
-                  if (shouldContinue) {
-                    send("debug", { type: "auto-continue", msg: `Turn ${turnCount}: continuing (not waiting for boss)`, ts: Date.now() });
-                    const followUp = JSON.stringify({
-                      type: "user",
-                      message: {
-                        role: "user",
-                        content: [{ type: "text", text: "Procedi. Esegui i task che hai pianificato. Completa il ciclo: routing → esecuzione dipartimento → done → feedback. Non fermarti." }],
-                      },
-                    });
-                    try { child.stdin.write(followUp + "\n"); } catch { /* stdin closed */ }
-                  } else if (turnCount >= MAX_AUTO_TURNS) {
-                    send("debug", { type: "auto-continue", msg: `Max turns (${MAX_AUTO_TURNS}) reached, stopping`, ts: Date.now() });
-                  } else {
-                    send("debug", { type: "auto-continue", msg: `Turn ${turnCount}: waiting for boss (explicit stop detected)`, ts: Date.now() });
-                  }
+                  // Auto-continuation DISABLED (2026-03-26)
+                  // Previously: auto-injected "Procedi..." as user message when CME wasn't
+                  // explicitly waiting. This caused the boss to see phantom messages they
+                  // never typed, leading to unauthorized code execution.
+                  // Now: every turn stops and waits for the boss to send the next message.
+                  // The boss controls the pace. Follow-up messages come from the frontend.
+                  send("debug", { type: "turn-complete", msg: `Turn ${turnCount}: complete — waiting for boss input`, ts: Date.now() });
                   break;
                 }
 

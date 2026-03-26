@@ -13,6 +13,10 @@ jobs:
     env:
       CONSOLE_JWT_SECRET: ci-test-secret-minimum-32-characters-long
       CRON_SECRET: ci-test-cron-secret-minimum-32-characters-long
+      # Dummy Supabase values: required for Next.js to start without crashing.
+      # The E2E tests mock all API calls and do not hit the real database.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.placeholder
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +52,11 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # E2E tests are a REQUIRED gate: this step has no continue-on-error and no
+      # conditional skip. If any Playwright test fails, the entire CI job fails and
+      # the PR cannot be merged (enforced via branch protection required status check).
+      # The webServer in playwright.config.ts uses `npm run start` in CI, reusing the
+      # production build produced by the Build step above.
       - name: E2E tests
         run: npx playwright test --project=chromium
 

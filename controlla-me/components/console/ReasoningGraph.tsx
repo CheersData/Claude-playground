@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 interface ReasoningGraphProps {
   institutes: string[];
@@ -34,10 +34,12 @@ export default function ReasoningGraph({
   questionType,
   phase,
 }: ReasoningGraphProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   if (phase === "idle" || institutes.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-[#F0F0F0] px-4 py-3">
+    <div className="rounded-xl border border-[#F0F0F0] px-4 py-3" role="region" aria-label="Istituti giuridici rilevati">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] text-[#595959] tracking-[2px] uppercase font-medium">
           Istituti rilevati
@@ -56,9 +58,9 @@ export default function ReasoningGraph({
             return (
               <motion.span
                 key={inst}
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.25, delay: i * 0.06 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25, delay: i * 0.06 }}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border"
                 style={{
                   color,
@@ -82,7 +84,7 @@ export default function ReasoningGraph({
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.3, delay: 0.3 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3, delay: 0.3 }}
           className="mt-2 pt-2 border-t border-[#F0F0F0]"
         >
           <div className="flex flex-wrap gap-1.5">

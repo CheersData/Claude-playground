@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, GraduationCap, Briefcase, Crown, Coins } from "lucide-react";
 
 // ─── Types ───
@@ -83,6 +83,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
   const [switching, setSwitching] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   // SEC-004: legge il token HMAC da sessionStorage per autenticare le chiamate
   const getAuthHeaders = (): HeadersInit => {
@@ -214,10 +215,10 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
 
       {/* Panel */}
       <motion.aside
-        initial={{ x: "100%" }}
+        initial={{ x: prefersReducedMotion ? 0 : "100%" }}
         animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
+        exit={{ x: prefersReducedMotion ? 0 : "100%" }}
+        transition={prefersReducedMotion ? { duration: 0 } : { type: "tween", duration: 0.3, ease: "easeOut" }}
         className="relative w-[480px] max-w-full sm:max-w-[90vw] h-full bg-[var(--surface)] flex flex-col shadow-2xl"
         role="dialog"
         aria-modal="true"
@@ -295,7 +296,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                               tier === "associate" ? "bg-blue-500" : "bg-amber-500"
                             }`}
                             aria-hidden="true"
-                            animate={{
+                            animate={prefersReducedMotion ? {} : {
                               boxShadow: [
                                 `0 0 0px 0px ${tier === "intern" ? "rgba(16,185,129,0.5)" : tier === "associate" ? "rgba(59,130,246,0.5)" : "rgba(245,158,11,0.5)"}`,
                                 `0 0 6px 3px ${tier === "intern" ? "rgba(16,185,129,0.35)" : tier === "associate" ? "rgba(59,130,246,0.35)" : "rgba(245,158,11,0.35)"}`,
@@ -303,7 +304,7 @@ export default function PowerPanel({ open, onClose }: PowerPanelProps) {
                               ],
                               scale: [1, 1.15, 1],
                             }}
-                            transition={{
+                            transition={prefersReducedMotion ? { layout: { type: "spring", stiffness: 300, damping: 25 } } : {
                               boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                               scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                               layout: { type: "spring", stiffness: 300, damping: 25 },
@@ -380,15 +381,16 @@ function AgentRow({ agent, info, index, onToggle }: {
   onToggle: (agent: string, enabled: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
   const label = AGENT_LABELS[agent] ?? { name: agent, description: "" };
   const activeEntry = info.chain[info.activeIndex];
   const enabled = info.enabled;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03 }}
+      transition={prefersReducedMotion ? { duration: 0 } : { delay: index * 0.03 }}
       className={`rounded-xl border border-[var(--border-subtle)] overflow-hidden transition-opacity ${
         enabled ? "" : "opacity-50"
       }`}
@@ -424,7 +426,7 @@ function AgentRow({ agent, info, index, onToggle }: {
 
           <motion.svg
             animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
             className="w-3.5 h-3.5 text-[var(--foreground-secondary)] shrink-0"
             viewBox="0 0 24 24"
             fill="none"
@@ -449,7 +451,7 @@ function AgentRow({ agent, info, index, onToggle }: {
           <motion.div
             className="absolute top-[2px] w-5 h-5 rounded-full bg-white shadow-sm"
             animate={{ left: enabled ? 22 : 2 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 30 }}
           />
         </button>
       </div>
@@ -460,7 +462,7 @@ function AgentRow({ agent, info, index, onToggle }: {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
             className="overflow-hidden"
           >
             <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-[var(--border-subtle)]">
